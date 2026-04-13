@@ -32,7 +32,10 @@ import { schemaConsistencyRule } from "./rules/schema/consistency.js";
 import { titleOverlapRule } from "./rules/cannibal/title-overlap.js";
 import { keywordCollisionRule } from "./rules/cannibal/keyword-collision.js";
 import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
-import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, RuleResult, Severity } from "./types.js";
+import { templateCoverageRule } from "./rules/spam/template-coverage.js";
+import { classifyPages, isRuleEnabled } from "./page-classifier.js";
+import { RULE_REFERENCES } from "./rule-references.js";
+import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -47,7 +50,8 @@ const DEFAULTS = {
   hubPagesMinSiblings: 4,
   hubPagesMaxSiblings: 50,
   titleOverlapThreshold: 0.8,
-  keywordCollisionMinShared: 6
+  keywordCollisionMinShared: 6,
+  templateCoverageMinPages: 5
 } as const;
 
 const CATEGORY_WEIGHTS = {
@@ -69,6 +73,194 @@ const DEFAULT_ENTITY_PATTERNS: EntityMaskPattern[] = [
   },
   { placeholder: "[ZIP]", pattern: /\b\d{5}\b/g }
 ];
+
+function resolveGroupRules(
+  baseRules: Record<string, unknown>,
+  overrides?: Record<string, Record<string, unknown>>
+): Record<string, unknown> {
+  if (!overrides) return baseRules;
+  const result = { ...baseRules };
+  for (const [, values] of Object.entries(overrides)) {
+    for (const [key, value] of Object.entries(values)) {
+      if (key in result) {
+        (result as Record<string, unknown>)[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
+function runRulesOnPages(
+  pages: ParsedPage[],
+  resolvedRules: {
+    nearDuplicateThreshold: number;
+    entitySwapThreshold: number;
+    thinContentMinWords: number;
+    publicationVelocityMaxPerDay: number;
+    boilerplateMaxRatio: number;
+    templateDiversityMinUniqueRatio: number;
+    uniqueValueMinWords: number;
+    metaUniquenessMinJaccard: number;
+    linkDepthMaxClicks: number;
+    hubPagesMinSiblings: number;
+    hubPagesMaxSiblings: number;
+    titleOverlapThreshold: number;
+    keywordCollisionMinShared: number;
+    templateCoverageMinPages: number;
+  },
+  isEnabled: (ruleId: string) => boolean,
+  groupName: string,
+  knownUrls: Set<string>,
+  adjacency: Map<string, Set<string>>,
+  inbound: Map<string, number>,
+  rootUrl: string,
+  normalizeUrlOptions: NormalizeUrlOptions,
+  source: string,
+  entityPatterns: EntityMaskPattern[]
+): RuleResult[] {
+  const findings: RuleResult[] = [];
+
+  const tag = (results: RuleResult[]): RuleResult[] =>
+    results.map((r) => ({
+      ...r,
+      group: groupName === "__default" ? undefined : groupName,
+      ref: r.ref ?? RULE_REFERENCES[r.ruleId],
+    }));
+
+  // Spam rules — always compute cross-page data, only push findings if enabled
+  const nearDuplicate = nearDuplicateRule(pages, resolvedRules.nearDuplicateThreshold);
+  if (isEnabled("spam/near-duplicate")) {
+    findings.push(...tag(nearDuplicate.findings));
+  }
+
+  const entitySwap = entitySwapRule(pages, entityPatterns, resolvedRules.entitySwapThreshold);
+  if (isEnabled("spam/entity-swap")) {
+    findings.push(...tag(entitySwap.findings));
+  }
+
+  const thinContent = thinContentRule(pages, resolvedRules.thinContentMinWords);
+  if (isEnabled("spam/thin-content")) {
+    findings.push(...tag(thinContent.findings));
+  }
+
+  if (isEnabled("spam/doorway-pattern")) {
+    findings.push(...tag(doorwayPatternRule(nearDuplicate.pairs, entitySwap.pairs, thinContent.thinContentUrls, pages)));
+  }
+
+  if (isEnabled("spam/publication-velocity")) {
+    findings.push(...tag(publicationVelocityRule(pages, resolvedRules.publicationVelocityMaxPerDay)));
+  }
+
+  if (isEnabled("spam/boilerplate-ratio")) {
+    findings.push(...tag(boilerplateRatioRule(pages, resolvedRules.boilerplateMaxRatio)));
+  }
+
+  if (isEnabled("spam/template-diversity")) {
+    findings.push(...tag(templateDiversityRule(pages, resolvedRules.templateDiversityMinUniqueRatio)));
+  }
+
+  if (isEnabled("spam/template-coverage")) {
+    findings.push(...tag(templateCoverageRule(pages, entityPatterns, resolvedRules.templateCoverageMinPages)));
+  }
+
+  // Content rules
+  if (isEnabled("content/unique-value")) {
+    findings.push(...tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
+  }
+
+  if (isEnabled("content/heading-uniqueness")) {
+    findings.push(...tag(headingUniquenessRule(pages, entityPatterns)));
+  }
+
+  if (isEnabled("content/meta-uniqueness")) {
+    findings.push(...tag(metaUniquenessRule(pages, entityPatterns, resolvedRules.metaUniquenessMinJaccard)));
+  }
+
+  if (isEnabled("content/missing-author")) {
+    findings.push(...tag(missingAuthorRule(pages)));
+  }
+
+  if (isEnabled("content/eeat-signals")) {
+    findings.push(...tag(eeatSignalsRule(pages)));
+  }
+
+  // Link rules — use the global link graph
+  if (isEnabled("links/orphan-pages")) {
+    findings.push(...tag(orphanPagesRule(pages, inbound, rootUrl)));
+  }
+
+  if (isEnabled("links/dead-ends")) {
+    findings.push(...tag(deadEndsRule(pages, knownUrls, rootUrl)));
+  }
+
+  if (isEnabled("links/link-depth")) {
+    if (rootUrl) {
+      findings.push(...tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound)));
+    }
+  }
+
+  if (isEnabled("links/cluster-connectivity")) {
+    findings.push(...tag(clusterConnectivityRule(pages, knownUrls)));
+  }
+
+  if (isEnabled("links/hub-pages")) {
+    findings.push(...tag(hubPagesRule(pages, knownUrls, resolvedRules.hubPagesMinSiblings, resolvedRules.hubPagesMaxSiblings)));
+  }
+
+  // Tech rules
+  if (isEnabled("tech/canonical-consistency")) {
+    findings.push(...tag(canonicalConsistencyRule(pages, knownUrls, normalizeUrlOptions)));
+  }
+
+  if (isEnabled("tech/canonical-noindex-conflict")) {
+    findings.push(...tag(canonicalNoindexConflictRule(pages, normalizeUrlOptions)));
+  }
+
+  if (isEnabled("tech/robots-noindex-conflict")) {
+    findings.push(...tag(robotsNoindexConflictRule(pages, inbound)));
+  }
+
+  if (isEnabled("tech/robots-sitemap-presence")) {
+    // This is async and site-wide — run only for __default group to avoid duplication
+    // It's handled separately in auditSource
+  }
+
+  if (isEnabled("tech/og-completeness")) {
+    findings.push(...tag(ogCompletenessRule(pages)));
+  }
+
+  if (isEnabled("tech/hreflang-consistency")) {
+    findings.push(...tag(hreflangConsistencyRule(pages, normalizeUrlOptions)));
+  }
+
+  // Schema rules
+  if (isEnabled("schema/json-ld-valid")) {
+    findings.push(...tag(jsonLdValidRule(pages)));
+  }
+
+  if (isEnabled("schema/required-fields")) {
+    findings.push(...tag(requiredFieldsRule(pages)));
+  }
+
+  if (isEnabled("schema/consistency")) {
+    findings.push(...tag(schemaConsistencyRule(pages)));
+  }
+
+  // Cannibal rules
+  if (isEnabled("cannibal/title-overlap")) {
+    findings.push(...tag(titleOverlapRule(pages, entityPatterns, resolvedRules.titleOverlapThreshold)));
+  }
+
+  if (isEnabled("cannibal/keyword-collision")) {
+    findings.push(...tag(keywordCollisionRule(pages, resolvedRules.keywordCollisionMinShared)));
+  }
+
+  if (isEnabled("cannibal/url-pattern")) {
+    findings.push(...tag(urlPatternRule(pages)));
+  }
+
+  return findings;
+}
 
 interface LoadedPage {
   url: string;
@@ -371,7 +563,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     hubPagesMinSiblings: options?.rules?.hubPagesMinSiblings ?? DEFAULTS.hubPagesMinSiblings,
     hubPagesMaxSiblings: options?.rules?.hubPagesMaxSiblings ?? DEFAULTS.hubPagesMaxSiblings,
     titleOverlapThreshold: options?.rules?.titleOverlapThreshold ?? DEFAULTS.titleOverlapThreshold,
-    keywordCollisionMinShared: options?.rules?.keywordCollisionMinShared ?? DEFAULTS.keywordCollisionMinShared
+    keywordCollisionMinShared: options?.rules?.keywordCollisionMinShared ?? DEFAULTS.keywordCollisionMinShared,
+    templateCoverageMinPages: options?.rules?.templateCoverageMinPages ?? DEFAULTS.templateCoverageMinPages
   };
 
   const normalizeUrlOptions = mergeNormalizeUrlOptions({
@@ -429,118 +622,49 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  const nearDuplicate = nearDuplicateRule(parsedPages, resolvedRules.nearDuplicateThreshold);
-  const entitySwap = entitySwapRule(
-    parsedPages,
-    DEFAULT_ENTITY_PATTERNS,
-    resolvedRules.entitySwapThreshold
-  );
-  const thinContent = thinContentRule(parsedPages, resolvedRules.thinContentMinWords);
-  const doorwayPattern = doorwayPatternRule(
-    nearDuplicate.pairs,
-    entitySwap.pairs,
-    thinContent.thinContentUrls,
-    parsedPages
-  );
-  const publicationVelocity = publicationVelocityRule(
-    parsedPages,
-    resolvedRules.publicationVelocityMaxPerDay
-  );
-  const boilerplateRatio = boilerplateRatioRule(parsedPages, resolvedRules.boilerplateMaxRatio);
-  const templateDiversity = templateDiversityRule(
-    parsedPages,
-    resolvedRules.templateDiversityMinUniqueRatio
-  );
-  const uniqueValue = uniqueValueRule(parsedPages, resolvedRules.uniqueValueMinWords);
-  const headingUniqueness = headingUniquenessRule(parsedPages, DEFAULT_ENTITY_PATTERNS);
-  const metaUniqueness = metaUniquenessRule(
-    parsedPages,
-    DEFAULT_ENTITY_PATTERNS,
-    resolvedRules.metaUniquenessMinJaccard
-  );
-  const orphanPages = orphanPagesRule(parsedPages, inbound, rootUrl);
-  const deadEnds = deadEndsRule(parsedPages, knownUrls, rootUrl);
-  const linkDepth = rootUrl
-    ? linkDepthRule(
-        parsedPages,
-        adjacency,
-        rootUrl,
-        resolvedRules.linkDepthMaxClicks,
-        inbound
-      )
-    : [];
-  const clusterConnectivity = clusterConnectivityRule(parsedPages, knownUrls);
-  const hubPages = hubPagesRule(
-    parsedPages,
-    knownUrls,
-    resolvedRules.hubPagesMinSiblings,
-    resolvedRules.hubPagesMaxSiblings
-  );
-  const canonicalConsistency = canonicalConsistencyRule(
-    parsedPages,
-    knownUrls,
-    normalizeUrlOptions
-  );
-  const canonicalNoindexConflict = canonicalNoindexConflictRule(parsedPages, normalizeUrlOptions);
-  const robotsNoindexConflict = robotsNoindexConflictRule(parsedPages, inbound);
+  // Classify pages into groups and run only enabled rules per group
+  const classified = classifyPages(parsedPages, options?.pageGroups);
+  const allFindings: RuleResult[] = [...duplicateUrlFindings];
+  const groupScores: Record<string, number> = {};
+  const groupPageCounts: Record<string, number> = {};
+
+  // robots-sitemap-presence is site-wide and async; run once
   const robotsSitemapPresence = await robotsSitemapPresenceRule(source);
-  const ogCompleteness = ogCompletenessRule(parsedPages);
-  const missingAuthor = missingAuthorRule(parsedPages);
-  const eeatSignals = eeatSignalsRule(parsedPages);
-  const hreflangConsistency = hreflangConsistencyRule(parsedPages, normalizeUrlOptions);
-  const jsonLdValid = jsonLdValidRule(parsedPages);
-  const requiredFields = requiredFieldsRule(parsedPages);
-  const schemaConsistency = schemaConsistencyRule(parsedPages);
-  const titleOverlap = titleOverlapRule(
-    parsedPages,
-    DEFAULT_ENTITY_PATTERNS,
-    resolvedRules.titleOverlapThreshold
-  );
-  const keywordCollision = keywordCollisionRule(
-    parsedPages,
-    resolvedRules.keywordCollisionMinShared
-  );
-  const urlPattern = urlPatternRule(parsedPages);
+  allFindings.push(...robotsSitemapPresence);
 
-  const findings = [
-    ...duplicateUrlFindings,
-    ...nearDuplicate.findings,
-    ...entitySwap.findings,
-    ...thinContent.findings,
-    ...doorwayPattern,
-    ...publicationVelocity,
-    ...boilerplateRatio,
-    ...templateDiversity,
-    ...uniqueValue,
-    ...headingUniqueness,
-    ...metaUniqueness,
-    ...orphanPages,
-    ...deadEnds,
-    ...linkDepth,
-    ...clusterConnectivity,
-    ...hubPages,
-    ...canonicalConsistency,
-    ...canonicalNoindexConflict,
-    ...robotsNoindexConflict,
-    ...robotsSitemapPresence,
-    ...ogCompleteness,
-    ...missingAuthor,
-    ...eeatSignals,
-    ...hreflangConsistency,
-    ...jsonLdValid,
-    ...requiredFields,
-    ...schemaConsistency,
-    ...titleOverlap,
-    ...keywordCollision,
-    ...urlPattern
-  ];
+  for (const [groupName, groupPages] of classified) {
+    if (groupPages.length === 0) continue;
 
-  const { score, categoryScores } = scoreFromFindings(findings);
+    const groupConfig = groupName === "__default" ? undefined : options?.pageGroups?.[groupName];
+    if (groupConfig?.rules !== undefined && groupConfig.rules.length === 0) continue;
+
+    const groupRules = resolveGroupRules(
+      resolvedRules as unknown as Record<string, unknown>,
+      groupConfig?.overrides
+    ) as typeof resolvedRules;
+    const enabledCheck = (ruleId: string) => isRuleEnabled(ruleId, groupConfig?.rules);
+
+    const findings = runRulesOnPages(
+      groupPages, groupRules, enabledCheck, groupName,
+      knownUrls, adjacency, inbound, rootUrl,
+      normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS
+    );
+
+    allFindings.push(...findings);
+    groupPageCounts[groupName] = groupPages.length;
+    const { score } = scoreFromFindings(findings);
+    groupScores[groupName] = score;
+  }
+
+  const { score, categoryScores } = scoreFromFindings(allFindings);
+  const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   return {
     score,
     categoryScores,
-    pageCount: parsedPages.length,
-    findings
+    groupScores: options?.pageGroups ? groupScores : undefined,
+    groupPageCounts: options?.pageGroups ? groupPageCounts : undefined,
+    pageCount: auditedPageCount || parsedPages.length,
+    findings: allFindings
   };
 }

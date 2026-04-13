@@ -412,4 +412,46 @@ describe("auditSource", () => {
     const summary = await auditSource("https://example.dev/page");
     expect(summary.findings.some((f) => f.ruleId === "tech/robots-sitemap-presence")).toBe(true);
   });
+
+  test("respects pageGroups to scope rules per group", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-groups-"));
+    tempDirs.push(dir);
+
+    const pseoDir = join(dir, "templates");
+    await mkdir(pseoDir, { recursive: true });
+
+    await writeFile(
+      join(pseoDir, "ca-llc.html"),
+      `<html><body><h1>CA LLC</h1><p>short</p></body></html>`,
+      "utf-8"
+    );
+
+    await writeFile(
+      join(dir, "about.html"),
+      `<html><body><h1>About Us</h1><p>We are great.</p></body></html>`,
+      "utf-8"
+    );
+
+    const summary = await auditSource(dir, {
+      pageGroups: {
+        pseo: { match: "**/templates/**", rules: ["spam/*", "content/*", "tech/*"] },
+        marketing: { match: "**/about*", rules: ["tech/*"] },
+      }
+    });
+
+    expect(summary.pageCount).toBeGreaterThanOrEqual(2);
+
+    const pseoThin = summary.findings.filter(
+      (f) => f.ruleId === "spam/thin-content" && f.message.includes("templates")
+    );
+    expect(pseoThin.length).toBeGreaterThanOrEqual(1);
+
+    const marketingSpam = summary.findings.filter(
+      (f) => f.ruleId.startsWith("spam/") && (f.pageUrl?.includes("about") || f.message.includes("about"))
+    );
+    expect(marketingSpam.length).toBe(0);
+
+    expect(summary.groupScores).toBeDefined();
+    expect(summary.groupPageCounts).toBeDefined();
+  });
 });
