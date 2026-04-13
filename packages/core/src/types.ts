@@ -56,6 +56,8 @@ export interface AuditOptions {
     hubPagesMinSiblings?: number;
     /** Skip hub/index checks when a directory has more than this many pages (e.g. large blogs). */
     hubPagesMaxSiblings?: number;
+    titleOverlapThreshold?: number;
+    keywordCollisionMinShared?: number;
   };
 }
 

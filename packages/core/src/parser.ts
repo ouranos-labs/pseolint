@@ -58,7 +58,7 @@ function resolveAbsoluteHrefs(
     .map((href) => href.trim())
     .filter(Boolean)
     .filter((href) => !href.startsWith("#"))
-    .filter((href) => !/^mailto:|^tel:/i.test(href))
+    .filter((href) => !/^mailto:|^tel:|^javascript:|^data:/i.test(href))
     .map((href) => resolveHref(href, pageUrl, normalizeOpts))
     .filter((x): x is string => x !== null);
 

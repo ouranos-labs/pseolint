@@ -2,7 +2,7 @@ import type { ParsedPage, RuleResult } from "../../types.js";
 import type { PairMatch } from "./near-duplicate.js";
 
 function pairKey(left: string, right: string): string {
-  return [left, right].sort().join("::");
+  return left < right ? `${left}\0${right}` : `${right}\0${left}`;
 }
 
 export function doorwayPatternRule(
@@ -27,7 +27,8 @@ export function doorwayPatternRule(
       continue;
     }
 
-    const [left, right] = key.split("::");
+    const left = pair.leftUrl < pair.rightUrl ? pair.leftUrl : pair.rightUrl;
+    const right = pair.leftUrl < pair.rightUrl ? pair.rightUrl : pair.leftUrl;
     const signals: string[] = ["near-duplicate", "entity-swap"];
 
     const isThin = thinContentUrls.has(left) || thinContentUrls.has(right);

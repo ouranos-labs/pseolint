@@ -3,8 +3,10 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { parseHtmlPage } from "./parser.js";
 import { mergeNormalizeUrlOptions, normalizeAuditUrl } from "./url-normalize.js";
+import { eeatSignalsRule } from "./rules/content/eeat-signals.js";
 import { headingUniquenessRule } from "./rules/content/heading-uniqueness.js";
 import { metaUniquenessRule } from "./rules/content/meta-uniqueness.js";
+import { missingAuthorRule } from "./rules/content/missing-author.js";
 import { uniqueValueRule } from "./rules/content/unique-value.js";
 import { boilerplateRatioRule } from "./rules/spam/boilerplate-ratio.js";
 import { doorwayPatternRule } from "./rules/spam/doorway-pattern.js";
@@ -24,6 +26,12 @@ import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
 import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
 import { robotsSitemapPresenceRule } from "./rules/tech/robots-sitemap-presence.js";
+import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
+import { requiredFieldsRule } from "./rules/schema/required-fields.js";
+import { schemaConsistencyRule } from "./rules/schema/consistency.js";
+import { titleOverlapRule } from "./rules/cannibal/title-overlap.js";
+import { keywordCollisionRule } from "./rules/cannibal/keyword-collision.js";
+import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
 import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, RuleResult, Severity } from "./types.js";
 
 const DEFAULTS = {
@@ -37,7 +45,9 @@ const DEFAULTS = {
   metaUniquenessMinJaccard: 0.9,
   linkDepthMaxClicks: 3,
   hubPagesMinSiblings: 4,
-  hubPagesMaxSiblings: 50
+  hubPagesMaxSiblings: 50,
+  titleOverlapThreshold: 0.8,
+  keywordCollisionMinShared: 6
 } as const;
 
 const CATEGORY_WEIGHTS = {
@@ -136,85 +146,118 @@ async function collectHtmlFiles(directory: string): Promise<string[]> {
   return files.flat();
 }
 
-async function loadPagesFromSource(source: string): Promise<LoadedPage[]> {
-  const fetchText = async (url: string): Promise<{ text: string; contentType: string }> => {
+const DEFAULT_CONCURRENCY = 5;
+
+async function fetchWithRetry(
+  url: string
+): Promise<{ text: string; contentType: string } | null> {
+  try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new Error(`Failed to fetch source: ${response.status} ${response.statusText}`);
+      return null;
     }
     return {
       text: await response.text(),
       contentType: response.headers.get("content-type")?.toLowerCase() ?? ""
     };
-  };
+  } catch {
+    return null;
+  }
+}
 
-  const parseSitemapUrls = (xml: string): string[] => {
-    const matches = Array.from(xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi));
-    return matches.map((match) => match[1]).filter(Boolean);
+async function fetchTextStrict(url: string): Promise<{ text: string; contentType: string }> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch source: ${response.status} ${response.statusText}`);
+  }
+  return {
+    text: await response.text(),
+    contentType: response.headers.get("content-type")?.toLowerCase() ?? ""
   };
+}
 
-  const looksLikeSitemap = (text: string): boolean => {
-    const lowered = text.toLowerCase();
-    return lowered.includes("<urlset") || lowered.includes("<sitemapindex");
-  };
-
-  const looksLikeHtml = (text: string): boolean => {
-    const lowered = text.toLowerCase();
-    return lowered.includes("<html") || lowered.includes("<body") || lowered.includes("<!doctype html");
-  };
-
-  const isSitemapIndex = (text: string): boolean => {
-    return text.toLowerCase().includes("<sitemapindex");
-  };
-
-  const loadFromSitemap = async (sitemapUrl: string, visited: Set<string>): Promise<LoadedPage[]> => {
-    if (visited.has(sitemapUrl)) {
-      return [];
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<unknown>
+): Promise<void> {
+  let index = 0;
+  async function next(): Promise<void> {
+    while (index < items.length) {
+      const current = index;
+      index += 1;
+      await fn(items[current]);
     }
-    visited.add(sitemapUrl);
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => next());
+  await Promise.all(workers);
+}
 
-    const { text, contentType } = await fetchText(sitemapUrl);
-    const xmlLike = contentType.includes("xml") || looksLikeSitemap(text);
-    if (!xmlLike) {
-      return [];
-    }
+function parseSitemapUrls(xml: string): string[] {
+  const matches = Array.from(xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi));
+  return matches.map((match) => match[1]).filter(Boolean);
+}
 
-    const locs = parseSitemapUrls(text);
-    if (isSitemapIndex(text)) {
-      const nested = await Promise.all(locs.map((loc) => loadFromSitemap(loc, visited)));
-      return nested.flat();
-    }
+function looksLikeSitemap(text: string): boolean {
+  const lowered = text.toLowerCase();
+  return lowered.includes("<urlset") || lowered.includes("<sitemapindex");
+}
 
-    const pages = await Promise.all(
-      locs.map(async (url) => {
-        const page = await fetchText(url);
-        return { url, html: page.text };
-      })
-    );
-    return pages;
-  };
+function looksLikeHtml(text: string): boolean {
+  const lowered = text.toLowerCase();
+  return lowered.includes("<html") || lowered.includes("<body") || lowered.includes("<!doctype html");
+}
 
+function isSitemapIndex(text: string): boolean {
+  return text.toLowerCase().includes("<sitemapindex");
+}
+
+async function collectUrlsFromSitemap(
+  sitemapText: string,
+  sitemapUrl: string,
+  visited: Set<string>
+): Promise<string[]> {
+  visited.add(sitemapUrl);
+  const locs = parseSitemapUrls(sitemapText);
+
+  if (!isSitemapIndex(sitemapText)) {
+    return locs;
+  }
+
+  const allUrls: string[] = [];
+  for (const childUrl of locs) {
+    if (visited.has(childUrl)) continue;
+    const child = await fetchWithRetry(childUrl);
+    if (!child) continue;
+    const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
+    if (!childLike) continue;
+    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited);
+    allUrls.push(...childUrls);
+  }
+  return allUrls;
+}
+
+async function loadPagesFromSource(source: string): Promise<LoadedPage[]> {
   if (/^https?:\/\//i.test(source)) {
-    const { text, contentType } = await fetchText(source);
+    const { text, contentType } = await fetchTextStrict(source);
 
     const isXml = contentType.includes("xml");
-    const isHtml = contentType.includes("html");
 
     if (isXml || looksLikeSitemap(text)) {
-      if (isSitemapIndex(text)) {
-        return loadFromSitemap(source, new Set<string>());
-      }
+      const visited = new Set<string>();
+      const urls = await collectUrlsFromSitemap(text, source, visited);
 
-      const urls = parseSitemapUrls(text);
-      return Promise.all(
-        urls.map(async (url) => {
-          const page = await fetchText(url);
-          return { url, html: page.text };
-        })
-      );
+      const pages: LoadedPage[] = [];
+      await runWithConcurrency(urls, DEFAULT_CONCURRENCY, async (url) => {
+        const result = await fetchWithRetry(url);
+        if (result) {
+          pages.push({ url, html: result.text });
+        }
+      });
+      return pages;
     }
 
-    if (isHtml || looksLikeHtml(text)) {
+    if (contentType.includes("html") || looksLikeHtml(text)) {
       return [{ url: source, html: text }];
     }
 
@@ -262,7 +305,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       options?.rules?.metaUniquenessMinJaccard ?? DEFAULTS.metaUniquenessMinJaccard,
     linkDepthMaxClicks: options?.rules?.linkDepthMaxClicks ?? DEFAULTS.linkDepthMaxClicks,
     hubPagesMinSiblings: options?.rules?.hubPagesMinSiblings ?? DEFAULTS.hubPagesMinSiblings,
-    hubPagesMaxSiblings: options?.rules?.hubPagesMaxSiblings ?? DEFAULTS.hubPagesMaxSiblings
+    hubPagesMaxSiblings: options?.rules?.hubPagesMaxSiblings ?? DEFAULTS.hubPagesMaxSiblings,
+    titleOverlapThreshold: options?.rules?.titleOverlapThreshold ?? DEFAULTS.titleOverlapThreshold,
+    keywordCollisionMinShared: options?.rules?.keywordCollisionMinShared ?? DEFAULTS.keywordCollisionMinShared
   };
 
   const normalizeUrlOptions = mergeNormalizeUrlOptions({
@@ -368,7 +413,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const robotsNoindexConflict = robotsNoindexConflictRule(parsedPages, inbound);
   const robotsSitemapPresence = await robotsSitemapPresenceRule(source);
   const ogCompleteness = ogCompletenessRule(parsedPages);
+  const missingAuthor = missingAuthorRule(parsedPages);
+  const eeatSignals = eeatSignalsRule(parsedPages);
   const hreflangConsistency = hreflangConsistencyRule(parsedPages, normalizeUrlOptions);
+  const jsonLdValid = jsonLdValidRule(parsedPages);
+  const requiredFields = requiredFieldsRule(parsedPages);
+  const schemaConsistency = schemaConsistencyRule(parsedPages);
+  const titleOverlap = titleOverlapRule(
+    parsedPages,
+    DEFAULT_ENTITY_PATTERNS,
+    resolvedRules.titleOverlapThreshold
+  );
+  const keywordCollision = keywordCollisionRule(
+    parsedPages,
+    resolvedRules.keywordCollisionMinShared
+  );
+  const urlPattern = urlPatternRule(parsedPages);
 
   const findings = [
     ...duplicateUrlFindings,
@@ -392,7 +452,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     ...robotsNoindexConflict,
     ...robotsSitemapPresence,
     ...ogCompleteness,
-    ...hreflangConsistency
+    ...missingAuthor,
+    ...eeatSignals,
+    ...hreflangConsistency,
+    ...jsonLdValid,
+    ...requiredFields,
+    ...schemaConsistency,
+    ...titleOverlap,
+    ...keywordCollision,
+    ...urlPattern
   ];
 
   const { score, categoryScores } = scoreFromFindings(findings);

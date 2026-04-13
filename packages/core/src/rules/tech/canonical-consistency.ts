@@ -34,7 +34,7 @@ export function canonicalConsistencyRule(
     if (!page.canonical) {
       findings.push({
         ruleId: "tech/canonical-consistency",
-        severity: "warning",
+        severity: "error",
         message: `${page.url} is missing a canonical URL.`,
         pageUrl: page.url
       });
@@ -45,7 +45,7 @@ export function canonicalConsistencyRule(
     if (!canonicalUrl) {
       findings.push({
         ruleId: "tech/canonical-consistency",
-        severity: "warning",
+        severity: "error",
         message: `${page.url} has an invalid canonical URL: ${page.canonical}.`,
         pageUrl: page.url
       });

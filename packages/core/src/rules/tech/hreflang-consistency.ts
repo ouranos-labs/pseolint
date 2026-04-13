@@ -7,6 +7,8 @@ export function hreflangConsistencyRule(
 ): RuleResult[] {
   const findings: RuleResult[] = [];
 
+  const hreflangMap = new Map<string, Map<string, string>>();
+
   for (const page of pages) {
     if (page.hreflangs.length === 0) {
       continue;
@@ -50,7 +52,10 @@ export function hreflangConsistencyRule(
         continue;
       }
 
-      normalizeAuditUrl(entry.href, normalizeOpts);
+      const normalizedHref = normalizeAuditUrl(entry.href, normalizeOpts);
+      const pageRefs = hreflangMap.get(page.url) ?? new Map<string, string>();
+      pageRefs.set(lang, normalizedHref);
+      hreflangMap.set(page.url, pageRefs);
     }
 
     if (!hasXDefault) {
@@ -60,6 +65,41 @@ export function hreflangConsistencyRule(
         message: `${page.url} has hreflang annotations but no x-default entry.`,
         pageUrl: page.url
       });
+    }
+  }
+
+  const checkedPairs = new Set<string>();
+  for (const [pageUrl, refs] of hreflangMap) {
+    for (const [lang, targetUrl] of refs) {
+      if (lang === "x-default") continue;
+      if (targetUrl === pageUrl) continue;
+
+      const pairKey = [pageUrl, targetUrl].sort().join("||");
+      if (checkedPairs.has(pairKey)) continue;
+      checkedPairs.add(pairKey);
+
+      const targetRefs = hreflangMap.get(targetUrl);
+      if (!targetRefs) {
+        findings.push({
+          ruleId: "tech/hreflang-consistency",
+          severity: "warning",
+          message: `${pageUrl} declares hreflang ${lang} pointing to ${targetUrl}, but that page has no hreflang annotations back.`,
+          pageUrl,
+          relatedUrls: [targetUrl]
+        });
+        continue;
+      }
+
+      const reciprocal = Array.from(targetRefs.values()).some((href) => href === pageUrl);
+      if (!reciprocal) {
+        findings.push({
+          ruleId: "tech/hreflang-consistency",
+          severity: "warning",
+          message: `${pageUrl} declares hreflang ${lang} to ${targetUrl}, but ${targetUrl} does not link back.`,
+          pageUrl,
+          relatedUrls: [targetUrl]
+        });
+      }
     }
   }
 

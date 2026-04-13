@@ -18,6 +18,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@pseolint/core": "workspace:*"
+    "@pseolint/core": "workspace:*",
+    "commander": "^14.0.3",
+    "cosmiconfig": "^9.0.1",
+    "zod": "^4.3.6"
   }
 }
