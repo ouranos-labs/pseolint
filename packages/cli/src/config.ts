@@ -29,10 +29,10 @@ const auditOptionsSchema = z.object({
   timeout: z.number().optional(),
   sampleSize: z.number().optional(),
   ignore: z.array(z.string()).optional(),
-  pageGroups: z.record(z.object({
+  pageGroups: z.record(z.string(), z.object({
     match: z.union([z.string(), z.array(z.string())]),
     rules: z.array(z.string()).optional(),
-    overrides: z.record(z.record(z.unknown())).optional(),
+    overrides: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
   })).optional(),
   render: z.object({
     browserWsEndpoint: z.string().optional(),
@@ -48,7 +48,7 @@ export async function loadConfig(): Promise<AuditOptions> {
   }
 
   const parsed = auditOptionsSchema.parse(result.config);
-  return parsed;
+  return parsed as AuditOptions;
 }
 
 export interface CliFlags {
