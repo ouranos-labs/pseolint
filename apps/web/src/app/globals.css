@@ -1,0 +1,15 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 900px;
+  margin: 4rem auto;
+  padding: 0 1rem;
+}

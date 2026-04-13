@@ -1,0 +1,28 @@
+{
+  "name": "pseolint-monorepo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "pSEO Lint monorepo",
+  "packageManager": "bun@1.2.13",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "latest",
+    "@types/node": "latest",
+    "turbo": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

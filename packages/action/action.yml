@@ -1,0 +1,15 @@
+name: "pSEO Lint"
+description: "Run pseolint against your generated site output."
+inputs:
+  source:
+    description: "Build output directory or sitemap URL"
+    required: true
+  threshold:
+    description: "Fail threshold for SpamBrain score"
+    required: false
+  token:
+    description: "Optional hosted platform token"
+    required: false
+runs:
+  using: "node20"
+  main: "dist/index.js"

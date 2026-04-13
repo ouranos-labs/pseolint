@@ -1,0 +1,56 @@
+import { normalize } from "node:path";
+import type { NormalizeUrlOptions } from "./types.js";
+
+const DEFAULTS: Required<NormalizeUrlOptions> = {
+  stripQuery: true,
+  stripWwwHost: false
+};
+
+export function mergeNormalizeUrlOptions(options?: NormalizeUrlOptions): Required<NormalizeUrlOptions> {
+  return {
+    stripQuery: options?.stripQuery ?? DEFAULTS.stripQuery,
+    stripWwwHost: options?.stripWwwHost ?? DEFAULTS.stripWwwHost
+  };
+}
+
+/**
+ * Stable URL/path identity for audits: deduping crawl entries and matching edges.
+ * HTTP(S): lowercase host, strip fragment, optional query strip, optional `www.` strip,
+ * drop default ports, trim trailing slash on non-root paths.
+ * Filesystem: Node path.normalize.
+ */
+export function normalizeAuditUrl(url: string, options?: NormalizeUrlOptions): string {
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (/^https?:\/\//i.test(trimmed)) {
+    return normalizeHttpUrl(trimmed, mergeNormalizeUrlOptions(options));
+  }
+  return normalize(trimmed);
+}
+
+function normalizeHttpUrl(url: string, opts: Required<NormalizeUrlOptions>): string {
+  const u = new URL(url);
+  u.hash = "";
+  if (opts.stripQuery) {
+    u.search = "";
+  }
+  let hostname = u.hostname.toLowerCase();
+  if (opts.stripWwwHost && hostname.startsWith("www.")) {
+    hostname = hostname.slice(4);
+  }
+  u.hostname = hostname;
+  if (u.protocol === "http:" && u.port === "80") {
+    u.port = "";
+  }
+  if (u.protocol === "https:" && u.port === "443") {
+    u.port = "";
+  }
+  let pathname = u.pathname;
+  if (pathname.length > 1 && pathname.endsWith("/")) {
+    pathname = pathname.slice(0, -1);
+  }
+  u.pathname = pathname || "/";
+  return u.href;
+}
