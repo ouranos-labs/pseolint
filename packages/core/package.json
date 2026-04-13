@@ -23,5 +23,13 @@
   },
   "dependencies": {
     "cheerio": "^1.2.0"
+  },
+  "peerDependencies": {
+    "playwright-core": ">=1.40.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
   }
 }
