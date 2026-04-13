@@ -59,6 +59,14 @@ export interface AuditOptions {
     titleOverlapThreshold?: number;
     keywordCollisionMinShared?: number;
   };
+  /** Max parallel HTTP fetches when auditing a remote sitemap (default: 5). */
+  concurrency?: number;
+  /** Per-request timeout in milliseconds (default: 30000). */
+  timeout?: number;
+  /** Audit a random subset of N pages. 0 means all pages (default: 0). */
+  sampleSize?: number;
+  /** URL/path glob patterns to exclude from the audit. */
+  ignore?: string[];
 }
 
 export interface EntityMaskPattern {

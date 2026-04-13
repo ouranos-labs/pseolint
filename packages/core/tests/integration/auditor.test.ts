@@ -361,6 +361,38 @@ describe("auditSource", () => {
     expect(summary.findings.some((f) => f.ruleId === "tech/hreflang-consistency")).toBe(true);
   });
 
+  test("respects ignore patterns to exclude matching pages", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-ignore-"));
+    tempDirs.push(dir);
+
+    const pageHtml = `<html><body><h1>Page</h1><p>${"word ".repeat(300)}</p></body></html>`;
+    const apiHtml = `<html><body><h1>API</h1><p>${"api ".repeat(300)}</p></body></html>`;
+
+    const apiDir = join(dir, "api");
+    await mkdir(apiDir, { recursive: true });
+    await writeFile(join(dir, "index.html"), pageHtml, "utf-8");
+    await writeFile(join(apiDir, "endpoint.html"), apiHtml, "utf-8");
+
+    const summary = await auditSource(dir, { ignore: ["**/api/**"] });
+    expect(summary.pageCount).toBe(1);
+  });
+
+  test("respects sampleSize to limit audited pages", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-sample-"));
+    tempDirs.push(dir);
+
+    for (let i = 0; i < 10; i += 1) {
+      await writeFile(
+        join(dir, `page-${i}.html`),
+        `<html><body><h1>Page ${i}</h1><p>${`unique${i} `.repeat(300)}</p></body></html>`,
+        "utf-8"
+      );
+    }
+
+    const summary = await auditSource(dir, { sampleSize: 3 });
+    expect(summary.pageCount).toBe(3);
+  });
+
   test("checks robots and sitemap presence for URL audits", async () => {
     const html = `<html><head><title>X</title><link rel="canonical" href="https://example.dev/page" /></head><body><p>${"x ".repeat(300)}</p></body></html>`;
     globalThis.fetch = (async (input: URL | RequestInfo) => {

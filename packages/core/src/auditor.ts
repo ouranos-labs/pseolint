@@ -146,13 +146,12 @@ async function collectHtmlFiles(directory: string): Promise<string[]> {
   return files.flat();
 }
 
-const DEFAULT_CONCURRENCY = 5;
-
 async function fetchWithRetry(
-  url: string
+  url: string,
+  timeoutMs: number
 ): Promise<{ text: string; contentType: string } | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
     if (!response.ok) {
       return null;
     }
@@ -165,8 +164,8 @@ async function fetchWithRetry(
   }
 }
 
-async function fetchTextStrict(url: string): Promise<{ text: string; contentType: string }> {
-  const response = await fetch(url);
+async function fetchTextStrict(url: string, timeoutMs: number): Promise<{ text: string; contentType: string }> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
   if (!response.ok) {
     throw new Error(`Failed to fetch source: ${response.status} ${response.statusText}`);
   }
@@ -212,10 +211,70 @@ function isSitemapIndex(text: string): boolean {
   return text.toLowerCase().includes("<sitemapindex");
 }
 
+function matchGlob(pattern: string, value: string): boolean {
+  // Iterative glob matcher — avoids dynamic RegExp to prevent ReDoS.
+  // Supports ** (any path segments) and * (one path segment, no separator).
+  // Normalise both sides to forward slashes so Windows paths work with
+  // POSIX-style patterns like **/api/**.
+  const normPattern = pattern.replace(/\\/g, "/");
+  const normValue = value.replace(/\\/g, "/");
+
+  function match(pi: number, vi: number): boolean {
+    while (pi < normPattern.length) {
+      if (normPattern[pi] === "*") {
+        const doubleStar =
+          pi + 1 < normPattern.length && normPattern[pi + 1] === "*";
+        if (doubleStar) {
+          pi += 2;
+          // skip optional trailing separator after **
+          if (pi < normPattern.length && normPattern[pi] === "/") {
+            pi += 1;
+          }
+          if (pi === normPattern.length) return true;
+          // try matching rest of pattern at every position in value
+          for (let vi2 = vi; vi2 <= normValue.length; vi2 += 1) {
+            if (match(pi, vi2)) return true;
+          }
+          return false;
+        }
+        // single *: match any chars except path separators
+        pi += 1;
+        while (vi < normValue.length && normValue[vi] !== "/") {
+          vi += 1;
+        }
+      } else {
+        if (vi >= normValue.length || normPattern[pi] !== normValue[vi]) return false;
+        pi += 1;
+        vi += 1;
+      }
+    }
+    return vi === normValue.length;
+  }
+  return match(0, 0);
+}
+
+function shouldIgnore(url: string, patterns: string[]): boolean {
+  if (patterns.length === 0) return false;
+  for (const pattern of patterns) {
+    if (matchGlob(pattern, url)) return true;
+  }
+  return false;
+}
+
+function fisherYatesSample<T>(items: T[], n: number): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0 && arr.length - i <= n; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(arr.length - n);
+}
+
 async function collectUrlsFromSitemap(
   sitemapText: string,
   sitemapUrl: string,
-  visited: Set<string>
+  visited: Set<string>,
+  timeoutMs: number
 ): Promise<string[]> {
   visited.add(sitemapUrl);
   const locs = parseSitemapUrls(sitemapText);
@@ -227,29 +286,29 @@ async function collectUrlsFromSitemap(
   const allUrls: string[] = [];
   for (const childUrl of locs) {
     if (visited.has(childUrl)) continue;
-    const child = await fetchWithRetry(childUrl);
+    const child = await fetchWithRetry(childUrl, timeoutMs);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited);
+    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs);
     allUrls.push(...childUrls);
   }
   return allUrls;
 }
 
-async function loadPagesFromSource(source: string): Promise<LoadedPage[]> {
+async function loadPagesFromSource(source: string, concurrency: number, timeoutMs: number): Promise<LoadedPage[]> {
   if (/^https?:\/\//i.test(source)) {
-    const { text, contentType } = await fetchTextStrict(source);
+    const { text, contentType } = await fetchTextStrict(source, timeoutMs);
 
     const isXml = contentType.includes("xml");
 
     if (isXml || looksLikeSitemap(text)) {
       const visited = new Set<string>();
-      const urls = await collectUrlsFromSitemap(text, source, visited);
+      const urls = await collectUrlsFromSitemap(text, source, visited, timeoutMs);
 
       const pages: LoadedPage[] = [];
-      await runWithConcurrency(urls, DEFAULT_CONCURRENCY, async (url) => {
-        const result = await fetchWithRetry(url);
+      await runWithConcurrency(urls, concurrency, async (url) => {
+        const result = await fetchWithRetry(url, timeoutMs);
         if (result) {
           pages.push({ url, html: result.text });
         }
@@ -290,6 +349,11 @@ async function loadPagesFromSource(source: string): Promise<LoadedPage[]> {
 }
 
 export async function auditSource(source: string, options?: AuditOptions): Promise<AuditSummary> {
+  const concurrency = options?.concurrency ?? 5;
+  const timeoutMs = options?.timeout ?? 30000;
+  const ignorePatterns = options?.ignore ?? [];
+  const sampleSize = options?.sampleSize ?? 0;
+
   const resolvedRules = {
     nearDuplicateThreshold:
       options?.rules?.nearDuplicateThreshold ?? DEFAULTS.nearDuplicateThreshold,
@@ -315,7 +379,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     stripWwwHost: options?.rules?.stripWwwHost ?? false
   });
 
-  const loadedPages = await loadPagesFromSource(source);
+  const loadedPages = await loadPagesFromSource(source, concurrency, timeoutMs);
   const deduped: LoadedPage[] = [];
   const urlHashes = new Map<string, string>();
   const duplicateUrlFindings: RuleResult[] = [];
@@ -341,7 +405,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     deduped.push({ url: key, html: page.html });
   }
 
-  const parsedPages = deduped.map((page) =>
+  const filtered = ignorePatterns.length > 0
+    ? deduped.filter((page) => !shouldIgnore(page.url, ignorePatterns))
+    : deduped;
+
+  const sampled = sampleSize > 0 && sampleSize < filtered.length
+    ? fisherYatesSample(filtered, sampleSize)
+    : filtered;
+
+  const parsedPages = sampled.map((page) =>
     parseHtmlPage(page.html, page.url, { normalizeUrl: normalizeUrlOptions })
   );
   const knownUrls = new Set(parsedPages.map((p) => p.url));
