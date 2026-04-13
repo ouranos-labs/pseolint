@@ -35,6 +35,19 @@ export function formatMarkdown(summary: AuditSummary): string {
   }
   lines.push("");
 
+  // Group scores
+  if (summary.groupScores && summary.groupPageCounts) {
+    lines.push(`## Group Scores`);
+    lines.push("");
+    lines.push(`| Group | Score | Pages |`);
+    lines.push(`|-------|------:|------:|`);
+    for (const [name, value] of Object.entries(summary.groupScores)) {
+      const count = summary.groupPageCounts[name] ?? 0;
+      lines.push(`| ${name} | ${value} | ${count} |`);
+    }
+    lines.push("");
+  }
+
   // Findings
   lines.push(`## Findings`);
   lines.push("");
@@ -55,6 +68,12 @@ export function formatMarkdown(summary: AuditSummary): string {
     lines.push("");
     for (const item of items) {
       lines.push(`- **${item.ruleId}**: ${item.message}`);
+      if (item.fix) {
+        lines.push(`  > ${item.fix}`);
+      }
+      if (item.ref) {
+        lines.push(`  > [Google reference](${item.ref})`);
+      }
     }
     lines.push("");
   }

@@ -58,8 +58,17 @@ export function formatHtml(summary: AuditSummary): string {
     if (items.length === 0) return "";
     const itemsHtml = items
       .map(
-        (item) =>
-          `<li><strong>${escapeHtml(item.ruleId)}</strong>: ${escapeHtml(item.message)}</li>`
+        (item) => {
+          let li = `<li><strong>${escapeHtml(item.ruleId)}</strong>: ${escapeHtml(item.message)}`;
+          if (item.fix) {
+            li += `<div class="fix">Fix: ${escapeHtml(item.fix)}</div>`;
+          }
+          if (item.ref) {
+            li += ` <a href="${escapeHtml(item.ref)}" class="ref" target="_blank">Ref</a>`;
+          }
+          li += `</li>`;
+          return li;
+        }
       )
       .join("\n");
     return `<h3 style="color:${severityColor(sev)}">${sev.charAt(0).toUpperCase() + sev.slice(1)} (${items.length})</h3>
@@ -88,6 +97,8 @@ export function formatHtml(summary: AuditSummary): string {
   .bar-fill{height:100%;border-radius:4px;transition:width .3s}
   ul{list-style:disc;padding-left:1.5rem;margin-bottom:.5rem}
   li{margin:.2rem 0}
+  .fix{color:#64748b;font-size:.9em;margin-top:.2rem}
+  .ref{color:#2563eb;font-size:.85em}
 </style>
 </head>
 <body>
@@ -100,6 +111,16 @@ export function formatHtml(summary: AuditSummary): string {
   <thead><tr><th>Category</th><th>Bar</th><th>Score</th></tr></thead>
   <tbody>${categoryRows}</tbody>
 </table>
+
+${summary.groupScores && summary.groupPageCounts ? `
+<h2>Group Scores</h2>
+<table>
+  <thead><tr><th>Group</th><th>Score</th><th>Pages</th></tr></thead>
+  <tbody>${Object.entries(summary.groupScores).map(([name, value]) => {
+    const count = summary.groupPageCounts![name] ?? 0;
+    return `<tr><td>${escapeHtml(name)}</td><td style="text-align:right">${value}</td><td style="text-align:right">${count}</td></tr>`;
+  }).join("\n")}</tbody>
+</table>` : ""}
 
 <h2>Findings</h2>
 ${findingsSections}

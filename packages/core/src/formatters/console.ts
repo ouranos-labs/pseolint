@@ -76,6 +76,17 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   }
   lines.push("");
 
+  // Group scores
+  if (summary.groupScores && summary.groupPageCounts) {
+    lines.push(`${BOLD}Group Scores${RESET}`);
+    for (const [name, value] of Object.entries(summary.groupScores)) {
+      const count = summary.groupPageCounts[name] ?? 0;
+      const gColor = scoreColor(value);
+      lines.push(`  ${name.padEnd(15)} ${gColor}${bar(value)}${RESET} ${value} (${count} pages)`);
+    }
+    lines.push("");
+  }
+
   // Findings grouped by severity
   const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) {
@@ -100,6 +111,12 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
 
     for (const item of visible) {
       lines.push(`  ${severityColor(sev)}\u2022${RESET} [${item.ruleId}] ${item.message}`);
+      if (item.fix) {
+        lines.push(`    ${DIM}Fix: ${item.fix}${RESET}`);
+      }
+      if (item.ref) {
+        lines.push(`    ${DIM}Ref: ${item.ref}${RESET}`);
+      }
     }
 
     if (!showAll && items.length > limit) {
