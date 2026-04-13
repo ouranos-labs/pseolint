@@ -19,6 +19,7 @@ const rulesSchema = z
     hubPagesMaxSiblings: z.number().optional(),
     titleOverlapThreshold: z.number().optional(),
     keywordCollisionMinShared: z.number().optional(),
+    templateCoverageMinPages: z.number().optional(),
   })
   .optional();
 
@@ -28,6 +29,14 @@ const auditOptionsSchema = z.object({
   timeout: z.number().optional(),
   sampleSize: z.number().optional(),
   ignore: z.array(z.string()).optional(),
+  pageGroups: z.record(z.object({
+    match: z.union([z.string(), z.array(z.string())]),
+    rules: z.array(z.string()).optional(),
+    overrides: z.record(z.record(z.unknown())).optional(),
+  })).optional(),
+  render: z.object({
+    browserWsEndpoint: z.string().optional(),
+  }).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -47,6 +56,7 @@ export interface CliFlags {
   timeout?: number;
   sampleSize?: number;
   ignore?: string[];
+  render?: { browserWsEndpoint?: string };
 }
 
 export function mergeOptions(
@@ -58,5 +68,6 @@ export function mergeOptions(
   if (cliFlags.timeout !== undefined) result.timeout = cliFlags.timeout;
   if (cliFlags.sampleSize !== undefined) result.sampleSize = cliFlags.sampleSize;
   if (cliFlags.ignore !== undefined) result.ignore = cliFlags.ignore;
+  if (cliFlags.render !== undefined) result.render = cliFlags.render;
   return result;
 }

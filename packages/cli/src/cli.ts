@@ -34,6 +34,8 @@ interface CliOptions {
   timeout: string;
   sampleSize: string;
   ignore?: string;
+  render: boolean;
+  browserWs?: string;
 }
 
 export async function runCli(
@@ -61,7 +63,9 @@ export async function runCli(
     .option("--concurrency <n>", "Max parallel HTTP fetches", "5")
     .option("--timeout <ms>", "Per-request timeout in ms", "30000")
     .option("--sample-size <n>", "Audit a random subset of N pages", "0")
-    .option("--ignore <patterns>", "Comma-separated glob patterns to exclude");
+    .option("--ignore <patterns>", "Comma-separated glob patterns to exclude")
+    .option("--render", "Render pages in a browser before auditing")
+    .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering");
 
   program.parse(args, { from: "user" });
 
@@ -94,6 +98,7 @@ export async function runCli(
     timeout: opts.timeout !== "30000" ? Number(opts.timeout) : undefined,
     sampleSize: opts.sampleSize !== "0" ? Number(opts.sampleSize) : undefined,
     ignore: opts.ignore ? opts.ignore.split(",").map((s: string) => s.trim()) : undefined,
+    render: opts.render ? { browserWsEndpoint: opts.browserWs } : undefined,
   };
 
   const options = mergeOptions(configFile, cliFlags);
