@@ -24,6 +24,10 @@ const rulesSchema = z
 
 const auditOptionsSchema = z.object({
   rules: rulesSchema,
+  concurrency: z.number().optional(),
+  timeout: z.number().optional(),
+  sampleSize: z.number().optional(),
+  ignore: z.array(z.string()).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -38,14 +42,21 @@ export async function loadConfig(): Promise<AuditOptions> {
   return parsed;
 }
 
-/**
- * Merge CLI flags over config file over defaults.
- * Currently CLI flags don't map directly to rule options,
- * so this simply returns the config as-is.
- */
+export interface CliFlags {
+  concurrency?: number;
+  timeout?: number;
+  sampleSize?: number;
+  ignore?: string[];
+}
+
 export function mergeOptions(
   configFile: AuditOptions,
-  _cliFlags: Record<string, unknown>,
+  cliFlags: CliFlags,
 ): AuditOptions {
-  return { ...configFile };
+  const result = { ...configFile };
+  if (cliFlags.concurrency !== undefined) result.concurrency = cliFlags.concurrency;
+  if (cliFlags.timeout !== undefined) result.timeout = cliFlags.timeout;
+  if (cliFlags.sampleSize !== undefined) result.sampleSize = cliFlags.sampleSize;
+  if (cliFlags.ignore !== undefined) result.ignore = cliFlags.ignore;
+  return result;
 }

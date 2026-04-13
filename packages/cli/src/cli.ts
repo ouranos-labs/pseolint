@@ -10,6 +10,7 @@ import {
   formatHtml,
 } from "@pseolint/core";
 import type { AuditSummary, ConsoleFormatOptions } from "@pseolint/core";
+import type { CliFlags } from "./config.js";
 import { loadConfig, mergeOptions } from "./config.js";
 
 const require = createRequire(import.meta.url);
@@ -29,6 +30,10 @@ interface CliOptions {
   threshold: string;
   output?: string;
   color: boolean;
+  concurrency: string;
+  timeout: string;
+  sampleSize: string;
+  ignore?: string;
 }
 
 export async function runCli(
@@ -52,7 +57,11 @@ export async function runCli(
       "40",
     )
     .option("-o, --output <file>", "Write report to file instead of stdout")
-    .option("--no-color", "Disable colored output");
+    .option("--no-color", "Disable colored output")
+    .option("--concurrency <n>", "Max parallel HTTP fetches", "5")
+    .option("--timeout <ms>", "Per-request timeout in ms", "30000")
+    .option("--sample-size <n>", "Audit a random subset of N pages", "0")
+    .option("--ignore <patterns>", "Comma-separated glob patterns to exclude");
 
   program.parse(args, { from: "user" });
 
@@ -80,7 +89,14 @@ export async function runCli(
 
   // Load config file and merge with CLI flags
   const configFile = await loadConfig();
-  const options = mergeOptions(configFile, opts as unknown as Record<string, unknown>);
+  const cliFlags: CliFlags = {
+    concurrency: opts.concurrency !== "5" ? Number(opts.concurrency) : undefined,
+    timeout: opts.timeout !== "30000" ? Number(opts.timeout) : undefined,
+    sampleSize: opts.sampleSize !== "0" ? Number(opts.sampleSize) : undefined,
+    ignore: opts.ignore ? opts.ignore.split(",").map((s: string) => s.trim()) : undefined,
+  };
+
+  const options = mergeOptions(configFile, cliFlags);
 
   // Run audit
   let summary;
