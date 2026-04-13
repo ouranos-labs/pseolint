@@ -20,7 +20,10 @@ export function robotsNoindexConflictRule(
         inboundCount > 0
           ? `${page.url} is marked noindex but still has ${inboundCount} inbound internal links.`
           : `${page.url} is marked noindex.`,
-      pageUrl: page.url
+      pageUrl: page.url,
+      fix: inboundCount > 0
+        ? "Either remove noindex or remove internal links pointing to this page."
+        : "Verify this page should be noindexed."
     });
   }
 

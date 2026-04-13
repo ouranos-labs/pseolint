@@ -18,7 +18,8 @@ export function templateDiversityRule(
     {
       ruleId: "spam/template-diversity",
       severity: "warning",
-      message: `Template diversity ratio is ${ratio.toFixed(2)} (min ${minUniqueRatio.toFixed(2)}).`
+      message: `Template diversity ratio is ${ratio.toFixed(2)} (min ${minUniqueRatio.toFixed(2)}).`,
+      fix: "Vary the HTML structure across pages. Add conditional sections, different layouts, or page-specific components."
     }
   ];
 }

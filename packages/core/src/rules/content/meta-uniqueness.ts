@@ -25,7 +25,8 @@ export function metaUniquenessRule(
       ruleId: "content/meta-uniqueness",
       severity: "error",
       message: `${urls.length} pages share the same meta description template after entity masking.`,
-      relatedUrls: urls.sort()
+      relatedUrls: urls.sort(),
+      fix: "Write a unique meta description for each page that highlights what makes it specifically different."
     });
   }
 

@@ -63,7 +63,8 @@ export function requiredFieldsRule(pages: ParsedPage[]): RuleResult[] {
           ruleId: "schema/required-fields",
           severity: "warning",
           message: `${page.url} has a ${schemaType} schema missing required fields: ${missing.join(", ")}.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Add the missing fields to your ${schemaType} schema: ${missing.join(", ")}.`
         });
       }
     }

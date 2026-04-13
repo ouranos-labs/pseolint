@@ -15,6 +15,7 @@ export function deadEndsRule(
       ruleId: "links/dead-ends",
       severity: "warning" as const,
       message: `${page.url} has no outbound links to other pages in this crawl.`,
-      pageUrl: page.url
+      pageUrl: page.url,
+      fix: "Add outbound links to related pages on your site to help users and crawlers discover more content."
     }));
 }

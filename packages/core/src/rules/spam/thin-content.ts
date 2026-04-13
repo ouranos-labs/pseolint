@@ -21,7 +21,8 @@ export function thinContentRule(
     findings.push({
       ruleId: "spam/thin-content",
       severity: "error",
-      message: `${page.url} has thin content (${words} words).`
+      message: `${page.url} has thin content (${words} words).`,
+      fix: `Add at least ${minWords - words} more words of substantive content relevant to this page's specific topic.`
     });
   }
 

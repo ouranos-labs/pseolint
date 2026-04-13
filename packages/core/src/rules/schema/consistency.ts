@@ -44,7 +44,8 @@ export function schemaConsistencyRule(pages: ParsedPage[]): RuleResult[] {
     ruleId: "schema/consistency",
     severity: "info",
     message: `Pages use mixed schema types (${typeList}). Consider using a consistent @type across template pages.`,
-    relatedUrls: Array.from(typesByPage.keys())
+    relatedUrls: Array.from(typesByPage.keys()),
+    fix: `Use a consistent @type across all template pages, or separate pages into groups with different schema types.`
   });
 
   return findings;

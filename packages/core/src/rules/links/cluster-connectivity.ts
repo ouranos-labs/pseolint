@@ -81,7 +81,8 @@ export function clusterConnectivityRule(
         ruleId: "links/cluster-connectivity",
         severity: "warning",
         message: `Cluster ${clusterDir} (${urls.size} pages) has no crawl links to or from other clusters.`,
-        relatedUrls: Array.from(urls).sort()
+        relatedUrls: Array.from(urls).sort(),
+        fix: "Add cross-links between this cluster and other sections of your site to build topical authority."
       });
     }
   }

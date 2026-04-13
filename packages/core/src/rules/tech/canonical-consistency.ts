@@ -36,7 +36,8 @@ export function canonicalConsistencyRule(
         ruleId: "tech/canonical-consistency",
         severity: "error",
         message: `${page.url} is missing a canonical URL.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: `Add <link rel="canonical" href="${page.url}" /> to the <head>.`
       });
       continue;
     }
@@ -47,7 +48,8 @@ export function canonicalConsistencyRule(
         ruleId: "tech/canonical-consistency",
         severity: "error",
         message: `${page.url} has an invalid canonical URL: ${page.canonical}.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: "Fix the canonical URL syntax."
       });
       continue;
     }
@@ -61,7 +63,8 @@ export function canonicalConsistencyRule(
         ? `${page.url} canonicalizes to another crawled page (${canonicalUrl}).`
         : `${page.url} canonicalizes outside the crawl scope (${canonicalUrl}).`,
       pageUrl: page.url,
-      relatedUrls: [canonicalUrl]
+      relatedUrls: [canonicalUrl],
+      fix: "Verify this canonical target is intentional."
     });
   }
 

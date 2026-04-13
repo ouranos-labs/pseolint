@@ -51,7 +51,8 @@ export function hubPagesRule(
         ruleId: "links/hub-pages-skipped",
         severity: "info",
         message: `Hub/index check skipped for cluster ${clusterDir} (${group.length} pages > max ${maxSiblings}).`,
-        relatedUrls: group.map((p) => p.url).sort()
+        relatedUrls: group.map((p) => p.url).sort(),
+        fix: "Create an index or hub page for this directory that links to all child pages."
       });
       continue;
     }
@@ -80,7 +81,8 @@ export function hubPagesRule(
         ruleId: "links/hub-pages",
         severity: "warning",
         message: `No hub/index page detected for cluster ${clusterDir} (${group.length} pages).`,
-        relatedUrls: Array.from(siblingUrls).sort()
+        relatedUrls: Array.from(siblingUrls).sort(),
+        fix: "Create an index or hub page for this directory that links to all child pages."
       });
     }
   }

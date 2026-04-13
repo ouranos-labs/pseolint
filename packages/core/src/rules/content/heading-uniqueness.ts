@@ -39,7 +39,8 @@ export function headingUniquenessRule(
       ruleId: "content/heading-uniqueness",
       severity: "warning",
       message: `${urls.length} pages share identical normalized H1 heading.`,
-      relatedUrls: urls.sort()
+      relatedUrls: urls.sort(),
+      fix: "Write unique headings for each page that reflect its specific content."
     });
   }
 
@@ -52,7 +53,8 @@ export function headingUniquenessRule(
       ruleId: "content/heading-uniqueness",
       severity: "warning",
       message: `${urls.length} pages share identical normalized H2 headings.`,
-      relatedUrls: urls.sort()
+      relatedUrls: urls.sort(),
+      fix: "Write unique headings for each page that reflect its specific content."
     });
   }
 

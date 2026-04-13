@@ -45,7 +45,8 @@ export function eeatSignalsRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "content/eeat-signals",
         severity: "info",
         message: `${page.url} has only ${count} out of 4 E-E-A-T signal categories. Consider adding author info, about page links, publication dates, or cited sources.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: "Add trust signals: author info, publication dates, about page links, sources, or \"last updated\" markers."
       });
     }
   }

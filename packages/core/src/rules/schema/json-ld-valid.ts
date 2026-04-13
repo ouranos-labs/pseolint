@@ -15,7 +15,8 @@ export function jsonLdValidRule(pages: ParsedPage[]): RuleResult[] {
           ruleId: "schema/json-ld-valid",
           severity: "error",
           message: `${page.url} contains malformed JSON-LD that could not be parsed.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Fix the JSON syntax in the <script type="application/ld+json"> block. Validate it at https://validator.schema.org/.`
         });
         continue;
       }
@@ -31,7 +32,8 @@ export function jsonLdValidRule(pages: ParsedPage[]): RuleResult[] {
           ruleId: "schema/json-ld-valid",
           severity: "error",
           message: `${page.url} has a JSON-LD block missing the required @context property.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Add "@context": "https://schema.org" to the JSON-LD block.`
         });
       }
 
@@ -42,7 +44,8 @@ export function jsonLdValidRule(pages: ParsedPage[]): RuleResult[] {
             ruleId: "schema/json-ld-valid",
             severity: "error",
             message: `${page.url} has a JSON-LD block with an invalid @type value.`,
-            pageUrl: page.url
+            pageUrl: page.url,
+            fix: `Set @type to a valid Schema.org type like "Article", "Product", or "FAQPage".`
           });
         }
       }

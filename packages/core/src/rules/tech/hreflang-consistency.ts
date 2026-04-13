@@ -27,7 +27,8 @@ export function hreflangConsistencyRule(
           ruleId: "tech/hreflang-consistency",
           severity: "warning",
           message: `${page.url} has duplicate hreflang entry for ${entry.lang}.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Remove the duplicate hreflang entry for ${entry.lang} on this page.`
         });
       }
       seen.add(lang);
@@ -37,7 +38,8 @@ export function hreflangConsistencyRule(
           ruleId: "tech/hreflang-consistency",
           severity: "warning",
           message: `${page.url} has hreflang ${entry.lang} without an href.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Add a valid href to the hreflang ${entry.lang} entry on this page.`
         });
         continue;
       }
@@ -47,7 +49,8 @@ export function hreflangConsistencyRule(
           ruleId: "tech/hreflang-consistency",
           severity: "warning",
           message: `${page.url} has non-absolute hreflang href (${entry.href}) for ${entry.lang}.`,
-          pageUrl: page.url
+          pageUrl: page.url,
+          fix: `Change the hreflang href for ${entry.lang} to an absolute URL (starting with https://).`
         });
         continue;
       }
@@ -63,7 +66,8 @@ export function hreflangConsistencyRule(
         ruleId: "tech/hreflang-consistency",
         severity: "info",
         message: `${page.url} has hreflang annotations but no x-default entry.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: `Add <link rel="alternate" hreflang="x-default" href="..."> to specify a fallback URL for unmatched locales.`
       });
     }
   }
@@ -85,7 +89,8 @@ export function hreflangConsistencyRule(
           severity: "warning",
           message: `${pageUrl} declares hreflang ${lang} pointing to ${targetUrl}, but that page has no hreflang annotations back.`,
           pageUrl,
-          relatedUrls: [targetUrl]
+          relatedUrls: [targetUrl],
+          fix: `Add a reciprocal hreflang annotation on ${targetUrl} pointing back to ${pageUrl}.`
         });
         continue;
       }
@@ -97,7 +102,8 @@ export function hreflangConsistencyRule(
           severity: "warning",
           message: `${pageUrl} declares hreflang ${lang} to ${targetUrl}, but ${targetUrl} does not link back.`,
           pageUrl,
-          relatedUrls: [targetUrl]
+          relatedUrls: [targetUrl],
+          fix: `Add a reciprocal hreflang annotation on ${targetUrl} pointing back to ${pageUrl}.`
         });
       }
     }

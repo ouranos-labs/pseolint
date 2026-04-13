@@ -56,7 +56,8 @@ export function doorwayPatternRule(
       ruleId: "spam/doorway-pattern",
       severity: "critical",
       message: `${left} and ${right} match doorway-pattern signals (${signals.join(" + ")}).`,
-      relatedUrls: [left, right]
+      relatedUrls: [left, right],
+      fix: "This page matches multiple spam signals. Prioritize adding unique, substantive content and differentiating the page structure."
     });
   }
 

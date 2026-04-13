@@ -16,7 +16,8 @@ export function orphanPagesRule(
         ruleId: "links/orphan-pages",
         severity: "error",
         message: `${page.url} has no inbound links from other pages in this crawl.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: "Link to this page from a relevant hub or index page, and include it in your site navigation."
       });
     }
   }

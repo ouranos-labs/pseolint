@@ -52,7 +52,8 @@ export function boilerplateRatioRule(pages: ParsedPage[], maxRatio: number): Rul
       findings.push({
         ruleId: "spam/boilerplate-ratio",
         severity: "error",
-        message: `${page.url} has boilerplate ratio ${(ratio * 100).toFixed(1)}% (max ${(maxRatio * 100).toFixed(1)}%).`
+        message: `${page.url} has boilerplate ratio ${(ratio * 100).toFixed(1)}% (max ${(maxRatio * 100).toFixed(1)}%).`,
+        fix: `${(ratio * 100).toFixed(1)}% of this page's content is shared template text. Reduce repeated boilerplate sections or add unique content blocks—introductions, case studies, or page-specific data—to bring the ratio below ${(maxRatio * 100).toFixed(1)}%.`
       });
     }
   });

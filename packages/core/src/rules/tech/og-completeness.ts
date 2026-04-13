@@ -23,7 +23,8 @@ export function ogCompletenessRule(pages: ParsedPage[]): RuleResult[] {
       ruleId: "tech/og-completeness",
       severity: "warning",
       message: `${page.url} is missing ${missing.join(", ")}.`,
-      pageUrl: page.url
+      pageUrl: page.url,
+      fix: `Add the missing Open Graph tags: ${missing.join(", ")}.`
     });
   }
 

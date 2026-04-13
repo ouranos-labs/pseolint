@@ -14,7 +14,8 @@ export function missingAuthorRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "content/missing-author",
         severity: "warning",
         message: `${page.url} has no author signals (meta author, schema author, byline, or rel="author" link). This is an E-E-A-T risk.`,
-        pageUrl: page.url
+        pageUrl: page.url,
+        fix: `Add author attribution: <meta name="author" content="Name">, a visible byline, or author data in your JSON-LD schema.`
       });
     }
   }

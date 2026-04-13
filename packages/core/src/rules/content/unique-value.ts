@@ -23,7 +23,8 @@ export function uniqueValueRule(pages: ParsedPage[], minUniqueWords: number): Ru
       findings.push({
         ruleId: "content/unique-value",
         severity: "error",
-        message: `${page.url} has only ${uniqueCount} unique words (min ${minUniqueWords}).`
+        message: `${page.url} has only ${uniqueCount} unique words (min ${minUniqueWords}).`,
+        fix: `Add ${minUniqueWords - uniqueCount} more words of content not found on any other page.`
       });
     }
   });

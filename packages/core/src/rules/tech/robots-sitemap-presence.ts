@@ -28,7 +28,8 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
     findings.push({
       ruleId: "tech/robots-sitemap-presence",
       severity: "warning",
-      message: `Could not fetch ${robotsUrl}.`
+      message: `Could not fetch ${robotsUrl}.`,
+      fix: `Create a robots.txt file at ${robotsUrl} and include a Sitemap directive pointing to your sitemap.`
     });
     return findings;
   }
@@ -37,7 +38,8 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
     findings.push({
       ruleId: "tech/robots-sitemap-presence",
       severity: "info",
-      message: `${robotsUrl} does not declare a Sitemap directive.`
+      message: `${robotsUrl} does not declare a Sitemap directive.`,
+      fix: `Add a Sitemap directive to ${robotsUrl}, e.g.: Sitemap: ${sitemapUrl}`
     });
   }
 
@@ -46,7 +48,8 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
     findings.push({
       ruleId: "tech/robots-sitemap-presence",
       severity: "warning",
-      message: `Could not fetch ${sitemapUrl}.`
+      message: `Could not fetch ${sitemapUrl}.`,
+      fix: `Create an XML sitemap at ${sitemapUrl} and reference it in ${robotsUrl}.`
     });
     return findings;
   }
@@ -56,7 +59,8 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
     findings.push({
       ruleId: "tech/robots-sitemap-presence",
       severity: "warning",
-      message: `${sitemapUrl} was fetched but does not look like sitemap XML.`
+      message: `${sitemapUrl} was fetched but does not look like sitemap XML.`,
+      fix: `Ensure ${sitemapUrl} is valid sitemap XML containing a <urlset> or <sitemapindex> root element.`
     });
   }
 

@@ -26,7 +26,8 @@ export function canonicalNoindexConflictRule(
       severity: "warning",
       message: `${page.url} is noindex but canonicalizes to ${canonicalUrl}.`,
       pageUrl: page.url,
-      relatedUrls: [canonicalUrl]
+      relatedUrls: [canonicalUrl],
+      fix: "Remove the noindex directive or change the canonical to self-reference."
     });
   }
 

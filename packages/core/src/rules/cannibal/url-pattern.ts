@@ -43,7 +43,8 @@ export function urlPatternRule(pages: ParsedPage[]): RuleResult[] {
           severity: "info",
           message: `${pages[i].url} and ${pages[j].url} have the same URL tokens in different order, creating ambiguous intent overlap.`,
           pageUrl: pages[i].url,
-          relatedUrls: [pages[j].url]
+          relatedUrls: [pages[j].url],
+          fix: "These URLs have the same tokens in different order. Consolidate to one canonical URL pattern."
         });
       }
     }

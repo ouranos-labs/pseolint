@@ -35,7 +35,8 @@ export function linkDepthRule(
       ruleId: "links/unreachable-from-root" as const,
       severity: "warning" as const,
       message: `${page.url} is not reachable from the crawl root via internal links (but has inbound links).`,
-      pageUrl: page.url
+      pageUrl: page.url,
+      fix: "This page is unreachable from the site root. Add a navigation path to it."
     }));
 
   const deep = pages
@@ -48,7 +49,8 @@ export function linkDepthRule(
       ruleId: "links/link-depth",
       severity: "info" as const,
       message: `${page.url} is deeper than ${maxDepth} clicks from root.`,
-      pageUrl: page.url
+      pageUrl: page.url,
+      fix: "Reduce click depth by linking from a higher-level page."
     }));
 
   return [...unreachable, ...deep];

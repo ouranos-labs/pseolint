@@ -18,7 +18,8 @@ export function publicationVelocityRule(pages: ParsedPage[], maxPerDay: number):
       findings.push({
         ruleId: "spam/publication-velocity",
         severity: "warning",
-        message: `${dayPages.length} pages share publish date ${day}, exceeding max/day ${maxPerDay}.`
+        message: `${dayPages.length} pages share publish date ${day}, exceeding max/day ${maxPerDay}.`,
+        fix: "Stagger publication dates across pages to avoid appearing auto-generated."
       });
     }
   }

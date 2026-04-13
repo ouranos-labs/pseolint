@@ -23,7 +23,8 @@ export function nearDuplicateRule(
         findings.push({
           ruleId: "spam/near-duplicate",
           severity: "critical",
-          message: `${pages[i].url} and ${pages[j].url} are near-duplicates (${(similarity * 100).toFixed(1)}% similar).`
+          message: `${pages[i].url} and ${pages[j].url} are near-duplicates (${(similarity * 100).toFixed(1)}% similar).`,
+          fix: "Differentiate these pages with unique content. Add page-specific details, data, examples, or analysis that the other page doesn't have."
         });
       }
     }
