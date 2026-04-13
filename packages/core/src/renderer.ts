@@ -24,8 +24,10 @@ const MIME_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function loadPlaywright(): Promise<any> {
   try {
+    // @ts-ignore -- playwright-core is an optional peer dependency
     return await import("playwright-core");
   } catch {
     throw new Error(
@@ -94,7 +96,8 @@ export async function renderPages(
     ?? process.env.PSEOLINT_BROWSER_WS
     ?? null;
 
-  let browser;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let browser: any;
   if (endpoint) {
     validateWsEndpoint(endpoint);
     browser = await pw.chromium.connectOverCDP(endpoint);
