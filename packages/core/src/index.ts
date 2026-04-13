@@ -34,4 +34,5 @@ export * from "./algorithms/tf-idf.js";
 export * from "./rules/cannibal/title-overlap.js";
 export * from "./rules/cannibal/keyword-collision.js";
 export * from "./rules/cannibal/url-pattern.js";
+export * from "./rule-references.js";
 export * from "./formatters/index.js";

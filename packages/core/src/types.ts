@@ -16,10 +16,16 @@ export interface RuleResult {
   ruleId: string;
   severity: Severity;
   message: string;
+  /** What to do about this finding. */
+  fix?: string;
+  /** Google documentation URL backing this finding. */
+  ref?: string;
   /** Primary page this finding refers to, when applicable. */
   pageUrl?: string;
   /** Other URLs involved (e.g. cluster members, related pairs). */
   relatedUrls?: string[];
+  /** Page group this finding belongs to, if page classification is configured. */
+  group?: string;
 }
 
 export interface CategoryScores {
@@ -34,8 +40,19 @@ export interface CategoryScores {
 export interface AuditSummary {
   score: number;
   categoryScores: CategoryScores;
+  groupScores?: Record<string, number>;
+  groupPageCounts?: Record<string, number>;
   pageCount: number;
   findings: RuleResult[];
+}
+
+export interface PageGroupConfig {
+  /** Glob pattern(s) to match page URLs/paths. */
+  match: string | string[];
+  /** Rule globs to enable for this group. If omitted, all rules apply. */
+  rules?: string[];
+  /** Per-rule threshold or severity overrides. Keys are rule IDs. */
+  overrides?: Record<string, Record<string, unknown>>;
 }
 
 export interface AuditOptions {
@@ -58,6 +75,7 @@ export interface AuditOptions {
     hubPagesMaxSiblings?: number;
     titleOverlapThreshold?: number;
     keywordCollisionMinShared?: number;
+    templateCoverageMinPages?: number;
   };
   /** Max parallel HTTP fetches when auditing a remote sitemap (default: 5). */
   concurrency?: number;
@@ -67,6 +85,12 @@ export interface AuditOptions {
   sampleSize?: number;
   /** URL/path glob patterns to exclude from the audit. */
   ignore?: string[];
+  /** Page groups with per-group rule sets and threshold overrides. */
+  pageGroups?: Record<string, PageGroupConfig>;
+  /** Browser rendering options for client-rendered pages. */
+  render?: {
+    browserWsEndpoint?: string;
+  };
 }
 
 export interface EntityMaskPattern {
