@@ -10,12 +10,17 @@
     "action.yml"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "pseolint": "workspace:*"
+    "@actions/core": "^3.0.0",
+    "@actions/github": "^9.1.0",
+    "@pseolint/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.4"
   }
 }

@@ -1,15 +1,17 @@
 name: "pSEO Lint"
-description: "Run pseolint against your generated site output."
+description: "Run pseolint against your generated site output and post results on PRs."
 inputs:
   source:
     description: "Build output directory or sitemap URL"
     required: true
   threshold:
-    description: "Fail threshold for SpamBrain score"
+    description: "Score threshold for check failure (default: 40)"
     required: false
+    default: "40"
   token:
-    description: "Optional hosted platform token"
+    description: "GitHub token for PR comments (defaults to github.token)"
     required: false
+    default: ${{ github.token }}
 runs:
   using: "node20"
   main: "dist/index.js"
