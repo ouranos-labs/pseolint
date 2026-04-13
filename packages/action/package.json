@@ -10,7 +10,8 @@
     "action.yml"
   ],
   "scripts": {
-    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "build": "tsc -p tsconfig.json",
+    "build:ncc": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json"

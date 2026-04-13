@@ -20,7 +20,7 @@ jobs:
       - name: Build core
         run: cd packages/core && bun run build
       - name: Build action
-        run: cd packages/action && bun run build
+        run: cd packages/action && bun run build:ncc
       - name: Deploy to action-v1 branch
         run: |
           cd packages/action
