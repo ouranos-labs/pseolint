@@ -1,0 +1,33 @@
+name: Release Action
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-action:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.13"
+      - name: Install dependencies
+        run: bun install
+      - name: Build core
+        run: cd packages/core && bun run build
+      - name: Build action
+        run: cd packages/action && bun run build
+      - name: Deploy to action-v1 branch
+        run: |
+          cd packages/action
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan action-v1-tmp
+          git reset
+          git add action.yml dist/
+          git commit -m "Release action ${{ github.ref_name }}"
+          git push origin action-v1-tmp:action-v1 --force
