@@ -554,9 +554,17 @@ async function loadPagesFromSource(
   crawlDiscovery: boolean
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string> }> {
   if (/^https?:\/\//i.test(source)) {
-    const { text, contentType } = await fetchTextStrict(source, timeoutMs);
+    let text: string;
+    let contentType: string;
+    try {
+      const fetched = await fetchTextStrict(source, timeoutMs);
+      text = fetched.text;
+      contentType = fetched.contentType;
+    } catch {
+      throw new Error(`Failed to fetch source URL: ${source} — verify the URL is correct and returns a valid response.`);
+    }
 
-    const isXml = contentType.includes("xml");
+    const isXml = contentType.includes("xml") || looksLikeSitemap(text);
 
     if (isXml || looksLikeSitemap(text)) {
       const visited = new Set<string>();
@@ -618,7 +626,49 @@ async function loadPagesFromSource(
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
-      return { pages: [{ url: source, html: text }] };
+      const initialPage: LoadedPage = { url: source, html: text };
+      const pages: LoadedPage[] = [initialPage];
+
+      if (crawlDiscovery) {
+        const discoveredUrls = new Set<string>();
+        let sourceOrigin: string;
+        try {
+          sourceOrigin = new URL(source).origin;
+        } catch {
+          sourceOrigin = "";
+        }
+
+        const linkMatches = Array.from(text.matchAll(/href=["']([^"']+)["']/gi));
+        for (const match of linkMatches) {
+          const href = match[1];
+          if (!href || href.startsWith("#") || /^mailto:|^tel:|^javascript:|^data:/i.test(href)) continue;
+          try {
+            const resolved = new URL(href, source).href;
+            const resolvedUrl = new URL(resolved);
+            if (resolvedUrl.origin !== sourceOrigin) continue;
+            if (/^\/_next\/|^\/api\/|^\/icon/i.test(resolvedUrl.pathname)) continue;
+            resolvedUrl.search = "";
+            resolvedUrl.hash = "";
+            const normalized = resolvedUrl.href;
+            if (normalized !== source && !discoveredUrls.has(normalized)) {
+              discoveredUrls.add(normalized);
+            }
+          } catch {
+            continue;
+          }
+        }
+
+        if (discoveredUrls.size > 0) {
+          await runWithConcurrency(Array.from(discoveredUrls), concurrency, async (url) => {
+            const result = await fetchPageWithMeta(url, timeoutMs);
+            if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
+              pages.push(result);
+            }
+          });
+        }
+      }
+
+      return { pages };
     }
 
     throw new Error(`Source URL does not look like HTML or sitemap XML: ${source}`);
