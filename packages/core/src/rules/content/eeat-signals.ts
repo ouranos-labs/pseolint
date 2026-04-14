@@ -11,23 +11,19 @@ const EEAT_HTML_PATTERNS = [
 function countSignalCategories(page: ParsedPage): number {
   let count = 0;
 
-  // 1. About page link
   if (page.resolvedHrefs.some((href) => /\/about\b/i.test(href))) {
     count += 1;
   }
 
-  // 2. Author presence (any of the 4 signals)
   const { metaAuthor, schemaAuthor, bylineElement, relAuthorLink } = page.authorSignals;
   if (metaAuthor !== "" || schemaAuthor || bylineElement || relAuthorLink) {
     count += 1;
   }
 
-  // 3. Publication date
   if (page.publishedDate) {
     count += 1;
   }
 
-  // 4. Last-updated / last-modified / reviewed-by / sources / references
   if (EEAT_HTML_PATTERNS.some((pattern) => pattern.test(page.html))) {
     count += 1;
   }
@@ -36,20 +32,25 @@ function countSignalCategories(page: ParsedPage): number {
 }
 
 export function eeatSignalsRule(pages: ParsedPage[]): RuleResult[] {
-  const findings: RuleResult[] = [];
+  const lacking = pages.filter((page) => countSignalCategories(page) < 2);
 
-  for (const page of pages) {
-    const count = countSignalCategories(page);
-    if (count < 2) {
-      findings.push({
-        ruleId: "content/eeat-signals",
-        severity: "info",
-        message: `${page.url} has only ${count} out of 4 E-E-A-T signal categories. Consider adding author info, about page links, publication dates, or cited sources.`,
-        pageUrl: page.url,
-        fix: "Add trust signals: author info, publication dates, about page links, sources, or \"last updated\" markers."
-      });
-    }
+  if (lacking.length === 0) return [];
+
+  if (lacking.length === pages.length && pages.length > 3) {
+    return [{
+      ruleId: "content/eeat-signals",
+      severity: "info",
+      message: `All ${lacking.length} pages have fewer than 2 out of 4 E-E-A-T signal categories. Site-wide trust signals are missing.`,
+      fix: `Add trust signals site-wide: author info, publication dates, about page links, sources, or "last updated" markers.`,
+      relatedUrls: lacking.map((p) => p.url).sort()
+    }];
   }
 
-  return findings;
+  return lacking.map((page) => ({
+    ruleId: "content/eeat-signals",
+    severity: "info" as const,
+    message: `${page.url} has fewer than 2 out of 4 E-E-A-T signal categories.`,
+    pageUrl: page.url,
+    fix: `Add trust signals: author info, publication dates, about page links, sources, or "last updated" markers.`
+  }));
 }

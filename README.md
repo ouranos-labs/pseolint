@@ -4,27 +4,28 @@
 
 The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets: near-duplicates, entity-swap doorway pages, thin content clusters, and missing internal linking.
 
+Every finding includes an **actionable fix** backed by a **Google documentation reference**.
+
 **ESLint for programmatic SEO.**
 
 ## Quick Start
 
 ```bash
-# Audit a local build directory
-npx pseolint ./out
+# Audit any live website (recommended)
+npx pseolint https://yoursite.com
 
-# Audit a Next.js build
-npx pseolint ./.next/server/app --ignore "**/_*,**/\[*"
+# Audit via sitemap
+npx pseolint https://yoursite.com/sitemap.xml
 
-# Audit a live site via sitemap
-npx pseolint https://example.com/sitemap.xml
-
-# CI mode with threshold
+# Audit a local build directory (CI mode)
 npx pseolint ./out --threshold 40 --format json
 ```
 
+The tool automatically discovers pages by following internal links. No sitemap required.
+
 ## What It Checks
 
-**30 rules** across **6 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
+**34 rules** across **6 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
 
 ### SpamBrain Risk Detection
 
@@ -37,6 +38,7 @@ npx pseolint ./out --threshold 40 --format json
 | `spam/boilerplate-ratio` | Pages with >70% shared template content | Error |
 | `spam/template-diversity` | Identical DOM structure across all pages | Warning |
 | `spam/publication-velocity` | >100 pages sharing the same publish date | Warning |
+| `spam/template-coverage` | Template dimension coverage (e.g. 87 of 960 possible combinations) | Info |
 
 ### Content Quality
 
@@ -62,12 +64,14 @@ npx pseolint ./out --threshold 40 --format json
 
 | Rule | What It Checks | Severity |
 |------|---------------|----------|
-| `tech/canonical-consistency` | Missing or invalid canonical URLs | Error |
-| `tech/robots-noindex-conflict` | Noindexed pages with inbound links | Warning |
+| `tech/canonical-consistency` | Missing, invalid, or conflicting canonical URLs (HTML + HTTP header) | Error |
+| `tech/sitemap-completeness` | Pages missing from sitemap, phantom 404s, redirecting sitemap URLs | Error |
+| `tech/soft-404` | HTTP 200 pages that look like error pages | Error |
+| `tech/robots-noindex-conflict` | Noindexed pages (meta or X-Robots-Tag) with inbound links | Warning |
 | `tech/canonical-noindex-conflict` | Noindex + canonical pointing elsewhere | Warning |
+| `tech/redirect-chain` | Redirect chains longer than 2 hops | Warning |
 | `tech/og-completeness` | Missing og:title, og:description, or og:image | Warning |
 | `tech/hreflang-consistency` | Hreflang reciprocity (A->B requires B->A) | Warning |
-| `tech/robots-sitemap-presence` | Missing robots.txt or sitemap.xml (remote only) | Warning |
 
 ### Structured Data
 
@@ -84,6 +88,51 @@ npx pseolint ./out --threshold 40 --format json
 | `cannibal/title-overlap` | Page pairs with >80% title similarity after entity masking | Warning |
 | `cannibal/keyword-collision` | Pages sharing >6 of their top 10 TF-IDF keywords | Warning |
 | `cannibal/url-pattern` | URL structures with same tokens in different order | Info |
+
+## Live URL Scanning
+
+When you point pseolint at a URL, it captures what Google sees:
+
+- **HTTP metadata** — status codes, redirect chains, X-Robots-Tag, Link headers
+- **Crawl discovery** — follows internal links from the start page to find all crawlable pages
+- **Sitemap comparison** — if a sitemap exists, compares it against crawl-discovered pages
+
+```bash
+# Just give it your homepage — it discovers everything
+npx pseolint https://paperforge.dev
+```
+
+## Page Groups
+
+Different page types need different standards. Configure groups in `pseolint.config.ts`:
+
+```typescript
+export default {
+  pageGroups: {
+    pseo: {
+      match: '/templates/**',
+      rules: ['spam/*', 'content/*', 'links/*', 'cannibal/*', 'tech/*', 'schema/*'],
+      overrides: {
+        'spam/thin-content': { thinContentMinWords: 500 },
+      }
+    },
+    listing: {
+      match: ['/documents', '/templates'],
+      rules: ['tech/*'],
+    },
+    marketing: {
+      match: ['/', '/about', '/pricing'],
+      rules: ['tech/*'],
+    },
+    utility: {
+      match: ['**/404*', '**/500*'],
+      rules: [],  // skip entirely
+    }
+  }
+};
+```
+
+Each group gets its own score. Unmatched pages get all rules.
 
 ## SpamBrain Risk Score
 
@@ -108,7 +157,7 @@ score = (spam * 0.40) + (content * 0.25) + (links * 0.15)
 Usage: pseolint [options] <source>
 
 Arguments:
-  source                    Directory path or URL to audit
+  source                    URL or directory path to audit
 
 Options:
   -f, --format <type>       Output format: console, json, markdown, html (default: "console")
@@ -119,36 +168,28 @@ Options:
   --timeout <ms>            Per-request timeout in ms (default: 30000)
   --sample-size <n>         Audit a random subset of N pages (default: all)
   --ignore <patterns>       Comma-separated glob patterns to exclude
+  --render                  Render pages in a browser before auditing
+  --browser-ws <url>        CDP WebSocket endpoint for browser rendering
+  --no-crawl                Disable crawl-based page discovery
   -V, --version             Output version number
   -h, --help                Display help
 ```
 
-## Configuration
+## Browser Rendering
 
-Create a `pseolint.config.ts` (or `.pseolintrc.json`, `pseolint.config.js`, etc.):
-
-```typescript
-export default {
-  rules: {
-    'spam/near-duplicate': { threshold: 0.85 },
-    'spam/thin-content': { minWords: 300 },
-    'content/unique-value': { minUniqueWords: 100 },
-  },
-  concurrency: 5,
-  timeout: 30000,
-  sampleSize: 500,
-  ignore: ['/api/**', '/_next/**', '/_*'],
-};
-```
-
-## Output Formats
+For client-rendered sites (React SPAs, Next.js app router), use `--render` to capture the fully rendered DOM:
 
 ```bash
-npx pseolint ./out                     # Colored terminal (default)
-npx pseolint ./out --format json       # CI-friendly JSON
-npx pseolint ./out --format markdown   # PR comments / docs
-npx pseolint ./out --format html       # Self-contained visual report
+# With a remote CDP endpoint (Browserless, etc.)
+PSEOLINT_BROWSER_WS=wss://your-browser:3000 npx pseolint https://yoursite.com --render
+
+# With local Playwright
+npm install playwright-core
+npx playwright install chromium
+npx pseolint https://yoursite.com --render
 ```
+
+Works with any CDP-compatible browser. Remote endpoints must use `wss://`.
 
 ## GitHub Action
 
@@ -172,27 +213,13 @@ jobs:
 
 Posts a score summary as a PR comment and fails the check if score exceeds the threshold.
 
-## Framework Tips
-
-### Next.js (Static Export)
+## Output Formats
 
 ```bash
-# Use static export for best results
-next build && next export
-npx pseolint ./out
-```
-
-### Next.js (Server Build)
-
-```bash
-# Exclude dynamic route shells and internal pages
-npx pseolint ./.next/server/app --ignore "**/_*,**/\\[*"
-```
-
-### Astro
-
-```bash
-npx pseolint ./dist
+npx pseolint https://yoursite.com                  # Colored terminal (default)
+npx pseolint https://yoursite.com --format json    # CI-friendly JSON
+npx pseolint https://yoursite.com --format markdown # PR comments / docs
+npx pseolint https://yoursite.com --format html    # Self-contained visual report
 ```
 
 ## Monorepo
@@ -209,7 +236,7 @@ npx pseolint ./dist
 ```bash
 bun install
 bun run build
-bun run test     # 100 tests across 21 files
+bun run test     # 142 tests across 26 files
 ```
 
 ## License

@@ -18,7 +18,7 @@ describe("eeatSignalsRule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].ruleId).toBe("content/eeat-signals");
     expect(findings[0].severity).toBe("info");
-    expect(findings[0].message).toContain("0 out of 4");
+    expect(findings[0].message).toContain("E-E-A-T");
   });
 
   test("flags page with only 1 signal", () => {
@@ -26,7 +26,7 @@ describe("eeatSignalsRule", () => {
       page("https://example.com/one", { publishedDate: "2024-01-01" })
     ]);
     expect(findings).toHaveLength(1);
-    expect(findings[0].message).toContain("1 out of 4");
+    expect(findings[0].message).toContain("E-E-A-T");
   });
 
   test("passes page with 2 signals (author + about link)", () => {
