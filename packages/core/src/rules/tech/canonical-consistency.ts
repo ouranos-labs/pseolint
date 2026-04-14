@@ -66,6 +66,27 @@ export function canonicalConsistencyRule(
       relatedUrls: [canonicalUrl],
       fix: "Verify this canonical target is intentional."
     });
+
+    // Check HTTP Link header for canonical
+    if (page.httpMeta?.linkHeader) {
+      const linkCanonicalMatch = page.httpMeta.linkHeader.match(/<([^>]+)>;\s*rel="canonical"/i);
+      if (linkCanonicalMatch) {
+        const httpCanonical = normalizeAuditUrl(linkCanonicalMatch[1], normalizeOpts);
+        const htmlCanonical = page.canonical
+          ? resolveCanonicalUrl(page.canonical, page.url, normalizeOpts)
+          : null;
+        if (httpCanonical && htmlCanonical && httpCanonical !== htmlCanonical) {
+          findings.push({
+            ruleId: "tech/canonical-consistency",
+            severity: "error",
+            message: `${page.url} has conflicting canonical URLs: HTML says ${htmlCanonical}, HTTP Link header says ${httpCanonical}.`,
+            pageUrl: page.url,
+            relatedUrls: [htmlCanonical, httpCanonical],
+            fix: "Ensure the HTML <link rel='canonical'> and HTTP Link header agree on the canonical URL."
+          });
+        }
+      }
+    }
   }
 
   return findings;

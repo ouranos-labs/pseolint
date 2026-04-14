@@ -7,10 +7,18 @@ export function robotsNoindexConflictRule(
   const findings: RuleResult[] = [];
 
   for (const page of pages) {
-    const robots = page.robotsMeta.toLowerCase();
-    if (!robots.includes("noindex")) {
+    const htmlRobots = page.robotsMeta.toLowerCase();
+    const httpRobots = (page.httpMeta?.xRobotsTag ?? "").toLowerCase();
+    const isNoindex = htmlRobots.includes("noindex") || httpRobots.includes("noindex");
+    if (!isNoindex) {
       continue;
     }
+
+    const source = htmlRobots.includes("noindex") && httpRobots.includes("noindex")
+      ? "both HTML meta and X-Robots-Tag"
+      : htmlRobots.includes("noindex")
+        ? "HTML meta"
+        : "X-Robots-Tag header";
 
     const inboundCount = inbound.get(page.url) ?? 0;
     findings.push({
@@ -18,8 +26,8 @@ export function robotsNoindexConflictRule(
       severity: inboundCount > 0 ? "warning" : "info",
       message:
         inboundCount > 0
-          ? `${page.url} is marked noindex but still has ${inboundCount} inbound internal links.`
-          : `${page.url} is marked noindex.`,
+          ? `${page.url} is marked noindex (via ${source}) but has ${inboundCount} inbound internal links.`
+          : `${page.url} is marked noindex (via ${source}).`,
       pageUrl: page.url,
       fix: inboundCount > 0
         ? "Either remove noindex or remove internal links pointing to this page."
