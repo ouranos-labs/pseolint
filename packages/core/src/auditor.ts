@@ -265,6 +265,7 @@ function runRulesOnPages(
 interface LoadedPage {
   url: string;
   html: string;
+  httpMeta?: import("./types.js").HttpMeta;
 }
 
 function hashHtml(html: string): string {
@@ -354,6 +355,59 @@ async function fetchWithRetry(
   } catch {
     return null;
   }
+}
+
+async function fetchPageWithMeta(
+  url: string,
+  timeoutMs: number
+): Promise<LoadedPage | null> {
+  const redirectChain: string[] = [];
+  let currentUrl = url;
+
+  for (let hop = 0; hop < 10; hop += 1) {
+    let response;
+    try {
+      response = await fetch(currentUrl, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch {
+      return null;
+    }
+
+    const status = response.status;
+    if (status >= 300 && status < 400) {
+      const location = response.headers.get("location");
+      if (!location) break;
+      redirectChain.push(currentUrl);
+      try {
+        currentUrl = new URL(location, currentUrl).href;
+      } catch {
+        break;
+      }
+      continue;
+    }
+
+    let html: string;
+    try {
+      html = await response.text();
+    } catch {
+      return null;
+    }
+
+    return {
+      url,
+      html,
+      httpMeta: {
+        statusCode: status,
+        finalUrl: currentUrl,
+        redirectChain,
+        xRobotsTag: response.headers.get("x-robots-tag") ?? "",
+        linkHeader: response.headers.get("link") ?? "",
+      },
+    };
+  }
+  return null;
 }
 
 async function fetchTextStrict(url: string, timeoutMs: number): Promise<{ text: string; contentType: string }> {
@@ -500,9 +554,9 @@ async function loadPagesFromSource(source: string, concurrency: number, timeoutM
 
       const pages: LoadedPage[] = [];
       await runWithConcurrency(urls, concurrency, async (url) => {
-        const result = await fetchWithRetry(url, timeoutMs);
+        const result = await fetchPageWithMeta(url, timeoutMs);
         if (result) {
-          pages.push({ url, html: result.text });
+          pages.push(result);
         }
       });
       return pages;
@@ -595,7 +649,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       continue;
     }
     urlHashes.set(key, digest);
-    deduped.push({ url: key, html: page.html });
+    deduped.push({ url: key, html: page.html, httpMeta: page.httpMeta });
   }
 
   const filtered = ignorePatterns.length > 0
@@ -606,9 +660,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     ? fisherYatesSample(filtered, sampleSize)
     : filtered;
 
-  const parsedPages = sampled.map((page) =>
-    parseHtmlPage(page.html, page.url, { normalizeUrl: normalizeUrlOptions })
-  );
+  const parsedPages = sampled.map((page) => {
+    const parsed = parseHtmlPage(page.html, page.url, { normalizeUrl: normalizeUrlOptions });
+    if (page.httpMeta) {
+      (parsed as unknown as Record<string, unknown>).httpMeta = page.httpMeta;
+    }
+    return parsed;
+  });
   const knownUrls = new Set(parsedPages.map((p) => p.url));
   const rootUrl =
     parsedPages.find((p) => /(^|[\\/])index\.html?$/i.test(p.url))?.url ?? parsedPages[0]?.url ?? "";

@@ -85,6 +85,7 @@ export interface AuditOptions {
   sampleSize?: number;
   /** URL/path glob patterns to exclude from the audit. */
   ignore?: string[];
+  crawlDiscovery?: boolean;
   /** Page groups with per-group rule sets and threshold overrides. */
   pageGroups?: Record<string, PageGroupConfig>;
   /** Browser rendering options for client-rendered pages. */
@@ -96,6 +97,14 @@ export interface AuditOptions {
 export interface EntityMaskPattern {
   placeholder: string;
   pattern: RegExp;
+}
+
+export interface HttpMeta {
+  statusCode: number;
+  finalUrl: string;
+  redirectChain: string[];
+  xRobotsTag: string;
+  linkHeader: string;
 }
 
 export interface ParsedPage {
@@ -133,4 +142,5 @@ export interface ParsedPage {
   };
   contentText: string;
   html: string;
+  httpMeta?: HttpMeta;
 }
