@@ -25,7 +25,9 @@ import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-con
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
 import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
-import { robotsSitemapPresenceRule } from "./rules/tech/robots-sitemap-presence.js";
+import { sitemapCompletenessRule } from "./rules/tech/sitemap-completeness.js";
+import { redirectChainRule } from "./rules/tech/redirect-chain.js";
+import { soft404Rule } from "./rules/tech/soft-404.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
@@ -220,9 +222,12 @@ function runRulesOnPages(
     findings.push(...tag(robotsNoindexConflictRule(pages, inbound)));
   }
 
-  if (isEnabled("tech/robots-sitemap-presence")) {
-    // This is async and site-wide — run only for __default group to avoid duplication
-    // It's handled separately in auditSource
+  if (isEnabled("tech/redirect-chain")) {
+    findings.push(...tag(redirectChainRule(pages)));
+  }
+
+  if (isEnabled("tech/soft-404")) {
+    findings.push(...tag(soft404Rule(pages)));
   }
 
   if (isEnabled("tech/og-completeness")) {
@@ -542,7 +547,12 @@ async function collectUrlsFromSitemap(
   return allUrls;
 }
 
-async function loadPagesFromSource(source: string, concurrency: number, timeoutMs: number): Promise<LoadedPage[]> {
+async function loadPagesFromSource(
+  source: string,
+  concurrency: number,
+  timeoutMs: number,
+  crawlDiscovery: boolean
+): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string> }> {
   if (/^https?:\/\//i.test(source)) {
     const { text, contentType } = await fetchTextStrict(source, timeoutMs);
 
@@ -559,11 +569,56 @@ async function loadPagesFromSource(source: string, concurrency: number, timeoutM
           pages.push(result);
         }
       });
-      return pages;
+
+      // Crawl discovery: follow internal links to find pages not in sitemap
+      if (crawlDiscovery) {
+        const sitemapUrlSet = new Set(urls);
+        const discoveredUrls = new Set<string>();
+        let sourceOrigin: string;
+        try {
+          sourceOrigin = new URL(source).origin;
+        } catch {
+          sourceOrigin = "";
+        }
+
+        for (const page of pages) {
+          const linkMatches = Array.from(page.html.matchAll(/href=["']([^"']+)["']/gi));
+          for (const match of linkMatches) {
+            const href = match[1];
+            if (!href || href.startsWith("#") || /^mailto:|^tel:|^javascript:|^data:/i.test(href)) continue;
+            try {
+              const baseUrl = page.httpMeta?.finalUrl ?? page.url;
+              const resolved = new URL(href, baseUrl).href;
+              const resolvedUrl = new URL(resolved);
+              if (resolvedUrl.origin !== sourceOrigin) continue;
+              // Strip query and hash for dedup
+              resolvedUrl.search = "";
+              resolvedUrl.hash = "";
+              const normalized = resolvedUrl.href;
+              if (!sitemapUrlSet.has(normalized) && !discoveredUrls.has(normalized)) {
+                discoveredUrls.add(normalized);
+              }
+            } catch {
+              continue;
+            }
+          }
+        }
+
+        if (discoveredUrls.size > 0) {
+          await runWithConcurrency(Array.from(discoveredUrls), concurrency, async (url) => {
+            const result = await fetchPageWithMeta(url, timeoutMs);
+            if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
+              pages.push(result);
+            }
+          });
+        }
+      }
+
+      return { pages, sitemapUrls: new Set(urls) };
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
-      return [{ url: source, html: text }];
+      return { pages: [{ url: source, html: text }] };
     }
 
     throw new Error(`Source URL does not look like HTML or sitemap XML: ${source}`);
@@ -578,20 +633,21 @@ async function loadPagesFromSource(source: string, concurrency: number, timeoutM
   }
 
   if (sourceStat.isFile()) {
-    return [{ url: resolved, html: await readFile(resolved, "utf-8") }];
+    return { pages: [{ url: resolved, html: await readFile(resolved, "utf-8") }] };
   }
 
   if (sourceStat.isDirectory()) {
     const htmlFiles = await collectHtmlFiles(resolved);
-    return Promise.all(
+    const pages = await Promise.all(
       htmlFiles.map(async (filePath) => ({
         url: filePath,
         html: await readFile(filePath, "utf-8")
       }))
     );
+    return { pages };
   }
 
-  return [];
+  return { pages: [] };
 }
 
 export async function auditSource(source: string, options?: AuditOptions): Promise<AuditSummary> {
@@ -626,7 +682,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     stripWwwHost: options?.rules?.stripWwwHost ?? false
   });
 
-  const loadedPages = await loadPagesFromSource(source, concurrency, timeoutMs);
+  const crawlDiscovery = /^https?:\/\//i.test(source) && (options?.crawlDiscovery ?? true);
+  const { pages: loadedPages, sitemapUrls: sitemapUrlSet } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery);
   const deduped: LoadedPage[] = [];
   const urlHashes = new Map<string, string>();
   const duplicateUrlFindings: RuleResult[] = [];
@@ -686,9 +743,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const groupScores: Record<string, number> = {};
   const groupPageCounts: Record<string, number> = {};
 
-  // robots-sitemap-presence is site-wide and async; run once
-  const robotsSitemapPresence = await robotsSitemapPresenceRule(source);
-  allFindings.push(...robotsSitemapPresence);
+  // Site-wide rules (run once, outside group loop)
+  if (sitemapUrlSet && sitemapUrlSet.size > 0) {
+    const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet);
+    allFindings.push(...sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+  }
 
   for (const [groupName, groupPages] of classified) {
     if (groupPages.length === 0) continue;

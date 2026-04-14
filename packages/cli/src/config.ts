@@ -37,6 +37,7 @@ const auditOptionsSchema = z.object({
   render: z.object({
     browserWsEndpoint: z.string().optional(),
   }).optional(),
+  crawlDiscovery: z.boolean().optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -57,6 +58,7 @@ export interface CliFlags {
   sampleSize?: number;
   ignore?: string[];
   render?: { browserWsEndpoint?: string };
+  crawlDiscovery?: boolean;
 }
 
 export function mergeOptions(
@@ -69,5 +71,6 @@ export function mergeOptions(
   if (cliFlags.sampleSize !== undefined) result.sampleSize = cliFlags.sampleSize;
   if (cliFlags.ignore !== undefined) result.ignore = cliFlags.ignore;
   if (cliFlags.render !== undefined) result.render = cliFlags.render;
+  if (cliFlags.crawlDiscovery !== undefined) result.crawlDiscovery = cliFlags.crawlDiscovery;
   return result;
 }
