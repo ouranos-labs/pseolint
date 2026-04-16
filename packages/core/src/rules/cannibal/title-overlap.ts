@@ -43,6 +43,7 @@ export function titleOverlapRule(
           message: `${pages[i].url} and ${pages[j].url} have overlapping titles after entity masking (${(similarity * 100).toFixed(1)}% Jaccard similarity).`,
           pageUrl: pages[i].url,
           relatedUrls: [pages[j].url],
+          similarity,
           fix: `Differentiate page titles by including unique, page-specific keywords or angles.`
         });
       }

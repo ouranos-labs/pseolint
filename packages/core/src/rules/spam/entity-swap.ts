@@ -21,6 +21,9 @@ export function entitySwapRule(
           ruleId: "spam/entity-swap",
           severity: "critical",
           message: `${pages[i].url} and ${pages[j].url} look structurally identical after entity masking.`,
+          pageUrl: pages[i].url,
+          relatedUrls: [pages[j].url],
+          similarity,
           fix: "These pages are identical after masking entity names. Add entity-specific content: local regulations, statistics, fees, or requirements unique to each entity."
         });
       }

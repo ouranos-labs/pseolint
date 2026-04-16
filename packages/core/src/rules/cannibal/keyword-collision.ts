@@ -20,6 +20,7 @@ export function keywordCollisionRule(
           message: `${pages[i].url} and ${pages[j].url} share ${shared.length} of their top 10 keywords: ${shared.join(", ")}.`,
           pageUrl: pages[i].url,
           relatedUrls: [pages[j].url],
+          similarity: shared.length / 10,
           fix: `These pages target the same keywords. Consolidate them into one page or differentiate their content focus.`
         });
       }
