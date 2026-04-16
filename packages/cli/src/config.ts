@@ -38,6 +38,7 @@ const auditOptionsSchema = z.object({
     browserWsEndpoint: z.string().optional(),
   }).optional(),
   crawlDiscovery: z.boolean().optional(),
+  templateGenerated: z.boolean().optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {

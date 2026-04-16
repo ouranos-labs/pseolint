@@ -37,6 +37,7 @@ import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
 import { templateCoverageRule } from "./rules/spam/template-coverage.js";
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
+import { enrichFindings } from "./enrich-findings.js";
 import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 
 const DEFAULTS = {
@@ -855,7 +856,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     groupScores[groupName] = score;
   }
 
-  const { score, categoryScores } = scoreFromFindings(allFindings);
+  // Enrich findings: cluster pairwise, detect templates, assign effort
+  const enriched = enrichFindings(allFindings, parsedPages, {
+    templateGenerated: options?.templateGenerated,
+  });
+
+  const { score, categoryScores } = scoreFromFindings(enriched.findings);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   return {
@@ -864,6 +870,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     groupScores: options?.pageGroups ? groupScores : undefined,
     groupPageCounts: options?.pageGroups ? groupPageCounts : undefined,
     pageCount: auditedPageCount || parsedPages.length,
-    findings: allFindings
+    findings: enriched.findings,
+    templateDetected: enriched.templateDetected,
+    rawFindingCount: enriched.rawFindingCount,
   };
 }

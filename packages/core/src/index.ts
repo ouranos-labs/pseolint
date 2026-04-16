@@ -41,3 +41,4 @@ export * from "./rule-references.js";
 export * from "./page-classifier.js";
 export * from "./formatters/index.js";
 export * from "./renderer.js";
+export * from "./enrich-findings.js";
