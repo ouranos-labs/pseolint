@@ -1,0 +1,65 @@
+{
+  "name": "pseolint",
+  "display_name": "pSEO Lint",
+  "description": "Audit programmatic SEO sites for SpamBrain risk. 35 rules across 6 categories detect near-duplicates, doorway pages, thin content, and missing technical SEO.",
+  "icon_url": "https://pseolint.dev/icon.png",
+  "homepage": "https://pseolint.dev",
+  "repository": "https://github.com/ouranos-labs/pseolint",
+  "license": "MIT",
+  "is_official": true,
+  "categories": ["seo", "web-development", "code-quality"],
+  "install": {
+    "command": "npx",
+    "args": ["@pseolint/mcp"]
+  },
+  "tools": [
+    {
+      "name": "audit_site",
+      "description": "Run a full pseolint audit on a URL or directory. Returns SpamBrain Risk Score (0-100) and actionable findings.",
+      "parameters": {
+        "source": {
+          "type": "string",
+          "required": true,
+          "description": "URL or directory path to audit"
+        },
+        "threshold": {
+          "type": "number",
+          "required": false,
+          "description": "Score threshold for pass/fail (default: 40)"
+        },
+        "sampleSize": {
+          "type": "number",
+          "required": false,
+          "description": "Audit a random subset of N pages (0 = all)"
+        },
+        "format": {
+          "type": "string",
+          "required": false,
+          "description": "Output format: console or json (default: console)"
+        }
+      }
+    },
+    {
+      "name": "explain_score",
+      "description": "Audit a site and explain what's driving the SpamBrain Risk Score with category breakdowns and prioritized fixes.",
+      "parameters": {
+        "source": {
+          "type": "string",
+          "required": true,
+          "description": "URL or directory path to audit"
+        }
+      }
+    },
+    {
+      "name": "check_page",
+      "description": "Quick check a single page URL against pseolint rules. Faster than a full site audit.",
+      "parameters": {
+        "url": {
+          "type": "string",
+          "required": true,
+          "description": "URL of the page to check"
+        }
+      }
+    }
+  ]
+}
