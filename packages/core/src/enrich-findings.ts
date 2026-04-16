@@ -366,16 +366,35 @@ export function enrichFindings(
 
   // ── Step 5: Assign effort tags ──
 
+  // Pre-compute per-rule unique page counts for passthrough findings
+  const passthroughRulePageCounts = new Map<string, number>();
+  for (const f of passthrough) {
+    if (!f.pageUrl) continue;
+    if (!passthroughRulePageCounts.has(f.ruleId)) {
+      passthroughRulePageCounts.set(f.ruleId, 0);
+    }
+    // Count using a Set approach via a temporary accumulator
+  }
+  const passthroughRulePageSets = new Map<string, Set<string>>();
+  for (const f of passthrough) {
+    if (!f.pageUrl) continue;
+    if (!passthroughRulePageSets.has(f.ruleId)) passthroughRulePageSets.set(f.ruleId, new Set());
+    passthroughRulePageSets.get(f.ruleId)!.add(f.pageUrl);
+  }
+
   const allFindings = [...clustered, ...passthrough];
 
   for (const f of allFindings) {
     const baseline = EFFORT_BASELINES[f.ruleId] ?? "moderate";
-    const affected =
-      f.context?.type === "cluster"
-        ? f.context.clusterSize
-        : f.relatedUrls
-          ? f.relatedUrls.length + 1
-          : 1;
+    let affected: number;
+    if (f.context?.type === "cluster") {
+      affected = f.context.clusterSize;
+    } else if (f.relatedUrls && f.relatedUrls.length > 0) {
+      affected = f.relatedUrls.length + 1;
+    } else {
+      // Use total unique pages affected by this rule across all passthrough findings
+      affected = passthroughRulePageSets.get(f.ruleId)?.size ?? 1;
+    }
     f.effort = escalateEffort(baseline, affected);
   }
 
