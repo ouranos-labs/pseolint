@@ -123,6 +123,9 @@ export async function runCli(
 
   // Write or print
   if (opts.output) {
+    const { dirname } = await import("node:path");
+    const { mkdir } = await import("node:fs/promises");
+    await mkdir(dirname(opts.output), { recursive: true });
     await writeFile(opts.output, output, "utf-8");
     console.log(`Report written to ${opts.output}`);
   } else {
