@@ -62,30 +62,34 @@ export function templateCoverageRule(
         }
       }
 
-      const dimensions: Array<{ position: number; values: number }> = [];
+      const dimensions: Array<{ position: number; values: number; samples: string[] }> = [];
 
       for (let pos = 0; pos < tokenSets.length; pos += 1) {
         if (tokenSets[pos].size > 1) {
-          dimensions.push({ position: pos, values: tokenSets[pos].size });
+          const samples = Array.from(tokenSets[pos]).slice(0, 3);
+          dimensions.push({ position: pos, values: tokenSets[pos].size, samples });
         }
       }
 
       // No template pattern if all tokens vary or no tokens vary
       if (dimensions.length === 0) continue;
-      if (dimensions.length === segmentCount) continue; // Every position varies = no constants = not a template
+      if (dimensions.length === segmentCount) continue;
 
       const totalCombinations = dimensions.reduce((acc, d) => acc * d.values, 1);
       const coverage = names.length / totalCombinations;
       const coveragePct = (coverage * 100).toFixed(1);
 
       const dimDesc = dimensions
-        .map((d) => `position ${d.position + 1}: ${d.values} values`)
-        .join(", ");
+        .map((d) => {
+          const sampleStr = d.samples.join(", ");
+          return `${d.values} values (e.g. ${sampleStr})`;
+        })
+        .join(" x ");
 
       findings.push({
         ruleId: "spam/template-coverage",
         severity: "info",
-        message: `${clusterDir} has ${names.length} pages with ${dimensions.length} template dimensions (${dimDesc}). Coverage: ${names.length} of ${totalCombinations} possible combinations (${coveragePct}%).`,
+        message: `${clusterDir} has ${names.length} pages across ${dimensions.length} dimensions: ${dimDesc}. Coverage: ${names.length} of ${totalCombinations} combinations (${coveragePct}%).`,
         fix: totalCombinations > names.length * 5
           ? "Low coverage suggests an overly broad template matrix. Consider narrowing dimensions to combinations you can differentiate with unique content."
           : "Coverage is reasonable. Ensure each combination provides genuinely unique content.",

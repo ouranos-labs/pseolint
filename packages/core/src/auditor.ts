@@ -556,17 +556,31 @@ async function loadPagesFromSource(
   if (/^https?:\/\//i.test(source)) {
     let text: string;
     let contentType: string;
+    let sourceStatus = 200;
     try {
       const fetched = await fetchTextStrict(source, timeoutMs);
       text = fetched.text;
       contentType = fetched.contentType;
     } catch {
-      throw new Error(`Failed to fetch source URL: ${source} — verify the URL is correct and returns a valid response.`);
+      // Sitemap URL returned non-200 — fallback to crawl from origin homepage
+      if (source.includes("sitemap")) {
+        try {
+          const origin = new URL(source).origin;
+          const fallback = await fetchTextStrict(origin, timeoutMs);
+          text = fallback.text;
+          contentType = fallback.contentType;
+          sourceStatus = -1; // flag that we fell back
+        } catch {
+          throw new Error(`Failed to fetch source URL: ${source} (and fallback to origin failed)`);
+        }
+      } else {
+        throw new Error(`Failed to fetch source URL: ${source} — verify the URL is correct and returns a valid response.`);
+      }
     }
 
-    const isXml = contentType.includes("xml") || looksLikeSitemap(text);
+    const isXml = (contentType.includes("xml") || looksLikeSitemap(text)) && sourceStatus !== -1;
 
-    if (isXml || looksLikeSitemap(text)) {
+    if (isXml) {
       const visited = new Set<string>();
       const urls = await collectUrlsFromSitemap(text, source, visited, timeoutMs);
 
@@ -630,7 +644,6 @@ async function loadPagesFromSource(
       const pages: LoadedPage[] = [initialPage];
 
       if (crawlDiscovery) {
-        const discoveredUrls = new Set<string>();
         let sourceOrigin: string;
         try {
           sourceOrigin = new URL(source).origin;
@@ -638,33 +651,52 @@ async function loadPagesFromSource(
           sourceOrigin = "";
         }
 
-        const linkMatches = Array.from(text.matchAll(/href=["']([^"']+)["']/gi));
-        for (const match of linkMatches) {
-          const href = match[1];
-          if (!href || href.startsWith("#") || /^mailto:|^tel:|^javascript:|^data:/i.test(href)) continue;
-          try {
-            const resolved = new URL(href, source).href;
-            const resolvedUrl = new URL(resolved);
-            if (resolvedUrl.origin !== sourceOrigin) continue;
-            if (/^\/_next\/|^\/api\/|^\/icon/i.test(resolvedUrl.pathname)) continue;
-            resolvedUrl.search = "";
-            resolvedUrl.hash = "";
-            const normalized = resolvedUrl.href;
-            if (normalized !== source && !discoveredUrls.has(normalized)) {
-              discoveredUrls.add(normalized);
-            }
-          } catch {
-            continue;
-          }
-        }
+        const knownCrawled = new Set<string>([source]);
+        const maxDepth = 3;
 
-        if (discoveredUrls.size > 0) {
-          await runWithConcurrency(Array.from(discoveredUrls), concurrency, async (url) => {
+        for (let depth = 0; depth < maxDepth; depth += 1) {
+          const frontier = new Set<string>();
+
+          for (const page of pages) {
+            if (depth > 0 && !knownCrawled.has("__depth_" + depth + "_" + page.url)) continue;
+            const linkMatches = Array.from(page.html.matchAll(/href=["']([^"']+)["']/gi));
+            for (const match of linkMatches) {
+              const href = match[1];
+              if (!href || href.startsWith("#") || /^mailto:|^tel:|^javascript:|^data:/i.test(href)) continue;
+              try {
+                const baseUrl = page.httpMeta?.finalUrl ?? page.url;
+                const resolved = new URL(href, baseUrl).href;
+                const resolvedUrl = new URL(resolved);
+                if (resolvedUrl.origin !== sourceOrigin) continue;
+                if (/^\/_next\/|^\/api\/|^\/icon/i.test(resolvedUrl.pathname)) continue;
+                resolvedUrl.search = "";
+                resolvedUrl.hash = "";
+                const normalized = resolvedUrl.href;
+                if (!knownCrawled.has(normalized)) {
+                  frontier.add(normalized);
+                }
+              } catch {
+                continue;
+              }
+            }
+          }
+
+          if (frontier.size === 0) break;
+
+          const newPages: LoadedPage[] = [];
+          await runWithConcurrency(Array.from(frontier), concurrency, async (url) => {
             const result = await fetchPageWithMeta(url, timeoutMs);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
-              pages.push(result);
+              newPages.push(result);
+              knownCrawled.add(url);
+              knownCrawled.add("__depth_" + (depth + 1) + "_" + url);
+            } else {
+              knownCrawled.add(url);
             }
           });
+
+          pages.push(...newPages);
+          if (newPages.length === 0) break;
         }
       }
 

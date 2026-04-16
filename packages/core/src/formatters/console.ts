@@ -87,6 +87,39 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     lines.push("");
   }
 
+  // Top issues by rule (prioritized summary)
+  const ruleCounts = new Map<string, { count: number; severity: Severity }>();
+  for (const f of summary.findings) {
+    const existing = ruleCounts.get(f.ruleId);
+    if (existing) {
+      existing.count += 1;
+      if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(existing.severity)) {
+        existing.severity = f.severity;
+      }
+    } else {
+      ruleCounts.set(f.ruleId, { count: 1, severity: f.severity });
+    }
+  }
+
+  if (ruleCounts.size > 0) {
+    const sorted = Array.from(ruleCounts.entries())
+      .sort((a, b) => {
+        const sevDiff = SEVERITY_ORDER.indexOf(a[1].severity) - SEVERITY_ORDER.indexOf(b[1].severity);
+        if (sevDiff !== 0) return sevDiff;
+        return b[1].count - a[1].count;
+      })
+      .slice(0, 5);
+
+    lines.push(`${BOLD}Top Issues${RESET}`);
+    for (let i = 0; i < sorted.length; i += 1) {
+      const [ruleId, { count, severity }] = sorted[i];
+      const sColor = severityColor(severity);
+      const pagesLabel = count === 1 ? "1 finding" : `${count} findings`;
+      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId} — ${pagesLabel}`);
+    }
+    lines.push("");
+  }
+
   // Findings grouped by severity
   const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) {
