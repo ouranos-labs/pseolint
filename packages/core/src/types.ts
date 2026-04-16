@@ -128,6 +128,22 @@ export interface AuditOptions {
   templateGenerated?: boolean;
   /** Custom entity mask patterns. Merged with defaults (US states, ZIP codes). Set to empty array to disable defaults. */
   entityPatterns?: Array<{ placeholder: string; pattern: string; flags?: string }>;
+  /** Source data records for data-binding verification. */
+  dataSource?: DataSourceOptions;
+}
+
+/** A single page's source data for data-source comparison. */
+export interface PageDataRecord {
+  /** URL or path pattern to match against audited pages. Supports globs. */
+  url: string;
+  /** Key-value data that should appear on the rendered page. */
+  data: Record<string, unknown>;
+}
+
+/** Options for data-source comparison rules. */
+export interface DataSourceOptions {
+  /** Path to JSON file or inline array of page data records. */
+  records: PageDataRecord[];
 }
 
 export interface EntityMaskPattern {

@@ -38,6 +38,7 @@ interface CliOptions {
   browserWs?: string;
   crawl: boolean;
   mcp: boolean;
+  dataSource?: string;
 }
 
 export async function runCli(
@@ -69,6 +70,7 @@ export async function runCli(
     .option("--render", "Render pages in a browser before auditing")
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
+    .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -113,6 +115,19 @@ export async function runCli(
   };
 
   const options = mergeOptions(configFile, cliFlags);
+
+  if (opts.dataSource) {
+    const { loadDataSource } = await import("@pseolint/core");
+    try {
+      const records = await loadDataSource(opts.dataSource);
+      options.dataSource = { records };
+      console.log(`Loaded ${records.length} data source records from ${opts.dataSource}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Error loading data source: ${message}`);
+      return 1;
+    }
+  }
 
   // Run audit
   let summary;
