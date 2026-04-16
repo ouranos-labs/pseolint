@@ -44,5 +44,21 @@ export function sitemapCompletenessRule(
     }
   }
 
+  for (const page of pages) {
+    if (!sitemapUrls.has(page.url)) continue;
+    const hasNoindex =
+      /noindex/i.test(page.robotsMeta) ||
+      (page.httpMeta?.xRobotsTag != null && /noindex/i.test(page.httpMeta.xRobotsTag));
+    if (hasNoindex) {
+      findings.push({
+        ruleId: "tech/sitemap-completeness",
+        severity: "error",
+        message: `${page.url} is in the sitemap but has a noindex directive.`,
+        pageUrl: page.url,
+        fix: "Remove the noindex directive or remove this URL from your sitemap.",
+      });
+    }
+  }
+
   return findings;
 }

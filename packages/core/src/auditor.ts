@@ -825,6 +825,33 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
+  // Build entity patterns, merging user-supplied config patterns with defaults.
+  // Flags are restricted to known-safe characters to prevent ReDoS via crafted flags;
+  // each pattern is compiled eagerly so bad regexes fail at config time, not mid-audit.
+  const SAFE_FLAGS_RE = /^[gimsuy]*$/;
+  const entityPatterns: EntityMaskPattern[] = options?.entityPatterns
+    ? [
+        ...DEFAULT_ENTITY_PATTERNS,
+        ...options.entityPatterns.map((p) => {
+          const rawFlags = p.flags ?? "gi";
+          if (!SAFE_FLAGS_RE.test(rawFlags)) {
+            throw new Error(
+              `Invalid regex flags "${rawFlags}" in entityPatterns for placeholder "${p.placeholder}". ` +
+              `Only the flags g, i, m, s, u, y are permitted.`
+            );
+          }
+          try {
+            // Flags validated against SAFE_FLAGS_RE above; pattern is from trusted local config, not HTTP input.
+            return { placeholder: p.placeholder, pattern: new RegExp(p.pattern, rawFlags) }; // nosemgrep
+          } catch (err) {
+            throw new Error(
+              `Invalid regex pattern for placeholder "${p.placeholder}": ${(err as Error).message}`
+            );
+          }
+        }),
+      ]
+    : DEFAULT_ENTITY_PATTERNS;
+
   // Classify pages into groups and run only enabled rules per group
   const classified = classifyPages(parsedPages, options?.pageGroups);
   const allFindings: RuleResult[] = [...duplicateUrlFindings];

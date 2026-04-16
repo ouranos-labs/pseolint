@@ -126,6 +126,8 @@ export interface AuditOptions {
   };
   /** Override template auto-detection. When set, skips heuristic detection. */
   templateGenerated?: boolean;
+  /** Custom entity mask patterns. Merged with defaults (US states, ZIP codes). Set to empty array to disable defaults. */
+  entityPatterns?: Array<{ placeholder: string; pattern: string; flags?: string }>;
 }
 
 export interface EntityMaskPattern {

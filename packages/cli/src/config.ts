@@ -39,6 +39,11 @@ const auditOptionsSchema = z.object({
   }).optional(),
   crawlDiscovery: z.boolean().optional(),
   templateGenerated: z.boolean().optional(),
+  entityPatterns: z.array(z.object({
+    placeholder: z.string(),
+    pattern: z.string(),
+    flags: z.string().optional(),
+  })).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
