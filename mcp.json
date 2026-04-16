@@ -51,13 +51,13 @@
       }
     },
     {
-      "name": "check_page",
-      "description": "Quick check a single page URL against pseolint rules. Faster than a full site audit.",
+      "name": "check_page_technical",
+      "description": "Check a specific page URL for technical SEO issues (canonical, OG tags, schema, robots, thin content). Does not check cross-page rules — use audit_site for those.",
       "parameters": {
         "url": {
           "type": "string",
           "required": true,
-          "description": "URL of the page to check"
+          "description": "Full URL of the page to check"
         }
       }
     }
