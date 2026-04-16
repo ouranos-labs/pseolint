@@ -25,6 +25,16 @@ npx pseolint https://yoursite.com
 npx pseolint ./out --threshold 40 --format json
 ```
 
+## Audit Modes
+
+| Mode | Command | What you get |
+|------|---------|-------------|
+| **Local dev server** | `npx pseolint http://localhost:3000` | Full rendered pages, HTTP headers, redirect detection, crawl discovery. **Best results.** |
+| **Live site** | `npx pseolint https://yoursite.com` | Same as above against production. Slower (network latency). |
+| **Build directory** | `npx pseolint ./out` | Static HTML files only. No HTTP headers, no redirect detection, no soft-404 detection, no sitemap comparison. Use for CI gates. |
+
+> **Why localhost is recommended:** Build directories contain framework artifacts (Next.js `[slug].html` shells, empty client-rendered pages) that produce false positives. Your dev server renders the actual pages Google will see — with canonicals, meta tags, and full content.
+
 ## What It Checks
 
 **34 rules** across **6 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
