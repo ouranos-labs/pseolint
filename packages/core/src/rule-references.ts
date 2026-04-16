@@ -17,6 +17,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "links/cluster-connectivity": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
   "links/hub-pages": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
   "links/link-depth": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
+  "tech/robots-compliance": "https://developers.google.com/search/docs/crawling-indexing/robots/intro",
   "tech/canonical-consistency": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
   "tech/canonical-noindex-conflict": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
   "tech/robots-noindex-conflict": "https://developers.google.com/search/docs/crawling-indexing/block-indexing",

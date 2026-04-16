@@ -35,6 +35,7 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   "tech/soft-404": "quick",
   "tech/sitemap-completeness": "quick",
   "tech/robots-sitemap-presence": "quick",
+  "tech/robots-compliance": "quick",
   "schema/json-ld-valid": "quick",
   "schema/required-fields": "quick",
   "schema/consistency": "quick",

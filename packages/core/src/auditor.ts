@@ -26,6 +26,7 @@ import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
 import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
 import { sitemapCompletenessRule } from "./rules/tech/sitemap-completeness.js";
+import { robotsComplianceRule } from "./rules/tech/robots-sitemap-presence.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
@@ -772,6 +773,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   const crawlDiscovery = /^https?:\/\//i.test(source) && (options?.crawlDiscovery ?? true);
   const { pages: loadedPages, sitemapUrls: sitemapUrlSet } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery);
+
+  let robotsTxtContent = "";
+  if (/^https?:\/\//i.test(source)) {
+    try {
+      const origin = new URL(source).origin;
+      const result = await fetchWithRetry(`${origin}/robots.txt`, timeoutMs);
+      if (result) robotsTxtContent = result.text;
+    } catch { /* ignore */ }
+  }
   const deduped: LoadedPage[] = [];
   const urlHashes = new Map<string, string>();
   const duplicateUrlFindings: RuleResult[] = [];
@@ -862,6 +872,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (sitemapUrlSet && sitemapUrlSet.size > 0) {
     const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet);
     allFindings.push(...sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+
+    if (robotsTxtContent) {
+      const robotsFindings = robotsComplianceRule(parsedPages, sitemapUrlSet, robotsTxtContent);
+      allFindings.push(...robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    }
   }
 
   for (const [groupName, groupPages] of classified) {
