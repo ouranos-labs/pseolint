@@ -20,6 +20,10 @@ function formatPrComment(summary: AuditSummary): string {
   lines.push(`## pSEO Lint — Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
   lines.push("");
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
+  if (summary.templateDetected) {
+    lines.push("");
+    lines.push("> Template-generated content detected. Fix suggestions are tailored for template authors.");
+  }
   lines.push("");
 
   lines.push("| Category | Score |");
@@ -50,7 +54,8 @@ function formatPrComment(summary: AuditSummary): string {
     const visible = items.slice(0, limit);
 
     for (const item of visible) {
-      lines.push(`- **${item.ruleId}**: ${item.message}`);
+      const effortStr = item.effort ? ` (**${item.effort}**)` : "";
+      lines.push(`- **${item.ruleId}**${effortStr}: ${item.message}`);
     }
 
     if (!showAll && items.length > limit) {

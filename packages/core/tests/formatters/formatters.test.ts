@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AuditSummary } from "../../src/types.js";
+import type { AuditSummary, FindingContext } from "../../src/types.js";
 import { formatConsole } from "../../src/formatters/console.js";
 import { formatJson } from "../../src/formatters/json.js";
 import { formatMarkdown } from "../../src/formatters/markdown.js";
@@ -42,6 +42,103 @@ const mockSummary: AuditSummary = {
     },
   ],
 };
+
+const enrichedSummary: AuditSummary = {
+  score: 84,
+  categoryScores: { spam: 100, content: 100, links: 29, tech: 100, schema: 0, cannibal: 100 },
+  pageCount: 476,
+  templateDetected: true,
+  rawFindingCount: 4673,
+  findings: [
+    {
+      ruleId: "spam/near-duplicate",
+      severity: "critical",
+      message: "47 pages form a near-duplicate cluster (85.9\u201390.6% similar).",
+      pageUrl: "https://example.com/page-1",
+      context: {
+        type: "cluster",
+        clusterSize: 47,
+        members: ["https://example.com/page-1", "https://example.com/page-2"],
+        worstPairs: [{ left: "https://example.com/page-1", right: "https://example.com/page-2", similarity: 0.906 }],
+        similarityRange: [0.859, 0.906] as [number, number],
+      },
+      effort: "structural",
+      fix: "Your template produces 47 near-identical pages.",
+    },
+    {
+      ruleId: "tech/og-completeness",
+      severity: "warning",
+      message: "Missing og:image.",
+      pageUrl: "https://example.com/page-3",
+      effort: "quick",
+      fix: "Add og:image to your page template.",
+    },
+  ],
+};
+
+describe("formatConsole — enriched output", () => {
+  it("shows template banner when templateDetected is true", () => {
+    const output = formatConsole(enrichedSummary);
+    expect(output).toContain("Template-generated content detected");
+  });
+
+  it("renders effort labels", () => {
+    const output = formatConsole(enrichedSummary, { noColor: true });
+    expect(output).toContain("[structural]");
+    expect(output).toContain("[quick fix]");
+  });
+
+  it("renders cluster worst pair", () => {
+    const output = formatConsole(enrichedSummary, { noColor: true });
+    expect(output).toContain("/page-1");
+    expect(output).toContain("90.6%");
+  });
+});
+
+describe("formatHtml — enriched output", () => {
+  it("renders collapsible details element for clusters", () => {
+    const output = formatHtml(enrichedSummary);
+    expect(output).toContain("<details>");
+    expect(output).toContain("<summary>");
+  });
+
+  it("renders effort pills", () => {
+    const output = formatHtml(enrichedSummary);
+    expect(output).toContain("effort-pill");
+    expect(output).toContain("structural");
+    expect(output).toContain("quick");
+  });
+
+  it("renders template banner", () => {
+    const output = formatHtml(enrichedSummary);
+    expect(output).toContain("template-banner");
+    expect(output).toContain("Template-generated content detected");
+  });
+});
+
+describe("formatMarkdown — enriched output", () => {
+  it("includes effort badge inline", () => {
+    const output = formatMarkdown(enrichedSummary);
+    expect(output).toContain("(**structural fix**)");
+    expect(output).toContain("(**quick fix**)");
+  });
+
+  it("renders template banner as blockquote", () => {
+    const output = formatMarkdown(enrichedSummary);
+    expect(output).toContain("> Template-generated content detected");
+  });
+});
+
+describe("formatJson — enriched output", () => {
+  it("preserves context and effort in JSON output", () => {
+    const parsed = JSON.parse(formatJson(enrichedSummary));
+    expect(parsed.templateDetected).toBe(true);
+    expect(parsed.rawFindingCount).toBe(4673);
+    expect(parsed.findings[0].context.type).toBe("cluster");
+    expect(parsed.findings[0].effort).toBe("structural");
+    expect(parsed.findings[1].effort).toBe("quick");
+  });
+});
 
 describe("formatConsole", () => {
   it("returns a non-empty string containing the score", () => {
