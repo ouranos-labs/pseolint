@@ -11,17 +11,19 @@ Every finding includes an **actionable fix** backed by a **Google documentation 
 ## Quick Start
 
 ```bash
-# Audit any live website (recommended)
-npx pseolint https://yoursite.com
-
-# Audit via sitemap
-npx pseolint https://yoursite.com/sitemap.xml
-
-# Audit a local build directory (CI mode)
-npx pseolint ./out --threshold 40 --format json
+# Point it at your local dev server — that's it
+npx pseolint http://localhost:3000
 ```
 
-The tool automatically discovers pages by following internal links. No sitemap required.
+Automatically discovers all pages by following internal links. No sitemap, no config, no build step needed.
+
+```bash
+# Audit a live site
+npx pseolint https://yoursite.com
+
+# CI gate on build output
+npx pseolint ./out --threshold 40 --format json
+```
 
 ## What It Checks
 
