@@ -1,19 +1,19 @@
 {
-  "name": "pseolint",
+  "name": "@pseolint/mcp",
   "version": "0.1.0",
-  "description": "Programmatic SEO linter CLI — SpamBrain-proof your pSEO before you publish",
+  "description": "MCP server for pseolint — audit programmatic SEO sites from AI coding assistants",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
   "homepage": "https://pseolint.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/ouranos-labs/pseolint.git",
-    "directory": "packages/cli"
+    "directory": "packages/mcp"
   },
-  "keywords": ["seo", "pseo", "programmatic-seo", "spambrain", "lint", "cli"],
+  "keywords": ["mcp", "model-context-protocol", "seo", "pseo", "spambrain", "lint", "ai"],
   "type": "module",
   "bin": {
-    "pseolint": "dist/cli.js"
+    "pseolint-mcp": "dist/bin.js"
   },
   "exports": {
     ".": {
@@ -31,15 +31,11 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --passWithNoTests",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@pseolint/core": "workspace:*",
-    "@pseolint/mcp": "workspace:*",
-    "commander": "^14.0.3",
-    "cosmiconfig": "^9.0.1",
     "zod": "^4.3.6"
   }
 }
