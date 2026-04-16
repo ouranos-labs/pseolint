@@ -1,4 +1,4 @@
-import type { AuditSummary, RuleResult, Severity } from "../types.js";
+import type { AuditSummary, FixEffort, RuleResult, Severity } from "../types.js";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
 
@@ -15,6 +15,15 @@ function severityEmoji(severity: Severity): string {
   }
 }
 
+function effortBadge(effort?: string): string {
+  if (!effort) return "";
+  return ` (**${effort} fix**)`;
+}
+
+function shortenUrl(url: string): string {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 export function formatMarkdown(summary: AuditSummary): string {
   const lines: string[] = [];
 
@@ -22,6 +31,10 @@ export function formatMarkdown(summary: AuditSummary): string {
   lines.push("");
   lines.push(`**SpamBrain Risk Score:** ${summary.score}/100`);
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
+  if (summary.templateDetected) {
+    lines.push("");
+    lines.push(`> Template-generated content detected. Fix suggestions are tailored for template authors.`);
+  }
   lines.push("");
 
   // Category scores table
@@ -67,7 +80,11 @@ export function formatMarkdown(summary: AuditSummary): string {
     lines.push(`### ${severityEmoji(sev)} ${sev.charAt(0).toUpperCase() + sev.slice(1)} (${items.length})`);
     lines.push("");
     for (const item of items) {
-      lines.push(`- **${item.ruleId}**: ${item.message}`);
+      lines.push(`- **${item.ruleId}**${effortBadge(item.effort)}: ${item.message}`);
+      if (item.context?.type === "cluster" && item.context.worstPairs.length > 0) {
+        const p = item.context.worstPairs[0];
+        lines.push(`  > Worst: ${shortenUrl(p.left)} ↔ ${shortenUrl(p.right)} (${(p.similarity * 100).toFixed(1)}%)`);
+      }
       if (item.fix) {
         lines.push(`  > ${item.fix}`);
       }

@@ -1,4 +1,4 @@
-import type { AuditSummary, RuleResult, Severity } from "../types.js";
+import type { AuditSummary, FixEffort, RuleResult, Severity } from "../types.js";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
 
@@ -30,6 +30,19 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function effortColor(effort: string): string {
+  switch (effort) {
+    case "quick": return "#16a34a";
+    case "moderate": return "#ca8a04";
+    case "structural": return "#dc2626";
+    default: return "#64748b";
+  }
+}
+
+function shortenUrl(url: string): string {
+  try { return new URL(url).pathname; } catch { return url; }
+}
+
 export function formatHtml(summary: AuditSummary): string {
   const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) {
@@ -59,7 +72,31 @@ export function formatHtml(summary: AuditSummary): string {
     const itemsHtml = items
       .map(
         (item) => {
-          let li = `<li><strong>${escapeHtml(item.ruleId)}</strong>: ${escapeHtml(item.message)}`;
+          let li = `<li><strong>${escapeHtml(item.ruleId)}</strong>`;
+          if (item.effort) {
+            li += ` <span class="effort-pill" style="background:${effortColor(item.effort)}">${escapeHtml(item.effort)}</span>`;
+          }
+          li += `: ${escapeHtml(item.message)}`;
+          if (item.context?.type === "cluster") {
+            const ctx = item.context;
+            const [minSim, maxSim] = ctx.similarityRange;
+            const worstPairsHtml = ctx.worstPairs
+              .map(p => `<li>${escapeHtml(shortenUrl(p.left))} &#8596; ${escapeHtml(shortenUrl(p.right))} (${(p.similarity * 100).toFixed(1)}%)</li>`)
+              .join("\n");
+            const membersHtml = ctx.members
+              .map(m => `<li>${escapeHtml(shortenUrl(m))}</li>`)
+              .join("\n");
+            li += `
+<details>
+  <summary>${ctx.clusterSize} pages in cluster (${(minSim * 100).toFixed(0)}&ndash;${(maxSim * 100).toFixed(0)}% similar)</summary>
+  <div class="cluster-details">
+    <strong>Worst pairs:</strong>
+    <ul>${worstPairsHtml}</ul>
+    <strong>All members:</strong>
+    <ul class="member-list">${membersHtml}</ul>
+  </div>
+</details>`;
+          }
           if (item.fix) {
             li += `<div class="fix">Fix: ${escapeHtml(item.fix)}</div>`;
           }
@@ -99,13 +136,20 @@ export function formatHtml(summary: AuditSummary): string {
   li{margin:.2rem 0}
   .fix{color:#64748b;font-size:.9em;margin-top:.2rem}
   .ref{color:#2563eb;font-size:.85em}
+  .effort-pill{display:inline-block;padding:.1rem .4rem;border-radius:9999px;color:white;font-size:.75em;font-weight:600;vertical-align:middle}
+  .template-banner{background:#fef3c7;border:1px solid #f59e0b;border-radius:6px;padding:.5rem 1rem;margin:.5rem 0;color:#92400e;font-size:.9em}
+  details{margin:.25rem 0}
+  summary{cursor:pointer;color:#2563eb;font-size:.9em}
+  .cluster-details{padding:.5rem;background:#f1f5f9;border-radius:4px;margin:.25rem 0;font-size:.85em}
+  .cluster-details ul{margin:.25rem 0}
+  .member-list{max-height:200px;overflow-y:auto}
 </style>
 </head>
 <body>
 <h1>pSEOlint Audit Report</h1>
 <p class="meta">Pages analysed: ${summary.pageCount}</p>
 <p class="score" style="color:${scoreColor(summary.score)}">SpamBrain Risk Score: ${summary.score}/100</p>
-
+${summary.templateDetected ? `<p class="template-banner">Template-generated content detected. Fix suggestions are tailored for template authors.</p>` : ""}
 <h2>Category Scores</h2>
 <table>
   <thead><tr><th>Category</th><th>Bar</th><th>Score</th></tr></thead>
