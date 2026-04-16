@@ -256,6 +256,85 @@ describe("enrichFindings — effort assignment", () => {
   });
 });
 
+describe("enrichFindings — per-page grouping", () => {
+  it("groups content/unique-value findings when more than 3", () => {
+    const findings: RuleResult[] = Array.from({ length: 10 }, (_, i) => ({
+      ruleId: "content/unique-value",
+      severity: "error" as const,
+      message: `https://a.com/${i} has only ${50 + i} unique words (min 100).`,
+      pageUrl: `https://a.com/${i}`,
+      fix: `Add ${50 - i} more words of content not found on any other page.`,
+      ref: "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+    }));
+    const pages = Array.from({ length: 10 }, (_, i) => makePage(`https://a.com/${i}`));
+    const result = enrichFindings(findings, pages);
+    const uvFindings = result.findings.filter((f) => f.ruleId === "content/unique-value");
+    expect(uvFindings).toHaveLength(1);
+    expect(uvFindings[0].message).toContain("10 pages");
+    expect(uvFindings[0].relatedUrls).toBeDefined();
+    expect(uvFindings[0].relatedUrls!.length).toBe(9);
+  });
+
+  it("does not group when 3 or fewer findings", () => {
+    const findings: RuleResult[] = Array.from({ length: 3 }, (_, i) => ({
+      ruleId: "content/unique-value",
+      severity: "error" as const,
+      message: `https://a.com/${i} has only ${50 + i} unique words (min 100).`,
+      pageUrl: `https://a.com/${i}`,
+    }));
+    const pages = Array.from({ length: 3 }, (_, i) => makePage(`https://a.com/${i}`));
+    const result = enrichFindings(findings, pages);
+    const uvFindings = result.findings.filter((f) => f.ruleId === "content/unique-value");
+    expect(uvFindings).toHaveLength(3);
+  });
+
+  it("selects the worst page (fewest unique words) for content/unique-value", () => {
+    const findings: RuleResult[] = Array.from({ length: 5 }, (_, i) => ({
+      ruleId: "content/unique-value",
+      severity: "error" as const,
+      message: `https://a.com/${i} has only ${60 + i * 5} unique words (min 100).`,
+      pageUrl: `https://a.com/${i}`,
+    }));
+    const pages = Array.from({ length: 5 }, (_, i) => makePage(`https://a.com/${i}`));
+    const result = enrichFindings(findings, pages);
+    const uvFindings = result.findings.filter((f) => f.ruleId === "content/unique-value");
+    expect(uvFindings).toHaveLength(1);
+    // Worst = fewest unique words = index 0 (60 words)
+    expect(uvFindings[0].pageUrl).toBe("https://a.com/0");
+  });
+
+  it("groups links/orphan-pages findings when more than 3", () => {
+    const findings: RuleResult[] = Array.from({ length: 5 }, (_, i) => ({
+      ruleId: "links/orphan-pages",
+      severity: "warning" as const,
+      message: `https://a.com/${i} has no inbound internal links.`,
+      pageUrl: `https://a.com/${i}`,
+    }));
+    const pages = Array.from({ length: 5 }, (_, i) => makePage(`https://a.com/${i}`));
+    const result = enrichFindings(findings, pages);
+    const orphanFindings = result.findings.filter((f) => f.ruleId === "links/orphan-pages");
+    expect(orphanFindings).toHaveLength(1);
+    expect(orphanFindings[0].message).toContain("5 pages");
+    expect(orphanFindings[0].message).toContain("no inbound internal links");
+    expect(orphanFindings[0].relatedUrls!.length).toBe(4);
+  });
+
+  it("uses highest severity in grouped finding", () => {
+    const findings: RuleResult[] = [
+      { ruleId: "content/unique-value", severity: "warning" as const, message: "https://a.com/0 has only 40 unique words (min 100).", pageUrl: "https://a.com/0" },
+      { ruleId: "content/unique-value", severity: "error" as const, message: "https://a.com/1 has only 45 unique words (min 100).", pageUrl: "https://a.com/1" },
+      { ruleId: "content/unique-value", severity: "error" as const, message: "https://a.com/2 has only 50 unique words (min 100).", pageUrl: "https://a.com/2" },
+      { ruleId: "content/unique-value", severity: "critical" as const, message: "https://a.com/3 has only 55 unique words (min 100).", pageUrl: "https://a.com/3" },
+      { ruleId: "content/unique-value", severity: "warning" as const, message: "https://a.com/4 has only 60 unique words (min 100).", pageUrl: "https://a.com/4" },
+    ];
+    const pages = Array.from({ length: 5 }, (_, i) => makePage(`https://a.com/${i}`));
+    const result = enrichFindings(findings, pages);
+    const uvFindings = result.findings.filter((f) => f.ruleId === "content/unique-value");
+    expect(uvFindings).toHaveLength(1);
+    expect(uvFindings[0].severity).toBe("critical");
+  });
+});
+
 describe("enrichFindings — rawFindingCount", () => {
   it("preserves the pre-enrichment finding count", () => {
     const findings: RuleResult[] = [

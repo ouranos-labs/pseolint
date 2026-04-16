@@ -15,6 +15,15 @@ const CLUSTERABLE_RULES = new Set([
   "cannibal/title-overlap",
 ]);
 
+const GROUPABLE_RULES = new Set([
+  "content/unique-value",
+  "content/heading-uniqueness",
+  "content/meta-uniqueness",
+  "links/orphan-pages",
+  "links/dead-ends",
+  "links/link-depth",
+]);
+
 const EFFORT_BASELINES: Record<string, FixEffort> = {
   // quick
   "tech/og-completeness": "quick",
@@ -179,6 +188,109 @@ function formatPercent(sim: number): string {
   return (sim * 100).toFixed(1);
 }
 
+function groupableRuleMessage(ruleId: string, count: number): string {
+  switch (ruleId) {
+    case "content/unique-value":
+      return `${count} pages have insufficient unique content.`;
+    case "content/heading-uniqueness":
+      return `${count} pages have identical headings after entity masking.`;
+    case "content/meta-uniqueness":
+      return `${count} pages have identical meta descriptions after entity masking.`;
+    case "links/orphan-pages":
+      return `${count} pages have no inbound internal links.`;
+    case "links/dead-ends":
+      return `${count} pages have no outbound internal links.`;
+    case "links/link-depth":
+      return `${count} pages require > 3 clicks from root.`;
+    default:
+      return `${count} pages have issues.`;
+  }
+}
+
+function extractSortKey(ruleId: string, message: string): number {
+  const match = message.match(/\d+/);
+  const num = match ? parseInt(match[0], 10) : 0;
+  // For unique-value: fewer unique words = worse = lower number → sort ascending (lower first = worst first)
+  // For link-depth: deeper = worse = higher number → sort descending (higher first = worst first)
+  // For others: no meaningful sort, return 0
+  if (ruleId === "content/unique-value") return num;
+  if (ruleId === "links/link-depth") return -num;
+  return 0;
+}
+
+function buildGroupSummaryMessage(ruleId: string, count: number, worstFinding: RuleResult): string {
+  const base = groupableRuleMessage(ruleId, count);
+  const detail = extractWorstDetail(ruleId, worstFinding);
+  if (detail) {
+    return `${base} Worst: ${worstFinding.pageUrl} (${detail}).`;
+  }
+  return base;
+}
+
+function extractWorstDetail(ruleId: string, finding: RuleResult): string {
+  if (ruleId === "content/unique-value") {
+    // message contains "has only N unique words"
+    const match = finding.message.match(/has only (\d+ unique words)/);
+    return match ? match[1] : "";
+  }
+  if (ruleId === "links/link-depth") {
+    // parse depth from message
+    const match = finding.message.match(/(\d+)\s*click/i);
+    return match ? `${match[1]} clicks` : "";
+  }
+  return "";
+}
+
+function applyGrouping(passthrough: RuleResult[]): RuleResult[] {
+  const byRule = new Map<string, RuleResult[]>();
+  const nonGroupable: RuleResult[] = [];
+
+  for (const f of passthrough) {
+    if (GROUPABLE_RULES.has(f.ruleId)) {
+      if (!byRule.has(f.ruleId)) byRule.set(f.ruleId, []);
+      byRule.get(f.ruleId)!.push(f);
+    } else {
+      nonGroupable.push(f);
+    }
+  }
+
+  const grouped: RuleResult[] = [];
+
+  for (const [ruleId, rulefindings] of byRule) {
+    if (rulefindings.length <= 3) {
+      // Not worth grouping, keep as-is
+      grouped.push(...rulefindings);
+      continue;
+    }
+
+    // Sort to find worst first
+    const sorted = [...rulefindings].sort((a, b) => {
+      const ka = extractSortKey(ruleId, a.message);
+      const kb = extractSortKey(ruleId, b.message);
+      return ka - kb;
+    });
+
+    const worst = sorted[0];
+    const rest = sorted.slice(1);
+
+    const severity = highestSeverity(rulefindings.map((f) => f.severity));
+    const message = buildGroupSummaryMessage(ruleId, rulefindings.length, worst);
+    const relatedUrls = rest.map((f) => f.pageUrl).filter((u): u is string => !!u);
+
+    grouped.push({
+      ruleId,
+      severity,
+      message,
+      pageUrl: worst.pageUrl,
+      relatedUrls,
+      fix: worst.fix,
+      ref: rulefindings[0].ref,
+    });
+  }
+
+  return [...nonGroupable, ...grouped];
+}
+
 // ── Main pipeline ──────────────────────────────────────────────────────
 
 export function enrichFindings(
@@ -289,6 +401,13 @@ export function enrichFindings(
       }
     }
   }
+
+  // ── Step 2b: Group per-page findings ──
+
+  const groupedPassthrough = applyGrouping(passthrough);
+  // Replace passthrough array contents with grouped results
+  passthrough.length = 0;
+  passthrough.push(...groupedPassthrough);
 
   // ── Step 3: Detect template generation ──
 
