@@ -141,7 +141,7 @@ function escalateEffort(base: FixEffort, affectedPages: number): FixEffort {
 
 function extractBlocks(text: string): string[] {
   return text
-    .split(/[.!?]\s+|\n+/)
+    .split(/[.!?]\s+|[.!?](?=[A-Z])|\n+/)
     .map((b) => b.trim().toLowerCase())
     .filter((b) => b.length > 20);
 }
@@ -434,9 +434,17 @@ export function enrichFindings(
       (f) => f.ruleId === "spam/template-diversity",
     );
 
+    const nearDupClusters = clustered.filter(
+      (f) => f.ruleId === "spam/near-duplicate" && f.context?.type === "cluster",
+    );
+    const totalNearDupPages = nearDupClusters.reduce(
+      (sum, f) => sum + (f.context?.type === "cluster" ? f.context.clusterSize : 0),
+      0,
+    );
+
     templateDetected =
       totalEntitySwapPages >= 10 &&
-      (boilerplateCoverage >= 0.5 || hasTemplateDiversity);
+      (boilerplateCoverage >= 0.5 || hasTemplateDiversity || totalNearDupPages >= 20);
   }
 
   // ── Step 4: Rewrite fix strings ──
