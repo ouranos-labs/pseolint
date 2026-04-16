@@ -1,4 +1,4 @@
-import type { AuditSummary, RuleResult, Severity } from "../types.js";
+import type { AuditSummary, FindingContext, FixEffort, RuleResult, Severity } from "../types.js";
 
 // ANSI escape codes
 const RESET = "\x1b[0m";
@@ -34,6 +34,8 @@ function bar(score: number, width: number = 10): string {
 
 const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
 
+const EFFORT_ORDER: FixEffort[] = ["quick", "moderate", "structural"];
+
 function severityColor(severity: Severity): string {
   switch (severity) {
     case "critical":
@@ -44,6 +46,26 @@ function severityColor(severity: Severity): string {
       return YELLOW;
     case "info":
       return DIM;
+  }
+}
+
+function effortLabel(effort: FixEffort): string {
+  switch (effort) {
+    case "quick":
+      return `${GREEN}[quick fix]${RESET}`;
+    case "moderate":
+      return `${YELLOW}[moderate]${RESET}`;
+    case "structural":
+      return `${RED}[structural]${RESET}`;
+  }
+}
+
+function shortenUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.pathname;
+  } catch {
+    return url;
   }
 }
 
@@ -62,6 +84,14 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     `${BOLD}SpamBrain Risk Score:${RESET} ${color}${summary.score}/100 (${label})${RESET}`
   );
   lines.push(`Pages analysed: ${summary.pageCount}`);
+
+  // Template banner
+  if (summary.templateDetected) {
+    lines.push(
+      `${DIM}Template-generated content detected. Fix suggestions are tailored for template authors.${RESET}`
+    );
+  }
+
   lines.push("");
 
   // Category scores
@@ -88,34 +118,94 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   }
 
   // Top issues by rule (prioritized summary)
-  const ruleCounts = new Map<string, { count: number; severity: Severity }>();
+  // Build a map of ruleId -> { severity, effort, clusterCount, totalPages, similarityRange }
+  interface RuleAgg {
+    severity: Severity;
+    effort?: FixEffort;
+    clusterCount: number;
+    totalPages: number;
+    similarityRange?: [number, number];
+  }
+
+  const ruleAgg = new Map<string, RuleAgg>();
+
   for (const f of summary.findings) {
-    const existing = ruleCounts.get(f.ruleId);
+    const existing = ruleAgg.get(f.ruleId);
+    const isCluster = f.context?.type === "cluster";
+    const clusterCtx = isCluster ? (f.context as Extract<typeof f.context, { type: "cluster" }>) : undefined;
+
     if (existing) {
-      existing.count += 1;
+      // Escalate severity if needed
       if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(existing.severity)) {
         existing.severity = f.severity;
       }
+      // Escalate effort if needed
+      if (f.effort !== undefined) {
+        if (existing.effort === undefined || EFFORT_ORDER.indexOf(f.effort) > EFFORT_ORDER.indexOf(existing.effort)) {
+          existing.effort = f.effort;
+        }
+      }
+      if (isCluster && clusterCtx) {
+        existing.clusterCount += 1;
+        existing.totalPages += clusterCtx.members.length;
+        // Merge similarity range
+        if (existing.similarityRange) {
+          existing.similarityRange[0] = Math.min(existing.similarityRange[0], clusterCtx.similarityRange[0]);
+          existing.similarityRange[1] = Math.max(existing.similarityRange[1], clusterCtx.similarityRange[1]);
+        } else {
+          existing.similarityRange = [...clusterCtx.similarityRange];
+        }
+      } else if (!isCluster) {
+        existing.totalPages += 1;
+      }
     } else {
-      ruleCounts.set(f.ruleId, { count: 1, severity: f.severity });
+      if (isCluster && clusterCtx) {
+        ruleAgg.set(f.ruleId, {
+          severity: f.severity,
+          effort: f.effort,
+          clusterCount: 1,
+          totalPages: clusterCtx.members.length,
+          similarityRange: [...clusterCtx.similarityRange],
+        });
+      } else {
+        ruleAgg.set(f.ruleId, {
+          severity: f.severity,
+          effort: f.effort,
+          clusterCount: 0,
+          totalPages: 1,
+        });
+      }
     }
   }
 
-  if (ruleCounts.size > 0) {
-    const sorted = Array.from(ruleCounts.entries())
+  if (ruleAgg.size > 0) {
+    const sorted = Array.from(ruleAgg.entries())
       .sort((a, b) => {
         const sevDiff = SEVERITY_ORDER.indexOf(a[1].severity) - SEVERITY_ORDER.indexOf(b[1].severity);
         if (sevDiff !== 0) return sevDiff;
-        return b[1].count - a[1].count;
+        // Within same severity, sort effort ascending (quick wins first)
+        const aEffort = a[1].effort ? EFFORT_ORDER.indexOf(a[1].effort) : EFFORT_ORDER.length;
+        const bEffort = b[1].effort ? EFFORT_ORDER.indexOf(b[1].effort) : EFFORT_ORDER.length;
+        return aEffort - bEffort;
       })
-      .slice(0, 5);
+      .slice(0, 7);
 
     lines.push(`${BOLD}Top Issues${RESET}`);
     for (let i = 0; i < sorted.length; i += 1) {
-      const [ruleId, { count, severity }] = sorted[i];
-      const sColor = severityColor(severity);
-      const pagesLabel = count === 1 ? "1 finding" : `${count} findings`;
-      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId} — ${pagesLabel}`);
+      const [ruleId, agg] = sorted[i];
+      const sColor = severityColor(agg.severity);
+      let detail: string;
+      if (agg.clusterCount > 0 && agg.similarityRange) {
+        const simMin = Math.round(agg.similarityRange[0] * 100);
+        const simMax = Math.round(agg.similarityRange[1] * 100);
+        detail = `${agg.clusterCount} cluster${agg.clusterCount !== 1 ? "s" : ""} (${agg.totalPages} pages, ${simMin}\u2013${simMax}% similar). Structural fix.`;
+      } else {
+        const effortStr = agg.effort
+          ? ` ${agg.effort.charAt(0).toUpperCase() + agg.effort.slice(1)} fix.`
+          : "";
+        detail = `${agg.totalPages} page${agg.totalPages !== 1 ? "s" : ""}.${effortStr}`;
+      }
+      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId} \u2014 ${detail}`);
     }
     lines.push("");
   }
@@ -149,6 +239,21 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
       }
       if (item.ref) {
         lines.push(`    ${DIM}Ref: ${item.ref}${RESET}`);
+      }
+      // Cluster context rendering
+      if (item.context?.type === "cluster") {
+        const clusterCtx = item.context as Extract<FindingContext, { type: "cluster" }>;
+        if (clusterCtx.worstPairs.length > 0) {
+          const worst = clusterCtx.worstPairs[0];
+          const leftShort = shortenUrl(worst.left);
+          const rightShort = shortenUrl(worst.right);
+          const simPct = (worst.similarity * 100).toFixed(1);
+          lines.push(`    ${DIM}Worst: ${leftShort} \u2194 ${rightShort} (${simPct}%)${RESET}`);
+        }
+      }
+      // Effort badge
+      if (item.effort) {
+        lines.push(`    ${effortLabel(item.effort)}`);
       }
     }
 
