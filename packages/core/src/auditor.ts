@@ -119,16 +119,21 @@ function runRulesOnPages(
   rootUrl: string,
   normalizeUrlOptions: NormalizeUrlOptions,
   source: string,
-  entityPatterns: EntityMaskPattern[]
+  entityPatterns: EntityMaskPattern[],
+  overrides?: Record<string, Record<string, unknown>>
 ): RuleResult[] {
   const findings: RuleResult[] = [];
 
   const tag = (results: RuleResult[]): RuleResult[] =>
-    results.map((r) => ({
-      ...r,
-      group: groupName === "__default" ? undefined : groupName,
-      ref: r.ref ?? RULE_REFERENCES[r.ruleId],
-    }));
+    results.map((r) => {
+      const override = overrides?.[r.ruleId];
+      return {
+        ...r,
+        group: groupName === "__default" ? undefined : groupName,
+        ref: r.ref ?? RULE_REFERENCES[r.ruleId],
+        ...(override?.severity ? { severity: override.severity as Severity } : {}),
+      };
+    });
 
   // Spam rules — always compute cross-page data, only push findings if enabled
   const nearDuplicate = nearDuplicateRule(pages, resolvedRules.nearDuplicateThreshold);
@@ -847,7 +852,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const findings = runRulesOnPages(
       groupPages, groupRules, enabledCheck, groupName,
       knownUrls, adjacency, inbound, rootUrl,
-      normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS
+      normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
+      groupConfig?.overrides
     );
 
     allFindings.push(...findings);
