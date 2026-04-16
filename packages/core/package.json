@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "description": "Programmatic SEO audit engine — 34 rules across 6 categories for SpamBrain risk detection",
   "license": "MIT",
+  "author": "Ouranos Labs <contact@ouranos-labs.dev>",
+  "homepage": "https://pseolint.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/ouranos-labs/pseolint.git",
@@ -10,8 +12,17 @@
   },
   "keywords": ["seo", "pseo", "programmatic-seo", "spambrain", "lint", "audit"],
   "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist"
   ],

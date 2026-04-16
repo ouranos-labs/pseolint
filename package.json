@@ -19,10 +19,10 @@
     "release": "changeset publish"
   },
   "devDependencies": {
-    "@changesets/cli": "latest",
-    "@types/node": "latest",
-    "turbo": "latest",
-    "typescript": "latest",
-    "vitest": "latest"
+    "@changesets/cli": "^2.30.0",
+    "@types/node": "^25.6.0",
+    "turbo": "^2.9.6",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
   }
 }

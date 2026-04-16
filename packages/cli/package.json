@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "description": "Programmatic SEO linter CLI — SpamBrain-proof your pSEO before you publish",
   "license": "MIT",
+  "author": "Ouranos Labs <contact@ouranos-labs.dev>",
+  "homepage": "https://pseolint.dev",
   "repository": {
     "type": "git",
     "url": "https://github.com/ouranos-labs/pseolint.git",
@@ -13,8 +15,17 @@
   "bin": {
     "pseolint": "dist/cli.js"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist"
   ],
