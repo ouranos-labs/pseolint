@@ -1,7 +1,7 @@
 {
   "name": "@pseolint/core",
   "version": "0.1.0",
-  "description": "Programmatic SEO audit engine — 30 rules across 6 categories for SpamBrain risk detection",
+  "description": "Programmatic SEO audit engine — 34 rules across 6 categories for SpamBrain risk detection",
   "license": "MIT",
   "repository": {
     "type": "git",

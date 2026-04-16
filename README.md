@@ -166,6 +166,15 @@ score = (spam * 0.40) + (content * 0.25) + (links * 0.15)
 | 61-80 | Dangerous | 1 |
 | 81-100 | Critical | 1 |
 
+## Actionable Output
+
+Findings are automatically enriched before display:
+
+- **Pairwise clustering** — Thousands of near-duplicate pair comparisons collapse into a handful of cluster findings: "48 pages form a near-duplicate cluster (86–94% similar)."
+- **Content breakdown** — Each cluster shows what's shared vs. unique: "Shared: description of property (31w), buyer acknowledges (35w). Unique: 3324w of 8140w."
+- **Effort tags** — Every finding is tagged `quick fix`, `moderate`, or `structural` so you know where to start.
+- **Template detection** — When the tool detects template-generated content, fix suggestions speak to template authors: "Add conditional content sections per entity."
+
 ## CLI Options
 
 ```
@@ -251,7 +260,7 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 ```bash
 bun install
 bun run build
-bun run test     # 142 tests across 26 files
+bun run test     # 168 tests across 28 files
 ```
 
 ## License
