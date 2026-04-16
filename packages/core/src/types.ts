@@ -12,6 +12,28 @@ export interface ParseHtmlOptions {
   normalizeUrl?: NormalizeUrlOptions;
 }
 
+export type FixEffort = "quick" | "moderate" | "structural";
+
+export type FindingContext =
+  | {
+      type: "cluster";
+      clusterSize: number;
+      members: string[];
+      worstPairs: Array<{
+        left: string;
+        right: string;
+        similarity: number;
+      }>;
+      similarityRange: [number, number];
+    }
+  | {
+      type: "contentBreakdown";
+      sharedBlocks: Array<{ text: string; wordCount: number }>;
+      sharedWordCount: number;
+      uniqueWordCount: number;
+      totalWordCount: number;
+    };
+
 export interface RuleResult {
   ruleId: string;
   severity: Severity;
@@ -26,6 +48,12 @@ export interface RuleResult {
   relatedUrls?: string[];
   /** Page group this finding belongs to, if page classification is configured. */
   group?: string;
+  /** Numeric similarity score (0-1) for pairwise rules. Used by enrichment clustering. */
+  similarity?: number;
+  /** Structured context attached by the enrichment pipeline. */
+  context?: FindingContext;
+  /** Fix effort level assigned by the enrichment pipeline. */
+  effort?: FixEffort;
 }
 
 export interface CategoryScores {
@@ -44,6 +72,10 @@ export interface AuditSummary {
   groupPageCounts?: Record<string, number>;
   pageCount: number;
   findings: RuleResult[];
+  /** True when the enrichment pipeline detects template-generated content. */
+  templateDetected?: boolean;
+  /** Pre-enrichment finding count, for backward compatibility with CI scripts. */
+  rawFindingCount?: number;
 }
 
 export interface PageGroupConfig {
@@ -92,6 +124,8 @@ export interface AuditOptions {
   render?: {
     browserWsEndpoint?: string;
   };
+  /** Override template auto-detection. When set, skips heuristic detection. */
+  templateGenerated?: boolean;
 }
 
 export interface EntityMaskPattern {
