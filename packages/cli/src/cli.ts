@@ -37,6 +37,7 @@ interface CliOptions {
   render: boolean;
   browserWs?: string;
   crawl: boolean;
+  mcp: boolean;
 }
 
 export async function runCli(
@@ -48,7 +49,7 @@ export async function runCli(
     .name("pseolint")
     .description("Programmatic SEO linter — audit sites for SpamBrain risk")
     .version(version)
-    .argument("<source>", "Directory path or URL to audit")
+    .argument("[source]", "Directory path or URL to audit")
     .option(
       "-f, --format <type>",
       "Output format: console, json, markdown, html",
@@ -67,12 +68,19 @@ export async function runCli(
     .option("--ignore <patterns>", "Comma-separated glob patterns to exclude")
     .option("--render", "Render pages in a browser before auditing")
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
-    .option("--no-crawl", "Disable crawl-based page discovery for URL sources");
+    .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
+    .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
 
   const opts = program.opts<CliOptions>();
   const source = program.args[0];
+
+  if (opts.mcp) {
+    const { startMcpServer } = await import("./mcp.js");
+    startMcpServer();
+    return 0; // never reached, server runs until stdin closes
+  }
 
   if (!source) {
     program.help();
