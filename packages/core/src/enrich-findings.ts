@@ -146,12 +146,12 @@ function firstNWords(text: string, n: number): string {
 }
 
 function computeContentBreakdown(
-  pages: ParsedPage[],
+  pageMap: Map<string, ParsedPage>,
   leftUrl: string,
   rightUrl: string,
 ): string {
-  const leftPage = pages.find((p) => p.url === leftUrl);
-  const rightPage = pages.find((p) => p.url === rightUrl);
+  const leftPage = pageMap.get(leftUrl);
+  const rightPage = pageMap.get(rightUrl);
   if (!leftPage || !rightPage) return "";
 
   const leftBlocks = extractBlocks(leftPage.contentText);
@@ -191,6 +191,8 @@ export function enrichFindings(
   rawFindingCount: number;
 } {
   const rawFindingCount = findings.length;
+  const pageMap = new Map<string, ParsedPage>();
+  for (const p of pages) pageMap.set(p.url, p);
 
   // Separate clusterable from non-clusterable
   const pairwise: RuleResult[] = [];
@@ -273,6 +275,7 @@ export function enrichFindings(
 
   // ── Step 2: Content breakdowns for near-duplicate / entity-swap clusters ──
 
+  const contentSummaries = new Map<RuleResult, string>();
   for (const f of clustered) {
     if (
       (f.ruleId === "spam/near-duplicate" || f.ruleId === "spam/entity-swap") &&
@@ -280,9 +283,9 @@ export function enrichFindings(
       f.context.worstPairs.length > 0
     ) {
       const top = f.context.worstPairs[0];
-      const summary = computeContentBreakdown(pages, top.left, top.right);
+      const summary = computeContentBreakdown(pageMap, top.left, top.right);
       if (summary) {
-        (f as any)._contentSummary = summary;
+        contentSummaries.set(f, summary);
       }
     }
   }
@@ -324,7 +327,7 @@ export function enrichFindings(
 
     const [minSim, maxSim] = f.context.similarityRange;
     const n = f.context.clusterSize;
-    const contentSummary = (f as any)._contentSummary ?? "";
+    const contentSummary = contentSummaries.get(f) ?? "";
     const summaryPart = contentSummary ? ` ${contentSummary}` : "";
 
     if (templateDetected) {
@@ -332,9 +335,6 @@ export function enrichFindings(
     } else {
       f.fix = `${n} pages form a near-duplicate cluster (${formatPercent(minSim)}–${formatPercent(maxSim)}% similar).${summaryPart} Differentiate these pages by adding unique content to each.`;
     }
-
-    // Clean up internal property
-    delete (f as any)._contentSummary;
   }
 
   // Rewrite per-page findings with template language when applicable
@@ -366,15 +366,6 @@ export function enrichFindings(
 
   // ── Step 5: Assign effort tags ──
 
-  // Pre-compute per-rule unique page counts for passthrough findings
-  const passthroughRulePageCounts = new Map<string, number>();
-  for (const f of passthrough) {
-    if (!f.pageUrl) continue;
-    if (!passthroughRulePageCounts.has(f.ruleId)) {
-      passthroughRulePageCounts.set(f.ruleId, 0);
-    }
-    // Count using a Set approach via a temporary accumulator
-  }
   const passthroughRulePageSets = new Map<string, Set<string>>();
   for (const f of passthrough) {
     if (!f.pageUrl) continue;

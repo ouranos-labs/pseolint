@@ -234,13 +234,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
 
     for (const item of visible) {
       lines.push(`  ${severityColor(sev)}\u2022${RESET} [${item.ruleId}] ${item.message}`);
-      if (item.fix) {
-        lines.push(`    ${DIM}Fix: ${item.fix}${RESET}`);
-      }
-      if (item.ref) {
-        lines.push(`    ${DIM}Ref: ${item.ref}${RESET}`);
-      }
-      // Cluster context rendering
+      // Cluster worst pair — show before fix so user sees the problem first
       if (item.context?.type === "cluster") {
         const clusterCtx = item.context as Extract<FindingContext, { type: "cluster" }>;
         if (clusterCtx.worstPairs.length > 0) {
@@ -251,7 +245,12 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
           lines.push(`    ${DIM}Worst: ${leftShort} \u2194 ${rightShort} (${simPct}%)${RESET}`);
         }
       }
-      // Effort badge
+      if (item.fix) {
+        lines.push(`    ${DIM}Fix: ${item.fix}${RESET}`);
+      }
+      if (item.ref) {
+        lines.push(`    ${DIM}Ref: ${item.ref}${RESET}`);
+      }
       if (item.effort) {
         lines.push(`    ${effortLabel(item.effort)}`);
       }
