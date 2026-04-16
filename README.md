@@ -18,6 +18,9 @@ npx pseolint http://localhost:3000
 Automatically discovers all pages by following internal links. No sitemap, no config, no build step needed.
 
 ```bash
+# Save a visual report
+npx pseolint http://localhost:3000 --format html --output report.html
+
 # Audit a live site
 npx pseolint https://yoursite.com
 
