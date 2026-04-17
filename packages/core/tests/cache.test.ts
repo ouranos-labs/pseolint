@@ -6,6 +6,7 @@ import {
   cacheKeyFor,
   readCacheEntry,
   writeCacheEntry,
+  isRedirectPointer,
   CACHE_ENTRY_SCHEMA_VERSION,
 } from "../src/cache.js";
 
@@ -70,5 +71,40 @@ describe("cache read/write", () => {
       "utf8"
     );
     expect(await readCacheEntry(dir, "https://example.com/y")).toBeNull();
+  });
+
+  it("returns null on entry with correct schemaVersion but missing required fields", async () => {
+    const key = cacheKeyFor("https://example.com/partial");
+    await writeFile(
+      join(dir, key),
+      JSON.stringify({ schemaVersion: CACHE_ENTRY_SCHEMA_VERSION }),
+      "utf8"
+    );
+    expect(await readCacheEntry(dir, "https://example.com/partial")).toBeNull();
+  });
+
+  it("returns null on entry with wrong field types (status as string)", async () => {
+    const key = cacheKeyFor("https://example.com/wrongtype");
+    await writeFile(
+      join(dir, key),
+      JSON.stringify({
+        schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+        url: "x", fetchedAt: "x", status: "200", headers: {}, body: ""
+      }),
+      "utf8"
+    );
+    expect(await readCacheEntry(dir, "https://example.com/wrongtype")).toBeNull();
+  });
+
+  it("accepts redirect pointer with correct shape", async () => {
+    await writeCacheEntry(dir, "https://example.com/old", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+      redirectsTo: "https://example.com/new",
+      fetchedAt: "2026-04-17T12:00:00Z",
+      status: 301,
+    });
+    const got = await readCacheEntry(dir, "https://example.com/old");
+    expect(got).not.toBeNull();
+    expect(isRedirectPointer(got!)).toBe(true);
   });
 });

@@ -58,9 +58,19 @@ export async function readCacheEntry(
     return null;
   }
   if (!parsed || typeof parsed !== "object") return null;
-  const entry = parsed as AnyCacheEntry;
+  const entry = parsed as Partial<AnyCacheEntry>;
   if (entry.schemaVersion !== CACHE_ENTRY_SCHEMA_VERSION) return null;
-  return entry;
+  if (typeof entry.fetchedAt !== "string") return null;
+  if (typeof entry.status !== "number") return null;
+  if ("redirectsTo" in entry) {
+    if (typeof entry.redirectsTo !== "string") return null;
+    return entry as RedirectPointerEntry;
+  }
+  if (typeof (entry as CacheEntry).url !== "string") return null;
+  if (typeof (entry as CacheEntry).body !== "string") return null;
+  const headers = (entry as CacheEntry).headers;
+  if (!headers || typeof headers !== "object") return null;
+  return entry as CacheEntry;
 }
 
 export async function writeCacheEntry(
