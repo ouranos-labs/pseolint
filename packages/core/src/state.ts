@@ -26,8 +26,19 @@ export interface RunState {
   };
 }
 
+/**
+ * Normalize HTML so content hashing is stable across irrelevant diffs.
+ *
+ * Strips: HTML comments, script bodies, style bodies, whitespace runs.
+ *
+ * Known limitations (use as "likely-unchanged" signal, not proof):
+ * - Attribute order changes are NOT normalized (regex parser, not DOM)
+ * - Inline event handlers and `data-*` attributes with dynamic values
+ *   (nonces, CSRF tokens) will produce different hashes
+ */
 export function normalizeHtmlForHash(html: string): string {
   return html
+    .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<script[\s\S]*?<\/script>/gi, "<script></script>")
     .replace(/<style[\s\S]*?<\/style>/gi, "<style></style>")
     .replace(/\s+/g, " ")
@@ -60,6 +71,13 @@ export async function readState(path: string): Promise<RunState | null> {
     throw new Error(
       `unsupported state version ${state.version} at ${path}, expected ${STATE_SCHEMA_VERSION}`
     );
+  }
+  if (typeof state.lastRun !== "string" ||
+      typeof state.source !== "string" ||
+      typeof state.renderMode !== "string" ||
+      !state.urls || typeof state.urls !== "object" ||
+      !state.summary || typeof state.summary !== "object") {
+    throw new Error(`state file at ${path} has malformed shape`);
   }
   return state;
 }

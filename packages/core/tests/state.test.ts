@@ -28,6 +28,11 @@ describe("normalizeHtmlForHash", () => {
     const b = normalizeHtmlForHash("<body>hello</body>");
     expect(a).not.toBe(b);
   });
+
+  it("strips HTML comments (build IDs, etc)", () => {
+    expect(normalizeHtmlForHash("<p>hi<!-- build a1b2 --></p>"))
+      .toBe(normalizeHtmlForHash("<p>hi<!-- build x9y8 --></p>"));
+  });
 });
 
 describe("computeContentHash", () => {
@@ -76,5 +81,39 @@ describe("readState / writeState", () => {
     const path = join(dir, "state.json");
     await writeFile(path, JSON.stringify({ version: 999 }), "utf8");
     await expect(readState(path)).rejects.toThrow(/unsupported state version/i);
+  });
+
+  it("rejects state with malformed shape (missing required fields)", async () => {
+    const path = join(dir, "state.json");
+    await writeFile(path, JSON.stringify({ version: STATE_SCHEMA_VERSION }), "utf8");
+    await expect(readState(path)).rejects.toThrow(/malformed shape/i);
+  });
+
+  it("throws on invalid JSON", async () => {
+    const path = join(dir, "state.json");
+    await writeFile(path, "not json{", "utf8");
+    await expect(readState(path)).rejects.toThrow(/not valid JSON/i);
+  });
+
+  it("preserves empty findingIds on round-trip", async () => {
+    const path = join(dir, "state.json");
+    const s: RunState = {
+      version: STATE_SCHEMA_VERSION,
+      lastRun: "2026-04-17T12:00:00Z",
+      source: "https://example.com",
+      renderMode: "static",
+      urls: {
+        "https://example.com/clean": {
+          contentHash: "sha256:abc",
+          fetchedAt: "2026-04-17T12:00:00Z",
+          status: 200,
+          findingIds: [],
+        },
+      },
+      summary: { score: 100, totalFindings: 0, byCategory: {} },
+    };
+    await writeState(path, s);
+    const back = await readState(path);
+    expect(back?.urls["https://example.com/clean"].findingIds).toEqual([]);
   });
 });
