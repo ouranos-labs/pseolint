@@ -298,24 +298,51 @@ describe("cachedFetch", () => {
     expect(mock2.calls).toHaveLength(1);
   });
 
-  it("3xx NOT stored (deferred to Task 5 redirect handling)", async () => {
-    const mock1 = mockFetcher([
+});
+
+describe("cachedFetch redirects", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "pseolint-redirect-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("follows redirect and stores pointer + content entries", async () => {
+    const mock = mockFetcher([
       { status: 301, headers: { location: "https://example.com/final" }, body: "" },
+      { status: 200, headers: {}, body: "final content" },
+    ]);
+    const r = await cachedFetch("https://example.com/old", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock.fn,
+    });
+    expect(r.url).toBe("https://example.com/final");
+    expect(r.body).toBe("final content");
+    expect(mock.calls).toHaveLength(2);
+  });
+
+  it("subsequent request to origin URL resolves through pointer without HTTP", async () => {
+    const setup = mockFetcher([
+      { status: 301, headers: { location: "https://example.com/final" }, body: "" },
+      { status: 200, headers: {}, body: "final" },
     ]);
     await cachedFetch("https://example.com/old", {
       timeoutMs: 5000,
       cache: { dir, ttlMs: 60_000 },
-      fetcher: mock1.fn,
+      fetcher: setup.fn,
     });
-    const mock2 = mockFetcher([
-      { status: 200, headers: {}, body: "final" },
-    ]);
-    const r2 = await cachedFetch("https://example.com/old", {
+    const second = mockFetcher([]);
+    const r = await cachedFetch("https://example.com/old", {
       timeoutMs: 5000,
       cache: { dir, ttlMs: 60_000 },
-      fetcher: mock2.fn,
+      fetcher: second.fn,
     });
-    expect(r2.body).toBe("final");
-    expect(mock2.calls).toHaveLength(1);
+    expect(r.url).toBe("https://example.com/final");
+    expect(r.body).toBe("final");
+    expect(r.fromCache).toBe(true);
+    expect(second.calls).toHaveLength(0);
   });
 });

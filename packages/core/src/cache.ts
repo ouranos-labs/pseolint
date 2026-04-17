@@ -142,22 +142,19 @@ export async function cachedFetch(
   const fetcher: Fetcher = opts.fetcher ?? globalThis.fetch.bind(globalThis);
   const cache = opts.cache;
 
-  // Cache disabled → direct fetch
   if (!cache) {
-    const res = await fetcher(url, { signal: AbortSignal.timeout(opts.timeoutMs) });
-    return {
-      url,
-      status: res.status,
-      headers: headersToObject(res.headers),
-      body: await res.text(),
-      fromCache: false,
-    };
+    return performFetch(url, opts.timeoutMs, fetcher, cache);
   }
 
-  // Try cache
   const existing = await readCacheEntry(cache.dir, url);
-
-  if (existing && !isRedirectPointer(existing)) {
+  if (existing && isRedirectPointer(existing)) {
+    if (isCacheEntryFresh(existing.fetchedAt, cache.ttlMs)) {
+      const target = await readCacheEntry(cache.dir, existing.redirectsTo);
+      if (target && !isRedirectPointer(target)) {
+        return { url: existing.redirectsTo, status: target.status, headers: target.headers, body: target.body, fromCache: true };
+      }
+    }
+  } else if (existing) {
     const effectiveTtl = shouldNegativeCache(existing.status) ? NEGATIVE_CACHE_TTL_MS : cache.ttlMs;
     const fresh = isCacheEntryFresh(existing.fetchedAt, effectiveTtl);
     const hasValidator = Boolean(existing.headers.etag ?? existing.headers["last-modified"]);
@@ -182,34 +179,54 @@ export async function cachedFetch(
       const body = await res.text();
       const headers = headersToObject(res.headers);
       if (isStoreableStatus(res.status)) {
-        const entry: CacheEntry = {
+        await writeCacheEntry(cache.dir, url, {
           schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
-          url,
-          fetchedAt: new Date().toISOString(),
-          status: res.status,
-          headers,
-          body,
-        };
-        await writeCacheEntry(cache.dir, url, entry);
+          url, fetchedAt: new Date().toISOString(), status: res.status, headers, body,
+        });
       }
       return { url, status: res.status, headers, body, fromCache: false };
     }
   }
 
-  // Cache miss or stale-without-validator → full fetch
-  const res = await fetcher(url, { signal: AbortSignal.timeout(opts.timeoutMs) });
-  const body = await res.text();
-  const headers = headersToObject(res.headers);
-  if (isStoreableStatus(res.status)) {
-    const entry: CacheEntry = {
-      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
-      url,
-      fetchedAt: new Date().toISOString(),
-      status: res.status,
-      headers,
-      body,
-    };
-    await writeCacheEntry(cache.dir, url, entry);
+  return performFetch(url, opts.timeoutMs, fetcher, cache);
+}
+
+async function performFetch(
+  url: string,
+  timeoutMs: number,
+  fetcher: Fetcher,
+  cache: CacheConfig | null
+): Promise<CachedFetchResult> {
+  const redirectChain: string[] = [];
+  let currentUrl = url;
+  for (let hop = 0; hop < 10; hop += 1) {
+    const res = await fetcher(currentUrl, { signal: AbortSignal.timeout(timeoutMs), redirect: "manual" });
+    const status = res.status;
+    if (status >= 300 && status < 400) {
+      const loc = res.headers.get("location");
+      if (!loc) break;
+      const next = new URL(loc, currentUrl).href;
+      if (cache) {
+        await writeCacheEntry(cache.dir, currentUrl, {
+          schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+          redirectsTo: next,
+          fetchedAt: new Date().toISOString(),
+          status,
+        });
+      }
+      redirectChain.push(currentUrl);
+      currentUrl = next;
+      continue;
+    }
+    const body = await res.text();
+    const headers = headersToObject(res.headers);
+    if (cache && isStoreableStatus(status)) {
+      await writeCacheEntry(cache.dir, currentUrl, {
+        schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+        url: currentUrl, fetchedAt: new Date().toISOString(), status, headers, body,
+      });
+    }
+    return { url: currentUrl, status, headers, body, fromCache: false };
   }
-  return { url, status: res.status, headers, body, fromCache: false };
+  throw new Error(`cachedFetch: too many redirects for ${url}`);
 }
