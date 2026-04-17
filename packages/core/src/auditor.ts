@@ -796,18 +796,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   const crawlDiscovery = /^https?:\/\//i.test(source) && (options?.crawlDiscovery ?? true);
 
-  const isRemote = /^https?:\/\//i.test(source);
-  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(source);
-
-  let discoveryBudget = 0; // 0 = unlimited
-  if (isRemote && !isLocalhost && options?.sampleSize === undefined) {
-    // User didn't set sample size — apply adaptive budget for remote
-    discoveryBudget = 200;
-  } else if (isRemote && !isLocalhost && (options?.sampleSize ?? 0) > 0) {
-    // User set a specific sample size — budget is 2x that, min 50
-    discoveryBudget = Math.max(50, (options?.sampleSize ?? 0) * 2);
-  }
-  // sampleSize explicitly 0 or localhost/file → unlimited
+  // Discovery budget: when sampleSize is set, cap discovery at 2x (min 50) to avoid
+  // fetching far more pages than we'll sample. First-run egress is bounded by sampleSize;
+  // re-runs hit the cache. Remove adaptive 200-cap: users get full crawl by default,
+  // repeated audits stay cheap via --cache.
+  const discoveryBudget = options?.sampleSize && options.sampleSize > 0
+    ? Math.max(50, options.sampleSize * 2)
+    : 0;
 
   const cacheStats = { hits: 0, total: 0, bytesSavedEstimate: 0 };
   const cacheConfig: CacheConfig | null = options?.cache
