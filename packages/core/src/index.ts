@@ -46,5 +46,7 @@ export * from "./data-source-loader.js";
 export * from "./rules/data/data-binding.js";
 export { cachedFetch, cacheKeyFor } from "./cache.js";
 export type { CacheConfig, CachedFetchOptions, CachedFetchResult, CacheEntry } from "./cache.js";
-export type { CacheOptions, CacheStats, SamplingStrategy } from "./types.js";
+export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from "./types.js";
 export { stratifiedSample, inferUrlTemplate } from "./stratified-sample.js";
+export { readState, writeState, computeContentHash, normalizeHtmlForHash, STATE_SCHEMA_VERSION } from "./state.js";
+export type { RunState, UrlStateEntry, RenderMode } from "./state.js";

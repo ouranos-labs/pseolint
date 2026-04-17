@@ -70,14 +70,14 @@ describe("stratifiedSample", () => {
   });
 
   it("sqrt allocation over-samples small clusters", () => {
-    const big = Array.from({ length: 900 }, (_, i) => `https://example.com/b/${i}`);
-    const mid = Array.from({ length: 90 }, (_, i) => `https://example.com/m-a-${i}/x`);
-    const small = Array.from({ length: 10 }, (_, i) => `https://example.com/s-a-${i}/x`);
+    const big = Array.from({ length: 900 }, (_, i) => `https://example.com/big/${i}`);
+    const mid = Array.from({ length: 90 }, (_, i) => `https://example.com/mid/item-a-${i}/x`);
+    const small = Array.from({ length: 10 }, (_, i) => `https://example.com/small/tiny-a-${i}/x`);
     const sampled = stratifiedSample([...big, ...mid, ...small], 60);
     const counts = { big: 0, mid: 0, small: 0 };
     for (const u of sampled) {
-      if (u.startsWith("https://example.com/b/")) counts.big += 1;
-      else if (u.startsWith("https://example.com/m-a-")) counts.mid += 1;
+      if (u.startsWith("https://example.com/big/")) counts.big += 1;
+      else if (u.startsWith("https://example.com/mid/")) counts.mid += 1;
       else counts.small += 1;
     }
     expect(counts.small).toBeGreaterThanOrEqual(2);

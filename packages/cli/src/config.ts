@@ -68,6 +68,7 @@ export interface CliFlags {
   cache?: { dir?: string; ttlMs: number };
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
+  state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
 }
 
 export function mergeOptions(
@@ -84,5 +85,6 @@ export function mergeOptions(
   if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
+  if (cliFlags.state !== undefined) result.state = cliFlags.state;
   return result;
 }
