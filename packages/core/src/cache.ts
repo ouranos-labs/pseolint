@@ -86,3 +86,19 @@ export async function writeCacheEntry(
   await writeFile(tmpPath, JSON.stringify(entry), "utf8");
   await rename(tmpPath, finalPath);
 }
+
+export const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function isCacheEntryFresh(
+  fetchedAtIso: string,
+  ttlMs: number,
+  now: number = Date.now()
+): boolean {
+  const fetchedAt = Date.parse(fetchedAtIso);
+  if (Number.isNaN(fetchedAt)) return false;
+  return now - fetchedAt < ttlMs;
+}
+
+export function shouldNegativeCache(status: number): boolean {
+  return status >= 400 && status < 500;
+}

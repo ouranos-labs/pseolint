@@ -8,6 +8,9 @@ import {
   writeCacheEntry,
   isRedirectPointer,
   CACHE_ENTRY_SCHEMA_VERSION,
+  isCacheEntryFresh,
+  shouldNegativeCache,
+  NEGATIVE_CACHE_TTL_MS,
 } from "../src/cache.js";
 
 describe("cacheKeyFor", () => {
@@ -106,5 +109,34 @@ describe("cache read/write", () => {
     const got = await readCacheEntry(dir, "https://example.com/old");
     expect(got).not.toBeNull();
     expect(isRedirectPointer(got!)).toBe(true);
+  });
+});
+
+describe("cache freshness and negative caching", () => {
+  it("isCacheEntryFresh returns true when within TTL", () => {
+    const now = Date.parse("2026-04-17T12:00:00Z");
+    const fetchedAt = new Date(now - 1000).toISOString();
+    expect(isCacheEntryFresh(fetchedAt, 60_000, now)).toBe(true);
+  });
+
+  it("isCacheEntryFresh returns false when past TTL", () => {
+    const now = Date.parse("2026-04-17T12:00:00Z");
+    const fetchedAt = new Date(now - 120_000).toISOString();
+    expect(isCacheEntryFresh(fetchedAt, 60_000, now)).toBe(false);
+  });
+
+  it("shouldNegativeCache accepts 4xx", () => {
+    expect(shouldNegativeCache(404)).toBe(true);
+    expect(shouldNegativeCache(410)).toBe(true);
+  });
+
+  it("shouldNegativeCache rejects 5xx and 2xx", () => {
+    expect(shouldNegativeCache(500)).toBe(false);
+    expect(shouldNegativeCache(503)).toBe(false);
+    expect(shouldNegativeCache(200)).toBe(false);
+  });
+
+  it("NEGATIVE_CACHE_TTL_MS is 24 hours", () => {
+    expect(NEGATIVE_CACHE_TTL_MS).toBe(24 * 60 * 60 * 1000);
   });
 });
