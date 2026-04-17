@@ -41,6 +41,9 @@ interface CliOptions {
   dataSource?: string;
   cache?: string | boolean;
   cacheTtl: string;
+  state?: string | boolean;
+  since: boolean;
+  exitOnRegression: boolean;
 }
 
 export async function runCli(
@@ -75,6 +78,9 @@ export async function runCli(
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
     .option("--cache-ttl <duration>", "Cache TTL for entries without validators, e.g. 7d, 1h, 30m", "7d")
+    .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
+    .option("--since", "Delta mode: audit only URLs changed since prior --state (requires --state)")
+    .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -131,6 +137,19 @@ export async function runCli(
     }
   }
 
+  if ((opts.since || opts.exitOnRegression) && !opts.state) {
+    console.error("Error: --since and --exit-on-regression require --state to be set");
+    return 1;
+  }
+
+  if (opts.state || opts.since || opts.exitOnRegression) {
+    cliFlags.state = {
+      path: typeof opts.state === "string" ? opts.state : undefined,
+      since: Boolean(opts.since),
+      exitOnRegression: Boolean(opts.exitOnRegression),
+    };
+  }
+
   const options = mergeOptions(configFile, cliFlags);
 
   if (opts.dataSource) {
@@ -178,8 +197,13 @@ export async function runCli(
     console.log(output);
   }
 
-  // Exit code based on threshold
-  return summary.score >= threshold ? 1 : 0;
+  // Exit code based on threshold + regression
+  let exitCode = summary.score >= threshold ? 1 : 0;
+  if (summary.hasRegression) {
+    console.error("Regression detected: new rule IDs fired vs prior state");
+    exitCode = Math.max(exitCode, 1);
+  }
+  return exitCode;
 }
 
 function parseDuration(s: string): number {

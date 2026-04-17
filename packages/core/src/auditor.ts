@@ -42,6 +42,10 @@ import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
+import {
+  readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
+  type RunState, type RenderMode, type UrlStateEntry,
+} from "./state.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -812,10 +816,40 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       }
     : null;
 
-  const { pages: loadedPages, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats);
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats);
+  const loadedPages = [...loadedPagesRaw];
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
+  }
+
+  // State read + delta filtering
+  let priorState: RunState | null = null;
+  const skippedUrls: string[] = [];
+  if (options?.state?.since || options?.state?.exitOnRegression) {
+    const statePath = options.state.path ?? ".pseolint/state.json";
+    priorState = await readState(statePath);
+    const currentRenderMode: RenderMode = options.render ? "rendered" : "static";
+    if (priorState && priorState.renderMode !== currentRenderMode) {
+      console.error(
+        `warning: prior state renderMode=${priorState.renderMode} differs from current ${currentRenderMode}. Performing full re-audit.`
+      );
+      priorState = null;
+    }
+    if (priorState && options.state.since) {
+      const kept: LoadedPage[] = [];
+      for (const p of loadedPages) {
+        const prior = priorState.urls[p.url];
+        if (prior && prior.contentHash === computeContentHash(p.html)) {
+          skippedUrls.push(p.url);
+        } else {
+          kept.push(p);
+        }
+      }
+      loadedPages.splice(0, loadedPages.length, ...kept);
+    } else if (!priorState && options.state.since) {
+      console.error("no prior state found — performing full baseline audit");
+    }
   }
 
   let robotsTxtContent = "";
@@ -978,6 +1012,70 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   if (cacheConfig) {
     summary.cacheStats = cacheStats;
+  }
+
+  if (skippedUrls.length > 0) {
+    summary.skippedUrls = skippedUrls;
+  }
+
+  if (priorState && options?.state?.exitOnRegression) {
+    let hasRegression = false;
+    const currentFindings = new Map<string, Set<string>>();
+    for (const f of summary.findings) {
+      if (!f.pageUrl) continue;
+      const set = currentFindings.get(f.pageUrl) ?? new Set<string>();
+      set.add(f.ruleId);
+      currentFindings.set(f.pageUrl, set);
+    }
+    for (const [url, entry] of Object.entries(priorState.urls)) {
+      const cur = currentFindings.get(url);
+      if (!cur) continue;
+      const priorIds = new Set(entry.findingIds);
+      for (const ruleId of cur) {
+        if (!priorIds.has(ruleId)) {
+          hasRegression = true;
+          break;
+        }
+      }
+      if (hasRegression) break;
+    }
+    summary.hasRegression = hasRegression;
+  }
+
+  if (options?.state) {
+    const statePath = options.state.path ?? ".pseolint/state.json";
+    const renderMode: RenderMode = options.render ? "rendered" : "static";
+    const urls: Record<string, UrlStateEntry> = {};
+    const findingsByUrl = new Map<string, string[]>();
+    for (const f of summary.findings) {
+      if (!f.pageUrl) continue;
+      const list = findingsByUrl.get(f.pageUrl) ?? [];
+      if (!list.includes(f.ruleId)) list.push(f.ruleId);
+      findingsByUrl.set(f.pageUrl, list);
+    }
+    for (const p of loadedPages) {
+      urls[p.url] = {
+        contentHash: computeContentHash(p.html),
+        fetchedAt: new Date().toISOString(),
+        status: p.httpMeta?.statusCode ?? 200,
+        findingIds: findingsByUrl.get(p.url) ?? [],
+      };
+    }
+    const newState: RunState = {
+      version: STATE_SCHEMA_VERSION,
+      lastRun: new Date().toISOString(),
+      source,
+      renderMode,
+      urls,
+      summary: {
+        score: summary.score,
+        totalFindings: summary.findings.length,
+        byCategory: Object.fromEntries(
+          Object.entries(summary.categoryScores).map(([k, v]) => [k, v])
+        ),
+      },
+    };
+    await writeState(statePath, newState);
   }
 
   return summary;

@@ -80,6 +80,16 @@ export interface CacheStats {
   bytesSavedEstimate: number;
 }
 
+/** Options for run state persistence. */
+export interface StateOptions {
+  /** Path to state file. Default: `.pseolint/state.json`. */
+  path?: string;
+  /** If true, audit only URLs with changed/new contentHash since prior state. */
+  since?: boolean;
+  /** If true, exit non-zero when a new rule ID fires on any URL vs prior state. */
+  exitOnRegression?: boolean;
+}
+
 export interface AuditSummary {
   score: number;
   categoryScores: CategoryScores;
@@ -93,6 +103,10 @@ export interface AuditSummary {
   rawFindingCount?: number;
   /** Cache statistics when caching is enabled. */
   cacheStats?: CacheStats;
+  /** True when --exit-on-regression detected a new rule ID vs prior state. */
+  hasRegression?: boolean;
+  /** URLs that were skipped because their contentHash matched prior state. */
+  skippedUrls?: string[];
 }
 
 export interface PageGroupConfig {
@@ -149,6 +163,8 @@ export interface AuditOptions {
   dataSource?: DataSourceOptions;
   /** HTTP cache configuration. When omitted, caching is disabled. */
   cache?: CacheOptions;
+  /** Run state persistence. When omitted, no state is written. */
+  state?: StateOptions;
 }
 
 /** A single page's source data for data-source comparison. */
