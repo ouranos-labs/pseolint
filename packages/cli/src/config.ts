@@ -65,6 +65,7 @@ export interface CliFlags {
   ignore?: string[];
   render?: { browserWsEndpoint?: string };
   crawlDiscovery?: boolean;
+  cache?: { dir?: string; ttlMs: number };
 }
 
 export function mergeOptions(
@@ -78,5 +79,6 @@ export function mergeOptions(
   if (cliFlags.ignore !== undefined) result.ignore = cliFlags.ignore;
   if (cliFlags.render !== undefined) result.render = cliFlags.render;
   if (cliFlags.crawlDiscovery !== undefined) result.crawlDiscovery = cliFlags.crawlDiscovery;
+  if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
   return result;
 }

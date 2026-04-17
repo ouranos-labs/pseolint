@@ -39,6 +39,8 @@ interface CliOptions {
   crawl: boolean;
   mcp: boolean;
   dataSource?: string;
+  cache?: string | boolean;
+  cacheTtl: string;
 }
 
 export async function runCli(
@@ -71,6 +73,8 @@ export async function runCli(
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
+    .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
+    .option("--cache-ttl <duration>", "Cache TTL for entries without validators, e.g. 7d, 1h, 30m", "7d")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -114,6 +118,19 @@ export async function runCli(
     crawlDiscovery: opts.crawl === false ? false : undefined,
   };
 
+  if (opts.cache) {
+    try {
+      cliFlags.cache = {
+        dir: typeof opts.cache === "string" ? opts.cache : undefined,
+        ttlMs: parseDuration(opts.cacheTtl),
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Error: ${message}`);
+      return 1;
+    }
+  }
+
   const options = mergeOptions(configFile, cliFlags);
 
   if (opts.dataSource) {
@@ -139,6 +156,12 @@ export async function runCli(
     return 1;
   }
 
+  if (summary.cacheStats && summary.cacheStats.total > 0) {
+    const { hits, total, bytesSavedEstimate } = summary.cacheStats;
+    const mb = (bytesSavedEstimate / (1024 * 1024)).toFixed(2);
+    console.error(`Cache: ${hits}/${total} hits (${mb} MB saved)`);
+  }
+
   // Format output
   const output = format === "console"
     ? formatConsole(summary, { noColor: !opts.color })
@@ -157,6 +180,15 @@ export async function runCli(
 
   // Exit code based on threshold
   return summary.score >= threshold ? 1 : 0;
+}
+
+function parseDuration(s: string): number {
+  const m = s.match(/^(\d+)(ms|s|m|h|d)$/);
+  if (!m) throw new Error(`invalid duration: ${s}. Use e.g. 1h, 30m, 7d.`);
+  const n = Number(m[1]);
+  const unit = m[2];
+  const mul = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[unit] ?? 1;
+  return n * mul;
 }
 
 // Direct execution
