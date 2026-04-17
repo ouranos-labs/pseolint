@@ -44,3 +44,6 @@ export * from "./renderer.js";
 export * from "./enrich-findings.js";
 export * from "./data-source-loader.js";
 export * from "./rules/data/data-binding.js";
+export { cachedFetch, cacheKeyFor } from "./cache.js";
+export type { CacheConfig, CachedFetchOptions, CachedFetchResult, CacheEntry } from "./cache.js";
+export type { CacheOptions, CacheStats } from "./types.js";

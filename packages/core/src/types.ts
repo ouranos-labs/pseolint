@@ -65,6 +65,21 @@ export interface CategoryScores {
   cannibal: number;
 }
 
+/** Options for HTTP caching during audits. */
+export interface CacheOptions {
+  /** Directory to store cache files. Default: `.pseolint/cache/`. */
+  dir?: string;
+  /** TTL for entries without ETag/Last-Modified validators. Default: 7 days. */
+  ttlMs?: number;
+}
+
+/** Cache stats reported at end of audit. */
+export interface CacheStats {
+  hits: number;
+  total: number;
+  bytesSavedEstimate: number;
+}
+
 export interface AuditSummary {
   score: number;
   categoryScores: CategoryScores;
@@ -76,6 +91,8 @@ export interface AuditSummary {
   templateDetected?: boolean;
   /** Pre-enrichment finding count, for backward compatibility with CI scripts. */
   rawFindingCount?: number;
+  /** Cache statistics when caching is enabled. */
+  cacheStats?: CacheStats;
 }
 
 export interface PageGroupConfig {
@@ -130,6 +147,8 @@ export interface AuditOptions {
   entityPatterns?: Array<{ placeholder: string; pattern: string; flags?: string }>;
   /** Source data records for data-binding verification. */
   dataSource?: DataSourceOptions;
+  /** HTTP cache configuration. When omitted, caching is disabled. */
+  cache?: CacheOptions;
 }
 
 /** A single page's source data for data-source comparison. */
