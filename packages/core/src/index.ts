@@ -46,4 +46,5 @@ export * from "./data-source-loader.js";
 export * from "./rules/data/data-binding.js";
 export { cachedFetch, cacheKeyFor } from "./cache.js";
 export type { CacheConfig, CachedFetchOptions, CachedFetchResult, CacheEntry } from "./cache.js";
-export type { CacheOptions, CacheStats } from "./types.js";
+export type { CacheOptions, CacheStats, SamplingStrategy } from "./types.js";
+export { stratifiedSample, inferUrlTemplate } from "./stratified-sample.js";

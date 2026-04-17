@@ -149,7 +149,13 @@ export interface AuditOptions {
   dataSource?: DataSourceOptions;
   /** HTTP cache configuration. When omitted, caching is disabled. */
   cache?: CacheOptions;
+  /** Sampling strategy when sampleSize < total pages. Default: "stratified". */
+  samplingStrategy?: SamplingStrategy;
+  /** Max samples per inferred URL template cluster. Caps per-cluster allocation. */
+  maxPerTemplate?: number;
 }
+
+export type SamplingStrategy = "stratified" | "random";
 
 /** A single page's source data for data-source comparison. */
 export interface PageDataRecord {

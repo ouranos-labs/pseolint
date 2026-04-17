@@ -42,6 +42,7 @@ import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
+import { stratifiedSample } from "./stratified-sample.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -855,8 +856,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     ? deduped.filter((page) => !shouldIgnore(page.url, ignorePatterns))
     : deduped;
 
+  const strategy = options?.samplingStrategy ?? "stratified";
   const sampled = sampleSize > 0 && sampleSize < filtered.length
-    ? fisherYatesSample(filtered, sampleSize)
+    ? (strategy === "stratified"
+        ? (() => {
+            const urlsMap = new Map(filtered.map(p => [p.url, p]));
+            const sampledUrls = stratifiedSample(filtered.map(p => p.url), sampleSize);
+            return sampledUrls.map(u => urlsMap.get(u)!);
+          })()
+        : fisherYatesSample(filtered, sampleSize))
     : filtered;
 
   const parsedPages = sampled.map((page) => {
