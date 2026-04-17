@@ -558,8 +558,9 @@ async function loadPagesFromSource(
   source: string,
   concurrency: number,
   timeoutMs: number,
-  crawlDiscovery: boolean
-): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string> }> {
+  crawlDiscovery: boolean,
+  discoveryBudget: number
+): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   if (/^https?:\/\//i.test(source)) {
     let text: string;
     let contentType: string;
@@ -589,19 +590,24 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const urls = await collectUrlsFromSitemap(text, source, visited, timeoutMs);
+      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs);
+
+      // If we have a budget, sample from sitemap URLs before fetching
+      const urlsToFetch = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
+        ? fisherYatesSample(allSitemapUrls, discoveryBudget)
+        : allSitemapUrls;
 
       const pages: LoadedPage[] = [];
-      await runWithConcurrency(urls, concurrency, async (url) => {
+      await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
         const result = await fetchPageWithMeta(url, timeoutMs);
         if (result) {
           pages.push(result);
         }
       });
 
-      // Crawl discovery: follow internal links to find pages not in sitemap
-      if (crawlDiscovery) {
-        const sitemapUrlSet = new Set(urls);
+      // Skip additional crawl discovery when budget is active — sitemap is authoritative
+      if (crawlDiscovery && discoveryBudget === 0) {
+        const sitemapUrlSet = new Set(allSitemapUrls);
         const discoveredUrls = new Set<string>();
         let sourceOrigin: string;
         try {
@@ -643,7 +649,7 @@ async function loadPagesFromSource(
         }
       }
 
-      return { pages, sitemapUrls: new Set(urls) };
+      return { pages, sitemapUrls: new Set(allSitemapUrls), discoveredUrlCount: allSitemapUrls.length };
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
@@ -659,9 +665,13 @@ async function loadPagesFromSource(
         }
 
         const knownCrawled = new Set<string>([source]);
+        const allDiscoveredUrls = new Set<string>([source]);
         const maxDepth = 3;
 
         for (let depth = 0; depth < maxDepth; depth += 1) {
+          // Stop if we've hit the discovery budget
+          if (discoveryBudget > 0 && pages.length >= discoveryBudget) break;
+
           const frontier = new Set<string>();
 
           for (const page of pages) {
@@ -688,10 +698,25 @@ async function loadPagesFromSource(
             }
           }
 
+          // Track all discovered URLs even if we don't fetch them
+          for (const url of frontier) {
+            allDiscoveredUrls.add(url);
+          }
+
           if (frontier.size === 0) break;
 
+          // If budget active, only fetch up to budget
+          let urlsToFetch = Array.from(frontier);
+          if (discoveryBudget > 0) {
+            const remaining = discoveryBudget - pages.length;
+            if (remaining <= 0) break;
+            if (urlsToFetch.length > remaining) {
+              urlsToFetch = urlsToFetch.slice(0, remaining);
+            }
+          }
+
           const newPages: LoadedPage[] = [];
-          await runWithConcurrency(Array.from(frontier), concurrency, async (url) => {
+          await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
             const result = await fetchPageWithMeta(url, timeoutMs);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               newPages.push(result);
@@ -705,6 +730,8 @@ async function loadPagesFromSource(
           pages.push(...newPages);
           if (newPages.length === 0) break;
         }
+
+        return { pages, discoveredUrlCount: allDiscoveredUrls.size };
       }
 
       return { pages };
@@ -772,7 +799,25 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   });
 
   const crawlDiscovery = /^https?:\/\//i.test(source) && (options?.crawlDiscovery ?? true);
-  const { pages: loadedPages, sitemapUrls: sitemapUrlSet } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery);
+
+  const isRemote = /^https?:\/\//i.test(source);
+  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(source);
+
+  let discoveryBudget = 0; // 0 = unlimited
+  if (isRemote && !isLocalhost && options?.sampleSize === undefined) {
+    // User didn't set sample size — apply adaptive budget for remote
+    discoveryBudget = 200;
+  } else if (isRemote && !isLocalhost && (options?.sampleSize ?? 0) > 0) {
+    // User set a specific sample size — budget is 2x that, min 50
+    discoveryBudget = Math.max(50, (options?.sampleSize ?? 0) * 2);
+  }
+  // sampleSize explicitly 0 or localhost/file → unlimited
+
+  const { pages: loadedPages, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget);
+
+  if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
+    console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
+  }
 
   let robotsTxtContent = "";
   if (/^https?:\/\//i.test(source)) {
