@@ -89,6 +89,10 @@ export async function writeCacheEntry(
 
 export const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+function isStoreableStatus(status: number): boolean {
+  return (status >= 200 && status < 300) || (status >= 400 && status < 500);
+}
+
 export function isCacheEntryFresh(
   fetchedAtIso: string,
   ttlMs: number,
@@ -177,7 +181,7 @@ export async function cachedFetch(
       }
       const body = await res.text();
       const headers = headersToObject(res.headers);
-      if (res.status < 500) {
+      if (isStoreableStatus(res.status)) {
         const entry: CacheEntry = {
           schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
           url,
@@ -196,7 +200,7 @@ export async function cachedFetch(
   const res = await fetcher(url, { signal: AbortSignal.timeout(opts.timeoutMs) });
   const body = await res.text();
   const headers = headersToObject(res.headers);
-  if (res.status < 500) {
+  if (isStoreableStatus(res.status)) {
     const entry: CacheEntry = {
       schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
       url,

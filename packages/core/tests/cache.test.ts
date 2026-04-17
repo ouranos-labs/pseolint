@@ -297,4 +297,25 @@ describe("cachedFetch", () => {
     expect(r2.status).toBe(200);
     expect(mock2.calls).toHaveLength(1);
   });
+
+  it("3xx NOT stored (deferred to Task 5 redirect handling)", async () => {
+    const mock1 = mockFetcher([
+      { status: 301, headers: { location: "https://example.com/final" }, body: "" },
+    ]);
+    await cachedFetch("https://example.com/old", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock1.fn,
+    });
+    const mock2 = mockFetcher([
+      { status: 200, headers: {}, body: "final" },
+    ]);
+    const r2 = await cachedFetch("https://example.com/old", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock2.fn,
+    });
+    expect(r2.body).toBe("final");
+    expect(mock2.calls).toHaveLength(1);
+  });
 });
