@@ -345,4 +345,89 @@ describe("cachedFetch redirects", () => {
     expect(r.fromCache).toBe(true);
     expect(second.calls).toHaveLength(0);
   });
+
+  it("stale pointer triggers re-fetch of origin URL", async () => {
+    // Seed a stale pointer + fresh target
+    const staleFetchedAt = new Date(Date.now() - 120_000).toISOString();
+    const key = cacheKeyFor("https://example.com/stale-origin");
+    await writeFile(
+      join(dir, key),
+      JSON.stringify({
+        schemaVersion: 1,
+        redirectsTo: "https://example.com/target",
+        fetchedAt: staleFetchedAt,
+        status: 301,
+      }),
+      "utf8"
+    );
+    const mock = mockFetcher([
+      { status: 301, headers: { location: "https://example.com/target" }, body: "" },
+      { status: 200, headers: {}, body: "fresh target" },
+    ]);
+    const r = await cachedFetch("https://example.com/stale-origin", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 }, // 60s TTL; pointer is 120s old
+      fetcher: mock.fn,
+    });
+    expect(r.body).toBe("fresh target");
+    expect(r.fromCache).toBe(false);
+    expect(mock.calls).toHaveLength(2);
+  });
+
+  it("relative Location header resolves correctly", async () => {
+    const mock = mockFetcher([
+      { status: 302, headers: { location: "/relative-target" }, body: "" },
+      { status: 200, headers: {}, body: "relative OK" },
+    ]);
+    const r = await cachedFetch("https://example.com/source", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock.fn,
+    });
+    expect(r.url).toBe("https://example.com/relative-target");
+    expect(r.body).toBe("relative OK");
+  });
+
+  it("throws on redirect loop", async () => {
+    const mock = mockFetcher([
+      { status: 301, headers: { location: "https://example.com/b" }, body: "" },
+      { status: 301, headers: { location: "https://example.com/a" }, body: "" },
+    ]);
+    await expect(
+      cachedFetch("https://example.com/a", {
+        timeoutMs: 5000,
+        cache: { dir, ttlMs: 60_000 },
+        fetcher: mock.fn,
+      })
+    ).rejects.toThrow(/redirect loop/);
+  });
+
+  it("throws on >10 hops", async () => {
+    const responses = Array.from({ length: 12 }, (_, i) => ({
+      status: 301 as const,
+      headers: { location: `https://example.com/hop${i + 1}` },
+      body: "",
+    }));
+    const mock = mockFetcher(responses);
+    await expect(
+      cachedFetch("https://example.com/hop0", {
+        timeoutMs: 5000,
+        cache: { dir, ttlMs: 60_000 },
+        fetcher: mock.fn,
+      })
+    ).rejects.toThrow(/too many redirects/);
+  });
+
+  it("throws on malformed Location header", async () => {
+    const mock = mockFetcher([
+      { status: 301, headers: { location: "http://" }, body: "" },
+    ]);
+    await expect(
+      cachedFetch("https://example.com/bad", {
+        timeoutMs: 5000,
+        cache: { dir, ttlMs: 60_000 },
+        fetcher: mock.fn,
+      })
+    ).rejects.toThrow(/invalid Location header/);
+  });
 });

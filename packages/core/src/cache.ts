@@ -151,7 +151,10 @@ export async function cachedFetch(
     if (isCacheEntryFresh(existing.fetchedAt, cache.ttlMs)) {
       const target = await readCacheEntry(cache.dir, existing.redirectsTo);
       if (target && !isRedirectPointer(target)) {
-        return { url: existing.redirectsTo, status: target.status, headers: target.headers, body: target.body, fromCache: true };
+        const targetTtl = shouldNegativeCache(target.status) ? NEGATIVE_CACHE_TTL_MS : cache.ttlMs;
+        if (isCacheEntryFresh(target.fetchedAt, targetTtl)) {
+          return { url: existing.redirectsTo, status: target.status, headers: target.headers, body: target.body, fromCache: true };
+        }
       }
     }
   } else if (existing) {
@@ -205,7 +208,15 @@ async function performFetch(
     if (status >= 300 && status < 400) {
       const loc = res.headers.get("location");
       if (!loc) break;
-      const next = new URL(loc, currentUrl).href;
+      let next: string;
+      try {
+        next = new URL(loc, currentUrl).href;
+      } catch {
+        throw new Error(`cachedFetch: invalid Location header "${loc}" at ${currentUrl}`);
+      }
+      if (redirectChain.includes(next)) {
+        throw new Error(`cachedFetch: redirect loop detected at ${currentUrl} -> ${next}`);
+      }
       if (cache) {
         await writeCacheEntry(cache.dir, currentUrl, {
           schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
