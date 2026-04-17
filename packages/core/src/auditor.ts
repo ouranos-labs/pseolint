@@ -40,7 +40,7 @@ import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
-import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
+import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
 
 const DEFAULTS = {
@@ -357,11 +357,11 @@ async function fetchWithRetry(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: { hits: number; total: number; bytesSavedEstimate: number }
+  stats: CacheStats
 ): Promise<{ text: string; contentType: string } | null> {
   try {
-    const r = await cachedFetch(url, { timeoutMs, cache });
     stats.total += 1;
+    const r = await cachedFetch(url, { timeoutMs, cache });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -377,11 +377,11 @@ async function fetchPageWithMeta(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: { hits: number; total: number; bytesSavedEstimate: number }
+  stats: CacheStats
 ): Promise<LoadedPage | null> {
   try {
-    const r = await cachedFetch(url, { timeoutMs, cache });
     stats.total += 1;
+    const r = await cachedFetch(url, { timeoutMs, cache });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -392,7 +392,7 @@ async function fetchPageWithMeta(
       httpMeta: {
         statusCode: r.status,
         finalUrl: r.url,
-        redirectChain: [],
+        redirectChain: r.redirectChain,
         xRobotsTag: r.headers["x-robots-tag"] ?? "",
         linkHeader: r.headers.link ?? "",
       },
@@ -406,10 +406,10 @@ async function fetchTextStrict(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: { hits: number; total: number; bytesSavedEstimate: number }
+  stats: CacheStats
 ): Promise<{ text: string; contentType: string }> {
-  const r = await cachedFetch(url, { timeoutMs, cache });
   stats.total += 1;
+  const r = await cachedFetch(url, { timeoutMs, cache });
   if (r.fromCache) {
     stats.hits += 1;
     stats.bytesSavedEstimate += r.body.length;
@@ -521,7 +521,7 @@ async function collectUrlsFromSitemap(
   visited: Set<string>,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: { hits: number; total: number; bytesSavedEstimate: number }
+  stats: CacheStats
 ): Promise<string[]> {
   visited.add(sitemapUrl);
   const locs = parseSitemapUrls(sitemapText);
@@ -550,7 +550,7 @@ async function loadPagesFromSource(
   crawlDiscovery: boolean,
   discoveryBudget: number,
   cache: CacheConfig | null,
-  stats: { hits: number; total: number; bytesSavedEstimate: number }
+  stats: CacheStats
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   if (/^https?:\/\//i.test(source)) {
     let text: string;

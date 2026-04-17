@@ -127,6 +127,7 @@ export interface CachedFetchResult {
   headers: Record<string, string>;
   body: string;
   fromCache: boolean;
+  redirectChain: string[];
 }
 
 function headersToObject(h: Headers): Record<string, string> {
@@ -153,7 +154,7 @@ export async function cachedFetch(
       if (target && !isRedirectPointer(target)) {
         const targetTtl = shouldNegativeCache(target.status) ? NEGATIVE_CACHE_TTL_MS : cache.ttlMs;
         if (isCacheEntryFresh(target.fetchedAt, targetTtl)) {
-          return { url: existing.redirectsTo, status: target.status, headers: target.headers, body: target.body, fromCache: true };
+          return { url: existing.redirectsTo, status: target.status, headers: target.headers, body: target.body, fromCache: true, redirectChain: [url] };
         }
       }
     }
@@ -163,7 +164,7 @@ export async function cachedFetch(
     const hasValidator = Boolean(existing.headers.etag ?? existing.headers["last-modified"]);
 
     if (fresh && !hasValidator) {
-      return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true };
+      return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [] };
     }
 
     if (hasValidator) {
@@ -177,7 +178,7 @@ export async function cachedFetch(
       if (res.status === 304) {
         const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
         await writeCacheEntry(cache.dir, url, updated);
-        return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true };
+        return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [] };
       }
       const body = await res.text();
       const headers = headersToObject(res.headers);
@@ -187,7 +188,7 @@ export async function cachedFetch(
           url, fetchedAt: new Date().toISOString(), status: res.status, headers, body,
         });
       }
-      return { url, status: res.status, headers, body, fromCache: false };
+      return { url, status: res.status, headers, body, fromCache: false, redirectChain: [] };
     }
   }
 
@@ -237,7 +238,7 @@ async function performFetch(
         url: currentUrl, fetchedAt: new Date().toISOString(), status, headers, body,
       });
     }
-    return { url: currentUrl, status, headers, body, fromCache: false };
+    return { url: currentUrl, status, headers, body, fromCache: false, redirectChain: [...redirectChain] };
   }
   throw new Error(`cachedFetch: too many redirects for ${url}`);
 }
