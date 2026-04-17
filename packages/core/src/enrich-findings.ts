@@ -62,6 +62,9 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   "cannibal/keyword-collision": "structural",
   "cannibal/title-overlap": "structural",
   "links/cluster-connectivity": "structural",
+  // data
+  "data/missing-binding": "moderate",
+  "data/identical-across-pages": "moderate",
 };
 
 const SEVERITY_ORDER: Record<string, number> = {

@@ -32,4 +32,6 @@ export const RULE_REFERENCES: Record<string, string> = {
   "cannibal/title-overlap": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
   "cannibal/keyword-collision": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
   "cannibal/url-pattern": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
+  "data/missing-binding": "https://developers.google.com/search/docs/essentials/spam-policies#thin-content",
+  "data/identical-across-pages": "https://developers.google.com/search/docs/essentials/spam-policies#scraped-content",
 };

@@ -36,6 +36,7 @@ import { titleOverlapRule } from "./rules/cannibal/title-overlap.js";
 import { keywordCollisionRule } from "./rules/cannibal/keyword-collision.js";
 import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
 import { templateCoverageRule } from "./rules/spam/template-coverage.js";
+import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js";
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
@@ -922,6 +923,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       const robotsFindings = robotsComplianceRule(parsedPages, sitemapUrlSet, robotsTxtContent);
       allFindings.push(...robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
+  }
+
+  // Data source comparison rules
+  if (options?.dataSource?.records && options.dataSource.records.length > 0) {
+    const dataFindings = [
+      ...dataBindingRule(parsedPages, options.dataSource.records),
+      ...dataIdenticalRule(parsedPages, options.dataSource.records),
+    ];
+    allFindings.push(...dataFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
   }
 
   for (const [groupName, groupPages] of classified) {
