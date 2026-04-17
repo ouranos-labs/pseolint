@@ -66,6 +66,8 @@ export interface CliFlags {
   render?: { browserWsEndpoint?: string };
   crawlDiscovery?: boolean;
   cache?: { dir?: string; ttlMs: number };
+  samplingStrategy?: "stratified" | "random";
+  maxPerTemplate?: number;
 }
 
 export function mergeOptions(
@@ -80,5 +82,7 @@ export function mergeOptions(
   if (cliFlags.render !== undefined) result.render = cliFlags.render;
   if (cliFlags.crawlDiscovery !== undefined) result.crawlDiscovery = cliFlags.crawlDiscovery;
   if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
+  if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
+  if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
   return result;
 }

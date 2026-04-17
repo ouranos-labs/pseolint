@@ -41,6 +41,8 @@ interface CliOptions {
   dataSource?: string;
   cache?: string | boolean;
   cacheTtl: string;
+  strategy: string;
+  maxPerTemplate: string;
 }
 
 export async function runCli(
@@ -75,6 +77,8 @@ export async function runCli(
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
     .option("--cache-ttl <duration>", "Cache TTL for entries without validators, e.g. 7d, 1h, 30m", "7d")
+    .option("--strategy <random|stratified>", "Sampling strategy when --sample-size is set", "stratified")
+    .option("--max-per-template <n>", "Cap samples per URL template cluster", "0")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -116,6 +120,8 @@ export async function runCli(
     ignore: opts.ignore ? opts.ignore.split(",").map((s: string) => s.trim()) : undefined,
     render: opts.render ? { browserWsEndpoint: opts.browserWs } : undefined,
     crawlDiscovery: opts.crawl === false ? false : undefined,
+    samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
+    maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,
   };
 
   if (opts.cache) {
