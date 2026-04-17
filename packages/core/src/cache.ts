@@ -102,3 +102,110 @@ export function isCacheEntryFresh(
 export function shouldNegativeCache(status: number): boolean {
   return status >= 400 && status < 500;
 }
+
+export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
+
+export interface CacheConfig {
+  dir: string;
+  ttlMs: number;
+}
+
+export interface CachedFetchOptions {
+  timeoutMs: number;
+  cache: CacheConfig | null;
+  fetcher?: Fetcher;
+  method?: "GET";
+}
+
+export interface CachedFetchResult {
+  url: string;
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+  fromCache: boolean;
+}
+
+function headersToObject(h: Headers): Record<string, string> {
+  const out: Record<string, string> = {};
+  h.forEach((v, k) => { out[k.toLowerCase()] = v; });
+  return out;
+}
+
+export async function cachedFetch(
+  url: string,
+  opts: CachedFetchOptions
+): Promise<CachedFetchResult> {
+  const fetcher: Fetcher = opts.fetcher ?? globalThis.fetch.bind(globalThis);
+  const cache = opts.cache;
+
+  // Cache disabled → direct fetch
+  if (!cache) {
+    const res = await fetcher(url, { signal: AbortSignal.timeout(opts.timeoutMs) });
+    return {
+      url,
+      status: res.status,
+      headers: headersToObject(res.headers),
+      body: await res.text(),
+      fromCache: false,
+    };
+  }
+
+  // Try cache
+  const existing = await readCacheEntry(cache.dir, url);
+
+  if (existing && !isRedirectPointer(existing)) {
+    const effectiveTtl = shouldNegativeCache(existing.status) ? NEGATIVE_CACHE_TTL_MS : cache.ttlMs;
+    const fresh = isCacheEntryFresh(existing.fetchedAt, effectiveTtl);
+    const hasValidator = Boolean(existing.headers.etag ?? existing.headers["last-modified"]);
+
+    if (fresh && !hasValidator) {
+      return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true };
+    }
+
+    if (hasValidator) {
+      const condHeaders: Record<string, string> = {};
+      if (existing.headers.etag) condHeaders["if-none-match"] = existing.headers.etag;
+      if (existing.headers["last-modified"]) condHeaders["if-modified-since"] = existing.headers["last-modified"];
+      const res = await fetcher(url, {
+        signal: AbortSignal.timeout(opts.timeoutMs),
+        headers: condHeaders,
+      });
+      if (res.status === 304) {
+        const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
+        await writeCacheEntry(cache.dir, url, updated);
+        return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true };
+      }
+      const body = await res.text();
+      const headers = headersToObject(res.headers);
+      if (res.status < 500) {
+        const entry: CacheEntry = {
+          schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+          url,
+          fetchedAt: new Date().toISOString(),
+          status: res.status,
+          headers,
+          body,
+        };
+        await writeCacheEntry(cache.dir, url, entry);
+      }
+      return { url, status: res.status, headers, body, fromCache: false };
+    }
+  }
+
+  // Cache miss or stale-without-validator → full fetch
+  const res = await fetcher(url, { signal: AbortSignal.timeout(opts.timeoutMs) });
+  const body = await res.text();
+  const headers = headersToObject(res.headers);
+  if (res.status < 500) {
+    const entry: CacheEntry = {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
+      url,
+      fetchedAt: new Date().toISOString(),
+      status: res.status,
+      headers,
+      body,
+    };
+    await writeCacheEntry(cache.dir, url, entry);
+  }
+  return { url, status: res.status, headers, body, fromCache: false };
+}

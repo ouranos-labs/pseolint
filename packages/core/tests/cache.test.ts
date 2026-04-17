@@ -11,6 +11,7 @@ import {
   isCacheEntryFresh,
   shouldNegativeCache,
   NEGATIVE_CACHE_TTL_MS,
+  cachedFetch,
 } from "../src/cache.js";
 
 describe("cacheKeyFor", () => {
@@ -138,5 +139,162 @@ describe("cache freshness and negative caching", () => {
 
   it("NEGATIVE_CACHE_TTL_MS is 24 hours", () => {
     expect(NEGATIVE_CACHE_TTL_MS).toBe(24 * 60 * 60 * 1000);
+  });
+});
+
+// Null-body statuses per Fetch spec (https://fetch.spec.whatwg.org/#null-body-status)
+const NULL_BODY_STATUSES = new Set([101, 204, 205, 304]);
+
+function mockFetcher(responses: Array<{ status: number; headers: Record<string, string>; body: string }>) {
+  let call = 0;
+  const calls: Array<{ url: string; init?: RequestInit }> = [];
+  const fn = async (url: string, init?: RequestInit): Promise<Response> => {
+    calls.push({ url, init });
+    const r = responses[call];
+    if (!r) throw new Error(`mockFetcher: no response for call ${call}`);
+    call += 1;
+    const body = NULL_BODY_STATUSES.has(r.status) ? null : r.body;
+    return new Response(body, { status: r.status, headers: r.headers });
+  };
+  return { fn, calls };
+}
+
+describe("cachedFetch", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "pseolint-cached-fetch-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("cache miss: fetches and stores entry", async () => {
+    const mock = mockFetcher([
+      { status: 200, headers: { etag: '"v1"', "content-type": "text/html" }, body: "<html>hi</html>" },
+    ]);
+    const result = await cachedFetch("https://example.com/a", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock.fn,
+    });
+    expect(result.status).toBe(200);
+    expect(result.body).toBe("<html>hi</html>");
+    expect(result.fromCache).toBe(false);
+    expect(mock.calls).toHaveLength(1);
+  });
+
+  it("cache hit (TTL fresh, no validators): returns cached without HTTP", async () => {
+    const mock1 = mockFetcher([
+      { status: 200, headers: { "content-type": "text/html" }, body: "cached body" },
+    ]);
+    await cachedFetch("https://example.com/b", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock1.fn,
+    });
+    const mock2 = mockFetcher([]);
+    const result = await cachedFetch("https://example.com/b", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock2.fn,
+    });
+    expect(result.body).toBe("cached body");
+    expect(result.fromCache).toBe(true);
+    expect(mock2.calls).toHaveLength(0);
+  });
+
+  it("cache hit with ETag: sends conditional request; 304 returns cached", async () => {
+    const mock1 = mockFetcher([
+      { status: 200, headers: { etag: '"v1"' }, body: "original" },
+    ]);
+    await cachedFetch("https://example.com/c", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 0 },
+      fetcher: mock1.fn,
+    });
+    const mock2 = mockFetcher([
+      { status: 304, headers: {}, body: "" },
+    ]);
+    const result = await cachedFetch("https://example.com/c", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 0 },
+      fetcher: mock2.fn,
+    });
+    expect(result.body).toBe("original");
+    expect(result.fromCache).toBe(true);
+    expect(mock2.calls[0].init?.headers).toEqual(
+      expect.objectContaining({ "if-none-match": '"v1"' })
+    );
+  });
+
+  it("conditional 200 overwrites cached body", async () => {
+    const mock1 = mockFetcher([
+      { status: 200, headers: { etag: '"v1"' }, body: "old" },
+    ]);
+    await cachedFetch("https://example.com/d", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 0 },
+      fetcher: mock1.fn,
+    });
+    const mock2 = mockFetcher([
+      { status: 200, headers: { etag: '"v2"' }, body: "new" },
+    ]);
+    const result = await cachedFetch("https://example.com/d", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 0 },
+      fetcher: mock2.fn,
+    });
+    expect(result.body).toBe("new");
+    expect(result.fromCache).toBe(false);
+  });
+
+  it("cache disabled (null): bypasses cache entirely", async () => {
+    const mock = mockFetcher([
+      { status: 200, headers: {}, body: "direct" },
+      { status: 200, headers: {}, body: "direct again" },
+    ]);
+    const r1 = await cachedFetch("https://example.com/e", { timeoutMs: 5000, cache: null, fetcher: mock.fn });
+    const r2 = await cachedFetch("https://example.com/e", { timeoutMs: 5000, cache: null, fetcher: mock.fn });
+    expect(r1.body).toBe("direct");
+    expect(r2.body).toBe("direct again");
+    expect(r1.fromCache).toBe(false);
+    expect(r2.fromCache).toBe(false);
+    expect(mock.calls).toHaveLength(2);
+  });
+
+  it("4xx stored with negative-cache TTL", async () => {
+    const mock1 = mockFetcher([{ status: 404, headers: {}, body: "not found" }]);
+    const r1 = await cachedFetch("https://example.com/missing", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock1.fn,
+    });
+    expect(r1.status).toBe(404);
+    const mock2 = mockFetcher([]);
+    const r2 = await cachedFetch("https://example.com/missing", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock2.fn,
+    });
+    expect(r2.status).toBe(404);
+    expect(r2.fromCache).toBe(true);
+    expect(mock2.calls).toHaveLength(0);
+  });
+
+  it("5xx NOT cached", async () => {
+    const mock1 = mockFetcher([{ status: 503, headers: {}, body: "down" }]);
+    await cachedFetch("https://example.com/sick", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock1.fn,
+    });
+    const mock2 = mockFetcher([{ status: 200, headers: {}, body: "ok now" }]);
+    const r2 = await cachedFetch("https://example.com/sick", {
+      timeoutMs: 5000,
+      cache: { dir, ttlMs: 60_000 },
+      fetcher: mock2.fn,
+    });
+    expect(r2.status).toBe(200);
+    expect(mock2.calls).toHaveLength(1);
   });
 });
