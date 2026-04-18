@@ -44,6 +44,7 @@ describe("auditRecordSchema", () => {
       templateDetected: true,
       cacheStats: { hits: 5, total: 10, bytesSavedEstimate: 2048 },
       triage: {
+        success: true,
         rootCauseCount: 2,
         providerId: "anthropic",
         modelId: "claude-opus-4-7",
@@ -77,6 +78,7 @@ describe("auditRecordSchema", () => {
     const bad = {
       ...minimal,
       triage: {
+        success: true,
         rootCauseCount: 1,
         providerId: "anthropic" as const,
         modelId: "m",

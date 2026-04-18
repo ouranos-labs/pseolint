@@ -24,6 +24,11 @@ export const cacheStatsSchema = z
 
 export const triageTelemetrySchema = z
   .object({
+    /** Whether triage actually produced a result. False when fail-open skipped. */
+    success: z.boolean(),
+    /** Populated only when success=false. Short reason (kind: message). */
+    skipReason: z.string().optional(),
+    /** 0 when success=false. */
     rootCauseCount: z.number().int().nonnegative(),
     providerId: z.string(),
     modelId: z.string(),

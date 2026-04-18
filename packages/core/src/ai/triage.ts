@@ -26,7 +26,7 @@ const rootCauseSchema = z.object({
 
 const triagePayloadSchema = z.object({
   rootCauses: z.array(rootCauseSchema).min(1).max(5).describe("1 to 5 root causes, ranked by SEO impact (highest first)."),
-  narrative: z.string().min(1).describe("2-3 sentence overall summary of the audit state."),
+  narrative: z.string().optional().describe("1-2 sentence overall summary. Optional — if output is tight, prioritize rootCauses and omit this."),
 });
 
 export interface TriageOptions {

@@ -17,7 +17,8 @@ export interface RootCause {
 
 export interface TriageResult {
   rootCauses: RootCause[];
-  narrative: string;
+  /** Optional — may be absent when the model ran tight on output tokens. */
+  narrative?: string;
   modelUsed: string;
   providerId: string;
   tokenUsage: TokenUsage;

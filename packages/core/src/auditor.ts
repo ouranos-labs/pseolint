@@ -1100,6 +1100,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     await writeState(statePath, newState);
   }
 
+  // Captured for telemetry even when triage is skipped, so users can diagnose
+  // model/provider reliability from their local stats.jsonl.
+  let triageAttempt: { providerId: string; modelId: string; skipReason: string } | undefined;
+
   if (options?.ai?.enabled) {
     try {
       const resolved = await createLanguageModel({
@@ -1126,15 +1130,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       });
       if (outcome.skipReason) {
         console.error(`[ai-triage] skipped: ${outcome.skipReason}`);
+        triageAttempt = { providerId: resolved.providerId, modelId: resolved.modelId, skipReason: outcome.skipReason };
       } else {
         summary.triage = outcome.result;
       }
     } catch (e) {
-      if (e instanceof Error) {
-        console.error(`[ai-triage] skipped: ${e.message}`);
-      } else {
-        console.error(`[ai-triage] skipped: unknown error`);
-      }
+      const reason = e instanceof Error ? e.message : "unknown error";
+      console.error(`[ai-triage] skipped: ${reason}`);
+      // No resolved model — providerId/modelId blank.
+      triageAttempt = { providerId: options.ai.provider ?? "", modelId: options.ai.model ?? "", skipReason: reason };
     }
   }
 
@@ -1155,6 +1159,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       ...(summary.cacheStats && { cacheStats: summary.cacheStats }),
       ...(summary.triage && {
         triage: {
+          success: true,
           rootCauseCount: summary.triage.rootCauses.length,
           providerId: summary.triage.providerId,
           modelId: summary.triage.modelUsed,
@@ -1164,6 +1169,18 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
             estimatedCostUsd: summary.triage.estimatedCostUsd,
           }),
           truncatedInput: summary.triage.truncatedInput,
+        },
+      }),
+      ...(!summary.triage && triageAttempt && {
+        triage: {
+          success: false,
+          skipReason: triageAttempt.skipReason,
+          rootCauseCount: 0,
+          providerId: triageAttempt.providerId,
+          modelId: triageAttempt.modelId,
+          cacheHit: false,
+          tokenUsage: { input: 0, output: 0 },
+          truncatedInput: false,
         },
       }),
     };

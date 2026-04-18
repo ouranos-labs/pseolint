@@ -357,8 +357,13 @@ function renderStats(stats: TelemetryStats): void {
   lines.push(`  ${pad("Average page count")}:  ${formatRound(stats.avgPages)}`);
   lines.push("");
   lines.push("AI triage");
-  lines.push(`  ${pad("Audits with triage")}:  ${stats.triageUsed}`);
+  lines.push(`  ${pad("Attempts")}:  ${stats.triageAttempts}`);
+  lines.push(`  ${pad("Successful")}:  ${stats.triageUsed}`);
+  lines.push(`  ${pad("Success rate")}:  ${formatPct(stats.triageUsed, stats.triageAttempts)}`);
   lines.push(`  ${pad("Cache hit rate")}:  ${formatPct(stats.triageCacheHits, stats.triageUsed)}`);
+  for (const [reason, count] of Object.entries(stats.triageSkipReasons)) {
+    lines.push(`  ${pad(`  skip: ${reason}`)}:  ${count}`);
+  }
   lines.push(
     `  ${pad("Tokens (in/out)")}:  ${formatNum(stats.totalTokenInput)} / ${formatNum(stats.totalTokenOutput)}`,
   );

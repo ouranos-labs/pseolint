@@ -41,7 +41,9 @@ describe("aggregateTelemetry", () => {
       avgScore: null,
       avgFindings: null,
       avgPages: null,
+      triageAttempts: 0,
       triageUsed: 0,
+      triageSkipReasons: {},
       triageCacheHits: 0,
       totalTokenInput: 0,
       totalTokenOutput: 0,
@@ -104,6 +106,7 @@ describe("aggregateTelemetry", () => {
       makeAudit(),
       makeAudit({
         triage: {
+          success: true,
           rootCauseCount: 3,
           providerId: "anthropic",
           modelId: "claude-opus-4-7",
@@ -127,6 +130,7 @@ describe("aggregateTelemetry", () => {
     const records: TelemetryRecord[] = [
       makeAudit({
         triage: {
+          success: true,
           rootCauseCount: 2,
           providerId: "anthropic",
           modelId: "m",
@@ -138,6 +142,7 @@ describe("aggregateTelemetry", () => {
       }),
       makeAudit({
         triage: {
+          success: true,
           rootCauseCount: 1,
           providerId: "ollama",
           modelId: "m",
@@ -148,6 +153,7 @@ describe("aggregateTelemetry", () => {
       }),
       makeAudit({
         triage: {
+          success: true,
           rootCauseCount: 4,
           providerId: "anthropic",
           modelId: "m",
@@ -185,5 +191,52 @@ describe("aggregateTelemetry", () => {
     expect(s.avgScore).toBe(42);
     expect(s.triageUsed).toBe(0);
     expect(s.totalEstimatedCostUsd).toBe(0);
+  });
+
+  it("separates triage attempts from successful triages and groups skip reasons", () => {
+    const records: TelemetryRecord[] = [
+      makeAudit({
+        triage: {
+          success: false,
+          skipReason: "auth: no ANTHROPIC_API_KEY",
+          rootCauseCount: 0,
+          providerId: "anthropic",
+          modelId: "claude-sonnet-4-6",
+          cacheHit: false,
+          tokenUsage: { input: 0, output: 0 },
+          truncatedInput: false,
+        },
+      }),
+      makeAudit({
+        triage: {
+          success: false,
+          skipReason: "LLM call failed: schema mismatch",
+          rootCauseCount: 0,
+          providerId: "anthropic",
+          modelId: "claude-haiku-4-5-20251001",
+          cacheHit: false,
+          tokenUsage: { input: 0, output: 0 },
+          truncatedInput: false,
+        },
+      }),
+      makeAudit({
+        triage: {
+          success: true,
+          rootCauseCount: 3,
+          providerId: "anthropic",
+          modelId: "claude-sonnet-4-6",
+          cacheHit: false,
+          tokenUsage: { input: 100, output: 50 },
+          truncatedInput: false,
+        },
+      }),
+    ];
+    const s = aggregateTelemetry(records);
+    expect(s.triageAttempts).toBe(3);
+    expect(s.triageUsed).toBe(1);
+    expect(s.triageSkipReasons).toEqual({ auth: 1, "LLM call failed": 1 });
+    // Token counters only reflect successful triages
+    expect(s.totalTokenInput).toBe(100);
+    expect(s.totalTokenOutput).toBe(50);
   });
 });

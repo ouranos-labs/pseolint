@@ -169,6 +169,16 @@ pseolint ./out --ai --ai-provider ollama --ai-model llama3.1:8b
 
 After the linter runs, the AI step takes the enriched findings (capped at 200 by severity) and asks the model to identify 1–5 underlying root causes ranked by SEO impact. The findings list is unchanged — triage is an *additional* section above it.
 
+### Model reliability
+
+Triage uses structured-output generation (JSON matching a strict schema). Not every model handles this reliably at real-world audit sizes.
+
+**Recommended (validated):** `claude-sonnet-4-6`, `claude-opus-4-7`, `gpt-4o`, `gemini-2.5-pro`.
+**Works but marginal:** `gpt-4o-mini`, `gemini-2.5-flash` — cheaper, sometimes truncate.
+**Avoid for triage:** `claude-haiku-4-5-20251001` and similar small models — fails schema validation in our smoke tests (~30 findings). If you want cheap, prefer `gpt-4o-mini` or `gemini-2.5-flash`.
+
+If your chosen model fails, you'll see `[ai-triage] skipped: ...` on stderr and the audit completes normally. Check `pseolint stats` for skip-reason counters.
+
 ### Cost and budget
 
 - Triage runs as **one** model call per audit. Default cap: 60k input tokens.

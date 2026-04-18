@@ -11,7 +11,12 @@ export interface TelemetryStats {
   avgScore: number | null;
   avgFindings: number | null;
   avgPages: number | null;
+  /** Audits where ai.enabled was true (success + failure). */
+  triageAttempts: number;
+  /** Audits where triage returned a result (excludes skipped/failed). */
   triageUsed: number;
+  /** Breakdown of skip reasons from failed attempts. */
+  triageSkipReasons: Record<string, number>;
   triageCacheHits: number;
   totalTokenInput: number;
   totalTokenOutput: number;
@@ -38,7 +43,16 @@ export function aggregateTelemetry(
   const n = audits.length;
   const sum = (k: (a: AuditRecord) => number): number =>
     audits.reduce((s, a) => s + k(a), 0);
-  const triageAudits = audits.filter((a) => a.triage);
+  const triageAttempts = audits.filter((a) => a.triage);
+  const triageSuccesses = triageAttempts.filter((a) => a.triage!.success);
+  const triageSkipReasons: Record<string, number> = {};
+  for (const a of triageAttempts) {
+    if (!a.triage!.success && a.triage!.skipReason) {
+      // Canonicalize by the first ":"-separated kind for cleaner grouping.
+      const key = a.triage!.skipReason.split(":")[0].trim() || "unknown";
+      triageSkipReasons[key] = (triageSkipReasons[key] ?? 0) + 1;
+    }
+  }
 
   return {
     totalAudits: n,
@@ -47,17 +61,19 @@ export function aggregateTelemetry(
     avgScore: n ? sum((a) => a.score) / n : null,
     avgFindings: n ? sum((a) => a.findingCount) / n : null,
     avgPages: n ? sum((a) => a.pageCount) / n : null,
-    triageUsed: triageAudits.length,
-    triageCacheHits: triageAudits.filter((a) => a.triage!.cacheHit).length,
-    totalTokenInput: triageAudits.reduce(
+    triageAttempts: triageAttempts.length,
+    triageUsed: triageSuccesses.length,
+    triageSkipReasons,
+    triageCacheHits: triageSuccesses.filter((a) => a.triage!.cacheHit).length,
+    totalTokenInput: triageSuccesses.reduce(
       (s, a) => s + a.triage!.tokenUsage.input,
       0
     ),
-    totalTokenOutput: triageAudits.reduce(
+    totalTokenOutput: triageSuccesses.reduce(
       (s, a) => s + a.triage!.tokenUsage.output,
       0
     ),
-    totalEstimatedCostUsd: triageAudits.reduce(
+    totalEstimatedCostUsd: triageSuccesses.reduce(
       (s, a) => s + (a.triage!.estimatedCostUsd ?? 0),
       0
     ),
