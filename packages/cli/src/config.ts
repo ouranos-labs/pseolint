@@ -1,6 +1,17 @@
 import { cosmiconfig } from "cosmiconfig";
 import { z } from "zod";
-import type { AuditOptions } from "@pseolint/core";
+import type { AuditOptions as CoreAuditOptions } from "@pseolint/core";
+
+// TODO: remove once core AuditOptions.telemetry lands
+type AuditOptions = CoreAuditOptions & {
+  telemetry?: {
+    enabled?: boolean;
+    path?: string;
+    prompt?: boolean;
+    feedback?: "helpful" | "unhelpful";
+  };
+};
+export type { AuditOptions };
 
 const rulesSchema = z
   .object({
@@ -72,6 +83,12 @@ const auditOptionsSchema = z.object({
       z.literal(false),
     ]).optional(),
   }).optional(),
+  telemetry: z.object({
+    enabled: z.boolean().optional(),
+    path: z.string().optional(),
+    prompt: z.boolean().optional(),
+    feedback: z.enum(["helpful", "unhelpful"]).optional(),
+  }).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -105,6 +122,12 @@ export interface CliFlags {
     maxInputTokens?: number;
     suggest?: boolean;
     cache?: { ttlMs?: number } | false;
+  };
+  telemetry?: {
+    enabled?: boolean;
+    path?: string;
+    prompt?: boolean;
+    feedback?: "helpful" | "unhelpful";
   };
 }
 
@@ -143,6 +166,14 @@ export function mergeOptions(
       }
     }
     result.ai = merged;
+  }
+  if (cliFlags.telemetry !== undefined) {
+    const merged: NonNullable<AuditOptions["telemetry"]> = { ...result.telemetry };
+    if (cliFlags.telemetry.enabled !== undefined) merged.enabled = cliFlags.telemetry.enabled;
+    if (cliFlags.telemetry.path !== undefined) merged.path = cliFlags.telemetry.path;
+    if (cliFlags.telemetry.prompt !== undefined) merged.prompt = cliFlags.telemetry.prompt;
+    if (cliFlags.telemetry.feedback !== undefined) merged.feedback = cliFlags.telemetry.feedback;
+    result.telemetry = merged;
   }
   return result;
 }
