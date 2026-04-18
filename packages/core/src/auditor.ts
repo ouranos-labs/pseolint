@@ -41,7 +41,7 @@ import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
 import { triageFindings } from "./ai/triage.js";
-import { createAdapter } from "./ai/adapters/index.js";
+import { createLanguageModel } from "./ai/adapters/index.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
 import { stratifiedSample } from "./stratified-sample.js";
@@ -1093,7 +1093,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   if (options?.ai?.enabled) {
     try {
-      const adapter = await createAdapter({
+      const resolved = await createLanguageModel({
         provider: options.ai.provider,
         model: options.ai.model,
         endpoint: options.ai.endpoint,
@@ -1108,7 +1108,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
             };
       const outcome = await triageFindings(summary.findings, summary.pageCount, {
         enabled: true,
-        adapter,
+        model: resolved.model,
+        providerId: resolved.providerId,
+        modelId: resolved.modelId,
         maxInputTokens: options.ai.maxInputTokens,
         maxOutputTokens: options.ai.maxOutputTokens,
         cache: cacheConfig,

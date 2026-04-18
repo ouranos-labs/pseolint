@@ -3,7 +3,7 @@ import { mkdtemp, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { auditSource } from "../../src/auditor.js";
-import { createStubAdapter } from "../helpers/stub-adapter.js";
+import { MockModel, okResponse } from "../helpers/mock-model.js";
 
 describe("auditSource + AI triage (integration)", () => {
   let dir: string;
@@ -14,6 +14,7 @@ describe("auditSource + AI triage (integration)", () => {
 
   afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
+    vi.restoreAllMocks();
   });
 
   async function setupSite(): Promise<string> {
@@ -27,16 +28,21 @@ describe("auditSource + AI triage (integration)", () => {
     return siteDir;
   }
 
-  it("attaches summary.triage when ai.enabled with stub adapter", async () => {
+  it("attaches summary.triage when ai.enabled with mock model", async () => {
     const siteDir = await setupSite();
-    const stub = createStubAdapter({
-      text: JSON.stringify({
-        rootCauses: [],
-        narrative: "Nothing critical to fix.",
-      }),
+    let calls = 0;
+    const mockModel = new MockModel({
+      doGenerate: async () => {
+        calls += 1;
+        return okResponse({ rootCauses: [], narrative: "Nothing critical to fix." });
+      },
     });
     const adaptersModule = await import("../../src/ai/adapters/index.js");
-    vi.spyOn(adaptersModule, "createAdapter").mockResolvedValue(stub);
+    vi.spyOn(adaptersModule, "createLanguageModel").mockResolvedValue({
+      model: mockModel,
+      providerId: "anthropic",
+      modelId: "claude-sonnet-4-6",
+    });
 
     const result = await auditSource(siteDir, {
       ai: { enabled: true, provider: "anthropic", model: "claude-sonnet-4-6", cache: false },
@@ -44,16 +50,20 @@ describe("auditSource + AI triage (integration)", () => {
 
     expect(result.triage).toBeDefined();
     expect(result.triage!.narrative).toBe("Nothing critical to fix.");
-    expect(stub.calls).toHaveLength(1);
-
-    vi.restoreAllMocks();
+    expect(calls).toBe(1);
   });
 
-  it("audit completes without triage when adapter throws", async () => {
+  it("audit completes without triage when model throws", async () => {
     const siteDir = await setupSite();
-    const stub = createStubAdapter({ throwKind: "auth" });
+    const mockModel = new MockModel({
+      doGenerate: async () => { throw new Error("auth failed"); },
+    });
     const adaptersModule = await import("../../src/ai/adapters/index.js");
-    vi.spyOn(adaptersModule, "createAdapter").mockResolvedValue(stub);
+    vi.spyOn(adaptersModule, "createLanguageModel").mockResolvedValue({
+      model: mockModel,
+      providerId: "anthropic",
+      modelId: "m",
+    });
 
     const result = await auditSource(siteDir, {
       ai: { enabled: true, provider: "anthropic", model: "m", cache: false },
@@ -61,19 +71,15 @@ describe("auditSource + AI triage (integration)", () => {
 
     expect(result.triage).toBeUndefined();
     expect(result.findings).toBeDefined();
-
-    vi.restoreAllMocks();
   });
 
-  it("ai disabled => no triage field, no adapter call", async () => {
+  it("ai disabled => no triage field, no model call", async () => {
     const siteDir = await setupSite();
     const adaptersModule = await import("../../src/ai/adapters/index.js");
-    const spy = vi.spyOn(adaptersModule, "createAdapter");
+    const spy = vi.spyOn(adaptersModule, "createLanguageModel");
 
     const result = await auditSource(siteDir);
     expect(result.triage).toBeUndefined();
     expect(spy).not.toHaveBeenCalled();
-
-    vi.restoreAllMocks();
   });
 });

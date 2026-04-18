@@ -56,18 +56,13 @@ export type {
   AiOptions,
 } from "./types.js";
 export type {
-  LlmAdapter,
-  LlmRequest,
-  LlmResponse,
   TokenUsage,
-  ProviderId,
   RootCause,
   TriageResult,
-  AdapterErrorKind,
 } from "./ai/types.js";
-export { AdapterError } from "./ai/types.js";
 export { triageFindings } from "./ai/triage.js";
 export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
-export { createAdapter, detectProvider } from "./ai/adapters/index.js";
+export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
+export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";

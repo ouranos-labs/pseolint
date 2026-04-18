@@ -3,7 +3,6 @@ import {
   PROMPT_VERSION,
   assignFindingId,
   buildPromptRequest,
-  parseAndValidateTriageJson,
   MAX_FINDINGS_IN_PROMPT,
 } from "../../src/ai/prompt.js";
 import type { RuleResult } from "../../src/types.js";
@@ -88,82 +87,5 @@ describe("buildPromptRequest", () => {
     ];
     const req = buildPromptRequest(findings, 50);
     expect(req.user).toContain('"truncated":false');
-  });
-});
-
-describe("parseAndValidateTriageJson", () => {
-  const validIds = new Set(["x/y:abc12345", "x/z:def67890"]);
-
-  it("parses a valid response", () => {
-    const json = JSON.stringify({
-      rootCauses: [
-        {
-          label: "Templating problem",
-          findingsCount: 2,
-          affectedRuleIds: ["x/y"],
-          severity: "warning",
-          fixOrder: 1,
-          rationale: "Fix template",
-          relatedFindingIds: ["x/y:abc12345"],
-        },
-      ],
-      narrative: "Summary text.",
-    });
-    const r = parseAndValidateTriageJson(json, validIds);
-    expect(r.rootCauses).toHaveLength(1);
-    expect(r.rootCauses[0].label).toBe("Templating problem");
-    expect(r.narrative).toBe("Summary text.");
-  });
-
-  it("strips markdown code fences if present", () => {
-    const json = "```json\n" + JSON.stringify({
-      rootCauses: [{
-        label: "X", findingsCount: 1, affectedRuleIds: ["x/y"], severity: "info",
-        fixOrder: 1, rationale: "r", relatedFindingIds: [],
-      }],
-      narrative: "n",
-    }) + "\n```";
-    const r = parseAndValidateTriageJson(json, validIds);
-    expect(r.rootCauses).toHaveLength(1);
-  });
-
-  it("rejects invalid JSON", () => {
-    expect(() => parseAndValidateTriageJson("not json", validIds)).toThrow(/parse/i);
-  });
-
-  it("rejects missing rootCauses array", () => {
-    expect(() => parseAndValidateTriageJson(JSON.stringify({ narrative: "n" }), validIds)).toThrow(/rootCauses/);
-  });
-
-  it("rejects label longer than 80 chars", () => {
-    const json = JSON.stringify({
-      rootCauses: [{ label: "x".repeat(81), findingsCount: 1, affectedRuleIds: ["x/y"], severity: "info", fixOrder: 1, rationale: "r", relatedFindingIds: [] }],
-      narrative: "n",
-    });
-    expect(() => parseAndValidateTriageJson(json, validIds)).toThrow(/label/);
-  });
-
-  it("rejects fixOrder < 1", () => {
-    const json = JSON.stringify({
-      rootCauses: [{ label: "x", findingsCount: 1, affectedRuleIds: ["x/y"], severity: "info", fixOrder: 0, rationale: "r", relatedFindingIds: [] }],
-      narrative: "n",
-    });
-    expect(() => parseAndValidateTriageJson(json, validIds)).toThrow(/fixOrder/);
-  });
-
-  it("rejects unknown severity", () => {
-    const json = JSON.stringify({
-      rootCauses: [{ label: "x", findingsCount: 1, affectedRuleIds: ["x/y"], severity: "extreme", fixOrder: 1, rationale: "r", relatedFindingIds: [] }],
-      narrative: "n",
-    });
-    expect(() => parseAndValidateTriageJson(json, validIds)).toThrow(/severity/);
-  });
-
-  it("rejects relatedFindingIds not in valid set", () => {
-    const json = JSON.stringify({
-      rootCauses: [{ label: "x", findingsCount: 1, affectedRuleIds: ["x/y"], severity: "info", fixOrder: 1, rationale: "r", relatedFindingIds: ["fake/id:00000000"] }],
-      narrative: "n",
-    });
-    expect(() => parseAndValidateTriageJson(json, validIds)).toThrow(/unknown finding id/);
   });
 });
