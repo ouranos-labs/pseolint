@@ -124,7 +124,25 @@ export function mergeOptions(
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
   if (cliFlags.ai !== undefined) {
-    result.ai = { ...result.ai, ...cliFlags.ai };
+    const merged: NonNullable<AuditOptions["ai"]> = { ...result.ai };
+    if (cliFlags.ai.enabled !== undefined) merged.enabled = cliFlags.ai.enabled;
+    if (cliFlags.ai.provider !== undefined) merged.provider = cliFlags.ai.provider;
+    if (cliFlags.ai.model !== undefined) merged.model = cliFlags.ai.model;
+    if (cliFlags.ai.endpoint !== undefined) merged.endpoint = cliFlags.ai.endpoint;
+    if (cliFlags.ai.maxInputTokens !== undefined) merged.maxInputTokens = cliFlags.ai.maxInputTokens;
+    if (cliFlags.ai.suggest !== undefined) merged.suggest = cliFlags.ai.suggest;
+    if (cliFlags.ai.cache !== undefined) {
+      if (cliFlags.ai.cache === false) {
+        merged.cache = false;
+      } else {
+        const prior = typeof result.ai?.cache === "object" ? result.ai.cache : undefined;
+        merged.cache = {
+          ...(prior ?? {}),
+          ...(cliFlags.ai.cache.ttlMs !== undefined && { ttlMs: cliFlags.ai.cache.ttlMs }),
+        };
+      }
+    }
+    result.ai = merged;
   }
   return result;
 }
