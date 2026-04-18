@@ -1,0 +1,72 @@
+import { promises as dns } from "node:dns";
+import net from "node:net";
+
+const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+const PRIVATE_V4 = [
+  ["0.0.0.0", "0.255.255.255"],
+  ["10.0.0.0", "10.255.255.255"],
+  ["100.64.0.0", "100.127.255.255"],
+  ["127.0.0.0", "127.255.255.255"],
+  ["169.254.0.0", "169.254.255.255"],
+  ["172.16.0.0", "172.31.255.255"],
+  ["192.0.0.0", "192.0.0.255"],
+  ["192.168.0.0", "192.168.255.255"],
+  ["198.18.0.0", "198.19.255.255"],
+  ["224.0.0.0", "239.255.255.255"],
+  ["240.0.0.0", "255.255.255.255"],
+] as const;
+
+function ipv4ToInt(ip: string): number {
+  const p = ip.split(".").map((s) => parseInt(s, 10));
+  return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
+}
+
+function isPrivateV4(ip: string): boolean {
+  const n = ipv4ToInt(ip);
+  return PRIVATE_V4.some(([s, e]) => n >= ipv4ToInt(s) && n <= ipv4ToInt(e));
+}
+
+function isPrivateV6(ip: string): boolean {
+  const lower = ip.toLowerCase();
+  if (lower === "::1" || lower === "::") return true;
+  if (lower.startsWith("fe80:")) return true;
+  if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
+  if (lower.startsWith("::ffff:")) {
+    const v4 = lower.slice("::ffff:".length);
+    if (net.isIPv4(v4)) return isPrivateV4(v4);
+  }
+  return false;
+}
+
+export async function isSafePublicUrl(raw: string): Promise<boolean> {
+  let u: URL;
+  try { u = new URL(raw); } catch { return false; }
+  if (!ALLOWED_SCHEMES.has(u.protocol)) return false;
+  const host = u.hostname;
+  if (net.isIP(host)) {
+    if (net.isIPv4(host) && isPrivateV4(host)) return false;
+    if (net.isIPv6(host) && isPrivateV6(host)) return false;
+    return true;
+  }
+  try {
+    const [v4, v6] = await Promise.allSettled([dns.resolve4(host), dns.resolve6(host)]);
+    const ips: string[] = [
+      ...(v4.status === "fulfilled" ? v4.value : []),
+      ...(v6.status === "fulfilled" ? v6.value : []),
+    ];
+    if (ips.length === 0) return false;
+    for (const ip of ips) {
+      if (net.isIPv4(ip) && isPrivateV4(ip)) return false;
+      if (net.isIPv6(ip) && isPrivateV6(ip)) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function assertSafeUrl(raw: string): Promise<void> {
+  if (!(await isSafePublicUrl(raw))) {
+    throw new Error("URL appears to be internal, unreachable, or uses a disallowed scheme.");
+  }
+}
