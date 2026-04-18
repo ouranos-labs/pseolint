@@ -36,10 +36,14 @@
     "cheerio": "^1.2.0"
   },
   "peerDependencies": {
-    "playwright-core": ">=1.40.0"
+    "playwright-core": ">=1.40.0",
+    "@anthropic-ai/sdk": "^0.30.0"
   },
   "peerDependenciesMeta": {
     "playwright-core": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
       "optional": true
     }
   }
