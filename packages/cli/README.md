@@ -159,7 +159,9 @@ pseolint ./out --ai --ai-provider ollama --ai-model llama3.1:8b
 --ai-provider <id>            Provider (see table above)
 --ai-model <name>             Override default model for the chosen provider
 --ai-endpoint <url>           Ollama endpoint (default http://localhost:11434)
---ai-max-tokens <n>           Input cap (default 60000)
+--ai-max-tokens <n>           Input token cap (default 60000)
+--ai-max-cost <usd>           Refuse a call whose pre-flight cost exceeds this USD
+--ai-daily-budget <usd>       Refuse triage when today's total spend would exceed this USD
 --ai-cache-ttl <duration>     Triage cache TTL (default 30d)
 --no-ai-cache                 Bypass cache
 --no-ai-suggest               Suppress discovery hint
@@ -181,10 +183,14 @@ If your chosen model fails, you'll see `[ai-triage] skipped: ...` on stderr and 
 
 ### Cost and budget
 
-- Triage runs as **one** model call per audit. Default cap: 60k input tokens.
-- Estimated cost is printed before/after the call (best-effort lookup; pricing may be stale).
+- Triage runs as **one** model call per audit. Default input cap: 60k tokens.
+- A pre-flight line is printed before every call: `[ai-triage] calling anthropic:claude-sonnet-4-6 — ~12,000 input / ≤4,000 output tokens, ~$0.12`. You can Ctrl-C before the call lands.
+- **Per-call cap:** `--ai-max-cost 0.50` refuses the call if the pre-flight estimate exceeds $0.50. Recommended for any CI use.
+- **Daily budget:** `--ai-max-cost 0.50 --ai-daily-budget 5.00 --telemetry` reads today's successful-triage spend from your local telemetry JSONL and refuses the call when the running total would breach the budget.
 - Results are cached at `.pseolint/ai-cache/` for 30 days. Re-running on unchanged audit data is free.
 - Cache key includes the prompt version — bumping it auto-invalidates the cache.
+- **Do not put `apiKey` in a committed config file.** Use the provider's env var (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc.). A warning is printed if `ai.apiKey` is set.
+- The cost estimate is best-effort based on a hardcoded pricing table for the most common models. Your provider's billing dashboard is authoritative.
 
 ### Privacy
 

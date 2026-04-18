@@ -113,6 +113,10 @@ export interface AiOptions {
   apiKey?: string;
   maxInputTokens?: number;
   maxOutputTokens?: number;
+  /** Max estimated USD cost per triage call. Call is refused pre-flight if exceeded. When undefined, no cap. */
+  maxCostUsd?: number;
+  /** Max estimated USD spent on successful triages per UTC day (read from telemetry). Requires telemetry.enabled. */
+  dailyBudgetUsd?: number;
   /** Print one-line discovery hint when an AI key is detected but --ai is not set. Default: true. */
   suggest?: boolean;
   cache?: { ttlMs?: number; dir?: string } | false;

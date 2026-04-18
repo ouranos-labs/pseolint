@@ -36,6 +36,12 @@ export interface TriageOptions {
   modelId: string;
   maxInputTokens?: number;
   maxOutputTokens?: number;
+  /** Hard cap on estimated USD for this call. Refuse pre-flight if exceeded. */
+  maxCostUsd?: number;
+  /** USD already spent on successful triages today (used against dailyBudgetUsd). */
+  spentTodayUsd?: number;
+  /** Daily budget ceiling. Refuse pre-flight if spentTodayUsd + this call's estimate > budget. */
+  dailyBudgetUsd?: number;
   cache?: { dir: string; ttlMs: number } | false;
   signal?: AbortSignal;
 }
@@ -76,6 +82,31 @@ export async function triageFindings(
     return { skipReason: `pre-flight token estimate ${estimate} exceeds cap ${maxInputTokens}` };
   }
 
+  // Pre-flight cost gate: pessimistic upper bound using (estimated input + max output).
+  const maxOutputTokens = options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS;
+  const preflightCostUsd = estimateCostUsd(options.providerId, options.modelId, {
+    input: estimate,
+    output: maxOutputTokens,
+  });
+  if (
+    options.maxCostUsd !== undefined &&
+    preflightCostUsd !== undefined &&
+    preflightCostUsd > options.maxCostUsd
+  ) {
+    return {
+      skipReason: `pre-flight cost $${preflightCostUsd.toFixed(3)} exceeds cap $${options.maxCostUsd.toFixed(3)}`,
+    };
+  }
+  if (
+    options.dailyBudgetUsd !== undefined &&
+    preflightCostUsd !== undefined &&
+    (options.spentTodayUsd ?? 0) + preflightCostUsd > options.dailyBudgetUsd
+  ) {
+    return {
+      skipReason: `daily budget exhausted: $${(options.spentTodayUsd ?? 0).toFixed(3)} + $${preflightCostUsd.toFixed(3)} > $${options.dailyBudgetUsd.toFixed(3)}`,
+    };
+  }
+
   const validIds = new Set<string>();
   for (const f of findings) validIds.add(assignFindingId(f));
 
@@ -96,6 +127,12 @@ export async function triageFindings(
     }
   }
 
+  // One-line pre-call estimate so users see what's about to be spent.
+  const costLabel = preflightCostUsd !== undefined ? `~$${preflightCostUsd.toFixed(3)}` : "cost unknown";
+  console.error(
+    `[ai-triage] calling ${options.providerId}:${options.modelId} — ~${estimate.toLocaleString()} input / ≤${maxOutputTokens.toLocaleString()} output tokens, ${costLabel}`,
+  );
+
   let generated;
   try {
     generated = await generateObject({
@@ -103,7 +140,7 @@ export async function triageFindings(
       system: req.system,
       prompt: req.user,
       schema: triagePayloadSchema,
-      maxOutputTokens: options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
+      maxOutputTokens,
       abortSignal: options.signal,
     });
   } catch (e) {

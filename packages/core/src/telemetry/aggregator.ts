@@ -3,6 +3,7 @@ import type {
   FeedbackRecord,
   TelemetryRecord,
 } from "./types.js";
+import { readTelemetryJsonl } from "./reader.js";
 
 export interface TelemetryStats {
   totalAudits: number;
@@ -91,4 +92,26 @@ export function aggregateTelemetry(
       null
     ),
   };
+}
+
+/**
+ * Sum estimated USD cost for successful triages that fell on the given UTC date
+ * (defaults to today). Used to enforce a daily budget before a new triage call.
+ * Returns 0 when the telemetry file is missing or empty.
+ */
+export async function todayTriageSpendUsd(
+  telemetryPath: string,
+  now: Date = new Date(),
+): Promise<number> {
+  const records = await readTelemetryJsonl(telemetryPath);
+  const utcDay = now.toISOString().slice(0, 10); // YYYY-MM-DD
+  let total = 0;
+  for (const r of records) {
+    if (r.type !== "audit") continue;
+    if (!r.triage?.success) continue;
+    if (r.triage.estimatedCostUsd === undefined) continue;
+    if (!r.timestamp.startsWith(utcDay)) continue;
+    total += r.triage.estimatedCostUsd;
+  }
+  return total;
 }

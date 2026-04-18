@@ -183,4 +183,51 @@ describe("triageFindings", () => {
     const { result } = await triageFindings(fs, 100, baseOptions({ model }));
     expect(result?.truncatedInput).toBe(true);
   });
+
+  it("skips when pre-flight cost exceeds maxCostUsd", async () => {
+    let called = false;
+    const model = new MockModel({
+      doGenerate: async () => { called = true; return okResponse(validBody([])); },
+    });
+    const { result, skipReason } = await triageFindings(findings(3), 10, baseOptions({
+      model,
+      // Tight cap: $0.000001 is well below any realistic Sonnet call
+      maxCostUsd: 0.000001,
+    }));
+    expect(result).toBeUndefined();
+    expect(skipReason).toMatch(/pre-flight cost.*exceeds cap/);
+    expect(called).toBe(false);
+  });
+
+  it("skips when dailyBudgetUsd would be exceeded by spentTodayUsd + preflight", async () => {
+    let called = false;
+    const model = new MockModel({
+      doGenerate: async () => { called = true; return okResponse(validBody([])); },
+    });
+    const { result, skipReason } = await triageFindings(findings(3), 10, baseOptions({
+      model,
+      dailyBudgetUsd: 0.01,
+      spentTodayUsd: 0.01, // already at cap, any more blows the budget
+    }));
+    expect(result).toBeUndefined();
+    expect(skipReason).toMatch(/daily budget exhausted/);
+    expect(called).toBe(false);
+  });
+
+  it("proceeds when cost cap is generous", async () => {
+    const fs = findings(2);
+    const { assignFindingId } = await import("../../src/ai/prompt.js");
+    const ids = fs.map(assignFindingId);
+    const model = new MockModel({
+      doGenerate: async () => okResponse(validBody(ids)),
+    });
+    const { result, skipReason } = await triageFindings(fs, 10, baseOptions({
+      model,
+      maxCostUsd: 100,
+      dailyBudgetUsd: 100,
+      spentTodayUsd: 0,
+    }));
+    expect(skipReason).toBeUndefined();
+    expect(result).toBeDefined();
+  });
 });

@@ -46,6 +46,7 @@ import { promptTriageFeedback } from "./ai/feedback-prompt.js";
 import {
   generateRunId,
   appendTelemetryRecord,
+  todayTriageSpendUsd,
   type AuditRecord,
   type FeedbackRecord,
 } from "./telemetry/index.js";
@@ -1105,6 +1106,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   let triageAttempt: { providerId: string; modelId: string; skipReason: string } | undefined;
 
   if (options?.ai?.enabled) {
+    if (options.ai.apiKey) {
+      console.error(
+        "[ai-triage] warning: ai.apiKey is set in options. Prefer env vars (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) — never commit an apiKey to a config file.",
+      );
+    }
     try {
       const resolved = await createLanguageModel({
         provider: options.ai.provider,
@@ -1119,6 +1125,18 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
               dir: options.ai.cache?.dir ?? ".pseolint/ai-cache",
               ttlMs: options.ai.cache?.ttlMs ?? 30 * 24 * 60 * 60 * 1000,
             };
+
+      // Daily-budget pre-flight read (best-effort — missing file is fine).
+      let spentTodayUsd: number | undefined;
+      if (options.ai.dailyBudgetUsd !== undefined) {
+        const telemetryPath = options.telemetry?.path ?? ".pseolint/telemetry.jsonl";
+        try {
+          spentTodayUsd = await todayTriageSpendUsd(telemetryPath);
+        } catch {
+          spentTodayUsd = 0;
+        }
+      }
+
       const outcome = await triageFindings(summary.findings, summary.pageCount, {
         enabled: true,
         model: resolved.model,
@@ -1126,6 +1144,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         modelId: resolved.modelId,
         maxInputTokens: options.ai.maxInputTokens,
         maxOutputTokens: options.ai.maxOutputTokens,
+        maxCostUsd: options.ai.maxCostUsd,
+        dailyBudgetUsd: options.ai.dailyBudgetUsd,
+        spentTodayUsd,
         cache: cacheConfig,
       });
       if (outcome.skipReason) {

@@ -106,6 +106,8 @@ export async function runCli(
     .option("--ai-model <name>", "AI model name (overrides provider default)")
     .option("--ai-endpoint <url>", "AI endpoint (Ollama only; default: http://localhost:11434)")
     .option("--ai-max-tokens <n>", "Input token cap per triage call", (v) => parseInt(v, 10), 60000)
+    .option("--ai-max-cost <usd>", "Refuse a triage call whose pre-flight cost estimate exceeds this many USD", (v) => parseFloat(v))
+    .option("--ai-daily-budget <usd>", "Refuse triage when today's total estimated spend would exceed this USD (requires --telemetry)", (v) => parseFloat(v))
     .option("--ai-cache-ttl <duration>", "Triage cache TTL (e.g. 30d, 12h, 60s)", "30d")
     .option("--no-ai-cache", "Bypass AI triage cache for this run")
     .option("--no-ai-suggest", "Suppress AI discovery hint")
@@ -239,6 +241,8 @@ async function runAudit(
       model: opts.aiModel,
       endpoint: opts.aiEndpoint,
       maxInputTokens: opts.aiMaxTokens,
+      maxCostUsd: Number.isFinite(opts.aiMaxCost) ? opts.aiMaxCost : undefined,
+      dailyBudgetUsd: Number.isFinite(opts.aiDailyBudget) ? opts.aiDailyBudget : undefined,
       suggest: opts.aiSuggest !== false,
       cache: aiCache,
     };

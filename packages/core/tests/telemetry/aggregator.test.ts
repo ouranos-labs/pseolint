@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { aggregateTelemetry } from "../../src/telemetry/aggregator.js";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { aggregateTelemetry, todayTriageSpendUsd } from "../../src/telemetry/aggregator.js";
+import { appendTelemetryRecord } from "../../src/telemetry/writer.js";
 import type {
   AuditRecord,
   FeedbackRecord,
@@ -238,5 +242,36 @@ describe("aggregateTelemetry", () => {
     // Token counters only reflect successful triages
     expect(s.totalTokenInput).toBe(100);
     expect(s.totalTokenOutput).toBe(50);
+  });
+});
+
+describe("todayTriageSpendUsd", () => {
+  let dir: string;
+  beforeEach(async () => { dir = await mkdtemp(join(tmpdir(), "pseolint-spend-")); });
+  afterEach(async () => { await rm(dir, { recursive: true, force: true }); });
+
+  it("returns 0 when file is missing", async () => {
+    expect(await todayTriageSpendUsd(join(dir, "missing.jsonl"))).toBe(0);
+  });
+
+  it("sums only successful triages on the given UTC day", async () => {
+    const path = join(dir, "telemetry.jsonl");
+    const base = (ts: string, cost: number, success: boolean): AuditRecord => ({
+      type: "audit", schemaVersion: 1, runId: "0123456789abcdef",
+      timestamp: ts, durationMs: 100, score: 50, pageCount: 1, findingCount: 1,
+      triage: {
+        success, ...(success ? {} : { skipReason: "auth: none" }),
+        rootCauseCount: success ? 1 : 0, providerId: "anthropic", modelId: "m",
+        cacheHit: false, tokenUsage: { input: 0, output: 0 },
+        ...(success ? { estimatedCostUsd: cost } : {}),
+        truncatedInput: false,
+      },
+    });
+    await appendTelemetryRecord(path, base("2026-04-18T05:00:00.000Z", 0.05, true));
+    await appendTelemetryRecord(path, base("2026-04-18T20:00:00.000Z", 0.10, true));
+    await appendTelemetryRecord(path, base("2026-04-18T09:00:00.000Z", 99, false)); // failed — ignored
+    await appendTelemetryRecord(path, base("2026-04-17T05:00:00.000Z", 99, true)); // yesterday — ignored
+    const now = new Date("2026-04-18T23:00:00.000Z");
+    expect(await todayTriageSpendUsd(path, now)).toBeCloseTo(0.15, 6);
   });
 });

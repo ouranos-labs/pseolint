@@ -63,6 +63,8 @@ const auditOptionsSchema = z.object({
     apiKey: z.string().optional(),
     maxInputTokens: z.number().optional(),
     maxOutputTokens: z.number().optional(),
+    maxCostUsd: z.number().optional(),
+    dailyBudgetUsd: z.number().optional(),
     suggest: z.boolean().optional(),
     cache: z.union([
       z.object({
@@ -109,6 +111,8 @@ export interface CliFlags {
     model?: string;
     endpoint?: string;
     maxInputTokens?: number;
+    maxCostUsd?: number;
+    dailyBudgetUsd?: number;
     suggest?: boolean;
     cache?: { ttlMs?: number } | false;
   };
@@ -142,6 +146,8 @@ export function mergeOptions(
     if (cliFlags.ai.model !== undefined) merged.model = cliFlags.ai.model;
     if (cliFlags.ai.endpoint !== undefined) merged.endpoint = cliFlags.ai.endpoint;
     if (cliFlags.ai.maxInputTokens !== undefined) merged.maxInputTokens = cliFlags.ai.maxInputTokens;
+    if (cliFlags.ai.maxCostUsd !== undefined) merged.maxCostUsd = cliFlags.ai.maxCostUsd;
+    if (cliFlags.ai.dailyBudgetUsd !== undefined) merged.dailyBudgetUsd = cliFlags.ai.dailyBudgetUsd;
     if (cliFlags.ai.suggest !== undefined) merged.suggest = cliFlags.ai.suggest;
     if (cliFlags.ai.cache !== undefined) {
       if (cliFlags.ai.cache === false) {
