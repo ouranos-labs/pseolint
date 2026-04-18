@@ -90,6 +90,20 @@ export interface StateOptions {
   exitOnRegression?: boolean;
 }
 
+/** Options for AI triage post-processing. */
+export interface AiOptions {
+  enabled?: boolean;
+  provider?: "anthropic" | "ollama";
+  model?: string;
+  endpoint?: string;
+  apiKey?: string;
+  maxInputTokens?: number;
+  maxOutputTokens?: number;
+  /** Print one-line discovery hint when ANTHROPIC_API_KEY is set but --ai is not. Default: true. */
+  suggest?: boolean;
+  cache?: { ttlMs?: number; dir?: string } | false;
+}
+
 export interface AuditSummary {
   score: number;
   categoryScores: CategoryScores;
@@ -107,6 +121,8 @@ export interface AuditSummary {
   hasRegression?: boolean;
   /** URLs that were skipped because their contentHash matched prior state. */
   skippedUrls?: string[];
+  /** AI triage result when AI is enabled and call succeeded. */
+  triage?: import("./ai/types.js").TriageResult;
 }
 
 export interface PageGroupConfig {
@@ -169,6 +185,8 @@ export interface AuditOptions {
   maxPerTemplate?: number;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
+  /** AI triage options. When omitted or `enabled: false`, no AI is invoked. */
+  ai?: AiOptions;
 }
 
 export type SamplingStrategy = "stratified" | "random";

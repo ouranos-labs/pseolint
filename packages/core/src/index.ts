@@ -50,3 +50,24 @@ export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from ".
 export { stratifiedSample, inferUrlTemplate } from "./stratified-sample.js";
 export { readState, writeState, computeContentHash, normalizeHtmlForHash, STATE_SCHEMA_VERSION } from "./state.js";
 export type { RunState, UrlStateEntry, RenderMode } from "./state.js";
+
+// AI triage
+export type {
+  AiOptions,
+} from "./types.js";
+export type {
+  LlmAdapter,
+  LlmRequest,
+  LlmResponse,
+  TokenUsage,
+  ProviderId,
+  RootCause,
+  TriageResult,
+  AdapterErrorKind,
+} from "./ai/types.js";
+export { AdapterError } from "./ai/types.js";
+export { triageFindings } from "./ai/triage.js";
+export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
+export { createAdapter, detectProvider } from "./ai/adapters/index.js";
+export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
+export { estimateCostUsd } from "./ai/cost.js";
