@@ -127,6 +127,32 @@ describe("formatMarkdown — enriched output", () => {
     const output = formatMarkdown(enrichedSummary);
     expect(output).toContain("> Template-generated content detected");
   });
+
+  it("renders AI triage as markdown table + bullets", () => {
+    const summary: AuditSummary = {
+      score: 80,
+      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      pageCount: 10,
+      findings: [],
+      triage: {
+        rootCauses: [
+          { label: "Templating", findingsCount: 100, affectedRuleIds: ["spam/x"], severity: "warning", fixOrder: 1, rationale: "Fix template.", relatedFindingIds: [] },
+        ],
+        narrative: "Site has templating issues.",
+        modelUsed: "claude-sonnet-4-6",
+        providerId: "anthropic",
+        tokenUsage: { input: 1000, output: 200 },
+        cacheHit: true,
+        promptVersion: "1.0.0",
+        truncatedInput: false,
+      },
+    };
+    const out = formatMarkdown(summary);
+    expect(out).toContain("## AI Triage");
+    expect(out).toContain("| 1 | Templating |");
+    expect(out).toContain("Site has templating issues.");
+    expect(out).toContain("claude-sonnet-4-6");
+  });
 });
 
 describe("formatJson — enriched output", () => {
