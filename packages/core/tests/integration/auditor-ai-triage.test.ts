@@ -34,7 +34,20 @@ describe("auditSource + AI triage (integration)", () => {
     const mockModel = new MockModel({
       doGenerate: async () => {
         calls += 1;
-        return okResponse({ rootCauses: [], narrative: "Nothing critical to fix." });
+        return okResponse({
+          rootCauses: [
+            {
+              label: "Example root cause",
+              findingsCount: 0,
+              affectedRuleIds: [],
+              severity: "info",
+              fixOrder: 1,
+              rationale: "Stub rationale for tests.",
+              relatedFindingIds: [],
+            },
+          ],
+          narrative: "Nothing critical to fix.",
+        });
       },
     });
     const adaptersModule = await import("../../src/ai/adapters/index.js");

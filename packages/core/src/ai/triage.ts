@@ -15,18 +15,18 @@ import { estimateCostUsd } from "./cost.js";
 const SEVERITIES = ["info", "warning", "error", "critical"] as const;
 
 const rootCauseSchema = z.object({
-  label: z.string().min(1).max(80),
-  findingsCount: z.number().int().nonnegative(),
-  affectedRuleIds: z.array(z.string()),
-  severity: z.enum(SEVERITIES),
-  fixOrder: z.number().int().min(1),
-  rationale: z.string(),
-  relatedFindingIds: z.array(z.string()),
+  label: z.string().min(1).max(80).describe("Short problem statement, <= 80 chars."),
+  findingsCount: z.number().int().nonnegative().describe("How many of the input findings this root cause covers."),
+  affectedRuleIds: z.array(z.string()).describe("Rule IDs (e.g. spam/near-duplicate) whose findings share this root cause."),
+  severity: z.enum(SEVERITIES).describe("Overall severity of this root cause: info | warning | error | critical."),
+  fixOrder: z.number().int().min(1).describe("1-indexed order to fix this in. 1 = highest priority."),
+  rationale: z.string().min(1).describe("1-2 sentences: why this matters and how to fix it."),
+  relatedFindingIds: z.array(z.string()).describe("IDs (from the input `findings[].id`) of findings attributed to this root cause. Use only IDs that appear in the input."),
 });
 
 const triagePayloadSchema = z.object({
-  rootCauses: z.array(rootCauseSchema),
-  narrative: z.string(),
+  rootCauses: z.array(rootCauseSchema).min(1).max(5).describe("1 to 5 root causes, ranked by SEO impact (highest first)."),
+  narrative: z.string().min(1).describe("2-3 sentence overall summary of the audit state."),
 });
 
 export interface TriageOptions {
@@ -46,7 +46,7 @@ export interface TriageOutcome {
 }
 
 const DEFAULT_MAX_INPUT_TOKENS = 60_000;
-const DEFAULT_MAX_OUTPUT_TOKENS = 1_500;
+const DEFAULT_MAX_OUTPUT_TOKENS = 4_000;
 
 function hashFindings(findings: RuleResult[]): string {
   const ids = findings.map(assignFindingId).sort();

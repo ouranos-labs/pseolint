@@ -61,7 +61,20 @@ describe("auditSource + telemetry (integration)", () => {
 
     const mockModel = new MockModel({
       doGenerate: async () =>
-        okResponse({ rootCauses: [], narrative: "Nothing critical to fix." }),
+        okResponse({
+          rootCauses: [
+            {
+              label: "Example root cause",
+              findingsCount: 0,
+              affectedRuleIds: [],
+              severity: "info",
+              fixOrder: 1,
+              rationale: "Stub rationale for tests.",
+              relatedFindingIds: [],
+            },
+          ],
+          narrative: "Nothing critical to fix.",
+        }),
     });
     const adaptersModule = await import("../../src/ai/adapters/index.js");
     vi.spyOn(adaptersModule, "createLanguageModel").mockResolvedValue({
@@ -99,7 +112,7 @@ describe("auditSource + telemetry (integration)", () => {
     expect(audit.triage).toBeDefined();
     expect(audit.triage?.providerId).toBe("anthropic");
     expect(audit.triage?.modelId).toBe("claude-sonnet-4-6");
-    expect(audit.triage?.rootCauseCount).toBe(0);
+    expect(audit.triage?.rootCauseCount).toBe(1);
 
     // Feedback record reflects the non-interactive rating we passed in.
     expect(feedback.rating).toBe("helpful");
