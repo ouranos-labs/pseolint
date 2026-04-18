@@ -44,6 +44,17 @@ const auditOptionsSchema = z.object({
     pattern: z.string(),
     flags: z.string().optional(),
   })).optional(),
+  cache: z.object({
+    dir: z.string().optional(),
+    ttlMs: z.number().optional(),
+  }).optional(),
+  state: z.object({
+    path: z.string().optional(),
+    since: z.boolean().optional(),
+    exitOnRegression: z.boolean().optional(),
+  }).optional(),
+  samplingStrategy: z.enum(["stratified", "random"]).optional(),
+  maxPerTemplate: z.number().optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {

@@ -1056,6 +1056,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       if (!list.includes(f.ruleId)) list.push(f.ruleId);
       findingsByUrl.set(f.pageUrl, list);
     }
+    // Preserve prior entries for URLs skipped by --since (they didn't change).
+    // Without this, delta runs would lose state for unchanged URLs.
+    if (priorState && skippedUrls.length > 0) {
+      for (const url of skippedUrls) {
+        const prior = priorState.urls[url];
+        if (prior) urls[url] = prior;
+      }
+    }
     for (const p of loadedPages) {
       urls[p.url] = {
         contentHash: computeContentHash(p.html),
