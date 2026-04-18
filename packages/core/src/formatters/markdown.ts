@@ -24,6 +24,34 @@ function shortenUrl(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }
 }
 
+function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): string {
+  const lines: string[] = ["", "## AI Triage", ""];
+  const cost = triage.estimatedCostUsd !== undefined ? `, est $${triage.estimatedCostUsd.toFixed(2)}` : "";
+  const cacheLabel = triage.cacheHit ? "cached" : "cache miss";
+  lines.push(
+    `> _Model: ${triage.modelUsed} (${cacheLabel}). ${triage.tokenUsage.input.toLocaleString()} in / ${triage.tokenUsage.output.toLocaleString()} out${cost}._`,
+  );
+  if (triage.narrative) {
+    lines.push("");
+    lines.push(triage.narrative);
+  }
+  if (triage.rootCauses.length > 0) {
+    lines.push("");
+    lines.push("| # | Root cause | Severity | Findings | Affected rules |");
+    lines.push("|---|---|---|---|---|");
+    const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
+    for (const c of sorted) {
+      lines.push(`| ${c.fixOrder} | ${c.label} | ${c.severity} | ${c.findingsCount} | ${c.affectedRuleIds.join(", ")} |`);
+    }
+    lines.push("");
+    for (const c of sorted) {
+      lines.push(`**${c.fixOrder}. ${c.label}.** ${c.rationale}`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n");
+}
+
 export function formatMarkdown(summary: AuditSummary): string {
   const lines: string[] = [];
 
@@ -59,6 +87,11 @@ export function formatMarkdown(summary: AuditSummary): string {
       lines.push(`| ${name} | ${value} | ${count} |`);
     }
     lines.push("");
+  }
+
+  // AI Triage (if present)
+  if (summary.triage) {
+    lines.push(renderTriageMarkdown(summary.triage));
   }
 
   // Findings
