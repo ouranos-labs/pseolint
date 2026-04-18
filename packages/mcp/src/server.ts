@@ -8,7 +8,12 @@ import type { AuditOptions, AuditSummary } from "@pseolint/core";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
 
-const MCP_SAMPLE_CAP = 50;
+const MCP_SAMPLE_CAP = (() => {
+  const raw = process.env.PSEOLINT_MCP_SAMPLE_CAP;
+  if (!raw) return 50;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : 50;
+})();
 
 function friendlyError(err: unknown, source: string): string {
   const msg = err instanceof Error ? err.message : String(err);

@@ -1,17 +1,6 @@
 import { cosmiconfig } from "cosmiconfig";
 import { z } from "zod";
-import type { AuditOptions as CoreAuditOptions } from "@pseolint/core";
-
-// TODO: remove once core AuditOptions.telemetry lands
-type AuditOptions = CoreAuditOptions & {
-  telemetry?: {
-    enabled?: boolean;
-    path?: string;
-    prompt?: boolean;
-    feedback?: "helpful" | "unhelpful";
-  };
-};
-export type { AuditOptions };
+import type { AuditOptions } from "@pseolint/core";
 
 const rulesSchema = z
   .object({
