@@ -66,3 +66,5 @@ export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";
+
+export * from "./telemetry/index.js";
