@@ -40,7 +40,13 @@ import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
-import type { AuditOptions, AuditSummary, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
+import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
+import { cachedFetch, type CacheConfig } from "./cache.js";
+import { stratifiedSample } from "./stratified-sample.js";
+import {
+  readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
+  type RunState, type RenderMode, type UrlStateEntry,
+} from "./state.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -354,17 +360,19 @@ async function collectHtmlFiles(directory: string): Promise<string[]> {
 
 async function fetchWithRetry(
   url: string,
-  timeoutMs: number
+  timeoutMs: number,
+  cache: CacheConfig | null,
+  stats: CacheStats
 ): Promise<{ text: string; contentType: string } | null> {
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-    if (!response.ok) {
-      return null;
+    stats.total += 1;
+    const r = await cachedFetch(url, { timeoutMs, cache });
+    if (r.fromCache) {
+      stats.hits += 1;
+      stats.bytesSavedEstimate += r.body.length;
     }
-    return {
-      text: await response.text(),
-      contentType: response.headers.get("content-type")?.toLowerCase() ?? ""
-    };
+    if (r.status < 200 || r.status >= 300) return null;
+    return { text: r.body, contentType: (r.headers["content-type"] ?? "").toLowerCase() };
   } catch {
     return null;
   }
@@ -372,66 +380,49 @@ async function fetchWithRetry(
 
 async function fetchPageWithMeta(
   url: string,
-  timeoutMs: number
+  timeoutMs: number,
+  cache: CacheConfig | null,
+  stats: CacheStats
 ): Promise<LoadedPage | null> {
-  const redirectChain: string[] = [];
-  let currentUrl = url;
-
-  for (let hop = 0; hop < 10; hop += 1) {
-    let response;
-    try {
-      response = await fetch(currentUrl, {
-        redirect: "manual",
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-    } catch {
-      return null;
+  try {
+    stats.total += 1;
+    const r = await cachedFetch(url, { timeoutMs, cache });
+    if (r.fromCache) {
+      stats.hits += 1;
+      stats.bytesSavedEstimate += r.body.length;
     }
-
-    const status = response.status;
-    if (status >= 300 && status < 400) {
-      const location = response.headers.get("location");
-      if (!location) break;
-      redirectChain.push(currentUrl);
-      try {
-        currentUrl = new URL(location, currentUrl).href;
-      } catch {
-        break;
-      }
-      continue;
-    }
-
-    let html: string;
-    try {
-      html = await response.text();
-    } catch {
-      return null;
-    }
-
     return {
       url,
-      html,
+      html: r.body,
       httpMeta: {
-        statusCode: status,
-        finalUrl: currentUrl,
-        redirectChain,
-        xRobotsTag: response.headers.get("x-robots-tag") ?? "",
-        linkHeader: response.headers.get("link") ?? "",
+        statusCode: r.status,
+        finalUrl: r.url,
+        redirectChain: r.redirectChain,
+        xRobotsTag: r.headers["x-robots-tag"] ?? "",
+        linkHeader: r.headers.link ?? "",
       },
     };
+  } catch {
+    return null;
   }
-  return null;
 }
 
-async function fetchTextStrict(url: string, timeoutMs: number): Promise<{ text: string; contentType: string }> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch source: ${response.status} ${response.statusText}`);
+async function fetchTextStrict(
+  url: string,
+  timeoutMs: number,
+  cache: CacheConfig | null,
+  stats: CacheStats
+): Promise<{ text: string; contentType: string }> {
+  stats.total += 1;
+  const r = await cachedFetch(url, { timeoutMs, cache });
+  if (r.fromCache) {
+    stats.hits += 1;
+    stats.bytesSavedEstimate += r.body.length;
   }
-  return {
-    text: await response.text(),
-    contentType: response.headers.get("content-type")?.toLowerCase() ?? ""
-  };
+  if (r.status < 200 || r.status >= 300) {
+    throw new Error(`Failed to fetch source: ${r.status}`);
+  }
+  return { text: r.body, contentType: (r.headers["content-type"] ?? "").toLowerCase() };
 }
 
 async function runWithConcurrency<T>(
@@ -533,7 +524,9 @@ async function collectUrlsFromSitemap(
   sitemapText: string,
   sitemapUrl: string,
   visited: Set<string>,
-  timeoutMs: number
+  timeoutMs: number,
+  cache: CacheConfig | null,
+  stats: CacheStats
 ): Promise<string[]> {
   visited.add(sitemapUrl);
   const locs = parseSitemapUrls(sitemapText);
@@ -545,11 +538,11 @@ async function collectUrlsFromSitemap(
   const allUrls: string[] = [];
   for (const childUrl of locs) {
     if (visited.has(childUrl)) continue;
-    const child = await fetchWithRetry(childUrl, timeoutMs);
+    const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs);
+    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats);
     allUrls.push(...childUrls);
   }
   return allUrls;
@@ -560,14 +553,16 @@ async function loadPagesFromSource(
   concurrency: number,
   timeoutMs: number,
   crawlDiscovery: boolean,
-  discoveryBudget: number
+  discoveryBudget: number,
+  cache: CacheConfig | null,
+  stats: CacheStats
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   if (/^https?:\/\//i.test(source)) {
     let text: string;
     let contentType: string;
     let sourceStatus = 200;
     try {
-      const fetched = await fetchTextStrict(source, timeoutMs);
+      const fetched = await fetchTextStrict(source, timeoutMs, cache, stats);
       text = fetched.text;
       contentType = fetched.contentType;
     } catch {
@@ -575,7 +570,7 @@ async function loadPagesFromSource(
       if (source.includes("sitemap")) {
         try {
           const origin = new URL(source).origin;
-          const fallback = await fetchTextStrict(origin, timeoutMs);
+          const fallback = await fetchTextStrict(origin, timeoutMs, cache, stats);
           text = fallback.text;
           contentType = fallback.contentType;
           sourceStatus = -1; // flag that we fell back
@@ -591,7 +586,7 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs);
+      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats);
 
       // If we have a budget, sample from sitemap URLs before fetching
       const urlsToFetch = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
@@ -600,7 +595,7 @@ async function loadPagesFromSource(
 
       const pages: LoadedPage[] = [];
       await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
-        const result = await fetchPageWithMeta(url, timeoutMs);
+        const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
         if (result) {
           pages.push(result);
         }
@@ -642,7 +637,7 @@ async function loadPagesFromSource(
 
         if (discoveredUrls.size > 0) {
           await runWithConcurrency(Array.from(discoveredUrls), concurrency, async (url) => {
-            const result = await fetchPageWithMeta(url, timeoutMs);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               pages.push(result);
             }
@@ -718,7 +713,7 @@ async function loadPagesFromSource(
 
           const newPages: LoadedPage[] = [];
           await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
-            const result = await fetchPageWithMeta(url, timeoutMs);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               newPages.push(result);
               knownCrawled.add(url);
@@ -801,30 +796,63 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   const crawlDiscovery = /^https?:\/\//i.test(source) && (options?.crawlDiscovery ?? true);
 
-  const isRemote = /^https?:\/\//i.test(source);
-  const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)/i.test(source);
+  // Discovery budget: when sampleSize is set, cap discovery at 2x (min 50) to avoid
+  // fetching far more pages than we'll sample. First-run egress is bounded by sampleSize;
+  // re-runs hit the cache. Remove adaptive 200-cap: users get full crawl by default,
+  // repeated audits stay cheap via --cache.
+  const discoveryBudget = options?.sampleSize && options.sampleSize > 0
+    ? Math.max(50, options.sampleSize * 2)
+    : 0;
 
-  let discoveryBudget = 0; // 0 = unlimited
-  if (isRemote && !isLocalhost && options?.sampleSize === undefined) {
-    // User didn't set sample size — apply adaptive budget for remote
-    discoveryBudget = 200;
-  } else if (isRemote && !isLocalhost && (options?.sampleSize ?? 0) > 0) {
-    // User set a specific sample size — budget is 2x that, min 50
-    discoveryBudget = Math.max(50, (options?.sampleSize ?? 0) * 2);
-  }
-  // sampleSize explicitly 0 or localhost/file → unlimited
+  const cacheStats = { hits: 0, total: 0, bytesSavedEstimate: 0 };
+  const cacheConfig: CacheConfig | null = options?.cache
+    ? {
+        dir: options.cache.dir ?? ".pseolint/cache",
+        ttlMs: options.cache.ttlMs ?? 7 * 24 * 60 * 60 * 1000,
+      }
+    : null;
 
-  const { pages: loadedPages, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget);
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats);
+  const loadedPages = [...loadedPagesRaw];
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
+  }
+
+  // State read + delta filtering
+  let priorState: RunState | null = null;
+  const skippedUrls: string[] = [];
+  if (options?.state?.since || options?.state?.exitOnRegression) {
+    const statePath = options.state.path ?? ".pseolint/state.json";
+    priorState = await readState(statePath);
+    const currentRenderMode: RenderMode = options.render ? "rendered" : "static";
+    if (priorState && priorState.renderMode !== currentRenderMode) {
+      console.error(
+        `warning: prior state renderMode=${priorState.renderMode} differs from current ${currentRenderMode}. Performing full re-audit.`
+      );
+      priorState = null;
+    }
+    if (priorState && options.state.since) {
+      const kept: LoadedPage[] = [];
+      for (const p of loadedPages) {
+        const prior = priorState.urls[p.url];
+        if (prior && prior.contentHash === computeContentHash(p.html)) {
+          skippedUrls.push(p.url);
+        } else {
+          kept.push(p);
+        }
+      }
+      loadedPages.splice(0, loadedPages.length, ...kept);
+    } else if (!priorState && options.state.since) {
+      console.error("no prior state found — performing full baseline audit");
+    }
   }
 
   let robotsTxtContent = "";
   if (/^https?:\/\//i.test(source)) {
     try {
       const origin = new URL(source).origin;
-      const result = await fetchWithRetry(`${origin}/robots.txt`, timeoutMs);
+      const result = await fetchWithRetry(`${origin}/robots.txt`, timeoutMs, cacheConfig, cacheStats);
       if (result) robotsTxtContent = result.text;
     } catch { /* ignore */ }
   }
@@ -857,8 +885,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     ? deduped.filter((page) => !shouldIgnore(page.url, ignorePatterns))
     : deduped;
 
+  const strategy = options?.samplingStrategy ?? "stratified";
   const sampled = sampleSize > 0 && sampleSize < filtered.length
-    ? fisherYatesSample(filtered, sampleSize)
+    ? (strategy === "stratified"
+        ? (() => {
+            const urlsMap = new Map(filtered.map(p => [p.url, p]));
+            const sampledUrls = stratifiedSample(filtered.map(p => p.url), sampleSize);
+            return sampledUrls.map(u => urlsMap.get(u)!);
+          })()
+        : fisherYatesSample(filtered, sampleSize))
     : filtered;
 
   const parsedPages = sampled.map((page) => {
@@ -967,7 +1002,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const { score, categoryScores } = scoreFromFindings(enriched.findings);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
-  return {
+  const summary: AuditSummary = {
     score,
     categoryScores,
     groupScores: options?.pageGroups ? groupScores : undefined,
@@ -977,4 +1012,82 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     templateDetected: enriched.templateDetected,
     rawFindingCount: enriched.rawFindingCount,
   };
+
+  if (cacheConfig) {
+    summary.cacheStats = cacheStats;
+  }
+
+  if (skippedUrls.length > 0) {
+    summary.skippedUrls = skippedUrls;
+  }
+
+  if (priorState && options?.state?.exitOnRegression) {
+    let hasRegression = false;
+    const currentFindings = new Map<string, Set<string>>();
+    for (const f of summary.findings) {
+      if (!f.pageUrl) continue;
+      const set = currentFindings.get(f.pageUrl) ?? new Set<string>();
+      set.add(f.ruleId);
+      currentFindings.set(f.pageUrl, set);
+    }
+    for (const [url, entry] of Object.entries(priorState.urls)) {
+      const cur = currentFindings.get(url);
+      if (!cur) continue;
+      const priorIds = new Set(entry.findingIds);
+      for (const ruleId of cur) {
+        if (!priorIds.has(ruleId)) {
+          hasRegression = true;
+          break;
+        }
+      }
+      if (hasRegression) break;
+    }
+    summary.hasRegression = hasRegression;
+  }
+
+  if (options?.state) {
+    const statePath = options.state.path ?? ".pseolint/state.json";
+    const renderMode: RenderMode = options.render ? "rendered" : "static";
+    const urls: Record<string, UrlStateEntry> = {};
+    const findingsByUrl = new Map<string, string[]>();
+    for (const f of summary.findings) {
+      if (!f.pageUrl) continue;
+      const list = findingsByUrl.get(f.pageUrl) ?? [];
+      if (!list.includes(f.ruleId)) list.push(f.ruleId);
+      findingsByUrl.set(f.pageUrl, list);
+    }
+    // Preserve prior entries for URLs skipped by --since (they didn't change).
+    // Without this, delta runs would lose state for unchanged URLs.
+    if (priorState && skippedUrls.length > 0) {
+      for (const url of skippedUrls) {
+        const prior = priorState.urls[url];
+        if (prior) urls[url] = prior;
+      }
+    }
+    for (const p of loadedPages) {
+      urls[p.url] = {
+        contentHash: computeContentHash(p.html),
+        fetchedAt: new Date().toISOString(),
+        status: p.httpMeta?.statusCode ?? 200,
+        findingIds: findingsByUrl.get(p.url) ?? [],
+      };
+    }
+    const newState: RunState = {
+      version: STATE_SCHEMA_VERSION,
+      lastRun: new Date().toISOString(),
+      source,
+      renderMode,
+      urls,
+      summary: {
+        score: summary.score,
+        totalFindings: summary.findings.length,
+        byCategory: Object.fromEntries(
+          Object.entries(summary.categoryScores).map(([k, v]) => [k, v])
+        ),
+      },
+    };
+    await writeState(statePath, newState);
+  }
+
+  return summary;
 }

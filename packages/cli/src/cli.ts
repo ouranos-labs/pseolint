@@ -39,6 +39,13 @@ interface CliOptions {
   crawl: boolean;
   mcp: boolean;
   dataSource?: string;
+  cache?: string | boolean;
+  cacheTtl: string;
+  strategy: string;
+  maxPerTemplate: string;
+  state?: string | boolean;
+  since: boolean;
+  exitOnRegression: boolean;
 }
 
 export async function runCli(
@@ -71,6 +78,13 @@ export async function runCli(
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
+    .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
+    .option("--cache-ttl <duration>", "Cache TTL for entries without validators, e.g. 7d, 1h, 30m", "7d")
+    .option("--strategy <random|stratified>", "Sampling strategy when --sample-size is set", "stratified")
+    .option("--max-per-template <n>", "Cap samples per URL template cluster", "0")
+    .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
+    .option("--since", "Delta mode: audit only URLs changed since prior --state (requires --state)")
+    .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -112,7 +126,35 @@ export async function runCli(
     ignore: opts.ignore ? opts.ignore.split(",").map((s: string) => s.trim()) : undefined,
     render: opts.render ? { browserWsEndpoint: opts.browserWs } : undefined,
     crawlDiscovery: opts.crawl === false ? false : undefined,
+    samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
+    maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,
   };
+
+  if (opts.cache) {
+    try {
+      cliFlags.cache = {
+        dir: typeof opts.cache === "string" ? opts.cache : undefined,
+        ttlMs: parseDuration(opts.cacheTtl),
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`Error: ${message}`);
+      return 1;
+    }
+  }
+
+  if ((opts.since || opts.exitOnRegression) && !opts.state) {
+    console.error("Error: --since and --exit-on-regression require --state to be set");
+    return 1;
+  }
+
+  if (opts.state || opts.since || opts.exitOnRegression) {
+    cliFlags.state = {
+      path: typeof opts.state === "string" ? opts.state : undefined,
+      since: Boolean(opts.since),
+      exitOnRegression: Boolean(opts.exitOnRegression),
+    };
+  }
 
   const options = mergeOptions(configFile, cliFlags);
 
@@ -139,6 +181,12 @@ export async function runCli(
     return 1;
   }
 
+  if (summary.cacheStats && summary.cacheStats.total > 0) {
+    const { hits, total, bytesSavedEstimate } = summary.cacheStats;
+    const mb = (bytesSavedEstimate / (1024 * 1024)).toFixed(2);
+    console.error(`Cache: ${hits}/${total} hits (${mb} MB saved)`);
+  }
+
   // Format output
   const output = format === "console"
     ? formatConsole(summary, { noColor: !opts.color })
@@ -155,8 +203,22 @@ export async function runCli(
     console.log(output);
   }
 
-  // Exit code based on threshold
-  return summary.score >= threshold ? 1 : 0;
+  // Exit code based on threshold + regression
+  let exitCode = summary.score >= threshold ? 1 : 0;
+  if (summary.hasRegression) {
+    console.error("Regression detected: new rule IDs fired vs prior state");
+    exitCode = Math.max(exitCode, 1);
+  }
+  return exitCode;
+}
+
+function parseDuration(s: string): number {
+  const m = s.match(/^(\d+)(ms|s|m|h|d)$/);
+  if (!m) throw new Error(`invalid duration: ${s}. Use e.g. 1h, 30m, 7d.`);
+  const n = Number(m[1]);
+  const unit = m[2];
+  const mul = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[unit] ?? 1;
+  return n * mul;
 }
 
 // Direct execution

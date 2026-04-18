@@ -65,6 +65,31 @@ export interface CategoryScores {
   cannibal: number;
 }
 
+/** Options for HTTP caching during audits. */
+export interface CacheOptions {
+  /** Directory to store cache files. Default: `.pseolint/cache/`. */
+  dir?: string;
+  /** TTL for entries without ETag/Last-Modified validators. Default: 7 days. */
+  ttlMs?: number;
+}
+
+/** Cache stats reported at end of audit. */
+export interface CacheStats {
+  hits: number;
+  total: number;
+  bytesSavedEstimate: number;
+}
+
+/** Options for run state persistence. */
+export interface StateOptions {
+  /** Path to state file. Default: `.pseolint/state.json`. */
+  path?: string;
+  /** If true, audit only URLs with changed/new contentHash since prior state. */
+  since?: boolean;
+  /** If true, exit non-zero when a new rule ID fires on any URL vs prior state. */
+  exitOnRegression?: boolean;
+}
+
 export interface AuditSummary {
   score: number;
   categoryScores: CategoryScores;
@@ -76,6 +101,12 @@ export interface AuditSummary {
   templateDetected?: boolean;
   /** Pre-enrichment finding count, for backward compatibility with CI scripts. */
   rawFindingCount?: number;
+  /** Cache statistics when caching is enabled. */
+  cacheStats?: CacheStats;
+  /** True when --exit-on-regression detected a new rule ID vs prior state. */
+  hasRegression?: boolean;
+  /** URLs that were skipped because their contentHash matched prior state. */
+  skippedUrls?: string[];
 }
 
 export interface PageGroupConfig {
@@ -130,7 +161,17 @@ export interface AuditOptions {
   entityPatterns?: Array<{ placeholder: string; pattern: string; flags?: string }>;
   /** Source data records for data-binding verification. */
   dataSource?: DataSourceOptions;
+  /** HTTP cache configuration. When omitted, caching is disabled. */
+  cache?: CacheOptions;
+  /** Sampling strategy when sampleSize < total pages. Default: "stratified". */
+  samplingStrategy?: SamplingStrategy;
+  /** Max samples per inferred URL template cluster. Caps per-cluster allocation. */
+  maxPerTemplate?: number;
+  /** Run state persistence. When omitted, no state is written. */
+  state?: StateOptions;
 }
+
+export type SamplingStrategy = "stratified" | "random";
 
 /** A single page's source data for data-source comparison. */
 export interface PageDataRecord {

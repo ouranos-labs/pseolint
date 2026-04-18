@@ -44,6 +44,17 @@ const auditOptionsSchema = z.object({
     pattern: z.string(),
     flags: z.string().optional(),
   })).optional(),
+  cache: z.object({
+    dir: z.string().optional(),
+    ttlMs: z.number().optional(),
+  }).optional(),
+  state: z.object({
+    path: z.string().optional(),
+    since: z.boolean().optional(),
+    exitOnRegression: z.boolean().optional(),
+  }).optional(),
+  samplingStrategy: z.enum(["stratified", "random"]).optional(),
+  maxPerTemplate: z.number().optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -65,6 +76,10 @@ export interface CliFlags {
   ignore?: string[];
   render?: { browserWsEndpoint?: string };
   crawlDiscovery?: boolean;
+  cache?: { dir?: string; ttlMs: number };
+  samplingStrategy?: "stratified" | "random";
+  maxPerTemplate?: number;
+  state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
 }
 
 export function mergeOptions(
@@ -78,5 +93,9 @@ export function mergeOptions(
   if (cliFlags.ignore !== undefined) result.ignore = cliFlags.ignore;
   if (cliFlags.render !== undefined) result.render = cliFlags.render;
   if (cliFlags.crawlDiscovery !== undefined) result.crawlDiscovery = cliFlags.crawlDiscovery;
+  if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
+  if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
+  if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
+  if (cliFlags.state !== undefined) result.state = cliFlags.state;
   return result;
 }
