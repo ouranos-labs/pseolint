@@ -68,3 +68,6 @@ export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";
 
 export * from "./telemetry/index.js";
+export type { TelemetryOptions } from "./types.js";
+export { promptTriageFeedback } from "./ai/feedback-prompt.js";
+export type { FeedbackRating, PromptOptions } from "./ai/feedback-prompt.js";

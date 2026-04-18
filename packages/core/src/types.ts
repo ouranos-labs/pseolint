@@ -90,6 +90,18 @@ export interface StateOptions {
   exitOnRegression?: boolean;
 }
 
+/** Options for local-only telemetry JSONL output. */
+export interface TelemetryOptions {
+  /** Enable telemetry write at end of audit. Default: false. */
+  enabled?: boolean;
+  /** Path to JSONL file. Default: `.pseolint/telemetry.jsonl`. */
+  path?: string;
+  /** Show y/n/skip feedback prompt after triage on TTY. Default: true (when telemetry enabled). */
+  prompt?: boolean;
+  /** Non-interactive feedback rating — bypasses the prompt (useful in CI). */
+  feedback?: "helpful" | "unhelpful";
+}
+
 /** Options for AI triage post-processing. */
 export interface AiOptions {
   enabled?: boolean;
@@ -187,6 +199,8 @@ export interface AuditOptions {
   state?: StateOptions;
   /** AI triage options. When omitted or `enabled: false`, no AI is invoked. */
   ai?: AiOptions;
+  /** Local-only telemetry (JSONL) options. When omitted or `enabled: false`, no records are written. */
+  telemetry?: TelemetryOptions;
 }
 
 export type SamplingStrategy = "stratified" | "random";
