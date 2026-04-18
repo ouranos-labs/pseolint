@@ -118,6 +118,57 @@ If your site outputs static HTML (`out/`, `dist/`, `public/`, `_site/`), audit t
 pseolint ./out
 ```
 
+## AI triage
+
+Turn long findings lists into ranked root causes. Opt-in; off by default.
+
+### Quick start (cloud)
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+pseolint https://example.com --ai
+```
+
+### Quick start (local, zero data leaves your machine)
+
+```bash
+ollama pull llama3.1:8b
+ollama serve &
+pseolint https://example.com --ai --ai-provider ollama
+```
+
+### Flags
+
+```
+--ai                          Enable AI triage
+--ai-provider <id>            anthropic | ollama (default: auto-detect)
+--ai-model <name>             Override default model
+--ai-endpoint <url>           Override Ollama endpoint (default: http://localhost:11434)
+--ai-max-tokens <n>           Input token cap per triage call (default: 60000)
+--ai-cache-ttl <duration>     Triage cache TTL (default: 30d)
+--no-ai-cache                 Bypass cache for this run
+--no-ai-suggest               Suppress discovery hint when key detected
+```
+
+### How it works
+
+After the linter runs, the AI step takes the enriched findings (capped at 200 by severity) and asks the model to identify 1–5 underlying root causes ranked by SEO impact. The findings list is unchanged — triage is an *additional* section above it.
+
+### Cost and budget
+
+- Triage runs as **one** model call per audit. Default cap: 60k input tokens.
+- Estimated cost is printed before/after the call (best-effort lookup; pricing may be stale).
+- Results are cached at `.pseolint/ai-cache/` for 30 days. Re-running on unchanged audit data is free.
+- Cache key includes the prompt version — bumping it auto-invalidates the cache.
+
+### Privacy
+
+Triage sends finding rule IDs, severities, messages, and (optional) page URLs to the configured provider. Messages may contain page titles or short content excerpts (per existing rule outputs). Use the **Ollama** provider to keep all data on your machine.
+
+### Failure modes (fail-open)
+
+Any error in the AI step (auth, rate-limit, network, unparseable response, missing SDK) skips triage with a stderr message. The audit completes normally — exit code, JSON output, and findings list are unchanged.
+
 ## Documentation
 
 See the full documentation at [github.com/ouranos-labs/pseolint](https://github.com/ouranos-labs/pseolint).
