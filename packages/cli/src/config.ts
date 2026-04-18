@@ -55,6 +55,23 @@ const auditOptionsSchema = z.object({
   }).optional(),
   samplingStrategy: z.enum(["stratified", "random"]).optional(),
   maxPerTemplate: z.number().optional(),
+  ai: z.object({
+    enabled: z.boolean().optional(),
+    provider: z.enum(["anthropic", "ollama"]).optional(),
+    model: z.string().optional(),
+    endpoint: z.string().optional(),
+    apiKey: z.string().optional(),
+    maxInputTokens: z.number().optional(),
+    maxOutputTokens: z.number().optional(),
+    suggest: z.boolean().optional(),
+    cache: z.union([
+      z.object({
+        ttlMs: z.number().optional(),
+        dir: z.string().optional(),
+      }),
+      z.literal(false),
+    ]).optional(),
+  }).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
@@ -80,6 +97,15 @@ export interface CliFlags {
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
+  ai?: {
+    enabled?: boolean;
+    provider?: "anthropic" | "ollama";
+    model?: string;
+    endpoint?: string;
+    maxInputTokens?: number;
+    suggest?: boolean;
+    cache?: { ttlMs?: number } | false;
+  };
 }
 
 export function mergeOptions(
@@ -97,5 +123,8 @@ export function mergeOptions(
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
+  if (cliFlags.ai !== undefined) {
+    result.ai = { ...result.ai, ...cliFlags.ai };
+  }
   return result;
 }

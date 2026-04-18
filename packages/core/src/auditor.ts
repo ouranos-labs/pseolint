@@ -40,6 +40,8 @@ import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
+import { triageFindings } from "./ai/triage.js";
+import { createAdapter } from "./ai/adapters/index.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
 import { stratifiedSample } from "./stratified-sample.js";
@@ -1087,6 +1089,49 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       },
     };
     await writeState(statePath, newState);
+  }
+
+  if (options?.ai?.enabled) {
+    try {
+      const adapter = await createAdapter({
+        provider: options.ai.provider,
+        model: options.ai.model,
+        endpoint: options.ai.endpoint,
+        apiKey: options.ai.apiKey,
+      });
+      const cacheConfig =
+        options.ai.cache === false
+          ? false
+          : {
+              dir: options.ai.cache?.dir ?? ".pseolint/ai-cache",
+              ttlMs: options.ai.cache?.ttlMs ?? 30 * 24 * 60 * 60 * 1000,
+            };
+      const outcome = await triageFindings(summary.findings, summary.pageCount, {
+        enabled: true,
+        adapter,
+        maxInputTokens: options.ai.maxInputTokens,
+        maxOutputTokens: options.ai.maxOutputTokens,
+        cache: cacheConfig,
+      });
+      if (outcome.skipReason) {
+        console.error(`[ai-triage] skipped: ${outcome.skipReason}`);
+      } else {
+        summary.triage = outcome.result;
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error(`[ai-triage] skipped: ${e.message}`);
+      } else {
+        console.error(`[ai-triage] skipped: unknown error`);
+      }
+    }
+  }
+
+  const aiHintEnabled = options?.ai?.suggest !== false;
+  if (aiHintEnabled && !options?.ai?.enabled && process.env.ANTHROPIC_API_KEY) {
+    console.error(
+      `💡 AI triage available — re-run with --ai to prioritize ${summary.findings.length} findings into a fix list.`,
+    );
   }
 
   return summary;
