@@ -54,12 +54,17 @@ interface CliOptions {
   aiCacheTtl: string;
   aiCache: boolean;
   aiSuggest: boolean;
+  telemetry?: boolean;
+  telemetryPrompt?: boolean;
+  telemetryPath?: string;
+  triageFeedback?: string;
 }
 
 export async function runCli(
   args: string[] = process.argv.slice(2),
 ): Promise<number> {
   const program = new Command();
+  let exitCode = 0;
 
   program
     .name("pseolint")
@@ -101,13 +106,54 @@ export async function runCli(
     .option("--ai-cache-ttl <duration>", "Triage cache TTL (e.g. 30d, 12h, 60s)", "30d")
     .option("--no-ai-cache", "Bypass AI triage cache for this run")
     .option("--no-ai-suggest", "Suppress AI discovery hint")
-    .option("--mcp", "Start as an MCP server (for AI coding assistants)");
+    .option("--telemetry", "Enable local telemetry write (.pseolint/telemetry.jsonl)")
+    .option("--no-telemetry-prompt", "Suppress the y/n/skip triage feedback prompt")
+    .option("--telemetry-path <file>", "Override telemetry JSONL path")
+    .option("--triage-feedback <rating>", "Non-interactive feedback: helpful|unhelpful|y|n")
+    .option("--mcp", "Start as an MCP server (for AI coding assistants)")
+    .action(async (source: string | undefined, opts: CliOptions) => {
+      exitCode = await runAudit(source, opts);
+    });
 
-  program.parse(args, { from: "user" });
+  program
+    .command("stats")
+    .description("Show aggregate telemetry stats from .pseolint/telemetry.jsonl")
+    .option("--path <file>", "Path to telemetry JSONL", ".pseolint/telemetry.jsonl")
+    .option("--json", "Output stats as JSON")
+    .action(async (opts: { path: string; json?: boolean }) => {
+      const { readTelemetryJsonl, aggregateTelemetry } = await import("@pseolint/core");
+      const records = await readTelemetryJsonl(opts.path);
+      const stats = aggregateTelemetry(records);
+      if (opts.json) {
+        process.stdout.write(JSON.stringify(stats, null, 2) + "\n");
+        return;
+      }
+      renderStats(stats);
+    });
 
-  const opts = program.opts<CliOptions>();
-  const source = program.args[0];
+  program
+    .command("stats-export <outPath>")
+    .description("Copy telemetry JSONL to <outPath> for manual review/sharing")
+    .option("--path <file>", "Path to telemetry JSONL", ".pseolint/telemetry.jsonl")
+    .action(async (outPath: string, opts: { path: string }) => {
+      const { copyFile } = await import("node:fs/promises");
+      try {
+        await copyFile(opts.path, outPath);
+        process.stderr.write(`Wrote ${outPath}\n`);
+      } catch (e) {
+        process.stderr.write(`Failed to read ${opts.path}: ${(e as Error).message}\n`);
+        exitCode = 1;
+      }
+    });
 
+  await program.parseAsync(args, { from: "user" });
+  return exitCode;
+}
+
+async function runAudit(
+  source: string | undefined,
+  opts: CliOptions,
+): Promise<number> {
   if (opts.mcp) {
     const { startMcpServer } = await import("./mcp.js");
     startMcpServer();
@@ -115,7 +161,8 @@ export async function runCli(
   }
 
   if (!source) {
-    program.help();
+    // Print help via a temporary Command since we're inside the action
+    process.stderr.write("Error: source argument is required. Run `pseolint --help` for usage.\n");
     return 1;
   }
 
@@ -197,6 +244,27 @@ export async function runCli(
     cliFlags.ai = { suggest: false };
   }
 
+  const telemetryFeedback = opts.triageFeedback
+    ? (opts.triageFeedback === "y" || opts.triageFeedback === "yes" || opts.triageFeedback === "helpful")
+      ? "helpful" as const
+      : (opts.triageFeedback === "n" || opts.triageFeedback === "no" || opts.triageFeedback === "unhelpful")
+        ? "unhelpful" as const
+        : undefined
+    : undefined;
+
+  const telemetry = opts.telemetry || opts.telemetryPath || telemetryFeedback || opts.telemetryPrompt === false
+    ? {
+        enabled: opts.telemetry === true,
+        path: opts.telemetryPath,
+        prompt: opts.telemetryPrompt !== false,
+        feedback: telemetryFeedback,
+      }
+    : undefined;
+
+  if (telemetry !== undefined) {
+    cliFlags.telemetry = telemetry;
+  }
+
   const options = mergeOptions(configFile, cliFlags);
 
   if (opts.dataSource) {
@@ -251,6 +319,58 @@ export async function runCli(
     exitCode = Math.max(exitCode, 1);
   }
   return exitCode;
+}
+
+import type { TelemetryStats } from "@pseolint/core";
+
+function renderStats(stats: TelemetryStats): void {
+  const NA = "—";
+  const formatDuration = (ms: number | null): string => {
+    if (ms === null) return NA;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+  const formatRound = (n: number | null): string => {
+    if (n === null) return NA;
+    return String(Math.round(n));
+  };
+  const formatPct = (num: number, denom: number): string => {
+    if (denom === 0) return NA;
+    return `${Math.round((num / denom) * 100)}%`;
+  };
+  const formatNum = (n: number): string => n.toLocaleString("en-US");
+  const formatCost = (n: number): string => {
+    if (n === 0) return NA;
+    return `$${n.toFixed(2)}`;
+  };
+  const formatDate = (s: string | null): string => s ?? NA;
+  const pad = (label: string): string => label.padEnd(20);
+
+  const lines: string[] = [];
+  lines.push("Telemetry summary");
+  lines.push(`  ${pad("Total audits")}:  ${stats.totalAudits}`);
+  lines.push(`  ${pad("Average duration")}:  ${formatDuration(stats.avgDurationMs)}`);
+  lines.push(`  ${pad("Average score")}:  ${formatRound(stats.avgScore)}`);
+  lines.push(`  ${pad("Average findings")}:  ${formatRound(stats.avgFindings)}`);
+  lines.push(`  ${pad("Average page count")}:  ${formatRound(stats.avgPages)}`);
+  lines.push("");
+  lines.push("AI triage");
+  lines.push(`  ${pad("Audits with triage")}:  ${stats.triageUsed}`);
+  lines.push(`  ${pad("Cache hit rate")}:  ${formatPct(stats.triageCacheHits, stats.triageUsed)}`);
+  lines.push(
+    `  ${pad("Tokens (in/out)")}:  ${formatNum(stats.totalTokenInput)} / ${formatNum(stats.totalTokenOutput)}`,
+  );
+  lines.push(`  ${pad("Estimated cost")}:  ${formatCost(stats.totalEstimatedCostUsd)}`);
+  lines.push("");
+  lines.push("Feedback");
+  lines.push(`  ${pad("Helpful")}:  ${stats.feedbackBreakdown.helpful}`);
+  lines.push(`  ${pad("Unhelpful")}:  ${stats.feedbackBreakdown.unhelpful}`);
+  lines.push(`  ${pad("Skipped")}:  ${stats.feedbackBreakdown.skipped}`);
+  lines.push("");
+  lines.push("Data range");
+  lines.push(`  ${pad("First run")}:  ${formatDate(stats.firstRun)}`);
+  lines.push(`  ${pad("Last run")}:  ${formatDate(stats.lastRun)}`);
+
+  process.stdout.write(lines.join("\n") + "\n");
 }
 
 function parseDuration(s: string): number {

@@ -169,6 +169,54 @@ Triage sends finding rule IDs, severities, messages, and (optional) page URLs to
 
 Any error in the AI step (auth, rate-limit, network, unparseable response, missing SDK) skips triage with a stderr message. The audit completes normally — exit code, JSON output, and findings list are unchanged.
 
+## Telemetry (local-only)
+
+Opt-in. Writes a JSONL log of your audit runs to `.pseolint/telemetry.jsonl`. **Nothing is sent anywhere** — no network calls, no phoning home. This is yours to inspect.
+
+### Enable
+
+```bash
+pseolint ./site --telemetry
+```
+
+Or in `pseolint.config.ts`:
+```ts
+export default {
+  telemetry: { enabled: true },
+};
+```
+
+### What gets recorded
+
+Counts only — no URLs, no page content, no API keys:
+
+- Audit: `runId`, `timestamp`, `durationMs`, `score`, `pageCount`, `findingCount`, optional `cacheStats`, optional `triage` metadata (model, token counts, cache hit, cost estimate).
+- Feedback: `runId`, `timestamp`, `rating`.
+
+### View
+
+```bash
+pseolint stats            # pretty summary
+pseolint stats --json     # machine-readable
+```
+
+### Triage feedback
+
+When AI triage runs, you'll see a one-line prompt after the section:
+```
+Was this triage helpful? [y/n/skip]
+```
+Skippable. Suppress with `--no-telemetry-prompt` or `telemetry.prompt: false`.
+
+In CI (no TTY), the prompt auto-skips. Pass `--triage-feedback helpful|unhelpful` to record a rating non-interactively.
+
+### Share
+
+```bash
+pseolint stats-export /tmp/tel.jsonl
+```
+Copies your file so you can inspect it before sharing. No automatic upload.
+
 ## Documentation
 
 See the full documentation at [github.com/ouranos-labs/pseolint](https://github.com/ouranos-labs/pseolint).
