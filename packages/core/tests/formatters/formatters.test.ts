@@ -184,3 +184,61 @@ describe("formatHtml", () => {
     expect(output).toContain("</html>");
   });
 });
+
+describe("console formatter \u2014 triage", () => {
+  const baseSummary: AuditSummary = {
+    score: 80,
+    categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+    pageCount: 10,
+    findings: [],
+  };
+
+  it("renders nothing when triage absent", () => {
+    const out = formatConsole(baseSummary);
+    expect(out).not.toContain("AI Triage");
+  });
+
+  it("renders triage section with rootCauses sorted by fixOrder", () => {
+    const summary: AuditSummary = {
+      ...baseSummary,
+      triage: {
+        rootCauses: [
+          {
+            label: "Second",
+            findingsCount: 5,
+            affectedRuleIds: ["x/y"],
+            severity: "warning",
+            fixOrder: 2,
+            rationale: "Do this second.",
+            relatedFindingIds: [],
+          },
+          {
+            label: "First",
+            findingsCount: 10,
+            affectedRuleIds: ["a/b"],
+            severity: "error",
+            fixOrder: 1,
+            rationale: "Do this first.",
+            relatedFindingIds: [],
+          },
+        ],
+        narrative: "Fix the template.",
+        modelUsed: "claude-sonnet-4-6",
+        providerId: "anthropic",
+        tokenUsage: { input: 47000, output: 1200 },
+        estimatedCostUsd: 0.14,
+        cacheHit: false,
+        promptVersion: "1.0.0",
+        truncatedInput: false,
+      },
+    };
+    const out = formatConsole(summary, { noColor: true });
+    expect(out).toContain("AI Triage");
+    expect(out).toContain("claude-sonnet-4-6");
+    // First (fixOrder 1) appears before Second (fixOrder 2)
+    expect(out.indexOf("1. First")).toBeLessThan(out.indexOf("2. Second"));
+    expect(out).toContain("Fix the template.");
+    expect(out).toContain("47,000 input");
+    expect(out).toContain("est $0.14");
+  });
+});

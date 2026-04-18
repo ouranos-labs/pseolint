@@ -69,6 +69,32 @@ function shortenUrl(url: string): string {
   }
 }
 
+function renderTriageSection(triage: AuditSummary["triage"]): string {
+  if (!triage) return "";
+  const lines: string[] = [];
+  const cacheLabel = triage.cacheHit ? "cached" : "cache miss";
+  lines.push(`\n\u2500\u2500\u2500 AI Triage (${triage.modelUsed}, ${cacheLabel}) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`);
+  lines.push(`Top ${triage.rootCauses.length} root causes:`);
+  const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
+  for (const cause of sorted) {
+    lines.push(`  ${cause.fixOrder}. ${cause.label} [${cause.severity}, ${cause.findingsCount} findings]`);
+    for (const sentence of cause.rationale.split(/(?<=\.)\s+/)) {
+      lines.push(`     ${sentence}`);
+    }
+  }
+  if (triage.narrative) {
+    lines.push("");
+    lines.push(`Narrative: ${triage.narrative}`);
+  }
+  const cost = triage.estimatedCostUsd !== undefined ? ` \u2022 est $${triage.estimatedCostUsd.toFixed(2)}` : "";
+  lines.push("");
+  lines.push(
+    `${triage.tokenUsage.input.toLocaleString("en-US")} input / ${triage.tokenUsage.output.toLocaleString("en-US")} output tokens${cost} \u2022 ${cacheLabel}`,
+  );
+  lines.push("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+  return lines.join("\n");
+}
+
 export interface ConsoleFormatOptions {
   noColor?: boolean;
 }
@@ -114,6 +140,13 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
       const gColor = scoreColor(value);
       lines.push(`  ${name.padEnd(15)} ${gColor}${bar(value)}${RESET} ${value} (${count} pages)`);
     }
+    lines.push("");
+  }
+
+  // AI Triage section (between summary and findings)
+  const triageSection = renderTriageSection(summary.triage);
+  if (triageSection) {
+    lines.push(triageSection);
     lines.push("");
   }
 
