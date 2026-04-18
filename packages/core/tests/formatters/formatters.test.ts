@@ -209,6 +209,55 @@ describe("formatHtml", () => {
     expect(output).toContain("<style>");
     expect(output).toContain("</html>");
   });
+
+  it("renders AI triage section in HTML output", () => {
+    const summary: AuditSummary = {
+      score: 80,
+      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      pageCount: 10,
+      findings: [],
+      triage: {
+        rootCauses: [
+          { label: "Templating", findingsCount: 100, affectedRuleIds: ["spam/x"], severity: "warning", fixOrder: 1, rationale: "Fix it.", relatedFindingIds: [] },
+        ],
+        narrative: "Issues found.",
+        modelUsed: "claude-sonnet-4-6",
+        providerId: "anthropic",
+        tokenUsage: { input: 1000, output: 200 },
+        cacheHit: false,
+        promptVersion: "1.0.0",
+        truncatedInput: false,
+      },
+    };
+    const out = formatHtml(summary);
+    expect(out).toContain('<section class="ai-triage">');
+    expect(out).toContain("Templating");
+    expect(out).toContain("Issues found.");
+  });
+
+  it("escapes HTML in triage label and rationale", () => {
+    const summary: AuditSummary = {
+      score: 80,
+      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      pageCount: 10,
+      findings: [],
+      triage: {
+        rootCauses: [
+          { label: "<script>alert(1)</script>", findingsCount: 1, affectedRuleIds: ["x"], severity: "warning", fixOrder: 1, rationale: "<b>x</b>", relatedFindingIds: [] },
+        ],
+        narrative: "n",
+        modelUsed: "m",
+        providerId: "anthropic",
+        tokenUsage: { input: 0, output: 0 },
+        cacheHit: false,
+        promptVersion: "1.0.0",
+        truncatedInput: false,
+      },
+    };
+    const out = formatHtml(summary);
+    expect(out).not.toContain("<script>alert(1)</script>");
+    expect(out).toContain("&lt;script&gt;");
+  });
 });
 
 describe("console formatter \u2014 triage", () => {
