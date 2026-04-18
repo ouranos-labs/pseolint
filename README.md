@@ -8,6 +8,16 @@ Every finding includes an **actionable fix** backed by a **Google documentation 
 
 **ESLint for programmatic SEO.**
 
+## What's new in v0.2.0
+
+- **AI triage** — turn 800 findings into 3 ranked root causes. Opt-in via `--ai`, pluggable across 8 providers (Anthropic, OpenAI, Google, Mistral, Groq, xAI, Cohere, local Ollama).
+- **Cost safety** — `--ai-max-cost 0.50` and `--ai-daily-budget 5.00` make running triage in CI bill-safe. Pre-flight estimate printed before every call.
+- **HTTP cache + delta audits** — `--cache` + `--since` means re-audits cost near-zero egress. Honors `ETag` / `Last-Modified` 304s.
+- **Local telemetry** — `--telemetry` writes a JSONL log (counts only, zero network). `pseolint stats` shows your success rate, spend, and feedback ratio.
+- **MCP server** — audit sites directly from Claude / Cursor / Copilot via the `@pseolint/mcp` tool.
+
+See [CHANGELOG.md](./CHANGELOG.md) for the full list.
+
 ## Quick Start
 
 ```bash
