@@ -2,6 +2,16 @@
 
 Changelog for `pseolint`, `@pseolint/core`, and `@pseolint/mcp`. All three packages version together.
 
+## 0.2.1 — 2026-04-18
+
+### Fixed
+
+- **Daily-budget cache-hit double-count.** `todayTriageSpendUsd` now excludes records where `triage.cacheHit === true`. Cache hits don't incur real API spend, so they must not count against `--ai-daily-budget`. Without this fix, re-running the same audit multiple times per day would over-report spend and falsely trip the budget cap.
+
+### Documentation
+
+- Clarified that `--ai-daily-budget` uses **UTC calendar day** for its rollover window. Users in non-UTC timezones see "today" roll over at their local offset from `00:00 UTC`.
+
 ## 0.2.0 — 2026-04-18
 
 ### Added

@@ -274,4 +274,24 @@ describe("todayTriageSpendUsd", () => {
     const now = new Date("2026-04-18T23:00:00.000Z");
     expect(await todayTriageSpendUsd(path, now)).toBeCloseTo(0.15, 6);
   });
+
+  it("excludes cache-hit records from spend (no API call, no real cost)", async () => {
+    const path = join(dir, "telemetry.jsonl");
+    const record = (ts: string, cost: number, cacheHit: boolean): AuditRecord => ({
+      type: "audit", schemaVersion: 1, runId: "0123456789abcdef",
+      timestamp: ts, durationMs: 100, score: 50, pageCount: 1, findingCount: 1,
+      triage: {
+        success: true, rootCauseCount: 1,
+        providerId: "anthropic", modelId: "m",
+        cacheHit, tokenUsage: { input: 0, output: 0 },
+        estimatedCostUsd: cost, truncatedInput: false,
+      },
+    });
+    await appendTelemetryRecord(path, record("2026-04-18T05:00:00.000Z", 0.05, false)); // real call
+    await appendTelemetryRecord(path, record("2026-04-18T10:00:00.000Z", 0.05, true));  // cached rerun — $0
+    await appendTelemetryRecord(path, record("2026-04-18T15:00:00.000Z", 0.05, true));  // cached rerun — $0
+    const now = new Date("2026-04-18T23:00:00.000Z");
+    // Only the real call counts, not the two cache hits
+    expect(await todayTriageSpendUsd(path, now)).toBeCloseTo(0.05, 6);
+  });
 });

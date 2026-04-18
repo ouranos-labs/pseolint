@@ -98,6 +98,14 @@ export function aggregateTelemetry(
  * Sum estimated USD cost for successful triages that fell on the given UTC date
  * (defaults to today). Used to enforce a daily budget before a new triage call.
  * Returns 0 when the telemetry file is missing or empty.
+ *
+ * **Cache hits are excluded** — they did not incur a real API call, so they must
+ * not count toward today's spend. Without this filter, re-running the same audit
+ * multiple times per day would over-report spend and falsely trip a budget cap.
+ *
+ * The "UTC day" window is a calendar day in UTC (YYYY-MM-DD from the timestamp).
+ * Users in non-UTC timezones see "today" roll over at their local time offset
+ * from UTC midnight — documented in the README.
  */
 export async function todayTriageSpendUsd(
   telemetryPath: string,
@@ -109,6 +117,7 @@ export async function todayTriageSpendUsd(
   for (const r of records) {
     if (r.type !== "audit") continue;
     if (!r.triage?.success) continue;
+    if (r.triage.cacheHit) continue; // cache hits are not real API spend
     if (r.triage.estimatedCostUsd === undefined) continue;
     if (!r.timestamp.startsWith(utcDay)) continue;
     total += r.triage.estimatedCostUsd;
