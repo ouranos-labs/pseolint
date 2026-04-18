@@ -46,6 +46,14 @@ interface CliOptions {
   state?: string | boolean;
   since: boolean;
   exitOnRegression: boolean;
+  ai?: boolean;
+  aiProvider?: "anthropic" | "ollama";
+  aiModel?: string;
+  aiEndpoint?: string;
+  aiMaxTokens: number;
+  aiCacheTtl: string;
+  aiCache: boolean;
+  aiSuggest: boolean;
 }
 
 export async function runCli(
@@ -85,6 +93,14 @@ export async function runCli(
     .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
     .option("--since", "Delta mode: audit only URLs changed since prior --state (requires --state)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
+    .option("--ai", "Enable AI triage of findings")
+    .option("--ai-provider <id>", "AI provider: anthropic | ollama (default: auto-detect)")
+    .option("--ai-model <name>", "AI model name (overrides provider default)")
+    .option("--ai-endpoint <url>", "AI endpoint (Ollama only; default: http://localhost:11434)")
+    .option("--ai-max-tokens <n>", "Input token cap per triage call", (v) => parseInt(v, 10), 60000)
+    .option("--ai-cache-ttl <duration>", "Triage cache TTL (e.g. 30d, 12h, 60s)", "30d")
+    .option("--no-ai-cache", "Bypass AI triage cache for this run")
+    .option("--no-ai-suggest", "Suppress AI discovery hint")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)");
 
   program.parse(args, { from: "user" });
@@ -154,6 +170,31 @@ export async function runCli(
       since: Boolean(opts.since),
       exitOnRegression: Boolean(opts.exitOnRegression),
     };
+  }
+
+  // AI flags
+  let aiCache: { ttlMs: number } | false;
+  try {
+    aiCache = opts.aiCache === false ? false : { ttlMs: parseDuration(opts.aiCacheTtl) };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Error: ${message}`);
+    return 1;
+  }
+
+  if (opts.ai) {
+    cliFlags.ai = {
+      enabled: true,
+      provider: opts.aiProvider,
+      model: opts.aiModel,
+      endpoint: opts.aiEndpoint,
+      maxInputTokens: opts.aiMaxTokens,
+      suggest: opts.aiSuggest !== false,
+      cache: aiCache,
+    };
+  } else if (opts.aiSuggest === false) {
+    // allow suppressing the hint without enabling AI
+    cliFlags.ai = { suggest: false };
   }
 
   const options = mergeOptions(configFile, cliFlags);

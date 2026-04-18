@@ -80,6 +80,15 @@ export interface CliFlags {
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
+  ai?: {
+    enabled?: boolean;
+    provider?: "anthropic" | "ollama";
+    model?: string;
+    endpoint?: string;
+    maxInputTokens?: number;
+    suggest?: boolean;
+    cache?: { ttlMs?: number } | false;
+  };
 }
 
 export function mergeOptions(
@@ -97,5 +106,8 @@ export function mergeOptions(
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
+  if (cliFlags.ai !== undefined) {
+    result.ai = { ...result.ai, ...cliFlags.ai };
+  }
   return result;
 }
