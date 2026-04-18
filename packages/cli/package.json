@@ -1,6 +1,6 @@
 {
   "name": "pseolint",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Programmatic SEO linter CLI — SpamBrain-proof your pSEO before you publish",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
