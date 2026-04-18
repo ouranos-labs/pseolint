@@ -51,6 +51,8 @@ interface CliOptions {
   aiModel?: string;
   aiEndpoint?: string;
   aiMaxTokens: number;
+  aiMaxCost?: number;
+  aiDailyBudget?: number;
   aiCacheTtl: string;
   aiCache: boolean;
   aiSuggest: boolean;
