@@ -55,6 +55,23 @@ const auditOptionsSchema = z.object({
   }).optional(),
   samplingStrategy: z.enum(["stratified", "random"]).optional(),
   maxPerTemplate: z.number().optional(),
+  ai: z.object({
+    enabled: z.boolean().optional(),
+    provider: z.enum(["anthropic", "ollama"]).optional(),
+    model: z.string().optional(),
+    endpoint: z.string().optional(),
+    apiKey: z.string().optional(),
+    maxInputTokens: z.number().optional(),
+    maxOutputTokens: z.number().optional(),
+    suggest: z.boolean().optional(),
+    cache: z.union([
+      z.object({
+        ttlMs: z.number().optional(),
+        dir: z.string().optional(),
+      }),
+      z.literal(false),
+    ]).optional(),
+  }).optional(),
 });
 
 export async function loadConfig(): Promise<AuditOptions> {
