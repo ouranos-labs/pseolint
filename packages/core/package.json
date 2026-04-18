@@ -33,18 +33,34 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.0",
     "ai": "^5.0.0",
     "cheerio": "^1.2.0",
-    "ollama-ai-provider-v2": "^1.0.0",
     "zod": "^4.3.6"
   },
   "peerDependencies": {
-    "playwright-core": ">=1.40.0"
+    "playwright-core": ">=1.40.0",
+    "@ai-sdk/anthropic": "^2.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/google": "^2.0.0",
+    "@ai-sdk/mistral": "^2.0.0",
+    "@ai-sdk/groq": "^2.0.0",
+    "@ai-sdk/xai": "^2.0.0",
+    "@ai-sdk/cohere": "^2.0.0",
+    "ollama-ai-provider-v2": "^1.0.0"
   },
   "peerDependenciesMeta": {
-    "playwright-core": {
-      "optional": true
-    }
+    "playwright-core": { "optional": true },
+    "@ai-sdk/anthropic": { "optional": true },
+    "@ai-sdk/openai": { "optional": true },
+    "@ai-sdk/google": { "optional": true },
+    "@ai-sdk/mistral": { "optional": true },
+    "@ai-sdk/groq": { "optional": true },
+    "@ai-sdk/xai": { "optional": true },
+    "@ai-sdk/cohere": { "optional": true },
+    "ollama-ai-provider-v2": { "optional": true }
+  },
+  "devDependencies": {
+    "@ai-sdk/anthropic": "^2.0.0",
+    "ollama-ai-provider-v2": "^1.0.0"
   }
 }

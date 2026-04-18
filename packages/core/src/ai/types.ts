@@ -1,5 +1,4 @@
 import type { Severity } from "../types.js";
-import type { ProviderId } from "./adapters/index.js";
 
 export interface TokenUsage {
   input: number;
@@ -20,7 +19,7 @@ export interface TriageResult {
   rootCauses: RootCause[];
   narrative: string;
   modelUsed: string;
-  providerId: ProviderId;
+  providerId: string;
   tokenUsage: TokenUsage;
   estimatedCostUsd?: number;
   cacheHit: boolean;

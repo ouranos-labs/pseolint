@@ -25,7 +25,7 @@ export const cacheStatsSchema = z
 export const triageTelemetrySchema = z
   .object({
     rootCauseCount: z.number().int().nonnegative(),
-    providerId: z.enum(["anthropic", "ollama"]),
+    providerId: z.string(),
     modelId: z.string(),
     cacheHit: z.boolean(),
     tokenUsage: tokenUsageSchema,
