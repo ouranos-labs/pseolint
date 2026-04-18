@@ -1,20 +1,40 @@
 import { createHash } from "node:crypto";
+import { generateObject, type LanguageModel } from "ai";
+import { z } from "zod";
 import type { RuleResult } from "../types.js";
-import type { LlmAdapter, TriageResult } from "./types.js";
-import { AdapterError } from "./types.js";
+import type { TriageResult } from "./types.js";
 import {
   PROMPT_VERSION,
   MAX_FINDINGS_IN_PROMPT,
   assignFindingId,
   buildPromptRequest,
-  parseAndValidateTriageJson,
 } from "./prompt.js";
 import { readTriageCache, writeTriageCache, triageCacheKey } from "./cache.js";
 import { estimateCostUsd } from "./cost.js";
+import type { ProviderId } from "./adapters/index.js";
+
+const SEVERITIES = ["info", "warning", "error", "critical"] as const;
+
+const rootCauseSchema = z.object({
+  label: z.string().min(1).max(80),
+  findingsCount: z.number().int().nonnegative(),
+  affectedRuleIds: z.array(z.string()),
+  severity: z.enum(SEVERITIES),
+  fixOrder: z.number().int().min(1),
+  rationale: z.string(),
+  relatedFindingIds: z.array(z.string()),
+});
+
+const triagePayloadSchema = z.object({
+  rootCauses: z.array(rootCauseSchema),
+  narrative: z.string(),
+});
 
 export interface TriageOptions {
   enabled: boolean;
-  adapter: LlmAdapter;
+  model: LanguageModel;
+  providerId: ProviderId;
+  modelId: string;
   maxInputTokens?: number;
   maxOutputTokens?: number;
   cache?: { dir: string; ttlMs: number } | false;
@@ -34,6 +54,11 @@ function hashFindings(findings: RuleResult[]): string {
   return createHash("sha256").update(ids.join("|")).digest("hex");
 }
 
+/** Rough token estimate: ~4 chars per token. Used only for the pre-flight cap. */
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 4);
+}
+
 export async function triageFindings(
   findings: RuleResult[],
   pageCount: number,
@@ -47,7 +72,7 @@ export async function triageFindings(
   const truncatedInput = findings.length > MAX_FINDINGS_IN_PROMPT;
 
   const maxInputTokens = options.maxInputTokens ?? DEFAULT_MAX_INPUT_TOKENS;
-  const estimate = options.adapter.estimateInputTokens(req);
+  const estimate = estimateTokens(req.system + req.user);
   if (estimate > maxInputTokens) {
     return { skipReason: `pre-flight token estimate ${estimate} exceeds cap ${maxInputTokens}` };
   }
@@ -57,7 +82,7 @@ export async function triageFindings(
 
   const cacheKey = triageCacheKey({
     findingsHash: hashFindings(findings),
-    model: options.adapter.model,
+    model: options.modelId,
     promptVersion: PROMPT_VERSION,
   });
 
@@ -72,36 +97,46 @@ export async function triageFindings(
     }
   }
 
-  let response;
+  let generated;
   try {
-    response = await options.adapter.chat(req, {
+    generated = await generateObject({
+      model: options.model,
+      system: req.system,
+      prompt: req.user,
+      schema: triagePayloadSchema,
       maxOutputTokens: options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
-      signal: options.signal,
+      abortSignal: options.signal,
     });
   } catch (e) {
-    if (e instanceof AdapterError) {
-      return { skipReason: `${e.kind}: ${e.message}` };
+    const err = e as { name?: string; message?: string };
+    if (err?.name === "AbortError" || (err?.message && /abort/i.test(err.message))) {
+      return { skipReason: "aborted during LLM call" };
     }
-    if (e instanceof Error && (e.name === "AbortError" || /abort/i.test(e.message))) {
-      return { skipReason: "aborted during adapter call" };
-    }
-    return { skipReason: `unexpected adapter error: ${(e as Error).message}` };
+    return { skipReason: `LLM call failed: ${err?.message ?? String(e)}` };
   }
 
-  let parsed;
-  try {
-    parsed = parseAndValidateTriageJson(response.text, validIds);
-  } catch (e) {
-    return { skipReason: `invalid LLM response: ${(e as Error).message}` };
+  // Validate relatedFindingIds reference known findings (semantic check
+  // beyond the structural schema enforcement performed by generateObject).
+  for (const [i, c] of generated.object.rootCauses.entries()) {
+    for (const id of c.relatedFindingIds) {
+      if (!validIds.has(id)) {
+        return { skipReason: `LLM returned unknown finding id at rootCauses[${i}]: ${id}` };
+      }
+    }
   }
+
+  const usage = {
+    input: generated.usage.inputTokens ?? 0,
+    output: generated.usage.outputTokens ?? 0,
+  };
 
   const result: TriageResult = {
-    rootCauses: parsed.rootCauses,
-    narrative: parsed.narrative,
-    modelUsed: options.adapter.model,
-    providerId: options.adapter.id,
-    tokenUsage: response.usage,
-    estimatedCostUsd: estimateCostUsd(options.adapter.id, options.adapter.model, response.usage),
+    rootCauses: generated.object.rootCauses,
+    narrative: generated.object.narrative,
+    modelUsed: options.modelId,
+    providerId: options.providerId,
+    tokenUsage: usage,
+    estimatedCostUsd: estimateCostUsd(options.providerId, options.modelId, usage),
     cacheHit: false,
     promptVersion: PROMPT_VERSION,
     truncatedInput,

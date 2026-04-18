@@ -1,4 +1,5 @@
-import type { ProviderId, TokenUsage } from "./types.js";
+import type { ProviderId } from "./adapters/index.js";
+import type { TokenUsage } from "./types.js";
 
 interface ModelPricing {
   inputPerM: number;
