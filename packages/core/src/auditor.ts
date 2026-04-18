@@ -42,6 +42,13 @@ import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
 import { triageFindings } from "./ai/triage.js";
 import { createLanguageModel } from "./ai/adapters/index.js";
+import { promptTriageFeedback } from "./ai/feedback-prompt.js";
+import {
+  generateRunId,
+  appendTelemetryRecord,
+  type AuditRecord,
+  type FeedbackRecord,
+} from "./telemetry/index.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
 import { stratifiedSample } from "./stratified-sample.js";
@@ -765,6 +772,8 @@ async function loadPagesFromSource(
 }
 
 export async function auditSource(source: string, options?: AuditOptions): Promise<AuditSummary> {
+  const runId = generateRunId();
+  const runStartedAt = Date.now();
   const concurrency = options?.concurrency ?? 5;
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
@@ -1125,6 +1134,59 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         console.error(`[ai-triage] skipped: ${e.message}`);
       } else {
         console.error(`[ai-triage] skipped: unknown error`);
+      }
+    }
+  }
+
+  if (options?.telemetry?.enabled) {
+    const telemetryPath = options.telemetry.path ?? ".pseolint/telemetry.jsonl";
+
+    const auditRecord: AuditRecord = {
+      type: "audit",
+      schemaVersion: 1,
+      runId,
+      timestamp: new Date().toISOString(),
+      durationMs: Date.now() - runStartedAt,
+      score: summary.score,
+      pageCount: summary.pageCount,
+      findingCount: summary.findings.length,
+      ...(summary.rawFindingCount !== undefined && { rawFindingCount: summary.rawFindingCount }),
+      ...(summary.templateDetected !== undefined && { templateDetected: summary.templateDetected }),
+      ...(summary.cacheStats && { cacheStats: summary.cacheStats }),
+      ...(summary.triage && {
+        triage: {
+          rootCauseCount: summary.triage.rootCauses.length,
+          providerId: summary.triage.providerId,
+          modelId: summary.triage.modelUsed,
+          cacheHit: summary.triage.cacheHit,
+          tokenUsage: summary.triage.tokenUsage,
+          ...(summary.triage.estimatedCostUsd !== undefined && {
+            estimatedCostUsd: summary.triage.estimatedCostUsd,
+          }),
+          truncatedInput: summary.triage.truncatedInput,
+        },
+      }),
+    };
+
+    await appendTelemetryRecord(telemetryPath, auditRecord);
+
+    // Feedback: only if triage ran
+    if (summary.triage) {
+      let rating: "helpful" | "unhelpful" | "skipped" | undefined;
+      if (options.telemetry.feedback) {
+        rating = options.telemetry.feedback;
+      } else if (options.telemetry.prompt !== false) {
+        rating = await promptTriageFeedback();
+      }
+      if (rating) {
+        const feedbackRecord: FeedbackRecord = {
+          type: "feedback",
+          schemaVersion: 1,
+          runId,
+          timestamp: new Date().toISOString(),
+          rating,
+        };
+        await appendTelemetryRecord(telemetryPath, feedbackRecord);
       }
     }
   }
