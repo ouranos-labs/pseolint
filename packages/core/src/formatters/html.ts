@@ -43,6 +43,28 @@ function shortenUrl(url: string): string {
   try { return new URL(url).pathname; } catch { return url; }
 }
 
+function renderTriageHtml(triage: NonNullable<AuditSummary["triage"]>): string {
+  const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
+  const cost = triage.estimatedCostUsd !== undefined ? `, est $${triage.estimatedCostUsd.toFixed(2)}` : "";
+  const cacheLabel = triage.cacheHit ? "cached" : "cache miss";
+  const causes = sorted.map((c) => `
+    <li>
+      <h3>${c.fixOrder}. ${escapeHtml(c.label)}</h3>
+      <p class="meta">${escapeHtml(c.severity)} &middot; ${c.findingsCount} findings &middot; ${c.affectedRuleIds.map(escapeHtml).join(", ")}</p>
+      <p>${escapeHtml(c.rationale)}</p>
+    </li>`).join("\n");
+
+  return `
+<section class="ai-triage">
+  <header>
+    <h2>AI Triage</h2>
+    <p class="meta">${escapeHtml(triage.modelUsed)} (${cacheLabel}) &mdash; ${triage.tokenUsage.input.toLocaleString()} in / ${triage.tokenUsage.output.toLocaleString()} out${cost}</p>
+  </header>
+  ${triage.narrative ? `<p class="narrative">${escapeHtml(triage.narrative)}</p>` : ""}
+  <ol>${causes}</ol>
+</section>`;
+}
+
 export function formatHtml(summary: AuditSummary): string {
   const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) {
@@ -165,6 +187,8 @@ ${summary.groupScores && summary.groupPageCounts ? `
     return `<tr><td>${escapeHtml(name)}</td><td style="text-align:right">${value}</td><td style="text-align:right">${count}</td></tr>`;
   }).join("\n")}</tbody>
 </table>` : ""}
+
+${summary.triage ? renderTriageHtml(summary.triage) : ""}
 
 <h2>Findings</h2>
 ${findingsSections}
