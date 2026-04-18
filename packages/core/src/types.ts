@@ -105,13 +105,15 @@ export interface TelemetryOptions {
 /** Options for AI triage post-processing. */
 export interface AiOptions {
   enabled?: boolean;
-  provider?: "anthropic" | "ollama";
+  /** Provider id, e.g. "anthropic" | "openai" | "google" | "ollama". Any string resolved against the adapter registry. */
+  provider?: string;
   model?: string;
+  /** Only meaningful for Ollama. Ignored by cloud providers. */
   endpoint?: string;
   apiKey?: string;
   maxInputTokens?: number;
   maxOutputTokens?: number;
-  /** Print one-line discovery hint when ANTHROPIC_API_KEY is set but --ai is not. Default: true. */
+  /** Print one-line discovery hint when an AI key is detected but --ai is not set. Default: true. */
   suggest?: boolean;
   cache?: { ttlMs?: number; dir?: string } | false;
 }

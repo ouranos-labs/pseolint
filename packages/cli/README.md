@@ -122,32 +122,47 @@ pseolint ./out
 
 Turn long findings lists into ranked root causes. Opt-in; off by default.
 
-### Quick start (cloud)
+### Supported providers
+
+| Provider | SDK package                    | Env var                            |
+|----------|--------------------------------|------------------------------------|
+| anthropic | @ai-sdk/anthropic (pre-installed) | ANTHROPIC_API_KEY                |
+| openai    | @ai-sdk/openai                 | OPENAI_API_KEY                     |
+| google    | @ai-sdk/google                 | GOOGLE_GENERATIVE_AI_API_KEY       |
+| mistral   | @ai-sdk/mistral                | MISTRAL_API_KEY                    |
+| groq      | @ai-sdk/groq                   | GROQ_API_KEY                       |
+| xai       | @ai-sdk/xai                    | XAI_API_KEY                        |
+| cohere    | @ai-sdk/cohere                 | COHERE_API_KEY                     |
+| ollama    | ollama-ai-provider-v2 (pre-installed) | — (local, no key)            |
+
+Install only the providers you use: `npm install @ai-sdk/openai`.
+
+### Quick start
 
 ```bash
+# Auto-detect from env vars
 export ANTHROPIC_API_KEY=sk-ant-...
-pseolint https://example.com --ai
-```
+pseolint ./out --ai
 
-### Quick start (local, zero data leaves your machine)
+# Pick explicitly
+pseolint ./out --ai --ai-provider openai --ai-model gpt-4o-mini
 
-```bash
-ollama pull llama3.1:8b
+# Local + private
 ollama serve &
-pseolint https://example.com --ai --ai-provider ollama
+pseolint ./out --ai --ai-provider ollama --ai-model llama3.1:8b
 ```
 
 ### Flags
 
 ```
 --ai                          Enable AI triage
---ai-provider <id>            anthropic | ollama (default: auto-detect)
---ai-model <name>             Override default model
---ai-endpoint <url>           Override Ollama endpoint (default: http://localhost:11434)
---ai-max-tokens <n>           Input token cap per triage call (default: 60000)
---ai-cache-ttl <duration>     Triage cache TTL (default: 30d)
---no-ai-cache                 Bypass cache for this run
---no-ai-suggest               Suppress discovery hint when key detected
+--ai-provider <id>            Provider (see table above)
+--ai-model <name>             Override default model for the chosen provider
+--ai-endpoint <url>           Ollama endpoint (default http://localhost:11434)
+--ai-max-tokens <n>           Input cap (default 60000)
+--ai-cache-ttl <duration>     Triage cache TTL (default 30d)
+--no-ai-cache                 Bypass cache
+--no-ai-suggest               Suppress discovery hint
 ```
 
 ### How it works

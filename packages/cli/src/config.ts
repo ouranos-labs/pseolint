@@ -57,7 +57,7 @@ const auditOptionsSchema = z.object({
   maxPerTemplate: z.number().optional(),
   ai: z.object({
     enabled: z.boolean().optional(),
-    provider: z.enum(["anthropic", "ollama"]).optional(),
+    provider: z.string().optional(),
     model: z.string().optional(),
     endpoint: z.string().optional(),
     apiKey: z.string().optional(),
@@ -105,7 +105,7 @@ export interface CliFlags {
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
   ai?: {
     enabled?: boolean;
-    provider?: "anthropic" | "ollama";
+    provider?: string;
     model?: string;
     endpoint?: string;
     maxInputTokens?: number;

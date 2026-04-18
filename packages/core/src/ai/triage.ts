@@ -11,7 +11,6 @@ import {
 } from "./prompt.js";
 import { readTriageCache, writeTriageCache, triageCacheKey } from "./cache.js";
 import { estimateCostUsd } from "./cost.js";
-import type { ProviderId } from "./adapters/index.js";
 
 const SEVERITIES = ["info", "warning", "error", "critical"] as const;
 
@@ -33,7 +32,7 @@ const triagePayloadSchema = z.object({
 export interface TriageOptions {
   enabled: boolean;
   model: LanguageModel;
-  providerId: ProviderId;
+  providerId: string;
   modelId: string;
   maxInputTokens?: number;
   maxOutputTokens?: number;

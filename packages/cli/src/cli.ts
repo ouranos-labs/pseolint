@@ -47,7 +47,7 @@ interface CliOptions {
   since: boolean;
   exitOnRegression: boolean;
   ai?: boolean;
-  aiProvider?: "anthropic" | "ollama";
+  aiProvider?: string;
   aiModel?: string;
   aiEndpoint?: string;
   aiMaxTokens: number;
@@ -99,7 +99,10 @@ export async function runCli(
     .option("--since", "Delta mode: audit only URLs changed since prior --state (requires --state)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--ai", "Enable AI triage of findings")
-    .option("--ai-provider <id>", "AI provider: anthropic | ollama (default: auto-detect)")
+    .option(
+      "--ai-provider <id>",
+      "AI provider: anthropic | openai | google | mistral | groq | xai | cohere | ollama (default: auto-detect)",
+    )
     .option("--ai-model <name>", "AI model name (overrides provider default)")
     .option("--ai-endpoint <url>", "AI endpoint (Ollama only; default: http://localhost:11434)")
     .option("--ai-max-tokens <n>", "Input token cap per triage call", (v) => parseInt(v, 10), 60000)
