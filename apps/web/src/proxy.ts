@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(_req: NextRequest) {
+// Next.js 16+ renamed `middleware` -> `proxy` (file + function). This module
+// is the request proxy that sets security response headers.
+export function proxy(_req: NextRequest) {
   const res = NextResponse.next();
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
