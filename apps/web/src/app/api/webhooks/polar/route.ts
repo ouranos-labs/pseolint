@@ -1,0 +1,61 @@
+import { NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { userProfiles, users } from "@/db/schema";
+import { env } from "@/lib/env";
+import { rememberEventOnce } from "@/lib/polar";
+import { validateEvent } from "@polar-sh/sdk/webhooks";
+
+export const runtime = "nodejs";
+
+export async function POST(req: Request): Promise<Response> {
+  const rawBody = await req.text();
+  const headers = Object.fromEntries(req.headers.entries());
+
+  let event;
+  try {
+    event = validateEvent(rawBody, headers, env().POLAR_WEBHOOK_SECRET);
+  } catch {
+    return NextResponse.json({ error: "invalid signature" }, { status: 400 });
+  }
+
+  // Polar uses standardwebhooks; the webhook-id header is the unique event identifier.
+  const webhookId = headers["webhook-id"];
+  if (!webhookId) return NextResponse.json({ error: "missing webhook-id" }, { status: 400 });
+
+  const seen = await rememberEventOnce(webhookId);
+  if (!seen) return NextResponse.json({ ok: true, duplicate: true });
+
+  if (event.type === "subscription.created" || event.type === "subscription.updated") {
+    const customer = event.data.customer;
+    const email = customer?.email;
+    if (!email) return NextResponse.json({ error: "no email on event" }, { status: 400 });
+    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    if (!u) return NextResponse.json({ ok: true, note: "user not yet signed up" });
+
+    await db.insert(userProfiles).values({
+      userId: u.id, polarCustomerId: customer.id,
+      plan: event.data.status === "active" ? "pro" : "free",
+      planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null,
+    }).onConflictDoUpdate({
+      target: userProfiles.userId,
+      set: {
+        polarCustomerId: customer.id,
+        plan: event.data.status === "active" ? "pro" : "free",
+        planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null,
+      },
+    });
+  }
+
+  if (event.type === "subscription.canceled") {
+    const customer = event.data.customer;
+    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, customer.email)).limit(1);
+    if (u) {
+      await db.update(userProfiles).set({
+        planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : new Date(),
+      }).where(eq(userProfiles.userId, u.id));
+    }
+  }
+
+  return NextResponse.json({ ok: true });
+}
