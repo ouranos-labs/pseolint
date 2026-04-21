@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const config: NextConfig = {
+  serverExternalPackages: ["pseolint", "@pseolint/core"],
+  experimental: { serverActions: { bodySizeLimit: "1mb" } },
+};
 
-export default nextConfig;
+export default config;

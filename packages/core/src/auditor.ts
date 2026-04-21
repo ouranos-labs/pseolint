@@ -38,6 +38,7 @@ import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
 import { templateCoverageRule } from "./rules/spam/template-coverage.js";
 import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js";
 import { classifyPages, isRuleEnabled } from "./page-classifier.js";
+import { isRuleAllowedInDiff } from "./rules/scope.js";
 import { RULE_REFERENCES } from "./rule-references.js";
 import { enrichFindings } from "./enrich-findings.js";
 import { triageFindings } from "./ai/triage.js";
@@ -138,9 +139,11 @@ function runRulesOnPages(
   normalizeUrlOptions: NormalizeUrlOptions,
   source: string,
   entityPatterns: EntityMaskPattern[],
-  overrides?: Record<string, Record<string, unknown>>
+  overrides?: Record<string, Record<string, unknown>>,
+  mode: "full" | "diff" = "full"
 ): RuleResult[] {
   const findings: RuleResult[] = [];
+  const modeOk = (ruleId: string) => mode !== "diff" || isRuleAllowedInDiff(ruleId);
 
   const tag = (results: RuleResult[]): RuleResult[] =>
     results.map((r) => {
@@ -155,136 +158,136 @@ function runRulesOnPages(
 
   // Spam rules — always compute cross-page data, only push findings if enabled
   const nearDuplicate = nearDuplicateRule(pages, resolvedRules.nearDuplicateThreshold);
-  if (isEnabled("spam/near-duplicate")) {
+  if (isEnabled("spam/near-duplicate") && modeOk("spam/near-duplicate")) {
     findings.push(...tag(nearDuplicate.findings));
   }
 
   const entitySwap = entitySwapRule(pages, entityPatterns, resolvedRules.entitySwapThreshold);
-  if (isEnabled("spam/entity-swap")) {
+  if (isEnabled("spam/entity-swap") && modeOk("spam/entity-swap")) {
     findings.push(...tag(entitySwap.findings));
   }
 
   const thinContent = thinContentRule(pages, resolvedRules.thinContentMinWords);
-  if (isEnabled("spam/thin-content")) {
+  if (isEnabled("spam/thin-content") && modeOk("spam/thin-content")) {
     findings.push(...tag(thinContent.findings));
   }
 
-  if (isEnabled("spam/doorway-pattern")) {
+  if (isEnabled("spam/doorway-pattern") && modeOk("spam/doorway-pattern")) {
     findings.push(...tag(doorwayPatternRule(nearDuplicate.pairs, entitySwap.pairs, thinContent.thinContentUrls, pages)));
   }
 
-  if (isEnabled("spam/publication-velocity")) {
+  if (isEnabled("spam/publication-velocity") && modeOk("spam/publication-velocity")) {
     findings.push(...tag(publicationVelocityRule(pages, resolvedRules.publicationVelocityMaxPerDay)));
   }
 
-  if (isEnabled("spam/boilerplate-ratio")) {
+  if (isEnabled("spam/boilerplate-ratio") && modeOk("spam/boilerplate-ratio")) {
     findings.push(...tag(boilerplateRatioRule(pages, resolvedRules.boilerplateMaxRatio)));
   }
 
-  if (isEnabled("spam/template-diversity")) {
+  if (isEnabled("spam/template-diversity") && modeOk("spam/template-diversity")) {
     findings.push(...tag(templateDiversityRule(pages, resolvedRules.templateDiversityMinUniqueRatio)));
   }
 
-  if (isEnabled("spam/template-coverage")) {
+  if (isEnabled("spam/template-coverage") && modeOk("spam/template-coverage")) {
     findings.push(...tag(templateCoverageRule(pages, entityPatterns, resolvedRules.templateCoverageMinPages)));
   }
 
   // Content rules
-  if (isEnabled("content/unique-value")) {
+  if (isEnabled("content/unique-value") && modeOk("content/unique-value")) {
     findings.push(...tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
   }
 
-  if (isEnabled("content/heading-uniqueness")) {
+  if (isEnabled("content/heading-uniqueness") && modeOk("content/heading-uniqueness")) {
     findings.push(...tag(headingUniquenessRule(pages, entityPatterns)));
   }
 
-  if (isEnabled("content/meta-uniqueness")) {
+  if (isEnabled("content/meta-uniqueness") && modeOk("content/meta-uniqueness")) {
     findings.push(...tag(metaUniquenessRule(pages, entityPatterns, resolvedRules.metaUniquenessMinJaccard)));
   }
 
-  if (isEnabled("content/missing-author")) {
+  if (isEnabled("content/missing-author") && modeOk("content/missing-author")) {
     findings.push(...tag(missingAuthorRule(pages)));
   }
 
-  if (isEnabled("content/eeat-signals")) {
+  if (isEnabled("content/eeat-signals") && modeOk("content/eeat-signals")) {
     findings.push(...tag(eeatSignalsRule(pages)));
   }
 
   // Link rules — use the global link graph
-  if (isEnabled("links/orphan-pages")) {
+  if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {
     findings.push(...tag(orphanPagesRule(pages, inbound, rootUrl)));
   }
 
-  if (isEnabled("links/dead-ends")) {
+  if (isEnabled("links/dead-ends") && modeOk("links/dead-ends")) {
     findings.push(...tag(deadEndsRule(pages, knownUrls, rootUrl)));
   }
 
-  if (isEnabled("links/link-depth")) {
+  if (isEnabled("links/link-depth") && modeOk("links/link-depth")) {
     if (rootUrl) {
       findings.push(...tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound)));
     }
   }
 
-  if (isEnabled("links/cluster-connectivity")) {
+  if (isEnabled("links/cluster-connectivity") && modeOk("links/cluster-connectivity")) {
     findings.push(...tag(clusterConnectivityRule(pages, knownUrls)));
   }
 
-  if (isEnabled("links/hub-pages")) {
+  if (isEnabled("links/hub-pages") && modeOk("links/hub-pages")) {
     findings.push(...tag(hubPagesRule(pages, knownUrls, resolvedRules.hubPagesMinSiblings, resolvedRules.hubPagesMaxSiblings)));
   }
 
   // Tech rules
-  if (isEnabled("tech/canonical-consistency")) {
+  if (isEnabled("tech/canonical-consistency") && modeOk("tech/canonical-consistency")) {
     findings.push(...tag(canonicalConsistencyRule(pages, knownUrls, normalizeUrlOptions)));
   }
 
-  if (isEnabled("tech/canonical-noindex-conflict")) {
+  if (isEnabled("tech/canonical-noindex-conflict") && modeOk("tech/canonical-noindex-conflict")) {
     findings.push(...tag(canonicalNoindexConflictRule(pages, normalizeUrlOptions)));
   }
 
-  if (isEnabled("tech/robots-noindex-conflict")) {
+  if (isEnabled("tech/robots-noindex-conflict") && modeOk("tech/robots-noindex-conflict")) {
     findings.push(...tag(robotsNoindexConflictRule(pages, inbound)));
   }
 
-  if (isEnabled("tech/redirect-chain")) {
+  if (isEnabled("tech/redirect-chain") && modeOk("tech/redirect-chain")) {
     findings.push(...tag(redirectChainRule(pages)));
   }
 
-  if (isEnabled("tech/soft-404")) {
+  if (isEnabled("tech/soft-404") && modeOk("tech/soft-404")) {
     findings.push(...tag(soft404Rule(pages)));
   }
 
-  if (isEnabled("tech/og-completeness")) {
+  if (isEnabled("tech/og-completeness") && modeOk("tech/og-completeness")) {
     findings.push(...tag(ogCompletenessRule(pages)));
   }
 
-  if (isEnabled("tech/hreflang-consistency")) {
+  if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
     findings.push(...tag(hreflangConsistencyRule(pages, normalizeUrlOptions)));
   }
 
   // Schema rules
-  if (isEnabled("schema/json-ld-valid")) {
+  if (isEnabled("schema/json-ld-valid") && modeOk("schema/json-ld-valid")) {
     findings.push(...tag(jsonLdValidRule(pages)));
   }
 
-  if (isEnabled("schema/required-fields")) {
+  if (isEnabled("schema/required-fields") && modeOk("schema/required-fields")) {
     findings.push(...tag(requiredFieldsRule(pages)));
   }
 
-  if (isEnabled("schema/consistency")) {
+  if (isEnabled("schema/consistency") && modeOk("schema/consistency")) {
     findings.push(...tag(schemaConsistencyRule(pages)));
   }
 
   // Cannibal rules
-  if (isEnabled("cannibal/title-overlap")) {
+  if (isEnabled("cannibal/title-overlap") && modeOk("cannibal/title-overlap")) {
     findings.push(...tag(titleOverlapRule(pages, entityPatterns, resolvedRules.titleOverlapThreshold)));
   }
 
-  if (isEnabled("cannibal/keyword-collision")) {
+  if (isEnabled("cannibal/keyword-collision") && modeOk("cannibal/keyword-collision")) {
     findings.push(...tag(keywordCollisionRule(pages, resolvedRules.keywordCollisionMinShared)));
   }
 
-  if (isEnabled("cannibal/url-pattern")) {
+  if (isEnabled("cannibal/url-pattern") && modeOk("cannibal/url-pattern")) {
     findings.push(...tag(urlPatternRule(pages)));
   }
 
@@ -961,8 +964,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const groupScores: Record<string, number> = {};
   const groupPageCounts: Record<string, number> = {};
 
+  const auditMode = options?.mode ?? "full";
+
   // Site-wide rules (run once, outside group loop)
-  if (sitemapUrlSet && sitemapUrlSet.size > 0) {
+  if (sitemapUrlSet && sitemapUrlSet.size > 0 && auditMode !== "diff") {
     const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet);
     allFindings.push(...sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
 
@@ -974,11 +979,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   // Data source comparison rules
   if (options?.dataSource?.records && options.dataSource.records.length > 0) {
-    const dataFindings = [
-      ...dataBindingRule(parsedPages, options.dataSource.records),
-      ...dataIdenticalRule(parsedPages, options.dataSource.records),
-    ];
-    allFindings.push(...dataFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    if (auditMode !== "diff" || isRuleAllowedInDiff("data/missing-binding")) {
+      const dataBindingFindings = dataBindingRule(parsedPages, options.dataSource.records);
+      allFindings.push(...dataBindingFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    }
+    if (auditMode !== "diff" || isRuleAllowedInDiff("data/identical-across-pages")) {
+      const dataIdenticalFindings = dataIdenticalRule(parsedPages, options.dataSource.records);
+      allFindings.push(...dataIdenticalFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    }
   }
 
   for (const [groupName, groupPages] of classified) {
@@ -997,7 +1005,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       groupPages, groupRules, enabledCheck, groupName,
       knownUrls, adjacency, inbound, rootUrl,
       normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
-      groupConfig?.overrides
+      groupConfig?.overrides,
+      options?.mode ?? "full"
     );
 
     allFindings.push(...findings);

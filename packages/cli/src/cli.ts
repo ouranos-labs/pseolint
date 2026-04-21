@@ -153,6 +153,30 @@ export async function runCli(
       }
     });
 
+  program
+    .command("upload <report>")
+    .description("Upload an audit JSON report to the pseolint Pro ingestion endpoint")
+    .option("--token <token>", "API token (or PSEOLINT_TOKEN env var)")
+    .option("--domain-id <id>", "Domain ID to associate the report with (or PSEOLINT_DOMAIN_ID env var)")
+    .option("--endpoint <url>", "Override the API endpoint (or PSEOLINT_ENDPOINT env var)")
+    .action(async (report: string, opts: { token?: string; domainId?: string; endpoint?: string }) => {
+      const token = opts.token ?? process.env.PSEOLINT_TOKEN;
+      const domainId = opts.domainId ?? process.env.PSEOLINT_DOMAIN_ID;
+      if (!token || !domainId) {
+        process.stderr.write(
+          "missing --token or --domain-id (or PSEOLINT_TOKEN / PSEOLINT_DOMAIN_ID)\n",
+        );
+        process.exit(2);
+      }
+      try {
+        const { uploadCommand } = await import("./commands/upload.js");
+        await uploadCommand({ reportPath: report, token, domainId, endpoint: opts.endpoint });
+      } catch (err) {
+        process.stderr.write(`Error: ${(err as Error).message}\n`);
+        process.exit(1);
+      }
+    });
+
   await program.parseAsync(args, { from: "user" });
   return exitCode;
 }

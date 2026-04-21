@@ -9,3 +9,5 @@ coverage
 .DS_Store
 bun.lock
 docs/reports/*
+# Isolated worktrees for in-flight plans
+.worktrees/
