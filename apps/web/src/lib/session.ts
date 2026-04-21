@@ -12,6 +12,13 @@ export async function requireSession() {
   return session;
 }
 
+/** Thin wrapper for use in server actions — throws a plain Error when unauthenticated. */
+export async function getRequiredSession() {
+  const session = await getOptionalSession();
+  if (!session) throw new Error("Unauthorized");
+  return session;
+}
+
 const ANON_COOKIE = "pseolint_anon";
 
 export async function getOrCreateAnonSessionId(): Promise<string> {
