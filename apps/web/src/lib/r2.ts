@@ -17,6 +17,12 @@ export async function uploadReport(key: string, html: string): Promise<void> {
   }));
 }
 
+export async function uploadSummary(key: string, json: string): Promise<void> {
+  await client().send(new PutObjectCommand({
+    Bucket: env().R2_BUCKET, Key: key, Body: json, ContentType: "application/json; charset=utf-8",
+  }));
+}
+
 export async function deleteReport(key: string): Promise<void> {
   await client().send(new DeleteObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
 }
@@ -25,6 +31,19 @@ export async function signedReportUrl(key: string, expiresSeconds = 300): Promis
   return getSignedUrl(client(), new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }), { expiresIn: expiresSeconds });
 }
 
+export async function fetchSummaryJson(key: string): Promise<string | null> {
+  try {
+    const res = await client().send(new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+    return (await res.Body?.transformToString()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function reportKey(auditId: string): string {
   return `reports/${auditId}.html`;
+}
+
+export function summaryKey(auditId: string): string {
+  return `reports/${auditId}.json`;
 }
