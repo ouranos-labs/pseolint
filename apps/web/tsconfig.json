@@ -23,7 +23,6 @@
     "isolatedModules": true,
     "incremental": true,
     "noEmit": true,
-    "ignoreDeprecations": "6.0",
     "lib": [
       "dom",
       "dom.iterable",
