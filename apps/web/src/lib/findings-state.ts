@@ -2,6 +2,7 @@ import { inferUrlTemplate } from "@pseolint/core";
 import type { RuleResult, Severity } from "@pseolint/core";
 import { db } from "@/db";
 import { findingsState } from "@/db/schema";
+import { detectCms, rewriteMessageForCms } from "@/lib/cms-messages";
 
 /** Stable key for domain-scoped suppressions. */
 export function templateSignatureFor(finding: RuleResult): string {
@@ -50,9 +51,11 @@ export async function mergeFindings(
       // Keep worst severity seen in this run.
       if (SEVERITY_WEIGHT[f.severity] > SEVERITY_WEIGHT[g.severity]) g.severity = f.severity;
     } else {
+      const cms = f.pageUrl ? detectCms(f.pageUrl) : null;
+      const rewritten = rewriteMessageForCms(f.message, f.ruleId, cms);
       groups.set(key, {
         ruleId: f.ruleId, sig, severity: f.severity, count: 1,
-        message: f.message, repUrl: f.pageUrl,
+        message: rewritten, repUrl: f.pageUrl,
       });
     }
   }

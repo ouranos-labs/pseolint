@@ -47,4 +47,12 @@ describe("mergeFindings", () => {
     const row = (await db.select().from(findingsState).where(eq(findingsState.domainId, domainId)))[0];
     expect(row.status).toBe("dismissed");
   });
+
+  it("stores CMS-aware rewritten message", async () => {
+    await mergeFindings(domainId, [
+      { ruleId: "spam/thin-content", severity: "warning", message: "thin", pageUrl: "https://ex.com/collections/p/a" },
+    ], 1000);
+    const [row] = await db.select().from(findingsState).where(eq(findingsState.domainId, domainId));
+    expect(row.ruleMessageLatest).toMatch(/Webflow Collection/i);
+  });
 });
