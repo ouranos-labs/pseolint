@@ -1,7 +1,7 @@
 import { and, eq, lte } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { audits, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
+import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
 import { executeAuditInProcess } from "@/inngest/functions/run-audit";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import type { AuditSummary } from "@pseolint/core";
@@ -11,6 +11,7 @@ import { todayDateString } from "@/lib/ids";
 import { auditMode } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
 import { mergeFindings } from "@/lib/findings-state";
+import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -167,6 +168,52 @@ async function runOneMonitor(monitoredDomainId: string) {
     } catch {
       // Non-fatal: findings_state is best-effort; don't fail the whole run.
     }
+  }
+
+  // Alert gate: evaluate score delta + new error/critical combinations (Task 11).
+  // Runs after mergeFindings so firstSeenAt === lastSeenAt identifies rows new to this run.
+  try {
+    const newOnes = await db.select().from(findingsState).where(
+      and(
+        eq(findingsState.domainId, d.id),
+        eq(findingsState.status, "open"),
+        eq(findingsState.firstSeenAt, findingsState.lastSeenAt),
+      ),
+    );
+    const gate = await evaluateAlertGate({
+      domainId: d.id,
+      prevScore: d.lastScore ?? null,
+      currentScore: result.score,
+      newCombinations: newOnes.map((r) => ({
+        ruleId: r.ruleId,
+        templateSignature: r.templateSignature,
+        severity: r.severityLatest,
+      })),
+    });
+    if (gate.shouldAlert) {
+      const week = isoWeekOf(new Date());
+      for (const f of gate.firingCombinations) {
+        await db
+          .insert(alertsDedup)
+          .values({ domainId: d.id, ruleId: f.ruleId, templateSignature: f.templateSignature, isoWeek: week })
+          .onConflictDoNothing();
+      }
+      const email = await resolveRecipient(d.userId, d.alertEmail);
+      if (email) {
+        const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
+        await sendMonitoringAlertEmail({
+          to: email,
+          sourceUrl: d.sourceUrl,
+          previousScore: d.lastScore ?? null,
+          currentScore: result.score,
+          newRuleIds,
+          currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
+          reportId: audit.id,
+        });
+      }
+    }
+  } catch {
+    // Non-fatal: alert gate failure must not block the run.
   }
 }
 
