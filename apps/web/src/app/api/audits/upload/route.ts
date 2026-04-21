@@ -48,7 +48,7 @@ export async function POST(req: Request): Promise<Response> {
   try {
     parsed = BodySchema.parse(await req.json());
   } catch (e) {
-    return NextResponse.json({ error: "bad_request", detail: (e as Error).message }, { status: 400 });
+    return NextResponse.json({ error: `bad request: ${(e as Error).message}` }, { status: 400 });
   }
 
   // Ownership check: confirm the domain belongs to the token's owner.
