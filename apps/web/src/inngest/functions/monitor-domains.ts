@@ -191,25 +191,31 @@ async function runOneMonitor(monitoredDomainId: string) {
       })),
     });
     if (gate.shouldAlert) {
-      const week = isoWeekOf(new Date());
-      for (const f of gate.firingCombinations) {
-        await db
-          .insert(alertsDedup)
-          .values({ domainId: d.id, ruleId: f.ruleId, templateSignature: f.templateSignature, isoWeek: week })
-          .onConflictDoNothing();
-      }
       const email = await resolveRecipient(d.userId, d.alertEmail);
       if (email) {
-        const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
-        await sendMonitoringAlertEmail({
-          to: email,
-          sourceUrl: d.sourceUrl,
-          previousScore: d.lastScore ?? null,
-          currentScore: result.score,
-          newRuleIds,
-          currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
-          reportId: audit.id,
-        });
+        try {
+          const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
+          await sendMonitoringAlertEmail({
+            to: email,
+            sourceUrl: d.sourceUrl,
+            previousScore: d.lastScore ?? null,
+            currentScore: result.score,
+            newRuleIds,
+            currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
+            reportId: audit.id,
+          });
+          // Email succeeded — now write dedup rows so we don't re-send this week.
+          const week = isoWeekOf(new Date());
+          for (const f of gate.firingCombinations) {
+            await db
+              .insert(alertsDedup)
+              .values({ domainId: d.id, ruleId: f.ruleId, templateSignature: f.templateSignature, isoWeek: week })
+              .onConflictDoNothing();
+          }
+        } catch (e) {
+          auditLog("monitor.alert_gate.email_failed", { domainId: d.id, err: e instanceof Error ? e.message : String(e) });
+          // Do NOT write dedup rows — let the next run retry.
+        }
       }
     }
   } catch {

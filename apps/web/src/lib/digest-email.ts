@@ -32,10 +32,11 @@ export async function sendWeeklyDigestTo(userId: string, userEmail: string): Pro
 
   const html = await render(WeeklyDigestEmail({ items: top3, appUrl: env().BETTER_AUTH_URL }));
   const resend = new Resend(env().RESEND_API_KEY);
+  const n = top3.length;
   const { error } = await resend.emails.send({
     from: env().RESEND_FROM,
     to: userEmail,
-    subject: `pseolint — 3 fixes worth making this week`,
+    subject: `pseolint — ${n} fix${n === 1 ? "" : "es"} worth making this week`,
     html,
   });
   if (error) {

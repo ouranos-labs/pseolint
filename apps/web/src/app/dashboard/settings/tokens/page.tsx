@@ -12,7 +12,12 @@ export default async function TokensPage({ searchParams }: { searchParams: Promi
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/settings/tokens");
   const { issued } = await searchParams;
-  const tokens = await db.select().from(uploadTokens)
+  const tokens = await db.select({
+    id: uploadTokens.id,
+    label: uploadTokens.label,
+    createdAt: uploadTokens.createdAt,
+    lastUsedAt: uploadTokens.lastUsedAt,
+  }).from(uploadTokens)
     .where(and(eq(uploadTokens.userId, session.user.id), isNull(uploadTokens.revokedAt)))
     .orderBy(desc(uploadTokens.createdAt));
 
