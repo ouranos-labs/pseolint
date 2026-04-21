@@ -10,7 +10,8 @@
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev --parallel",
+    "build:packages": "turbo run build --filter=!@pseolint/web",
+    "dev": "turbo run dev",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

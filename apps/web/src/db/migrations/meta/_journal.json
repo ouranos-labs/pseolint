@@ -8,6 +8,20 @@
       "when": 1776554669222,
       "tag": "0000_vengeful_boom_boom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776677788306,
+      "tag": "0001_silent_devos",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776688424833,
+      "tag": "0002_typical_colonel_america",
+      "breakpoints": true
     }
   ]
 }

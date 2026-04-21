@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { realpathSync } from "node:fs";
 import { createRequire } from "node:module";
 import { writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import {
   auditSource,
   formatConsole,
@@ -396,12 +398,20 @@ function parseDuration(s: string): number {
   return n * mul;
 }
 
-// Direct execution
-const scriptUrl = `file://${process.argv[1]?.replace(/\\/g, "/")}`;
-if (
-  import.meta.url === scriptUrl ||
-  import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, "/")}`
-) {
+// Direct execution: compare real paths so global bins / npm link symlinks match import.meta.url
+function isDirectRun(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    const thisFile = realpathSync(fileURLToPath(import.meta.url));
+    const mainFile = realpathSync(entry);
+    return thisFile === mainFile;
+  } catch {
+    return false;
+  }
+}
+
+if (isDirectRun()) {
   runCli().then((code) => {
     process.exit(code);
   });

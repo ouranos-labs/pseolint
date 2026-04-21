@@ -88,4 +88,23 @@ describe("buildPromptRequest", () => {
     const req = buildPromptRequest(findings, 50);
     expect(req.user).toContain('"truncated":false');
   });
+
+  it("includes findingCountByCategory so the model can weigh threat families", () => {
+    const findings: RuleResult[] = [
+      { ruleId: "aeo/answer-first", severity: "error", message: "A", pageUrl: "u1" },
+      { ruleId: "aeo/citable-facts", severity: "warning", message: "B", pageUrl: "u2" },
+      { ruleId: "spam/thin-content", severity: "error", message: "C", pageUrl: "u3" },
+    ];
+    const req = buildPromptRequest(findings, 10);
+    expect(req.user).toContain('"findingCountByCategory"');
+    const payload = JSON.parse(req.user);
+    expect(payload.findingCountByCategory).toEqual({ aeo: 2, spam: 1 });
+  });
+
+  it("system prompt distinguishes SpamBrain penalty risk from AI Overview invisibility", () => {
+    const req = buildPromptRequest([], 10);
+    expect(req.system).toMatch(/SpamBrain/);
+    expect(req.system).toMatch(/AI Overview/);
+    expect(req.system).toMatch(/aeo\/\*/);
+  });
 });

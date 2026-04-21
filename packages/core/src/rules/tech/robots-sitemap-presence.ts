@@ -71,7 +71,29 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
  * Parses Disallow directives from the `User-agent: *` block of a robots.txt string.
  * Returns an array of raw pattern strings (e.g. "/secret", "/templates/", "/*.json").
  */
-function parseDisallowPatterns(robotsTxt: string): string[] {
+/** Parse `Crawl-delay: N` from the `User-agent: *` block. Returns seconds, or 0 if unset. */
+export function parseCrawlDelaySeconds(robotsTxt: string): number {
+  const lines = robotsTxt.split(/\r?\n/);
+  let inWildcardBlock = false;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    if (/^user-agent\s*:/i.test(line)) {
+      const value = line.replace(/^user-agent\s*:\s*/i, "").trim();
+      inWildcardBlock = value === "*";
+      continue;
+    }
+    if (!inWildcardBlock) continue;
+    if (/^crawl-delay\s*:/i.test(line)) {
+      const value = line.replace(/^crawl-delay\s*:\s*/i, "").trim();
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) return Math.min(n, 60);
+    }
+  }
+  return 0;
+}
+
+export function parseDisallowPatterns(robotsTxt: string): string[] {
   const lines = robotsTxt.split(/\r?\n/);
   const patterns: string[] = [];
   let inWildcardBlock = false;
@@ -111,7 +133,7 @@ function parseDisallowPatterns(robotsTxt: string): string[] {
  *  - Wildcard `*`: iterative segment matching (no dynamic RegExp — avoids ReDoS)
  *  - Exact match otherwise
  */
-function isBlockedByPattern(urlPath: string, pattern: string): boolean {
+export function isBlockedByPattern(urlPath: string, pattern: string): boolean {
   if (!pattern) return false;
 
   if (pattern.includes("*")) {

@@ -1,7 +1,7 @@
 {
   "name": "@pseolint/core",
-  "version": "0.2.1",
-  "description": "Programmatic SEO audit engine — 34 rules across 6 categories for SpamBrain risk detection",
+  "version": "0.2.2",
+  "description": "Programmatic SEO audit engine — 42 rules across 8 categories for SpamBrain penalty risk and AI Overview citability",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
   "homepage": "https://pseolint.dev",
@@ -10,7 +10,14 @@
     "url": "https://github.com/ouranos-labs/pseolint.git",
     "directory": "packages/core"
   },
-  "keywords": ["seo", "pseo", "programmatic-seo", "spambrain", "lint", "audit"],
+  "keywords": [
+    "seo",
+    "pseo",
+    "programmatic-seo",
+    "spambrain",
+    "lint",
+    "audit"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -49,15 +56,33 @@
     "ollama-ai-provider-v2": "^1.0.0"
   },
   "peerDependenciesMeta": {
-    "playwright-core": { "optional": true },
-    "@ai-sdk/anthropic": { "optional": true },
-    "@ai-sdk/openai": { "optional": true },
-    "@ai-sdk/google": { "optional": true },
-    "@ai-sdk/mistral": { "optional": true },
-    "@ai-sdk/groq": { "optional": true },
-    "@ai-sdk/xai": { "optional": true },
-    "@ai-sdk/cohere": { "optional": true },
-    "ollama-ai-provider-v2": { "optional": true }
+    "playwright-core": {
+      "optional": true
+    },
+    "@ai-sdk/anthropic": {
+      "optional": true
+    },
+    "@ai-sdk/openai": {
+      "optional": true
+    },
+    "@ai-sdk/google": {
+      "optional": true
+    },
+    "@ai-sdk/mistral": {
+      "optional": true
+    },
+    "@ai-sdk/groq": {
+      "optional": true
+    },
+    "@ai-sdk/xai": {
+      "optional": true
+    },
+    "@ai-sdk/cohere": {
+      "optional": true
+    },
+    "ollama-ai-provider-v2": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@ai-sdk/anthropic": "^2.0.0",

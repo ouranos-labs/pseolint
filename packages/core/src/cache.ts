@@ -173,7 +173,11 @@ export async function cachedFetch(
       if (existing.headers["last-modified"]) condHeaders["if-modified-since"] = existing.headers["last-modified"];
       const res = await fetcher(url, {
         signal: AbortSignal.timeout(opts.timeoutMs),
-        headers: condHeaders,
+        headers: {
+          ...condHeaders,
+          "user-agent": "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
       });
       if (res.status === 304) {
         const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
@@ -195,6 +199,24 @@ export async function cachedFetch(
   return performFetch(url, opts.timeoutMs, fetcher, cache);
 }
 
+const PSEOLINT_USER_AGENT = "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)";
+
+/** Cap on Retry-After honour — adversarial sites could declare hours. */
+const RETRY_AFTER_MAX_MS = 30_000;
+
+function parseRetryAfterMs(headerVal: string | null): number {
+  if (!headerVal) return 0;
+  const trimmed = headerVal.trim();
+  const asNumber = Number(trimmed);
+  if (Number.isFinite(asNumber) && asNumber >= 0) return Math.min(RETRY_AFTER_MAX_MS, asNumber * 1000);
+  const asDate = Date.parse(trimmed);
+  if (Number.isFinite(asDate)) {
+    const delta = asDate - Date.now();
+    if (delta > 0) return Math.min(RETRY_AFTER_MAX_MS, delta);
+  }
+  return 0;
+}
+
 async function performFetch(
   url: string,
   timeoutMs: number,
@@ -203,8 +225,23 @@ async function performFetch(
 ): Promise<CachedFetchResult> {
   const redirectChain: string[] = [];
   let currentUrl = url;
+  let backoffRetried = false;
   for (let hop = 0; hop < 10; hop += 1) {
-    const res = await fetcher(currentUrl, { signal: AbortSignal.timeout(timeoutMs), redirect: "manual" });
+    const res = await fetcher(currentUrl, {
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: "manual",
+      headers: { "user-agent": PSEOLINT_USER_AGENT, "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+    });
+
+    // Target-declared backoff — honor Retry-After on 429/503 once per URL.
+    if ((res.status === 429 || res.status === 503) && !backoffRetried) {
+      const waitMs = parseRetryAfterMs(res.headers.get("retry-after"));
+      if (waitMs > 0) {
+        backoffRetried = true;
+        await new Promise((r) => setTimeout(r, waitMs));
+        continue;
+      }
+    }
     const status = res.status;
     if (status >= 300 && status < 400) {
       const loc = res.headers.get("location");

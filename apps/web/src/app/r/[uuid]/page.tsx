@@ -1,31 +1,466 @@
+import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
+import type { AuditSummary } from "@pseolint/core";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
-import { signedReportUrl } from "@/lib/r2";
+import { fetchSummaryJson, summaryKey } from "@/lib/r2";
+import { env } from "@/lib/env";
 import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
+import { TileGrid } from "@/components/landing/tile-grid";
+import { CopyLinkButton } from "@/components/audit/copy-link-button";
+import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
+import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
+import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
 
 export const runtime = "nodejs";
 
+type AuditRow = typeof audits.$inferSelect;
+
+async function findAudit(uuid: string): Promise<AuditRow | null> {
+  const [row] = await db.select().from(audits).where(eq(audits.id, uuid)).limit(1);
+  return row ?? null;
+}
+
+function isReady(row: AuditRow): boolean {
+  return row.status === "completed" && !!row.storageKey && row.expiresAt.getTime() >= Date.now();
+}
+
+function isExpired(row: AuditRow): boolean {
+  return row.status === "completed" && row.expiresAt.getTime() < Date.now();
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ uuid: string }>;
+}): Promise<Metadata> {
+  const { uuid } = await params;
+  const row = await findAudit(uuid);
+  if (!row || !isReady(row)) return { title: "Audit not found · pseolint" };
+  const host = hostOf(row.sourceUrl);
+  const score = row.score ?? 0;
+  const title = `${host} · risk ${score}/100 · pseolint`;
+  const description =
+    `pseolint audited ${row.pageCount ?? 0} pages of ${host} against 35 SpamBrain risk rules. ` +
+    `Risk score: ${score}. ${row.findingCount ?? 0} findings.`;
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "article" },
+    twitter: { card: "summary_large_image", title, description },
+  };
+}
+
 export default async function Page({ params }: { params: Promise<{ uuid: string }> }) {
   const { uuid } = await params;
-  const [row] = await db.select().from(audits).where(eq(audits.id, uuid)).limit(1);
-  if (!row || row.status !== "completed" || !row.storageKey) notFound();
-  if (row.expiresAt.getTime() < Date.now()) notFound();
+  const row = await findAudit(uuid);
+  if (!row) notFound();
 
   const session = await getOptionalSession();
   const anon = await getOrCreateAnonSessionId();
-  const ownedByUser = session?.user.id && row.userId === session.user.id;
+  const ownedByUser = !!(session?.user.id && row.userId === session.user.id);
   const ownedByAnon = !session && row.anonSessionId === anon;
   if (!row.isPublic && !ownedByUser && !ownedByAnon) redirect("/signin");
 
-  const url = await signedReportUrl(row.storageKey, 300);
+  if (row.status === "queued" || row.status === "running") redirect(`/a/${uuid}`);
+  if (row.status === "failed") redirect(`/a/${uuid}`);
+  if (isExpired(row)) return <ExpiredState row={row} />;
+  if (!isReady(row)) notFound();
+
+  const summaryRaw = await fetchSummaryJson(summaryKey(uuid));
+  const summary: AuditSummary | null = summaryRaw ? safeParse<AuditSummary>(summaryRaw) : null;
+
+  const shareUrl = absoluteUrl(`/r/${uuid}`);
+  const host = hostOf(row.sourceUrl);
+  const score = row.score ?? 0;
+  const tone = scoreTone(score);
+  const verdict = scoreVerdict(score);
+  const completedAgo = relTime(row.completedAt ?? row.createdAt);
+
+  const tileStates = summary ? summaryToTileStates(summary) : [];
+  const counts = summary ? severityCounts(summary) : null;
+  const cleanPages = summary ? cleanPageCount(summary) : null;
+
   return (
-    <iframe
-      src={url}
-      sandbox=""
-      title="pseolint audit report"
-      className="h-screen w-full border-0"
-    />
+    <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+        Audit complete · {completedAgo}
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h1
+          className="text-balance text-3xl tracking-tight sm:text-4xl lg:text-5xl"
+          style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
+        >
+          {host}
+        </h1>
+        <a
+          href={row.sourceUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="font-mono text-xs text-muted-foreground hover:text-foreground"
+        >
+          ↗ {shortPath(row.sourceUrl)}
+        </a>
+      </div>
+
+      <HowToRead pageCount={row.pageCount ?? 0} />
+
+      <div className="mt-6 grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
+        <div className="flex flex-col items-start">
+          <span
+            className={`leading-[0.9] tabular-nums ${tone}`}
+            style={{ fontSize: "128px", fontFamily: "var(--font-display)" }}
+          >
+            {score}
+          </span>
+          <span className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+            Risk score · lower is safer
+          </span>
+          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+            <span className={`inline-block h-1 w-1 rounded-full ${toneDot(score)}`} />
+            {verdict}
+          </span>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          {tileStates.length > 0 ? (
+            <TileGrid
+              states={tileStates}
+              title={`${host} — worst rule per page across ${tileStates.length} tiles`}
+            />
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
+              Tile map unavailable for this audit. Full report below.
+            </div>
+          )}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+            <Stat label="Pages" value={row.pageCount ?? 0} tone="text-foreground" />
+            <Stat
+              label="Errors"
+              value={counts?.errors ?? 0}
+              tone="text-destructive"
+              placeholder={!counts}
+            />
+            <Stat
+              label="Warnings"
+              value={counts?.warnings ?? 0}
+              tone="text-warning"
+              placeholder={!counts}
+            />
+            <Stat
+              label="Clean pages"
+              value={cleanPages ?? 0}
+              tone="text-success"
+              placeholder={cleanPages == null}
+            />
+          </dl>
+        </div>
+      </div>
+
+      <CoverageCallout pageCount={row.pageCount ?? 0} />
+
+      {!session && ownedByAnon ? (
+        <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-primary/25 bg-primary/5 p-5 sm:flex-nowrap sm:items-center">
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              This report auto-deletes in {hoursUntil(row.expiresAt)}h.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Sign in (free) to keep it permanently, run more audits, and unlock private reports.
+            </p>
+          </div>
+          <Link
+            href={`/signin?callbackUrl=${encodeURIComponent(`/r/${uuid}`)}`}
+            className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Save this report
+          </Link>
+        </div>
+      ) : null}
+
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <CopyLinkButton url={shareUrl} />
+        <Link
+          href="/#top"
+          className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Audit another site
+        </Link>
+        {session ? <MonitorDomainButton sourceUrl={row.sourceUrl} /> : null}
+        {ownedByUser ? (
+          <Link
+            href={`/?prefill=${encodeURIComponent(row.sourceUrl)}&force=1`}
+            className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            title="Skip the 60-minute cache and run a fresh audit"
+          >
+            Re-audit now
+          </Link>
+        ) : null}
+        <Link
+          href="/pricing"
+          className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        >
+          Unlock PDF + 1k pages
+        </Link>
+        {ownedByUser || ownedByAnon ? (
+          <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+            {row.isPublic ? "public · shareable" : "private · owner only"}
+          </span>
+        ) : null}
+      </div>
+
+      {summary ? (
+        <>
+          <section className="mt-14">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              Category scores
+            </h2>
+            <CategoryBreakdown summary={summary} />
+          </section>
+
+          <section className="mt-14">
+            <div className="mb-4 flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Findings · {summary.findings.length}
+              </h2>
+              <span className="font-mono text-xs text-muted-foreground">
+                sampled {summary.pageCount} page{summary.pageCount === 1 ? "" : "s"}
+              </span>
+            </div>
+            <FindingsList summary={summary} />
+          </section>
+        </>
+      ) : (
+        <section className="mt-14 rounded-[22px] border border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
+          Structured summary unavailable for this audit. Re-audit to regenerate.
+        </section>
+      )}
+
+      <section className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-xs text-muted-foreground">
+        <p className="text-sm font-medium text-foreground">About this audit</p>
+        <p className="mt-2 leading-relaxed">
+          Report auto-deletes{" "}
+          {ownedByAnon
+            ? "in 24 hours"
+            : ownedByUser
+              ? "after 30 days"
+              : "within its retention window"}
+          . Retention, rate limits, and crawl behaviour are documented in full at{" "}
+          <Link href="/limits" className="text-primary hover:underline">
+            pseolint.dev/limits
+          </Link>
+          .
+        </p>
+      </section>
+    </main>
   );
+}
+
+function HowToRead({ pageCount }: { pageCount: number }) {
+  const caveats: { label: string; body: string }[] = [
+    {
+      label: "Sample, not census",
+      body: `Scored on ${pageCount} sampled page${pageCount === 1 ? "" : "s"} from sitemap.xml. Template clusters across un-sampled pages may be missed.`,
+    },
+    {
+      label: "Heuristic, not verdict",
+      body: "35 rules inferred from public SpamBrain guidance — a structured conversation, not Google's classifier.",
+    },
+    {
+      label: "Server-rendered only",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us (Pro has browser rendering).",
+    },
+  ];
+
+  return (
+    <section
+      aria-label="How to read this score"
+      className="mt-6 rounded-[22px] border border-border/60 bg-card/30 p-5 backdrop-blur-sm"
+    >
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          How to read this score
+        </h2>
+        <Link
+          href="/limits"
+          className="font-mono text-[11px] text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+        >
+          full fair-use & limits ↗
+        </Link>
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-3">
+        {caveats.map((c) => (
+          <li key={c.label} className="flex gap-2.5 text-xs leading-relaxed text-muted-foreground">
+            <span
+              aria-hidden
+              className="mt-[7px] inline-block h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60"
+            />
+            <span>
+              <span className="block font-medium text-foreground">{c.label}</span>
+              <span>{c.body}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function CoverageCallout({ pageCount }: { pageCount: number }) {
+  if (pageCount >= 40) return null;
+  const low = pageCount < 10;
+  const tone = low
+    ? "border-warning/40 bg-warning/5 text-warning"
+    : "border-border/60 bg-card/40 text-muted-foreground";
+  return (
+    <div className={`mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border p-5 ${tone} sm:flex-nowrap sm:items-center`}>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-foreground">
+          {low ? (
+            <>Only {pageCount} page{pageCount === 1 ? "" : "s"} audited — your sitemap may be incomplete.</>
+          ) : (
+            <>Audited {pageCount} pages from your sitemap.</>
+          )}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {low ? (
+            <>
+              pseolint samples up to 50 pages on free audits, but uses <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. If your site has more pages, add them to the sitemap — or upgrade to Pro for 1,000-page budgets and deeper link discovery.
+            </>
+          ) : (
+            <>
+              The score above is computed on this sample. Pro lifts the budget to 1,000 pages and crawls beyond the sitemap.
+            </>
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone,
+  placeholder = false,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+  placeholder?: boolean;
+}) {
+  return (
+    <div className="flex flex-col">
+      <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dd className={`font-mono text-lg tabular-nums ${placeholder ? "text-muted-foreground/50" : tone}`}>
+        {placeholder ? "—" : value}
+      </dd>
+    </div>
+  );
+}
+
+function scoreTone(score: number): string {
+  if (score <= 40) return "text-success";
+  if (score <= 69) return "text-warning";
+  return "text-destructive";
+}
+
+function toneDot(score: number): string {
+  if (score <= 40) return "bg-success";
+  if (score <= 69) return "bg-warning";
+  return "bg-destructive";
+}
+
+function scoreVerdict(score: number): string {
+  if (score <= 20) return "Clean run";
+  if (score <= 40) return "Low risk";
+  if (score <= 69) return "Watch list";
+  if (score <= 84) return "Elevated risk";
+  return "Doorway garden";
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return "unknown";
+  }
+}
+
+function shortPath(url: string): string {
+  try {
+    const u = new URL(url);
+    const p = u.pathname === "/" ? "" : u.pathname;
+    return `${u.host}${p}`;
+  } catch {
+    return url;
+  }
+}
+
+function absoluteUrl(path: string): string {
+  const base = env().BETTER_AUTH_URL.replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function relTime(d: Date): string {
+  const diffSec = Math.max(1, Math.round((Date.now() - d.getTime()) / 1000));
+  if (diffSec < 60) return `${diffSec}s ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+function hoursUntil(d: Date): number {
+  return Math.max(1, Math.round((d.getTime() - Date.now()) / 3_600_000));
+}
+
+function ExpiredState({ row }: { row: AuditRow }) {
+  const host = hostOf(row.sourceUrl);
+  return (
+    <main className="mx-auto max-w-xl px-5 pb-20 pt-20">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-muted-foreground" />
+        Report expired
+      </div>
+      <h1
+        className="mt-3 text-balance text-3xl tracking-tight sm:text-4xl"
+        style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
+      >
+        {host}
+      </h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        This free report auto-deleted after its retention window. Anonymous reports live for 24
+        hours; authenticated free reports live for 30 days. Run a fresh audit — usually 60 seconds.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href={`/?prefill=${encodeURIComponent(row.sourceUrl)}`}
+          className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Re-audit {host}
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        >
+          Back to home
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+function safeParse<T>(raw: string): T | null {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }

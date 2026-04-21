@@ -26,6 +26,22 @@ function scoreLabel(score: number): string {
   return "Critical";
 }
 
+/**
+ * AEO-specific score label. AEO score is raw "damage" 0–100 — low is good.
+ *   0–20  AI-Ready    pages structured for citation
+ *  21–40  Partial     some citable, others vulnerable
+ *  41–60  Vulnerable  most pages will be summarized away
+ *  61–80  Invisible   pages offer nothing AI can't synthesize itself
+ *  81–100 Ghost       actively blocked + no citable structure
+ */
+export function aeoScoreLabel(score: number): string {
+  if (score <= 20) return "AI-Ready";
+  if (score <= 40) return "Partial";
+  if (score <= 60) return "Vulnerable";
+  if (score <= 80) return "Invisible";
+  return "Ghost";
+}
+
 function bar(score: number, width: number = 10): string {
   const filled = Math.round((score / 100) * width);
   const empty = width - filled;
@@ -139,6 +155,40 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
       const count = summary.groupPageCounts[name] ?? 0;
       const gColor = scoreColor(value);
       lines.push(`  ${name.padEnd(15)} ${gColor}${bar(value)}${RESET} ${value} (${count} pages)`);
+    }
+    lines.push("");
+  }
+
+  // Dedicated AEO section (AI Overview readiness)
+  const aeoFindings = summary.findings.filter((f) => f.ruleId.startsWith("aeo/"));
+  if (aeoFindings.length > 0) {
+    const aeoScore = summary.categoryScores.aeo;
+    const aeoColor = scoreColor(aeoScore);
+    const aeoLabel = aeoScoreLabel(aeoScore);
+    lines.push(`${BOLD}── AEO: AI Overview Readiness ───────────────${RESET}`);
+    lines.push(`  Score: ${aeoColor}${aeoScore}/100 (${aeoLabel})${RESET}`);
+
+    // Aggregate AEO findings by rule for top-line summary.
+    const aeoAgg = new Map<string, { severity: Severity; pages: number; sample?: string }>();
+    for (const f of aeoFindings) {
+      const existing = aeoAgg.get(f.ruleId);
+      if (existing) {
+        existing.pages += 1;
+        if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(existing.severity)) {
+          existing.severity = f.severity;
+        }
+      } else {
+        aeoAgg.set(f.ruleId, { severity: f.severity, pages: 1, sample: f.fix });
+      }
+    }
+
+    const sorted = Array.from(aeoAgg.entries()).sort(
+      (a, b) => SEVERITY_ORDER.indexOf(a[1].severity) - SEVERITY_ORDER.indexOf(b[1].severity),
+    );
+    for (const [ruleId, agg] of sorted) {
+      const mark = agg.severity === "error" || agg.severity === "critical" ? "✖" : "⚠";
+      const sColor = severityColor(agg.severity);
+      lines.push(`  ${sColor}${mark}${RESET} ${ruleId}  ${agg.pages} page${agg.pages === 1 ? "" : "s"} affected.`);
     }
     lines.push("");
   }

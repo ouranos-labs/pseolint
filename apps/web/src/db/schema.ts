@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, numeric, timestamp, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, numeric, timestamp, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("user", {
   id: text("id").primaryKey(),
@@ -77,6 +77,46 @@ export const audits = pgTable("audit", {
   leaderboardIdx: index("audit_leaderboard_idx").on(t.isPublic, t.status, t.score),
   expiresIdx: index("audit_expires_idx").on(t.expiresAt),
 }));
+
+export const monitoredDomains = pgTable("monitored_domain", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  sourceUrl: text("source_url").notNull(),
+  host: text("host").notNull(),
+  cadence: text("cadence").$type<"weekly" | "daily">().notNull().default("weekly"),
+  paused: boolean("paused").notNull().default(false),
+  alertEmail: text("alert_email"),
+  alertThreshold: integer("alert_threshold").notNull().default(10),
+  lastAuditId: uuid("last_audit_id"),
+  lastScore: integer("last_score"),
+  lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+  nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userIdx: index("monitored_user_idx").on(t.userId),
+  nextRunIdx: index("monitored_next_run_idx").on(t.nextRunAt, t.paused),
+  userDomainUniq: uniqueIndex("monitored_user_domain_uniq").on(t.userId, t.host),
+}));
+
+export const monitoringAlerts = pgTable("monitoring_alert", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  monitoredDomainId: uuid("monitored_domain_id").notNull().references(() => monitoredDomains.id, { onDelete: "cascade" }),
+  auditId: uuid("audit_id").notNull(),
+  previousAuditId: uuid("previous_audit_id"),
+  previousScore: integer("previous_score"),
+  currentScore: integer("current_score").notNull(),
+  newRuleIds: text("new_rule_ids").array().notNull().default([]),
+  deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  domainIdx: index("alert_domain_idx").on(t.monitoredDomainId),
+}));
+
+export const blocklist = pgTable("blocklist", {
+  key: text("key").primaryKey(),
+  reason: text("reason"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const rateLimits = pgTable("rate_limit", {
   key: text("key").primaryKey(),

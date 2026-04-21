@@ -1,6 +1,6 @@
 {
   "name": "@pseolint/mcp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "MCP server for pseolint — audit programmatic SEO sites from AI coding assistants",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
@@ -10,7 +10,15 @@
     "url": "https://github.com/ouranos-labs/pseolint.git",
     "directory": "packages/mcp"
   },
-  "keywords": ["mcp", "model-context-protocol", "seo", "pseo", "spambrain", "lint", "ai"],
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "seo",
+    "pseo",
+    "spambrain",
+    "lint",
+    "ai"
+  ],
   "type": "module",
   "bin": {
     "pseolint-mcp": "dist/bin.js"

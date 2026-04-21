@@ -1,12 +1,37 @@
 # pSEO Lint
 
-> SpamBrain-proof your pSEO before you publish.
+> ESLint for programmatic SEO.
 
-The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets: near-duplicates, entity-swap doorway pages, thin content clusters, and missing internal linking.
+[![npm](https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm)](https://www.npmjs.com/package/pseolint)
+[![Downloads](https://img.shields.io/npm/dm/pseolint?color=cb3837)](https://www.npmjs.com/package/pseolint)
+[![License](https://img.shields.io/npm/l/pseolint?color=blue)](./LICENSE)
+[![Node](https://img.shields.io/node/v/pseolint?color=339933&logo=node.js)](https://www.npmjs.com/package/pseolint)
+[![GitHub stars](https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social)](https://github.com/ouranos-labs/pseolint)
 
-Every finding includes an **actionable fix** backed by a **Google documentation reference**.
+<p align="center">
+  <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
+</p>
 
-**ESLint for programmatic SEO.**
+The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages — detects the exact patterns Google's SpamBrain targets: near-duplicates, entity-swap doorway pages, thin content clusters, and missing internal linking. Every finding includes an actionable fix backed by a Google documentation reference.
+
+```bash
+npx pseolint http://localhost:3000
+```
+
+## Why this exists
+
+Programmatic SEO works — when it works. The gap between "1,000 indexed pages" and "1,000 pages that survive a SpamBrain pass" is where most pSEO sites die. The Helpful Content Update made that gap permanent.
+
+Existing SEO tools (Screaming Frog, Sitebulb, Ahrefs Site Audit) were built for editorially-curated sites. They check pages one at a time. But the SpamBrain risks of pSEO are *between* pages: doorway clusters, near-duplicates, entity-swap templates, thin-content propagation. You can't catch them with per-page rules.
+
+pseolint audits the graph. Run it before you publish, gate it in CI, ship pages that survive.
+
+## How pseolint differs
+
+- **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
+- **SpamBrain-first, not generic SEO.** 34 rules mapped to Google's actual spam policies, not vanity SEO checklist items.
+- **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server. Lives in your repo and your PRs.
+- **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 
 ## What's new in v0.2.0
 
@@ -50,7 +75,7 @@ npx pseolint ./out --threshold 40 --format json
 
 ## What It Checks
 
-**34 rules** across **6 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
+**34 rules** across **7 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
 
 ### SpamBrain Risk Detection
 
@@ -97,6 +122,13 @@ npx pseolint ./out --threshold 40 --format json
 | `tech/redirect-chain` | Redirect chains longer than 2 hops | Warning |
 | `tech/og-completeness` | Missing og:title, og:description, or og:image | Warning |
 | `tech/hreflang-consistency` | Hreflang reciprocity (A->B requires B->A) | Warning |
+| `tech/robots-sitemap-presence` | Missing or unreachable `/robots.txt` or `/sitemap.xml` at the origin | Warning |
+
+### Data Consistency
+
+| Rule | What It Checks | Severity |
+|------|---------------|----------|
+| `data/data-binding` | When `--data-source` is set, flags fields from the source record that don't appear on the matching page (e.g. FAQ items, regulation clauses listed in the source JSON but missing from rendered HTML) | Warning |
 
 ### Structured Data
 
@@ -188,25 +220,111 @@ Findings are automatically enriched before display:
 ## CLI Options
 
 ```
-Usage: pseolint [options] <source>
+Usage: pseolint [options] [command] [source]
 
 Arguments:
-  source                    URL or directory path to audit
+  source                         URL or directory path to audit
 
-Options:
-  -f, --format <type>       Output format: console, json, markdown, html (default: "console")
-  -t, --threshold <n>       Score threshold for CI exit code (default: 40)
-  -o, --output <file>       Write report to file instead of stdout
-  --no-color                Disable colored output
-  --concurrency <n>         Max parallel HTTP fetches (default: 5)
-  --timeout <ms>            Per-request timeout in ms (default: 30000)
-  --sample-size <n>         Audit a random subset of N pages (default: all)
-  --ignore <patterns>       Comma-separated glob patterns to exclude
-  --render                  Render pages in a browser before auditing
-  --browser-ws <url>        CDP WebSocket endpoint for browser rendering
-  --no-crawl                Disable crawl-based page discovery
-  -V, --version             Output version number
-  -h, --help                Display help
+Output
+  -f, --format <type>            Output format: console | json | markdown | html (default: console)
+  -t, --threshold <n>            SpamBrain Risk Score threshold for CI exit (default: 40)
+  -o, --output <file>            Write report to file instead of stdout
+  --no-color                     Disable colored output
+
+Crawl / fetch
+  --concurrency <n>              Max parallel HTTP fetches (default: 5)
+  --timeout <ms>                 Per-request timeout in ms (default: 30000)
+  --no-crawl                     Disable crawl-based page discovery for URL sources
+  --ignore <patterns>            Comma-separated glob patterns to exclude
+  --render                       Render pages in a browser before auditing
+  --browser-ws <url>             CDP WebSocket endpoint for browser rendering
+
+Sampling
+  --sample-size <n>              Audit N pages (default: 0 = all)
+  --strategy <random|stratified> Sampling strategy (default: stratified)
+  --max-per-template <n>         Cap samples per URL template cluster (default: 0)
+
+Cache & delta
+  --cache [dir]                  Enable HTTP cache (default: .pseolint/cache)
+  --cache-ttl <duration>         TTL for entries without validators, e.g. 7d, 1h, 30m (default: 7d)
+  --state [path]                 Enable state persistence (default: .pseolint/state.json)
+  --since                        Delta mode: audit only URLs changed since prior --state
+  --exit-on-regression           Exit non-zero when new rule IDs fire vs prior --state
+
+Data
+  --data-source <file>           JSON file with source data for content-verification rules
+
+AI triage (opt-in)
+  --ai                           Enable AI triage of findings
+  --ai-provider <id>             anthropic | openai | google | mistral | groq | xai | cohere | ollama
+  --ai-model <name>              Model name (overrides provider default)
+  --ai-endpoint <url>            AI endpoint (Ollama only; default: http://localhost:11434)
+  --ai-max-tokens <n>            Input token cap per triage call (default: 60000)
+  --ai-max-cost <usd>            Refuse a triage call whose pre-flight cost exceeds this USD
+  --ai-daily-budget <usd>        Refuse triage when today's total spend would exceed USD (requires --telemetry)
+  --ai-cache-ttl <duration>      Triage cache TTL, e.g. 30d, 12h, 60s (default: 30d)
+  --no-ai-cache                  Bypass AI triage cache for this run
+  --no-ai-suggest                Suppress AI discovery hint in non-AI runs
+
+Telemetry (local, offline)
+  --telemetry                    Enable local telemetry write (.pseolint/telemetry.jsonl)
+  --telemetry-path <file>        Override telemetry JSONL path
+  --no-telemetry-prompt          Suppress the y/n/skip triage feedback prompt
+  --triage-feedback <rating>     Non-interactive feedback: helpful | unhelpful | y | n
+
+MCP
+  --mcp                          Start as an MCP server (for AI coding assistants)
+
+Commands:
+  stats                          Show aggregate telemetry stats from .pseolint/telemetry.jsonl
+  stats-export <outPath>         Copy telemetry JSONL to <outPath> for manual review/sharing
+```
+
+### Caching & delta audits
+
+```bash
+# First run: populates .pseolint/cache and .pseolint/state.json
+npx pseolint https://yoursite.com --cache --state
+
+# Subsequent runs: only refetch URLs that changed (ETag / Last-Modified),
+# and only re-audit URLs whose content hash changed
+npx pseolint https://yoursite.com --cache --state --since
+
+# CI gate that fails when a *new* rule ID starts firing vs last run
+npx pseolint https://yoursite.com --cache --state --exit-on-regression
+```
+
+### AI triage
+
+Turns hundreds of findings into a handful of ranked root causes. Opt-in, bring-your-own API key, with cost guardrails:
+
+```bash
+# Auto-detect provider from env (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
+npx pseolint https://yoursite.com --ai
+
+# Pin provider + model, cap spend
+npx pseolint https://yoursite.com --ai \
+  --ai-provider anthropic \
+  --ai-model claude-haiku-4-5 \
+  --ai-max-cost 0.50
+
+# Local-only (Ollama, no network cost)
+npx pseolint https://yoursite.com --ai --ai-provider ollama --ai-model qwen2.5:7b
+
+# Enforce a daily spend ceiling across runs (requires telemetry)
+npx pseolint https://yoursite.com --ai --telemetry --ai-daily-budget 5.00
+```
+
+Every call prints a pre-flight cost estimate before hitting the provider. Cache hits don't count against the daily budget.
+
+### Local telemetry & stats
+
+Telemetry is **local JSONL only** — zero network, counts + spend + feedback ratings. Off by default.
+
+```bash
+npx pseolint https://yoursite.com --ai --telemetry
+npx pseolint stats              # show your success rate, spend, feedback ratio
+npx pseolint stats-export out.jsonl  # copy log for manual inspection
 ```
 
 ## Browser Rendering
@@ -262,7 +380,8 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 |---------|-----|---------|
 | `packages/core` | `@pseolint/core` | MIT |
 | `packages/cli` | `pseolint` | MIT |
-| `packages/action` | GitHub Action | MIT |
+| `packages/mcp` | `@pseolint/mcp` | MIT |
+| `packages/action` | GitHub Action (`ouranos-labs/pseolint@action-v1`) | MIT |
 | `apps/web` | pseolint.dev | AGPL-3.0 |
 
 ## Development
@@ -270,7 +389,7 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 ```bash
 bun install
 bun run build
-bun run test     # 168 tests across 28 files
+bun run test     # 358 tests across 46 files (core)
 ```
 
 ## License

@@ -190,6 +190,58 @@ describe("auditSource", () => {
     expect(summary.findings.some((f) => f.ruleId === "spam/publication-velocity")).toBe(true);
   });
 
+  test("user entity pattern missing 'g' flag is auto-normalized", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-entity-"));
+    tempDirs.push(dir);
+
+    const html = `
+      <html>
+        <body>
+          <h1>Page</h1>
+          <p>Paris opens. Paris closes. Paris flows. Paris ends.</p>
+        </body>
+      </html>`;
+    await writeFile(join(dir, "a.html"), html, "utf-8");
+
+    // Pattern without 'g' flag; auditor should add it so subsequent String.replace masks
+    // every occurrence (required for correct template-fact detection).
+    const summary = await auditSource(dir, {
+      entityPatterns: [{ placeholder: "[CITY]", pattern: "Paris", flags: "i" }],
+    });
+    // Audit completes without throwing and produces a sane summary.
+    expect(summary.pageCount).toBe(1);
+  });
+
+  test("AEO flat thresholds propagate through auditSource", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-aeo-config-"));
+    tempDirs.push(dir);
+
+    // A single page with exactly one citable fact ($70).
+    const html = `
+      <html>
+        <head>
+          <title>A page</title>
+          <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","dateModified":"2026-04-01"}</script>
+        </head>
+        <body>
+          <h1>Page</h1>
+          <form><input name="q"/></form>
+          <p>Fee is $70 and applies to all filings processed this quarter.</p>
+        </body>
+      </html>`;
+    await writeFile(join(dir, "a.html"), html, "utf-8");
+
+    // Default target (8) should flag citable-facts on this single-fact page.
+    const defaultRun = await auditSource(dir);
+    expect(defaultRun.findings.some((f) => f.ruleId === "aeo/citable-facts")).toBe(true);
+
+    // Lowering the target below 1 makes the same page pass the citable-facts check.
+    const tuned = await auditSource(dir, {
+      rules: { citableFactsMin: 1, citableFactsTarget: 1 },
+    });
+    expect(tuned.findings.some((f) => f.ruleId === "aeo/citable-facts")).toBe(false);
+  });
+
   test("flags content uniqueness, headings, and meta collisions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-content-"));
     tempDirs.push(dir);

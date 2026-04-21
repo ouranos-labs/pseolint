@@ -22,5 +22,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return NextResponse.json({
     id: row.id, status: row.status, score: row.score, pageCount: row.pageCount,
     findingCount: row.findingCount, errorMessage: row.errorMessage, completedAt: row.completedAt,
+    sourceUrl: row.sourceUrl,
   });
 }

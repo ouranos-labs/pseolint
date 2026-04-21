@@ -34,4 +34,12 @@ export const RULE_REFERENCES: Record<string, string> = {
   "cannibal/url-pattern": "https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls",
   "data/missing-binding": "https://developers.google.com/search/docs/essentials/spam-policies#thin-content",
   "data/identical-across-pages": "https://developers.google.com/search/docs/essentials/spam-policies#scraped-content",
+  "aeo/llms-txt": "https://llmstxt.org",
+  "aeo/crawler-access": "https://www.robotstxt.org/robotstxt.html",
+  "aeo/freshness-signals": "https://developers.google.com/search/docs/appearance/publication-dates",
+  "aeo/faq-coverage": "https://developers.google.com/search/docs/appearance/structured-data/faqpage",
+  "aeo/answer-first": "https://developers.google.com/search/docs/appearance/featured-snippets",
+  "aeo/citable-facts": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+  "aeo/non-replicable-value": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+  "aeo/content-modularity": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
 };

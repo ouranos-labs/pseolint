@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AuditSummary, FindingContext } from "../../src/types.js";
-import { formatConsole } from "../../src/formatters/console.js";
+import { formatConsole, aeoScoreLabel } from "../../src/formatters/console.js";
 import { formatJson } from "../../src/formatters/json.js";
 import { formatMarkdown } from "../../src/formatters/markdown.js";
 import { formatHtml } from "../../src/formatters/html.js";
@@ -10,6 +10,7 @@ const mockSummary: AuditSummary = {
   categoryScores: {
     spam: 55,
     content: 30,
+    aeo: 0,
     links: 20,
     tech: 10,
     schema: 45,
@@ -45,7 +46,7 @@ const mockSummary: AuditSummary = {
 
 const enrichedSummary: AuditSummary = {
   score: 84,
-  categoryScores: { spam: 100, content: 100, links: 29, tech: 100, schema: 0, cannibal: 100 },
+  categoryScores: { spam: 100, content: 100, aeo: 0, links: 29, tech: 100, schema: 0, cannibal: 100 },
   pageCount: 476,
   templateDetected: true,
   rawFindingCount: 4673,
@@ -131,7 +132,7 @@ describe("formatMarkdown — enriched output", () => {
   it("renders AI triage as markdown table + bullets", () => {
     const summary: AuditSummary = {
       score: 80,
-      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      categoryScores: { spam: 80, content: 80, aeo: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
       pageCount: 10,
       findings: [],
       triage: {
@@ -213,7 +214,7 @@ describe("formatHtml", () => {
   it("renders AI triage section in HTML output", () => {
     const summary: AuditSummary = {
       score: 80,
-      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      categoryScores: { spam: 80, content: 80, aeo: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
       pageCount: 10,
       findings: [],
       triage: {
@@ -238,7 +239,7 @@ describe("formatHtml", () => {
   it("escapes HTML in triage label and rationale", () => {
     const summary: AuditSummary = {
       score: 80,
-      categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+      categoryScores: { spam: 80, content: 80, aeo: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
       pageCount: 10,
       findings: [],
       triage: {
@@ -260,10 +261,57 @@ describe("formatHtml", () => {
   });
 });
 
+describe("aeoScoreLabel", () => {
+  it("maps score bands to AEO-specific labels", () => {
+    expect(aeoScoreLabel(0)).toBe("AI-Ready");
+    expect(aeoScoreLabel(20)).toBe("AI-Ready");
+    expect(aeoScoreLabel(21)).toBe("Partial");
+    expect(aeoScoreLabel(40)).toBe("Partial");
+    expect(aeoScoreLabel(41)).toBe("Vulnerable");
+    expect(aeoScoreLabel(60)).toBe("Vulnerable");
+    expect(aeoScoreLabel(61)).toBe("Invisible");
+    expect(aeoScoreLabel(80)).toBe("Invisible");
+    expect(aeoScoreLabel(81)).toBe("Ghost");
+    expect(aeoScoreLabel(100)).toBe("Ghost");
+  });
+});
+
+describe("console formatter AEO section", () => {
+  it("emits a dedicated AEO section when aeo findings exist", () => {
+    const summary: AuditSummary = {
+      score: 30,
+      categoryScores: { spam: 20, content: 10, aeo: 55, links: 0, tech: 0, schema: 0, cannibal: 0 },
+      pageCount: 10,
+      findings: [
+        { ruleId: "aeo/answer-first", severity: "error", message: "no answer-first opener", pageUrl: "https://x.dev/a" },
+        { ruleId: "aeo/answer-first", severity: "error", message: "no answer-first opener", pageUrl: "https://x.dev/b" },
+        { ruleId: "aeo/crawler-access", severity: "warning", message: "GPTBot blocked" },
+      ],
+    };
+    const out = formatConsole(summary, { noColor: true });
+    expect(out).toContain("AEO: AI Overview Readiness");
+    expect(out).toContain("Vulnerable");
+    expect(out).toContain("aeo/answer-first");
+    expect(out).toContain("2 pages affected");
+    expect(out).toContain("aeo/crawler-access");
+  });
+
+  it("omits AEO section when no aeo findings present", () => {
+    const summary: AuditSummary = {
+      score: 10,
+      categoryScores: { spam: 0, content: 0, aeo: 0, links: 0, tech: 0, schema: 0, cannibal: 0 },
+      pageCount: 5,
+      findings: [],
+    };
+    const out = formatConsole(summary);
+    expect(out).not.toContain("AEO: AI Overview Readiness");
+  });
+});
+
 describe("console formatter \u2014 triage", () => {
   const baseSummary: AuditSummary = {
     score: 80,
-    categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
+    categoryScores: { spam: 80, content: 80, aeo: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
     pageCount: 10,
     findings: [],
   };

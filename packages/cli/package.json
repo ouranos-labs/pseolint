@@ -1,6 +1,6 @@
 {
   "name": "pseolint",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Programmatic SEO linter CLI — SpamBrain-proof your pSEO before you publish",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
@@ -10,7 +10,14 @@
     "url": "https://github.com/ouranos-labs/pseolint.git",
     "directory": "packages/cli"
   },
-  "keywords": ["seo", "pseo", "programmatic-seo", "spambrain", "lint", "cli"],
+  "keywords": [
+    "seo",
+    "pseo",
+    "programmatic-seo",
+    "spambrain",
+    "lint",
+    "cli"
+  ],
   "type": "module",
   "bin": {
     "pseolint": "dist/cli.js"

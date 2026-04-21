@@ -26,7 +26,15 @@ import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
 import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
 import { sitemapCompletenessRule } from "./rules/tech/sitemap-completeness.js";
-import { robotsComplianceRule } from "./rules/tech/robots-sitemap-presence.js";
+import { robotsComplianceRule, parseDisallowPatterns, isBlockedByPattern, parseCrawlDelaySeconds } from "./rules/tech/robots-sitemap-presence.js";
+import { llmsTxtRule } from "./rules/aeo/llms-txt.js";
+import { crawlerAccessRule } from "./rules/aeo/crawler-access.js";
+import { freshnessSignalsRule } from "./rules/aeo/freshness-signals.js";
+import { faqCoverageRule } from "./rules/aeo/faq-coverage.js";
+import { answerFirstRule } from "./rules/aeo/answer-first.js";
+import { citableFactsRule } from "./rules/aeo/citable-facts.js";
+import { nonReplicableValueRule } from "./rules/aeo/non-replicable-value.js";
+import { contentModularityRule } from "./rules/aeo/content-modularity.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
@@ -72,14 +80,22 @@ const DEFAULTS = {
   hubPagesMaxSiblings: 50,
   titleOverlapThreshold: 0.8,
   keywordCollisionMinShared: 6,
-  templateCoverageMinPages: 5
+  templateCoverageMinPages: 5,
+  answerFirstMaxWords: 100,
+  citableFactsMin: 3,
+  citableFactsTarget: 8,
+  freshnessMaxStaleDays: 180,
+  modularityMaxParagraphWords: 200,
+  modularityMinSelfContainedRatio: 0.7,
+  faqMinQuestionHeadings: 2
 } as const;
 
 const CATEGORY_WEIGHTS = {
-  spam: 0.4,
-  content: 0.25,
-  links: 0.15,
-  tech: 0.1,
+  spam: 0.35,
+  content: 0.2,
+  aeo: 0.15,
+  links: 0.12,
+  tech: 0.08,
   schema: 0.05,
   cannibal: 0.05,
   /** Dedup / crawl hygiene; does not affect composite score. */
@@ -128,6 +144,13 @@ function runRulesOnPages(
     titleOverlapThreshold: number;
     keywordCollisionMinShared: number;
     templateCoverageMinPages: number;
+    answerFirstMaxWords: number;
+    citableFactsMin: number;
+    citableFactsTarget: number;
+    freshnessMaxStaleDays: number;
+    modularityMaxParagraphWords: number;
+    modularityMinSelfContainedRatio: number;
+    faqMinQuestionHeadings: number;
   },
   isEnabled: (ruleId: string) => boolean,
   groupName: string,
@@ -275,6 +298,43 @@ function runRulesOnPages(
     findings.push(...tag(schemaConsistencyRule(pages)));
   }
 
+  // AEO rules
+  if (isEnabled("aeo/freshness-signals")) {
+    findings.push(...tag(freshnessSignalsRule(pages, {
+      maxStaleDays: resolvedRules.freshnessMaxStaleDays,
+    })));
+  }
+
+  if (isEnabled("aeo/faq-coverage")) {
+    findings.push(...tag(faqCoverageRule(pages, {
+      minQuestionHeadings: resolvedRules.faqMinQuestionHeadings,
+    })));
+  }
+
+  if (isEnabled("aeo/answer-first")) {
+    findings.push(...tag(answerFirstRule(pages, entityPatterns, {
+      maxFirstParagraphWords: resolvedRules.answerFirstMaxWords,
+    })));
+  }
+
+  if (isEnabled("aeo/citable-facts")) {
+    findings.push(...tag(citableFactsRule(pages, entityPatterns, {
+      minFactsPerPage: resolvedRules.citableFactsMin,
+      targetFactsPerPage: resolvedRules.citableFactsTarget,
+    })));
+  }
+
+  if (isEnabled("aeo/non-replicable-value")) {
+    findings.push(...tag(nonReplicableValueRule(pages)));
+  }
+
+  if (isEnabled("aeo/content-modularity")) {
+    findings.push(...tag(contentModularityRule(pages, {
+      maxParagraphWords: resolvedRules.modularityMaxParagraphWords,
+      minSelfContainedRatio: resolvedRules.modularityMinSelfContainedRatio,
+    })));
+  }
+
   // Cannibal rules
   if (isEnabled("cannibal/title-overlap")) {
     findings.push(...tag(titleOverlapRule(pages, entityPatterns, resolvedRules.titleOverlapThreshold)));
@@ -312,6 +372,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
   const raw: Record<keyof typeof CATEGORY_WEIGHTS, number> = {
     spam: 0,
     content: 0,
+    aeo: 0,
     links: 0,
     tech: 0,
     schema: 0,
@@ -330,6 +391,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
   const weighted =
     raw.spam * CATEGORY_WEIGHTS.spam +
     raw.content * CATEGORY_WEIGHTS.content +
+    raw.aeo * CATEGORY_WEIGHTS.aeo +
     raw.links * CATEGORY_WEIGHTS.links +
     raw.tech * CATEGORY_WEIGHTS.tech +
     raw.schema * CATEGORY_WEIGHTS.schema +
@@ -341,6 +403,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
     categoryScores: {
       spam: raw.spam,
       content: raw.content,
+      aeo: raw.aeo,
       links: raw.links,
       tech: raw.tech,
       schema: raw.schema,
@@ -558,6 +621,42 @@ async function collectUrlsFromSitemap(
   return allUrls;
 }
 
+async function fetchRobotsMeta(
+  origin: string,
+  timeoutMs: number,
+  cache: CacheConfig | null,
+  stats: CacheStats,
+): Promise<{ disallow: string[]; crawlDelaySec: number }> {
+  if (!origin) return { disallow: [], crawlDelaySec: 0 };
+  try {
+    const robotsUrl = `${origin}/robots.txt`;
+    const fetched = await fetchTextStrict(robotsUrl, timeoutMs, cache, stats);
+    return {
+      disallow: parseDisallowPatterns(fetched.text),
+      crawlDelaySec: parseCrawlDelaySeconds(fetched.text),
+    };
+  } catch {
+    return { disallow: [], crawlDelaySec: 0 };
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isDisallowedByRobots(urlPath: string, patterns: string[]): boolean {
+  for (const pat of patterns) {
+    if (isBlockedByPattern(urlPath, pat)) return true;
+  }
+  return false;
+}
+
+type ByteBudget = { used: number; cap: number };
+
+function budgetExceeded(b: ByteBudget): boolean {
+  return b.cap > 0 && b.used >= b.cap;
+}
+
 async function loadPagesFromSource(
   source: string,
   concurrency: number,
@@ -565,7 +664,9 @@ async function loadPagesFromSource(
   crawlDiscovery: boolean,
   discoveryBudget: number,
   cache: CacheConfig | null,
-  stats: CacheStats
+  stats: CacheStats,
+  fillBudgetViaLinkDiscovery: boolean = false,
+  byteBudget: ByteBudget = { used: 0, cap: 0 }
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   if (/^https?:\/\//i.test(source)) {
     let text: string;
@@ -604,23 +705,37 @@ async function loadPagesFromSource(
         : allSitemapUrls;
 
       const pages: LoadedPage[] = [];
-      await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
+
+      // Fetch robots.txt once for the origin — reused for Crawl-Delay pacing and Disallow checks.
+      const sourceOrigin = (() => { try { return new URL(source).origin; } catch { return ""; } })();
+      const robots = await fetchRobotsMeta(sourceOrigin, timeoutMs, cache, stats);
+      const effectiveConcurrency = robots.crawlDelaySec > 0 ? 1 : concurrency;
+      const delayMs = robots.crawlDelaySec * 1000;
+
+      await runWithConcurrency(urlsToFetch, effectiveConcurrency, async (url) => {
+        if (budgetExceeded(byteBudget)) return;
         const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
         if (result) {
+          byteBudget.used += result.html.length;
           pages.push(result);
         }
+        if (delayMs > 0) await sleep(delayMs);
       });
 
-      // Skip additional crawl discovery when budget is active — sitemap is authoritative
-      if (crawlDiscovery && discoveryBudget === 0) {
+      // Link discovery fills the sample.
+      // Legacy behavior: no budget set + crawlDiscovery true → fill from links (unchanged).
+      // New behavior: budget set + crawlDiscovery true + opt-in flag → top up to budget.
+      const budgetUnderfilled = discoveryBudget > 0 && pages.length < discoveryBudget;
+      const legacyBudgetless = discoveryBudget === 0;
+      const shouldFill =
+        crawlDiscovery && (legacyBudgetless || (budgetUnderfilled && fillBudgetViaLinkDiscovery));
+
+      if (shouldFill) {
         const sitemapUrlSet = new Set(allSitemapUrls);
         const discoveredUrls = new Set<string>();
-        let sourceOrigin: string;
-        try {
-          sourceOrigin = new URL(source).origin;
-        } catch {
-          sourceOrigin = "";
-        }
+
+        // robots already fetched above; reuse its Disallow patterns here.
+        const disallowPatterns = robots.disallow;
 
         for (const page of pages) {
           const linkMatches = Array.from(page.html.matchAll(/href=["']([^"']+)["']/gi));
@@ -636,9 +751,9 @@ async function loadPagesFromSource(
               resolvedUrl.search = "";
               resolvedUrl.hash = "";
               const normalized = resolvedUrl.href;
-              if (!sitemapUrlSet.has(normalized) && !discoveredUrls.has(normalized)) {
-                discoveredUrls.add(normalized);
-              }
+              if (sitemapUrlSet.has(normalized) || discoveredUrls.has(normalized)) continue;
+              if (isDisallowedByRobots(resolvedUrl.pathname, disallowPatterns)) continue;
+              discoveredUrls.add(normalized);
             } catch {
               continue;
             }
@@ -646,11 +761,19 @@ async function loadPagesFromSource(
         }
 
         if (discoveredUrls.size > 0) {
-          await runWithConcurrency(Array.from(discoveredUrls), concurrency, async (url) => {
+          const candidates = Array.from(discoveredUrls);
+          // Fisher-Yates shuffle so we don't bias toward the first-discovered links (nav/footer).
+          const shuffled = fisherYatesSample(candidates, candidates.length);
+          const remaining = discoveryBudget === 0 ? Infinity : discoveryBudget - pages.length;
+          const toFetch = remaining === Infinity ? shuffled : shuffled.slice(0, remaining);
+          await runWithConcurrency(toFetch, effectiveConcurrency, async (url) => {
+            if (budgetExceeded(byteBudget)) return;
             const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
+              byteBudget.used += result.html.length;
               pages.push(result);
             }
+            if (delayMs > 0) await sleep(delayMs);
           });
         }
       }
@@ -798,7 +921,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     hubPagesMaxSiblings: options?.rules?.hubPagesMaxSiblings ?? DEFAULTS.hubPagesMaxSiblings,
     titleOverlapThreshold: options?.rules?.titleOverlapThreshold ?? DEFAULTS.titleOverlapThreshold,
     keywordCollisionMinShared: options?.rules?.keywordCollisionMinShared ?? DEFAULTS.keywordCollisionMinShared,
-    templateCoverageMinPages: options?.rules?.templateCoverageMinPages ?? DEFAULTS.templateCoverageMinPages
+    templateCoverageMinPages: options?.rules?.templateCoverageMinPages ?? DEFAULTS.templateCoverageMinPages,
+    answerFirstMaxWords: options?.rules?.answerFirstMaxWords ?? DEFAULTS.answerFirstMaxWords,
+    citableFactsMin: options?.rules?.citableFactsMin ?? DEFAULTS.citableFactsMin,
+    citableFactsTarget: options?.rules?.citableFactsTarget ?? DEFAULTS.citableFactsTarget,
+    freshnessMaxStaleDays: options?.rules?.freshnessMaxStaleDays ?? DEFAULTS.freshnessMaxStaleDays,
+    modularityMaxParagraphWords: options?.rules?.modularityMaxParagraphWords ?? DEFAULTS.modularityMaxParagraphWords,
+    modularityMinSelfContainedRatio: options?.rules?.modularityMinSelfContainedRatio ?? DEFAULTS.modularityMinSelfContainedRatio,
+    faqMinQuestionHeadings: options?.rules?.faqMinQuestionHeadings ?? DEFAULTS.faqMinQuestionHeadings
   };
 
   const normalizeUrlOptions = mergeNormalizeUrlOptions({
@@ -824,7 +954,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       }
     : null;
 
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats);
+  const fillBudgetViaLinkDiscovery = options?.fillBudgetViaLinkDiscovery ?? false;
+  const maxFetchBytes = options?.maxFetchBytes ?? 52_428_800;
+  const fetchByteBudget: ByteBudget = { used: 0, cap: maxFetchBytes };
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget);
   const loadedPages = [...loadedPagesRaw];
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
@@ -943,9 +1076,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
               `Only the flags g, i, m, s, u, y are permitted.`
             );
           }
+          // Entity patterns are used with String.replace to mask every occurrence, which
+          // requires the `g` flag. Add it if the user forgot — a silently broken "only first
+          // match masked" regex would make template-detection rules (answer-first,
+          // citable-facts) miss shared openers.
+          const normalizedFlags = rawFlags.includes("g") ? rawFlags : `${rawFlags}g`;
           try {
             // Flags validated against SAFE_FLAGS_RE above; pattern is from trusted local config, not HTTP input.
-            return { placeholder: p.placeholder, pattern: new RegExp(p.pattern, rawFlags) }; // nosemgrep
+            return { placeholder: p.placeholder, pattern: new RegExp(p.pattern, normalizedFlags) }; // nosemgrep
           } catch (err) {
             throw new Error(
               `Invalid regex pattern for placeholder "${p.placeholder}": ${(err as Error).message}`
@@ -970,6 +1108,16 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       const robotsFindings = robotsComplianceRule(parsedPages, sitemapUrlSet, robotsTxtContent);
       allFindings.push(...robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
+  }
+
+  // AEO site-wide rules. These run unconditionally (consistent with sitemap-completeness
+  // and robots-compliance); page-group rule lists govern per-page AEO rules only.
+  const llmsFindings = await llmsTxtRule(source, { timeoutMs });
+  allFindings.push(...llmsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+
+  if (robotsTxtContent) {
+    const crawlerFindings = crawlerAccessRule(robotsTxtContent);
+    allFindings.push(...crawlerFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
   }
 
   // Data source comparison rules

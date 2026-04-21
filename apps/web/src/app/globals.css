@@ -1,24 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
+  --background: 222 14% 9%;
+  --foreground: 210 20% 96%;
+  --card: 222 14% 12%;
+  --card-foreground: 210 20% 96%;
+  --surface-elev: 222 14% 15%;
+  --primary: 158 64% 52%;
+  --primary-foreground: 158 60% 10%;
+  --secondary: 222 12% 15%;
+  --secondary-foreground: 210 20% 96%;
+  --muted: 222 12% 15%;
+  --muted-foreground: 215 14% 65%;
+  --accent: 158 64% 52%;
+  --accent-foreground: 158 60% 10%;
+  --destructive: 0 72% 55%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --radius: 0.5rem;
+  --warning: 38 96% 60%;
+  --success: 158 64% 52%;
+  --border: 222 12% 18%;
+  --border-strong: 222 12% 26%;
+  --input: 222 12% 18%;
+  --ring: 158 64% 52%;
+  --radius: 18px;
+  --radius-lg: 28px;
 }
 
 @theme inline {
@@ -26,6 +31,7 @@
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
+  --color-surface: hsl(var(--surface-elev));
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   --color-secondary: hsl(var(--secondary));
@@ -36,13 +42,82 @@
   --color-accent-foreground: hsl(var(--accent-foreground));
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-success: hsl(var(--success));
   --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-instrument-serif), "Times New Roman", serif;
 }
+
+html { color-scheme: dark; }
 
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch' seed='7'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 2 -0.6'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='4' stitchTiles='stitch' seed='3'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.2 -0.2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 160px 160px, 320px 320px;
+  background-blend-mode: screen;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+::selection {
+  background: hsl(var(--primary) / 0.85);
+  color: hsl(var(--primary-foreground));
+}
+
+@keyframes slide-in-row {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.slide-in-row { animation: slide-in-row 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+.marquee-wrap {
+  overflow: hidden;
+  padding: 10px 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+          mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+}
+
+.marquee-track {
+  display: inline-flex;
+  white-space: nowrap;
+  will-change: transform;
+  animation: marquee 60s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-row { animation: none; opacity: 1; transform: none; }
+  .marquee-track { animation: none; }
+}
+
+* { scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 999px; }

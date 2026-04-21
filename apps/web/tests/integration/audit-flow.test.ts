@@ -1,7 +1,16 @@
 import { describe, it, expect, vi } from "vitest";
 
 vi.mock("@/lib/turnstile", () => ({ verifyTurnstileToken: vi.fn().mockResolvedValue(true) }));
-vi.mock("@/lib/inngest", () => ({ inngest: { send: vi.fn().mockResolvedValue({ ids: ["e1"] }) } }));
+vi.mock("@/lib/inngest", () => ({
+  inngest: {
+    send: vi.fn().mockResolvedValue({ ids: ["e1"] }),
+    createFunction: vi.fn(() => ({ id: "run-audit" })),
+  },
+}));
+vi.mock("@/inngest/functions/run-audit", () => ({
+  runAudit: { id: "run-audit" },
+  executeAuditInProcess: vi.fn().mockResolvedValue({ ok: true, score: 42 }),
+}));
 vi.mock("@/lib/rate-limit", () => ({ bumpRateLimit: vi.fn().mockResolvedValue({ allowed: true, count: 1 }) }));
 vi.mock("@/lib/ssrf", () => ({ assertSafeUrl: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/session", () => ({
@@ -9,13 +18,24 @@ vi.mock("@/lib/session", () => ({
   getOrCreateAnonSessionId: vi.fn().mockResolvedValue("anon-123"),
 }));
 
-vi.mock("@/db", () => ({
-  db: {
-    select: () => ({ from: () => ({ where: () => ({ limit: async () => [] }) }) }),
-    insert: () => ({ values: () => ({ returning: async () => [{ id: "audit-1" }] }) }),
-  },
+vi.mock("@/db", () => {
+  const whereChain = {
+    limit: async () => [] as unknown[],
+    orderBy: () => ({ limit: async () => [] as unknown[] }),
+  };
+  return {
+    db: {
+      select: () => ({ from: () => ({ where: () => whereChain }) }),
+      insert: () => ({ values: () => ({ returning: async () => [{ id: "audit-1" }] }) }),
+    },
+  };
+});
+vi.mock("@/db/schema", () => ({ audits: {}, userProfiles: {}, blocklist: { key: {}, reason: {} } }));
+vi.mock("@/lib/blocklist", () => ({
+  checkBlocklist: vi.fn().mockResolvedValue(null),
+  userBlockKey: (id: string) => `user:${id}`,
+  hostBlockKey: (h: string) => `host:${h}`,
 }));
-vi.mock("@/db/schema", () => ({ audits: {}, userProfiles: {} }));
 
 const ENV = {
   DATABASE_URL: "postgresql://x/y", BETTER_AUTH_URL: "http://localhost:3000", BETTER_AUTH_SECRET: "x".repeat(32),

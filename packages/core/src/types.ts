@@ -59,6 +59,7 @@ export interface RuleResult {
 export interface CategoryScores {
   spam: number;
   content: number;
+  aeo: number;
   links: number;
   tech: number;
   schema: number;
@@ -173,6 +174,20 @@ export interface AuditOptions {
     titleOverlapThreshold?: number;
     keywordCollisionMinShared?: number;
     templateCoverageMinPages?: number;
+    /** aeo/answer-first: max words in the first paragraph for extractable answer. */
+    answerFirstMaxWords?: number;
+    /** aeo/citable-facts: below this count, a page errors. */
+    citableFactsMin?: number;
+    /** aeo/citable-facts: at or above this count, a page passes. */
+    citableFactsTarget?: number;
+    /** aeo/freshness-signals: days before a dateModified is considered stale. */
+    freshnessMaxStaleDays?: number;
+    /** aeo/content-modularity: words beyond which a paragraph is flagged. */
+    modularityMaxParagraphWords?: number;
+    /** aeo/content-modularity: minimum ratio of self-contained sections (0–1). */
+    modularityMinSelfContainedRatio?: number;
+    /** aeo/faq-coverage: min question-phrased H2s to trigger the check. */
+    faqMinQuestionHeadings?: number;
   };
   /** Max parallel HTTP fetches when auditing a remote sitemap (default: 5). */
   concurrency?: number;
@@ -183,6 +198,18 @@ export interface AuditOptions {
   /** URL/path glob patterns to exclude from the audit. */
   ignore?: string[];
   crawlDiscovery?: boolean;
+  /**
+   * When true and crawlDiscovery is also true, top the sample budget up to `sampleSize` by
+   * following same-origin links from the sitemap-fetched pages (one level deep). Robots.txt
+   * Disallow rules are respected. Default: false — keeps sitemap authoritative when a budget is set.
+   */
+  fillBudgetViaLinkDiscovery?: boolean;
+  /**
+   * Hard ceiling on the total bytes fetched across all pages in a single audit.
+   * When reached, remaining fetches are skipped. Default: 52_428_800 (50 MB).
+   * Set to 0 to disable.
+   */
+  maxFetchBytes?: number;
   /** Page groups with per-group rule sets and threshold overrides. */
   pageGroups?: Record<string, PageGroupConfig>;
   /** Browser rendering options for client-rendered pages. */
