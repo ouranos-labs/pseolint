@@ -62,6 +62,19 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
 
   // audit-internal
   "audit/duplicate-url": "corpus",
+
+  // AEO (Answer Engine Optimization) — forward-compatible entries for rules
+  // shipping from a parallel core-engine change. `llms-txt` and `crawler-access`
+  // are site-wide (need host config / robots surface); the rest evaluate a
+  // single page's content structure and must run in daily diff-audits.
+  "aeo/llms-txt": "corpus",
+  "aeo/crawler-access": "corpus",
+  "aeo/freshness-signals": "page",
+  "aeo/faq-coverage": "page",
+  "aeo/answer-first": "page",
+  "aeo/citable-facts": "page",
+  "aeo/non-replicable-value": "page",
+  "aeo/content-modularity": "page",
 };
 
 /** Returns true when the rule may run in diff (page-scoped) mode. Unknown ids default to corpus (safer). */

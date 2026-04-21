@@ -34,4 +34,15 @@ describe("rule scope map", () => {
   it("defaults unknown ids to corpus (blocks in diff)", () => {
     expect(isRuleAllowedInDiff("future/unknown-rule")).toBe(false);
   });
+
+  it("covers AEO rules — page-scoped ones run in diff, site-wide ones do not", () => {
+    expect(isRuleAllowedInDiff("aeo/faq-coverage")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/answer-first")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/citable-facts")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/freshness-signals")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/content-modularity")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/non-replicable-value")).toBe(true);
+    expect(isRuleAllowedInDiff("aeo/llms-txt")).toBe(false);
+    expect(isRuleAllowedInDiff("aeo/crawler-access")).toBe(false);
+  });
 });
