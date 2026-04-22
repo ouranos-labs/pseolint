@@ -10,6 +10,7 @@ export default async function Leaderboard() {
   const rows = await db
     .select({
       id: audits.id,
+      slug: audits.slug,
       sourceUrl: audits.sourceUrl,
       score: audits.score,
       pageCount: audits.pageCount,
@@ -78,7 +79,7 @@ export default async function Leaderboard() {
                     <td className="py-3.5 pl-5 pr-4 text-muted-foreground">{i + 1}</td>
                     <td className="py-3.5 pr-4">
                       <Link
-                        href={`/r/${r.id}`}
+                        href={`/r/${r.slug}`}
                         className="text-foreground transition-colors hover:text-primary hover:underline"
                       >
                         {hostOf(r.sourceUrl)}

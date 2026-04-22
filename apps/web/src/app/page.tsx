@@ -88,8 +88,8 @@ export default function Home() {
         }),
       });
       if (res.ok) {
-        const { auditId, cached } = await res.json();
-        router.push(cached ? `/r/${auditId}` : `/a/${auditId}`);
+        const { auditId, reportUrl, cached } = await res.json();
+        router.push(cached ? (reportUrl ?? `/r/${auditId}`) : `/a/${auditId}`);
         return;
       }
       const { error } = await res.json().catch(() => ({ error: "Unknown error" }));

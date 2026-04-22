@@ -18,8 +18,8 @@ export const runtime = "nodejs";
 
 type AuditRow = typeof audits.$inferSelect;
 
-async function findAudit(uuid: string): Promise<AuditRow | null> {
-  const [row] = await db.select().from(audits).where(eq(audits.id, uuid)).limit(1);
+async function findAudit(slug: string): Promise<AuditRow | null> {
+  const [row] = await db.select().from(audits).where(eq(audits.slug, slug)).limit(1);
   return row ?? null;
 }
 
@@ -34,10 +34,10 @@ function isExpired(row: AuditRow): boolean {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ uuid: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { uuid } = await params;
-  const row = await findAudit(uuid);
+  const { slug } = await params;
+  const row = await findAudit(slug);
   if (!row || !isReady(row)) return { title: "Audit not found · pseolint" };
   const host = hostOf(row.sourceUrl);
   const score = row.score ?? 0;
@@ -53,9 +53,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: Promise<{ uuid: string }> }) {
-  const { uuid } = await params;
-  const row = await findAudit(uuid);
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const row = await findAudit(slug);
   if (!row) notFound();
 
   const session = await getOptionalSession();
@@ -64,15 +64,15 @@ export default async function Page({ params }: { params: Promise<{ uuid: string 
   const ownedByAnon = !session && row.anonSessionId === anon;
   if (!row.isPublic && !ownedByUser && !ownedByAnon) redirect("/signin");
 
-  if (row.status === "queued" || row.status === "running") redirect(`/a/${uuid}`);
-  if (row.status === "failed") redirect(`/a/${uuid}`);
+  if (row.status === "queued" || row.status === "running") redirect(`/a/${row.id}`);
+  if (row.status === "failed") redirect(`/a/${row.id}`);
   if (isExpired(row)) return <ExpiredState row={row} />;
   if (!isReady(row)) notFound();
 
-  const summaryRaw = await fetchSummaryJson(summaryKey(uuid));
+  const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
   const summary: AuditSummary | null = summaryRaw ? safeParse<AuditSummary>(summaryRaw) : null;
 
-  const shareUrl = absoluteUrl(`/r/${uuid}`);
+  const shareUrl = absoluteUrl(`/r/${slug}`);
   const host = hostOf(row.sourceUrl);
   const score = row.score ?? 0;
   const tone = scoreTone(score);
@@ -174,7 +174,7 @@ export default async function Page({ params }: { params: Promise<{ uuid: string 
             </p>
           </div>
           <Link
-            href={`/signin?callbackUrl=${encodeURIComponent(`/r/${uuid}`)}`}
+            href={`/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}`}
             className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Save this report

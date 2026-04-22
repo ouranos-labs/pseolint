@@ -107,7 +107,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       isPublic: false,
       expiresAt: new Date(now.getTime() + 90 * 86_400_000),
     })
-    .returning({ id: audits.id });
+    .returning({ id: audits.id, slug: audits.slug });
 
   const SAMPLE_SIZE_CEILING = 300;
   const result = await executeAuditInProcess({
@@ -155,6 +155,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       previousAuditId: d.lastAuditId,
       previousScore: d.lastScore ?? null,
       currentAuditId: audit.id,
+      currentAuditSlug: audit.slug,
       currentScore: result.score,
     });
   }
@@ -204,7 +205,7 @@ async function runOneMonitor(monitoredDomainId: string) {
             currentScore: result.score,
             newRuleIds,
             currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
-            reportId: audit.id,
+            reportSlug: audit.slug,
           });
           // Email succeeded — now write dedup rows so we don't re-send this week.
           const week = isoWeekOf(new Date());
@@ -240,6 +241,7 @@ async function maybeAlert(input: {
   previousAuditId: string;
   previousScore: number | null;
   currentAuditId: string;
+  currentAuditSlug: string;
   currentScore: number;
 }): Promise<void> {
   const [prevSummary, currSummary] = await Promise.all([
@@ -277,7 +279,7 @@ async function maybeAlert(input: {
     currentScore: input.currentScore,
     newRuleIds,
     currSummary,
-    reportId: input.currentAuditId,
+    reportSlug: input.currentAuditSlug,
   });
 
   await db

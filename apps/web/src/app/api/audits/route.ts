@@ -116,7 +116,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!forceNew) {
     const cutoff = new Date(Date.now() - DEDUPE_WINDOW_MS);
     const [cached] = await db
-      .select({ id: audits.id })
+      .select({ id: audits.id, slug: audits.slug })
       .from(audits)
       .where(
         and(
@@ -132,7 +132,7 @@ export async function POST(req: Request): Promise<Response> {
     if (cached) {
       auditLog("audit.request.deduped", { url, existingAuditId: cached.id });
       return NextResponse.json(
-        { auditId: cached.id, reportUrl: `/r/${cached.id}`, cached: true },
+        { auditId: cached.id, reportUrl: `/r/${cached.slug}`, cached: true },
         { status: 200 },
       );
     }
@@ -189,7 +189,7 @@ export async function POST(req: Request): Promise<Response> {
   const [row] = await db.insert(audits).values({
     slug: publicSlug(), userId, anonSessionId, sourceUrl: url, status: "queued",
     isPublic: plan !== "pro", expiresAt,
-  }).returning({ id: audits.id });
+  }).returning({ id: audits.id, slug: audits.slug });
 
   auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, host, sampleSize });
 
