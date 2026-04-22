@@ -96,14 +96,16 @@ export function citableFactsRule(
       ruleId: "aeo/citable-facts",
       severity,
       message:
-        `${page.url} has ${unique.length} entity-specific citable fact${unique.length === 1 ? "" : "s"}${templateNote}. ` +
+        `${page.url} has ${unique.length} unique citable fact${unique.length === 1 ? "" : "s"}${templateNote}. ` +
         `AI Overviews cite specific numbers and named references.`,
       pageUrl: page.url,
       fix:
-        `Add entity-specific facts to this template: exact filing fee (e.g. "$70"), processing time ` +
-        `(e.g. "2-4 weeks"), required form name/number, filing agency, annual report deadlines. ` +
-        `Generic descriptions ("fees vary", "takes several weeks") are not citable — replace them with ` +
-        `the actual value for this entity. Target: ${targetFacts}+ unique facts per page.`,
+        `Replace vague language ("varies", "several weeks", "affordable", "many options") with ` +
+        `specific values a reader or AI engine would cite: exact prices, percentages, dates, ` +
+        `timeframes, version numbers, named products, standards, or regulations that apply to this page. ` +
+        `For pSEO templates, bind these values from your data source so each page gets ` +
+        `entity-specific numbers instead of repeating the same template wording. ` +
+        `Target: ${targetFacts}+ unique facts per page.`,
     });
   }
 

@@ -168,18 +168,26 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     lines.push(`${BOLD}── AEO: AI Overview Readiness ───────────────${RESET}`);
     lines.push(`  Score: ${aeoColor}${aeoScore}/100 (${aeoLabel})${RESET}`);
 
-    // Aggregate AEO findings by rule for top-line summary.
-    const aeoAgg = new Map<string, { severity: Severity; pages: number; sample?: string }>();
+    // Aggregate AEO findings by rule. Per-page findings have a pageUrl (count
+    // unique URLs); site-level findings do not (count the findings themselves and
+    // label them so the count isn't misread as pages affected).
+    interface AeoAgg {
+      severity: Severity;
+      pages: Set<string>;
+      siteLevel: number;
+    }
+    const aeoAgg = new Map<string, AeoAgg>();
     for (const f of aeoFindings) {
-      const existing = aeoAgg.get(f.ruleId);
-      if (existing) {
-        existing.pages += 1;
-        if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(existing.severity)) {
-          existing.severity = f.severity;
-        }
-      } else {
-        aeoAgg.set(f.ruleId, { severity: f.severity, pages: 1, sample: f.fix });
+      const entry = aeoAgg.get(f.ruleId) ?? { severity: f.severity, pages: new Set<string>(), siteLevel: 0 };
+      if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(entry.severity)) {
+        entry.severity = f.severity;
       }
+      if (f.pageUrl) {
+        entry.pages.add(f.pageUrl);
+      } else {
+        entry.siteLevel += 1;
+      }
+      aeoAgg.set(f.ruleId, entry);
     }
 
     const sorted = Array.from(aeoAgg.entries()).sort(
@@ -188,7 +196,11 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     for (const [ruleId, agg] of sorted) {
       const mark = agg.severity === "error" || agg.severity === "critical" ? "✖" : "⚠";
       const sColor = severityColor(agg.severity);
-      lines.push(`  ${sColor}${mark}${RESET} ${ruleId}  ${agg.pages} page${agg.pages === 1 ? "" : "s"} affected.`);
+      const pageCount = agg.pages.size;
+      const detail = pageCount > 0
+        ? `${pageCount} page${pageCount === 1 ? "" : "s"} affected.`
+        : `${agg.siteLevel} finding${agg.siteLevel === 1 ? "" : "s"} (site-level).`;
+      lines.push(`  ${sColor}${mark}${RESET} ${ruleId}  ${detail}`);
     }
     lines.push("");
   }

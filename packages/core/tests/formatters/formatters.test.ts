@@ -294,6 +294,8 @@ describe("console formatter AEO section", () => {
     expect(out).toContain("aeo/answer-first");
     expect(out).toContain("2 pages affected");
     expect(out).toContain("aeo/crawler-access");
+    // Site-level findings (no pageUrl) should read as "site-level", not "pages affected".
+    expect(out).toMatch(/aeo\/crawler-access\s+1 finding \(site-level\)/);
   });
 
   it("omits AEO section when no aeo findings present", () => {

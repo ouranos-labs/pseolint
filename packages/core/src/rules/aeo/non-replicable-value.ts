@@ -97,12 +97,14 @@ export function nonReplicableValueRule(
       message: `${page.url} contains only text AI can fully summarize — no interactive element, downloadable asset, or gated content detected.`,
       pageUrl: page.url,
       fix:
-        `Add a non-replicable value so users have a reason to click through. Options for a pSEO template: ` +
-        `(1) a calculator with entity-specific variables (e.g. filing fee estimator), ` +
+        `Add a non-replicable value so users have a reason to click through instead of accepting the AI summary. Options: ` +
+        `(1) an interactive tool specific to this page's topic (calculator, checker, comparator, generator), ` +
         `(2) an interactive checklist users can complete, ` +
-        `(3) a downloadable PDF or document with the download attribute visible above the fold, ` +
-        `(4) a live preview / generator tool, ` +
-        `(5) a gated resource (account required). AI can replicate your text. It cannot replicate your calculator.`,
+        `(3) a downloadable asset (PDF, spreadsheet, dataset) visible above the fold, ` +
+        `(4) a live preview / try-it-yourself widget, ` +
+        `(5) a gated resource (account required). ` +
+        `For single-page apps, ensure interactive elements are present in the server-rendered HTML ` +
+        `so crawlers see them — client-only widgets are invisible to this audit AND to most AI crawlers.`,
     });
   }
 
