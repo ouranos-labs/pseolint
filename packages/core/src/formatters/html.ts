@@ -427,9 +427,12 @@ export function formatHtml(summary: AuditSummary): string {
   .sev-destructive{color:var(--destructive)} .sev-warning{color:var(--warning)} .sev-muted{color:var(--muted)}
   .sev-heading.sev-muted{color:var(--muted-2)}
 
-  .finding-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .finding-list{list-style:none;column-count:2;column-gap:10px;column-fill:balance}
+  @media (max-width:720px){.finding-list{column-count:1}}
   .finding{position:relative;padding:14px 16px 14px 18px;background:var(--card);
-           border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+           border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+           break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+           margin-bottom:10px;display:inline-block;width:100%}
   .finding::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border-strong)}
   .finding-destructive::before{background:var(--destructive)}
   .finding-warning::before{background:var(--warning)}
