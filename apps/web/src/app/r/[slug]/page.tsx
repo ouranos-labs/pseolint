@@ -11,6 +11,7 @@ import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
+import { ExportMenu } from "@/components/report/export-menu";
 import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
 import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
 import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
@@ -239,6 +240,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <CopyLinkButton url={shareUrl} />
+        <ExportMenu auditSlug={slug} isPro={ctx.kind.startsWith("pro_")} />
         <Link
           href="/#top"
           className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
