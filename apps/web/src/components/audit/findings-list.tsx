@@ -10,6 +10,12 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   warning: "Warning",
   info: "Info",
 };
+const SEVERITY_WEIGHT: Record<Severity, number> = {
+  critical: 100,
+  error: 50,
+  warning: 10,
+  info: 1,
+};
 
 export function FindingsList({ summary }: { summary: AuditSummary }) {
   const grouped = groupByRule(summary.findings);
@@ -27,19 +33,89 @@ export function FindingsList({ summary }: { summary: AuditSummary }) {
           No findings. A clean run.
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          All 35 SpamBrain rules passed on the pages we sampled. Monitor to catch regressions.
+          All 40+ rules (SpamBrain + AEO) passed on the pages we sampled. Monitor to catch regressions.
         </p>
       </div>
     );
   }
 
+  const top = sorted
+    .slice()
+    .sort((a, b) => {
+      const ia = SEVERITY_WEIGHT[a.representative.severity] * a.findings.length;
+      const ib = SEVERITY_WEIGHT[b.representative.severity] * b.findings.length;
+      return ib - ia;
+    })
+    .slice(0, 5);
+
   return (
-    <div className="flex flex-col gap-4">
-      {sorted.map((group) => (
-        <FindingGroup key={group.ruleId} group={group} />
-      ))}
+    <div className="flex flex-col gap-6">
+      <TopFixesHero top={top} />
+      <div
+        className="gap-4"
+        style={{ columnCount: 2 as unknown as string, columnGap: "1rem", columnFill: "balance" }}
+      >
+        {sorted.map((group) => (
+          <div
+            key={group.ruleId}
+            className="mb-4 inline-block w-full break-inside-avoid"
+            style={{ breakInside: "avoid" }}
+          >
+            <FindingGroup group={group} />
+          </div>
+        ))}
+      </div>
     </div>
   );
+}
+
+function TopFixesHero({ top }: { top: RuleGroup[] }) {
+  if (top.length === 0) return null;
+  return (
+    <section className="rounded-[22px] border border-primary/25 bg-primary/5 p-5">
+      <div className="mb-3 flex items-baseline justify-between">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Top fixes by impact</span>
+        <span className="font-mono text-[11px] text-muted-foreground">severity × pages affected</span>
+      </div>
+      <ol className="flex flex-col gap-2">
+        {top.map((g, idx) => {
+          const sev = g.representative.severity;
+          const pages = collectPageUrls(g.findings).length;
+          const pagesLabel = pages === 1 ? "1 page" : `${pages || g.findings.length} pages`;
+          return (
+            <li key={g.ruleId} className="flex gap-3 rounded-[14px] border border-border/50 bg-background/60 p-3 text-sm">
+              <span className="inline-grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 font-mono text-[11px] font-semibold text-primary">
+                {idx + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <code className="rounded-md border border-border/60 bg-card/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground">
+                    {g.ruleId}
+                  </code>
+                  <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] ${sevBorderBg(sev)}`}>
+                    {sev}
+                  </span>
+                  {g.representative.effort && (
+                    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] ${effortTone(g.representative.effort)}`}>
+                      {g.representative.effort}
+                    </span>
+                  )}
+                  <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pagesLabel}</span>
+                </div>
+                <p className="mt-1 text-sm text-foreground">{g.representative.message}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function sevBorderBg(sev: Severity): string {
+  if (sev === "critical" || sev === "error") return "border-destructive/40 bg-destructive/10 text-destructive";
+  if (sev === "warning") return "border-warning/40 bg-warning/10 text-warning";
+  return "border-border/60 bg-card/60 text-muted-foreground";
 }
 
 function FindingGroup({ group }: { group: RuleGroup }) {
