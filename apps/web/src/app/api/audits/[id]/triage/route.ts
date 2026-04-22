@@ -12,7 +12,7 @@ export const maxDuration = 60;
 
 export async function POST(
   _req: Request,
-  { params }: { params: Promise<{ slug: string }> },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   let session;
   try {
@@ -21,8 +21,8 @@ export async function POST(
     return r as Response;
   }
 
-  const { slug } = await params;
-  const [audit] = await db.select().from(audits).where(eq(audits.slug, slug)).limit(1);
+  const { id } = await params;
+  const [audit] = await db.select().from(audits).where(eq(audits.id, id)).limit(1);
   if (!audit) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (audit.userId !== session.user.id) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
