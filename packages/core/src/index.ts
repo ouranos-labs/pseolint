@@ -68,7 +68,7 @@ export type {
   RootCause,
   TriageResult,
 } from "./ai/types.js";
-export { triageFindings } from "./ai/triage.js";
+export { triageFindings, triage } from "./ai/triage.js";
 export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
 export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";

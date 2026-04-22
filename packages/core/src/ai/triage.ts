@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
-import type { RuleResult } from "../types.js";
+import type { RuleResult, AuditSummary } from "../types.js";
 import type { TriageResult } from "./types.js";
 import {
   PROMPT_VERSION,
@@ -11,6 +11,7 @@ import {
 } from "./prompt.js";
 import { readTriageCache, writeTriageCache, triageCacheKey } from "./cache.js";
 import { estimateCostUsd } from "./cost.js";
+import { createLanguageModel } from "./adapters/index.js";
 
 const SEVERITIES = ["info", "warning", "error", "critical"] as const;
 
@@ -187,4 +188,37 @@ export async function triageFindings(
   }
 
   return { result };
+}
+
+/**
+ * High-level triage entry point for server-side callers (e.g. the web API).
+ *
+ * Unlike `triageFindings`, this function:
+ *   - Accepts an `AuditSummary` directly.
+ *   - Resolves the language model automatically via `createLanguageModel`.
+ *   - Returns a `TriageResult` (throws on skip / error).
+ *
+ * @param summary - The audit summary to triage.
+ * @param opts    - Optional overrides: `maxCostUsd` (default 0.5).
+ */
+export async function triage(
+  summary: AuditSummary,
+  opts?: { maxCostUsd?: number },
+): Promise<TriageResult> {
+  const resolved = await createLanguageModel({});
+  const outcome = await triageFindings(summary.findings, summary.pageCount, {
+    enabled: true,
+    model: resolved.model,
+    providerId: resolved.providerId,
+    modelId: resolved.modelId,
+    maxCostUsd: opts?.maxCostUsd ?? 0.5,
+    cache: {
+      dir: ".pseolint/ai-cache",
+      ttlMs: 30 * 24 * 60 * 60 * 1000,
+    },
+  });
+  if (!outcome.result) {
+    throw new Error(outcome.skipReason ?? "triage produced no result");
+  }
+  return outcome.result;
 }
