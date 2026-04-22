@@ -217,6 +217,18 @@ export interface AuditOptions {
   /** Browser rendering options for client-rendered pages. */
   render?: {
     browserWsEndpoint?: string;
+    /**
+     * How to handle third-party analytics / session-replay beacons during
+     * rendered audits.
+     *   "block" (default) — abort known analytics hosts so the audit doesn't
+     *     inject fake pageviews / sessions into the site owner's dashboards.
+     *   "allow-first-party" — block third-party analytics only; same-origin
+     *     requests pass through (for sites that self-host analytics).
+     *   "allow" — don't intercept anything (only for sites you own).
+     */
+    analyticsMode?: "block" | "allow" | "allow-first-party";
+    /** Extra host tokens to block in addition to the default list. */
+    extraBlockedHosts?: string[];
   };
   /** Override template auto-detection. When set, skips heuristic detection. */
   templateGenerated?: boolean;

@@ -1,0 +1,58 @@
+---
+"@pseolint/core": minor
+"pseolint": minor
+---
+
+feat: block third-party analytics in render-mode audits by default
+
+Rendered-mode audits launch real Chromium via Playwright — previously this
+meant every client-side analytics beacon fired on every page visit, injecting
+fake sessions into the site owner's GA / Plausible / PostHog / Mixpanel /
+Hotjar / Sentry dashboards and polluting whatever conversion data they rely
+on. Auditing a 4 000-page site could easily push thousands of junk pageviews
+into their analytics.
+
+v0.3.1 intercepts outbound requests at the browser-context level and aborts
+any whose hostname matches the built-in blocklist of analytics / session-
+replay / RUM vendors. The audit still reaches the origin to fetch HTML, CSS,
+JS, fonts, images, and anything else needed to render — only the telemetry
+endpoints are cut.
+
+Other render-mode hardening in the same change:
+  - distinctive UA: `Mozilla/5.0 (compatible; pseolint-render/0.3.1;
+    +https://pseolint.dev/bot)` so server-side filters (GA4 internal-traffic
+    rules, Cloudflare bot score, log filters) can drop the requests too
+  - `DNT: 1` and `Sec-GPC: 1` request headers (privacy-respecting analytics
+    honor these)
+  - `window.__pseolint_audit = true` pre-navigation init script so
+    cooperating sites can short-circuit their own analytics bootloader
+
+## Config
+
+New `AuditOptions.render.analyticsMode`:
+  - `"block"` (default) — abort known analytics hosts
+  - `"allow-first-party"` — block third-party analytics only; same-origin
+    beacons pass through (for sites that self-host analytics)
+  - `"allow"` — don't intercept anything (only for sites you own)
+
+New `AuditOptions.render.extraBlockedHosts: string[]` — extra host
+substrings to block (e.g. an internal metrics endpoint).
+
+## CLI
+
+    pseolint <site> --render --analytics=block               # default
+    pseolint <site> --render --analytics=allow-first-party
+    pseolint <site> --render --analytics=allow
+    pseolint <site> --render --block-host=my-metrics.corp --block-host=…
+
+## Public API additions
+
+  - `DEFAULT_ANALYTICS_HOSTS` — readonly list of blocklisted host tokens
+  - `isAnalyticsRequest(url, { mode?, pageOrigin?, blockedHosts?, extraBlockedHosts? })`
+  - `AnalyticsMode` type
+
+## Not changed
+
+The non-render default `fetch()` path was already analytics-safe (no JS
+executes), and that behaviour is unchanged. This release only affects
+`--render` / `options.render` consumers.

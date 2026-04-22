@@ -36,6 +36,8 @@ const auditOptionsSchema = z.object({
   })).optional(),
   render: z.object({
     browserWsEndpoint: z.string().optional(),
+    analyticsMode: z.enum(["block", "allow", "allow-first-party"]).optional(),
+    extraBlockedHosts: z.array(z.string()).optional(),
   }).optional(),
   crawlDiscovery: z.boolean().optional(),
   templateGenerated: z.boolean().optional(),
@@ -99,7 +101,11 @@ export interface CliFlags {
   timeout?: number;
   sampleSize?: number;
   ignore?: string[];
-  render?: { browserWsEndpoint?: string };
+  render?: {
+    browserWsEndpoint?: string;
+    analyticsMode?: "block" | "allow" | "allow-first-party";
+    extraBlockedHosts?: string[];
+  };
   crawlDiscovery?: boolean;
   cache?: { dir?: string; ttlMs: number };
   samplingStrategy?: "stratified" | "random";

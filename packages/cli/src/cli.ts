@@ -38,6 +38,8 @@ interface CliOptions {
   ignore?: string;
   render: boolean;
   browserWs?: string;
+  analytics?: string;
+  blockHost?: string[];
   crawl: boolean;
   mcp: boolean;
   dataSource?: string;
@@ -93,6 +95,8 @@ export async function runCli(
     .option("--ignore <patterns>", "Comma-separated glob patterns to exclude")
     .option("--render", "Render pages in a browser before auditing")
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
+    .option("--analytics <mode>", "Render-mode analytics handling: block | allow | allow-first-party (default: block)", "block")
+    .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
@@ -220,7 +224,16 @@ async function runAudit(
     timeout: opts.timeout !== "30000" ? Number(opts.timeout) : undefined,
     sampleSize: opts.sampleSize !== "0" ? Number(opts.sampleSize) : undefined,
     ignore: opts.ignore ? opts.ignore.split(",").map((s: string) => s.trim()) : undefined,
-    render: opts.render ? { browserWsEndpoint: opts.browserWs } : undefined,
+    render: opts.render
+      ? {
+          browserWsEndpoint: opts.browserWs,
+          analyticsMode:
+            opts.analytics === "allow" || opts.analytics === "allow-first-party"
+              ? opts.analytics
+              : "block",
+          extraBlockedHosts: opts.blockHost && opts.blockHost.length > 0 ? opts.blockHost : undefined,
+        }
+      : undefined,
     crawlDiscovery: opts.crawl === false ? false : undefined,
     samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
     maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,

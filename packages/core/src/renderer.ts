@@ -1,11 +1,34 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { join, extname } from "node:path";
+import { isAnalyticsRequest, type AnalyticsMode } from "./analytics-blocklist.js";
+
+/**
+ * Distinct User-Agent for rendered audits. Includes the standard `+URL` bot
+ * marker so server-side analytics filters (GA4, Matomo, Cloudflare) can drop
+ * it automatically, and keeps the `compatible` token so sites that sniff real
+ * browsers for feature gating still serve content.
+ */
+const RENDER_USER_AGENT =
+  "Mozilla/5.0 (compatible; pseolint-render/0.3.1; +https://pseolint.dev/bot)";
 
 export interface RenderOptions {
   browserWsEndpoint?: string;
   concurrency: number;
   timeoutMs: number;
+  /**
+   * How to handle analytics / telemetry / session-replay beacons.
+   *   "block" (default) — abort known analytics hosts (Google Analytics, Plausible,
+   *     Mixpanel, Hotjar, PostHog, Sentry, etc.). Prevents the audit from injecting
+   *     fake pageviews / sessions into the site owner's dashboards.
+   *   "allow-first-party" — block third-party analytics only; keep same-origin
+   *     requests for sites that self-host analytics on their own domain.
+   *   "allow" — don't intercept anything. Use this only when you're auditing a
+   *     site you own and explicitly want render-mode traffic in your analytics.
+   */
+  analyticsMode?: AnalyticsMode;
+  /** Extra host tokens to block in addition to the default list (substring match). */
+  extraBlockedHosts?: readonly string[];
 }
 
 interface RenderedPage {
@@ -105,6 +128,51 @@ export async function renderPages(
     browser = await pw.chromium.launch({ headless: true });
   }
 
+  // One browser context carries the UA + privacy headers + init script for every
+  // audited page. `DNT` / `Sec-GPC` signal privacy-respecting analytics stacks
+  // to skip collection; `window.__pseolint_audit` lets cooperating sites
+  // short-circuit their own analytics bootloader.
+  const context = await browser.newContext({
+    userAgent: RENDER_USER_AGENT,
+    extraHTTPHeaders: {
+      "DNT": "1",
+      "Sec-GPC": "1",
+    },
+  });
+  await context.addInitScript(() => {
+    // @ts-ignore -- evaluated in the browser, window is the page's window
+    (window as unknown as Record<string, unknown>).__pseolint_audit = true;
+  });
+
+  const analyticsMode: AnalyticsMode = options.analyticsMode ?? "block";
+  if (analyticsMode !== "allow") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await context.route("**/*", (route: any, request: any) => {
+      try {
+        const requestUrl = request.url();
+        const pageOrigin = (() => {
+          try {
+            return new URL(request.frame().url()).origin;
+          } catch {
+            return undefined;
+          }
+        })();
+        if (isAnalyticsRequest(requestUrl, {
+          mode: analyticsMode,
+          pageOrigin,
+          extraBlockedHosts: options.extraBlockedHosts,
+        })) {
+          route.abort();
+          return;
+        }
+      } catch {
+        // fall through on any interception-time error — better to let the
+        // request proceed than to break rendering over a bad URL parse.
+      }
+      route.continue();
+    });
+  }
+
   let server: { port: number; close: () => void } | null = null;
   if (sourceDir) {
     server = await startStaticServer(sourceDir);
@@ -118,7 +186,7 @@ export async function renderPages(
       const current = index;
       index += 1;
       const entry = pages[current];
-      const page = await browser.newPage();
+      const page = await context.newPage();
 
       let navigateUrl = entry.url;
       if (entry.localPath && server) {
@@ -148,6 +216,7 @@ export async function renderPages(
   await Promise.all(workers);
 
   server?.close();
+  await context.close();
   await browser.close();
 
   return results;
