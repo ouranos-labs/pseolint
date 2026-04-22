@@ -128,6 +128,15 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
+      {ctx.kind !== "anon" && (
+        <Link
+          href={ctx.kind === "pro_own_monitored" ? `/dashboard/${ctx.domainSlug}` : "/dashboard"}
+          className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <span aria-hidden>←</span>
+          {ctx.kind === "pro_own_monitored" ? "Back to workspace" : "Back to dashboard"}
+        </Link>
+      )}
       <div className="mb-6">
         <ReportCtaStrip {...ctx} />
       </div>
