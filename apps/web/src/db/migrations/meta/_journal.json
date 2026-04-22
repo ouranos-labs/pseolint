@@ -29,6 +29,13 @@
       "when": 1776767794435,
       "tag": "0003_oval_sabretooth",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776849989708,
+      "tag": "0004_cloudy_warbound",
+      "breakpoints": true
     }
   ]
 }

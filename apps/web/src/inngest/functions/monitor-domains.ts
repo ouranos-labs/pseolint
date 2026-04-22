@@ -12,6 +12,7 @@ import { auditMode } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
 import { mergeFindings } from "@/lib/findings-state";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
+import { publicSlug } from "@/lib/slug";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -98,6 +99,7 @@ async function runOneMonitor(monitoredDomainId: string) {
   const [audit] = await db
     .insert(audits)
     .values({
+      slug: publicSlug(),
       userId: d.userId,
       anonSessionId: null,
       sourceUrl: d.sourceUrl,

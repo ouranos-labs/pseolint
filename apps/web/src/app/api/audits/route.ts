@@ -13,6 +13,7 @@ import { auditMode, readOnlyMessage, disabledMessage } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
 import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
+import { publicSlug } from "@/lib/slug";
 
 export const runtime = "nodejs";
 
@@ -186,7 +187,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const [row] = await db.insert(audits).values({
-    userId, anonSessionId, sourceUrl: url, status: "queued",
+    slug: publicSlug(), userId, anonSessionId, sourceUrl: url, status: "queued",
     isPublic: plan !== "pro", expiresAt,
   }).returning({ id: audits.id });
 
