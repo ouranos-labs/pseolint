@@ -2,6 +2,7 @@
 "@pseolint/core": minor
 "pseolint": minor
 "@pseolint/mcp": minor
+"@pseolint/action": minor
 ---
 
 feat: add AEO rule category with 8 rules for AI Overview readiness
