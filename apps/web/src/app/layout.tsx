@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { NavRing } from "@/components/landing/nav-ring";
 import { getOptionalSession } from "@/lib/session";
+import { AccountMenu } from "@/components/dashboard/account-menu";
 
 const displaySerif = Instrument_Serif({
   subsets: ["latin"],
@@ -23,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={cn(GeistSans.variable, GeistMono.variable, displaySerif.variable)}>
       <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
-        <SiteNav signedIn={!!session} />
+        <SiteNav signedIn={!!session} email={session?.user.email} />
         <div className="relative">{children}</div>
         <SiteFooter />
       </body>
@@ -31,70 +32,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   );
 }
 
-function SiteNav({ signedIn }: { signedIn: boolean }) {
+function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
   return (
     <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-        <Link href="/" className="flex items-center gap-2.5 text-sm">
-          <NavRing size={30} title="pseolint — 35 SpamBrain rules. Lights up as rules fire in the demo." />
+        <Link href={signedIn ? "/dashboard" : "/"} className="flex items-center gap-2.5 text-sm">
+          <NavRing size={30} title="pseolint — 35 SpamBrain rules" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">
-            v0.2.1
-          </span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.2.1</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
-          {signedIn && (
-            <>
-              <Link
-                href="/dashboard/queue"
-                className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Queue
-              </Link>
-              <Link
-                href="/dashboard/integrations"
-                className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Integrations
-              </Link>
-            </>
-          )}
-          <Link
-            href="/leaderboard"
-            className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Leaderboard
-          </Link>
-          <Link
-            href="/pricing"
-            className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Pricing
-          </Link>
-          <a
-            href="https://github.com/ouranos-labs/pseolint"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="pseolint on GitHub"
-            title="GitHub"
-            className="inline-grid h-8 w-8 place-items-center rounded-[12px] text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <GitHubMark />
-          </a>
           {signedIn ? (
-            <Link
-              href="/dashboard"
-              className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Dashboard
-            </Link>
+            <AccountMenu email={email ?? ""} />
           ) : (
-            <Link
-              href="/signin"
-              className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Sign in
-            </Link>
+            <>
+              <Link href="/leaderboard" className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground">Leaderboard</Link>
+              <Link href="/pricing" className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground">Pricing</Link>
+              <a
+                href="https://github.com/ouranos-labs/pseolint"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="pseolint on GitHub"
+                title="GitHub"
+                className="inline-grid h-8 w-8 place-items-center rounded-[12px] text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <GitHubMark />
+              </a>
+              <Link href="/signin" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Sign in</Link>
+            </>
           )}
         </div>
       </div>
