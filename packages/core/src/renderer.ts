@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join, extname } from "node:path";
 import { isAnalyticsRequest, type AnalyticsMode } from "./analytics-blocklist.js";
 
@@ -7,10 +8,35 @@ import { isAnalyticsRequest, type AnalyticsMode } from "./analytics-blocklist.js
  * Distinct User-Agent for rendered audits. Includes the standard `+URL` bot
  * marker so server-side analytics filters (GA4, Matomo, Cloudflare) can drop
  * it automatically, and keeps the `compatible` token so sites that sniff real
- * browsers for feature gating still serve content.
+ * browsers for feature gating still serve content. The version is read from
+ * package.json at module load so it stays accurate across releases.
  */
-const RENDER_USER_AGENT =
-  "Mozilla/5.0 (compatible; pseolint-render/0.3.1; +https://pseolint.dev/bot)";
+const RENDER_VERSION = (() => {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../package.json") as { version?: string };
+    return pkg.version ?? "0";
+  } catch {
+    return "0";
+  }
+})();
+const RENDER_USER_AGENT = `Mozilla/5.0 (compatible; pseolint-render/${RENDER_VERSION}; +https://pseolint.dev/bot)`;
+
+/**
+ * Playwright resource types that can carry analytics beacons. CSS, fonts,
+ * images, and media typically don't — skipping them keeps the route handler
+ * off most subresource requests and preserves Playwright's fast path.
+ */
+const INTERCEPTED_RESOURCE_TYPES = new Set([
+  "document",
+  "script",
+  "xhr",
+  "fetch",
+  "websocket",
+  "eventsource",
+  "ping",
+  "other", // navigator.sendBeacon shows up as "other" in some Playwright versions
+]);
 
 export interface RenderOptions {
   browserWsEndpoint?: string;
@@ -129,8 +155,9 @@ export async function renderPages(
   }
 
   // One browser context carries the UA + privacy headers + init script for every
-  // audited page. `DNT` / `Sec-GPC` signal privacy-respecting analytics stacks
-  // to skip collection; `window.__pseolint_audit` lets cooperating sites
+  // audited page. `Sec-GPC` signals privacy-respecting analytics stacks to skip
+  // collection (DNT is kept for legacy consumers but is deprecated and mostly
+  // ignored today). `window.__pseolint_audit` lets cooperating sites
   // short-circuit their own analytics bootloader.
   const context = await browser.newContext({
     userAgent: RENDER_USER_AGENT,
@@ -148,28 +175,53 @@ export async function renderPages(
   if (analyticsMode !== "allow") {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await context.route("**/*", (route: any, request: any) => {
+      let blocked = false;
       try {
-        const requestUrl = request.url();
-        const pageOrigin = (() => {
-          try {
-            return new URL(request.frame().url()).origin;
-          } catch {
-            return undefined;
+        // Skip resource types that can't carry an analytics beacon — CSS, fonts,
+        // images, media. Keeps the fast path for the vast majority of subresources
+        // and preserves Playwright's in-browser networking.
+        const resourceType = typeof request.resourceType === "function" ? request.resourceType() : "";
+        if (resourceType && !INTERCEPTED_RESOURCE_TYPES.has(resourceType)) {
+          // Fall through to continue().
+        } else {
+          const requestUrl = request.url();
+          // Use the top-level navigation URL as the page origin for first-party
+          // matching. `request.frame().url()` is `about:blank` before the first
+          // navigation commits, which is an opaque origin and would otherwise
+          // under-protect same-origin first-party mode.
+          const pageOrigin = (() => {
+            try {
+              const frameUrl = request.frame?.().url?.() ?? "";
+              if (frameUrl && frameUrl !== "about:blank") return new URL(frameUrl).origin;
+              if (typeof request.isNavigationRequest === "function" && request.isNavigationRequest()) {
+                return new URL(requestUrl).origin;
+              }
+              return undefined;
+            } catch {
+              return undefined;
+            }
+          })();
+          if (isAnalyticsRequest(requestUrl, {
+            mode: analyticsMode,
+            pageOrigin,
+            extraBlockedHosts: options.extraBlockedHosts,
+          })) {
+            blocked = true;
           }
-        })();
-        if (isAnalyticsRequest(requestUrl, {
-          mode: analyticsMode,
-          pageOrigin,
-          extraBlockedHosts: options.extraBlockedHosts,
-        })) {
-          route.abort();
-          return;
         }
       } catch {
         // fall through on any interception-time error — better to let the
         // request proceed than to break rendering over a bad URL parse.
       }
-      route.continue();
+
+      // Exactly one of abort()/continue() is called; each is wrapped to swallow
+      // "Route is already handled" errors that can fire during teardown when a
+      // page has been closed mid-flight.
+      if (blocked) {
+        route.abort().catch(() => { /* route already handled */ });
+      } else {
+        route.continue().catch(() => { /* route already handled */ });
+      }
     });
   }
 
@@ -213,11 +265,18 @@ export async function renderPages(
     { length: Math.min(options.concurrency, pages.length) },
     () => processNext()
   );
-  await Promise.all(workers);
 
-  server?.close();
-  await context.close();
-  await browser.close();
+  try {
+    await Promise.all(workers);
+  } finally {
+    // Always tear down server + context + browser, even if a worker threw.
+    // Leaking a Chromium process across audit runs is expensive; each of
+    // these calls is independently guarded so one failure doesn't skip the
+    // others.
+    try { server?.close(); } catch { /* noop */ }
+    try { await context.close(); } catch { /* noop */ }
+    try { await browser.close(); } catch { /* noop */ }
+  }
 
   return results;
 }

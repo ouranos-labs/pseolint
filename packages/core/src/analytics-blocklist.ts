@@ -18,8 +18,8 @@ export const DEFAULT_ANALYTICS_HOSTS = [
   "googletagmanager.com",
   "doubleclick.net",
   "googleadservices.com",
-  "google.com/ads",
   "googlesyndication.com",
+  "pagead2.googlesyndication.com",
 
   // Privacy-focused analytics
   "plausible.io",
@@ -86,9 +86,17 @@ export const DEFAULT_ANALYTICS_HOSTS = [
   "nr-data.net",
 ] as const;
 
+// Pre-lower the default list once at module load — the renderer calls
+// isAnalyticsRequest for every subresource of every rendered page, so avoiding
+// a per-call `.toLowerCase()` of ~40 tokens matters on large audits.
+const DEFAULT_ANALYTICS_HOSTS_LOWER: readonly string[] = DEFAULT_ANALYTICS_HOSTS.map((h) =>
+  h.toLowerCase(),
+);
+
 /**
- * True when the URL's host contains one of the blocked substrings. Same-origin
- * requests are always allowed (callers pass in the page origin).
+ * True when the URL's host contains one of the blocked substrings. In
+ * `allow-first-party` mode, same-origin requests are allowed even if the host
+ * matches the list (callers pass in the page origin).
  */
 export function isAnalyticsRequest(
   url: string,
@@ -112,17 +120,29 @@ export function isAnalyticsRequest(
   if (mode === "allow-first-party" && options.pageOrigin) {
     try {
       const origin = new URL(options.pageOrigin).origin;
-      if (parsed.origin === origin) return false;
+      // "null" is the string form of opaque origins (`about:blank`, `data:`)
+      // and must never be treated as matching any real origin.
+      if (origin !== "null" && parsed.origin !== "null" && parsed.origin === origin) {
+        return false;
+      }
     } catch {
       // fall through — treat as cross-origin
     }
   }
 
   const host = parsed.host.toLowerCase();
-  const base = options.blockedHosts ?? DEFAULT_ANALYTICS_HOSTS;
-  const extra = options.extraBlockedHosts ?? [];
-  for (const token of [...base, ...extra]) {
-    if (host.includes(token.toLowerCase())) return true;
+  // Use the pre-lowered default unless the caller supplied their own list; the
+  // caller list is lowered here on the fly (it's small and caller-controlled).
+  const base = options.blockedHosts
+    ? options.blockedHosts.map((h) => h.toLowerCase())
+    : DEFAULT_ANALYTICS_HOSTS_LOWER;
+  for (const token of base) {
+    if (host.includes(token)) return true;
+  }
+  if (options.extraBlockedHosts) {
+    for (const token of options.extraBlockedHosts) {
+      if (host.includes(token.toLowerCase())) return true;
+    }
   }
   return false;
 }

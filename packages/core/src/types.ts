@@ -228,7 +228,7 @@ export interface AuditOptions {
      */
     analyticsMode?: "block" | "allow" | "allow-first-party";
     /** Extra host tokens to block in addition to the default list. */
-    extraBlockedHosts?: string[];
+    extraBlockedHosts?: readonly string[];
   };
   /** Override template auto-detection. When set, skips heuristic detection. */
   templateGenerated?: boolean;
