@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
@@ -36,6 +36,7 @@ export const monitorDomains = inngest.createFunction(
         .where(and(
           eq(monitoredDomains.paused, false),
           lte(monitoredDomains.nextRunAt, new Date()),
+          isNull(monitoredDomains.removedAt),
         ))
         .limit(MAX_DOMAINS_PER_TICK * 3),
     );
