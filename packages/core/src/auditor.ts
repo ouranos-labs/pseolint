@@ -35,6 +35,7 @@ import { answerFirstRule } from "./rules/aeo/answer-first.js";
 import { citableFactsRule } from "./rules/aeo/citable-facts.js";
 import { nonReplicableValueRule } from "./rules/aeo/non-replicable-value.js";
 import { contentModularityRule } from "./rules/aeo/content-modularity.js";
+import { summaryBaitRule } from "./rules/aeo/summary-bait.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
@@ -92,11 +93,12 @@ const DEFAULTS = {
 } as const;
 
 const CATEGORY_WEIGHTS = {
-  spam: 0.35,
-  content: 0.2,
-  aeo: 0.15,
-  links: 0.12,
-  tech: 0.08,
+  spam: 0.33,
+  content: 0.19,
+  aeo: 0.14,
+  links: 0.11,
+  tech: 0.07,
+  data: 0.06,
   schema: 0.05,
   cannibal: 0.05,
   /** Dedup / crawl hygiene; does not affect composite score. */
@@ -378,6 +380,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
     aeo: 0,
     links: 0,
     tech: 0,
+    data: 0,
     schema: 0,
     cannibal: 0,
     audit: 0
@@ -397,6 +400,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
     raw.aeo * CATEGORY_WEIGHTS.aeo +
     raw.links * CATEGORY_WEIGHTS.links +
     raw.tech * CATEGORY_WEIGHTS.tech +
+    raw.data * CATEGORY_WEIGHTS.data +
     raw.schema * CATEGORY_WEIGHTS.schema +
     raw.cannibal * CATEGORY_WEIGHTS.cannibal +
     raw.audit * CATEGORY_WEIGHTS.audit;
@@ -409,6 +413,7 @@ function scoreFromFindings(findings: RuleResult[]): { score: number; categorySco
       aeo: raw.aeo,
       links: raw.links,
       tech: raw.tech,
+      data: raw.data,
       schema: raw.schema,
       cannibal: raw.cannibal
     }

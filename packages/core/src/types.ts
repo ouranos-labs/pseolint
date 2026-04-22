@@ -62,6 +62,7 @@ export interface CategoryScores {
   aeo: number;
   links: number;
   tech: number;
+  data: number;
   schema: number;
   cannibal: number;
 }

@@ -75,6 +75,7 @@ function categoryLabel(name: string): string {
     content: "Content quality",
     links: "Link graph",
     tech: "Technical SEO",
+    data: "Data binding",
     schema: "Structured data",
     cannibal: "Cannibalisation",
     aeo: "AEO readiness",
