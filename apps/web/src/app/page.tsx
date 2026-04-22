@@ -89,7 +89,7 @@ export default function Home() {
       });
       if (res.ok) {
         const { auditId, reportUrl, cached } = await res.json();
-        router.push(cached ? (reportUrl ?? `/r/${auditId}`) : `/a/${auditId}`);
+        router.push(cached && reportUrl ? reportUrl : `/a/${auditId}`);
         return;
       }
       const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
