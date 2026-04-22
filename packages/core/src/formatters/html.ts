@@ -9,6 +9,13 @@ const SEVERITY_LABEL: Record<Severity, string> = {
   info: "Info",
 };
 
+const SEVERITY_WEIGHT: Record<Severity, number> = {
+  critical: 100,
+  error: 50,
+  warning: 10,
+  info: 1,
+};
+
 function severityTone(severity: Severity): "destructive" | "warning" | "muted" {
   switch (severity) {
     case "critical":
@@ -74,6 +81,53 @@ function categoryLabel(name: string): string {
   return map[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
 }
 
+/** Group findings by ruleId. Preserves encounter order per bucket. */
+function groupByRule(findings: RuleResult[]): Map<string, RuleResult[]> {
+  const m = new Map<string, RuleResult[]>();
+  for (const f of findings) {
+    const bucket = m.get(f.ruleId);
+    if (bucket) bucket.push(f);
+    else m.set(f.ruleId, [f]);
+  }
+  return m;
+}
+
+/**
+ * Impact ranking: severity weight × distinct-page count. Ties broken by severity,
+ * then by pageCount, then alphabetical ruleId for determinism.
+ */
+type Impact = {
+  ruleId: string;
+  severity: Severity;
+  pageCount: number;
+  representative: RuleResult;
+  impact: number;
+};
+
+function rankByImpact(findings: RuleResult[]): Impact[] {
+  const byRule = groupByRule(findings);
+  const impacts: Impact[] = [];
+  for (const [ruleId, items] of byRule) {
+    const sev = items[0].severity;
+    impacts.push({
+      ruleId,
+      severity: sev,
+      pageCount: items.length,
+      representative: items[0],
+      impact: SEVERITY_WEIGHT[sev] * items.length,
+    });
+  }
+  impacts.sort((a, b) => {
+    if (b.impact !== a.impact) return b.impact - a.impact;
+    const sa = SEVERITY_ORDER.indexOf(a.severity);
+    const sb = SEVERITY_ORDER.indexOf(b.severity);
+    if (sa !== sb) return sa - sb;
+    if (b.pageCount !== a.pageCount) return b.pageCount - a.pageCount;
+    return a.ruleId.localeCompare(b.ruleId);
+  });
+  return impacts;
+}
+
 function renderTriageHtml(triage: NonNullable<AuditSummary["triage"]>): string {
   const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
   const cost = triage.estimatedCostUsd !== undefined ? ` · est $${triage.estimatedCostUsd.toFixed(2)}` : "";
@@ -101,6 +155,102 @@ function renderTriageHtml(triage: NonNullable<AuditSummary["triage"]>): string {
 </section>`;
 }
 
+function renderTopFixes(impacts: Impact[]): string {
+  if (impacts.length === 0) return "";
+  const top = impacts.slice(0, 5);
+  const rows = top.map((imp, idx) => {
+    const r = imp.representative;
+    const effortPill = r.effort
+      ? `<span class="effort-pill effort-${escapeHtml(r.effort)}">${escapeHtml(effortLabel(r.effort))}</span>`
+      : "";
+    const pagesLabel = imp.pageCount === 1 ? "1 page" : `${imp.pageCount} pages`;
+    return `<li class="top-fix">
+      <span class="top-fix-rank">${idx + 1}</span>
+      <div class="top-fix-body">
+        <div class="top-fix-head">
+          <code class="rule-id">${escapeHtml(imp.ruleId)}</code>
+          <span class="sev sev-${severityTone(imp.severity)}">${escapeHtml(imp.severity)}</span>
+          ${effortPill}
+          <span class="top-fix-pages mono">${pagesLabel}</span>
+        </div>
+        <p class="top-fix-msg">${escapeHtml(r.message)}</p>
+      </div>
+    </li>`;
+  }).join("");
+
+  return `
+<section class="top-fixes">
+  <header class="section-head">
+    <span class="eyebrow">Top fixes by impact</span>
+    <span class="meta-mono">severity × pages affected</span>
+  </header>
+  <ol class="top-fix-list">${rows}</ol>
+</section>`;
+}
+
+function renderRuleCard(ruleId: string, items: RuleResult[], sev: Severity): string {
+  const representative = items[0];
+  const effortPill = representative.effort
+    ? ` <span class="effort-pill effort-${escapeHtml(representative.effort)}">${escapeHtml(effortLabel(representative.effort))}</span>`
+    : "";
+  const pagesLabel = items.length === 1 ? "1 page" : `${items.length} pages`;
+
+  // Sample + full URL list — only include findings that have a pageUrl.
+  const urls = items.map((i) => i.pageUrl).filter((u): u is string => !!u);
+  let pageList = "";
+  if (urls.length > 0) {
+    const preview = urls.slice(0, 3);
+    const rest = urls.slice(3);
+    const previewHtml = `<ul class="page-preview">${preview.map((u) => `<li class="mono">${escapeHtml(shortenUrl(u))}</li>`).join("")}</ul>`;
+    const restHtml = rest.length > 0
+      ? `<details class="page-extra">
+           <summary>${rest.length} more ${rest.length === 1 ? "page" : "pages"}</summary>
+           <ul class="page-list">${rest.map((u) => `<li class="mono">${escapeHtml(shortenUrl(u))}</li>`).join("")}</ul>
+         </details>`
+      : "";
+    pageList = previewHtml + restHtml;
+  }
+
+  // Cluster context (if any finding has it, show the first one — site-wide rules only fire once).
+  let cluster = "";
+  const withCluster = items.find((i) => i.context?.type === "cluster");
+  if (withCluster && withCluster.context?.type === "cluster") {
+    const ctx = withCluster.context;
+    const [minSim, maxSim] = ctx.similarityRange;
+    const worstPairsHtml = ctx.worstPairs
+      .map(p => `<li><span class="mono">${escapeHtml(shortenUrl(p.left))}</span> <span class="arrow">↔</span> <span class="mono">${escapeHtml(shortenUrl(p.right))}</span> <span class="sim">${(p.similarity * 100).toFixed(1)}%</span></li>`)
+      .join("");
+    const membersHtml = ctx.members
+      .map(m => `<li class="mono">${escapeHtml(shortenUrl(m))}</li>`)
+      .join("");
+    cluster = `
+<details>
+  <summary>${ctx.clusterSize} pages in cluster · ${(minSim * 100).toFixed(0)}–${(maxSim * 100).toFixed(0)}% similar</summary>
+  <div class="cluster-body">
+    <p class="cluster-label">Worst pairs</p>
+    <ul class="pair-list">${worstPairsHtml}</ul>
+    <p class="cluster-label">All members</p>
+    <ul class="member-list">${membersHtml}</ul>
+  </div>
+</details>`;
+  }
+
+  const fix = representative.fix ? `<div class="fix"><span class="fix-label">Fix</span>${escapeHtml(representative.fix)}</div>` : "";
+  const ref = representative.ref ? `<a href="${escapeHtml(representative.ref)}" class="ref" target="_blank" rel="noopener">ref ↗</a>` : "";
+
+  return `<li class="finding finding-${severityTone(sev)}">
+    <div class="finding-head">
+      <code class="rule-id">${escapeHtml(ruleId)}</code>${effortPill}
+      <span class="finding-pages mono">${pagesLabel}</span>
+    </div>
+    <p class="finding-msg">${escapeHtml(representative.message)}</p>
+    ${pageList}
+    ${cluster}
+    ${fix}
+    ${ref}
+  </li>`;
+}
+
 export function formatHtml(summary: AuditSummary): string {
   const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) grouped.set(sev, []);
@@ -113,6 +263,9 @@ export function formatHtml(summary: AuditSummary): string {
     info: grouped.get("info")!.length,
   };
   const totalErrors = counts.critical + counts.error;
+
+  const impacts = rankByImpact(summary.findings);
+  const topFixesHtml = renderTopFixes(impacts);
 
   const categoryRows = Object.entries(summary.categoryScores)
     .map(([name, value]) => {
@@ -129,53 +282,21 @@ export function formatHtml(summary: AuditSummary): string {
   const findingsSections = SEVERITY_ORDER.map((sev) => {
     const items = grouped.get(sev)!;
     if (items.length === 0) return "";
-    const itemsHtml = items
-      .map((item) => {
-        const effortPill = item.effort
-          ? ` <span class="effort-pill effort-${escapeHtml(item.effort)}">${escapeHtml(effortLabel(item.effort))}</span>`
-          : "";
-        const pageUrl = item.pageUrl
-          ? ` <span class="page-url mono">${escapeHtml(shortenUrl(item.pageUrl))}</span>`
-          : "";
-        let cluster = "";
-        if (item.context?.type === "cluster") {
-          const ctx = item.context;
-          const [minSim, maxSim] = ctx.similarityRange;
-          const worstPairsHtml = ctx.worstPairs
-            .map(p => `<li><span class="mono">${escapeHtml(shortenUrl(p.left))}</span> <span class="arrow">↔</span> <span class="mono">${escapeHtml(shortenUrl(p.right))}</span> <span class="sim">${(p.similarity * 100).toFixed(1)}%</span></li>`)
-            .join("");
-          const membersHtml = ctx.members
-            .map(m => `<li class="mono">${escapeHtml(shortenUrl(m))}</li>`)
-            .join("");
-          cluster = `
-<details>
-  <summary>${ctx.clusterSize} pages in cluster · ${(minSim * 100).toFixed(0)}–${(maxSim * 100).toFixed(0)}% similar</summary>
-  <div class="cluster-body">
-    <p class="cluster-label">Worst pairs</p>
-    <ul class="pair-list">${worstPairsHtml}</ul>
-    <p class="cluster-label">All members</p>
-    <ul class="member-list">${membersHtml}</ul>
-  </div>
-</details>`;
-        }
-        const fix = item.fix ? `<div class="fix"><span class="fix-label">Fix</span>${escapeHtml(item.fix)}</div>` : "";
-        const ref = item.ref ? `<a href="${escapeHtml(item.ref)}" class="ref" target="_blank" rel="noopener">ref ↗</a>` : "";
-        return `<li class="finding finding-${severityTone(sev)}">
-          <div class="finding-head">
-            <code class="rule-id">${escapeHtml(item.ruleId)}</code>${effortPill}${pageUrl}
-          </div>
-          <p class="finding-msg">${escapeHtml(item.message)}</p>
-          ${cluster}
-          ${fix}
-          ${ref}
-        </li>`;
+    const byRule = groupByRule(items);
+    // Preserve rule-level ordering by rank (severity × pageCount) within the severity group.
+    const orderedRuleIds = Array.from(byRule.entries())
+      .sort((a, b) => {
+        if (b[1].length !== a[1].length) return b[1].length - a[1].length;
+        return a[0].localeCompare(b[0]);
       })
-      .join("");
+      .map(([ruleId]) => ruleId);
+    const itemsHtml = orderedRuleIds.map((rid) => renderRuleCard(rid, byRule.get(rid)!, sev)).join("");
+    const ruleCount = byRule.size;
     return `
     <div class="sev-group">
       <h3 class="sev-heading sev-${severityTone(sev)}">
         <span class="sev-dot"></span>${SEVERITY_LABEL[sev]}
-        <span class="sev-count">${items.length}</span>
+        <span class="sev-count">${ruleCount} ${ruleCount === 1 ? "rule" : "rules"} · ${items.length} ${items.length === 1 ? "finding" : "findings"}</span>
       </h3>
       <ul class="finding-list">${itemsHtml}</ul>
     </div>`;
@@ -280,6 +401,19 @@ export function formatHtml(summary: AuditSummary): string {
   .bar-fill{height:100%;border-radius:999px;transition:width .4s ease}
   .bar-success{background:var(--success)} .bar-warning{background:var(--warning)} .bar-destructive{background:var(--destructive)}
 
+  .top-fixes{margin-top:28px;padding:24px 28px 28px;background:color-mix(in oklab,var(--primary) 6%,var(--card) 94%);
+             border:1px solid color-mix(in oklab,var(--primary) 25%,var(--border));border-radius:var(--r-lg)}
+  .top-fix-list{list-style:none;display:flex;flex-direction:column;gap:10px}
+  .top-fix{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;padding:12px 14px;
+           background:var(--card);border:1px solid var(--border);border-radius:14px}
+  .top-fix-rank{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:999px;
+                background:color-mix(in oklab,var(--primary) 22%,transparent);color:var(--primary);
+                font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;font-weight:700;margin-top:1px}
+  .top-fix-body{min-width:0}
+  .top-fix-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
+  .top-fix-pages{color:var(--muted);font-size:11px;margin-left:auto}
+  .top-fix-msg{color:var(--fg);font-size:14px}
+
   .findings-head{display:flex;align-items:baseline;justify-content:space-between;margin:56px 0 18px}
   .findings-head h2{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
   .findings-head .meta{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;color:var(--muted)}
@@ -303,8 +437,17 @@ export function formatHtml(summary: AuditSummary): string {
   .finding-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px}
   .rule-id{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:12px;
            color:var(--fg);background:var(--card-2);padding:2px 8px;border-radius:6px;border:1px solid var(--border)}
+  .finding-pages{color:var(--muted);font-size:11px;margin-left:auto}
   .finding-msg{color:var(--fg);font-size:14px}
-  .page-url{color:var(--muted);font-size:11px;margin-left:auto}
+  .page-preview{list-style:none;display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:12px;color:var(--muted)}
+  .page-extra{margin-top:6px}
+  .page-extra>summary{cursor:pointer;color:var(--muted);font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+                      font-size:12px;list-style:none;padding:4px 0}
+  .page-extra>summary::-webkit-details-marker{display:none}
+  .page-extra>summary::before{content:"▸ ";color:var(--muted-2)}
+  .page-extra[open]>summary::before{content:"▾ "}
+  .page-list{list-style:none;display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);
+             max-height:240px;overflow-y:auto;padding:6px 0 0}
 
   .effort-pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;
                font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:lowercase;
@@ -331,8 +474,10 @@ export function formatHtml(summary: AuditSummary): string {
   .ref:hover{text-decoration:underline}
 
   .finding details{margin-top:10px;border:1px solid var(--border);border-radius:12px;background:var(--card-2)}
+  .finding details.page-extra{border:0;background:transparent;margin-top:6px}
   .finding details>summary{cursor:pointer;padding:10px 14px;color:var(--muted);font-size:12px;
                            font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;list-style:none}
+  .finding details.page-extra>summary{padding:4px 0}
   .finding details>summary::-webkit-details-marker{display:none}
   .finding details>summary::before{content:"▸ ";color:var(--muted-2)}
   .finding details[open]>summary::before{content:"▾ "}
@@ -394,6 +539,8 @@ export function formatHtml(summary: AuditSummary): string {
 
   ${summary.templateDetected ? `<div class="template-banner"><strong>Template-generated content detected.</strong> Fix suggestions are tailored for template authors — one change can fix hundreds of pages.</div>` : ""}
 
+  ${topFixesHtml}
+
   <section class="card">
     <header class="section-head">
       <span class="eyebrow">Category scores</span>
@@ -410,12 +557,12 @@ export function formatHtml(summary: AuditSummary): string {
 
   <div class="findings-head">
     <h2>Findings · ${summary.findings.length}</h2>
-    <span class="meta">sampled ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"}</span>
+    <span class="meta">grouped by rule · sampled ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"}</span>
   </div>
   ${findingsSections}
 
   <section class="footer-note">
-    <strong>About this report.</strong> Score is a structured heuristic, not a verdict from Google. Categories are weighted equally. Severities escalate: info → warning → error → critical. Effort tags (<span class="effort-pill effort-quick">quick fix</span> <span class="effort-pill effort-moderate">moderate</span> <span class="effort-pill effort-structural">structural</span>) estimate the change cost per finding.
+    <strong>About this report.</strong> Score is a structured heuristic, not a verdict from Google. Categories are weighted equally. Severities escalate: info → warning → error → critical. Effort tags (<span class="effort-pill effort-quick">quick fix</span> <span class="effort-pill effort-moderate">moderate</span> <span class="effort-pill effort-structural">structural</span>) estimate the change cost per finding. "Top fixes by impact" ranks by severity × pages affected — the same heuristic Pro uses for its fix queue (which also factors Search Console impressions once connected).
   </section>
 </main>
 </body>
