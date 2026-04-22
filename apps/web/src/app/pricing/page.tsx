@@ -7,35 +7,18 @@ import { Button } from "@/components/ui/button";
 type Interval = "monthly" | "yearly";
 
 const PRO_FEATURES = [
-  {
-    title: "Unlimited monitored domains",
-    detail: "Weekly re-audits on every domain you add, running in the background.",
-  },
-  {
-    title: "Score-shift email alerts",
-    detail: "Get emailed the moment a domain drifts by 10+ points or a new error-severity rule fires.",
-  },
-  {
-    title: "Dashboard + history",
-    detail: "Per-domain trend lines, pause/resume, cadence control, full audit history.",
-  },
-  {
-    title: "AI triage, Sonnet-class",
-    detail: "Root-cause grouping across findings — 50 triages per day included.",
-  },
-  {
-    title: "1,000-page crawl budget",
-    detail: "5× the free limit, plus link discovery beyond sitemap.xml.",
-  },
-  {
-    title: "PDF export + private reports",
-    detail: "Branded PDF output. Reports are private by default, shareable when you choose.",
-  },
+  { title: "Unlimited monitored domains", detail: "Daily diff-audits + weekly full re-audits, running in the background." },
+  { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it." },
+  { title: "SpamBrain + AEO coverage", detail: "42+ rules spanning classical SEO and Answer Engine Optimization — your pages stay rankable AND citable by LLMs." },
+  { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
+  { title: "Integrations", detail: "GitHub Action upload · Search Console (v1.1) · Webflow (v1.1) · WordPress plugin (v1.2)." },
+  { title: "Dashboard + history", detail: "Portfolio strip, per-domain timelines, suppressions that persist across runs." },
+  { title: "Private hosted reports + PDF export", detail: "Shareable links. Branded PDF output for stakeholder handoff." },
 ] as const;
 
 const FREE_FEATURES = [
   "Unlimited one-shot audits",
-  "Up to 200 pages per audit",
+  "Up to 200 pages per audit (web UI) · CLI has no limit",
   "Public shareable report link",
   "Reports kept 24h (anon) / 30d (signed-in)",
 ] as const;
@@ -77,12 +60,17 @@ export default function Pricing() {
         </h1>
         <p className="mt-4 text-base text-muted-foreground">
           Run a one-shot audit without an account, any time, at no cost. Pay only when you need
-          pseolint to watch a domain for you — weekly re-audits, alerts when the risk score
-          shifts, and a dashboard of everything you&apos;re tracking.
+          pseolint to watch a domain for you — daily diff-audits, weekly full re-audits, a fix queue
+          ranked by real traffic, and a dashboard of everything you&apos;re tracking.
         </p>
       </div>
 
-      <div className="mt-12 grid gap-4 md:grid-cols-2">
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        The CLI and GitHub Action are free and always will be.
+        Pro adds the infrastructure around them.
+      </p>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
         <PlanCard interval="monthly" price="19" cadence="/ month" loading={loading} onClick={go} />
         <PlanCard
           interval="yearly"

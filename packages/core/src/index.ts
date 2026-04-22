@@ -79,3 +79,5 @@ export * from "./telemetry/index.js";
 export type { TelemetryOptions } from "./types.js";
 export { promptTriageFeedback } from "./ai/feedback-prompt.js";
 export type { FeedbackRating, PromptOptions } from "./ai/feedback-prompt.js";
+export { RULE_SCOPE, isRuleAllowedInDiff } from "./rules/scope.js";
+export type { RuleScope } from "./rules/scope.js";

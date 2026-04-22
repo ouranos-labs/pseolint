@@ -1,7 +1,7 @@
-import { and, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { audits, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
+import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
 import { executeAuditInProcess } from "@/inngest/functions/run-audit";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import type { AuditSummary } from "@pseolint/core";
@@ -10,8 +10,13 @@ import { bumpRateLimit } from "@/lib/rate-limit";
 import { todayDateString } from "@/lib/ids";
 import { auditMode } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
+import { mergeFindings } from "@/lib/findings-state";
+import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 
 const MAX_DOMAINS_PER_TICK = 20;
+
+/** Re-run a full audit at most once per 7 days; all other runs are diff-mode. */
+const FULL_REAUDIT_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const monitorDomains = inngest.createFunction(
   { id: "monitor-domains", retries: 1 },
@@ -61,6 +66,14 @@ async function runOneMonitor(monitoredDomainId: string) {
     .limit(1);
   if (!d) return;
 
+  // Decide full vs diff based on how long it has been since the last full run.
+  // When lastFullRunAt is null (first ever run), the difference is huge → always full.
+  const now = new Date();
+  const lastFull = d.lastFullRunAt ? d.lastFullRunAt.getTime() : 0;
+  const isFullRun = now.getTime() - lastFull >= FULL_REAUDIT_INTERVAL_MS;
+  const mode: "full" | "diff" = isFullRun ? "full" : "diff";
+  auditLog("monitor.domain.dispatch", { domainId: d.id, mode });
+
   // Monitoring audits count against the user's daily quota — same economics as ad-hoc audits.
   const [profile] = await db
     .select({ plan: userProfiles.plan })
@@ -76,7 +89,7 @@ async function runOneMonitor(monitoredDomainId: string) {
     auditLog("monitor.domain.quota_exhausted", { monitoredDomainId: d.id, userId: d.userId, plan });
     await db
       .update(monitoredDomains)
-      .set({ nextRunAt: withJitter(new Date(Date.now() + 86_400_000)) })
+      .set({ nextRunAt: withJitter(new Date(now.getTime() + 86_400_000)) })
       .where(eq(monitoredDomains.id, d.id));
     return;
   }
@@ -90,7 +103,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       sourceUrl: d.sourceUrl,
       status: "queued",
       isPublic: false,
-      expiresAt: new Date(Date.now() + 90 * 86_400_000),
+      expiresAt: new Date(now.getTime() + 90 * 86_400_000),
     })
     .returning({ id: audits.id });
 
@@ -100,14 +113,18 @@ async function runOneMonitor(monitoredDomainId: string) {
     url: d.sourceUrl,
     plan: plan === "pro" ? "pro" : "free",
     sampleSize: Math.min(plan === "pro" ? 200 : 50, SAMPLE_SIZE_CEILING),
+    mode,
+    ...(mode === "diff" && { state: { since: true, path: `.pseolint/state-${d.id}.json` } }),
   });
 
-  const nextRunAt = computeNextRun(d.cadence);
+  // nextRunAt is always 24h (jittered): whether this run was diff or full is decided at
+  // dispatch time by the isFullRun check, not by a separate cadence column.
+  const nextRunAt = withJitter(new Date(now.getTime() + 24 * 60 * 60 * 1000));
 
   if (!result.ok) {
     await db
       .update(monitoredDomains)
-      .set({ nextRunAt, lastRunAt: new Date() })
+      .set({ nextRunAt, lastRunAt: now })
       .where(eq(monitoredDomains.id, d.id));
     return;
   }
@@ -117,11 +134,15 @@ async function runOneMonitor(monitoredDomainId: string) {
     .set({
       lastAuditId: audit.id,
       lastScore: result.score,
-      lastRunAt: new Date(),
+      lastRunAt: now,
+      // lastFullRunAt is stamped only on full runs so the 7-day window advances correctly.
+      ...(isFullRun && { lastFullRunAt: now }),
       nextRunAt,
     })
     .where(eq(monitoredDomains.id, d.id));
 
+  // Alert flow: compare against previous audit before merging findings_state.
+  // Task 11 will add an alert-gate that reads findings_state; for now this runs unchanged.
   if (d.lastAuditId) {
     await maybeAlert({
       monitoredDomainId: d.id,
@@ -135,17 +156,77 @@ async function runOneMonitor(monitoredDomainId: string) {
       currentScore: result.score,
     });
   }
-}
 
-function computeNextRun(cadence: "weekly" | "daily"): Date {
-  const ms = cadence === "daily" ? 86_400_000 : 7 * 86_400_000;
-  return withJitter(new Date(Date.now() + ms));
+  // Merge the fresh findings into the persistent findings_state table so the fix
+  // queue stays up-to-date. Placed after the alert flow so alerts fire on the
+  // pre-merge snapshot (Task 11 can change this ordering if needed).
+  const currSummaryRaw = await fetchSummaryJson(summaryKey(audit.id));
+  if (currSummaryRaw) {
+    try {
+      const currSummary = JSON.parse(currSummaryRaw) as AuditSummary;
+      await mergeFindings(d.id, currSummary.findings);
+    } catch {
+      // Non-fatal: findings_state is best-effort; don't fail the whole run.
+    }
+  }
+
+  // Alert gate: evaluate score delta + new error/critical combinations (Task 11).
+  // Runs after mergeFindings so firstSeenAt === lastSeenAt identifies rows new to this run.
+  try {
+    const newOnes = await db.select().from(findingsState).where(
+      and(
+        eq(findingsState.domainId, d.id),
+        eq(findingsState.status, "open"),
+        eq(findingsState.firstSeenAt, findingsState.lastSeenAt),
+      ),
+    );
+    const gate = await evaluateAlertGate({
+      domainId: d.id,
+      prevScore: d.lastScore ?? null,
+      currentScore: result.score,
+      newCombinations: newOnes.map((r) => ({
+        ruleId: r.ruleId,
+        templateSignature: r.templateSignature,
+        severity: r.severityLatest,
+      })),
+    });
+    if (gate.shouldAlert) {
+      const email = await resolveRecipient(d.userId, d.alertEmail);
+      if (email) {
+        try {
+          const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
+          await sendMonitoringAlertEmail({
+            to: email,
+            sourceUrl: d.sourceUrl,
+            previousScore: d.lastScore ?? null,
+            currentScore: result.score,
+            newRuleIds,
+            currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
+            reportId: audit.id,
+          });
+          // Email succeeded — now write dedup rows so we don't re-send this week.
+          const week = isoWeekOf(new Date());
+          for (const f of gate.firingCombinations) {
+            await db
+              .insert(alertsDedup)
+              .values({ domainId: d.id, ruleId: f.ruleId, templateSignature: f.templateSignature, isoWeek: week })
+              .onConflictDoNothing();
+          }
+        } catch (e) {
+          auditLog("monitor.alert_gate.email_failed", { domainId: d.id, err: e instanceof Error ? e.message : String(e) });
+          // Do NOT write dedup rows — let the next run retry.
+        }
+      }
+    }
+  } catch {
+    // Non-fatal: alert gate failure must not block the run.
+  }
 }
 
 /** ±30 minute jitter so audits don't cluster at the same cron tick. */
-function withJitter(d: Date): Date {
+function withJitter(date: Date): Date {
   const jitterMs = (Math.random() - 0.5) * 60 * 60 * 1000;
-  return new Date(d.getTime() + jitterMs);
+  return new Date(date.getTime() + jitterMs);
 }
 
 async function maybeAlert(input: {
@@ -225,8 +306,3 @@ async function resolveRecipient(userId: string, override: string | null): Promis
   const [u] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
   return u?.email ?? null;
 }
-
-// silence unused imports used only through drizzle operators
-void gte;
-void isNotNull;
-void sql;

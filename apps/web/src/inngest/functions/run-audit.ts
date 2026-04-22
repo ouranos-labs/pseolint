@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { uploadReport, uploadSummary, reportKey, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
-import { auditSource, formatHtml, type AuditSummary } from "@pseolint/core";
+import { auditSource, formatHtml, type AuditSummary, type StateOptions } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
 
 const MAX_COST_USD = 0.50;
@@ -16,12 +16,16 @@ export type RunAuditInput = {
   url: string;
   plan: "free" | "pro";
   sampleSize: number;
+  /** Audit mode: "full" runs all rules; "diff" skips corpus-scoped rules. Default: "full". */
+  mode?: "full" | "diff";
+  /** Run state for diff-mode audits. When provided, only changed/new URLs are audited. */
+  state?: StateOptions;
 };
 
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
-  const { auditId, url, plan, sampleSize } = input;
+  const { auditId, url, plan, sampleSize, mode, state } = input;
   const startedAt = Date.now();
-  auditLog("audit.started", { auditId, plan, sampleSize });
+  auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full" });
 
   await runStep("mark-running", async () => {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
@@ -32,6 +36,8 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await assertSafeUrl(url);
     summary = await runStep("audit", async () => auditSource(url, {
       sampleSize,
+      mode,
+      state,
       ai: plan === "pro" ? { enabled: true, maxCostUsd: MAX_COST_USD } : undefined,
     }));
   } catch (e) {
@@ -72,7 +78,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   return { ok: true as const, score: summary.score };
 }
 
-/** Run the audit in-process without Inngest. Use in dev or when workers aren't available. */
+/** Run the audit in-process without Inngest. Used by the monitor cron and by dev flows when workers aren't available. */
 export async function executeAuditInProcess(input: RunAuditInput) {
   return executeAudit(input, (_name, fn) => fn());
 }

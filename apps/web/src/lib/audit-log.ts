@@ -20,8 +20,10 @@ export type AuditLogEvent =
   | "audit.budget_hit"
   | "monitor.cron.start"
   | "monitor.domain.picked"
+  | "monitor.domain.dispatch"
   | "monitor.domain.skipped"
-  | "monitor.domain.quota_exhausted";
+  | "monitor.domain.quota_exhausted"
+  | "monitor.alert_gate.email_failed";
 
 type Payload = Record<string, unknown>;
 

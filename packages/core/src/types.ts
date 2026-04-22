@@ -154,6 +154,8 @@ export interface PageGroupConfig {
 }
 
 export interface AuditOptions {
+  /** When "diff", corpus-scoped rules are skipped (used by hosted diff-audits). Default: "full". */
+  mode?: "full" | "diff";
   rules?: {
     /** Passed to `normalizeAuditUrl` for crawl URLs and resolved links (default: strip query, keep www). */
     stripUrlQuery?: boolean;

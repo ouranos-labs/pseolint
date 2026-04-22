@@ -43,6 +43,22 @@ function SiteNav({ signedIn }: { signedIn: boolean }) {
           </span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
+          {signedIn && (
+            <>
+              <Link
+                href="/dashboard/queue"
+                className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Queue
+              </Link>
+              <Link
+                href="/dashboard/integrations"
+                className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Integrations
+              </Link>
+            </>
+          )}
           <Link
             href="/leaderboard"
             className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground"
