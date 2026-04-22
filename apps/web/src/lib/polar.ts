@@ -5,9 +5,17 @@ import { env } from "@/lib/env";
 
 export const polar = new Polar({ accessToken: env().POLAR_ACCESS_TOKEN });
 
-export async function createCheckoutSession(opts: { productId: string; customerEmail: string; successUrl: string }): Promise<{ url: string }> {
+export async function createCheckoutSession(opts: {
+  productId: string;
+  customerEmail: string;
+  successUrl: string;
+  metadata?: Record<string, string>;
+}): Promise<{ url: string }> {
   const res = await polar.checkouts.create({
-    products: [opts.productId], successUrl: opts.successUrl, customerEmail: opts.customerEmail,
+    products: [opts.productId],
+    successUrl: opts.successUrl,
+    customerEmail: opts.customerEmail,
+    metadata: opts.metadata,
   });
   if (!res.url) throw new Error("Polar did not return a checkout URL");
   return { url: res.url };

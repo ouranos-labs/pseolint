@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { userProfiles, users } from "@/db/schema";
+import { userProfiles, users, audits } from "@/db/schema";
 import { env } from "@/lib/env";
 import { rememberEventOnce } from "@/lib/polar";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
+import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,27 @@ export async function POST(req: Request): Promise<Response> {
         planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null,
       },
     });
+  }
+
+  if (event.type === "subscription.created") {
+    const md = (event.data.metadata ?? {}) as Record<string, string>;
+    if (md.intent === "monitor" && md.auditSlug && md.userId) {
+      try {
+        const [audit] = await db
+          .select({ sourceUrl: audits.sourceUrl, userId: audits.userId })
+          .from(audits)
+          .where(eq(audits.slug, md.auditSlug))
+          .limit(1);
+        if (audit && audit.userId === md.userId) {
+          await ensureMonitoredDomainForUser(md.userId, audit.sourceUrl);
+        } else {
+          console.warn("[webhook] monitor-intent audit not found or userId mismatch", { auditSlug: md.auditSlug });
+        }
+      } catch (e) {
+        console.error("[webhook] monitor-intent binding failed:", e);
+        // Do not fail the webhook — user can add domain manually from dashboard.
+      }
+    }
   }
 
   if (event.type === "subscription.canceled") {
