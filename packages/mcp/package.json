@@ -1,6 +1,6 @@
 {
   "name": "@pseolint/mcp",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "MCP server for pseolint — audit programmatic SEO sites from AI coding assistants",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
