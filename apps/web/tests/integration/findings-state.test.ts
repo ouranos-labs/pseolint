@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { findingsState, monitoredDomains, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { mergeFindings } from "@/lib/findings-state";
+import { publicSlug } from "@/lib/slug";
 import type { RuleResult } from "@pseolint/core";
 
 describe("mergeFindings", () => {
@@ -13,7 +14,7 @@ describe("mergeFindings", () => {
     userId = `u_${Math.random().toString(36).slice(2, 10)}`;
     await db.insert(users).values({ id: userId, name: userId, email: `${userId}@example.test`, emailVerified: false });
     const [d] = await db.insert(monitoredDomains).values({
-      userId, sourceUrl: "https://ex.com", host: "ex.com",
+      slug: publicSlug(), userId, sourceUrl: "https://ex.com", host: "ex.com",
     }).returning();
     domainId = d.id;
   });

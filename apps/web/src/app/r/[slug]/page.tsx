@@ -1,25 +1,27 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
 import { db } from "@/db";
-import { audits } from "@/db/schema";
+import { audits, monitoredDomains } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { env } from "@/lib/env";
 import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
+import { getPlan } from "@/lib/plan";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
 import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
 import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
+import { ReportCtaStrip } from "@/components/report/cta-strip";
 
 export const runtime = "nodejs";
 
 type AuditRow = typeof audits.$inferSelect;
 
-async function findAudit(uuid: string): Promise<AuditRow | null> {
-  const [row] = await db.select().from(audits).where(eq(audits.id, uuid)).limit(1);
+async function findAudit(slug: string): Promise<AuditRow | null> {
+  const [row] = await db.select().from(audits).where(eq(audits.slug, slug)).limit(1);
   return row ?? null;
 }
 
@@ -34,10 +36,10 @@ function isExpired(row: AuditRow): boolean {
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ uuid: string }>;
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const { uuid } = await params;
-  const row = await findAudit(uuid);
+  const { slug } = await params;
+  const row = await findAudit(slug);
   if (!row || !isReady(row)) return { title: "Audit not found · pseolint" };
   const host = hostOf(row.sourceUrl);
   const score = row.score ?? 0;
@@ -53,9 +55,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: Promise<{ uuid: string }> }) {
-  const { uuid } = await params;
-  const row = await findAudit(uuid);
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const row = await findAudit(slug);
   if (!row) notFound();
 
   const session = await getOptionalSession();
@@ -64,15 +66,56 @@ export default async function Page({ params }: { params: Promise<{ uuid: string 
   const ownedByAnon = !session && row.anonSessionId === anon;
   if (!row.isPublic && !ownedByUser && !ownedByAnon) redirect("/signin");
 
-  if (row.status === "queued" || row.status === "running") redirect(`/a/${uuid}`);
-  if (row.status === "failed") redirect(`/a/${uuid}`);
+  if (row.status === "queued" || row.status === "running") redirect(`/a/${row.id}`);
+  if (row.status === "failed") redirect(`/a/${row.id}`);
   if (isExpired(row)) return <ExpiredState row={row} />;
   if (!isReady(row)) notFound();
 
-  const summaryRaw = await fetchSummaryJson(summaryKey(uuid));
+  const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
   const summary: AuditSummary | null = summaryRaw ? safeParse<AuditSummary>(summaryRaw) : null;
 
-  const shareUrl = absoluteUrl(`/r/${uuid}`);
+  const domainHost = (() => { try { return new URL(row.sourceUrl).host; } catch { return null; } })();
+  const originUrl = (() => {
+    try { const u = new URL(row.sourceUrl); return `${u.protocol}//${u.host}`; } catch { return row.sourceUrl; }
+  })();
+
+  type CtxKind =
+    | { kind: "anon"; auditSlug: string; originUrl: string }
+    | { kind: "free_own"; auditSlug: string; originUrl: string }
+    | { kind: "free_other"; auditSlug: string; originUrl: string }
+    | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainSlug: string }
+    | { kind: "pro_own_unmonitored"; auditSlug: string; originUrl: string }
+    | { kind: "pro_other"; auditSlug: string; originUrl: string };
+
+  let ctx: CtxKind;
+  if (!session) {
+    ctx = { kind: "anon", auditSlug: slug, originUrl };
+  } else {
+    const plan = await getPlan(session.user.id);
+    const isOwn = row.userId === session.user.id;
+    if (plan === "free") {
+      ctx = isOwn
+        ? { kind: "free_own", auditSlug: slug, originUrl }
+        : { kind: "free_other", auditSlug: slug, originUrl };
+    } else if (!isOwn) {
+      ctx = { kind: "pro_other", auditSlug: slug, originUrl };
+    } else {
+      const [dom] = domainHost ? await db
+        .select({ slug: monitoredDomains.slug })
+        .from(monitoredDomains)
+        .where(and(
+          eq(monitoredDomains.userId, session.user.id),
+          eq(monitoredDomains.host, domainHost),
+          isNull(monitoredDomains.removedAt),
+        ))
+        .limit(1) : [];
+      ctx = dom
+        ? { kind: "pro_own_monitored", auditSlug: slug, originUrl, domainSlug: dom.slug }
+        : { kind: "pro_own_unmonitored", auditSlug: slug, originUrl };
+    }
+  }
+
+  const shareUrl = absoluteUrl(`/r/${slug}`);
   const host = hostOf(row.sourceUrl);
   const score = row.score ?? 0;
   const tone = scoreTone(score);
@@ -85,6 +128,9 @@ export default async function Page({ params }: { params: Promise<{ uuid: string 
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
+      <div className="mb-6">
+        <ReportCtaStrip {...ctx} />
+      </div>
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
         Audit complete · {completedAgo}
@@ -174,7 +220,7 @@ export default async function Page({ params }: { params: Promise<{ uuid: string 
             </p>
           </div>
           <Link
-            href={`/signin?callbackUrl=${encodeURIComponent(`/r/${uuid}`)}`}
+            href={`/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}`}
             className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Save this report

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { db } from "@/db";
 import { findingsState, monitoredDomains, users, alertsDedup } from "@/db/schema";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
+import { publicSlug } from "@/lib/slug";
 import { eq } from "drizzle-orm";
 
 describe("evaluateAlertGate", () => {
@@ -11,7 +12,7 @@ describe("evaluateAlertGate", () => {
   beforeEach(async () => {
     userId = `u_${Math.random().toString(36).slice(2, 10)}`;
     await db.insert(users).values({ id: userId, name: userId, email: `${userId}@ex.test`, emailVerified: false });
-    const [d] = await db.insert(monitoredDomains).values({ userId, sourceUrl: "https://ex.com", host: "ex.com" }).returning();
+    const [d] = await db.insert(monitoredDomains).values({ slug: publicSlug(), userId, sourceUrl: "https://ex.com", host: "ex.com" }).returning();
     domainId = d.id;
   });
 

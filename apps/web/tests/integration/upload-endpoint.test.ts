@@ -3,6 +3,7 @@ import { POST } from "@/app/api/audits/upload/route";
 import { db } from "@/db";
 import { uploadTokens, monitoredDomains, users, findingsState } from "@/db/schema";
 import { createUploadToken } from "@/lib/upload-token";
+import { publicSlug } from "@/lib/slug";
 import { eq } from "drizzle-orm";
 
 describe("POST /api/audits/upload", () => {
@@ -15,7 +16,7 @@ describe("POST /api/audits/upload", () => {
     await db.insert(users).values({ id: userId, name: userId, email: `${userId}@ex.test`, emailVerified: false });
     const [d] = await db
       .insert(monitoredDomains)
-      .values({ userId, sourceUrl: "https://ex.com", host: "ex.com" })
+      .values({ slug: publicSlug(), userId, sourceUrl: "https://ex.com", host: "ex.com" })
       .returning();
     domainId = d.id;
     const { token: t, hash } = await createUploadToken();

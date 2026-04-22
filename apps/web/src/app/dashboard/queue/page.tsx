@@ -1,7 +1,7 @@
 // apps/web/src/app/dashboard/queue/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { findingsState, monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
@@ -15,12 +15,36 @@ export default async function FixQueuePage({
 }: { searchParams: Promise<{ page?: string; domain?: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/queue");
-  const { page: pageParam, domain } = await searchParams;
+  const { page: pageParam, domain: domainFilterSlug } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
+  // Resolve slug → domainId (ownership-checked, not removed).
+  let domainId: string | null = null;
+  let domainHost: string | null = null;
+  let domainNotFound = false;
+  if (domainFilterSlug) {
+    const domainRow = await db
+      .select({ id: monitoredDomains.id, host: monitoredDomains.host })
+      .from(monitoredDomains)
+      .where(
+        and(
+          eq(monitoredDomains.slug, domainFilterSlug),
+          eq(monitoredDomains.userId, session.user.id),
+          isNull(monitoredDomains.removedAt),
+        ),
+      )
+      .limit(1);
+    if (domainRow.length === 0) {
+      domainNotFound = true;
+    } else {
+      domainId = domainRow[0].id;
+      domainHost = domainRow[0].host;
+    }
+  }
+
   const where = [eq(monitoredDomains.userId, session.user.id), eq(findingsState.status, "open")];
-  if (domain) where.push(eq(findingsState.domainId, domain));
+  if (domainId) where.push(eq(findingsState.domainId, domainId));
 
   const rows = await db.select({
     id: findingsState.id, ruleId: findingsState.ruleId, message: findingsState.ruleMessageLatest,
@@ -44,7 +68,7 @@ export default async function FixQueuePage({
 
   // Suppressed-findings counter (visible so dismissals don't silently hide the tool's value — per spec §14).
   const suppressedCountQuery = [eq(monitoredDomains.userId, session.user.id), sql`${findingsState.status} <> 'open'`];
-  if (domain) suppressedCountQuery.push(eq(findingsState.domainId, domain));
+  if (domainId) suppressedCountQuery.push(eq(findingsState.domainId, domainId));
   const [{ suppressedCount }] = await db.select({ suppressedCount: sql<number>`count(*)::int` })
     .from(findingsState)
     .innerJoin(monitoredDomains, eq(findingsState.domainId, monitoredDomains.id))
@@ -54,7 +78,7 @@ export default async function FixQueuePage({
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl tracking-tight">Fix queue</h1>
-        <a href={`/api/dashboard/queue/export.csv${domain ? `?domain=${domain}` : ""}`} className="text-sm text-primary hover:underline">
+        <a href={`/api/dashboard/queue/export.csv${domainFilterSlug ? `?domain=${domainFilterSlug}` : ""}`} className="text-sm text-primary hover:underline">
           Export CSV
         </a>
       </div>
@@ -65,9 +89,27 @@ export default async function FixQueuePage({
         </p>
       )}
 
+      {domainFilterSlug && (
+        <div className="mt-4">
+          {domainNotFound ? (
+            <p className="text-xs text-muted-foreground">Domain not found or not accessible.</p>
+          ) : (
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 text-xs">
+              <span className="text-muted-foreground">Filtered to</span>
+              <span className="font-mono text-foreground">{domainHost ?? domainFilterSlug}</span>
+              <a href="/dashboard/queue" className="text-muted-foreground hover:text-foreground" aria-label="Clear filter">×</a>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="mt-8 overflow-hidden rounded-[22px] border border-border/70 bg-card">
         {rows.length === 0 ? (
-          <p className="p-10 text-center text-sm text-muted-foreground">No open findings. Either you&apos;re very clean or nothing has been audited yet.</p>
+          <p className="p-10 text-center text-sm text-muted-foreground">
+            {domainNotFound
+              ? "Domain not found or not accessible."
+              : "No open findings. Either you\u2019re very clean or nothing has been audited yet."}
+          </p>
         ) : rows.map((r) => (
           <div key={r.id} className="flex items-start justify-between gap-4 border-b border-border/60 p-5 last:border-b-0">
             <div className="min-w-0 flex-1">
@@ -98,12 +140,12 @@ export default async function FixQueuePage({
 
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between text-sm">
-          <Link href={`/dashboard/queue?page=${Math.max(1, page - 1)}${domain ? `&domain=${domain}` : ""}`}
+          <Link href={`/dashboard/queue?page=${Math.max(1, page - 1)}${domainFilterSlug ? `&domain=${domainFilterSlug}` : ""}`}
                 className={page <= 1 ? "pointer-events-none text-muted-foreground" : "text-primary hover:underline"}>
             ← Previous
           </Link>
           <span className="text-muted-foreground">Page {page} of {totalPages}</span>
-          <Link href={`/dashboard/queue?page=${Math.min(totalPages, page + 1)}${domain ? `&domain=${domain}` : ""}`}
+          <Link href={`/dashboard/queue?page=${Math.min(totalPages, page + 1)}${domainFilterSlug ? `&domain=${domainFilterSlug}` : ""}`}
                 className={page >= totalPages ? "pointer-events-none text-muted-foreground" : "text-primary hover:underline"}>
             Next →
           </Link>

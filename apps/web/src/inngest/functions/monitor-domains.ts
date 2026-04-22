@@ -1,4 +1,4 @@
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
@@ -12,6 +12,7 @@ import { auditMode } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
 import { mergeFindings } from "@/lib/findings-state";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
+import { publicSlug } from "@/lib/slug";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -35,6 +36,7 @@ export const monitorDomains = inngest.createFunction(
         .where(and(
           eq(monitoredDomains.paused, false),
           lte(monitoredDomains.nextRunAt, new Date()),
+          isNull(monitoredDomains.removedAt),
         ))
         .limit(MAX_DOMAINS_PER_TICK * 3),
     );
@@ -98,6 +100,7 @@ async function runOneMonitor(monitoredDomainId: string) {
   const [audit] = await db
     .insert(audits)
     .values({
+      slug: publicSlug(),
       userId: d.userId,
       anonSessionId: null,
       sourceUrl: d.sourceUrl,
@@ -105,7 +108,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       isPublic: false,
       expiresAt: new Date(now.getTime() + 90 * 86_400_000),
     })
-    .returning({ id: audits.id });
+    .returning({ id: audits.id, slug: audits.slug });
 
   const SAMPLE_SIZE_CEILING = 300;
   const result = await executeAuditInProcess({
@@ -153,6 +156,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       previousAuditId: d.lastAuditId,
       previousScore: d.lastScore ?? null,
       currentAuditId: audit.id,
+      currentAuditSlug: audit.slug,
       currentScore: result.score,
     });
   }
@@ -202,7 +206,7 @@ async function runOneMonitor(monitoredDomainId: string) {
             currentScore: result.score,
             newRuleIds,
             currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
-            reportId: audit.id,
+            reportSlug: audit.slug,
           });
           // Email succeeded — now write dedup rows so we don't re-send this week.
           const week = isoWeekOf(new Date());
@@ -238,6 +242,7 @@ async function maybeAlert(input: {
   previousAuditId: string;
   previousScore: number | null;
   currentAuditId: string;
+  currentAuditSlug: string;
   currentScore: number;
 }): Promise<void> {
   const [prevSummary, currSummary] = await Promise.all([
@@ -275,7 +280,7 @@ async function maybeAlert(input: {
     currentScore: input.currentScore,
     newRuleIds,
     currSummary,
-    reportId: input.currentAuditId,
+    reportSlug: input.currentAuditSlug,
   });
 
   await db

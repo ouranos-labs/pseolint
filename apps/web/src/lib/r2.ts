@@ -60,6 +60,22 @@ export async function signedReportUrl(key: string, expiresSeconds = 300): Promis
   return getSignedUrl(client(), new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }), { expiresIn: expiresSeconds });
 }
 
+/**
+ * Download the JSON summary string for a given storage key.
+ * Throws if the object does not exist or cannot be read.
+ */
+export async function getSummary(key: string): Promise<string> {
+  if (DEV_SKIP_R2) {
+    const json = devStore.get(key);
+    if (!json) throw new Error(`[dev] summary not found in devStore: ${key}`);
+    return json;
+  }
+  const res = await client().send(new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+  const body = await res.Body?.transformToString();
+  if (!body) throw new Error(`summary object empty or missing: ${key}`);
+  return body;
+}
+
 export async function fetchSummaryJson(key: string): Promise<string | null> {
   if (DEV_SKIP_R2) {
     return devStore.get(key) ?? null;

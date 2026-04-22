@@ -11,7 +11,8 @@ export type AlertEmailInput = {
   currentScore: number;
   newRuleIds: string[];
   currSummary: AuditSummary | null;
-  reportId: string;
+  /** Public slug for the report URL (e.g. nanoid). Use audit.slug, not audit.id. */
+  reportSlug: string;
 };
 
 export async function sendMonitoringAlertEmail(input: AlertEmailInput): Promise<void> {
@@ -28,7 +29,7 @@ export async function sendMonitoringAlertEmail(input: AlertEmailInput): Promise<
       previousScore: input.previousScore,
       currentScore: input.currentScore,
       newFindings,
-      reportUrl: `${base}/r/${input.reportId}`,
+      reportUrl: `${base}/r/${input.reportSlug}`,
       dashboardUrl: `${base}/dashboard`,
     }),
   );

@@ -13,6 +13,9 @@ import { auditMode, readOnlyMessage, disabledMessage } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
 import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
+import { publicSlug } from "@/lib/slug";
+import { clientIp } from "@/lib/ip";
+import { reserveAnonAuditSlot, pageCapFor, ANON_DAILY_CAP } from "@/lib/audit-limits";
 
 export const runtime = "nodejs";
 
@@ -115,7 +118,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!forceNew) {
     const cutoff = new Date(Date.now() - DEDUPE_WINDOW_MS);
     const [cached] = await db
-      .select({ id: audits.id })
+      .select({ id: audits.id, slug: audits.slug })
       .from(audits)
       .where(
         and(
@@ -131,7 +134,7 @@ export async function POST(req: Request): Promise<Response> {
     if (cached) {
       auditLog("audit.request.deduped", { url, existingAuditId: cached.id });
       return NextResponse.json(
-        { auditId: cached.id, reportUrl: `/r/${cached.id}`, cached: true },
+        { auditId: cached.id, reportUrl: `/r/${cached.slug}`, cached: true },
         { status: 200 },
       );
     }
@@ -140,8 +143,8 @@ export async function POST(req: Request): Promise<Response> {
   const today = todayDateString();
   let userId: string | null = null;
   let plan: "free" | "pro" = "free";
+  let planExpiresAt: Date | null = null;
   let anonSessionId: string | null = null;
-  let sampleSize = 50;
   let expiresAt: Date;
 
   // Per-host global rate limit — protects target sites during viral-post amplification.
@@ -160,7 +163,7 @@ export async function POST(req: Request): Promise<Response> {
     userId = session.user.id;
     const profile = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
     plan = profile[0]?.plan ?? "free";
-    sampleSize = Math.min(plan === "pro" ? 200 : 50, SAMPLE_SIZE_CEILING);
+    planExpiresAt = profile[0]?.planExpiresAt ?? null;
     expiresAt = plan === "pro" ? new Date(8640000000000000) : addDays(30);
 
     if (!devFlags.rateLimitDisabled) {
@@ -185,14 +188,34 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
+  // Compute tier for page cap and IP-based anon rate limit.
+  const tier: "anon" | "free" | "pro" = !session
+    ? "anon"
+    : (plan === "pro" && (!planExpiresAt || planExpiresAt > new Date()))
+      ? "pro"
+      : "free";
+
+  if (tier === "anon" && !devFlags.rateLimitDisabled) {
+    const slot = await reserveAnonAuditSlot(clientIp(req));
+    if (slot === null) {
+      auditLog("audit.request.rate_limited", { reason: "per_ip_anon" });
+      return NextResponse.json(
+        { error: `Anon audits limited to ${ANON_DAILY_CAP} per day. Sign in for unlimited.` },
+        { status: 429 },
+      );
+    }
+  }
+
+  const requestedSampleSize = Math.min(pageCapFor(tier), SAMPLE_SIZE_CEILING);
+
   const [row] = await db.insert(audits).values({
-    userId, anonSessionId, sourceUrl: url, status: "queued",
+    slug: publicSlug(), userId, anonSessionId, sourceUrl: url, status: "queued",
     isPublic: plan !== "pro", expiresAt,
-  }).returning({ id: audits.id });
+  }).returning({ id: audits.id, slug: audits.slug });
 
-  auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, host, sampleSize });
+  auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize });
 
-  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize } });
+  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize } });
   auditLog("audit.dispatched", { auditId: row.id });
 
   void hashIp(ip);

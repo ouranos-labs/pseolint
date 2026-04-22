@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,18 @@ const FREE_FEATURES = [
   "Reports kept 24h (anon) / 30d (signed-in)",
 ] as const;
 
-export default function Pricing() {
+function PricingInner() {
   const [loading, setLoading] = useState<Interval | null>(null);
+  const search = useSearchParams();
+  const intent = search.get("intent");
+  const auditSlug = search.get("audit");
 
   const go = async (interval: Interval) => {
     setLoading(interval);
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ interval }),
+      body: JSON.stringify({ interval, intent, auditSlug }),
     });
     if (res.ok) {
       const { url } = await res.json();
@@ -69,6 +73,15 @@ export default function Pricing() {
         The CLI and GitHub Action are free and always will be.
         Pro adds the infrastructure around them.
       </p>
+
+      {intent === "monitor" && auditSlug && (
+        <div className="mt-6 rounded-[18px] border border-primary/30 bg-primary/10 px-5 py-3 text-xs text-foreground">
+          After checkout we&apos;ll start monitoring the domain from{" "}
+          <a className="font-mono underline-offset-4 hover:underline" href={`/r/${auditSlug}`}>
+            this audit
+          </a>.
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <PlanCard interval="monthly" price="19" cadence="/ month" loading={loading} onClick={go} />
@@ -135,6 +148,14 @@ export default function Pricing() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function Pricing() {
+  return (
+    <Suspense>
+      <PricingInner />
+    </Suspense>
   );
 }
 

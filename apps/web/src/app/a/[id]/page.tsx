@@ -39,7 +39,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         setStatus(json.status);
         if (typeof json.sourceUrl === "string") setSourceUrl(json.sourceUrl);
         if (json.status === "completed") {
-          router.replace(`/r/${id}`);
+          router.replace(`/r/${json.slug ?? id}`);
           return;
         }
         if (json.status === "failed") {

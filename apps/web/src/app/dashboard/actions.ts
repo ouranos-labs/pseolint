@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { publicSlug } from "@/lib/slug";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -40,6 +41,7 @@ export async function addMonitoredDomain(rawUrl: string): Promise<ActionResult> 
     // Small jitter on first schedule (0–30 min) so multiple adds spread across cron ticks.
     const jitterMs = Math.random() * 30 * 60 * 1000;
     await db.insert(monitoredDomains).values({
+      slug: publicSlug(),
       userId: session.user.id,
       sourceUrl: url,
       host,
