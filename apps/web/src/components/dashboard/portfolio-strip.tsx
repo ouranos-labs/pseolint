@@ -49,13 +49,13 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           {domains.map((r) => (
             <tr key={r.id} className="border-b border-border/60 last:border-b-0">
               <td className="py-3.5 pl-5 pr-4">
-                <Link href={`/dashboard/${r.slug}`} className="font-medium hover:text-primary hover:underline">
+                <Link href={`/dashboard/${encodeURIComponent(r.host)}`} className="font-medium hover:text-primary hover:underline">
                   {r.host}
                 </Link>
               </td>
               <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "—"}</td>
               <td className="py-3.5 pr-4">
-                <Link href={`/dashboard/queue?domain=${r.slug}`} className="hover:underline">
+                <Link href={`/dashboard/queue?domain=${encodeURIComponent(r.host)}`} className="hover:underline">
                   {countMap.get(r.id) ?? 0}
                 </Link>
               </td>

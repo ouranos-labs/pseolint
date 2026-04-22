@@ -5,7 +5,7 @@ type Ctx =
   | { kind: "anon"; auditSlug: string; originUrl: string }
   | { kind: "free_own"; auditSlug: string; originUrl: string }
   | { kind: "free_other"; auditSlug: string; originUrl: string }
-  | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainSlug: string }
+  | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainHost: string }
   | { kind: "pro_own_unmonitored"; auditSlug: string; originUrl: string }
   | { kind: "pro_other"; auditSlug: string; originUrl: string };
 
@@ -42,7 +42,7 @@ export function ReportCtaStrip(ctx: Ctx) {
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3 border-primary/30 bg-primary/5`}>
           <p className="text-xs text-foreground">Already in your portfolio.</p>
-          <Link href={`/dashboard/${ctx.domainSlug}`} className={PRIMARY}>Open in dashboard →</Link>
+          <Link href={`/dashboard/${encodeURIComponent(ctx.domainHost)}`} className={PRIMARY}>Open in dashboard →</Link>
         </div>
       );
     case "pro_own_unmonitored":

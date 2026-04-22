@@ -14,7 +14,7 @@ function originOf(rawUrl: string): { host: string; origin: string } {
 
 export async function addDomainAction(
   rawUrl: string,
-): Promise<{ ok: true; slug: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; host: string } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
 
@@ -27,23 +27,20 @@ export async function addDomainAction(
   const { host, origin } = originOf(rawUrl);
 
   const [existing] = await db
-    .select({ slug: monitoredDomains.slug, removedAt: monitoredDomains.removedAt })
+    .select({ removedAt: monitoredDomains.removedAt })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)))
     .limit(1);
 
-  let slug: string;
   if (existing) {
     if (existing.removedAt) {
       await db.update(monitoredDomains)
         .set({ removedAt: null, sourceUrl: origin })
         .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)));
     }
-    slug = existing.slug;
   } else {
-    slug = publicSlug();
     await db.insert(monitoredDomains).values({
-      slug, userId: session.user.id, sourceUrl: origin, host,
+      slug: publicSlug(), userId: session.user.id, sourceUrl: origin, host,
       cadence: "daily", nextRunAt: new Date(),
     });
   }
@@ -60,11 +57,11 @@ export async function addDomainAction(
     data: { auditId: audit.id, url: origin, plan: "pro", sampleSize: 500, mode: "full" },
   });
 
-  return { ok: true, slug };
+  return { ok: true, host };
 }
 
 export async function removeDomainAction(
-  domainSlug: string,
+  domainHost: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
@@ -72,7 +69,7 @@ export async function removeDomainAction(
   const res = await db.update(monitoredDomains)
     .set({ removedAt: new Date() })
     .where(and(
-      eq(monitoredDomains.slug, domainSlug),
+      eq(monitoredDomains.host, domainHost),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
     ))
@@ -83,7 +80,7 @@ export async function removeDomainAction(
 }
 
 export async function reAuditNowAction(
-  domainSlug: string,
+  domainHost: string,
 ): Promise<{ ok: true; auditSlug: string } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
@@ -91,7 +88,7 @@ export async function reAuditNowAction(
   const [dom] = await db.select({ id: monitoredDomains.id, sourceUrl: monitoredDomains.sourceUrl })
     .from(monitoredDomains)
     .where(and(
-      eq(monitoredDomains.slug, domainSlug),
+      eq(monitoredDomains.host, domainHost),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
     )).limit(1);

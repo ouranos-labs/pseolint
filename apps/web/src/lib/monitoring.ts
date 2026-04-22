@@ -12,18 +12,17 @@ import { inngest } from "@/lib/inngest";
 export async function ensureMonitoredDomainForUser(
   userId: string,
   rawUrl: string,
-): Promise<{ domainSlug: string }> {
+): Promise<{ host: string }> {
   const u = new URL(rawUrl);
   const host = u.host;
   const origin = `${u.protocol}//${u.host}`;
 
   const [existing] = await db
-    .select({ id: monitoredDomains.id, slug: monitoredDomains.slug, removedAt: monitoredDomains.removedAt })
+    .select({ id: monitoredDomains.id, removedAt: monitoredDomains.removedAt })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
     .limit(1);
 
-  let domainSlug: string;
   if (existing) {
     if (existing.removedAt) {
       await db
@@ -31,11 +30,9 @@ export async function ensureMonitoredDomainForUser(
         .set({ removedAt: null, sourceUrl: origin })
         .where(eq(monitoredDomains.id, existing.id));
     }
-    domainSlug = existing.slug;
   } else {
-    domainSlug = publicSlug();
     await db.insert(monitoredDomains).values({
-      slug: domainSlug,
+      slug: publicSlug(),
       userId,
       sourceUrl: origin,
       host,
@@ -63,5 +60,5 @@ export async function ensureMonitoredDomainForUser(
     data: { auditId: audit.id, url: origin, plan: "pro", sampleSize: 500 },
   });
 
-  return { domainSlug };
+  return { host };
 }

@@ -83,7 +83,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     | { kind: "anon"; auditSlug: string; originUrl: string }
     | { kind: "free_own"; auditSlug: string; originUrl: string }
     | { kind: "free_other"; auditSlug: string; originUrl: string }
-    | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainSlug: string }
+    | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainHost: string }
     | { kind: "pro_own_unmonitored"; auditSlug: string; originUrl: string }
     | { kind: "pro_other"; auditSlug: string; originUrl: string };
 
@@ -101,7 +101,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
       ctx = { kind: "pro_other", auditSlug: slug, originUrl };
     } else {
       const [dom] = domainHost ? await db
-        .select({ slug: monitoredDomains.slug })
+        .select({ host: monitoredDomains.host })
         .from(monitoredDomains)
         .where(and(
           eq(monitoredDomains.userId, session.user.id),
@@ -110,7 +110,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
         ))
         .limit(1) : [];
       ctx = dom
-        ? { kind: "pro_own_monitored", auditSlug: slug, originUrl, domainSlug: dom.slug }
+        ? { kind: "pro_own_monitored", auditSlug: slug, originUrl, domainHost: dom.host }
         : { kind: "pro_own_unmonitored", auditSlug: slug, originUrl };
     }
   }
@@ -130,7 +130,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       {ctx.kind !== "anon" && (
         <Link
-          href={ctx.kind === "pro_own_monitored" ? `/dashboard/${ctx.domainSlug}` : "/dashboard"}
+          href={ctx.kind === "pro_own_monitored" ? `/dashboard/${encodeURIComponent(ctx.domainHost)}` : "/dashboard"}
           className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
           <span aria-hidden>←</span>

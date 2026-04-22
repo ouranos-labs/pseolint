@@ -8,16 +8,17 @@ import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
 import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
 
-export default async function DomainWorkspace({ params }: { params: Promise<{ slug: string }> }) {
+export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin");
   const plan = await getPlan(session.user.id);
   if (plan !== "pro") redirect("/pricing");
 
-  const { slug } = await params;
+  const { host: rawHost } = await params;
+  const host = decodeURIComponent(rawHost);
   const [domain] = await db.select().from(monitoredDomains)
     .where(and(
-      eq(monitoredDomains.slug, slug),
+      eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
     )).limit(1);
@@ -49,7 +50,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ sl
     <div className="flex flex-col gap-6">
       <WorkspaceHeader
         domain={{
-          slug: domain.slug, host: domain.host, sourceUrl: domain.sourceUrl,
+          host: domain.host, sourceUrl: domain.sourceUrl,
           lastScore: domain.lastScore,
         }}
         runs={timelineRuns}

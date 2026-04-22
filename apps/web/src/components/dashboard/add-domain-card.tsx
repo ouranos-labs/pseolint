@@ -16,7 +16,7 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
     start(async () => {
       const res = await addDomainAction(url);
       if (!res.ok) { setErr(res.error); return; }
-      router.push(`/dashboard/${res.slug}?welcome=1`);
+      router.push(`/dashboard/${encodeURIComponent(res.host)}?welcome=1`);
     });
   }
 

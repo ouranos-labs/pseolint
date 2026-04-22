@@ -7,8 +7,8 @@ import { requireSession } from "@/lib/session";
 
 export async function updateDomainSettingsAction(formData: FormData): Promise<void> {
   const session = await requireSession();
-  const slug = String(formData.get("domainSlug") ?? "");
-  if (!slug) throw new Error("missing domain slug");
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
 
   const alertThresholdRaw = Number(formData.get("alertThreshold"));
   const alertThreshold = Number.isFinite(alertThresholdRaw) && alertThresholdRaw > 0 ? alertThresholdRaw : 10;
@@ -18,10 +18,10 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
 
   await db.update(monitoredDomains).set({ alertThreshold, alertEmail })
     .where(and(
-      eq(monitoredDomains.slug, slug),
+      eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
     ));
 
-  revalidatePath(`/dashboard/${slug}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
 }

@@ -8,7 +8,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 type Run = { slug: string; score: number | null; completedAt: Date | null };
 
 export function WorkspaceHeader({ domain, runs }: {
-  domain: { slug: string; host: string; sourceUrl: string; lastScore: number | null };
+  domain: { host: string; sourceUrl: string; lastScore: number | null };
   runs: Run[];
 }) {
   const [pending, start] = useTransition();
@@ -23,7 +23,7 @@ export function WorkspaceHeader({ domain, runs }: {
 
   function reaudit() {
     start(async () => {
-      const res = await reAuditNowAction(domain.slug);
+      const res = await reAuditNowAction(domain.host);
       if (!res.ok) { alert(res.error); return; }
       router.refresh();
     });
@@ -31,7 +31,7 @@ export function WorkspaceHeader({ domain, runs }: {
 
   function confirmRemove() {
     start(async () => {
-      const res = await removeDomainAction(domain.slug);
+      const res = await removeDomainAction(domain.host);
       if (!res.ok) { setErr(res.error); return; }
       setRemoveOpen(false);
       router.push("/dashboard");
@@ -58,7 +58,7 @@ export function WorkspaceHeader({ domain, runs }: {
       </div>
       <div className="flex items-center gap-2">
         <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
-        <a href={`/dashboard/${domain.slug}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
+        <a href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
         <button
           onClick={() => { setErr(null); setRemoveOpen(true); }}
           disabled={pending}

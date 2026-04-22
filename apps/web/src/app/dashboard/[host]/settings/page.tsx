@@ -6,15 +6,16 @@ import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { updateDomainSettingsAction } from "./actions";
 
-export default async function DomainSettings({ params }: { params: Promise<{ slug: string }> }) {
+export default async function DomainSettings({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin");
   if ((await getPlan(session.user.id)) !== "pro") redirect("/pricing");
 
-  const { slug } = await params;
+  const { host: rawHost } = await params;
+  const host = decodeURIComponent(rawHost);
   const [domain] = await db.select().from(monitoredDomains)
     .where(and(
-      eq(monitoredDomains.slug, slug),
+      eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
     )).limit(1);
@@ -28,14 +29,14 @@ export default async function DomainSettings({ params }: { params: Promise<{ slu
       <nav className="flex items-center gap-2 text-xs text-muted-foreground">
         <a href="/dashboard" className="hover:text-foreground">Portfolio</a>
         <span>/</span>
-        <a href={`/dashboard/${domain.slug}`} className="hover:text-foreground">{domain.host}</a>
+        <a href={`/dashboard/${encodeURIComponent(domain.host)}`} className="hover:text-foreground">{domain.host}</a>
         <span>/</span>
         <span className="text-foreground">Settings</span>
       </nav>
       <h1 className="text-xl font-medium">Settings — {domain.host}</h1>
 
       <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[22px] border border-border/60 p-5">
-        <input type="hidden" name="domainSlug" value={domain.slug} />
+        <input type="hidden" name="domainHost" value={domain.host} />
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Cadence</span>

@@ -15,21 +15,22 @@ export default async function FixQueuePage({
 }: { searchParams: Promise<{ page?: string; domain?: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/queue");
-  const { page: pageParam, domain: domainFilterSlug } = await searchParams;
+  const { page: pageParam, domain: domainFilterRaw } = await searchParams;
+  const domainFilterHost = domainFilterRaw ? decodeURIComponent(domainFilterRaw) : null;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  // Resolve slug → domainId (ownership-checked, not removed).
+  // Resolve host → domainId (ownership-checked, not removed).
   let domainId: string | null = null;
   let domainHost: string | null = null;
   let domainNotFound = false;
-  if (domainFilterSlug) {
+  if (domainFilterHost) {
     const domainRow = await db
       .select({ id: monitoredDomains.id, host: monitoredDomains.host })
       .from(monitoredDomains)
       .where(
         and(
-          eq(monitoredDomains.slug, domainFilterSlug),
+          eq(monitoredDomains.host, domainFilterHost),
           eq(monitoredDomains.userId, session.user.id),
           isNull(monitoredDomains.removedAt),
         ),
@@ -78,7 +79,7 @@ export default async function FixQueuePage({
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       <div className="flex items-baseline justify-between">
         <h1 className="text-3xl tracking-tight">Fix queue</h1>
-        <a href={`/api/dashboard/queue/export.csv${domainFilterSlug ? `?domain=${domainFilterSlug}` : ""}`} className="text-sm text-primary hover:underline">
+        <a href={`/api/dashboard/queue/export.csv${domainFilterHost ? `?domain=${encodeURIComponent(domainFilterHost)}` : ""}`} className="text-sm text-primary hover:underline">
           Export CSV
         </a>
       </div>
@@ -89,14 +90,14 @@ export default async function FixQueuePage({
         </p>
       )}
 
-      {domainFilterSlug && (
+      {domainFilterHost && (
         <div className="mt-4">
           {domainNotFound ? (
             <p className="text-xs text-muted-foreground">Domain not found or not accessible.</p>
           ) : (
             <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-3 py-1 text-xs">
               <span className="text-muted-foreground">Filtered to</span>
-              <span className="font-mono text-foreground">{domainHost ?? domainFilterSlug}</span>
+              <span className="font-mono text-foreground">{domainHost ?? domainFilterHost}</span>
               <a href="/dashboard/queue" className="text-muted-foreground hover:text-foreground" aria-label="Clear filter">×</a>
             </div>
           )}
@@ -140,12 +141,12 @@ export default async function FixQueuePage({
 
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between text-sm">
-          <Link href={`/dashboard/queue?page=${Math.max(1, page - 1)}${domainFilterSlug ? `&domain=${domainFilterSlug}` : ""}`}
+          <Link href={`/dashboard/queue?page=${Math.max(1, page - 1)}${domainFilterHost ? `&domain=${encodeURIComponent(domainFilterHost)}` : ""}`}
                 className={page <= 1 ? "pointer-events-none text-muted-foreground" : "text-primary hover:underline"}>
             ← Previous
           </Link>
           <span className="text-muted-foreground">Page {page} of {totalPages}</span>
-          <Link href={`/dashboard/queue?page=${Math.min(totalPages, page + 1)}${domainFilterSlug ? `&domain=${domainFilterSlug}` : ""}`}
+          <Link href={`/dashboard/queue?page=${Math.min(totalPages, page + 1)}${domainFilterHost ? `&domain=${encodeURIComponent(domainFilterHost)}` : ""}`}
                 className={page >= totalPages ? "pointer-events-none text-muted-foreground" : "text-primary hover:underline"}>
             Next →
           </Link>
