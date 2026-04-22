@@ -284,10 +284,11 @@ export function formatHtml(summary: AuditSummary): string {
   const categoryRows = Object.entries(summary.categoryScores)
     .map(([name, value]) => {
       const pct = value as number;
+      const clean = Math.max(0, 100 - pct);
       const tone = categoryTone(pct);
       return `<tr>
         <td class="cat-name">${escapeHtml(categoryLabel(name))}</td>
-        <td class="cat-bar"><div class="bar-bg"><div class="bar-fill bar-${tone}" style="width:${pct}%"></div></div></td>
+        <td class="cat-bar"><div class="bar-bg"><div class="bar-fill bar-${tone}" style="width:${clean}%"></div></div></td>
         <td class="cat-val mono tabular">${pct}</td>
       </tr>`;
     })
@@ -591,7 +592,7 @@ export function formatHtml(summary: AuditSummary): string {
   <section class="card">
     <header class="section-head">
       <span class="eyebrow">Category scores</span>
-      <span class="meta-mono">higher = more risk</span>
+      <span class="meta-mono">bar = how clean · number = risk (lower is better)</span>
     </header>
     <table class="data-table">
       <tbody>${categoryRows}</tbody>

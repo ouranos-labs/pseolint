@@ -211,18 +211,24 @@ export function CategoryBreakdown({ summary }: { summary: AuditSummary }) {
   const entries = Object.entries(summary.categoryScores) as [string, number][];
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {entries.map(([name, score]) => (
-        <div key={name} className="rounded-[18px] border border-border/60 bg-card/40 p-3">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{name}</div>
-          <div className={`mt-0.5 font-mono text-xl tabular-nums ${scoreTone(score)}`}>{score}</div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-background/60">
+      {entries.map(([name, score]) => {
+        const clean = Math.max(0, Math.min(100, 100 - score));
+        return (
+          <div key={name} className="rounded-[18px] border border-border/60 bg-card/40 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{name}</div>
+            <div className={`mt-0.5 font-mono text-xl tabular-nums ${scoreTone(score)}`}>{score}</div>
             <div
-              className={`h-full ${scoreBg(score)}`}
-              style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
-            />
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-background/60"
+              title={`${clean}% clean · ${score}/100 risk`}
+            >
+              <div
+                className={`h-full ${scoreBg(score)}`}
+                style={{ width: `${clean}%` }}
+              />
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
