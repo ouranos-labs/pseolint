@@ -3,7 +3,35 @@
 "pseolint": minor
 ---
 
-feat: block third-party analytics in render-mode audits by default
+feat: render-mode analytics blocking + aeo/summary-bait composite rule
+
+Two additions closing concrete gaps from the v0.3.0 dogfood:
+
+## aeo/summary-bait (new rule, severity: error)
+
+A composite rule that fires when a page is "optimized for summarization,
+not retention" — the worst-case zero-click shape:
+
+  1. Has a strong answer-first opener (passes aeo/answer-first), AND
+  2. Has NO interactive / downloadable / gated value on the page, AND
+  3. Has its citable facts concentrated in the opener (≥70% of facts sit
+     in the first 150 words).
+
+The overlap of these three signals is where AI Overviews can summarise
+the entire page inline and the reader never clicks through. Today each
+signal fires separately; this rule surfaces the worst combination as a
+single structural-fix finding with remediation.
+
+Config keys on AuditOptions (per-rule options object):
+  - openerWordCount              (default 150)
+  - openerFactConcentrationThreshold (default 0.7)
+  - minFactsToAnalyze            (default 3)
+
+Public API: `summaryBaitRule(pages, entityPatterns, options?)` exported
+from the package entry point. Page-scoped in RULE_SCOPE (runs in diff
+audits).
+
+## feat: block third-party analytics in render-mode audits by default
 
 Rendered-mode audits launch real Chromium via Playwright — previously this
 meant every client-side analytics beacon fired on every page visit, injecting

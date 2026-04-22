@@ -75,6 +75,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "aeo/citable-facts": "page",
   "aeo/non-replicable-value": "page",
   "aeo/content-modularity": "page",
+  "aeo/summary-bait": "page",
 };
 
 /** Returns true when the rule may run in diff (page-scoped) mode. Unknown ids default to corpus (safer). */

@@ -52,6 +52,7 @@ export { answerFirstRule, extractFirstParagraph } from "./rules/aeo/answer-first
 export { citableFactsRule } from "./rules/aeo/citable-facts.js";
 export { nonReplicableValueRule } from "./rules/aeo/non-replicable-value.js";
 export { contentModularityRule } from "./rules/aeo/content-modularity.js";
+export { summaryBaitRule } from "./rules/aeo/summary-bait.js";
 export { cachedFetch, cacheKeyFor } from "./cache.js";
 export type { CacheConfig, CachedFetchOptions, CachedFetchResult, CacheEntry } from "./cache.js";
 export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from "./types.js";

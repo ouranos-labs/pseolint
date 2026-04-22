@@ -340,6 +340,10 @@ function runRulesOnPages(
     })));
   }
 
+  if (isEnabled("aeo/summary-bait")) {
+    findings.push(...tag(summaryBaitRule(pages, entityPatterns)));
+  }
+
   // Cannibal rules
   if (isEnabled("cannibal/title-overlap") && modeOk("cannibal/title-overlap")) {
     findings.push(...tag(titleOverlapRule(pages, entityPatterns, resolvedRules.titleOverlapThreshold)));

@@ -42,4 +42,5 @@ export const RULE_REFERENCES: Record<string, string> = {
   "aeo/citable-facts": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "aeo/non-replicable-value": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "aeo/content-modularity": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
+  "aeo/summary-bait": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
 };

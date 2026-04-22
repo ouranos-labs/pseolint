@@ -24,11 +24,11 @@ console.log(`Findings: ${summary.findings.length}`);
 
 ## What It Checks
 
-42 rules across 8 categories. Seven categories feed the composite score; `data/*` is a separate data-binding family.
+43 rules across 8 categories. Seven categories feed the composite score; `data/*` is a separate data-binding family.
 
 - **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern
 - **Technical SEO** (8) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, Open Graph, hreflang
-- **AEO / AI Overview citability** (8, v0.3.0) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, non-replicable value, content modularity
+- **AEO / AI Overview citability** (9, v0.3.0–v0.3.1) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, non-replicable value, content modularity, **summary-bait** (pages optimized for summarization over retention)
 - **Content** (5) — unique value, heading / meta uniqueness, author attribution, E-E-A-T signals
 - **Internal linking** (5) — orphan pages, dead ends, cluster connectivity, hub pages, link depth
 - **Structured data** (3) — JSON-LD validity, required fields, cross-page schema consistency
