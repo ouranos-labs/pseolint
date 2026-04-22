@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { HistoryRowActions } from "./history-row-actions";
 
 export async function HistoryList({ userId }: { userId: string }) {
   const rows = await db
@@ -40,6 +41,7 @@ export async function HistoryList({ userId }: { userId: string }) {
             <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">
               View
             </Link>
+            <HistoryRowActions slug={r.slug} sourceUrl={r.sourceUrl} />
           </div>
         </li>
       ))}

@@ -1,8 +1,9 @@
 "use client";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { reAuditNowAction, removeDomainAction } from "@/app/dashboard/domain-actions";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type Run = { slug: string; score: number | null; completedAt: Date | null };
 
@@ -11,6 +12,8 @@ export function WorkspaceHeader({ domain, runs }: {
   runs: Run[];
 }) {
   const [pending, start] = useTransition();
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
 
   const completedRuns = runs.filter((r) => r.score != null);
@@ -26,11 +29,11 @@ export function WorkspaceHeader({ domain, runs }: {
     });
   }
 
-  function remove() {
-    if (!confirm(`Stop monitoring ${domain.host}? History is preserved.`)) return;
+  function confirmRemove() {
     start(async () => {
       const res = await removeDomainAction(domain.slug);
-      if (!res.ok) { alert(res.error); return; }
+      if (!res.ok) { setErr(res.error); return; }
+      setRemoveOpen(false);
       router.push("/dashboard");
     });
   }
@@ -56,8 +59,25 @@ export function WorkspaceHeader({ domain, runs }: {
       <div className="flex items-center gap-2">
         <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
         <a href={`/dashboard/${domain.slug}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
-        <button onClick={remove} disabled={pending} className="inline-flex h-10 items-center rounded-[14px] border border-destructive/50 px-4 text-sm text-destructive hover:bg-destructive/10">Remove</button>
+        <button
+          onClick={() => { setErr(null); setRemoveOpen(true); }}
+          disabled={pending}
+          className="inline-flex h-10 items-center rounded-[14px] border border-destructive/50 px-4 text-sm text-destructive hover:bg-destructive/10"
+        >
+          Remove
+        </button>
       </div>
+      <ConfirmDialog
+        open={removeOpen}
+        title={`Stop monitoring ${domain.host}?`}
+        description={`We'll stop running daily diff-audits and weekly full re-audits. Your audit history is preserved — you can re-add the domain later.${err ? `\n\nError: ${err}` : ""}`}
+        confirmWord={domain.host}
+        confirmLabel="Stop monitoring"
+        danger
+        pending={pending}
+        onConfirm={confirmRemove}
+        onCancel={() => setRemoveOpen(false)}
+      />
     </header>
   );
 }
