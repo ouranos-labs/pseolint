@@ -8,7 +8,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session) redirect("/signin?next=/dashboard");
   const plan = await getPlan(session.user.id);
   return (
-    <div className="mx-auto flex max-w-6xl gap-6 px-5">
+    <div className="mx-auto flex max-w-5xl gap-6 px-5">
       <DashboardSidebar plan={plan} />
       <div className="min-w-0 flex-1 py-6">{children}</div>
     </div>
