@@ -77,8 +77,21 @@ function categoryLabel(name: string): string {
     tech: "Technical SEO",
     schema: "Structured data",
     cannibal: "Cannibalisation",
+    aeo: "AEO readiness",
   };
   return map[name] ?? name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/**
+ * AEO-specific score band label. Low score = AI-Ready (site is citable by
+ * LLMs in AI Overviews / answer engines); high score = Ghost (not discoverable).
+ */
+function aeoScoreLabel(score: number): string {
+  if (score <= 20) return "AI-Ready";
+  if (score <= 40) return "Partial";
+  if (score <= 60) return "Vulnerable";
+  if (score <= 80) return "Invisible";
+  return "Ghost";
 }
 
 /** Group findings by ruleId. Preserves encounter order per bucket. */
@@ -401,6 +414,16 @@ export function formatHtml(summary: AuditSummary): string {
   .bar-fill{height:100%;border-radius:999px;transition:width .4s ease}
   .bar-success{background:var(--success)} .bar-warning{background:var(--warning)} .bar-destructive{background:var(--destructive)}
 
+  .aeo-callout{margin-top:20px;padding:16px 20px;background:color-mix(in oklab,var(--card) 85%,transparent);
+               border:1px solid var(--border);border-radius:var(--r-lg)}
+  .aeo-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:10px}
+  .aeo-body{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+  @media (max-width:640px){.aeo-body{grid-template-columns:1fr;gap:8px}}
+  .aeo-label{font-family:"Instrument Serif","Times New Roman",Georgia,serif;font-style:italic;font-size:28px;line-height:1;letter-spacing:-0.01em}
+  .aeo-bar{display:block;height:8px;background:var(--border);border-radius:999px;overflow:hidden}
+  .aeo-bar .bar-fill{height:100%;display:block;border-radius:999px}
+  .aeo-meta{font-size:11px;color:var(--muted)}
+
   .top-fixes{margin-top:28px;padding:24px 28px 28px;background:color-mix(in oklab,var(--primary) 6%,var(--card) 94%);
              border:1px solid color-mix(in oklab,var(--primary) 25%,var(--border));border-radius:var(--r-lg)}
   .top-fix-list{list-style:none;display:flex;flex-direction:column;gap:10px}
@@ -524,7 +547,7 @@ export function formatHtml(summary: AuditSummary): string {
     <h1 class="title display">Audit report</h1>
     <span class="src-link">${summary.pageCount} pages · ${summary.findings.length} findings</span>
   </div>
-  <p class="lead">Scored against 35 rules inferred from Google's public SpamBrain guidance and programmatic-SEO research. Risk score — lower is safer.</p>
+  <p class="lead">Scored against 40+ rules covering Google's public SpamBrain guidance, programmatic-SEO research, and Answer Engine Optimization (AEO) — how citable your pages are to LLMs in AI Overviews. Risk score — lower is safer.</p>
 
   <section class="card hero">
     <div class="score-block">
@@ -541,6 +564,26 @@ export function formatHtml(summary: AuditSummary): string {
   </section>
 
   ${summary.templateDetected ? `<div class="template-banner"><strong>Template-generated content detected.</strong> Fix suggestions are tailored for template authors — one change can fix hundreds of pages.</div>` : ""}
+
+  ${(() => {
+    const aeoScore = summary.categoryScores?.aeo;
+    if (aeoScore === undefined) return "";
+    const aeoTone = categoryTone(aeoScore);
+    const label = aeoScoreLabel(aeoScore);
+    const invert = 100 - aeoScore;
+    return `
+<section class="aeo-callout">
+  <div class="aeo-head">
+    <span class="eyebrow">AEO readiness</span>
+    <span class="meta-mono">answer-engine citability</span>
+  </div>
+  <div class="aeo-body">
+    <span class="aeo-label tone-${aeoTone}">${escapeHtml(label)}</span>
+    <span class="aeo-bar"><span class="bar-fill bar-${aeoTone}" style="width:${invert}%"></span></span>
+    <span class="aeo-meta mono">${invert}/100 ready · ${aeoScore}/100 risk</span>
+  </div>
+</section>`;
+  })()}
 
   ${topFixesHtml}
 
@@ -566,6 +609,8 @@ export function formatHtml(summary: AuditSummary): string {
 
   <section class="footer-note">
     <strong>About this report.</strong> Score is a structured heuristic, not a verdict from Google. Categories are weighted equally. Severities escalate: info → warning → error → critical. Effort tags (<span class="effort-pill effort-quick">quick fix</span> <span class="effort-pill effort-moderate">moderate</span> <span class="effort-pill effort-structural">structural</span>) estimate the change cost per finding. "Top fixes by impact" ranks by severity × pages affected — the same heuristic Pro uses for its fix queue (which also factors Search Console impressions once connected).
+    <br><br>
+    <strong>Analytics-safe.</strong> Rendered audits intercept outbound beacons to 40+ telemetry endpoints (GA, PostHog, Mixpanel, Segment, Hotjar, Sentry, Cloudflare/Vercel Insights, etc.) so your dashboards stay untouched — no fake sessions, no polluted funnels.
   </section>
 </main>
 </body>

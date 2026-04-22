@@ -116,7 +116,7 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                35 SpamBrain risk rules · v0.2.1
+                40+ SpamBrain + AEO rules · v0.3.0
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
@@ -124,8 +124,9 @@ export default function Home() {
               </h1>
 
               <p className="text-base leading-relaxed text-muted-foreground">
-                Paste your site. In 60 seconds, see how close to the line it is
-                — across 35 rules SpamBrain actually cares about.
+                Paste your site. In 60 seconds, see how close to the line it is —
+                across 40+ rules covering SpamBrain risk and Answer Engine
+                Optimization (how citable your pages are to LLMs).
               </p>
 
               <form onSubmit={ submit } className="flex flex-col gap-3">
@@ -199,6 +200,10 @@ export default function Home() {
                   See all limits
                 </Link>
               </p>
+              <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="inline-block h-1 w-1 rounded-full bg-success" />
+                Analytics-safe — audit runs won&apos;t touch your GA, PostHog, Mixpanel, or session-replay dashboards.
+              </p>
             </div>
 
             <div className="flex flex-col gap-3 md:pt-8 lg:pt-10">
@@ -235,7 +240,7 @@ export default function Home() {
 
           <div className="overflow-hidden rounded-[28px] border border-border/70 bg-card/60 backdrop-blur-sm">
             { RECEIPTS.map((r, i) => {
-              const cleanRules = 35 - Math.round(r.score / 4);
+              const cleanRules = 40 - Math.round(r.score / 2.5);
               return (
                 <article
                   key={ r.host }
@@ -260,7 +265,7 @@ export default function Home() {
                     </span>
                     <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2 py-0.5 font-mono text-[10px] text-success">
                       <span className="inline-block h-1 w-1 rounded-full bg-success" />
-                      { cleanRules } of 35 clean
+                      { cleanRules } of 40 clean
                     </span>
                   </div>
                   <div>
