@@ -261,13 +261,13 @@ describe("auditSource", () => {
   test("guardSsrf rejects localhost URL at source-validation step", async () => {
     await expect(
       auditSource("http://localhost/", { guardSsrf: true }),
-    ).rejects.toThrow(/Refusing to audit.*reserved hostname/);
+    ).rejects.toThrow(/Refusing to fetch.*reserved hostname/);
   });
 
   test("guardSsrf rejects private IP URL", async () => {
     await expect(
       auditSource("http://10.0.0.5/", { guardSsrf: true }),
-    ).rejects.toThrow(/Refusing to audit.*IPv4 range/);
+    ).rejects.toThrow(/Refusing to fetch.*IPv4 range/);
   });
 
   test("flags content uniqueness, headings, and meta collisions", async () => {

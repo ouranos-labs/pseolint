@@ -85,7 +85,9 @@ export type { RuleScope } from "./rules/scope.js";
 export { DEFAULT_ANALYTICS_HOSTS, isAnalyticsRequest } from "./analytics-blocklist.js";
 export type { AnalyticsMode } from "./analytics-blocklist.js";
 export {
+  DnsResolutionError,
   SSRFError,
+  decodeNumericIPv4,
   isPrivateIPv4,
   isPrivateIPv6,
   isPrivateOrReservedHost,

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  DnsResolutionError,
   SSRFError,
+  decodeNumericIPv4,
   isPrivateIPv4,
   isPrivateIPv6,
   isPrivateOrReservedHost,
@@ -140,7 +142,9 @@ describe("validateTargetHost", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("throws SSRFError with reason when DNS returns nothing", async () => {
+  it("throws DnsResolutionError (NOT SSRFError) on ENOTFOUND", async () => {
+    // A typo shouldn't look like an attack. Host code can distinguish the
+    // two error classes to log appropriately.
     const resolver = {
       resolve4: async () => {
         throw new Error("ENOTFOUND");
@@ -151,7 +155,10 @@ describe("validateTargetHost", () => {
     };
     await expect(
       validateTargetHost("nonexistent.example", { resolver }),
-    ).rejects.toThrow(/DNS resolution failed/);
+    ).rejects.toBeInstanceOf(DnsResolutionError);
+    await expect(
+      validateTargetHost("nonexistent.example", { resolver }),
+    ).rejects.not.toBeInstanceOf(SSRFError);
   });
 
   it("blocks even when one record is public but another is private", async () => {
@@ -166,5 +173,62 @@ describe("validateTargetHost", () => {
     await expect(
       validateTargetHost("mixed.example.com", { resolver }),
     ).rejects.toThrow(/10\.0\.0\.5/);
+  });
+
+  it("blocks when v4 is public but v6 resolves to a private ULA", async () => {
+    const resolver = {
+      resolve4: async () => ["8.8.8.8"],
+      resolve6: async () => ["fd00::1"],
+    };
+    await expect(
+      validateTargetHost("mixed-family.example", { resolver }),
+    ).rejects.toThrow(/fd00::1/);
+  });
+});
+
+describe("decodeNumericIPv4", () => {
+  it("decodes integer-packed form", () => {
+    expect(decodeNumericIPv4("2130706433")).toBe("127.0.0.1");
+    expect(decodeNumericIPv4("0")).toBe("0.0.0.0");
+    expect(decodeNumericIPv4("4294967295")).toBe("255.255.255.255");
+  });
+
+  it("decodes hex form", () => {
+    expect(decodeNumericIPv4("0x7f000001")).toBe("127.0.0.1");
+    expect(decodeNumericIPv4("0xC0A80001")).toBe("192.168.0.1");
+  });
+
+  it("returns null for non-numeric hostnames", () => {
+    expect(decodeNumericIPv4("example.com")).toBeNull();
+    expect(decodeNumericIPv4("1.2.3.4")).toBeNull(); // dotted-quad goes through isPrivateIPv4 directly
+    expect(decodeNumericIPv4("127")).toBe("0.0.0.127"); // pure numeric, decodes
+    expect(decodeNumericIPv4("")).toBeNull();
+  });
+
+  it("rejects out-of-range values", () => {
+    expect(decodeNumericIPv4("4294967296")).toBeNull(); // > max uint32
+    expect(decodeNumericIPv4("-1")).toBeNull();
+  });
+});
+
+describe("isPrivateOrReservedHost — numeric encoding bypass protection", () => {
+  it("rejects integer-packed 127.0.0.1", () => {
+    expect(isPrivateOrReservedHost("2130706433")).toMatch(/IPv4/);
+  });
+
+  it("rejects hex-encoded 127.0.0.1", () => {
+    expect(isPrivateOrReservedHost("0x7f000001")).toMatch(/IPv4/);
+  });
+
+  it("rejects integer-packed AWS metadata IP", () => {
+    // Use arithmetic (not <<) to avoid JS signed-int32 overflow on 169.x.x.x.
+    const metadataAsInt = String(169 * 16777216 + 254 * 65536 + 169 * 256 + 254);
+    expect(isPrivateOrReservedHost(metadataAsInt)).toMatch(/IPv4/);
+  });
+
+  it("rejects public numeric-encoded IPs as ambiguous", () => {
+    // 8.8.8.8 as integer — rejected even though it's public, because numeric
+    // encoding is a deniability smell and legit callers should pass dotted-quad.
+    expect(isPrivateOrReservedHost("134744072")).toMatch(/ambiguous numeric-encoded/);
   });
 });

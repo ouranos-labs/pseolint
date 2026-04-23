@@ -93,10 +93,19 @@ export function parseCrawlDelaySeconds(robotsTxt: string): number {
   return 0;
 }
 
-export function parseDisallowPatterns(robotsTxt: string): string[] {
+/**
+ * Parse Disallow patterns for the given user-agents. Merges the `User-agent: *`
+ * block with any named UA blocks; a hostile site that specifically disallows
+ * `pseolint` without a wildcard still gets honored.
+ *
+ * The default UA list (`["*"]`) preserves the pre-v0.3.2 behavior for callers
+ * that don't opt into UA-specific matching.
+ */
+export function parseDisallowPatterns(robotsTxt: string, userAgents: readonly string[] = ["*"]): string[] {
   const lines = robotsTxt.split(/\r?\n/);
   const patterns: string[] = [];
-  let inWildcardBlock = false;
+  const uaSet = new Set(userAgents.map((u) => u.toLowerCase()));
+  let inMatchingBlock = false;
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
@@ -106,12 +115,12 @@ export function parseDisallowPatterns(robotsTxt: string): string[] {
 
     // Detect User-agent directive
     if (/^user-agent\s*:/i.test(line)) {
-      const value = line.replace(/^user-agent\s*:\s*/i, "").trim();
-      inWildcardBlock = value === "*";
+      const value = line.replace(/^user-agent\s*:\s*/i, "").trim().toLowerCase();
+      inMatchingBlock = uaSet.has(value);
       continue;
     }
 
-    if (!inWildcardBlock) continue;
+    if (!inMatchingBlock) continue;
 
     if (/^disallow\s*:/i.test(line)) {
       const value = line.replace(/^disallow\s*:\s*/i, "").trim();

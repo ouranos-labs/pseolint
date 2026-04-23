@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { robotsSitemapPresenceRule } from "../../../src/rules/tech/robots-sitemap-presence.js";
+import {
+  parseDisallowPatterns,
+  robotsSitemapPresenceRule,
+} from "../../../src/rules/tech/robots-sitemap-presence.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -33,5 +36,43 @@ describe("robotsSitemapPresenceRule", () => {
 
     const findings = await robotsSitemapPresenceRule("https://example.dev/page");
     expect(findings.some((f) => f.message.includes("does not declare a Sitemap"))).toBe(true);
+  });
+});
+
+describe("parseDisallowPatterns (UA-specific merging)", () => {
+  test("default (no UA arg) reads only the wildcard block — legacy behavior", () => {
+    const robots = [
+      "User-agent: *",
+      "Disallow: /admin",
+      "",
+      "User-agent: pseolint",
+      "Disallow: /",
+    ].join("\n");
+    // Default UA list is ["*"]; pseolint-specific Disallow is IGNORED.
+    expect(parseDisallowPatterns(robots)).toEqual(["/admin"]);
+  });
+
+  test("merges a named UA block with the wildcard block", () => {
+    const robots = [
+      "User-agent: *",
+      "Disallow: /admin",
+      "",
+      "User-agent: pseolint",
+      "Disallow: /",
+    ].join("\n");
+    const merged = parseDisallowPatterns(robots, ["*", "pseolint"]);
+    expect(merged).toEqual(expect.arrayContaining(["/admin", "/"]));
+  });
+
+  test("honors a named UA block when the wildcard block is absent", () => {
+    const robots = "User-agent: pseolint\nDisallow: /\n";
+    // This was the v0.3.2 gap: targeted Disallow without a wildcard silently
+    // bypassed the crawler. After the fix it's honored when the UA is passed.
+    expect(parseDisallowPatterns(robots, ["*", "pseolint"])).toEqual(["/"]);
+  });
+
+  test("matching is case-insensitive on the UA name", () => {
+    const robots = "User-agent: PSEOLINT\nDisallow: /private\n";
+    expect(parseDisallowPatterns(robots, ["pseolint"])).toEqual(["/private"]);
   });
 });

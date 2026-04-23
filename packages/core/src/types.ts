@@ -257,14 +257,21 @@ export interface AuditOptions {
   signal?: AbortSignal;
   /**
    * When true, every crawled URL's hostname is validated with
-   * `validateTargetHost` before its first fetch — resolves the hostname and
-   * rejects if any address is in a private / reserved / link-local / loopback /
-   * multicast range. Defends against SSRF / DNS-rebinding when the library is
+   * `validateTargetHost` before fetch — resolves the hostname and rejects if
+   * any address is in a private / reserved / link-local / loopback / multicast
+   * range. Applies to the source URL, sitemap entries, redirect targets, and
+   * discovered links. Defends against SSRF / DNS-rebinding when the library is
    * invoked against user-supplied URLs (e.g. from a hosted audit service).
-   * Default: false (CLI users auditing localhost / file:// / internal sites
-   * should not be broken silently).
+   * Default: false (CLI users auditing localhost / staging sites should not
+   * be broken silently).
    */
   guardSsrf?: boolean;
+  /**
+   * When true (default), sitemap URLs that match a `Disallow:` rule in the
+   * target's robots.txt are skipped at fetch time instead of crawled. Set to
+   * false to audit staging / internal sites that Disallow everything.
+   */
+  respectRobotsTxt?: boolean;
 }
 
 export type SamplingStrategy = "stratified" | "random";

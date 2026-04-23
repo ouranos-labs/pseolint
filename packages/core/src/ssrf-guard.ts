@@ -35,6 +35,22 @@ export class SSRFError extends Error {
   }
 }
 
+/**
+ * Thrown when a hostname legitimately fails DNS resolution (NXDOMAIN / SERVFAIL
+ * / no A / AAAA records). Distinct from `SSRFError`: resolution failure
+ * is a "try again later / fix your typo" condition, not an attack. Callers
+ * in SaaS contexts should not log these as security events.
+ */
+export class DnsResolutionError extends Error {
+  readonly hostname: string;
+
+  constructor(hostname: string) {
+    super(`DNS resolution failed for "${hostname}"`);
+    this.name = "DnsResolutionError";
+    this.hostname = hostname;
+  }
+}
+
 const BLOCKED_HOSTNAME_EXACT = new Set([
   "localhost",
   "broadcasthost",
@@ -103,8 +119,37 @@ export function isPrivateIPv6(addr: string): boolean {
 }
 
 /**
+ * Decode an integer-packed (`2130706433` = `127.0.0.1`) or hex-encoded
+ * (`0x7f000001`) hostname into dotted-quad form. Returns `null` if the
+ * input isn't a numeric hostname. Needed because some fetch stacks accept
+ * these encodings and resolve them to private IPs, bypassing a naive
+ * string-only dotted-quad check.
+ */
+export function decodeNumericIPv4(hostname: string): string | null {
+  const s = hostname.toLowerCase().trim();
+  if (!s) return null;
+  let n: number | null = null;
+  if (/^[0-9]+$/.test(s)) {
+    // Pure decimal (also catches single-number IPv4 form "2130706433").
+    const parsed = Number(s);
+    if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 0xffffffff) n = parsed;
+  } else if (/^0x[0-9a-f]+$/.test(s)) {
+    // Hex — "0x7f000001".
+    const parsed = Number(s);
+    if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 0xffffffff) n = parsed;
+  }
+  if (n === null) return null;
+  return [
+    (n >>> 24) & 0xff,
+    (n >>> 16) & 0xff,
+    (n >>> 8) & 0xff,
+    n & 0xff,
+  ].join(".");
+}
+
+/**
  * Synchronous string-only check. Rejects:
- *   - literal private / reserved IP addresses
+ *   - literal private / reserved IP addresses (dotted-quad OR numeric/hex encoding)
  *   - exact blocked hostnames (localhost, 0, etc.)
  *   - suffix-blocked hostnames (.local, .internal, .arpa, ...)
  *
@@ -120,6 +165,16 @@ export function isPrivateOrReservedHost(hostname: string): string | null {
   }
   for (const suffix of BLOCKED_HOSTNAME_SUFFIXES) {
     if (lower.endsWith(suffix)) return `reserved TLD / suffix (${suffix})`;
+  }
+
+  // Numeric / hex encoding of IPv4 — decode and test.
+  const decoded = decodeNumericIPv4(hostname);
+  if (decoded) {
+    if (isPrivateIPv4(decoded)) return `private / reserved IPv4 (${decoded}, encoded as ${hostname})`;
+    // Also reject all numeric hostnames that decode to public IPs — they're a
+    // deniability smell. Callers who intentionally audit a literal IP will
+    // pass it in dotted-quad form.
+    return `ambiguous numeric-encoded IPv4 (${hostname} decodes to ${decoded}); pass dotted-quad form explicitly`;
   }
 
   const version = isIP(hostname); // 4 | 6 | 0
@@ -175,7 +230,7 @@ export async function validateTargetHost(
   if (v6.status === "fulfilled") for (const a of v6.value) addrs.push({ kind: "v6", addr: a });
 
   if (addrs.length === 0) {
-    throw new SSRFError(hostname, "DNS resolution failed");
+    throw new DnsResolutionError(hostname);
   }
 
   for (const { kind, addr } of addrs) {

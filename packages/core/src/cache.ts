@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
 export const CACHE_ENTRY_SCHEMA_VERSION = 1;
@@ -124,19 +125,42 @@ export interface CachedFetchOptions {
    * with the per-request timeout — whichever fires first cancels the fetch.
    */
   signal?: AbortSignal;
+  /**
+   * Per-hop URL validator. Called before the initial fetch AND before every
+   * redirect hop. Throw to refuse the fetch (e.g. SSRF guard rejecting a 302
+   * to a private IP). Use cases: DNS-resolved SSRF check, tenant host allow-
+   * list, per-request budget enforcement.
+   */
+  validateHop?: (url: string) => Promise<void>;
 }
 
 /**
  * Combine a user-supplied signal with a timeout signal without requiring
- * `AbortSignal.any()` (which is Node 20.3+). Fires as soon as either input
- * aborts. If both are absent, returns an always-unaborted signal.
+ * `AbortSignal.any()` (Node 20.3+). Fires as soon as either input aborts.
+ *
+ * Returns a tuple of `[signal, dispose]`. The caller MUST invoke `dispose()`
+ * after the awaited operation settles (success, error, or timeout) so that
+ * the listener registered on `external` is removed and the timer is cleared.
+ * Without the dispose call, long-lived external signals accumulate listeners
+ * across many fetches and trigger `MaxListenersExceededWarning`.
+ *
+ * Typical usage:
+ *   const [signal, dispose] = combineWithTimeout(timeoutMs, external);
+ *   try {
+ *     return await fetcher(url, { signal, ... });
+ *   } finally {
+ *     dispose();
+ *   }
  */
-function combineWithTimeout(timeoutMs: number, external?: AbortSignal): AbortSignal {
-  if (!external) return AbortSignal.timeout(timeoutMs);
+function combineWithTimeout(timeoutMs: number, external?: AbortSignal): [AbortSignal, () => void] {
+  if (!external) {
+    const signal = AbortSignal.timeout(timeoutMs);
+    return [signal, () => { /* nothing to dispose; timeout signal is self-contained */ }];
+  }
   const ac = new AbortController();
   if (external.aborted) {
     ac.abort(external.reason);
-    return ac.signal;
+    return [ac.signal, () => { /* already aborted; nothing to do */ }];
   }
   const onExternal = () => ac.abort(external.reason);
   external.addEventListener("abort", onExternal, { once: true });
@@ -144,10 +168,11 @@ function combineWithTimeout(timeoutMs: number, external?: AbortSignal): AbortSig
     external.removeEventListener("abort", onExternal);
     ac.abort(new DOMException("timeout", "TimeoutError"));
   }, timeoutMs);
-  // When the combined signal aborts for any reason, cancel the timer so it
-  // doesn't fire again after the fetch is already done.
-  ac.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
-  return ac.signal;
+  const dispose = () => {
+    clearTimeout(timer);
+    external.removeEventListener("abort", onExternal);
+  };
+  return [ac.signal, dispose];
 }
 
 export interface CachedFetchResult {
@@ -173,7 +198,7 @@ export async function cachedFetch(
   const cache = opts.cache;
 
   if (!cache) {
-    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal);
+    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop);
   }
 
   const existing = await readCacheEntry(cache.dir, url);
@@ -200,14 +225,20 @@ export async function cachedFetch(
       const condHeaders: Record<string, string> = {};
       if (existing.headers.etag) condHeaders["if-none-match"] = existing.headers.etag;
       if (existing.headers["last-modified"]) condHeaders["if-modified-since"] = existing.headers["last-modified"];
-      const res = await fetcher(url, {
-        signal: combineWithTimeout(opts.timeoutMs, opts.signal),
-        headers: {
-          ...condHeaders,
-          "user-agent": "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)",
-          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        },
-      });
+      const [signal, disposeSignal] = combineWithTimeout(opts.timeoutMs, opts.signal);
+      let res: Response;
+      try {
+        res = await fetcher(url, {
+          signal,
+          headers: {
+            ...condHeaders,
+            "user-agent": PSEOLINT_USER_AGENT,
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          },
+        });
+      } finally {
+        disposeSignal();
+      }
       if (res.status === 304) {
         const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
         await writeCacheEntry(cache.dir, url, updated);
@@ -225,10 +256,19 @@ export async function cachedFetch(
     }
   }
 
-  return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal);
+  return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop);
 }
 
-const PSEOLINT_USER_AGENT = "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)";
+const PSEOLINT_USER_AGENT = (() => {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkg = require("../package.json") as { version?: string };
+    const v = pkg.version ?? "0";
+    return `Mozilla/5.0 (compatible; pseolint/${v}; +https://pseolint.dev/bot)`;
+  } catch {
+    return "Mozilla/5.0 (compatible; pseolint; +https://pseolint.dev/bot)";
+  }
+})();
 
 /** Cap on Retry-After honour — adversarial sites could declare hours. */
 const RETRY_AFTER_MAX_MS = 30_000;
@@ -252,16 +292,29 @@ async function performFetch(
   fetcher: Fetcher,
   cache: CacheConfig | null,
   externalSignal?: AbortSignal,
+  validateHop?: (url: string) => Promise<void>,
 ): Promise<CachedFetchResult> {
   const redirectChain: string[] = [];
   let currentUrl = url;
   let backoffRetried = false;
   for (let hop = 0; hop < 10; hop += 1) {
-    const res = await fetcher(currentUrl, {
-      signal: combineWithTimeout(timeoutMs, externalSignal),
-      redirect: "manual",
-      headers: { "user-agent": PSEOLINT_USER_AGENT, "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
-    });
+    // Re-validate every hop when a validator is provided. An SSRF-clean
+    // source URL can 302 to http://127.0.0.1/ — if we blindly followed
+    // without re-checking, we'd hit loopback. `redirect: "manual"` below
+    // ensures we control every hop; this call blocks malicious redirects.
+    if (validateHop) await validateHop(currentUrl);
+
+    const [signal, disposeSignal] = combineWithTimeout(timeoutMs, externalSignal);
+    let res: Response;
+    try {
+      res = await fetcher(currentUrl, {
+        signal,
+        redirect: "manual",
+        headers: { "user-agent": PSEOLINT_USER_AGENT, "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
+      });
+    } finally {
+      disposeSignal();
+    }
 
     // Target-declared backoff — honor Retry-After on 429/503 once per URL.
     if ((res.status === 429 || res.status === 503) && !backoffRetried) {
