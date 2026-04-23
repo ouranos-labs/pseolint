@@ -2,7 +2,7 @@ import { Inngest, EventSchemas } from "inngest";
 import { devFlags } from "@/lib/dev-flags";
 
 type Events = {
-  "audit/requested": { data: { auditId: string; url: string; plan: "free" | "pro"; sampleSize: number } };
+  "audit/requested": { data: { auditId: string; url: string; plan: "free" | "pro"; sampleSize: number; render?: boolean; mode?: "full" | "diff" } };
   "audit/completed-for-monitoring": { data: { monitoredDomainId: string; auditId: string } };
 };
 

@@ -23,6 +23,8 @@ const BodySchema = z.object({
   url: z.string().url(),
   turnstileToken: z.string().min(1),
   force: z.boolean().optional(),
+  /** Opt-in Playwright-rendered audit for JS-heavy sites (SPA, Webflow, Framer). */
+  render: z.boolean().optional(),
 });
 
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
@@ -160,6 +162,13 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   if (session) {
+    if (!session.user.emailVerified) {
+      auditLog("audit.request.rejected", { reason: "email_not_verified", userId: session.user.id });
+      return NextResponse.json(
+        { error: "Verify your email before running audits. Check your inbox for the magic-link email." },
+        { status: 403 },
+      );
+    }
     userId = session.user.id;
     const profile = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
     plan = profile[0]?.plan ?? "free";
@@ -213,9 +222,10 @@ export async function POST(req: Request): Promise<Response> {
     isPublic: plan !== "pro", expiresAt,
   }).returning({ id: audits.id, slug: audits.slug });
 
-  auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize });
+  const render = body.data.render ?? false;
+  auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize, render });
 
-  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize } });
+  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize, render } });
   auditLog("audit.dispatched", { auditId: row.id });
 
   void hashIp(ip);

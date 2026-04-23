@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 
 export function AuditForm() {
   const [url, setUrl] = useState("");
+  const [render, setRender] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +16,7 @@ export function AuditForm() {
     const res = await fetch("/api/audits", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url, turnstileToken: "dev-skip" }),
+      body: JSON.stringify({ url, turnstileToken: "dev-skip", render }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -28,19 +29,33 @@ export function AuditForm() {
   }
 
   return (
-    <form onSubmit={submit} className="flex w-full gap-2">
-      <Input
-        type="url"
-        required
-        placeholder="https://example.com"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="flex-1"
-      />
-      <Button type="submit" disabled={loading || !url}>
-        {loading ? "Starting…" : "Run audit"}
-      </Button>
-      {error && <span className="ml-3 self-center text-xs text-destructive">{error}</span>}
+    <form onSubmit={submit} className="flex flex-col gap-2">
+      <div className="flex w-full gap-2">
+        <Input
+          type="url"
+          required
+          placeholder="https://example.com"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" disabled={loading || !url}>
+          {loading ? "Starting…" : "Run audit"}
+        </Button>
+      </div>
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={render}
+          onChange={(e) => setRender(e.target.checked)}
+          className="h-3.5 w-3.5 accent-primary"
+        />
+        <span>
+          Rendered mode (JS-heavy sites — Webflow, Framer, React SPAs).
+          Slower but catches rendered content.
+        </span>
+      </label>
+      {error && <span className="text-xs text-destructive">{error}</span>}
     </form>
   );
 }

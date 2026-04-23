@@ -20,12 +20,14 @@ export type RunAuditInput = {
   mode?: "full" | "diff";
   /** Run state for diff-mode audits. When provided, only changed/new URLs are audited. */
   state?: StateOptions;
+  /** Opt-in Playwright rendered mode (JS-heavy sites). Default: false (static fetch). */
+  render?: boolean;
 };
 
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
-  const { auditId, url, plan, sampleSize, mode, state } = input;
+  const { auditId, url, plan, sampleSize, mode, state, render } = input;
   const startedAt = Date.now();
-  auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full" });
+  auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full", render: render ?? false });
 
   await runStep("mark-running", async () => {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
@@ -38,6 +40,8 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       sampleSize,
       mode,
       state,
+      // Core's `render` is a config object; undefined = static fetch, any object = rendered.
+      render: render ? {} : undefined,
       ai: plan === "pro" ? { enabled: true, maxCostUsd: MAX_COST_USD } : undefined,
     }));
   } catch (e) {
