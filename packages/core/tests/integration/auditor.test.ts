@@ -270,6 +270,32 @@ describe("auditSource", () => {
     ).rejects.toThrow(/Refusing to fetch.*IPv4 range/);
   });
 
+  test("safeMode=\"saas\" flips guardSsrf on automatically", async () => {
+    // Preset enables guardSsrf; user doesn't need to set it explicitly.
+    await expect(
+      auditSource("http://127.0.0.1/", { safeMode: "saas" }),
+    ).rejects.toThrow(/Refusing to fetch.*IPv4/);
+  });
+
+  test("safeMode=\"saas\" can be overridden by explicit guardSsrf=false", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-safemode-override-"));
+    tempDirs.push(dir);
+    await writeFile(join(dir, "a.html"), "<html><body><h1>x</h1><p>hello world</p></body></html>", "utf-8");
+    // safeMode enables guardSsrf, but explicit false wins. Auditing a local
+    // directory (no URL) still runs — preset shouldn't break it.
+    const summary = await auditSource(dir, { safeMode: "saas", guardSsrf: false });
+    expect(summary.pageCount).toBe(1);
+  });
+
+  test("safeMode=\"cli\" keeps guardSsrf off by default", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-cli-mode-"));
+    tempDirs.push(dir);
+    await writeFile(join(dir, "a.html"), "<html><body><h1>x</h1><p>hello world</p></body></html>", "utf-8");
+    // cli preset should not introduce guardSsrf behaviour.
+    const summary = await auditSource(dir, { safeMode: "cli" });
+    expect(summary.pageCount).toBe(1);
+  });
+
   test("flags content uniqueness, headings, and meta collisions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-content-"));
     tempDirs.push(dir);

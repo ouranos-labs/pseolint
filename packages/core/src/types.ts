@@ -272,7 +272,34 @@ export interface AuditOptions {
    * false to audit staging / internal sites that Disallow everything.
    */
   respectRobotsTxt?: boolean;
+  /**
+   * Preset that flips several safety options at once.
+   *   "saas" — intended for hosted services auditing user-submitted URLs:
+   *     guardSsrf=true, respectRobotsTxt=true, tighter maxFetchBytes cap,
+   *     followRedirects stays true (audits need final URL).
+   *   "cli"  — intended for local CLI / dev use:
+   *     guardSsrf=false (auditing localhost is OK), respectRobotsTxt=true,
+   *     default caps.
+   * Individual options on AuditOptions override the preset when set.
+   * Default: undefined (no preset applied, existing opt-in behaviour).
+   */
+  safeMode?: SafeMode;
+  /**
+   * Hard ceiling on URLs discovered via link-following before sampling.
+   * Protects against malicious sites with many self-links that could extend
+   * the crawl up to the byte budget. Default: 5000.
+   */
+  maxCrawlDiscovered?: number;
+  /**
+   * When false, 3xx responses are returned as-is (the audit will see the
+   * redirect location header and can report it) instead of followed. Useful
+   * for security-sensitive audits that must not leave the exact submitted
+   * URL. Default: true.
+   */
+  followRedirects?: boolean;
 }
+
+export type SafeMode = "saas" | "cli";
 
 export type SamplingStrategy = "stratified" | "random";
 

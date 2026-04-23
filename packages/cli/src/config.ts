@@ -57,6 +57,11 @@ const auditOptionsSchema = z.object({
   }).optional(),
   samplingStrategy: z.enum(["stratified", "random"]).optional(),
   maxPerTemplate: z.number().optional(),
+  safeMode: z.enum(["saas", "cli"]).optional(),
+  respectRobotsTxt: z.boolean().optional(),
+  followRedirects: z.boolean().optional(),
+  maxCrawlDiscovered: z.number().optional(),
+  guardSsrf: z.boolean().optional(),
   ai: z.object({
     enabled: z.boolean().optional(),
     provider: z.string().optional(),
@@ -110,6 +115,9 @@ export interface CliFlags {
   cache?: { dir?: string; ttlMs: number };
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
+  safeMode?: "saas" | "cli";
+  respectRobotsTxt?: boolean;
+  followRedirects?: boolean;
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
   ai?: {
     enabled?: boolean;
@@ -144,6 +152,9 @@ export function mergeOptions(
   if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
+  if (cliFlags.safeMode !== undefined) result.safeMode = cliFlags.safeMode;
+  if (cliFlags.respectRobotsTxt !== undefined) result.respectRobotsTxt = cliFlags.respectRobotsTxt;
+  if (cliFlags.followRedirects !== undefined) result.followRedirects = cliFlags.followRedirects;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
   if (cliFlags.ai !== undefined) {
     const merged: NonNullable<AuditOptions["ai"]> = { ...result.ai };

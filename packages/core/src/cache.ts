@@ -132,6 +132,11 @@ export interface CachedFetchOptions {
    * list, per-request budget enforcement.
    */
   validateHop?: (url: string) => Promise<void>;
+  /**
+   * When false, 3xx responses are returned as-is (status + Location header)
+   * instead of followed. Default: true.
+   */
+  followRedirects?: boolean;
 }
 
 /**
@@ -198,7 +203,7 @@ export async function cachedFetch(
   const cache = opts.cache;
 
   if (!cache) {
-    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop);
+    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop, opts.followRedirects);
   }
 
   const existing = await readCacheEntry(cache.dir, url);
@@ -256,7 +261,7 @@ export async function cachedFetch(
     }
   }
 
-  return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop);
+  return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop, opts.followRedirects);
 }
 
 const PSEOLINT_USER_AGENT = (() => {
@@ -293,6 +298,7 @@ async function performFetch(
   cache: CacheConfig | null,
   externalSignal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
+  followRedirects: boolean = true,
 ): Promise<CachedFetchResult> {
   const redirectChain: string[] = [];
   let currentUrl = url;
@@ -327,6 +333,13 @@ async function performFetch(
     }
     const status = res.status;
     if (status >= 300 && status < 400) {
+      // When redirects are disabled, surface the 3xx as the final result with
+      // the Location header intact so callers can inspect it.
+      if (!followRedirects) {
+        const headers = headersToObject(res.headers);
+        const body = await res.text();
+        return { url: currentUrl, status, headers, body, fromCache: false, redirectChain };
+      }
       const loc = res.headers.get("location");
       if (!loc) break;
       let next: string;
@@ -361,4 +374,50 @@ async function performFetch(
     return { url: currentUrl, status, headers, body, fromCache: false, redirectChain: [...redirectChain] };
   }
   throw new Error(`cachedFetch: too many redirects for ${url}`);
+}
+
+/**
+ * SSRF-guarded fetch for non-audit callers. Validates the source URL (and every
+ * redirect hop) against the private-range blocklist via `validateTargetHost`,
+ * applies the pseolint bot UA, and honours a per-request timeout + external
+ * abort signal.
+ *
+ * Throws:
+ *   - `SSRFError` if the target (or any redirect hop) resolves to a private
+ *     / reserved range.
+ *   - `DnsResolutionError` if the hostname doesn't resolve.
+ *   - Network / timeout errors from the underlying fetch.
+ *
+ * Returns the same shape as `cachedFetch` (no cache is used; every call goes
+ * to the origin). Intended for SaaS hosts that want an SSRF-safe fetch outside
+ * the audit pipeline (metadata lookups, favicon fetches, screenshot URL
+ * validation, etc.).
+ */
+export async function safeFetch(
+  url: string,
+  options: {
+    timeoutMs?: number;
+    signal?: AbortSignal;
+    followRedirects?: boolean;
+    fetcher?: Fetcher;
+  } = {},
+): Promise<CachedFetchResult> {
+  const { validateTargetHost } = await import("./ssrf-guard.js");
+  const validateHop = async (u: string): Promise<void> => {
+    let host: string;
+    try {
+      host = new URL(u).hostname;
+    } catch {
+      throw new Error(`safeFetch: invalid URL ${u}`);
+    }
+    await validateTargetHost(host);
+  };
+  return cachedFetch(url, {
+    timeoutMs: options.timeoutMs ?? 30000,
+    cache: null,
+    fetcher: options.fetcher,
+    signal: options.signal,
+    followRedirects: options.followRedirects ?? true,
+    validateHop,
+  });
 }

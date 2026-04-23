@@ -60,7 +60,7 @@ import {
   type AuditRecord,
   type FeedbackRecord,
 } from "./telemetry/index.js";
-import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
+import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, SafeMode, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
 import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
 import { stratifiedSample } from "./stratified-sample.js";
@@ -68,6 +68,39 @@ import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
 } from "./state.js";
+
+/**
+ * Presets that flip several safety defaults at once. Individual options on
+ * AuditOptions override the preset when explicitly set. `__none` is the
+ * sentinel key used when no preset is selected — all fields undefined so the
+ * `??` chain falls through to hard-coded defaults.
+ */
+type SafeModePreset = {
+  guardSsrf?: boolean;
+  respectRobotsTxt?: boolean;
+  followRedirects?: boolean;
+  maxCrawlDiscovered?: number;
+  maxFetchBytes?: number;
+};
+const SAFE_MODE_PRESETS: Record<SafeMode | "__none", SafeModePreset> = {
+  saas: {
+    // Hosted-service defaults. Assume user-submitted URLs are hostile.
+    guardSsrf: true,
+    respectRobotsTxt: true,
+    followRedirects: true, // audits need to see the final URL
+    maxCrawlDiscovered: 2000,
+    maxFetchBytes: 10_000_000, // 10 MB — enough for a ~500-page sample
+  },
+  cli: {
+    // Local / dev defaults. User auditing their own or local site.
+    guardSsrf: false,
+    respectRobotsTxt: true,
+    followRedirects: true,
+    maxCrawlDiscovered: 5000,
+    maxFetchBytes: 52_428_800, // 50 MB
+  },
+  __none: {},
+};
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -474,10 +507,11 @@ async function fetchPageWithMeta(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
+  followRedirects: boolean = true,
 ): Promise<LoadedPage | null> {
   try {
     stats.total += 1;
-    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop });
+    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop, followRedirects });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -700,6 +734,8 @@ async function loadPagesFromSource(
   guardSsrf: boolean = false,
   respectRobotsTxt: boolean = true,
   skippedByRobots: string[] = [],
+  followRedirects: boolean = true,
+  maxCrawlDiscovered: number = 5000,
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
@@ -791,7 +827,7 @@ async function loadPagesFromSource(
           } catch { /* URL parse failed — fall through, fetch will fail naturally */ }
         }
 
-        const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop);
+        const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop, followRedirects);
         if (result) {
           byteBudget.used += result.html.length;
           pages.push(result);
@@ -814,9 +850,16 @@ async function loadPagesFromSource(
         // robots already fetched above; reuse its Disallow patterns here.
         const disallowPatterns = robots.disallow;
 
-        for (const page of pages) {
+        let discoveryCeilingReached = false;
+        outer: for (const page of pages) {
           const linkMatches = Array.from(page.html.matchAll(/href=["']([^"']+)["']/gi));
           for (const match of linkMatches) {
+            if (discoveredUrls.size >= maxCrawlDiscovered) {
+              // Hard ceiling — don't let a malicious site with many self-links
+              // extend crawl discovery up to the byte budget.
+              discoveryCeilingReached = true;
+              break outer;
+            }
             const href = match[1];
             if (!href || href.startsWith("#") || /^mailto:|^tel:|^javascript:|^data:/i.test(href)) continue;
             try {
@@ -836,6 +879,10 @@ async function loadPagesFromSource(
             }
           }
         }
+        if (discoveryCeilingReached) {
+          // eslint-disable-next-line no-console
+          console.error(`pseolint: crawl discovery hit maxCrawlDiscovered=${maxCrawlDiscovered} ceiling; sampling from the first ${discoveredUrls.size} URLs.`);
+        }
 
         if (discoveredUrls.size > 0) {
           const candidates = Array.from(discoveredUrls);
@@ -845,7 +892,7 @@ async function loadPagesFromSource(
           const toFetch = remaining === Infinity ? shuffled : shuffled.slice(0, remaining);
           await runWithConcurrency(toFetch, effectiveConcurrency, async (url) => {
             if (budgetExceeded(byteBudget)) return;
-            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop, followRedirects);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               byteBudget.used += result.html.length;
               pages.push(result);
@@ -923,7 +970,7 @@ async function loadPagesFromSource(
 
           const newPages: LoadedPage[] = [];
           await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
-            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop, followRedirects);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               newPages.push(result);
               knownCrawled.add(url);
@@ -980,8 +1027,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const ignorePatterns = options?.ignore ?? [];
   const sampleSize = options?.sampleSize ?? 0;
   const signal = options?.signal;
-  const guardSsrf = options?.guardSsrf ?? false;
-  const respectRobotsTxt = options?.respectRobotsTxt ?? true;
+  // Apply safeMode preset first, then let explicit options override it. Using
+  // `??` preserves the "not set" vs "explicitly false" distinction — a user
+  // who picks safeMode="saas" but passes `guardSsrf: false` gets the explicit
+  // override.
+  const preset = SAFE_MODE_PRESETS[options?.safeMode ?? "__none"];
+  const guardSsrf = options?.guardSsrf ?? preset.guardSsrf ?? false;
+  const respectRobotsTxt = options?.respectRobotsTxt ?? preset.respectRobotsTxt ?? true;
+  const followRedirects = options?.followRedirects ?? preset.followRedirects ?? true;
+  const maxCrawlDiscovered = options?.maxCrawlDiscovered ?? preset.maxCrawlDiscovered ?? 5000;
   const skippedByRobots: string[] = [];
 
   function throwIfAborted(): void {
@@ -1042,9 +1096,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     : null;
 
   const fillBudgetViaLinkDiscovery = options?.fillBudgetViaLinkDiscovery ?? false;
-  const maxFetchBytes = options?.maxFetchBytes ?? 52_428_800;
+  const maxFetchBytes = options?.maxFetchBytes ?? preset.maxFetchBytes ?? 52_428_800;
   const fetchByteBudget: ByteBudget = { used: 0, cap: maxFetchBytes };
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots);
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered);
   throwIfAborted();
   const loadedPages = [...loadedPagesRaw];
 

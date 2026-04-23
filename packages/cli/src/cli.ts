@@ -40,6 +40,9 @@ interface CliOptions {
   browserWs?: string;
   analytics?: string;
   blockHost?: string[];
+  safeMode?: string;
+  respectRobots: boolean;
+  followRedirects: boolean;
   crawl: boolean;
   mcp: boolean;
   dataSource?: string;
@@ -97,6 +100,9 @@ export async function runCli(
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
     .option("--analytics <mode>", "Render-mode analytics handling: block | allow | allow-first-party (default: block)", "block")
     .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
+    .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default behaviour)")
+    .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
+    .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
@@ -237,6 +243,9 @@ async function runAudit(
     crawlDiscovery: opts.crawl === false ? false : undefined,
     samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
     maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,
+    safeMode: opts.safeMode === "saas" || opts.safeMode === "cli" ? opts.safeMode : undefined,
+    respectRobotsTxt: opts.respectRobots === false ? false : undefined,
+    followRedirects: opts.followRedirects === false ? false : undefined,
   };
 
   if (opts.cache) {
@@ -328,14 +337,33 @@ async function runAudit(
     }
   }
 
+  // SIGINT (ctrl-C) triggers a clean abort — in-flight fetches cancel and the
+  // audit throws AbortError instead of the process being hard-killed mid-fetch
+  // with the stream half-read. Second SIGINT within ~1s forces immediate exit.
+  const abortController = new AbortController();
+  let sigintCount = 0;
+  const sigintHandler = (): void => {
+    sigintCount += 1;
+    if (sigintCount === 1) {
+      console.error("\npseolint: received SIGINT, aborting audit (ctrl-C again to force exit)...");
+      abortController.abort(new Error("Aborted by SIGINT"));
+    } else {
+      console.error("pseolint: forcing exit.");
+      process.exit(130);
+    }
+  };
+  process.on("SIGINT", sigintHandler);
+
   // Run audit
   let summary;
   try {
-    summary = await auditSource(source, options);
+    summary = await auditSource(source, { ...options, signal: options.signal ?? abortController.signal });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`Error: ${message}`);
     return 1;
+  } finally {
+    process.off("SIGINT", sigintHandler);
   }
 
   if (summary.cacheStats && summary.cacheStats.total > 0) {

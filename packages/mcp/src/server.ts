@@ -131,7 +131,11 @@ export function createServer(): McpServer {
     },
     async ({ source, threshold, sampleSize, format }) => {
       try {
-        const options: AuditOptions = {};
+        // MCP audits run on user-supplied URLs inside AI-assistant environments
+        // where the LLM may not vet the target. `safeMode: "saas"` flips on
+        // guardSsrf (DNS-validated private-range check), tightens maxFetchBytes,
+        // and keeps robots.txt honoured — see packages/core SafeMode docs.
+        const options: AuditOptions = { safeMode: "saas" };
         if (sampleSize > 0) {
           options.sampleSize = sampleSize;
         } else {
@@ -181,7 +185,7 @@ export function createServer(): McpServer {
     },
     async ({ source, threshold }) => {
       try {
-        const options: AuditOptions = { sampleSize: MCP_SAMPLE_CAP };
+        const options: AuditOptions = { sampleSize: MCP_SAMPLE_CAP, safeMode: "saas" };
         const summary = await auditSource(source, options);
         const text = buildExplanation(summary, threshold);
 
@@ -216,6 +220,7 @@ export function createServer(): McpServer {
       try {
         const options: AuditOptions = {
           crawlDiscovery: false,
+          safeMode: "saas",
         };
 
         const summary = await auditSource(url, options);
