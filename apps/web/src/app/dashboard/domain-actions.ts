@@ -1,11 +1,14 @@
 "use server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { publicSlug } from "@/lib/slug";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
+
+/** Fair-use cap on active monitored domains per Pro user. */
+export const MAX_PRO_DOMAINS = 50;
 
 function originOf(rawUrl: string): { host: string; origin: string } {
   const u = new URL(rawUrl);
@@ -34,11 +37,25 @@ export async function addDomainAction(
 
   if (existing) {
     if (existing.removedAt) {
+      const [{ active }] = await db
+        .select({ active: sql<number>`count(*)::int` })
+        .from(monitoredDomains)
+        .where(and(eq(monitoredDomains.userId, session.user.id), isNull(monitoredDomains.removedAt)));
+      if (active >= MAX_PRO_DOMAINS) {
+        return { ok: false, error: `Pro is capped at ${MAX_PRO_DOMAINS} active monitored domains. Remove one first, or email support for a higher limit.` };
+      }
       await db.update(monitoredDomains)
         .set({ removedAt: null, sourceUrl: origin })
         .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)));
     }
   } else {
+    const [{ active }] = await db
+      .select({ active: sql<number>`count(*)::int` })
+      .from(monitoredDomains)
+      .where(and(eq(monitoredDomains.userId, session.user.id), isNull(monitoredDomains.removedAt)));
+    if (active >= MAX_PRO_DOMAINS) {
+      return { ok: false, error: `Pro is capped at ${MAX_PRO_DOMAINS} active monitored domains. Remove one first, or email support for a higher limit.` };
+    }
     await db.insert(monitoredDomains).values({
       slug: publicSlug(), userId: session.user.id, sourceUrl: origin, host,
       cadence: "daily", nextRunAt: new Date(),

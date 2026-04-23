@@ -70,12 +70,26 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   if (event.type === "subscription.canceled") {
+    // Honor period-end grace: keep plan=pro until currentPeriodEnd, then getPlan() flips to free.
+    // Previously we left plan=pro but only updated planExpiresAt; without an explicit plan write,
+    // users who upgraded in the same cycle wouldn't reflect their final expiry. Make this explicit.
     const customer = event.data.customer;
     const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, customer.email)).limit(1);
     if (u) {
-      await db.update(userProfiles).set({
-        planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : new Date(),
-      }).where(eq(userProfiles.userId, u.id));
+      const periodEnd = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
+      if (periodEnd && periodEnd > new Date()) {
+        // Grace window: pro until period end.
+        await db.update(userProfiles).set({
+          plan: "pro",
+          planExpiresAt: periodEnd,
+        }).where(eq(userProfiles.userId, u.id));
+      } else {
+        // Period already over (edge case: late webhook or no period end): free immediately.
+        await db.update(userProfiles).set({
+          plan: "free",
+          planExpiresAt: new Date(),
+        }).where(eq(userProfiles.userId, u.id));
+      }
     }
   }
 

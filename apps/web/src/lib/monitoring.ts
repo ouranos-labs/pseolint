@@ -1,8 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits } from "@/db/schema";
 import { publicSlug } from "@/lib/slug";
 import { inngest } from "@/lib/inngest";
+import { MAX_PRO_DOMAINS } from "@/app/dashboard/domain-actions";
 
 /**
  * Webhook-safe variant of addDomainAction — no session required.
@@ -25,12 +26,26 @@ export async function ensureMonitoredDomainForUser(
 
   if (existing) {
     if (existing.removedAt) {
+      const [{ active }] = await db
+        .select({ active: sql<number>`count(*)::int` })
+        .from(monitoredDomains)
+        .where(and(eq(monitoredDomains.userId, userId), isNull(monitoredDomains.removedAt)));
+      if (active >= MAX_PRO_DOMAINS) {
+        throw new Error(`Pro domain cap reached (${MAX_PRO_DOMAINS})`);
+      }
       await db
         .update(monitoredDomains)
         .set({ removedAt: null, sourceUrl: origin })
         .where(eq(monitoredDomains.id, existing.id));
     }
   } else {
+    const [{ active }] = await db
+      .select({ active: sql<number>`count(*)::int` })
+      .from(monitoredDomains)
+      .where(and(eq(monitoredDomains.userId, userId), isNull(monitoredDomains.removedAt)));
+    if (active >= MAX_PRO_DOMAINS) {
+      throw new Error(`Pro domain cap reached (${MAX_PRO_DOMAINS})`);
+    }
     await db.insert(monitoredDomains).values({
       slug: publicSlug(),
       userId,
