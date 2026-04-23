@@ -62,6 +62,7 @@ import {
 } from "./telemetry/index.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, type CacheConfig } from "./cache.js";
+import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
 import { stratifiedSample } from "./stratified-sample.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
@@ -447,18 +448,20 @@ async function fetchWithRetry(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: CacheStats
+  stats: CacheStats,
+  signal?: AbortSignal,
 ): Promise<{ text: string; contentType: string } | null> {
   try {
     stats.total += 1;
-    const r = await cachedFetch(url, { timeoutMs, cache });
+    const r = await cachedFetch(url, { timeoutMs, cache, signal });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
     }
     if (r.status < 200 || r.status >= 300) return null;
     return { text: r.body, contentType: (r.headers["content-type"] ?? "").toLowerCase() };
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) throw err; // propagate cancellation
     return null;
   }
 }
@@ -467,11 +470,12 @@ async function fetchPageWithMeta(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: CacheStats
+  stats: CacheStats,
+  signal?: AbortSignal,
 ): Promise<LoadedPage | null> {
   try {
     stats.total += 1;
-    const r = await cachedFetch(url, { timeoutMs, cache });
+    const r = await cachedFetch(url, { timeoutMs, cache, signal });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -487,7 +491,8 @@ async function fetchPageWithMeta(
         linkHeader: r.headers.link ?? "",
       },
     };
-  } catch {
+  } catch (err) {
+    if (signal?.aborted) throw err;
     return null;
   }
 }
@@ -496,10 +501,11 @@ async function fetchTextStrict(
   url: string,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: CacheStats
+  stats: CacheStats,
+  signal?: AbortSignal,
 ): Promise<{ text: string; contentType: string }> {
   stats.total += 1;
-  const r = await cachedFetch(url, { timeoutMs, cache });
+  const r = await cachedFetch(url, { timeoutMs, cache, signal });
   if (r.fromCache) {
     stats.hits += 1;
     stats.bytesSavedEstimate += r.body.length;
@@ -611,7 +617,8 @@ async function collectUrlsFromSitemap(
   visited: Set<string>,
   timeoutMs: number,
   cache: CacheConfig | null,
-  stats: CacheStats
+  stats: CacheStats,
+  signal?: AbortSignal,
 ): Promise<string[]> {
   visited.add(sitemapUrl);
   const locs = parseSitemapUrls(sitemapText);
@@ -622,12 +629,13 @@ async function collectUrlsFromSitemap(
 
   const allUrls: string[] = [];
   for (const childUrl of locs) {
+    if (signal?.aborted) throw signal.reason ?? new Error("aborted");
     if (visited.has(childUrl)) continue;
-    const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats);
+    const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats);
+    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal);
     allUrls.push(...childUrls);
   }
   return allUrls;
@@ -638,11 +646,12 @@ async function fetchRobotsMeta(
   timeoutMs: number,
   cache: CacheConfig | null,
   stats: CacheStats,
+  signal?: AbortSignal,
 ): Promise<{ disallow: string[]; crawlDelaySec: number }> {
   if (!origin) return { disallow: [], crawlDelaySec: 0 };
   try {
     const robotsUrl = `${origin}/robots.txt`;
-    const fetched = await fetchTextStrict(robotsUrl, timeoutMs, cache, stats);
+    const fetched = await fetchTextStrict(robotsUrl, timeoutMs, cache, stats, signal);
     return {
       disallow: parseDisallowPatterns(fetched.text),
       crawlDelaySec: parseCrawlDelaySeconds(fetched.text),
@@ -678,14 +687,27 @@ async function loadPagesFromSource(
   cache: CacheConfig | null,
   stats: CacheStats,
   fillBudgetViaLinkDiscovery: boolean = false,
-  byteBudget: ByteBudget = { used: 0, cap: 0 }
+  byteBudget: ByteBudget = { used: 0, cap: 0 },
+  signal?: AbortSignal,
+  guardSsrf: boolean = false,
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
   if (/^https?:\/\//i.test(source)) {
+    if (guardSsrf) {
+      try {
+        const hostname = new URL(source).hostname;
+        await validateTargetHost(hostname);
+      } catch (err) {
+        if (err instanceof SSRFError) {
+          throw new Error(`Refusing to audit ${source}: ${err.reason}`);
+        }
+        throw err;
+      }
+    }
     let text: string;
     let contentType: string;
     let sourceStatus = 200;
     try {
-      const fetched = await fetchTextStrict(source, timeoutMs, cache, stats);
+      const fetched = await fetchTextStrict(source, timeoutMs, cache, stats, signal);
       text = fetched.text;
       contentType = fetched.contentType;
     } catch {
@@ -693,7 +715,7 @@ async function loadPagesFromSource(
       if (source.includes("sitemap")) {
         try {
           const origin = new URL(source).origin;
-          const fallback = await fetchTextStrict(origin, timeoutMs, cache, stats);
+          const fallback = await fetchTextStrict(origin, timeoutMs, cache, stats, signal);
           text = fallback.text;
           contentType = fallback.contentType;
           sourceStatus = -1; // flag that we fell back
@@ -709,7 +731,7 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats);
+      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal);
 
       // If we have a budget, sample from sitemap URLs before fetching
       const urlsToFetch = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
@@ -720,13 +742,24 @@ async function loadPagesFromSource(
 
       // Fetch robots.txt once for the origin — reused for Crawl-Delay pacing and Disallow checks.
       const sourceOrigin = (() => { try { return new URL(source).origin; } catch { return ""; } })();
-      const robots = await fetchRobotsMeta(sourceOrigin, timeoutMs, cache, stats);
+      const robots = await fetchRobotsMeta(sourceOrigin, timeoutMs, cache, stats, signal);
       const effectiveConcurrency = robots.crawlDelaySec > 0 ? 1 : concurrency;
       const delayMs = robots.crawlDelaySec * 1000;
 
       await runWithConcurrency(urlsToFetch, effectiveConcurrency, async (url) => {
         if (budgetExceeded(byteBudget)) return;
-        const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
+        // Honor robots.txt for our own crawl. The existing robotsComplianceRule
+        // flags sitemap-vs-robots conflicts as a finding; this actually refuses
+        // to fetch the disallowed URL. Keeps us legally defensible (we are a bot,
+        // our UA `pseolint` is public, and we respect Disallow directives) and
+        // removes the "crawler-for-hire" abuse vector when the library is
+        // invoked from a hosted service.
+        try {
+          const p = new URL(url).pathname;
+          if (isDisallowedByRobots(p, robots.disallow)) return;
+        } catch { /* URL parse failed — fall through, fetch will fail naturally */ }
+
+        const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal);
         if (result) {
           byteBudget.used += result.html.length;
           pages.push(result);
@@ -780,7 +813,7 @@ async function loadPagesFromSource(
           const toFetch = remaining === Infinity ? shuffled : shuffled.slice(0, remaining);
           await runWithConcurrency(toFetch, effectiveConcurrency, async (url) => {
             if (budgetExceeded(byteBudget)) return;
-            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               byteBudget.used += result.html.length;
               pages.push(result);
@@ -858,7 +891,7 @@ async function loadPagesFromSource(
 
           const newPages: LoadedPage[] = [];
           await runWithConcurrency(urlsToFetch, concurrency, async (url) => {
-            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats);
+            const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal);
             if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
               newPages.push(result);
               knownCrawled.add(url);
@@ -914,6 +947,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
   const sampleSize = options?.sampleSize ?? 0;
+  const signal = options?.signal;
+  const guardSsrf = options?.guardSsrf ?? false;
+
+  function throwIfAborted(): void {
+    if (signal?.aborted) {
+      throw signal.reason ?? new DOMException("Audit aborted", "AbortError");
+    }
+  }
 
   const resolvedRules = {
     nearDuplicateThreshold:
@@ -969,7 +1010,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const fillBudgetViaLinkDiscovery = options?.fillBudgetViaLinkDiscovery ?? false;
   const maxFetchBytes = options?.maxFetchBytes ?? 52_428_800;
   const fetchByteBudget: ByteBudget = { used: 0, cap: maxFetchBytes };
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget);
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf);
+  throwIfAborted();
   const loadedPages = [...loadedPagesRaw];
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
@@ -1009,7 +1051,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (/^https?:\/\//i.test(source)) {
     try {
       const origin = new URL(source).origin;
-      const result = await fetchWithRetry(`${origin}/robots.txt`, timeoutMs, cacheConfig, cacheStats);
+      const result = await fetchWithRetry(`${origin}/robots.txt`, timeoutMs, cacheConfig, cacheStats, signal);
       if (result) robotsTxtContent = result.text;
     } catch { /* ignore */ }
   }
@@ -1171,6 +1213,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const { score } = scoreFromFindings(findings);
     groupScores[groupName] = score;
   }
+
+  throwIfAborted();
 
   // Enrich findings: cluster pairwise, detect templates, assign effort
   const enriched = enrichFindings(allFindings, parsedPages, {

@@ -84,3 +84,11 @@ export { RULE_SCOPE, isRuleAllowedInDiff } from "./rules/scope.js";
 export type { RuleScope } from "./rules/scope.js";
 export { DEFAULT_ANALYTICS_HOSTS, isAnalyticsRequest } from "./analytics-blocklist.js";
 export type { AnalyticsMode } from "./analytics-blocklist.js";
+export {
+  SSRFError,
+  isPrivateIPv4,
+  isPrivateIPv6,
+  isPrivateOrReservedHost,
+  validateTargetHost,
+} from "./ssrf-guard.js";
+export type { ValidateTargetHostOptions } from "./ssrf-guard.js";

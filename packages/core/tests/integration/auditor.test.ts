@@ -242,6 +242,34 @@ describe("auditSource", () => {
     expect(tuned.findings.some((f) => f.ruleId === "aeo/citable-facts")).toBe(false);
   });
 
+  test("AbortSignal cancels audit mid-run", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "pseolint-abort-"));
+    tempDirs.push(dir);
+
+    const html = "<html><body><h1>Page</h1><p>Some content here that we will not actually audit.</p></body></html>";
+    await writeFile(join(dir, "a.html"), html, "utf-8");
+    await writeFile(join(dir, "b.html"), html, "utf-8");
+
+    const controller = new AbortController();
+    controller.abort(new Error("user cancelled"));
+
+    await expect(
+      auditSource(dir, { signal: controller.signal }),
+    ).rejects.toThrow();
+  });
+
+  test("guardSsrf rejects localhost URL at source-validation step", async () => {
+    await expect(
+      auditSource("http://localhost/", { guardSsrf: true }),
+    ).rejects.toThrow(/Refusing to audit.*reserved hostname/);
+  });
+
+  test("guardSsrf rejects private IP URL", async () => {
+    await expect(
+      auditSource("http://10.0.0.5/", { guardSsrf: true }),
+    ).rejects.toThrow(/Refusing to audit.*IPv4 range/);
+  });
+
   test("flags content uniqueness, headings, and meta collisions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-content-"));
     tempDirs.push(dir);

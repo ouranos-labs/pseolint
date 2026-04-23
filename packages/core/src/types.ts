@@ -249,6 +249,22 @@ export interface AuditOptions {
   ai?: AiOptions;
   /** Local-only telemetry (JSONL) options. When omitted or `enabled: false`, no records are written. */
   telemetry?: TelemetryOptions;
+  /**
+   * External abort signal. When aborted, in-flight fetches are cancelled and
+   * `auditSource` throws an `AbortError`. Host code can use this to kill an
+   * audit that exceeded a per-user budget or was cancelled by the user.
+   */
+  signal?: AbortSignal;
+  /**
+   * When true, every crawled URL's hostname is validated with
+   * `validateTargetHost` before its first fetch — resolves the hostname and
+   * rejects if any address is in a private / reserved / link-local / loopback /
+   * multicast range. Defends against SSRF / DNS-rebinding when the library is
+   * invoked against user-supplied URLs (e.g. from a hosted audit service).
+   * Default: false (CLI users auditing localhost / file:// / internal sites
+   * should not be broken silently).
+   */
+  guardSsrf?: boolean;
 }
 
 export type SamplingStrategy = "stratified" | "random";

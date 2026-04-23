@@ -119,6 +119,35 @@ export interface CachedFetchOptions {
   cache: CacheConfig | null;
   fetcher?: Fetcher;
   method?: "GET";
+  /**
+   * External abort signal, e.g. from an audit-level AbortController. Combined
+   * with the per-request timeout — whichever fires first cancels the fetch.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Combine a user-supplied signal with a timeout signal without requiring
+ * `AbortSignal.any()` (which is Node 20.3+). Fires as soon as either input
+ * aborts. If both are absent, returns an always-unaborted signal.
+ */
+function combineWithTimeout(timeoutMs: number, external?: AbortSignal): AbortSignal {
+  if (!external) return AbortSignal.timeout(timeoutMs);
+  const ac = new AbortController();
+  if (external.aborted) {
+    ac.abort(external.reason);
+    return ac.signal;
+  }
+  const onExternal = () => ac.abort(external.reason);
+  external.addEventListener("abort", onExternal, { once: true });
+  const timer = setTimeout(() => {
+    external.removeEventListener("abort", onExternal);
+    ac.abort(new DOMException("timeout", "TimeoutError"));
+  }, timeoutMs);
+  // When the combined signal aborts for any reason, cancel the timer so it
+  // doesn't fire again after the fetch is already done.
+  ac.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
+  return ac.signal;
 }
 
 export interface CachedFetchResult {
@@ -144,7 +173,7 @@ export async function cachedFetch(
   const cache = opts.cache;
 
   if (!cache) {
-    return performFetch(url, opts.timeoutMs, fetcher, cache);
+    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal);
   }
 
   const existing = await readCacheEntry(cache.dir, url);
@@ -172,7 +201,7 @@ export async function cachedFetch(
       if (existing.headers.etag) condHeaders["if-none-match"] = existing.headers.etag;
       if (existing.headers["last-modified"]) condHeaders["if-modified-since"] = existing.headers["last-modified"];
       const res = await fetcher(url, {
-        signal: AbortSignal.timeout(opts.timeoutMs),
+        signal: combineWithTimeout(opts.timeoutMs, opts.signal),
         headers: {
           ...condHeaders,
           "user-agent": "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)",
@@ -196,7 +225,7 @@ export async function cachedFetch(
     }
   }
 
-  return performFetch(url, opts.timeoutMs, fetcher, cache);
+  return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal);
 }
 
 const PSEOLINT_USER_AGENT = "Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)";
@@ -221,14 +250,15 @@ async function performFetch(
   url: string,
   timeoutMs: number,
   fetcher: Fetcher,
-  cache: CacheConfig | null
+  cache: CacheConfig | null,
+  externalSignal?: AbortSignal,
 ): Promise<CachedFetchResult> {
   const redirectChain: string[] = [];
   let currentUrl = url;
   let backoffRetried = false;
   for (let hop = 0; hop < 10; hop += 1) {
     const res = await fetcher(currentUrl, {
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: combineWithTimeout(timeoutMs, externalSignal),
       redirect: "manual",
       headers: { "user-agent": PSEOLINT_USER_AGENT, "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" },
     });
