@@ -6,9 +6,7 @@ import { requireSession } from "@/lib/session";
 import { publicSlug } from "@/lib/slug";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
-
-/** Fair-use cap on active monitored domains per Pro user. */
-export const MAX_PRO_DOMAINS = 50;
+import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 
 function originOf(rawUrl: string): { host: string; origin: string } {
   const u = new URL(rawUrl);

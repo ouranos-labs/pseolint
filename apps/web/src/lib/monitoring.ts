@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { monitoredDomains, audits } from "@/db/schema";
 import { publicSlug } from "@/lib/slug";
 import { inngest } from "@/lib/inngest";
-import { MAX_PRO_DOMAINS } from "@/app/dashboard/domain-actions";
+import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 
 /**
  * Webhook-safe variant of addDomainAction — no session required.
