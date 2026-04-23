@@ -1,5 +1,80 @@
 # pseolint
 
+## 0.3.1
+
+### Patch Changes
+
+- v0.3.3: safeMode preset, CLI safety flags, MCP safe-by-default
+
+  Consolidates the safety work from render-analytics blocking (v0.3.1),
+  SSRF / AbortSignal / robots-honor (v0.3.2), and the safeMode preset
+  (v0.3.3) for the CLI and MCP packages, which skipped the prior
+  intermediate releases on npm.
+
+  ## @pseolint/core → 0.3.3
+
+  Incremental over 0.3.2 (which shipped SSRF guard, AbortSignal support,
+  and robots.txt honour for our own crawler):
+
+  - `safeMode: "saas" | "cli"` preset on `AuditOptions` — flips
+    `guardSsrf`, `respectRobotsTxt`, `followRedirects`, `maxCrawlDiscovered`,
+    and `maxFetchBytes` defaults in one knob. Individual option overrides
+    still win.
+  - `safeFetch(url, options?)` — SSRF-safe fetch for non-audit use cases
+    (webhook URL verification, favicon lookups, etc.). Wraps `cachedFetch`
+    with `validateTargetHost` baked in.
+  - `maxCrawlDiscovered` — hard ceiling on link-discovery fan-out so a
+    malicious site with many self-links can't extend crawl up to the byte
+    budget. Default 5000 (2000 under `safeMode: "saas"`).
+  - `followRedirects: false` option — returns 3xx as-is so security-
+    sensitive audits can report redirects without following them.
+
+  New exports: `safeFetch`, `SafeMode` type.
+
+  ## pseolint (CLI) → 0.3.1
+
+  First CLI release since 0.3.0; bundles the v0.3.1 / v0.3.2 / v0.3.3
+  CLI-facing work:
+
+  - Render-mode analytics blocking flags: `--analytics <block|allow|allow-first-party>`,
+    `--block-host <host>` (repeatable). Prevents rendered audits from
+    firing GA / Plausible / PostHog / Mixpanel / Hotjar / Sentry beacons
+    on every page.
+  - `--safe-mode <saas|cli>` — applies the core preset.
+  - `--no-respect-robots` — audit sitemap URLs even when the target's
+    robots.txt Disallow's them (use for your own staging sites).
+  - `--no-follow-redirects` — report 3xx as-is.
+  - `ctrl-C` handler — SIGINT triggers a clean abort via `AbortController`;
+    in-flight fetches cancel cleanly instead of the process being hard-
+    killed mid-read. Second `ctrl-C` within ~1 s forces exit.
+  - `pseolint.config.ts` schema extended for `safeMode`, `respectRobotsTxt`,
+    `followRedirects`, `guardSsrf`, `maxCrawlDiscovered`.
+
+  ## @pseolint/mcp → 0.3.1
+
+  First MCP release since 0.3.0; picks up all of v0.3.1 / v0.3.2 / v0.3.3
+  via the core update, plus one meaningful default flip:
+
+  - All three tool handlers (`audit_site`, `explain_score`,
+    `check_page_technical`) now default `safeMode: "saas"`. AI assistants
+    running in end-user environments can't be tricked into scanning cloud
+    metadata / localhost / RFC1918 networks via a malicious URL argument.
+    `guardSsrf`, `respectRobotsTxt`, tighter caps all flip on.
+
+  ## Not changed
+
+  `@pseolint/action` — runs in GitHub-public-network runners, auto-
+  propagates new core features through its existing `AuditSummary`
+  rendering. No separate bump.
+
+  ## Test state
+
+  528 / 528 tests pass. Typecheck clean across core / cli / mcp / action.
+
+- Updated dependencies
+  - @pseolint/core@0.3.3
+  - @pseolint/mcp@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes

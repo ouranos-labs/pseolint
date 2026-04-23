@@ -4,6 +4,18 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
+### Safety defaults (v0.3.3+)
+
+All three tools default to `safeMode: "saas"` — AI assistants running in end-user
+environments can't be tricked into scanning AWS/GCP metadata endpoints, localhost,
+or RFC1918 networks via a malicious URL argument. Specifically:
+
+- `guardSsrf: true` — DNS-validated private-range check on the source URL,
+  sitemap entries, redirect hops, and discovered links
+- `respectRobotsTxt: true` — sitemap URLs Disallow'd by the target's `robots.txt`
+  are skipped instead of crawled
+- Tighter `maxFetchBytes` (10 MB) and `maxCrawlDiscovered` (2000) caps
+
 ## Tools
 
 ### `audit_site`

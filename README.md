@@ -29,17 +29,18 @@ pseolint audits the graph. Run it before you publish, gate it in CI, ship pages 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain-first, not generic SEO.** 34 rules mapped to Google's actual spam policies, not vanity SEO checklist items.
+- **SpamBrain + AI Overview.** 43 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server. Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
+- **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
 
-## What's new in v0.2.0
+## What's new in v0.3.x
 
-- **AI triage** — turn 800 findings into 3 ranked root causes. Opt-in via `--ai`, pluggable across 8 providers (Anthropic, OpenAI, Google, Mistral, Groq, xAI, Cohere, local Ollama).
-- **Cost safety** — `--ai-max-cost 0.50` and `--ai-daily-budget 5.00` make running triage in CI bill-safe. Pre-flight estimate printed before every call.
-- **HTTP cache + delta audits** — `--cache` + `--since` means re-audits cost near-zero egress. Honors `ETag` / `Last-Modified` 304s.
-- **Local telemetry** — `--telemetry` writes a JSONL log (counts only, zero network). `pseolint stats` shows your success rate, spend, and feedback ratio.
-- **MCP server** — audit sites directly from Claude / Cursor / Copilot via the `@pseolint/mcp` tool.
+- **AEO rule category (v0.3.0)** — 9 rules that detect AI Overview invisibility: `llms-txt`, `crawler-access` (blocks for GPTBot/ClaudeBot/PerplexityBot/etc.), `freshness-signals`, `faq-coverage`, `answer-first`, `citable-facts`, `non-replicable-value`, `content-modularity`, `summary-bait`. Scoring re-weighted; new `AEO: AI Overview Readiness` console section.
+- **Render-mode analytics blocking (v0.3.1)** — rendered audits previously fired every GA/Plausible/PostHog/Mixpanel/Hotjar/Sentry beacon on every page. Now blocks ~40 analytics hosts by default. `--analytics` / `--block-host` flags, `allow-first-party` option.
+- **SSRF guard + AbortSignal + robots honour (v0.3.2)** — DNS-validated private-range check on every fetched URL, integer/hex-IP bypass protection, redirect re-validation, honoured target `robots.txt` Disallow directives (with UA-specific parsing), clean `ctrl-C` / programmatic cancel via `AbortSignal`, new public API: `validateTargetHost`, `SSRFError`, `DnsResolutionError`.
+- **`safeMode` preset + `safeFetch` (v0.3.3)** — one-knob safety posture for hosts. `safeMode: "saas"` flips guardSsrf + tightens caps + keeps robots honour on; `safeMode: "cli"` keeps local-friendly defaults. `safeFetch(url)` is an SSRF-safe fetch for non-audit use cases. `maxCrawlDiscovered` ceiling caps link-discovery fan-out. `followRedirects: false` option.
+- **Diff-mode audits (v0.3.0)** — `mode: "diff"` skips corpus-scoped rules so daily re-audits of changed pages don't re-run clustering / link-graph / sitemap checks.
 
 See [CHANGELOG.md](./CHANGELOG.md) for the full list.
 
@@ -75,7 +76,7 @@ npx pseolint ./out --threshold 40 --format json
 
 ## What It Checks
 
-**34 rules** across **7 categories**, producing a weighted **SpamBrain Risk Score** (0-100):
+**43 rules** across **8 categories** (7 scored + `data/*` unscored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
 
 ### SpamBrain Risk Detection
 
@@ -145,6 +146,20 @@ npx pseolint ./out --threshold 40 --format json
 | `cannibal/title-overlap` | Page pairs with >80% title similarity after entity masking | Warning |
 | `cannibal/keyword-collision` | Pages sharing >6 of their top 10 TF-IDF keywords | Warning |
 | `cannibal/url-pattern` | URL structures with same tokens in different order | Info |
+
+### AEO — AI Overview Readiness (v0.3.x)
+
+| Rule | What It Checks | Severity |
+|------|---------------|----------|
+| `aeo/llms-txt` | `/llms.txt` missing or malformed at the origin | Warning |
+| `aeo/crawler-access` | `robots.txt` blocks `GPTBot` / `ClaudeBot` / `PerplexityBot` / `Bytespider` / `Google-Extended` / `CCBot` / `Applebot-Extended` / `ChatGPT-User` | Warning / Error |
+| `aeo/freshness-signals` | No `dateModified` / modification meta / visible "Last updated" | Warning |
+| `aeo/faq-coverage` | FAQ-style content (question-phrased H2s) without `FAQPage` / `HowTo` JSON-LD | Info |
+| `aeo/answer-first` | First paragraph after H1 is boilerplate or lacks facts / named entities | Error |
+| `aeo/citable-facts` | <3 entity-specific citable facts per page after template-fact filtering | Error |
+| `aeo/non-replicable-value` | Pages with only text AI can fully summarize — no interactive / downloadable / gated content | Warning |
+| `aeo/content-modularity` | Sections that cross-reference each other or use vague headings — not independently extractable | Warning |
+| `aeo/summary-bait` | Composite: strong opener + no interactive value + facts packed in opener → guaranteed zero-click loss | Error |
 
 ## Live URL Scanning
 

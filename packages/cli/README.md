@@ -46,7 +46,24 @@ npx pseolint http://localhost:3000 --format html --output report.html
 --render                  Render pages in a browser before auditing
 --browser-ws <url>        CDP WebSocket endpoint for rendering
 --no-crawl                Disable crawl-based page discovery
+
+Safety (v0.3.2+)
+--safe-mode <saas|cli>    Preset: "saas" flips guardSsrf + tightens caps;
+                          "cli" keeps local-friendly defaults.
+--no-respect-robots       Audit sitemap URLs even if robots.txt Disallow's
+                          them (use when auditing your own staging site).
+--no-follow-redirects     Return 3xx as-is — report the redirect instead
+                          of following it.
+
+Render-mode analytics (v0.3.1+)
+--analytics <mode>        block (default) | allow-first-party | allow.
+                          Prevents the audit from injecting fake sessions
+                          into the site owner's GA/Plausible/etc.
+--block-host <host>       Extra host substring to block (repeatable).
 ```
+
+Press `ctrl-C` during an audit to cancel cleanly — in-flight fetches abort,
+partial results are discarded. A second `ctrl-C` within ~1 s forces exit.
 
 ## Configuration
 

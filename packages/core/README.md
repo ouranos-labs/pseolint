@@ -61,11 +61,59 @@ await auditSource("https://example.com/sitemap.xml", {
   entityPatterns: [{ placeholder: "[CITY]", pattern: "\\b(NYC|LA|SF)\\b", flags: "gi" }],
   ai: { enabled: true, provider: "anthropic", model: "claude-haiku-4-5-20251001", maxCostUsd: 0.1 },
   telemetry: { enabled: true, path: ".pseolint/telemetry.jsonl" },
+  // Safety (v0.3.2–v0.3.3)
+  safeMode: "saas",                       // "saas" | "cli" — flips guardSsrf + caps
+  guardSsrf: true,                        // DNS-validated SSRF check on every URL
+  respectRobotsTxt: true,                 // skip sitemap URLs Disallow'd by target robots.txt
+  followRedirects: true,
+  maxCrawlDiscovered: 2000,               // hard ceiling on link-discovery fan-out
+  signal: controller.signal,              // AbortSignal — ctrl-C / quota-exhausted cancels cleanly
   rules: {
     nearDuplicateThreshold: 0.85,
     thinContentMinWords: 300,
     titleOverlapThreshold: 0.8,
     // ...
+  },
+});
+```
+
+### Safety primitives (SSRF, abort, crawl-ceiling)
+
+`@pseolint/core` ships a few primitives for hosts that run audits against
+user-submitted URLs. All are opt-in; local CLI use doesn't change.
+
+```ts
+import {
+  safeFetch,             // SSRF-safe fetch for non-audit use cases
+  validateTargetHost,    // throws SSRFError on private-range / DNS-rebinding targets
+  isPrivateOrReservedHost,
+  SSRFError,
+  DnsResolutionError,
+} from "@pseolint/core";
+
+// Validate a user-submitted URL before enqueuing:
+await validateTargetHost(new URL(userUrl).hostname);
+
+// Fetch with SSRF guard baked in:
+const res = await safeFetch(userUrl, { timeoutMs: 10_000, followRedirects: false });
+```
+
+The full audit picks up the same guard via `auditSource(url, { safeMode: "saas" })`
+or via the individual `guardSsrf` / `respectRobotsTxt` / `followRedirects` flags.
+
+### Render-mode analytics blocking
+
+Rendered audits (`options.render = {...}`) block known analytics endpoints
+by default so the audit doesn't inject fake sessions into the site owner's
+GA / Plausible / PostHog / Mixpanel / Hotjar / Sentry dashboards.
+
+```ts
+await auditSource(url, {
+  render: {
+    analyticsMode: "block",               // default — blocks ~40 analytics hosts
+    // "allow-first-party" — block third-party only
+    // "allow" — don't intercept anything
+    extraBlockedHosts: ["my-internal-metrics.corp"],
   },
 });
 ```

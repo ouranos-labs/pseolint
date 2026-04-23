@@ -1,5 +1,13 @@
 # @pseolint/web
 
+## 0.0.2
+
+### Patch Changes
+
+- Updated dependencies
+  - @pseolint/core@0.3.3
+  - pseolint@0.3.1
+
 ## 0.0.1
 
 ### Patch Changes
