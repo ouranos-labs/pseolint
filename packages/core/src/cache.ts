@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 
@@ -393,6 +393,129 @@ async function performFetch(
  * the audit pipeline (metadata lookups, favicon fetches, screenshot URL
  * validation, etc.).
  */
+export interface CacheSizeInfo {
+  bytes: number;
+  fileCount: number;
+}
+
+export interface PruneResult {
+  before: CacheSizeInfo;
+  after: CacheSizeInfo;
+  removedEntries: number;
+  removedTmpFiles: number;
+}
+
+async function safeReaddir(dir: string): Promise<string[]> {
+  try {
+    return await readdir(dir);
+  } catch {
+    return [];
+  }
+}
+
+interface CacheFileInfo {
+  path: string;
+  size: number;
+  mtimeMs: number;
+}
+
+async function listCacheFiles(dir: string): Promise<CacheFileInfo[]> {
+  const names = await safeReaddir(dir);
+  const out: CacheFileInfo[] = [];
+  for (const name of names) {
+    if (!CACHE_KEY_RE.test(name)) continue;
+    const path = join(dir, name);
+    try {
+      const s = await stat(path);
+      if (!s.isFile()) continue;
+      out.push({ path, size: s.size, mtimeMs: s.mtimeMs });
+    } catch {
+      // File vanished between readdir and stat; skip.
+    }
+  }
+  return out;
+}
+
+async function listTmpFiles(dir: string): Promise<string[]> {
+  const names = await safeReaddir(dir);
+  return names.filter((n) => n.endsWith(".tmp")).map((n) => join(dir, n));
+}
+
+/** Total bytes + file count of valid cache entries in `dir`. Ignores `.tmp` and unrelated files. */
+export async function getCacheSizeInfo(dir: string): Promise<CacheSizeInfo> {
+  const files = await listCacheFiles(dir);
+  let bytes = 0;
+  for (const f of files) bytes += f.size;
+  return { bytes, fileCount: files.length };
+}
+
+/**
+ * Prune cache dir so total size stays under `maxBytes`. Evicts oldest-mtime
+ * entries first (approximate LRU — `writeCacheEntry` touches mtime on fetch
+ * and on 304 revalidation, so hot entries keep their mtime fresh; cold entries
+ * that are never re-crawled age out). Also sweeps leftover `.tmp` files from
+ * crashed writes.
+ *
+ * `maxBytes <= 0` disables size-based eviction (tmp sweep still runs).
+ */
+export async function pruneCache(dir: string, maxBytes: number): Promise<PruneResult> {
+  let removedTmpFiles = 0;
+  for (const t of await listTmpFiles(dir)) {
+    try {
+      await unlink(t);
+      removedTmpFiles += 1;
+    } catch {
+      // Concurrent cleanup or permission issue; skip.
+    }
+  }
+  const files = await listCacheFiles(dir);
+  const beforeBytes = files.reduce((s, f) => s + f.size, 0);
+  const before: CacheSizeInfo = { bytes: beforeBytes, fileCount: files.length };
+  if (maxBytes <= 0 || beforeBytes <= maxBytes) {
+    return { before, after: before, removedEntries: 0, removedTmpFiles };
+  }
+  files.sort((a, b) => a.mtimeMs - b.mtimeMs);
+  let currentBytes = beforeBytes;
+  let removedEntries = 0;
+  for (const f of files) {
+    if (currentBytes <= maxBytes) break;
+    try {
+      await unlink(f.path);
+      currentBytes -= f.size;
+      removedEntries += 1;
+    } catch {
+      // File vanished; don't decrement bytes since we can't be sure.
+    }
+  }
+  return {
+    before,
+    after: { bytes: currentBytes, fileCount: before.fileCount - removedEntries },
+    removedEntries,
+    removedTmpFiles,
+  };
+}
+
+/** Remove every cache entry (and any leftover `.tmp` files). Dir itself is kept. */
+export async function clearCache(dir: string): Promise<{ removed: number }> {
+  let removed = 0;
+  for (const f of await listCacheFiles(dir)) {
+    try {
+      await unlink(f.path);
+      removed += 1;
+    } catch {
+      // File vanished; nothing to do.
+    }
+  }
+  for (const t of await listTmpFiles(dir)) {
+    try {
+      await unlink(t);
+    } catch {
+      // Concurrent cleanup or permission issue; skip.
+    }
+  }
+  return { removed };
+}
+
 export async function safeFetch(
   url: string,
   options: {

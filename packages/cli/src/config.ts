@@ -49,6 +49,7 @@ const auditOptionsSchema = z.object({
   cache: z.object({
     dir: z.string().optional(),
     ttlMs: z.number().optional(),
+    maxBytes: z.number().optional(),
   }).optional(),
   state: z.object({
     path: z.string().optional(),

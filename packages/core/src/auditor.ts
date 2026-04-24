@@ -61,7 +61,7 @@ import {
   type FeedbackRecord,
 } from "./telemetry/index.js";
 import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, SafeMode, Severity } from "./types.js";
-import { cachedFetch, type CacheConfig } from "./cache.js";
+import { cachedFetch, pruneCache, type CacheConfig } from "./cache.js";
 import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
 import { stratifiedSample } from "./stratified-sample.js";
 import {
@@ -1094,6 +1094,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         ttlMs: options.cache.ttlMs ?? 7 * 24 * 60 * 60 * 1000,
       }
     : null;
+  // Size cap (post-audit eviction). Default 200 MB keeps pSEO-scale sites in check;
+  // a single full crawl of a 5k-page site averages ~250 KB per body = ~1.25 GB uncapped.
+  const cacheMaxBytes = options?.cache?.maxBytes ?? 209_715_200;
 
   const fillBudgetViaLinkDiscovery = options?.fillBudgetViaLinkDiscovery ?? false;
   const maxFetchBytes = options?.maxFetchBytes ?? preset.maxFetchBytes ?? 52_428_800;
@@ -1550,6 +1553,20 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     console.error(
       `💡 AI triage available — re-run with --ai to prioritize ${summary.findings.length} findings into a fix list.`,
     );
+  }
+
+  if (cacheConfig && cacheMaxBytes > 0) {
+    try {
+      const pruneResult = await pruneCache(cacheConfig.dir, cacheMaxBytes);
+      if (pruneResult.removedEntries > 0 || pruneResult.removedTmpFiles > 0) {
+        const freedMb = ((pruneResult.before.bytes - pruneResult.after.bytes) / 1024 / 1024).toFixed(1);
+        console.error(
+          `pseolint: cache prune freed ${freedMb} MB (${pruneResult.removedEntries} entries, ${pruneResult.removedTmpFiles} .tmp files); size=${(pruneResult.after.bytes / 1024 / 1024).toFixed(1)}MB / cap=${(cacheMaxBytes / 1024 / 1024).toFixed(0)}MB`,
+        );
+      }
+    } catch {
+      // Non-fatal: eviction failure must not break the audit.
+    }
   }
 
   return summary;

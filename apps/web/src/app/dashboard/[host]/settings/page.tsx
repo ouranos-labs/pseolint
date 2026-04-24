@@ -1,10 +1,15 @@
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { monitoredDomains, integrations } from "@/db/schema";
+import { monitoredDomains, integrations, domainDataSources, domainRuleOverrides } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
-import { updateDomainSettingsAction } from "./actions";
+import {
+  updateDomainSettingsAction,
+  uploadDataSourceAction,
+  removeDataSourceAction,
+  updateRuleOverridesAction,
+} from "./actions";
 
 export default async function DomainSettings({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -23,6 +28,9 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
 
   const gscConns = await db.select().from(integrations)
     .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")));
+
+  const [dataSource] = await db.select().from(domainDataSources).where(eq(domainDataSources.domainId, domain.id)).limit(1);
+  const [ruleOverride] = await db.select().from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domain.id)).limit(1);
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,6 +75,69 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
 
         <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>
       </form>
+
+      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+        <header>
+          <h2 className="text-sm font-medium">Data source (pSEO data-binding)</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Upload the dataset that drives your pSEO pages. The <code className="font-mono">data/data-binding</code> rule
+            verifies each page surfaces its expected records. Format:
+            <code className="ml-1 font-mono">[{"{"}"url": "/p/:slug", "data": {"{"}"title": "...", "faqs": [...]{"}"}{"}"}]</code>.
+          </p>
+        </header>
+        {dataSource && (
+          <p className="text-xs text-primary">
+            ✓ {dataSource.recordCount} records loaded — last updated {new Date(dataSource.updatedAt).toLocaleString()}
+          </p>
+        )}
+        <form action={uploadDataSourceAction} className="flex flex-col gap-3">
+          <input type="hidden" name="domainHost" value={domain.host} />
+          <textarea
+            name="recordsJson"
+            rows={6}
+            placeholder='[{"url":"/blog/:slug","data":{"title":"…"}}]'
+            defaultValue=""
+            className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+              {dataSource ? "Replace" : "Upload"}
+            </button>
+            {dataSource && (
+              <form action={removeDataSourceAction} className="inline">
+                <input type="hidden" name="domainHost" value={domain.host} />
+                <button type="submit" className="inline-flex h-9 items-center rounded-[14px] border border-destructive/50 px-3 text-xs text-destructive hover:bg-destructive/10">
+                  Remove
+                </button>
+              </form>
+            )}
+          </div>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+        <header>
+          <h2 className="text-sm font-medium">Rule thresholds (advanced)</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            JSON-override for <code className="font-mono">AuditOptions.rules</code> — e.g.
+            <code className="ml-1 font-mono">{"{"}"thinContentMinWords": 150{"}"}</code> to loosen thin-content on short landing pages.
+            Leave blank to use defaults.
+          </p>
+        </header>
+        <form action={updateRuleOverridesAction} className="flex flex-col gap-3">
+          <input type="hidden" name="domainHost" value={domain.host} />
+          <textarea
+            name="overridesJson"
+            rows={4}
+            defaultValue={ruleOverride ? ruleOverride.overrides : ""}
+            placeholder='{"thinContentMinWords": 150}'
+            className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
+          />
+          <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+            Save overrides
+          </button>
+        </form>
+      </section>
     </div>
   );
 }

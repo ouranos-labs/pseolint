@@ -43,6 +43,13 @@
       "when": 1776955203368,
       "tag": "0005_charming_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777023689689,
+      "tag": "0006_brainy_shiva",
+      "breakpoints": true
     }
   ]
 }

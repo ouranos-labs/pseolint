@@ -9,11 +9,13 @@ const PRO_ITEMS: Item[] = [
   { href: "/dashboard", label: "Portfolio" },
   { href: "/dashboard/queue", label: "Queue" },
   { href: "/dashboard/integrations", label: "Integrations" },
+  { href: "/dashboard/settings/costs", label: "Costs" },
   { href: "/dashboard/settings/account", label: "Settings" },
 ];
 
 const FREE_ITEMS: Item[] = [
   { href: "/dashboard", label: "History" },
+  { href: "/dashboard/settings/ai-key", label: "AI key" },
   { href: "/dashboard/settings/account", label: "Settings" },
 ];
 

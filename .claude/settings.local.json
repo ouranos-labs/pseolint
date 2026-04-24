@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Test-Path \"D:\\\\phili\\\\SSD_Projects\\\\paperforge.dev\\\\.pseolint\\\\cache\"; \\(Get-ChildItem \"D:\\\\phili\\\\SSD_Projects\\\\paperforge.dev\\\\.pseolint\\\\cache\" -File\\).Count)"
+    ]
+  }
+}

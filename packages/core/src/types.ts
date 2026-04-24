@@ -73,6 +73,13 @@ export interface CacheOptions {
   dir?: string;
   /** TTL for entries without ETag/Last-Modified validators. Default: 7 days. */
   ttlMs?: number;
+  /**
+   * Maximum total size of the cache directory in bytes. When exceeded after a
+   * run, oldest-mtime entries are evicted until under the cap. Also sweeps
+   * leftover `.tmp` files from crashed writes. `<= 0` disables size-based
+   * eviction. Default: 209_715_200 (200 MB).
+   */
+  maxBytes?: number;
 }
 
 /** Cache stats reported at end of audit. */

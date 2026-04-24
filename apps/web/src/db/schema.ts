@@ -226,3 +226,40 @@ export const alertDefaults = pgTable("alert_default", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Per-domain data-source uploads for pSEO data-binding rule.
+ * JSON array of PageDataRecord passed into auditSource({ dataSource }).
+ */
+export const domainDataSources = pgTable("domain_data_source", {
+  domainId: uuid("domain_id").primaryKey().references(() => monitoredDomains.id, { onDelete: "cascade" }),
+  records: text("records").notNull(), // JSON-serialized PageDataRecord[]
+  recordCount: integer("record_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * BYO AI-provider key. One row per user. When present, triage uses the user's
+ * key + provider instead of the server's managed Anthropic key — lets free-tier
+ * users run unlimited AI triage by paying their own LLM costs, and lets Pro
+ * users use a non-default provider.
+ */
+export const userAiKeys = pgTable("user_ai_key", {
+  userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),        // "anthropic" | "openai" | etc.
+  model: text("model"),                         // optional model override
+  apiKey: text("api_key").notNull(),            // stored at rest, only used server-side
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Per-domain rule threshold overrides. JSON-serialized Partial<AuditOptions.rules>.
+ * Loose thresholds for landing pages, strict thresholds for pSEO templates, etc.
+ */
+export const domainRuleOverrides = pgTable("domain_rule_override", {
+  domainId: uuid("domain_id").primaryKey().references(() => monitoredDomains.id, { onDelete: "cascade" }),
+  overrides: text("overrides").notNull(),   // JSON-serialized AuditOptions["rules"]
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
