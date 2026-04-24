@@ -14,6 +14,19 @@ export default async function AccountSettings() {
           <dd className="text-foreground">{session.user.email}</dd>
         </dl>
       </div>
+      <div className="rounded-[22px] border border-border/60 p-5">
+        <h2 className="text-sm font-medium text-foreground">Export my data</h2>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Download a JSON dump of everything we store against your account — audits, monitored domains, findings,
+          usage, and settings. Excludes credentials and billing identifiers.
+        </p>
+        <a
+          href="/api/account/export"
+          className="mt-3 inline-flex h-9 items-center rounded-[14px] border border-border-strong px-3 text-xs hover:bg-secondary"
+        >
+          Download JSON
+        </a>
+      </div>
       <div className="rounded-[22px] border border-destructive/40 p-5">
         <h2 className="text-sm font-medium text-destructive">Delete account</h2>
         <p className="mt-2 text-xs text-muted-foreground">

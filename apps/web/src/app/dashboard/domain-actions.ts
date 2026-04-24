@@ -7,6 +7,7 @@ import { publicSlug } from "@/lib/slug";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
 import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
+import { generateVerificationToken, verifyDomainToken } from "@/lib/domain-verify";
 
 function originOf(rawUrl: string): { host: string; origin: string } {
   const u = new URL(rawUrl);
@@ -42,8 +43,15 @@ export async function addDomainAction(
       if (active >= MAX_PRO_DOMAINS) {
         return { ok: false, error: `Pro is capped at ${MAX_PRO_DOMAINS} active monitored domains. Remove one first, or email support for a higher limit.` };
       }
+      // Reactivate a soft-deleted row. Issue a fresh verification token + clear
+      // verifiedAt — ownership must be re-proven each time a domain is re-added.
       await db.update(monitoredDomains)
-        .set({ removedAt: null, sourceUrl: origin })
+        .set({
+          removedAt: null,
+          sourceUrl: origin,
+          verificationToken: generateVerificationToken(),
+          verifiedAt: null,
+        })
         .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)));
     }
   } else {
@@ -57,6 +65,7 @@ export async function addDomainAction(
     await db.insert(monitoredDomains).values({
       slug: publicSlug(), userId: session.user.id, sourceUrl: origin, host,
       cadence: "daily", nextRunAt: new Date(),
+      verificationToken: generateVerificationToken(),
     });
   }
 
@@ -100,7 +109,11 @@ export async function reAuditNowAction(
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
 
-  const [dom] = await db.select({ id: monitoredDomains.id, sourceUrl: monitoredDomains.sourceUrl })
+  const [dom] = await db.select({
+    id: monitoredDomains.id,
+    sourceUrl: monitoredDomains.sourceUrl,
+    verifiedAt: monitoredDomains.verifiedAt,
+  })
     .from(monitoredDomains)
     .where(and(
       eq(monitoredDomains.host, domainHost),
@@ -108,6 +121,7 @@ export async function reAuditNowAction(
       isNull(monitoredDomains.removedAt),
     )).limit(1);
   if (!dom) return { ok: false, error: "not found" };
+  if (!dom.verifiedAt) return { ok: false, error: "Verify domain ownership first (see workspace header)." };
 
   const auditSlug = publicSlug();
   const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
@@ -122,4 +136,49 @@ export async function reAuditNowAction(
   });
 
   return { ok: true, auditSlug };
+}
+
+/**
+ * Resolve the DNS TXT record for `_pseolint-verify.<host>` and mark the domain
+ * verified if it matches the stored token. Returns a discriminated result with
+ * helpful copy for the UI on failure.
+ */
+export async function verifyDomainAction(
+  domainHost: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let session;
+  try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
+
+  const [dom] = await db.select({
+    id: monitoredDomains.id,
+    host: monitoredDomains.host,
+    verificationToken: monitoredDomains.verificationToken,
+    verifiedAt: monitoredDomains.verifiedAt,
+  })
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.host, domainHost),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    )).limit(1);
+  if (!dom) return { ok: false, error: "not found" };
+  if (dom.verifiedAt) return { ok: true };
+  if (!dom.verificationToken) {
+    // Legacy row (pre-migration) — issue a token now so the user can verify.
+    await db.update(monitoredDomains)
+      .set({ verificationToken: generateVerificationToken() })
+      .where(eq(monitoredDomains.id, dom.id));
+    return { ok: false, error: "Verification token issued — retry in a moment after publishing the TXT record." };
+  }
+
+  const ok = await verifyDomainToken(dom.host, dom.verificationToken);
+  if (!ok) {
+    return { ok: false, error: `No matching TXT record found at _pseolint-verify.${dom.host}. DNS propagation can take a few minutes.` };
+  }
+
+  await db.update(monitoredDomains)
+    .set({ verifiedAt: new Date() })
+    .where(eq(monitoredDomains.id, dom.id));
+
+  return { ok: true };
 }

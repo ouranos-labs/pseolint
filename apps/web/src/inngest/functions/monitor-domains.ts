@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, lte } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
@@ -37,6 +37,8 @@ export const monitorDomains = inngest.createFunction(
           eq(monitoredDomains.paused, false),
           lte(monitoredDomains.nextRunAt, new Date()),
           isNull(monitoredDomains.removedAt),
+          // Only audit domains whose ownership has been proven via DNS TXT.
+          isNotNull(monitoredDomains.verifiedAt),
         ))
         .limit(MAX_DOMAINS_PER_TICK * 3),
     );

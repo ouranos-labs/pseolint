@@ -96,6 +96,10 @@ export const monitoredDomains = pgTable("monitored_domain", {
   lastFullRunAt: timestamp("last_full_run_at", { withTimezone: true }),
   nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),
   removedAt: timestamp("removed_at", { withTimezone: true }),
+  /** DNS-TXT ownership challenge token (issued at domain-add time). */
+  verificationToken: text("verification_token"),
+  /** Verified-at timestamp; null = not verified. Monitoring cron only schedules verified domains. */
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),

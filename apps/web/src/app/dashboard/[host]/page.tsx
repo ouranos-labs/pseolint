@@ -7,6 +7,7 @@ import { getPlan } from "@/lib/plan";
 import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
 import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
+import { VerifyBanner } from "@/components/dashboard/verify-banner";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -55,6 +56,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         }}
         runs={timelineRuns}
       />
+      {!domain.verifiedAt && (
+        <VerifyBanner host={domain.host} token={domain.verificationToken} />
+      )}
       <TimelineStrip runs={timelineRuns} />
       <FindingsPanel findings={openFindings.map((f) => ({
         id: f.id,
