@@ -18,6 +18,9 @@ export async function POST(req: Request): Promise<Response> {
   if (!body.success) return NextResponse.json({ error: "invalid body" }, { status: 400 });
 
   const productId = body.data.interval === "monthly" ? env().POLAR_MONTHLY_PRODUCT_ID : env().POLAR_YEARLY_PRODUCT_ID;
+  if (!productId) {
+    return NextResponse.json({ error: "billing_unavailable" }, { status: 503 });
+  }
   const { url } = await createCheckoutSession({
     productId,
     customerEmail: session.user.email,

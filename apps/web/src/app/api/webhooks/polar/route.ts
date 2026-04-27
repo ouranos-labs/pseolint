@@ -10,12 +10,17 @@ import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
 export const runtime = "nodejs";
 
 export async function POST(req: Request): Promise<Response> {
+  const webhookSecret = env().POLAR_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    return NextResponse.json({ error: "webhook_unavailable" }, { status: 503 });
+  }
+
   const rawBody = await req.text();
   const headers = Object.fromEntries(req.headers.entries());
 
   let event;
   try {
-    event = validateEvent(rawBody, headers, env().POLAR_WEBHOOK_SECRET);
+    event = validateEvent(rawBody, headers, webhookSecret);
   } catch {
     return NextResponse.json({ error: "invalid signature" }, { status: 400 });
   }

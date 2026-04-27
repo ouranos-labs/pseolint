@@ -25,10 +25,49 @@ const DEV_FALLBACKS: Record<string, string> = {
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
 };
 
+/**
+ * Next build evaluates route modules to collect metadata/page data. Some
+ * runtime-only integrations are not needed at build time, so provide valid
+ * placeholders only during the production build phase to avoid hard failure.
+ */
+const BUILD_FALLBACKS: Record<string, string> = {
+  DATABASE_URL: "https://example.invalid/db",
+  BETTER_AUTH_URL: "https://example.com",
+  BETTER_AUTH_SECRET: "build_placeholder_secret_32chars_x",
+  RESEND_API_KEY: "re_build_placeholder",
+  RESEND_FROM: "build@example.com",
+  INNGEST_EVENT_KEY: "build_placeholder",
+  INNGEST_SIGNING_KEY: "signkey_build_placeholder_32chars_x",
+  R2_ACCOUNT_ID: "build_placeholder",
+  R2_ACCESS_KEY_ID: "build_placeholder",
+  R2_SECRET_ACCESS_KEY: "build_placeholder",
+  R2_BUCKET: "pseolint-reports",
+  POLAR_ACCESS_TOKEN: "build_placeholder",
+  POLAR_WEBHOOK_SECRET: "build_placeholder",
+  POLAR_MONTHLY_PRODUCT_ID: "build_placeholder",
+  POLAR_YEARLY_PRODUCT_ID: "build_placeholder",
+  TURNSTILE_SECRET_KEY: "1x0000000000000000000000000000000AA",
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
+  IP_HASH_SALT: "build-placeholder-salt-16",
+};
+
+function isNextProductionBuildPhase(raw: Record<string, string | undefined>): boolean {
+  return raw.NEXT_PHASE === "phase-production-build";
+}
+
 function applyDevFallbacks(raw: Record<string, string | undefined>): Record<string, string | undefined> {
   if (raw.NODE_ENV === "production") return raw;
   const out = { ...raw };
   for (const [k, v] of Object.entries(DEV_FALLBACKS)) {
+    if (out[k] === undefined) out[k] = v;
+  }
+  return out;
+}
+
+function applyBuildFallbacks(raw: Record<string, string | undefined>): Record<string, string | undefined> {
+  if (!isNextProductionBuildPhase(raw)) return raw;
+  const out = { ...raw };
+  for (const [k, v] of Object.entries(BUILD_FALLBACKS)) {
     if (out[k] === undefined) out[k] = v;
   }
   return out;
@@ -49,10 +88,10 @@ const envSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   R2_BUCKET: z.string().min(1),
   R2_PUBLIC_BASE_URL: z.string().url().optional(),
-  POLAR_ACCESS_TOKEN: z.string().min(1),
-  POLAR_WEBHOOK_SECRET: z.string().min(1),
-  POLAR_MONTHLY_PRODUCT_ID: z.string().min(1),
-  POLAR_YEARLY_PRODUCT_ID: z.string().min(1),
+  POLAR_ACCESS_TOKEN: z.string().min(1).optional(),
+  POLAR_WEBHOOK_SECRET: z.string().min(1).optional(),
+  POLAR_MONTHLY_PRODUCT_ID: z.string().min(1).optional(),
+  POLAR_YEARLY_PRODUCT_ID: z.string().min(1).optional(),
   TURNSTILE_SECRET_KEY: z.string().min(1),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1),
   IP_HASH_SALT: z.string().min(16),
@@ -63,7 +102,9 @@ export type Env = z.infer<typeof envSchema>;
 let cached: Env | undefined;
 export function env(): Env {
   if (cached) return cached;
-  const parsed = envSchema.safeParse(applyDevFallbacks(processEnvWithoutEmptyStrings()));
+  const parsed = envSchema.safeParse(
+    applyBuildFallbacks(applyDevFallbacks(processEnvWithoutEmptyStrings())),
+  );
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => `  - ${i.path.join(".")}: ${i.message}`).join("\n");
     throw new Error(`Invalid environment:\n${issues}`);

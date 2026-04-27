@@ -3,7 +3,13 @@ import { db } from "@/db";
 import { webhookEvents } from "@/db/schema";
 import { env } from "@/lib/env";
 
-export const polar = new Polar({ accessToken: env().POLAR_ACCESS_TOKEN });
+function polarClient(): Polar {
+  const token = env().POLAR_ACCESS_TOKEN;
+  if (!token) {
+    throw new Error("Polar is not configured: POLAR_ACCESS_TOKEN is missing");
+  }
+  return new Polar({ accessToken: token });
+}
 
 export async function createCheckoutSession(opts: {
   productId: string;
@@ -11,7 +17,7 @@ export async function createCheckoutSession(opts: {
   successUrl: string;
   metadata?: Record<string, string>;
 }): Promise<{ url: string }> {
-  const res = await polar.checkouts.create({
+  const res = await polarClient().checkouts.create({
     products: [opts.productId],
     successUrl: opts.successUrl,
     customerEmail: opts.customerEmail,
