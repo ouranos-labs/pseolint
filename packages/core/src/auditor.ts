@@ -60,47 +60,17 @@ import {
   type AuditRecord,
   type FeedbackRecord,
 } from "./telemetry/index.js";
-import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, SafeMode, Severity } from "./types.js";
+import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
 import { cachedFetch, pruneCache, type CacheConfig } from "./cache.js";
 import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
+import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
+import { FetchObserver, computeReadiness, type FetchObservation } from "./fetch-observer.js";
+import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 import { stratifiedSample } from "./stratified-sample.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
 } from "./state.js";
-
-/**
- * Presets that flip several safety defaults at once. Individual options on
- * AuditOptions override the preset when explicitly set. `__none` is the
- * sentinel key used when no preset is selected — all fields undefined so the
- * `??` chain falls through to hard-coded defaults.
- */
-type SafeModePreset = {
-  guardSsrf?: boolean;
-  respectRobotsTxt?: boolean;
-  followRedirects?: boolean;
-  maxCrawlDiscovered?: number;
-  maxFetchBytes?: number;
-};
-const SAFE_MODE_PRESETS: Record<SafeMode | "__none", SafeModePreset> = {
-  saas: {
-    // Hosted-service defaults. Assume user-submitted URLs are hostile.
-    guardSsrf: true,
-    respectRobotsTxt: true,
-    followRedirects: true, // audits need to see the final URL
-    maxCrawlDiscovered: 2000,
-    maxFetchBytes: 10_000_000, // 10 MB — enough for a ~500-page sample
-  },
-  cli: {
-    // Local / dev defaults. User auditing their own or local site.
-    guardSsrf: false,
-    respectRobotsTxt: true,
-    followRedirects: true,
-    maxCrawlDiscovered: 5000,
-    maxFetchBytes: 52_428_800, // 50 MB
-  },
-  __none: {},
-};
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -477,6 +447,35 @@ async function collectHtmlFiles(directory: string): Promise<string[]> {
   return files.flat();
 }
 
+/**
+ * The fetch helpers all receive `stats`. To avoid threading a new
+ * `onObservation` parameter through every enclosing function (sitemap walker,
+ * robots.txt reader, etc.), the audit attaches the observer callback as an
+ * extra property on the same `stats` object. The helpers pull it off when
+ * present. Tests that synthesize a bare stats object are unaffected.
+ */
+type StatsWithObserver = CacheStats & { onObservation?: (obs: FetchObservation) => void };
+
+/**
+ * Combine up to N AbortSignals into one. The returned signal aborts as soon
+ * as any input aborts. Avoids the node-only `AbortSignal.any` for wider
+ * compatibility and keeps listeners weak-ish (one per input, no unbounded
+ * listener growth).
+ */
+function composeSignals(...signals: (AbortSignal | undefined)[]): AbortSignal {
+  const actual = signals.filter((s): s is AbortSignal => Boolean(s));
+  if (actual.length === 0) return new AbortController().signal;
+  const ac = new AbortController();
+  for (const s of actual) {
+    if (s.aborted) {
+      ac.abort(s.reason);
+      return ac.signal;
+    }
+    s.addEventListener("abort", () => ac.abort(s.reason), { once: true });
+  }
+  return ac.signal;
+}
+
 async function fetchWithRetry(
   url: string,
   timeoutMs: number,
@@ -487,7 +486,7 @@ async function fetchWithRetry(
 ): Promise<{ text: string; contentType: string } | null> {
   try {
     stats.total += 1;
-    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop });
+    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop, onObservation: (stats as StatsWithObserver).onObservation });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -511,7 +510,7 @@ async function fetchPageWithMeta(
 ): Promise<LoadedPage | null> {
   try {
     stats.total += 1;
-    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop, followRedirects });
+    const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop, followRedirects, onObservation: (stats as StatsWithObserver).onObservation });
     if (r.fromCache) {
       stats.hits += 1;
       stats.bytesSavedEstimate += r.body.length;
@@ -542,7 +541,7 @@ async function fetchTextStrict(
   validateHop?: (url: string) => Promise<void>,
 ): Promise<{ text: string; contentType: string }> {
   stats.total += 1;
-  const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop });
+  const r = await cachedFetch(url, { timeoutMs, cache, signal, validateHop, onObservation: (stats as StatsWithObserver).onObservation });
   if (r.fromCache) {
     stats.hits += 1;
     stats.bytesSavedEstimate += r.body.length;
@@ -1022,25 +1021,56 @@ async function loadPagesFromSource(
 export async function auditSource(source: string, options?: AuditOptions): Promise<AuditSummary> {
   const runId = generateRunId();
   const runStartedAt = Date.now();
-  const concurrency = options?.concurrency ?? 5;
-  const timeoutMs = options?.timeout ?? 30000;
-  const ignorePatterns = options?.ignore ?? [];
-  const sampleSize = options?.sampleSize ?? 0;
-  const signal = options?.signal;
   // Apply safeMode preset first, then let explicit options override it. Using
   // `??` preserves the "not set" vs "explicitly false" distinction — a user
   // who picks safeMode="saas" but passes `guardSsrf: false` gets the explicit
-  // override.
-  const preset = SAFE_MODE_PRESETS[options?.safeMode ?? "__none"];
+  // override. Localhost sources auto-promote to the `dev` preset unless the
+  // caller explicitly set `safeMode` or passed `autoDevPreset: false`.
+  const presetKey = resolveSafeModeKey(source, options);
+  const preset = SAFE_MODE_PRESETS[presetKey];
+  const concurrency = options?.concurrency ?? preset.concurrency ?? 5;
+  const timeoutMs = options?.timeout ?? 30000;
+  const ignorePatterns = options?.ignore ?? [];
+  const sampleSize = options?.sampleSize ?? preset.sampleSize ?? 0;
+  const externalSignal = options?.signal;
   const guardSsrf = options?.guardSsrf ?? preset.guardSsrf ?? false;
   const respectRobotsTxt = options?.respectRobotsTxt ?? preset.respectRobotsTxt ?? true;
   const followRedirects = options?.followRedirects ?? preset.followRedirects ?? true;
   const maxCrawlDiscovered = options?.maxCrawlDiscovered ?? preset.maxCrawlDiscovered ?? 5000;
   const skippedByRobots: string[] = [];
 
+  // Backpressure: watch TTFB + 5xx rate during the crawl and abort if the
+  // origin looks degraded. The audit signal is a composite of the caller's
+  // signal (ctrl-C, parent timeout) and the monitor's abort controller.
+  const backpressureEnabled = options?.backpressure !== false;
+  const backpressureAbort = new AbortController();
+  let backpressureError: OriginDegradedError | null = null;
+  const signal = composeSignals(externalSignal, backpressureAbort.signal);
+
+  const observer = new FetchObserver();
+  const monitor = backpressureEnabled
+    ? new BackpressureMonitor({
+        warmupSize: 10,
+        absoluteP95Ms: 3000,
+        baselineMultiplier: 2,
+        errorRatioThreshold: 0.1,
+      })
+    : null;
+
+  const onObservation = (obs: FetchObservation): void => {
+    observer.record(obs);
+    if (!monitor) return;
+    const decision = monitor.record(obs);
+    if (decision.shouldAbort && !backpressureError && decision.snapshot) {
+      backpressureError = new OriginDegradedError(decision.reason ?? "", decision.snapshot);
+      backpressureAbort.abort(backpressureError);
+    }
+  };
+
   function throwIfAborted(): void {
-    if (signal?.aborted) {
-      throw signal.reason ?? new DOMException("Audit aborted", "AbortError");
+    if (backpressureError) throw backpressureError;
+    if (externalSignal?.aborted) {
+      throw externalSignal.reason ?? new DOMException("Audit aborted", "AbortError");
     }
   }
 
@@ -1087,7 +1117,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     ? Math.max(50, options.sampleSize * 2)
     : 0;
 
-  const cacheStats = { hits: 0, total: 0, bytesSavedEstimate: 0 };
+  const cacheStats: StatsWithObserver = { hits: 0, total: 0, bytesSavedEstimate: 0, onObservation };
   const cacheConfig: CacheConfig | null = options?.cache
     ? {
         dir: options.cache.dir ?? ".pseolint/cache",
@@ -1257,6 +1287,27 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     });
   }
 
+  const readiness = computeReadiness(observer.getAll());
+  if (readiness) {
+    const severity: Severity =
+      readiness.verdict === "not-ready" ? "error" :
+      readiness.verdict === "concerning" ? "warning" : "info";
+    const pct = (n: number): string => `${Math.round(n * 100)}%`;
+    const msg =
+      readiness.verdict === "ready"
+        ? `Origin handled the crawl: median ${readiness.medianMs}ms, p95 ${readiness.p95Ms}ms across ${readiness.liveFetchCount} live fetches (cache assisted ${pct(readiness.cacheAssistRatio)}).`
+        : readiness.verdict === "concerning"
+        ? `Origin latency was high during the crawl: median ${readiness.medianMs}ms, p95 ${readiness.p95Ms}ms. At pSEO scale, search-engine and AI-crawler bursts will likely amplify this.`
+        : `Origin looks unprepared for crawl load: p95 ${readiness.p95Ms}ms, 5xx rate ${pct(readiness.serverErrorRatio)} across ${readiness.liveFetchCount} live fetches. Expect degradation under Googlebot / AI crawler bursts.`;
+    const fix = "Add an edge cache (CDN) with sensible s-maxage, or an app-layer query cache (Redis / Next.js unstable_cache) between the route handler and the database. See https://pseolint.dev/rules/audit/origin-readiness";
+    allFindings.push({
+      ruleId: "audit/origin-readiness",
+      severity,
+      message: msg,
+      fix,
+    });
+  }
+
   const auditMode = options?.mode ?? "full";
 
   // Site-wide rules (run once, outside group loop)
@@ -1341,6 +1392,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   if (cacheConfig) {
     summary.cacheStats = cacheStats;
+  }
+
+  const readinessReport = computeReadiness(observer.getAll());
+  if (readinessReport) {
+    summary.readiness = readinessReport;
   }
 
   // Merge state-skipped (unchanged since last run) and robots-skipped (target

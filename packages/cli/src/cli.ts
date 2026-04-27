@@ -10,6 +10,8 @@ import {
   formatJson,
   formatMarkdown,
   formatHtml,
+  isLocalhostUrl,
+  OriginDegradedError,
 } from "@pseolint/core";
 import type { AuditSummary, ConsoleFormatOptions } from "@pseolint/core";
 import type { CliFlags } from "./config.js";
@@ -41,6 +43,8 @@ interface CliOptions {
   analytics?: string;
   blockHost?: string[];
   safeMode?: string;
+  full: boolean;
+  backpressure: boolean;
   respectRobots: boolean;
   followRedirects: boolean;
   crawl: boolean;
@@ -48,6 +52,8 @@ interface CliOptions {
   dataSource?: string;
   cache?: string | boolean;
   cacheTtl: string;
+  cacheMaxMb?: number;
+  gitignore: boolean;
   strategy: string;
   maxPerTemplate: string;
   state?: string | boolean;
@@ -100,13 +106,17 @@ export async function runCli(
     .option("--browser-ws <url>", "CDP WebSocket endpoint for browser rendering")
     .option("--analytics <mode>", "Render-mode analytics handling: block | allow | allow-first-party (default: block)", "block")
     .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
-    .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default behaviour)")
+    .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default) | dev (tiny crawl for localhost)")
+    .option("--full", "Disable the automatic 'dev' preset for localhost sources — run a full crawl")
+    .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
     .option("--cache-ttl <duration>", "Cache TTL for entries without validators, e.g. 7d, 1h, 30m", "7d")
+    .option("--cache-max-mb <n>", "Max cache size in MB (evicts oldest after run; 0 = unlimited). Default: 200", (v) => parseInt(v, 10))
+    .option("--no-gitignore", "Don't auto-append .pseolint/ to the repo's .gitignore")
     .option("--strategy <random|stratified>", "Sampling strategy when --sample-size is set", "stratified")
     .option("--max-per-template <n>", "Cap samples per URL template cluster", "0")
     .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
@@ -189,6 +199,46 @@ export async function runCli(
       }
     });
 
+  const cacheCmd = program
+    .command("cache")
+    .description("Manage the HTTP fetch cache (.pseolint/cache by default)");
+
+  cacheCmd
+    .command("stats")
+    .description("Show cache size and file count")
+    .option("--dir <path>", "Cache directory", ".pseolint/cache")
+    .action(async (opts: { dir: string }) => {
+      const { getCacheSizeInfo } = await import("@pseolint/core");
+      const info = await getCacheSizeInfo(opts.dir);
+      process.stdout.write(
+        `${opts.dir}: ${info.fileCount} entries, ${(info.bytes / 1024 / 1024).toFixed(2)} MB\n`,
+      );
+    });
+
+  cacheCmd
+    .command("prune")
+    .description("Evict oldest entries until cache is under the size cap")
+    .option("--dir <path>", "Cache directory", ".pseolint/cache")
+    .option("--max-mb <n>", "Max size in MB (default: 200)", (v) => parseInt(v, 10), 200)
+    .action(async (opts: { dir: string; maxMb: number }) => {
+      const { pruneCache } = await import("@pseolint/core");
+      const result = await pruneCache(opts.dir, opts.maxMb * 1024 * 1024);
+      const freedMb = ((result.before.bytes - result.after.bytes) / 1024 / 1024).toFixed(2);
+      process.stdout.write(
+        `${opts.dir}: freed ${freedMb} MB (${result.removedEntries} entries, ${result.removedTmpFiles} .tmp); size now ${(result.after.bytes / 1024 / 1024).toFixed(2)} MB\n`,
+      );
+    });
+
+  cacheCmd
+    .command("clear")
+    .description("Delete every entry in the cache directory")
+    .option("--dir <path>", "Cache directory", ".pseolint/cache")
+    .action(async (opts: { dir: string }) => {
+      const { clearCache } = await import("@pseolint/core");
+      const { removed } = await clearCache(opts.dir);
+      process.stdout.write(`${opts.dir}: cleared ${removed} entries\n`);
+    });
+
   await program.parseAsync(args, { from: "user" });
   return exitCode;
 }
@@ -243,16 +293,22 @@ async function runAudit(
     crawlDiscovery: opts.crawl === false ? false : undefined,
     samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
     maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,
-    safeMode: opts.safeMode === "saas" || opts.safeMode === "cli" ? opts.safeMode : undefined,
+    safeMode: opts.safeMode === "saas" || opts.safeMode === "cli" || opts.safeMode === "dev" ? opts.safeMode : undefined,
+    autoDevPreset: opts.full ? false : undefined,
+    backpressure: opts.backpressure === false ? false : undefined,
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
   };
 
   if (opts.cache) {
     try {
+      const maxBytes = typeof opts.cacheMaxMb === "number" && Number.isFinite(opts.cacheMaxMb)
+        ? opts.cacheMaxMb * 1024 * 1024
+        : undefined;
       cliFlags.cache = {
         dir: typeof opts.cache === "string" ? opts.cache : undefined,
         ttlMs: parseDuration(opts.cacheTtl),
+        ...(maxBytes !== undefined && { maxBytes }),
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -324,6 +380,53 @@ async function runAudit(
 
   const options = mergeOptions(configFile, cliFlags);
 
+  // Localhost ergonomics: a cache-cold first run against `http://localhost`
+  // can thundering-herd a dev server's DB. Two mitigations — both opt-out:
+  //   1) auto-promote to the "dev" safeMode preset (tiny crawl budget)
+  //   2) default-on cache so re-runs are cheap and idempotent
+  const sourceLooksLocalhost = isLocalhostUrl(source);
+  const devPresetWillApply =
+    sourceLooksLocalhost &&
+    options.safeMode === undefined &&
+    options.autoDevPreset !== false;
+  if (devPresetWillApply) {
+    console.error(
+      "pseolint: localhost detected — applying 'dev' preset (concurrency=1, sampleSize=25, maxCrawlDiscovered=50). Override with --full or --safe-mode cli.",
+    );
+  }
+  if (sourceLooksLocalhost && !opts.cache && options.cache === undefined) {
+    // Opt-in by default for localhost only. We don't flip this for public
+    // sources because users expect `--cache` to be explicit there.
+    try {
+      const defaultCache = { ttlMs: parseDuration(opts.cacheTtl) };
+      options.cache = defaultCache;
+      cliFlags.cache = defaultCache;
+      console.error("pseolint: localhost detected — HTTP cache enabled by default (clear .pseolint/cache to force a cold run).");
+    } catch {
+      // parseDuration already validated at --cache path; swallow here.
+    }
+  }
+
+  // When this run will produce files under `.pseolint/`, make sure the repo's
+  // .gitignore covers it. Prevents users accidentally committing 1 GB+ of
+  // cached HTML on pSEO sites. Opt-out via `--no-gitignore`.
+  const willWriteUnderPseolint =
+    Boolean(cliFlags.cache) ||
+    Boolean(cliFlags.state) ||
+    Boolean(cliFlags.telemetry?.enabled || cliFlags.telemetry?.path) ||
+    (cliFlags.ai?.enabled === true && cliFlags.ai?.cache !== false);
+  if (willWriteUnderPseolint && opts.gitignore !== false) {
+    try {
+      const { ensurePseolintGitignored } = await import("./ensure-gitignore.js");
+      const result = await ensurePseolintGitignored(process.cwd());
+      if (result.modified) {
+        console.error(`pseolint: added .pseolint/ to ${result.gitignorePath} (disable via --no-gitignore)`);
+      }
+    } catch {
+      // Non-fatal: gitignore tweak must never block an audit.
+    }
+  }
+
   if (opts.dataSource) {
     const { loadDataSource } = await import("@pseolint/core");
     try {
@@ -359,6 +462,15 @@ async function runAudit(
   try {
     summary = await auditSource(source, { ...options, signal: options.signal ?? abortController.signal });
   } catch (err) {
+    if (err instanceof OriginDegradedError) {
+      console.error(
+        `\npseolint: aborted — origin looks degraded.\n` +
+        `  ${err.message}\n` +
+        `  Options: wait for the origin to recover, re-run with --concurrency 1, ` +
+        `or run --no-backpressure to override (not recommended on production DBs).`,
+      );
+      return 1;
+    }
     const message = err instanceof Error ? err.message : String(err);
     console.error(`Error: ${message}`);
     return 1;

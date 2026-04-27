@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import { addMonitoredDomain } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export function AddDomainForm() {
   const [url, setUrl] = useState("");
@@ -25,11 +26,16 @@ export function AddDomainForm() {
   return (
     <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row">
       <Input
-        type="url"
+        type="text"
+        inputMode="url"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
         required
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="https://yoursite.com"
+        onBlur={() => { const n = normalizeUserUrl(url); if (n) setUrl(n); }}
+        placeholder="yoursite.com"
         className="h-11 flex-1"
       />
       <Button type="submit" disabled={pending} className="h-11 font-semibold sm:w-44">

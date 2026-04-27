@@ -2,9 +2,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { audits, monitoredDomains, domainDataSources, domainRuleOverrides, userAiKeys } from "@/db/schema";
-import { uploadReport, uploadSummary, reportKey, summaryKey } from "@/lib/r2";
+import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
-import { auditSource, formatHtml, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
+import { auditSource, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
 import { openSecret } from "@/lib/secret-box";
 
@@ -124,12 +124,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     return { ok: false as const, error: msg };
   }
 
-  const html = formatHtml(summary);
-  const key = reportKey(auditId);
   const jsonKey = summaryKey(auditId);
-  await runStep("upload", async () => uploadReport(key, html));
   await runStep("upload-summary", async () => uploadSummary(jsonKey, JSON.stringify(summary)));
 
+  const completedAt = new Date();
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
       status: "completed",
@@ -138,10 +136,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       findingCount: summary.findings.length,
       triageRootCauseCount: summary.triage?.rootCauses.length ?? null,
       triageCostUsd: summary.triage?.estimatedCostUsd != null ? String(summary.triage.estimatedCostUsd) : null,
-      storageKey: key,
-      completedAt: new Date(),
+      storageKey: jsonKey,
+      completedAt,
     }).where(eq(audits.id, auditId));
   });
+
+  // Sync the monitored-domain row so the workspace header / portfolio strip /
+  // alert-delta logic see the latest score, not just the cron-run score.
+  // Without this, `Re-audit now` and the initial add-domain audit silently
+  // diverge from `/r/[slug]` (which reads `audits.score` directly).
+  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.score, completedAt));
 
   auditLog("audit.completed", {
     auditId,
@@ -151,6 +155,24 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     ms: Date.now() - startedAt,
   });
   return { ok: true as const, score: summary.score };
+}
+
+async function syncMonitoredDomain(auditId: string, score: number, completedAt: Date): Promise<void> {
+  const [audit] = await db
+    .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
+    .from(audits)
+    .where(eq(audits.id, auditId))
+    .limit(1);
+  if (!audit?.userId) return;
+  let host: string;
+  try { host = new URL(audit.sourceUrl).host; } catch { return; }
+  await db.update(monitoredDomains)
+    .set({ lastScore: score, lastAuditId: auditId, lastRunAt: completedAt })
+    .where(and(
+      eq(monitoredDomains.userId, audit.userId),
+      eq(monitoredDomains.host, host),
+      isNull(monitoredDomains.removedAt),
+    ));
 }
 
 /** Run the audit in-process without Inngest. Used by the monitor cron and by dev flows when workers aren't available. */

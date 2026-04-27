@@ -20,12 +20,19 @@ export async function deleteAuditAction(
   if (!row) return { ok: false, error: "not found" };
 
   if (row.storageKey) {
-    try { await deleteReport(row.storageKey); } catch { /* best-effort; row removal is the source of truth */ }
-    try { await deleteReport(row.storageKey.replace(/\.html$/, ".json")); } catch { /* best-effort */ }
+    // storageKey points at the JSON summary for new rows, or the legacy .html for older rows.
+    // Best-effort delete both extensions so we don't orphan either.
+    const sibling = row.storageKey.endsWith(".json")
+      ? row.storageKey.replace(/\.json$/, ".html")
+      : row.storageKey.replace(/\.html$/, ".json");
+    try { await deleteReport(row.storageKey); } catch { /* row removal is the source of truth */ }
+    try { await deleteReport(sibling); } catch { /* best-effort */ }
   }
 
   await db.delete(audits).where(eq(audits.id, row.id));
 
   revalidatePath("/dashboard");
+  revalidatePath("/leaderboard");
+  revalidatePath(`/r/${auditSlug}`);
   return { ok: true };
 }

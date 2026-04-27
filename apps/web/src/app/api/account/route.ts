@@ -14,7 +14,12 @@ export async function DELETE(_req: Request): Promise<Response> {
 
   const userAudits = await db.select({ id: audits.id, storageKey: audits.storageKey }).from(audits).where(eq(audits.userId, uid));
   for (const a of userAudits) {
-    if (a.storageKey) { try { await deleteReport(a.storageKey); } catch { /* already gone */ } }
+    if (!a.storageKey) continue;
+    const sibling = a.storageKey.endsWith(".json")
+      ? a.storageKey.replace(/\.json$/, ".html")
+      : a.storageKey.replace(/\.html$/, ".json");
+    try { await deleteReport(a.storageKey); } catch { /* already gone */ }
+    try { await deleteReport(sibling); } catch { /* best-effort */ }
   }
   await db.delete(users).where(eq(users.id, uid));  // cascades via FKs
   return NextResponse.json({ ok: true });

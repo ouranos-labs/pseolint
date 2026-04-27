@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
-import { audits, userProfiles } from "@/db/schema";
+import { audits } from "@/db/schema";
 import { assertSafeUrl } from "@/lib/ssrf";
+import { getPlan } from "@/lib/plan";
 import { bumpRateLimit } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
@@ -16,12 +17,22 @@ import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
 import { publicSlug } from "@/lib/slug";
 import { clientIp } from "@/lib/ip";
 import { reserveAnonAuditSlot, pageCapFor, ANON_DAILY_CAP } from "@/lib/audit-limits";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export const runtime = "nodejs";
 
 const BodySchema = z.object({
-  url: z.string().url(),
-  turnstileToken: z.string().min(1),
+  // Accepts bare hostnames ("example.com") and adds https:// — see normalizeUserUrl.
+  url: z.string().min(1).transform((raw, ctx) => {
+    const normalized = normalizeUserUrl(raw);
+    if (!normalized) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid URL" });
+      return z.NEVER;
+    }
+    return normalized;
+  }),
+  // Optional: required for anon callers, ignored for verified sessioned callers.
+  turnstileToken: z.string().min(1).optional(),
   force: z.boolean().optional(),
   /** Opt-in Playwright-rendered audit for JS-heavy sites (SPA, Webflow, Framer). */
   render: z.boolean().optional(),
@@ -68,9 +79,16 @@ export async function POST(req: Request): Promise<Response> {
 
   auditLog("audit.request.received", { url, force: !!force });
 
-  if (!devFlags.botCheckDisabled && !(await verifyTurnstileToken(turnstileToken, ip))) {
-    auditLog("audit.request.rejected", { reason: "bot_check_failed", url });
-    return NextResponse.json({ error: "Bot check failed" }, { status: 400 });
+  // Fetch session early — verified sessioned callers skip Turnstile (they already passed
+  // magic-link auth + email verification, which is a stronger anti-abuse signal than a CAPTCHA).
+  const session = await getOptionalSession();
+  const sessionTrusted = !!session?.user.emailVerified;
+
+  if (!sessionTrusted && !devFlags.botCheckDisabled) {
+    if (!turnstileToken || !(await verifyTurnstileToken(turnstileToken, ip))) {
+      auditLog("audit.request.rejected", { reason: "bot_check_failed", url });
+      return NextResponse.json({ error: "Bot check failed" }, { status: 400 });
+    }
   }
 
   try {
@@ -81,7 +99,6 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const host = safeHost(url);
-  const session = await getOptionalSession();
 
   // Blocklist — reject known-bad user or host before any other work.
   const keysToCheck: string[] = [hostBlockKey(host)];
@@ -145,7 +162,6 @@ export async function POST(req: Request): Promise<Response> {
   const today = todayDateString();
   let userId: string | null = null;
   let plan: "free" | "pro" = "free";
-  let planExpiresAt: Date | null = null;
   let anonSessionId: string | null = null;
   let expiresAt: Date;
 
@@ -170,9 +186,8 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
     userId = session.user.id;
-    const profile = await db.select().from(userProfiles).where(eq(userProfiles.userId, userId)).limit(1);
-    plan = profile[0]?.plan ?? "free";
-    planExpiresAt = profile[0]?.planExpiresAt ?? null;
+    // getPlan encapsulates the expiry check + dev-bypass — single source of truth.
+    plan = await getPlan(userId);
     expiresAt = plan === "pro" ? new Date(8640000000000000) : addDays(30);
 
     if (!devFlags.rateLimitDisabled) {
@@ -198,11 +213,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   // Compute tier for page cap and IP-based anon rate limit.
-  const tier: "anon" | "free" | "pro" = !session
-    ? "anon"
-    : (plan === "pro" && (!planExpiresAt || planExpiresAt > new Date()))
-      ? "pro"
-      : "free";
+  const tier: "anon" | "free" | "pro" = !session ? "anon" : plan;
 
   if (tier === "anon" && !devFlags.rateLimitDisabled) {
     const slot = await reserveAnonAuditSlot(clientIp(req));

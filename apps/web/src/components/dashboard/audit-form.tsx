@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export function AuditForm() {
   const [url, setUrl] = useState("");
@@ -32,11 +33,16 @@ export function AuditForm() {
     <form onSubmit={submit} className="flex flex-col gap-2">
       <div className="flex w-full gap-2">
         <Input
-          type="url"
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required
-          placeholder="https://example.com"
+          placeholder="example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onBlur={() => { const n = normalizeUserUrl(url); if (n) setUrl(n); }}
           className="flex-1"
         />
         <Button type="submit" disabled={loading || !url}>

@@ -6,28 +6,15 @@ import { monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { publicSlug } from "@/lib/slug";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
-
-function normalizeUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const u = new URL(withScheme);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    if (!u.hostname.includes(".")) return null;
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
 
 export async function addMonitoredDomain(rawUrl: string): Promise<ActionResult> {
   const session = await getOptionalSession();
   if (!session) return { ok: false, error: "Sign in required" };
 
-  const url = normalizeUrl(rawUrl);
+  const url = normalizeUserUrl(rawUrl);
   if (!url) return { ok: false, error: "Invalid URL" };
 
   try {

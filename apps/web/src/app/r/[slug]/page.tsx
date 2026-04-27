@@ -14,7 +14,9 @@ import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { ExportMenu } from "@/components/report/export-menu";
 import { VisibilityToggle } from "@/components/report/visibility-toggle";
 import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
+import { ReauditButton } from "@/components/report/reaudit-button";
 import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
+import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
 import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 
@@ -42,23 +44,36 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const row = await findAudit(slug);
-  if (!row || !isReady(row)) return { title: "Audit not found · pseolint" };
+  // Reports describe third-party sites; we never want them indexed by search
+  // engines or aggregated into Slack/Twitter previews with a verdict baked in.
+  const robots: Metadata["robots"] = { index: false, follow: false };
+  if (!row || !isReady(row)) return { title: "Audit not found · pseolint", robots };
   const host = hostOf(row.sourceUrl);
-  const score = row.score ?? 0;
-  const title = `${host} · risk ${score}/100 · pseolint`;
+  // Title and description are deliberately verdict-free — the score lives on
+  // the page itself with hedging context. Card surfaces strip context, so we
+  // don't ship "risk N/100" into screenshot-friendly OG previews.
+  const title = `${host} · pseolint audit`;
   const description =
-    `pseolint audited ${row.pageCount ?? 0} pages of ${host} against 35 SpamBrain risk rules. ` +
-    `Risk score: ${score}. ${row.findingCount ?? 0} findings.`;
+    `pseolint audit of ${host} — ${row.pageCount ?? 0} pages sampled, ${row.findingCount ?? 0} findings. ` +
+    `Heuristic SpamBrain + AEO scoring; not a verdict.`;
   return {
     title,
     description,
+    robots,
     openGraph: { title, description, type: "article" },
     twitter: { card: "summary_large_image", title, description },
   };
 }
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ cached?: string }>;
+}) {
   const { slug } = await params;
+  const { cached } = await searchParams;
   const row = await findAudit(slug);
   if (!row) notFound();
 
@@ -66,7 +81,9 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const anon = await getOrCreateAnonSessionId();
   const ownedByUser = !!(session?.user.id && row.userId === session.user.id);
   const ownedByAnon = !session && row.anonSessionId === anon;
-  if (!row.isPublic && !ownedByUser && !ownedByAnon) redirect("/signin");
+  // Equalize "exists but private" with "doesn't exist" — a /signin redirect on
+  // foreign-private slugs leaks slug existence to anons.
+  if (!row.isPublic && !ownedByUser && !ownedByAnon) notFound();
 
   if (row.status === "queued" || row.status === "running") redirect(`/a/${row.id}`);
   if (row.status === "failed") redirect(`/a/${row.id}`);
@@ -139,6 +156,25 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           {ctx.kind === "pro_own_monitored" ? "Back to workspace" : "Back to dashboard"}
         </Link>
       )}
+      {cached === "1" && !ownedByUser && !ownedByAnon ? (
+        <div className="mb-4 flex flex-wrap items-start gap-3 rounded-[18px] border border-warning/30 bg-warning/5 p-4 sm:flex-nowrap sm:items-center">
+          <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">Cached audit.</span>{" "}
+            Showing the most recent public audit of {hostOf(row.sourceUrl)} — not necessarily your own scan.
+            Re-runs of the same URL within an hour are deduped to keep the crawl footprint light.
+          </div>
+          <Link
+            href={
+              session
+                ? `/?prefill=${encodeURIComponent(row.sourceUrl)}&force=1`
+                : `/signin?callbackUrl=${encodeURIComponent(`/?prefill=${row.sourceUrl}&force=1`)}`
+            }
+            className="inline-flex h-9 shrink-0 items-center rounded-[14px] border border-border-strong px-3 text-xs font-medium hover:bg-secondary"
+          >
+            {session ? "Run a fresh audit" : "Sign in to force fresh"}
+          </Link>
+        </div>
+      ) : null}
       <div className="mb-6">
         <ReportCtaStrip {...ctx} />
       </div>
@@ -241,7 +277,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <CopyLinkButton url={shareUrl} />
-        <ExportMenu auditSlug={slug} isPro={ctx.kind.startsWith("pro_")} />
+        <ExportMenu auditId={row.id} auditSlug={slug} isPro={ctx.kind.startsWith("pro_")} />
         {ownedByUser && (
           <VisibilityToggle auditId={row.id} initialIsPublic={row.isPublic} isPro={ctx.kind.startsWith("pro_")} />
         )}
@@ -252,15 +288,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           Audit another site
         </Link>
         {session ? <MonitorDomainButton sourceUrl={row.sourceUrl} /> : null}
-        {ownedByUser ? (
-          <Link
-            href={`/?prefill=${encodeURIComponent(row.sourceUrl)}&force=1`}
-            className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-            title="Skip the 60-minute cache and run a fresh audit"
-          >
-            Re-audit now
-          </Link>
-        ) : null}
+        {ownedByUser ? <ReauditButton sourceUrl={row.sourceUrl} /> : null}
         <Link
           href="/pricing"
           className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
@@ -276,6 +304,8 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
 
       {summary ? (
         <>
+          <OriginReadinessCard summary={summary} />
+
           <section className="mt-14">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Category scores
@@ -286,7 +316,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
           <section className="mt-14">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Findings · {summary.findings.length}
+                Findings · {summary.findings.filter((f) => f.ruleId !== "audit/origin-readiness").length}
               </h2>
               <span className="font-mono text-xs text-muted-foreground">
                 sampled {summary.pageCount} page{summary.pageCount === 1 ? "" : "s"}

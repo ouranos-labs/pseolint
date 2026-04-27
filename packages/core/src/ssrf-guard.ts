@@ -240,3 +240,25 @@ export async function validateTargetHost(
     }
   }
 }
+
+/**
+ * Convenience check for "is this URL pointing at localhost or a private
+ * network?". Used by the CLI to auto-apply a conservative crawl preset when
+ * a developer runs `pseolint http://localhost:3000` — a cache-cold local
+ * server can amplify every fetch into a thundering herd of DB queries.
+ *
+ * Returns false for anything that isn't a parseable URL with a hostname
+ * (paths, `file://`, empty strings). Delegates the actual decision to
+ * `isPrivateOrReservedHost` so the two stay in sync.
+ */
+export function isLocalhostUrl(url: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return false;
+  }
+  if (!parsed.hostname) return false;
+  const host = parsed.hostname.replace(/^\[|\]$/g, "");
+  return isPrivateOrReservedHost(host) !== null;
+}

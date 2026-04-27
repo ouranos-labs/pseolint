@@ -41,7 +41,7 @@ export default async function Leaderboard() {
   });
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-20">
+    <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       <div className="max-w-2xl">
         <p className="text-xs uppercase tracking-wider text-muted-foreground">Leaderboard</p>
         <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">

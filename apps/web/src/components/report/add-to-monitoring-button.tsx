@@ -12,7 +12,7 @@ export function AddToMonitoringButton({ originUrl, className, children }: { orig
     start(async () => {
       const res = await addDomainAction(originUrl);
       if (!res.ok) { setErr(res.error); return; }
-      router.push(`/dashboard/${encodeURIComponent(res.host)}?welcome=1`);
+      router.push(`/a/${res.auditId}`);
     });
   }
 

@@ -150,6 +150,10 @@ export interface AuditSummary {
   skippedUrls?: string[];
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
+  /** Origin readiness aggregate. Present when the crawl made at least one
+   *  live (non-cache) fetch. Mirrors the `audit/origin-readiness` finding
+   *  but in structured form so UI can render numbers without parsing. */
+  readiness?: import("./fetch-observer.js").ReadinessReport;
 }
 
 export interface PageGroupConfig {
@@ -287,10 +291,20 @@ export interface AuditOptions {
    *   "cli"  — intended for local CLI / dev use:
    *     guardSsrf=false (auditing localhost is OK), respectRobotsTxt=true,
    *     default caps.
+   *   "dev"  — tiny crawl budget for localhost probing: concurrency=1,
+   *     sampleSize=25, maxCrawlDiscovered=50. Designed so a cache-cold
+   *     `pseolint http://localhost:3000` doesn't thundering-herd a dev DB.
+   *     Auto-selected on localhost sources unless `autoDevPreset: false`.
    * Individual options on AuditOptions override the preset when set.
    * Default: undefined (no preset applied, existing opt-in behaviour).
    */
   safeMode?: SafeMode;
+  /**
+   * When true (default), audit sources pointing at localhost / private
+   * networks are auto-promoted to the `dev` safeMode preset. Set to false
+   * to opt out (e.g. `--full` on the CLI). Explicit `safeMode` beats this.
+   */
+  autoDevPreset?: boolean;
   /**
    * Hard ceiling on URLs discovered via link-following before sampling.
    * Protects against malicious sites with many self-links that could extend
@@ -304,9 +318,16 @@ export interface AuditOptions {
    * URL. Default: true.
    */
   followRedirects?: boolean;
+  /**
+   * When false, disables the in-flight backpressure watchdog that aborts the
+   * audit when origin latency / 5xx rate spikes past thresholds during the
+   * crawl. On by default; the last line of defence against a cache-cold
+   * origin ballooning an audit into an expensive egress event.
+   */
+  backpressure?: boolean;
 }
 
-export type SafeMode = "saas" | "cli";
+export type SafeMode = "saas" | "cli" | "dev";
 
 export type SamplingStrategy = "stratified" | "random";
 

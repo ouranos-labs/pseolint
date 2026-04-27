@@ -18,11 +18,13 @@ export default async function IntegrationsPage() {
 - run: npx pseolint upload report.json --token \${{ secrets.PSEOLINT_TOKEN }} --domain-id <id>`;
 
   return (
-    <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
-      <h1 className="text-3xl tracking-tight">Integrations</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Connect the systems that tell us when you ship.</p>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-medium text-foreground">Integrations</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Connect the systems that tell us when you ship.</p>
+      </div>
 
-      <section className="mt-8 space-y-4">
+      <section className="space-y-4">
         <Card title="Search Console" status={has("gsc") ? "connected" : "disconnected"}
               blurb="Cross-references our findings with real impressions. Rank the fix queue by traffic, not guesswork.">
           {has("gsc") ? <span className="text-xs text-success">Connected</span> : (
@@ -55,7 +57,7 @@ export default async function IntegrationsPage() {
           <span className="text-xs text-muted-foreground">Ships in v1.2.</span>
         </Card>
       </section>
-    </main>
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import {
   DnsResolutionError,
   SSRFError,
   decodeNumericIPv4,
+  isLocalhostUrl,
   isPrivateIPv4,
   isPrivateIPv6,
   isPrivateOrReservedHost,
@@ -230,5 +231,43 @@ describe("isPrivateOrReservedHost — numeric encoding bypass protection", () =>
     // 8.8.8.8 as integer — rejected even though it's public, because numeric
     // encoding is a deniability smell and legit callers should pass dotted-quad.
     expect(isPrivateOrReservedHost("134744072")).toMatch(/ambiguous numeric-encoded/);
+  });
+});
+
+describe("isLocalhostUrl", () => {
+  it.each([
+    "http://localhost",
+    "http://localhost:3000",
+    "https://LOCALHOST:8080/path?q=1",
+    "http://127.0.0.1",
+    "http://127.0.0.1:3000",
+    "http://10.0.0.5:8000",
+    "http://192.168.1.100:3000",
+    "http://[::1]:3000",
+    "http://foo.local",
+    "http://api.internal:9000",
+    "http://host.lan",
+    "https://app.localhost",
+  ])("returns true for local/private target %s", (url) => {
+    expect(isLocalhostUrl(url)).toBe(true);
+  });
+
+  it.each([
+    "http://example.com",
+    "https://www.google.com",
+    "http://1.1.1.1",
+    "https://api.paperforge.dev/foo",
+  ])("returns false for public target %s", (url) => {
+    expect(isLocalhostUrl(url)).toBe(false);
+  });
+
+  it("returns false for non-URL input (filesystem paths, empty)", () => {
+    expect(isLocalhostUrl("")).toBe(false);
+    expect(isLocalhostUrl("./some/dir")).toBe(false);
+    expect(isLocalhostUrl("not a url at all")).toBe(false);
+  });
+
+  it("returns false for file:// URLs (no host)", () => {
+    expect(isLocalhostUrl("file:///etc/hosts")).toBe(false);
   });
 });

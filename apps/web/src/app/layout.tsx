@@ -22,10 +22,10 @@ export const metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getOptionalSession();
   return (
-    <html lang="en" className={cn(GeistSans.variable, GeistMono.variable, displaySerif.variable)}>
+    <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
       <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
-        <SiteNav signedIn={!!session} email={session?.user.email} />
-        <div className="relative">{children}</div>
+        <SiteNav signedIn={ !!session } email={ session?.user.email } />
+        <div className="relative">{ children }</div>
         <SiteFooter />
       </body>
     </html>
@@ -33,34 +33,40 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 }
 
 function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
+  const navLinkClass = "hidden rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:inline-flex";
   return (
     <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
-        <Link href={signedIn ? "/dashboard" : "/"} className="flex items-center gap-2.5 text-sm">
-          <NavRing size={30} title="pseolint — 35 SpamBrain rules" />
+        <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
+          <NavRing size={ 30 } title="pseolint — 42 SpamBrain + AEO rules" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.2.1</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.3.3</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
-          {signedIn ? (
-            <AccountMenu email={email ?? ""} />
+
+          <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
+          <Link href="/limits" className={ navLinkClass }>Limits</Link>
+          { !signedIn && (
+            <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+          ) }
+          <a
+            href="https://github.com/ouranos-labs/pseolint"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="pseolint on GitHub"
+            title="GitHub"
+            className="inline-grid h-8 w-8 place-items-center rounded-[12px] text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <GitHubMark />
+          </a>
+          { signedIn && (
+            <Link href="/dashboard" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Dashboard</Link>
+          ) }
+          { signedIn ? (
+            <AccountMenu email={ email ?? "" } />
           ) : (
-            <>
-              <Link href="/leaderboard" className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground">Leaderboard</Link>
-              <Link href="/pricing" className="rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground">Pricing</Link>
-              <a
-                href="https://github.com/ouranos-labs/pseolint"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="pseolint on GitHub"
-                title="GitHub"
-                className="inline-grid h-8 w-8 place-items-center rounded-[12px] text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <GitHubMark />
-              </a>
-              <Link href="/signin" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Sign in</Link>
-            </>
-          )}
+            <Link href="/signin" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Sign in</Link>
+          ) }
         </div>
       </div>
     </nav>
@@ -74,7 +80,7 @@ function GitHubMark({ className = "h-4 w-4" }: { className?: string }) {
       aria-hidden="true"
       viewBox="0 0 16 16"
       fill="currentColor"
-      className={className}
+      className={ className }
     >
       <path
         fillRule="evenodd"
@@ -89,8 +95,8 @@ function SiteFooter() {
     <footer className="mt-24 border-t border-border/60">
       <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-10 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <NavRing size={28} title="pseolint mark" />
-          <p>© {new Date().getFullYear()} Ouranos Labs · a static analyzer for programmatic SEO.</p>
+          <NavRing size={ 28 } title="pseolint mark" />
+          <p>© { new Date().getFullYear() } Ouranos Labs · a static analyzer for programmatic SEO.</p>
         </div>
         <div className="flex items-center gap-5">
           <Link href="/pricing" className="hover:text-foreground">Pricing</Link>

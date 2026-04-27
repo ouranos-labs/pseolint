@@ -18,7 +18,10 @@ const SEVERITY_WEIGHT: Record<Severity, number> = {
 };
 
 export function FindingsList({ summary }: { summary: AuditSummary }) {
-  const grouped = groupByRule(summary.findings);
+  // `audit/origin-readiness` is rendered above the list by OriginReadinessCard
+  // — keeping it here would show the same data twice.
+  const visibleFindings = summary.findings.filter((f) => f.ruleId !== "audit/origin-readiness");
+  const grouped = groupByRule(visibleFindings);
   const sorted = Array.from(grouped.values()).sort((a, b) => {
     const sevA = SEVERITY_ORDER.indexOf(a.representative.severity);
     const sevB = SEVERITY_ORDER.indexOf(b.representative.severity);

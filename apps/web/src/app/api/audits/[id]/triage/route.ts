@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { audits, userProfiles } from "@/db/schema";
+import { audits } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { reserveFreeTriageSlot } from "@/lib/usage";
 import { getSummary } from "@/lib/r2";
+import { getPlan } from "@/lib/plan";
 import { triage, type AuditSummary } from "@pseolint/core";
 
 export const runtime = "nodejs";
@@ -31,13 +32,7 @@ export async function POST(
     return NextResponse.json({ error: "audit not yet complete" }, { status: 409 });
   }
 
-  const [profile] = await db
-    .select({ plan: userProfiles.plan, expires: userProfiles.planExpiresAt })
-    .from(userProfiles)
-    .where(eq(userProfiles.userId, session.user.id))
-    .limit(1);
-  const isPro =
-    profile?.plan === "pro" && (!profile.expires || profile.expires > new Date());
+  const isPro = (await getPlan(session.user.id)) === "pro";
 
   if (!isPro) {
     const slot = await reserveFreeTriageSlot(session.user.id);

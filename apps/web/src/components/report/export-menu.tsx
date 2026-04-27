@@ -2,11 +2,14 @@
 import { useState, useRef, useEffect } from "react";
 
 type Props = {
+  /** Audit UUID — used for /api/audits/[id]/export/[format]. */
+  auditId: string;
+  /** Audit public slug — used for the print-mode preview URL only. */
   auditSlug: string;
   isPro: boolean;
 };
 
-export function ExportMenu({ auditSlug, isPro }: Props) {
+export function ExportMenu({ auditId, auditSlug, isPro }: Props) {
   const [open, setOpen] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
@@ -42,14 +45,14 @@ export function ExportMenu({ auditSlug, isPro }: Props) {
         {open && (
           <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-[14px] border border-border/70 bg-background shadow-lg">
             <a
-              href={`/api/audits/${auditSlug}/export/json`}
+              href={`/api/audits/${auditId}/export/json`}
               className="block px-3 py-2 text-sm hover:bg-secondary"
               onClick={() => setOpen(false)}
             >
               JSON <span className="ml-1 font-mono text-[10px] text-muted-foreground">.json</span>
             </a>
             <a
-              href={`/api/audits/${auditSlug}/export/md`}
+              href={`/api/audits/${auditId}/export/md`}
               className="block px-3 py-2 text-sm hover:bg-secondary"
               onClick={() => setOpen(false)}
             >

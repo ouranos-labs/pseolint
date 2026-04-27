@@ -46,33 +46,49 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           </tr>
         </thead>
         <tbody>
-          {domains.map((r) => (
-            <tr key={r.id} className="border-b border-border/60 last:border-b-0">
-              <td className="py-3.5 pl-5 pr-4">
-                <Link href={`/dashboard/${encodeURIComponent(r.host)}`} className="font-medium hover:text-primary hover:underline">
-                  {r.host}
-                </Link>
-              </td>
-              <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "—"}</td>
-              <td className="py-3.5 pr-4">
-                <Link href={`/dashboard/queue?domain=${encodeURIComponent(r.host)}`} className="hover:underline">
-                  {countMap.get(r.id) ?? 0}
-                </Link>
-              </td>
-              <td className="py-3.5 pr-4 text-muted-foreground">
-                {r.lastRunAt ? r.lastRunAt.toISOString().slice(0, 10) : "—"}
-              </td>
-              <td className="py-3.5 pr-5 text-right">
-                {gscConnected.length ? (
-                  "✓"
-                ) : (
-                  <Link href="/dashboard/integrations" className="text-primary hover:underline">
-                    Connect
+          {domains.map((r) => {
+            const unverified = !r.verifiedAt;
+            const noRunsYet = !r.lastRunAt;
+            return (
+              <tr key={r.id} className="border-b border-border/60 last:border-b-0">
+                <td className="py-3.5 pl-5 pr-4">
+                  <Link href={`/dashboard/${encodeURIComponent(r.host)}`} className="font-medium hover:text-primary hover:underline">
+                    {r.host}
                   </Link>
-                )}
-              </td>
-            </tr>
-          ))}
+                  {unverified && (
+                    <Link
+                      href={`/dashboard/${encodeURIComponent(r.host)}`}
+                      className="ml-2 inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-warning hover:bg-warning/20"
+                    >
+                      Verify ownership
+                    </Link>
+                  )}
+                </td>
+                <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "—"}</td>
+                <td className="py-3.5 pr-4">
+                  <Link href={`/dashboard/queue?domain=${encodeURIComponent(r.host)}`} className="hover:underline">
+                    {countMap.get(r.id) ?? 0}
+                  </Link>
+                </td>
+                <td className="py-3.5 pr-4 text-muted-foreground">
+                  {unverified
+                    ? <span className="text-warning">Pending verification</span>
+                    : noRunsYet
+                      ? <span>Audit queued</span>
+                      : r.lastRunAt!.toISOString().slice(0, 10)}
+                </td>
+                <td className="py-3.5 pr-5 text-right">
+                  {gscConnected.length ? (
+                    "✓"
+                  ) : (
+                    <Link href="/dashboard/integrations" className="text-primary hover:underline">
+                      Connect
+                    </Link>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

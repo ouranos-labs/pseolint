@@ -18,8 +18,13 @@ export const expireReports = inngest.createFunction(
 
     for (const row of expired) {
       if (!row.storageKey) continue;
+      const key = row.storageKey;
+      const sibling = key.endsWith(".json")
+        ? key.replace(/\.json$/, ".html")
+        : key.replace(/\.html$/, ".json");
       await step.run(`delete-${row.id}`, async () => {
-        try { await deleteReport(row.storageKey!); } catch { /* already gone */ }
+        try { await deleteReport(key); } catch { /* already gone */ }
+        try { await deleteReport(sibling); } catch { /* best-effort */ }
         await db.update(audits).set({ status: "expired", storageKey: null }).where(eq(audits.id, row.id));
       });
     }

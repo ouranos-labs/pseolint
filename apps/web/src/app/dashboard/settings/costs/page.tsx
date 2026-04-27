@@ -38,16 +38,22 @@ export default async function CostDashboard() {
         This month ({monthLabel}). Refreshes on every audit completion.
       </p>
 
-      <div className="rounded-[22px] border border-border/60 p-5">
-        <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
-          <dt className="text-muted-foreground">Audits run</dt>
-          <dd className="font-mono tabular-nums text-foreground">{agg?.auditCount ?? 0}</dd>
-          <dt className="text-muted-foreground">AI triage calls</dt>
-          <dd className="font-mono tabular-nums text-foreground">{agg?.triageCount ?? 0}</dd>
-          <dt className="text-muted-foreground">AI triage spend</dt>
-          <dd className="font-mono tabular-nums text-foreground">${Number(agg?.triageSumUsd ?? 0).toFixed(2)}</dd>
-        </dl>
-      </div>
+      {(agg?.auditCount ?? 0) === 0 ? (
+        <div className="rounded-[22px] border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+          No audits this month yet. Run one from <a href="/dashboard" className="text-primary hover:underline">your portfolio</a> to start tracking usage.
+        </div>
+      ) : (
+        <div className="rounded-[22px] border border-border/60 p-5">
+          <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
+            <dt className="text-muted-foreground">Audits run</dt>
+            <dd className="font-mono tabular-nums text-foreground">{agg?.auditCount ?? 0}</dd>
+            <dt className="text-muted-foreground">AI triage calls</dt>
+            <dd className="font-mono tabular-nums text-foreground">{agg?.triageCount ?? 0}</dd>
+            <dt className="text-muted-foreground">AI triage spend</dt>
+            <dd className="font-mono tabular-nums text-foreground">${Number(agg?.triageSumUsd ?? 0).toFixed(2)}</dd>
+          </dl>
+        </div>
+      )}
 
       <p className="text-xs text-muted-foreground">
         Managed-AI calls are billed by pseolint; BYO-key calls are billed directly by your provider and

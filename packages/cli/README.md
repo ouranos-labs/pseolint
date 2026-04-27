@@ -98,6 +98,36 @@ pseolint https://example.com --cache --cache-ttl 30d
 
 Cached entries honor `ETag` / `Last-Modified` for 304 revalidation. When servers strip these headers, entries fall back to TTL-based freshness (default 7 days). Negative responses (4xx) are cached for 24h; 5xx are never cached. Redirects are stored as pointer entries so re-runs resolve without a network round-trip.
 
+The cache is capped at **200 MB by default** (override with `--cache-max-mb`, `0` = unlimited). After each run, oldest-mtime entries are evicted until under the cap. This keeps large pSEO sites (5k+ URLs) from filling the disk — a single uncapped crawl of a 5k-page site can reach ~1.5 GB. Manage the cache explicitly:
+
+```bash
+pseolint cache stats                 # size + file count
+pseolint cache prune --max-mb 500    # evict down to 500 MB
+pseolint cache clear                 # delete everything
+```
+
+On the first run in a git repo, the CLI appends `.pseolint/` to the repo's root `.gitignore` (opt-out: `--no-gitignore`) so you don't accidentally commit the cache. It never creates a `.gitignore` file from scratch.
+
+### Auditing a localhost dev server
+
+Crawling `http://localhost:3000` is valid, but watch the blast radius: every fetched page hits your dev server, which typically re-queries your database on every request (Next.js dev doesn't cache like production). On pSEO sites this means a full 5k-page crawl → 5k × (queries per page) = bursty database egress. If your dev server points at production or a metered DB (e.g. Supabase on a free tier), a single careless run can exhaust the egress quota. Mitigations:
+
+- Use `--sample-size 50` while iterating on rules; run the full crawl only before releases.
+- Point your local dev server at a disposable DB, not production.
+- Keep `--cache` on so re-runs read cached entries instead of re-hitting the dev server.
+
+### Auditing a live production site
+
+pseolint is a polite crawler by default — it sets a distinct `User-Agent`, respects `robots.txt`, and honors `Crawl-delay`. But on large pSEO sites (thousands of URLs) the origin's cache strategy is what determines whether a full audit is free or painful. Before running against production:
+
+1. **Confirm edge caching.** `curl -I https://yoursite.com/<one-pseo-url>` on a warm URL should show `x-vercel-cache: HIT` / `cf-cache-status: HIT` / similar. If every request hits your origin and DB, a 5k-URL crawl is 5k DB round-trips.
+2. **Add `Crawl-delay: 1` to `robots.txt`.** pseolint forces concurrency to 1 and sleeps between requests when it sees this — effectively a hard rate limit that any polite crawler will follow.
+3. **Canary first.** Run `pseolint https://yoursite.com --sample-size 20 --concurrency 2` and watch DB metrics (active connections, query p95) for 30 seconds. If anything spikes, fix caching before the full run.
+4. **Start conservative.** `--concurrency 2 --safe-mode saas` for the first full audit; raise only after you've confirmed cache-hit ratio.
+5. **Allowlist the User-Agent.** If your WAF/Cloudflare rate-limits bots, whitelist `pseolint/*` or the IP you're running from — otherwise mid-crawl 429s will corrupt the report.
+
+If pSEO pages return CDN-cached responses for normal GET requests, the audit costs you effectively zero DB load regardless of page count.
+
 ### Run state + delta mode
 
 Persist audit state across runs for CI/monitoring:

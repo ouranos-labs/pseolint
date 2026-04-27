@@ -5,27 +5,20 @@ import { Button } from "@/components/ui/button";
 import { reAuditNowAction, removeDomainAction } from "@/app/dashboard/domain-actions";
 import { ConfirmDialog } from "./confirm-dialog";
 
-type Run = { slug: string; score: number | null; completedAt: Date | null };
-
-export function WorkspaceHeader({ domain, runs }: {
-  domain: { host: string; sourceUrl: string; lastScore: number | null };
-  runs: Run[];
+export function WorkspaceHeader({ domain }: {
+  domain: { host: string; sourceUrl: string };
 }) {
   const [pending, start] = useTransition();
   const [removeOpen, setRemoveOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
 
-  const completedRuns = runs.filter((r) => r.score != null);
-  const prevScore = completedRuns[1]?.score ?? null;
-  const currentScore = domain.lastScore ?? completedRuns[0]?.score ?? null;
-  const delta = currentScore != null && prevScore != null ? currentScore - prevScore : null;
-
   function reaudit() {
     start(async () => {
       const res = await reAuditNowAction(domain.host);
-      if (!res.ok) { alert(res.error); return; }
-      router.refresh();
+      if (!res.ok) { setErr(res.error); return; }
+      // Standard /a → /r flow, same as free tier and add-domain.
+      router.push(`/a/${res.auditId}`);
     });
   }
 
@@ -47,25 +40,28 @@ export function WorkspaceHeader({ domain, runs }: {
           <span className="text-foreground">{domain.host}</span>
         </nav>
         <h1 className="text-2xl font-medium text-foreground">{domain.host}</h1>
-        <div className="mt-1 flex items-baseline gap-3 text-sm text-muted-foreground">
-          <span className="font-mono tabular-nums text-3xl text-foreground">{currentScore ?? "—"}</span>
-          {delta != null && (
-            <span className={delta >= 0 ? "text-primary" : "text-destructive"}>
-              {delta >= 0 ? "+" : ""}{delta}
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
-        <a href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
-        <button
-          onClick={() => { setErr(null); setRemoveOpen(true); }}
-          disabled={pending}
-          className="inline-flex h-10 items-center rounded-[14px] border border-destructive/50 px-4 text-sm text-destructive hover:bg-destructive/10"
+        <a
+          href={domain.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 inline-block font-mono text-xs text-muted-foreground hover:text-foreground"
         >
-          Remove
-        </button>
+          ↗ {domain.sourceUrl}
+        </a>
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex items-center gap-2">
+          <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
+          <a href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
+          <button
+            onClick={() => { setErr(null); setRemoveOpen(true); }}
+            disabled={pending}
+            className="inline-flex h-10 items-center rounded-[14px] border border-destructive/50 px-4 text-sm text-destructive hover:bg-destructive/10"
+          >
+            Remove
+          </button>
+        </div>
+        {err && !removeOpen && <span className="text-xs text-destructive">{err}</span>}
       </div>
       <ConfirmDialog
         open={removeOpen}

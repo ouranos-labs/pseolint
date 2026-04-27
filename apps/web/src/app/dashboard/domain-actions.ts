@@ -8,6 +8,8 @@ import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
 import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 import { generateVerificationToken, verifyDomainToken } from "@/lib/domain-verify";
+import { devFlags } from "@/lib/dev-flags";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 function originOf(rawUrl: string): { host: string; origin: string } {
   const u = new URL(rawUrl);
@@ -16,17 +18,20 @@ function originOf(rawUrl: string): { host: string; origin: string } {
 
 export async function addDomainAction(
   rawUrl: string,
-): Promise<{ ok: true; host: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; host: string; auditId: string } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
 
+  const normalized = normalizeUserUrl(rawUrl);
+  if (!normalized) return { ok: false, error: "Enter a valid URL (e.g. example.com or https://example.com)." };
+
   try {
-    await assertSafeUrl(rawUrl);
+    await assertSafeUrl(normalized);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "invalid URL" };
   }
 
-  const { host, origin } = originOf(rawUrl);
+  const { host, origin } = originOf(normalized);
 
   const [existing] = await db
     .select({ removedAt: monitoredDomains.removedAt })
@@ -50,7 +55,7 @@ export async function addDomainAction(
           removedAt: null,
           sourceUrl: origin,
           verificationToken: generateVerificationToken(),
-          verifiedAt: null,
+          verifiedAt: devFlags.domainVerifySkipped ? new Date() : null,
         })
         .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)));
     }
@@ -66,6 +71,7 @@ export async function addDomainAction(
       slug: publicSlug(), userId: session.user.id, sourceUrl: origin, host,
       cadence: "daily", nextRunAt: new Date(),
       verificationToken: generateVerificationToken(),
+      ...(devFlags.domainVerifySkipped && { verifiedAt: new Date() }),
     });
   }
 
@@ -81,7 +87,7 @@ export async function addDomainAction(
     data: { auditId: audit.id, url: origin, plan: "pro", sampleSize: 500, mode: "full" },
   });
 
-  return { ok: true, host };
+  return { ok: true, host, auditId: audit.id };
 }
 
 export async function removeDomainAction(
@@ -105,7 +111,7 @@ export async function removeDomainAction(
 
 export async function reAuditNowAction(
   domainHost: string,
-): Promise<{ ok: true; auditSlug: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; auditId: string } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
 
@@ -135,7 +141,7 @@ export async function reAuditNowAction(
     data: { auditId: audit.id, url: dom.sourceUrl, plan: "pro", sampleSize: 500, mode: "full" },
   });
 
-  return { ok: true, auditSlug };
+  return { ok: true, auditId: audit.id };
 }
 
 /**

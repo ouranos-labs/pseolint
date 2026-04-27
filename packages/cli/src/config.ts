@@ -58,7 +58,9 @@ const auditOptionsSchema = z.object({
   }).optional(),
   samplingStrategy: z.enum(["stratified", "random"]).optional(),
   maxPerTemplate: z.number().optional(),
-  safeMode: z.enum(["saas", "cli"]).optional(),
+  safeMode: z.enum(["saas", "cli", "dev"]).optional(),
+  autoDevPreset: z.boolean().optional(),
+  backpressure: z.boolean().optional(),
   respectRobotsTxt: z.boolean().optional(),
   followRedirects: z.boolean().optional(),
   maxCrawlDiscovered: z.number().optional(),
@@ -113,10 +115,12 @@ export interface CliFlags {
     extraBlockedHosts?: string[];
   };
   crawlDiscovery?: boolean;
-  cache?: { dir?: string; ttlMs: number };
+  cache?: { dir?: string; ttlMs: number; maxBytes?: number };
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
-  safeMode?: "saas" | "cli";
+  safeMode?: "saas" | "cli" | "dev";
+  autoDevPreset?: boolean;
+  backpressure?: boolean;
   respectRobotsTxt?: boolean;
   followRedirects?: boolean;
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
@@ -154,6 +158,8 @@ export function mergeOptions(
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
   if (cliFlags.safeMode !== undefined) result.safeMode = cliFlags.safeMode;
+  if (cliFlags.autoDevPreset !== undefined) result.autoDevPreset = cliFlags.autoDevPreset;
+  if (cliFlags.backpressure !== undefined) result.backpressure = cliFlags.backpressure;
   if (cliFlags.respectRobotsTxt !== undefined) result.respectRobotsTxt = cliFlags.respectRobotsTxt;
   if (cliFlags.followRedirects !== undefined) result.followRedirects = cliFlags.followRedirects;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;

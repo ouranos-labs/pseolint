@@ -1,40 +1,40 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export function AccountMenu({ email }: { email: string }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
-
   const initials = email.slice(0, 2).toUpperCase();
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="inline-grid h-8 w-8 place-items-center rounded-full border border-border-strong bg-secondary text-[11px] font-mono text-foreground hover:bg-secondary/80"
+    <DropdownMenu>
+      <DropdownMenuTrigger
         aria-label="Account menu"
+        className="inline-grid h-8 w-8 place-items-center rounded-full border border-border-strong bg-secondary text-[12px] font-mono text-foreground hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         {initials}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-[14px] border border-border/70 bg-background shadow-lg">
-          <div className="truncate border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">{email}</div>
-          <Link href="/dashboard/settings/account" className="block px-3 py-2 text-sm hover:bg-secondary">Account</Link>
-          <Link href="/dashboard/settings/billing" className="block px-3 py-2 text-sm hover:bg-secondary">Billing</Link>
-          <form action="/api/auth/sign-out" method="post">
-            <button type="submit" className="block w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-secondary hover:text-foreground">Sign out</button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings/account" className="block w-full">Account</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard/settings/billing" className="block w-full">Billing</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <form action="/api/auth/sign-out" method="post" className="contents">
+            <button type="submit" className="block w-full text-left text-muted-foreground">Sign out</button>
           </form>
-        </div>
-      )}
-    </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

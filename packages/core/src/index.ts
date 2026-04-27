@@ -89,9 +89,16 @@ export {
   DnsResolutionError,
   SSRFError,
   decodeNumericIPv4,
+  isLocalhostUrl,
   isPrivateIPv4,
   isPrivateIPv6,
   isPrivateOrReservedHost,
   validateTargetHost,
 } from "./ssrf-guard.js";
 export type { ValidateTargetHostOptions } from "./ssrf-guard.js";
+export { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
+export type { SafeModePreset, SafeModeKey } from "./safe-mode-preset.js";
+export { FetchObserver, computeReadiness } from "./fetch-observer.js";
+export type { FetchObservation, ReadinessReport, ReadinessVerdict, ReadinessThresholds } from "./fetch-observer.js";
+export { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
+export type { BackpressureOptions, BackpressureDecision, BackpressureSnapshot } from "./backpressure.js";

@@ -137,6 +137,13 @@ export interface CachedFetchOptions {
    * instead of followed. Default: true.
    */
   followRedirects?: boolean;
+  /**
+   * Per-fetch observation sink. Called exactly once per fetch (final hop for
+   * redirected requests). Wall-clock duration reflects the actual origin
+   * round-trip even when the cache revalidated (304). Pure cache hits are
+   * reported with `fromCache: true`, `durationMs` ≈ 0, and `revalidated: false`.
+   */
+  onObservation?: (obs: import("./fetch-observer.js").FetchObservation) => void;
 }
 
 /**
@@ -199,6 +206,39 @@ export async function cachedFetch(
   url: string,
   opts: CachedFetchOptions
 ): Promise<CachedFetchResult> {
+  const startedAt = Date.now();
+  try {
+    const result = await cachedFetchInner(url, opts);
+    opts.onObservation?.({
+      url: result.url,
+      status: result.status,
+      durationMs: Date.now() - startedAt,
+      fromCache: result.fromCache,
+      revalidated: (result as CachedFetchResult & { _revalidated?: boolean })._revalidated === true,
+      startedAt,
+    });
+    // Strip the internal flag before returning to the caller.
+    if ("_revalidated" in (result as object)) {
+      delete (result as { _revalidated?: boolean })._revalidated;
+    }
+    return result;
+  } catch (err) {
+    opts.onObservation?.({
+      url,
+      status: 0,
+      durationMs: Date.now() - startedAt,
+      fromCache: false,
+      revalidated: false,
+      startedAt,
+    });
+    throw err;
+  }
+}
+
+async function cachedFetchInner(
+  url: string,
+  opts: CachedFetchOptions
+): Promise<CachedFetchResult & { _revalidated?: boolean }> {
   const fetcher: Fetcher = opts.fetcher ?? globalThis.fetch.bind(globalThis);
   const cache = opts.cache;
 
@@ -247,7 +287,7 @@ export async function cachedFetch(
       if (res.status === 304) {
         const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
         await writeCacheEntry(cache.dir, url, updated);
-        return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [] };
+        return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [], _revalidated: true };
       }
       const body = await res.text();
       const headers = headersToObject(res.headers);

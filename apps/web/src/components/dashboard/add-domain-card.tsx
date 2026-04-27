@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addDomainAction } from "@/app/dashboard/domain-actions";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compact" }) {
   const [url, setUrl] = useState("");
@@ -16,7 +17,9 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
     start(async () => {
       const res = await addDomainAction(url);
       if (!res.ok) { setErr(res.error); return; }
-      router.push(`/dashboard/${encodeURIComponent(res.host)}?welcome=1`);
+      // Route through /a/{auditId} so the user watches the live audit; that page
+      // auto-redirects to /r/{slug} on completion. Same flow as free tier.
+      router.push(`/a/${res.auditId}`);
     });
   }
 
@@ -24,11 +27,16 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
     return (
       <form onSubmit={submit} className="flex gap-2">
         <Input
-          type="url"
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required
-          placeholder="https://example.com"
+          placeholder="example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onBlur={() => { const n = normalizeUserUrl(url); if (n) setUrl(n); }}
           className="w-64"
         />
         <Button type="submit" disabled={pending || !url}>
@@ -47,11 +55,16 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
       </p>
       <form onSubmit={submit} className="mx-auto mt-6 flex max-w-xl gap-2">
         <Input
-          type="url"
+          type="text"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
           required
-          placeholder="https://example.com"
+          placeholder="example.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onBlur={() => { const n = normalizeUserUrl(url); if (n) setUrl(n); }}
           className="flex-1"
         />
         <Button type="submit" disabled={pending || !url}>

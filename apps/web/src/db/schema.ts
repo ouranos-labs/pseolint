@@ -51,6 +51,7 @@ export const userProfiles = pgTable("user_profile", {
   polarCustomerId: text("polar_customer_id").unique(),
   plan: text("plan").$type<"free" | "pro">().notNull().default("free"),
   planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
+  queueLastVisitedAt: timestamp("queue_last_visited_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

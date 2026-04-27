@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   cacheKeyFor,
+  clearCache,
+  getCacheSizeInfo,
+  pruneCache,
   readCacheEntry,
   writeCacheEntry,
   isRedirectPointer,
@@ -429,5 +432,155 @@ describe("cachedFetch redirects", () => {
         fetcher: mock.fn,
       })
     ).rejects.toThrow(/invalid Location header/);
+  });
+});
+
+describe("getCacheSizeInfo", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "pseolint-cache-size-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("returns zero for missing directory", async () => {
+    const info = await getCacheSizeInfo(join(dir, "nonexistent"));
+    expect(info).toEqual({ bytes: 0, fileCount: 0 });
+  });
+
+  it("returns zero for empty directory", async () => {
+    expect(await getCacheSizeInfo(dir)).toEqual({ bytes: 0, fileCount: 0 });
+  });
+
+  it("sums bytes across valid entries, ignores .tmp and unrelated files", async () => {
+    await writeCacheEntry(dir, "https://example.com/a", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/a",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "x".repeat(500),
+    });
+    await writeCacheEntry(dir, "https://example.com/b", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/b",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "y".repeat(1000),
+    });
+    // Noise that must be ignored
+    await writeFile(join(dir, "abc.tmp"), "partial garbage", "utf8");
+    await writeFile(join(dir, "README"), "hello", "utf8");
+    const info = await getCacheSizeInfo(dir);
+    expect(info.fileCount).toBe(2);
+    expect(info.bytes).toBeGreaterThan(1400);
+  });
+});
+
+describe("pruneCache", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "pseolint-cache-prune-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("is a no-op when under the cap", async () => {
+    await writeCacheEntry(dir, "https://example.com/a", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/a",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "hello",
+    });
+    const result = await pruneCache(dir, 1_000_000);
+    expect(result.removedEntries).toBe(0);
+    expect(result.after.fileCount).toBe(1);
+  });
+
+  it("evicts oldest-mtime entries first until under the cap", async () => {
+    // Each body is ~100 bytes; 3 entries total. Cap at ~250 bytes -> evict oldest.
+    const urls = ["https://example.com/old", "https://example.com/mid", "https://example.com/new"];
+    for (const u of urls) {
+      await writeCacheEntry(dir, u, {
+        schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: u,
+        fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "z".repeat(200),
+      });
+    }
+    // Force a known mtime ordering: old < mid < new
+    const now = Date.now() / 1000;
+    await utimes(join(dir, cacheKeyFor(urls[0])), now - 300, now - 300);
+    await utimes(join(dir, cacheKeyFor(urls[1])), now - 200, now - 200);
+    await utimes(join(dir, cacheKeyFor(urls[2])), now - 100, now - 100);
+
+    const before = await getCacheSizeInfo(dir);
+    expect(before.fileCount).toBe(3);
+
+    const target = Math.floor(before.bytes * 0.5); // keep only newest ~half
+    const result = await pruneCache(dir, target);
+
+    expect(result.removedEntries).toBeGreaterThan(0);
+    expect(result.after.bytes).toBeLessThanOrEqual(before.bytes);
+
+    // The "old" entry must have been evicted first
+    const remaining = await readdir(dir);
+    expect(remaining).not.toContain(cacheKeyFor(urls[0]));
+    expect(remaining).toContain(cacheKeyFor(urls[2]));
+  });
+
+  it("sweeps leftover .tmp files even when under size cap", async () => {
+    await writeFile(join(dir, "aaa.tmp"), "partial", "utf8");
+    await writeFile(join(dir, "bbb.tmp"), "partial", "utf8");
+    const result = await pruneCache(dir, 1_000_000);
+    expect(result.removedTmpFiles).toBe(2);
+    const names = await readdir(dir);
+    expect(names.filter((n) => n.endsWith(".tmp"))).toHaveLength(0);
+  });
+
+  it("is a no-op on missing directory", async () => {
+    const result = await pruneCache(join(dir, "nonexistent"), 1000);
+    expect(result).toEqual({
+      before: { bytes: 0, fileCount: 0 },
+      after: { bytes: 0, fileCount: 0 },
+      removedEntries: 0,
+      removedTmpFiles: 0,
+    });
+  });
+
+  it("treats maxBytes <= 0 as unlimited (tmp sweep still runs)", async () => {
+    await writeCacheEntry(dir, "https://example.com/a", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/a",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "x".repeat(100_000),
+    });
+    await writeFile(join(dir, "stale.tmp"), "junk", "utf8");
+    const result = await pruneCache(dir, 0);
+    expect(result.removedEntries).toBe(0);
+    expect(result.removedTmpFiles).toBe(1);
+    expect(result.after.fileCount).toBe(1);
+  });
+});
+
+describe("clearCache", () => {
+  let dir: string;
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), "pseolint-cache-clear-"));
+  });
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it("removes all cache entries and .tmp files, preserves unrelated files", async () => {
+    await writeCacheEntry(dir, "https://example.com/a", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/a",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "hello",
+    });
+    await writeCacheEntry(dir, "https://example.com/b", {
+      schemaVersion: CACHE_ENTRY_SCHEMA_VERSION, url: "https://example.com/b",
+      fetchedAt: "2026-04-17T12:00:00Z", status: 200, headers: {}, body: "world",
+    });
+    await writeFile(join(dir, "orphan.tmp"), "garbage", "utf8");
+    await writeFile(join(dir, "README"), "keep me", "utf8");
+
+    const result = await clearCache(dir);
+    expect(result.removed).toBe(2);
+    const remaining = await readdir(dir);
+    expect(remaining).toEqual(["README"]);
+  });
+
+  it("is a no-op on missing directory", async () => {
+    const result = await clearCache(join(dir, "nonexistent"));
+    expect(result.removed).toBe(0);
   });
 });

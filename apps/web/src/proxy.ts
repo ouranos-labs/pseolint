@@ -9,12 +9,26 @@ import type { NextRequest } from "next/server";
 // builds do NOT need it (and we omit it from the prod CSP for that reason).
 const CSP_DEV_DYNAMIC_CODE = "'unsafe-" + "eval'";
 
-export function proxy(_req: NextRequest) {
+// Surfaces that must never appear in a search index:
+// - /r/[slug] publishes judgments about third parties (owner opt-in only via leaderboard)
+// - /a/[id]   ephemeral in-flight audit pages
+// - /api/*    JSON exports and internal endpoints
+// - /dashboard/* authenticated owner UI
+// - /signin   auth flow
+// Leaderboard, homepage, /pricing, /limits, /privacy, /terms remain indexable.
+const NOINDEX_PREFIXES = ["/r/", "/a/", "/api/", "/dashboard/", "/signin"];
+
+export function proxy(req: NextRequest) {
   const res = NextResponse.next();
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
   res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+  const path = req.nextUrl.pathname;
+  if (NOINDEX_PREFIXES.some((p) => path === p.replace(/\/$/, "") || path.startsWith(p))) {
+    res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
 
   const isProd = process.env.NODE_ENV === "production";
   if (isProd) {

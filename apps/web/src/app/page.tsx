@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { LiveDemo } from "@/components/landing/live-demo";
 import { TileGrid, type TileState } from "@/components/landing/tile-grid";
 import { CliMarquee } from "@/components/landing/cli-marquee";
+import { normalizeUserUrl } from "@/lib/normalize-url";
 
 declare global {
   interface Window {
@@ -25,6 +26,8 @@ type FormError = {
 
 const DEV_MODE = process.env.NODE_ENV !== "production";
 
+const TOS_STORAGE_KEY = "pseolint:audit-authorized-v1";
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [token, setToken] = useState<string | null>(null);
@@ -34,6 +37,10 @@ export default function Home() {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const [force, setForce] = useState(false);
+  // Authorization attestation — remembered across visits once checked so
+  // repeat users don't re-tick. Legal cover, not security.
+  const [authorized, setAuthorized] = useState(false);
+  const [tosGateShown, setTosGateShown] = useState(false);
 
   useEffect(() => {
     try {
@@ -42,7 +49,24 @@ export default function Home() {
       if (prefill) setUrl(prefill);
       if (params.get("force") === "1") setForce(true);
     } catch {}
+    try {
+      if (window.localStorage.getItem(TOS_STORAGE_KEY) === "1") {
+        setAuthorized(true);
+      }
+      // Otherwise leave the gate hidden — it expands on the first submit
+      // attempt (keeps the primary CTA above the fold for first-time visitors).
+    } catch {
+      // localStorage unavailable — fall back to the submit-time gate.
+    }
   }, []);
+
+  const onAuthorizedChange = (checked: boolean): void => {
+    setAuthorized(checked);
+    try {
+      if (checked) window.localStorage.setItem(TOS_STORAGE_KEY, "1");
+      else window.localStorage.removeItem(TOS_STORAGE_KEY);
+    } catch {}
+  };
 
   useEffect(() => {
     if (DEV_MODE || !siteKey) return;
@@ -68,6 +92,14 @@ export default function Home() {
       });
       return;
     }
+    if (!authorized) {
+      setTosGateShown(true);
+      setErr({
+        message: "Please confirm you're authorized to audit this URL.",
+        hint: "Tick the authorization box below the URL input. We only check it once.",
+      });
+      return;
+    }
     if (!token && !DEV_MODE) {
       setErr({
         message: "Complete the bot check first.",
@@ -89,7 +121,11 @@ export default function Home() {
       });
       if (res.ok) {
         const { auditId, reportUrl, cached } = await res.json();
-        router.push(cached && reportUrl ? reportUrl : `/a/${auditId}`);
+        // When the API returns a cached/deduped report, surface that on the report
+        // page so the caller knows they're looking at the most recent public audit
+        // of this URL — not necessarily their own scan.
+        const next = cached && reportUrl ? `${reportUrl}?cached=1` : `/a/${auditId}`;
+        router.push(next);
         return;
       }
       const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
@@ -114,7 +150,7 @@ export default function Home() {
         <div className="mx-auto max-w-5xl px-5 pb-16 pt-16 sm:pt-20">
           <div className="grid gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-12">
             <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+              <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
                 40+ SpamBrain + AEO rules · v0.3.0
               </div>
@@ -135,13 +171,33 @@ export default function Home() {
                 </label>
                 <Input
                   id="url"
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={ false }
                   required
                   value={ url }
                   onChange={ (e) => setUrl(e.target.value) }
-                  placeholder="https://yoursite.com"
+                  onBlur={ () => { const n = normalizeUserUrl(url); if (n) setUrl(n); } }
+                  placeholder="yoursite.com"
                   className="h-11"
                 />
+
+                { tosGateShown && (
+                  <label className="flex items-start gap-2 rounded-[14px] border border-border/60 bg-card/40 p-3 text-xs leading-relaxed text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={ authorized }
+                      onChange={ (e) => onAuthorizedChange(e.target.checked) }
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong"
+                      aria-label="Confirm authorization to audit"
+                    />
+                    <span>
+                      I have authorization to audit the URL above (it&apos;s mine, or I have the owner&apos;s permission). Audits respect <code className="font-mono text-[10px]">robots.txt</code> by default.
+                    </span>
+                  </label>
+                ) }
 
                 { DEV_MODE ? (
                   <p className="rounded-[12px] border border-warning/40 bg-warning/5 px-3 py-2 font-mono text-[11px] text-warning">
@@ -170,6 +226,10 @@ export default function Home() {
                 >
                   { submitting ? "Starting audit…" : "Audit my site — free" }
                 </Button>
+
+                <p className="text-[10px] leading-relaxed text-muted-foreground">
+                  We fetch up to ~500 pages over a few minutes — if it&apos;s your site and it&apos;s cache-cold, warm it first.
+                </p>
 
                 { err && (
                   <div className="rounded-[14px] border border-destructive/40 bg-destructive/5 p-3 text-sm">

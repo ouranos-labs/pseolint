@@ -25,5 +25,9 @@
     "turbo": "^2.9.6",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "@pseolint/web": "./apps/web",
+    "@radix-ui/react-dropdown-menu": "^2.1.16"
   }
 }
