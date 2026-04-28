@@ -14,9 +14,23 @@ const displaySerif = Instrument_Serif({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
 export const metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "pseolint — SpamBrain-proof your pSEO",
   description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
+  openGraph: {
+    title: "pseolint — SpamBrain-proof your pSEO",
+    description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
+    type: "website",
+    siteName: "pseolint",
+  },
+  twitter: {
+    card: "summary_large_image" as const,
+    title: "pseolint — SpamBrain-proof your pSEO",
+    description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
