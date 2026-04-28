@@ -27,7 +27,15 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   const alertEmailRaw = String(formData.get("alertEmail") ?? "").trim();
   const alertEmail = alertEmailRaw.length ? alertEmailRaw : null;
 
-  await db.update(monitoredDomains).set({ alertThreshold, alertEmail })
+  // GSC property URL: empty string means "unbind". Light shape check —
+  // real validation is the next sync run, which will fail loudly if the
+  // URL isn't one of the user's GSC properties or perms were revoked.
+  const gscSiteUrlRaw = String(formData.get("gscSiteUrl") ?? "").trim();
+  const gscSiteUrl = gscSiteUrlRaw.length === 0
+    ? null
+    : (/^(sc-domain:|https?:\/\/)/.test(gscSiteUrlRaw) ? gscSiteUrlRaw : null);
+
+  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl })
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),

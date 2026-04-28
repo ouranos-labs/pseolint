@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, integrations, domainDataSources, domainRuleOverrides } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
+import { listSites, type GscSite } from "@/lib/gsc";
 import {
   updateDomainSettingsAction,
   uploadDataSourceAction,
@@ -26,8 +28,24 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
     )).limit(1);
   if (!domain) notFound();
 
-  const gscConns = await db.select().from(integrations)
-    .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")));
+  const [gscConn] = await db.select({ id: integrations.id })
+    .from(integrations)
+    .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+    .limit(1);
+  const gscConnected = Boolean(gscConn);
+
+  // If GSC is connected, fetch the user's verified properties live so the
+  // dropdown shows actual GSC sites (not stored IDs). Cheap call (~1 API hit).
+  // On failure (revoked perms, network), fall back to "connection broken" UI.
+  let gscSites: GscSite[] = [];
+  let gscError: string | null = null;
+  if (gscConnected) {
+    try {
+      gscSites = await listSites(session.user.id);
+    } catch (e) {
+      gscError = e instanceof Error ? e.message : "GSC API call failed";
+    }
+  }
 
   const [dataSource] = await db.select().from(domainDataSources).where(eq(domainDataSources.domainId, domain.id)).limit(1);
   const [ruleOverride] = await db.select().from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domain.id)).limit(1);
@@ -66,11 +84,30 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">GSC property</span>
-          <span className="text-xs text-muted-foreground">Bind a Search Console property to rank findings by traffic (coming soon).</span>
-          <select name="gscIntegrationId" defaultValue="" className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" disabled>
-            <option value="">— none —</option>
-            {gscConns.map((c) => <option key={c.id} value={c.id}>GSC ({c.scope ?? c.id.slice(0, 8)})</option>)}
-          </select>
+          <span className="text-xs text-muted-foreground">Bind a Search Console property to rank findings by traffic at risk.</span>
+          {!gscConnected ? (
+            <p className="mt-1 text-xs">
+              <Link href="/dashboard/integrations" className="text-primary hover:underline">Connect Search Console</Link>
+              {" "}first to bind a property.
+            </p>
+          ) : gscError ? (
+            <p className="mt-1 text-xs text-destructive">
+              Couldn&apos;t reach Google: {gscError}. <Link href="/dashboard/integrations" className="text-primary hover:underline">Re-connect</Link>?
+            </p>
+          ) : (
+            <select name="gscSiteUrl" defaultValue={domain.gscSiteUrl ?? ""}
+                    className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm">
+              <option value="">— unbound —</option>
+              {gscSites.map((s) => (
+                <option key={s.siteUrl} value={s.siteUrl}>{s.siteUrl}</option>
+              ))}
+            </select>
+          )}
+          {gscConnected && !gscError && gscSites.length === 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              No verified properties found in this Google account.
+            </p>
+          )}
         </label>
 
         <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>

@@ -1,10 +1,12 @@
 // apps/web/src/app/dashboard/queue/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { and, desc, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
-import { findingsState, monitoredDomains, userProfiles } from "@/db/schema";
+import { findingsState, gscPageMetrics, monitoredDomains, userProfiles } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
+import { monthBucketUtc } from "@/lib/gsc";
 import { snoozeFinding, dismissFinding } from "./actions";
 
 export const runtime = "nodejs";
@@ -119,6 +121,35 @@ export default async function FixQueuePage({
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
+  // Per-template GSC traffic for the rows on this page. We aggregate URL-level
+  // metrics up to the same template signature used for grouping findings, so
+  // the displayed clicks/impressions match what the rank scoring weights by.
+  // One query per page-load (bounded by visible domains, not by page size).
+  const visibleDomainIds = Array.from(new Set(rows.map((r) => r.domainId)));
+  const trafficByKey = new Map<string, { impressions: number; clicks: number }>();
+  if (visibleDomainIds.length > 0) {
+    const metrics = await db.select({
+      domainId: gscPageMetrics.domainId,
+      url: gscPageMetrics.url,
+      impressions: gscPageMetrics.impressions,
+      clicks: gscPageMetrics.clicks,
+    })
+      .from(gscPageMetrics)
+      .where(and(
+        inArray(gscPageMetrics.domainId, visibleDomainIds),
+        eq(gscPageMetrics.monthBucket, monthBucketUtc()),
+      ));
+    for (const m of metrics) {
+      let sig: string;
+      try { sig = inferUrlTemplate(m.url); } catch { sig = m.url; }
+      const k = `${m.domainId}::${sig}`;
+      const cur = trafficByKey.get(k) ?? { impressions: 0, clicks: 0 };
+      cur.impressions += m.impressions;
+      cur.clicks += m.clicks;
+      trafficByKey.set(k, cur);
+    }
+  }
+
   // Advance the per-user "last visited" marker so the next visit's "since"
   // window starts here. Done after all reads — the reads above use the
   // PREVIOUS timestamp. Upsert because the profile row may not exist yet
@@ -203,6 +234,7 @@ export default async function FixQueuePage({
           />
         ) : rows.map((r) => {
           const isNew = !showSuppressed && (lastVisitedAt == null || (r.firstSeenAt != null && r.firstSeenAt > lastVisitedAt));
+          const traffic = trafficByKey.get(`${r.domainId}::${r.signature}`);
           return (
           <div key={r.id} className="flex items-start justify-between gap-4 border-b border-border/60 p-5 last:border-b-0">
             <div className="min-w-0 flex-1">
@@ -217,6 +249,14 @@ export default async function FixQueuePage({
                 <span>{r.ruleId}</span>
                 <span>·</span>
                 <span>{r.host}</span>
+                {traffic && (traffic.impressions > 0 || traffic.clicks > 0) && (
+                  <>
+                    <span>·</span>
+                    <span title="Trailing 28-day GSC traffic for this template">
+                      {formatCount(traffic.impressions)} impr · {formatCount(traffic.clicks)} clicks
+                    </span>
+                  </>
+                )}
               </div>
               <p className="mt-1 text-sm text-foreground">{r.message}</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -259,6 +299,13 @@ function severityTone(s: string): string {
   if (s === "error") return "text-destructive";
   if (s === "warning") return "text-warning";
   return "text-muted-foreground";
+}
+
+/** Compact integer formatter — "1.2k", "34", "5.4M". */
+function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`;
 }
 
 function EmptyQueueState({

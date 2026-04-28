@@ -101,6 +101,15 @@ export const monitoredDomains = pgTable("monitored_domain", {
   verificationToken: text("verification_token"),
   /** Verified-at timestamp; null = not verified. Monitoring cron only schedules verified domains. */
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  /**
+   * GSC property URL bound to this domain (e.g. "sc-domain:example.com" or
+   * "https://example.com/"). Null = no GSC binding; the sync cron skips this
+   * domain and the rank scoring falls back to severity×pages without traffic
+   * weighting. The OAuth grant lives on the user (one row per user in
+   * `integrations` with kind='gsc'); per-domain we only need to record which
+   * verified property within that grant feeds this row.
+   */
+  gscSiteUrl: text("gsc_site_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),

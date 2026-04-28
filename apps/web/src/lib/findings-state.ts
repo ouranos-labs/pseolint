@@ -1,8 +1,10 @@
+import { and, eq } from "drizzle-orm";
 import { inferUrlTemplate } from "@pseolint/core";
 import type { RuleResult, Severity } from "@pseolint/core";
 import { db } from "@/db";
-import { findingsState } from "@/db/schema";
+import { findingsState, gscPageMetrics } from "@/db/schema";
 import { detectCms, rewriteMessageForCms } from "@/lib/cms-messages";
+import { monthBucketUtc } from "@/lib/gsc";
 
 /** Stable key for domain-scoped suppressions. */
 export function templateSignatureFor(finding: RuleResult): string {
@@ -26,18 +28,46 @@ export function rankScoreFor(severity: Severity, affectedPages: number, impressi
 }
 
 /**
+ * Build a `templateSignature → sum(impressions)` map from gscPageMetrics for
+ * the current month. Findings are grouped by template signature (e.g.
+ * `/blog/:slug`), so we aggregate URL-level impressions up to the same key.
+ *
+ * Returns an empty map when GSC isn't synced for this domain — callers fall
+ * back to severity×pages weighting transparently.
+ */
+async function loadDomainImpressionsBySignature(domainId: string): Promise<Map<string, number>> {
+  const rows = await db.select({
+    url: gscPageMetrics.url,
+    impressions: gscPageMetrics.impressions,
+  })
+    .from(gscPageMetrics)
+    .where(and(
+      eq(gscPageMetrics.domainId, domainId),
+      eq(gscPageMetrics.monthBucket, monthBucketUtc()),
+    ));
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    let sig: string;
+    try { sig = inferUrlTemplate(r.url); } catch { sig = r.url; }
+    map.set(sig, (map.get(sig) ?? 0) + r.impressions);
+  }
+  return map;
+}
+
+/**
  * Merge a new audit's findings into findings_state for a domain.
  *
  * Groups findings by (rule_id, template_signature). For each group: upserts the row,
  * updates last_seen, affected_page_count, severity_latest, rule_message_latest,
- * representative_url, and rank_score (without impressions — GSC join happens in v1.1).
+ * representative_url, and rank_score. When GSC metrics exist for the domain,
+ * impressions are aggregated per template signature and used to weight the
+ * rank — high-traffic templates with the same severity outrank low-traffic ones.
  *
  * Preserves status (does NOT resurrect snoozed or dismissed findings).
  */
 export async function mergeFindings(
   domainId: string,
   findings: readonly RuleResult[],
-  _domainImpressions?: number,
 ): Promise<void> {
   const now = new Date();
   type Group = { ruleId: string; sig: string; severity: Severity; count: number; message: string; repUrl?: string };
@@ -60,8 +90,13 @@ export async function mergeFindings(
     }
   }
 
+  // One read across all groups, instead of one per group — keeps the
+  // ratio of GSC reads to findings constant regardless of audit size.
+  const sigImpressions = await loadDomainImpressionsBySignature(domainId);
+
   for (const g of groups.values()) {
-    const rank = rankScoreFor(g.severity, g.count).toFixed(4);
+    const impressions = sigImpressions.get(g.sig);
+    const rank = rankScoreFor(g.severity, g.count, impressions).toFixed(4);
     await db.insert(findingsState).values({
       domainId, ruleId: g.ruleId, templateSignature: g.sig,
       severityLatest: g.severity,

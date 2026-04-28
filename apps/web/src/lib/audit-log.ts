@@ -24,7 +24,17 @@ export type AuditLogEvent =
   | "monitor.domain.skipped"
   | "monitor.domain.quota_exhausted"
   | "monitor.alert_gate.email_failed"
-  | "monitor.auto_verify.success";
+  | "monitor.auto_verify.success"
+  | "gsc.oauth.user_denied"
+  | "gsc.oauth.state_invalid"
+  | "gsc.oauth.state_mismatch"
+  | "gsc.oauth.connected"
+  | "gsc.oauth.exchange_failed"
+  | "gsc.sync.start"
+  | "gsc.sync.empty"
+  | "gsc.sync.ok"
+  | "gsc.sync.failed"
+  | "gsc.oauth.disconnected";
 
 type Payload = Record<string, unknown>;
 

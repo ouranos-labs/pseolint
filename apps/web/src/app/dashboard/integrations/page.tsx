@@ -3,19 +3,38 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { integrations } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getOptionalSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
-export default async function IntegrationsPage() {
+const STATUS_BANNERS: Record<string, { tone: "success" | "warning" | "destructive"; text: string }> = {
+  connected: { tone: "success", text: "Search Console connected. Pick a property in each domain's settings to start ranking by traffic." },
+  disconnected: { tone: "warning", text: "Search Console disconnected. Bound properties have been unlinked." },
+  denied: { tone: "warning", text: "Search Console authorization was cancelled." },
+  exchange_failed: { tone: "destructive", text: "Couldn't complete the connection — try again, or check that the redirect URI is whitelisted in Google Cloud Console." },
+  state_invalid: { tone: "destructive", text: "OAuth state was invalid or expired. Please retry." },
+  state_mismatch: { tone: "destructive", text: "OAuth state did not match the signed-in user. Please retry." },
+  missing_params: { tone: "destructive", text: "OAuth response was missing required parameters." },
+};
+
+export default async function IntegrationsPage({
+  searchParams,
+}: { searchParams: Promise<{ gsc?: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/integrations");
-  const rows = await db.select().from(integrations).where(eq(integrations.userId, session.user.id));
-  const has = (k: string) => rows.some((r) => r.kind === k);
+  const { gsc: gscStatus } = await searchParams;
+
+  const [gscRow] = await db.select({ id: integrations.id, lastSyncAt: integrations.lastSyncAt, createdAt: integrations.createdAt })
+    .from(integrations)
+    .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+    .limit(1);
+  const gscConnected = Boolean(gscRow);
 
   const yaml = `- run: npx pseolint audit ./out --format json --out report.json
 - run: npx pseolint upload report.json --token \${{ secrets.PSEOLINT_TOKEN }} --domain-id <id>`;
+
+  const banner = gscStatus ? STATUS_BANNERS[gscStatus] : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -24,13 +43,37 @@ export default async function IntegrationsPage() {
         <p className="mt-2 text-sm text-muted-foreground">Connect the systems that tell us when you ship.</p>
       </div>
 
+      {banner && (
+        <div className={
+          `rounded-[14px] border px-4 py-3 text-sm ` +
+          (banner.tone === "success" ? "border-success/40 bg-success/5 text-success"
+           : banner.tone === "warning" ? "border-warning/40 bg-warning/5 text-warning"
+           : "border-destructive/40 bg-destructive/5 text-destructive")
+        }>
+          {banner.text}
+        </div>
+      )}
+
       <section className="space-y-4">
-        <Card title="Search Console" status={has("gsc") ? "connected" : "disconnected"}
+        <Card title="Search Console" status={gscConnected ? "connected" : "disconnected"}
               blurb="Cross-references our findings with real impressions. Rank the fix queue by traffic, not guesswork.">
-          {has("gsc") ? <span className="text-xs text-success">Connected</span> : (
-            <button className="rounded-[14px] border border-border-strong px-3 py-1.5 text-xs" disabled>
-              Connect (coming soon — OAuth verification pending)
-            </button>
+          {gscConnected ? (
+            <div className="flex flex-col gap-2">
+              <span className="text-xs text-success">Connected{gscRow.lastSyncAt ? ` · last sync ${new Date(gscRow.lastSyncAt).toLocaleString()}` : " · awaiting first sync"}</span>
+              <p className="text-xs text-muted-foreground">
+                Bind a Search Console property per domain in <Link href="/dashboard" className="text-primary hover:underline">portfolio</Link> → settings.
+              </p>
+              <form action="/api/integrations/gsc/disconnect" method="post">
+                <button type="submit" className="rounded-[14px] border border-destructive/50 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10">
+                  Disconnect
+                </button>
+              </form>
+            </div>
+          ) : (
+            <a href="/api/integrations/gsc/connect"
+               className="inline-flex items-center rounded-[14px] border border-border-strong bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+              Connect with Google
+            </a>
           )}
         </Card>
 

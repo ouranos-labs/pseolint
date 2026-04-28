@@ -1,5 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "BETTER_AUTH_URL",
+    "BETTER_AUTH_SECRET",
+    "RESEND_API_KEY",
+    "RESEND_FROM",
+    "INNGEST_EVENT_KEY",
+    "INNGEST_SIGNING_KEY",
+    "R2_ACCOUNT_ID",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_BUCKET",
+    "R2_PUBLIC_BASE_URL",
+    "POLAR_ACCESS_TOKEN",
+    "POLAR_WEBHOOK_SECRET",
+    "POLAR_MONTHLY_PRODUCT_ID",
+    "POLAR_YEARLY_PRODUCT_ID",
+    "TURNSTILE_SECRET_KEY",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
+    "IP_HASH_SALT",
+    "ANTHROPIC_API_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
