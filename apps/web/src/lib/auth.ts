@@ -4,6 +4,7 @@ import { magicLink } from "better-auth/plugins";
 import { db, schema } from "@/db";
 import { env } from "@/lib/env";
 import { sendMagicLinkEmail } from "@/lib/resend";
+import { claimAnonAudits } from "@/lib/claim-anon-audits";
 
 const e = env();
 
@@ -29,4 +30,13 @@ export const auth = betterAuth({
     }),
   ],
   session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          await claimAnonAudits(session.userId);
+        },
+      },
+    },
+  },
 });

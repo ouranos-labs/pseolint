@@ -18,6 +18,8 @@ export type AuditLogEvent =
   | "audit.completed"
   | "audit.failed"
   | "audit.budget_hit"
+  | "audit.claimed"
+  | "audit.claim_failed"
   | "monitor.cron.start"
   | "monitor.domain.picked"
   | "monitor.domain.dispatch"
