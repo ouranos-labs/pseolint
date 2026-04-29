@@ -63,6 +63,7 @@ const auditOptionsSchema = z.object({
   backpressure: z.boolean().optional(),
   respectRobotsTxt: z.boolean().optional(),
   followRedirects: z.boolean().optional(),
+  strict: z.boolean().optional(),
   maxCrawlDiscovered: z.number().optional(),
   guardSsrf: z.boolean().optional(),
   ai: z.object({
@@ -123,6 +124,8 @@ export interface CliFlags {
   backpressure?: boolean;
   respectRobotsTxt?: boolean;
   followRedirects?: boolean;
+  /** v0.4 §4.11: bypass site-classification rule suppression. */
+  strict?: boolean;
   state?: { path?: string; since?: boolean; exitOnRegression?: boolean };
   ai?: {
     enabled?: boolean;
@@ -162,6 +165,7 @@ export function mergeOptions(
   if (cliFlags.backpressure !== undefined) result.backpressure = cliFlags.backpressure;
   if (cliFlags.respectRobotsTxt !== undefined) result.respectRobotsTxt = cliFlags.respectRobotsTxt;
   if (cliFlags.followRedirects !== undefined) result.followRedirects = cliFlags.followRedirects;
+  if (cliFlags.strict !== undefined) result.strict = cliFlags.strict;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
   if (cliFlags.ai !== undefined) {
     const merged: NonNullable<AuditOptions["ai"]> = { ...result.ai };

@@ -57,6 +57,13 @@
       "when": 1777200000000,
       "tag": "0007_v04_risk_rename",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1777300000000,
+      "tag": "0008_site_classification",
+      "breakpoints": true
     }
   ]
 }

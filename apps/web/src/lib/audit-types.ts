@@ -15,9 +15,11 @@ import type {
   AuditSummary as AuditSummaryV04Core,
   ReadinessReport,
   RuleResult,
+  SiteClassification,
+  SiteType,
 } from "@pseolint/core";
 
-export type { ReadinessReport, RuleResult };
+export type { ReadinessReport, RuleResult, SiteClassification, SiteType };
 
 /**
  * Legacy v0.3 summary shape. Mirrors what the engine wrote prior to the v0.4

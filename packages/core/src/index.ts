@@ -96,3 +96,15 @@ export { FetchObserver, computeReadiness, detectDevServer } from "./fetch-observ
 export type { DetectedFramework, FetchObservation, ReadinessReport, ReadinessVerdict, ReadinessThresholds } from "./fetch-observer.js";
 export { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 export type { BackpressureOptions, BackpressureDecision, BackpressureSnapshot } from "./backpressure.js";
+export {
+  classifySite,
+  clusterUrlTemplates,
+  normalizePathToTemplate,
+  PSEO_ONLY_RULE_IDS,
+} from "./site-classifier.js";
+export type {
+  ClassificationSignal,
+  ClassifySiteInput,
+  SiteClassification,
+  SiteType,
+} from "./site-classifier.js";

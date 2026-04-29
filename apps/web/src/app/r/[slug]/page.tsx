@@ -405,6 +405,28 @@ function V04Hero({
             </span>
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-foreground">{summary.headline}</p>
+          {/*
+            v0.4 §4.11 site-classification badge — sits between the verdict
+            pill and the four category-grade tiles. Only rendered when the
+            engine populated `siteClassification` (v0.4+ reports). Legacy
+            v0.3 reports flow through LegacyHero and never reach this branch.
+          */}
+          {summary.siteClassification ? (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground">
+              <span className="font-mono">Site type: {summary.siteClassification.type}</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">{Math.round(summary.siteClassification.confidence * 100)}% confidence</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">
+                {(() => {
+                  const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
+                    | { kind: "sitemap-url-count"; value: number }
+                    | undefined;
+                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs audited`;
+                })()}
+              </span>
+            </div>
+          ) : null}
         </div>
 
         <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">

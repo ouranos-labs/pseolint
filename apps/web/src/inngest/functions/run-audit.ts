@@ -140,6 +140,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       findingCount,
       triageRootCauseCount: summary.triage?.rootCauses.length ?? null,
       triageCostUsd: summary.triage?.estimatedCostUsd != null ? String(summary.triage.estimatedCostUsd) : null,
+      // v0.4 §4.11 — surface site classification on the audit row so the
+      // dashboard / report card / portfolio strip can render the badge
+      // without round-tripping to R2.
+      siteClassification: summary.siteClassification ?? null,
       storageKey: jsonKey,
       completedAt,
     }).where(eq(audits.id, auditId));

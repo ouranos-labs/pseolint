@@ -52,8 +52,12 @@ describe("auditSource", () => {
     await writeFile(join(dir, "nevada-llc.html"), pageB, "utf-8");
     await writeFile(join(dir, "thin.html"), pageThin, "utf-8");
 
+    // strict:true bypasses v0.4 §4.11 site-classification suppression. This
+    // 3-page fixture would otherwise classify as small-marketing and have
+    // spam/template-diversity + spam/entity-swap pre-filtered.
     const summary = await auditSource(dir, {
-      rules: { templateDiversityMinUniqueRatio: 0.8, boilerplateMaxRatio: 0.4 }
+      rules: { templateDiversityMinUniqueRatio: 0.8, boilerplateMaxRatio: 0.4 },
+      strict: true,
     });
 
     expect(summary.pageCount).toBe(3);

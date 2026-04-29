@@ -7,6 +7,14 @@ import type {
   RuleResult,
   Verdict,
 } from "../types.js";
+import type { SiteClassification, SiteType } from "../site-classifier.js";
+
+/**
+ * Total rule count surfaced in the "pass --strict to run all N" hint.
+ * This MUST match the surviving rule count documented in v0.4 §4.3 (32 rules).
+ * If we add or drop rules in v0.5+, bump this constant.
+ */
+const TOTAL_V04_RULE_COUNT = 32;
 
 // ANSI escape codes
 const RESET = "\x1b[0m";
@@ -175,6 +183,61 @@ function renderBucketVerbose(label: string, items: RuleResult[]): string[] {
   return lines;
 }
 
+/**
+ * Render the v0.4 §4.11 classification banner.
+ *
+ *   ✓ Site type: small-marketing (confidence 92%, 23 URLs, no template cluster)
+ *   ✓ Suppressed 4 pSEO-only rules — pass --strict to run all 32
+ *
+ * For programmatic-directory:
+ *   ✓ Site type: programmatic-directory (confidence 90%, 12,453 URLs, /:state/:city/:service covers 90%)
+ *     All 32 rules applied.
+ *
+ * For unclear:
+ *   ✓ Site type: unclear — all 32 rules applied.
+ */
+function classificationLines(c: SiteClassification | undefined): string[] {
+  if (!c) return [];
+  const lines: string[] = [];
+  const urlCount = (c.signals.find((s) => s.kind === "sitemap-url-count") as
+    | { kind: "sitemap-url-count"; value: number }
+    | undefined)?.value;
+  const cluster = c.signals.find((s) => s.kind === "url-pattern-cluster-coverage") as
+    | { kind: "url-pattern-cluster-coverage"; topTemplate: string; pages: number; ratio: number }
+    | undefined;
+  const confPct = Math.round(c.confidence * 100);
+  const urlsLabel = urlCount !== undefined ? `${urlCount.toLocaleString("en-US")} URLs` : "";
+
+  const fmtType = (t: SiteType): string => t;
+
+  if (c.type === "unclear") {
+    lines.push(
+      `${GREEN}✓${RESET} Site type: ${fmtType(c.type)} — all ${TOTAL_V04_RULE_COUNT} rules applied.`,
+    );
+    return lines;
+  }
+
+  const clusterPart = cluster
+    ? cluster.ratio >= 0.4
+      ? `${cluster.topTemplate} covers ${Math.round(cluster.ratio * 100)}%`
+      : "no template cluster"
+    : "no template cluster";
+
+  const detailParts = [`confidence ${confPct}%`, urlsLabel, clusterPart].filter(Boolean);
+  lines.push(
+    `${GREEN}✓${RESET} Site type: ${fmtType(c.type)} (${detailParts.join(", ")})`,
+  );
+
+  if (c.suppressedRules.length > 0) {
+    lines.push(
+      `${GREEN}✓${RESET} Suppressed ${c.suppressedRules.length} pSEO-only rule${c.suppressedRules.length === 1 ? "" : "s"} — pass --strict to run all ${TOTAL_V04_RULE_COUNT}`,
+    );
+  } else {
+    lines.push(`  All ${TOTAL_V04_RULE_COUNT} rules applied.`);
+  }
+  return lines;
+}
+
 function categoryLine(categories: CategoryGrades): string {
   // Display the four user-facing buckets — `audit` is engine-internal and weight-0.
   const order: { key: Exclude<CategoryKey, "audit">; label: string }[] = [
@@ -209,6 +272,12 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
       `${GREEN}✓${RESET} Audited ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"}`,
     );
   }
+
+  // ── Site classification banner (v0.4 §4.11) ────────────────────────
+  // Renders BEFORE the verdict so the operator sees what kind of site we
+  // think we're auditing and which rules were suppressed (if any).
+  lines.push(...classificationLines(summary.siteClassification));
+
   lines.push("");
 
   // ── Verdict + grade strip ───────────────────────────────────────────

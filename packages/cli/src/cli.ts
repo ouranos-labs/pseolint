@@ -70,6 +70,8 @@ interface CliOptions {
   blockHost?: string[];
   safeMode?: string;
   full: boolean;
+  /** v0.4 §4.11: bypass site-classification rule suppression — run all rules. */
+  strict?: boolean;
   backpressure: boolean;
   respectRobots: boolean;
   followRedirects: boolean;
@@ -145,6 +147,7 @@ export async function runCli(
     .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
     .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default) | dev (tiny crawl for localhost)")
     .option("--full", "Disable the automatic 'dev' preset for localhost sources — run a full crawl")
+    .option("--strict", "Run all rules regardless of detected site type (bypass pSEO-only rule suppression on small sites)")
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
@@ -370,6 +373,7 @@ async function runAudit(
     backpressure: opts.backpressure === false ? false : undefined,
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
+    strict: opts.strict === true ? true : undefined,
   };
 
   if (opts.cache) {

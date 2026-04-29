@@ -77,6 +77,7 @@ import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
 import { FetchObserver, computeReadiness, detectDevServer, type DetectedFramework, type FetchObservation } from "./fetch-observer.js";
 import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 import { stratifiedSample } from "./stratified-sample.js";
+import { classifySite, type SiteClassification } from "./site-classifier.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
@@ -1409,6 +1410,31 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       ]
     : DEFAULT_ENTITY_PATTERNS;
 
+  // v0.4 §4.11 — pre-flight site classification. We compute this BEFORE the
+  // rule pipeline so the dispatcher can skip pSEO-only rules on small
+  // marketing sites / blogs. Classification is computed off the FULL
+  // discovered URL set (sitemap when available, else loaded URLs). This
+  // matters: a sampled crawl of a 5000-page directory must still classify
+  // as `programmatic-directory`, not `unclear`.
+  const classifierUrls: string[] = (() => {
+    if (sitemapUrlSet && sitemapUrlSet.size > 0) {
+      return Array.from(sitemapUrlSet);
+    }
+    return loadedPagesRaw.map((p) => p.url);
+  })();
+  const classifierFramework: "nextjs" | "vite" | "astro" | "unknown" =
+    detectedFramework ?? "unknown";
+  const computedClassification = classifySite({
+    urls: classifierUrls,
+    framework: classifierFramework,
+  });
+  // `--strict` (or AuditOptions.strict) keeps the classification but forces
+  // every rule to run regardless of detected site type.
+  const siteClassification: SiteClassification = options?.strict
+    ? { ...computedClassification, suppressedRules: [] }
+    : computedClassification;
+  const suppressedRuleSet = new Set<string>(siteClassification.suppressedRules);
+
   // Classify pages into groups and run only enabled rules per group
   const classified = classifyPages(parsedPages, options?.pageGroups);
   const allFindings: RuleResult[] = [...duplicateUrlFindings];
@@ -1478,7 +1504,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       resolvedRules as unknown as Record<string, unknown>,
       groupConfig?.overrides
     ) as typeof resolvedRules;
-    const enabledCheck = (ruleId: string) => isRuleEnabled(ruleId, groupConfig?.rules);
+    const enabledCheck = (ruleId: string) =>
+      !suppressedRuleSet.has(ruleId) && isRuleEnabled(ruleId, groupConfig?.rules);
 
     const findings = runRulesOnPages(
       groupPages, groupRules, enabledCheck, groupName,
@@ -1530,6 +1557,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     headline,
     categories,
     issues,
+    siteClassification,
     diagnostics: {
       originReadiness: readinessReport,
       crawlStats,

@@ -1,4 +1,5 @@
-import { pgTable, text, integer, boolean, numeric, timestamp, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, numeric, timestamp, uuid, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
+import type { SiteClassification } from "@pseolint/core";
 
 export const users = pgTable("user", {
   id: text("id").primaryKey(),
@@ -68,6 +69,13 @@ export const audits = pgTable("audit", {
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
   triageCostUsd: numeric("triage_cost_usd", { precision: 10, scale: 4 }),
+  /**
+   * v0.4 §4.11 — pre-flight site classification snapshot. Mirrors the
+   * `summary.siteClassification` field on AuditSummary so the dashboard /
+   * report page / portfolio strip can display site type without re-fetching
+   * the R2 blob. Nullable for backfill — legacy v0.3 audits never had this.
+   */
+  siteClassification: jsonb("site_classification").$type<SiteClassification>(),
   storageKey: text("storage_key"),
   errorMessage: text("error_message"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),

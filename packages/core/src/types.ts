@@ -199,6 +199,14 @@ export interface AuditSummary {
   categories: CategoryGrades;
   /** Findings bucketed by severity. */
   issues: IssueBuckets;
+  /**
+   * v0.4 §4.11 — pre-flight site classification. Decides which rules apply
+   * based on URL count, template clustering, and framework signal. The
+   * `suppressedRules` list is what the rule dispatcher honours. Pass
+   * `strict: true` in AuditOptions to keep the classification but force all
+   * rules to run anyway.
+   */
+  siteClassification: import("./site-classifier.js").SiteClassification;
   /** Engine-internal diagnostics (origin readiness, crawl stats). Weight 0. */
   diagnostics: Diagnostics;
 
@@ -387,6 +395,14 @@ export interface AuditOptions {
    * origin ballooning an audit into an expensive egress event.
    */
   backpressure?: boolean;
+  /**
+   * v0.4 §4.11 — when true, the site classifier still runs and `summary.siteClassification`
+   * is populated, but `suppressedRules` is forced to `[]` so every rule executes
+   * regardless of detected site type. Use this to inspect what the classifier
+   * sees on a site that would otherwise have pSEO-only rules suppressed.
+   * Default: false.
+   */
+  strict?: boolean;
 }
 
 export type SafeMode = "saas" | "cli" | "dev";
