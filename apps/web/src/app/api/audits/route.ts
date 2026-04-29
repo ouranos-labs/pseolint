@@ -84,7 +84,7 @@ export async function POST(req: Request): Promise<Response> {
   const session = await getOptionalSession();
   const sessionTrusted = !!session?.user.emailVerified;
 
-  if (!sessionTrusted && !devFlags.botCheckDisabled) {
+  if (!sessionTrusted) {
     if (!turnstileToken || !(await verifyTurnstileToken(turnstileToken, ip))) {
       auditLog("audit.request.rejected", { reason: "bot_check_failed", url });
       return NextResponse.json({ error: "Bot check failed" }, { status: 400 });

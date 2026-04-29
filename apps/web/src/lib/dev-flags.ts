@@ -17,10 +17,6 @@ function flag(envVar: string, fallbackOn = isLocalDev): boolean {
 }
 
 export const devFlags = {
-  /** Skip Turnstile bot check. */
-  get botCheckDisabled(): boolean {
-    return flag("DISABLE_BOT_CHECK");
-  },
   /** Skip per-user and per-host rate limits. */
   get rateLimitDisabled(): boolean {
     return flag("DISABLE_RATE_LIMIT");

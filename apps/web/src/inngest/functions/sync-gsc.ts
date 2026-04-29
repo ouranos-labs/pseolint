@@ -15,7 +15,6 @@ import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { gscPageMetrics, integrations, monitoredDomains } from "@/db/schema";
 import { auditLog } from "@/lib/audit-log";
-import { auditMode } from "@/lib/audit-mode";
 import {
   markGscSynced,
   monthBucketUtc,
@@ -33,10 +32,6 @@ export const syncGsc = inngest.createFunction(
   { id: "sync-gsc", retries: 1 },
   { cron: "0 2 * * *" },
   async ({ step }) => {
-    if (auditMode() !== "normal") {
-      auditLog("gsc.sync.start", { skipped: `mode=${auditMode()}` });
-      return { synced: 0, skipped: `mode=${auditMode()}` };
-    }
     auditLog("gsc.sync.start", {});
 
     // Domains with: gscSiteUrl bound + owner has GSC integration + verified + active.

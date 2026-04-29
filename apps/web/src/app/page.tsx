@@ -13,8 +13,14 @@ import { normalizeUserUrl } from "@/lib/normalize-url";
 declare global {
   interface Window {
     turnstile?: {
-      render: (el: HTMLElement, o: { sitekey: string; callback: (t: string) => void }) => void;
+      render: (
+        el: HTMLElement | string,
+        o: { sitekey: string; callback: (t: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void },
+      ) => string;
+      remove: (id: string) => void;
+      reset: (id?: string) => void;
     };
+    onTurnstileReady?: () => void;
   }
 }
 
@@ -23,8 +29,6 @@ type FormError = {
   hint?: string;
   action?: { label: string; href: string };
 };
-
-const DEV_MODE = process.env.NODE_ENV !== "production";
 
 const TOS_STORAGE_KEY = "pseolint:audit-authorized-v1";
 
@@ -68,18 +72,34 @@ export default function Home() {
     } catch {}
   };
 
+  // Turnstile mount: render explicitly via the script's `?onload=` callback so we
+  // don't have to poll for `window.turnstile`. The callback may fire before this
+  // effect runs (script already cached) or after, so we handle both paths.
   useEffect(() => {
-    if (DEV_MODE || !siteKey) return;
-    const iv = setInterval(() => {
-      if (window.turnstile) {
-        const el = document.getElementById("turnstile-widget");
-        if (el && el.childElementCount === 0) {
-          window.turnstile.render(el, { sitekey: siteKey, callback: setToken });
-          clearInterval(iv);
-        }
+    if (!siteKey) return;
+    let widgetId: string | undefined;
+
+    const render = (): void => {
+      if (!window.turnstile) return;
+      const el = document.getElementById("turnstile-widget");
+      if (!el || el.childElementCount > 0) return;
+      widgetId = window.turnstile.render(el, {
+        sitekey: siteKey,
+        callback: (t) => setToken(t),
+        "expired-callback": () => setToken(null),
+        "error-callback": () => setToken(null),
+      });
+    };
+
+    if (window.turnstile) render();
+    else window.onTurnstileReady = render;
+
+    return () => {
+      window.onTurnstileReady = undefined;
+      if (widgetId !== undefined && window.turnstile?.remove) {
+        try { window.turnstile.remove(widgetId); } catch {}
       }
-    }, 100);
-    return () => clearInterval(iv);
+    };
   }, [siteKey]);
 
   const submit = async (e: React.FormEvent) => {
@@ -100,7 +120,7 @@ export default function Home() {
       });
       return;
     }
-    if (!token && !DEV_MODE) {
+    if (!token) {
       setErr({
         message: "Complete the bot check first.",
         hint: "The widget is just above the button. Refresh if it didn't load.",
@@ -115,7 +135,7 @@ export default function Home() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           url: normalized,
-          turnstileToken: token ?? "dev-skip",
+          turnstileToken: token,
           ...(force ? { force: true } : {}),
         }),
       });
@@ -142,9 +162,7 @@ export default function Home() {
 
   return (
     <>
-      { !DEV_MODE && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
-      ) }
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady" async defer />
 
       <section className="relative">
         <div className="mx-auto max-w-5xl px-5 pb-16 pt-16 sm:pt-20">
@@ -199,25 +217,19 @@ export default function Home() {
                   </label>
                 ) }
 
-                { DEV_MODE ? (
-                  <p className="rounded-[12px] border border-warning/40 bg-warning/5 px-3 py-2 font-mono text-[11px] text-warning">
-                    DEV · bot check skipped
-                  </p>
-                ) : (
-                  <div className="relative">
-                    <div id="turnstile-widget" />
-                    { siteKey && !token && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
-                      </p>
-                    ) }
-                    { !siteKey && (
-                      <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
-                        Turnstile isn&apos;t configured. Set <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
-                      </p>
-                    ) }
-                  </div>
-                ) }
+                <div className="relative">
+                  <div id="turnstile-widget" />
+                  { siteKey && !token && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
+                    </p>
+                  ) }
+                  { !siteKey && (
+                    <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
+                      Turnstile isn&apos;t configured. Set <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
+                    </p>
+                  ) }
+                </div>
 
                 <Button
                   type="submit"
