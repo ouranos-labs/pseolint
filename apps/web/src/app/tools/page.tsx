@@ -197,6 +197,14 @@ export default function ToolsIndexPage() {
           same pipeline locally — pipe its JSON output into your CI gate or your
           editor&apos;s diagnostics panel via the Model Context Protocol adapter.
         </p>
+        <p className="mt-3 text-xs italic text-muted-foreground/80">
+          Implementation footnote: the entity-swap detector applies a Jaccard
+          coefficient over noun-trigram shingles per template cohort, then
+          dampens recall via Levenshtein-bounded cluster merging — orthogonal
+          to the SimHash fingerprint described above. Both signals feed the
+          consolidated cannibalization-versus-doorway disambiguation classifier
+          documented under the spam/* taxonomy.
+        </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
             href="/"

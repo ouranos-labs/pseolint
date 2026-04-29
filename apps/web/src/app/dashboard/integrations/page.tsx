@@ -9,7 +9,7 @@ import { getOptionalSession } from "@/lib/session";
 export const runtime = "nodejs";
 
 const STATUS_BANNERS: Record<string, { tone: "success" | "warning" | "destructive"; text: string }> = {
-  connected: { tone: "success", text: "Search Console connected. Pick a property in each domain's settings to start ranking by traffic." },
+  connected: { tone: "success", text: "Search Console connected. Pick a property in each domain's settings to start traffic-weighting findings." },
   disconnected: { tone: "warning", text: "Search Console disconnected. Bound properties have been unlinked." },
   denied: { tone: "warning", text: "Search Console authorization was cancelled." },
   exchange_failed: { tone: "destructive", text: "Couldn't complete the connection — try again, or check that the redirect URI is whitelisted in Google Cloud Console." },
@@ -56,12 +56,15 @@ export default async function IntegrationsPage({
 
       <section className="space-y-4">
         <Card title="Search Console" status={gscConnected ? "connected" : "disconnected"}
-              blurb="Cross-references our findings with real impressions. Rank the fix queue by traffic, not guesswork.">
+              blurb="Pulls real impressions per page so a finding on a 300k-impression template outranks one on a page nobody visits.">
+          <RankComparison />
           {gscConnected ? (
-            <div className="flex flex-col gap-2">
-              <span className="text-xs text-success">Connected{gscRow.lastSyncAt ? ` · last sync ${new Date(gscRow.lastSyncAt).toLocaleString()}` : " · awaiting first sync"}</span>
+            <div className="mt-4 flex flex-col gap-2">
+              <span className="text-xs text-success">
+                Connected{gscRow.lastSyncAt ? ` · last sync ${new Date(gscRow.lastSyncAt).toLocaleString()}` : " · awaiting first sync"}
+              </span>
               <p className="text-xs text-muted-foreground">
-                Bind a Search Console property per domain in <Link href="/dashboard" className="text-primary hover:underline">portfolio</Link> → settings.
+                Each domain still needs a property bound — open a domain → Settings → GSC property.
               </p>
               <form action="/api/integrations/gsc/disconnect" method="post">
                 <button type="submit" className="rounded-[14px] border border-destructive/50 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10">
@@ -70,10 +73,18 @@ export default async function IntegrationsPage({
               </form>
             </div>
           ) : (
-            <a href="/api/integrations/gsc/connect"
-               className="inline-flex items-center rounded-[14px] border border-border-strong bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-              Connect with Google
-            </a>
+            <div className="mt-4 flex flex-col gap-2">
+              <a
+                href="/api/integrations/gsc/connect"
+                className="inline-flex w-fit items-center rounded-[14px] border border-border-strong bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Connect with Google
+              </a>
+              <p className="text-[11px] text-muted-foreground">
+                Read-only scope (<code className="font-mono">webmasters.readonly</code>). Tokens encrypted at rest.
+                You can disconnect any time.
+              </p>
+            </div>
           )}
         </Card>
 
@@ -113,6 +124,73 @@ function Card({ title, status, blurb, children }: { title: string; status: strin
       </div>
       <p className="mt-1 text-sm text-muted-foreground">{blurb}</p>
       <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Concrete before/after example. Two findings of the same severity rank
+ * very differently once impressions are factored in — without GSC the engine
+ * can't know one template gets 312k impressions and the other gets 90.
+ */
+function RankComparison() {
+  return (
+    <div className="grid gap-3 rounded-[14px] border border-border/60 bg-background/40 p-3 sm:grid-cols-2">
+      <ComparisonColumn
+        eyebrow="Without GSC"
+        sub="rank = severity × pages"
+        rows={[
+          { rank: 1, ruleId: "marketing/thin-content", template: "/locations/:city", note: "tied" },
+          { rank: 2, ruleId: "marketing/thin-content", template: "/admin/preview/:id", note: "tied" },
+        ]}
+        muted
+      />
+      <ComparisonColumn
+        eyebrow="With GSC"
+        sub="rank = log(impressions) × severity × pages"
+        rows={[
+          { rank: 1, ruleId: "marketing/thin-content", template: "/locations/:city", note: "312k impressions" },
+          { rank: 2, ruleId: "marketing/thin-content", template: "/admin/preview/:id", note: "90 impressions" },
+        ]}
+      />
+    </div>
+  );
+}
+
+function ComparisonColumn({
+  eyebrow,
+  sub,
+  rows,
+  muted = false,
+}: {
+  eyebrow: string;
+  sub: string;
+  rows: { rank: number; ruleId: string; template: string; note: string }[];
+  muted?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{eyebrow}</p>
+        <p className="font-mono text-[10px] text-muted-foreground/80">{sub}</p>
+      </div>
+      <ul className="flex flex-col gap-1.5">
+        {rows.map((r) => (
+          <li
+            key={r.rank}
+            className={`flex items-baseline gap-2 rounded-[10px] border px-2.5 py-1.5 text-xs ${
+              muted ? "border-border/40 bg-card/30" : "border-border/60 bg-card/60"
+            }`}
+          >
+            <span className={`font-mono text-[10px] ${muted ? "text-muted-foreground" : "text-success"}`}>
+              {muted ? "~" : "↑"}
+            </span>
+            <span className="font-mono text-[11px] text-muted-foreground">#{r.rank}</span>
+            <code className="truncate font-mono text-[10px] text-foreground">{r.template}</code>
+            <span className="ml-auto truncate font-mono text-[10px] text-muted-foreground">{r.note}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

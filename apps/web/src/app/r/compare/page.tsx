@@ -1,18 +1,39 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { and, eq, inArray } from "drizzle-orm";
-import type { AuditSummary } from "@pseolint/core";
+import type { RuleResult } from "@pseolint/core";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
+import { type AnyAuditSummary, isV04Summary } from "@/lib/audit-types";
 
 export const runtime = "nodejs";
 
-type Finding = AuditSummary["findings"][number];
+type Finding = RuleResult;
 
 function findingKey(f: Finding): string {
   return `${f.ruleId}::${f.pageUrl ?? "__site__"}`;
+}
+
+/**
+ * Flattens findings out of either a v0.3 (flat `findings` array) or v0.4
+ * (`issues` buckets) audit summary. R2 storage holds both eras side by side
+ * so /r/compare must tolerate either, like /r/[slug].
+ */
+function flattenFindings(summary: AnyAuditSummary): Finding[] {
+  if (isV04Summary(summary)) {
+    return [
+      ...summary.issues.blockers,
+      ...summary.issues.shouldFix,
+      ...summary.issues.informational,
+    ];
+  }
+  return summary.findings;
+}
+
+function getRisk(summary: AnyAuditSummary): number {
+  return isV04Summary(summary) ? summary.risk : summary.score;
 }
 
 function safeHost(url: string): string {
@@ -61,21 +82,41 @@ export default async function ComparePage({
     );
   }
 
-  const aS: AuditSummary = JSON.parse(leftJson);
-  const bS: AuditSummary = JSON.parse(rightJson);
+  const aS = JSON.parse(leftJson) as AnyAuditSummary;
+  const bS = JSON.parse(rightJson) as AnyAuditSummary;
 
-  const aMap = new Map(aS.findings.map((f) => [findingKey(f), f]));
-  const bMap = new Map(bS.findings.map((f) => [findingKey(f), f]));
+  const aMap = new Map(flattenFindings(aS).map((f) => [findingKey(f), f]));
+  const bMap = new Map(flattenFindings(bS).map((f) => [findingKey(f), f]));
   const resolved: Finding[] = [];
   const added: Finding[] = [];
   for (const [k, f] of aMap) if (!bMap.has(k)) resolved.push(f);
   for (const [k, f] of bMap) if (!aMap.has(k)) added.push(f);
 
-  const scoreDelta = bS.score - aS.score;
-  const catDelta = (Object.entries(bS.categoryScores) as [string, number][]).map(([name, bVal]) => {
-    const aVal = (aS.categoryScores as unknown as Record<string, number>)[name] ?? 0;
-    return { name, before: aVal, after: bVal, delta: bVal - aVal };
-  }).filter((c) => c.delta !== 0);
+  const aRisk = getRisk(aS);
+  const bRisk = getRisk(bS);
+  const scoreDelta = bRisk - aRisk;
+
+  // Category-delta strip is only meaningful when both summaries share a shape.
+  // Mixed v0.3↔v0.4 comparisons skip the strip — the headline risk delta + the
+  // resolved/added finding panels carry the story without it.
+  const sameShape = isV04Summary(aS) === isV04Summary(bS);
+  type CatDelta = { name: string; before: number; after: number; delta: number };
+  let catDelta: CatDelta[] = [];
+  if (sameShape) {
+    if (isV04Summary(aS) && isV04Summary(bS)) {
+      const cats = ["integrity", "discoverability", "citation", "data"] as const;
+      catDelta = cats.flatMap((name) => {
+        const before = aS.categories[name]?.issues ?? 0;
+        const after = bS.categories[name]?.issues ?? 0;
+        return after - before === 0 ? [] : [{ name, before, after, delta: after - before }];
+      });
+    } else if (!isV04Summary(aS) && !isV04Summary(bS)) {
+      catDelta = (Object.entries(bS.categoryScores) as [string, number][]).map(([name, bVal]) => {
+        const aVal = (aS.categoryScores as unknown as Record<string, number>)[name] ?? 0;
+        return { name, before: aVal, after: bVal, delta: bVal - aVal };
+      }).filter((c) => c.delta !== 0);
+    }
+  }
 
   const host = safeHost(left.sourceUrl);
 
@@ -93,7 +134,7 @@ export default async function ComparePage({
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Before</div>
           <Link href={`/r/${left.slug}`} className="mt-1 block font-mono text-xs text-muted-foreground hover:text-foreground">{left.slug}</Link>
           <div className="mt-1 text-[11px] text-muted-foreground">{left.completedAt ? new Date(left.completedAt).toISOString().slice(0, 16).replace("T", " ") : ""}</div>
-          <div className="mt-2 font-mono text-3xl tabular-nums text-foreground">{aS.score}</div>
+          <div className="mt-2 font-mono text-3xl tabular-nums text-foreground">{aRisk}</div>
         </div>
         <div className="text-center">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">delta</div>
@@ -105,7 +146,7 @@ export default async function ComparePage({
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">After</div>
           <Link href={`/r/${right.slug}`} className="mt-1 block font-mono text-xs text-muted-foreground hover:text-foreground">{right.slug}</Link>
           <div className="mt-1 text-[11px] text-muted-foreground">{right.completedAt ? new Date(right.completedAt).toISOString().slice(0, 16).replace("T", " ") : ""}</div>
-          <div className="mt-2 font-mono text-3xl tabular-nums text-foreground">{bS.score}</div>
+          <div className="mt-2 font-mono text-3xl tabular-nums text-foreground">{bRisk}</div>
         </div>
       </section>
 

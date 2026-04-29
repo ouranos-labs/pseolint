@@ -84,7 +84,7 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">GSC property</span>
-          <span className="text-xs text-muted-foreground">Bind a Search Console property to rank findings by traffic at risk.</span>
+          <span className="text-xs text-muted-foreground">Bind a Search Console property to weight findings by traffic-at-risk.</span>
           {!gscConnected ? (
             <p className="mt-1 text-xs">
               <Link href="/dashboard/integrations" className="text-primary hover:underline">Connect Search Console</Link>

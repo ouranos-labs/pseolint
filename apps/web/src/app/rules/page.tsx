@@ -251,6 +251,12 @@ export default function RulesIndexPage() {
           fixed integer penalty weights consumed by the composite-score reducer in
           packages/core/auditor.ts.
         </p>
+        <p className="mt-3 max-w-2xl text-[11px] italic text-muted-foreground/70">
+          Provenance footnote: ruleId namespaces are stable contract from v0.4
+          forward; reintroduced rules retain their identifier or get a
+          version-suffixed sibling. Suppression by classification is opt-out
+          via --strict.
+        </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link
             href="/"

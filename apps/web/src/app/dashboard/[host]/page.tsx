@@ -2,15 +2,18 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
+import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
-import { monitoredDomains, audits, findingsState } from "@/db/schema";
+import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
+import { monthBucketUtc } from "@/lib/gsc";
 import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
 import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
 import { VerifyBanner } from "@/components/dashboard/verify-banner";
+import { GscStatusStrip } from "@/components/dashboard/gsc-status-strip";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
@@ -36,7 +39,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   if (!domain) notFound();
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [timelineRuns, openFindings, latestAudit] = await Promise.all([
+  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows] = await Promise.all([
     db.select({
       slug: audits.slug,
       risk: audits.risk,
@@ -65,6 +68,23 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .orderBy(desc(audits.completedAt))
       .limit(1)
       .then((rows) => rows[0] ?? null),
+    db.select({ lastSyncAt: integrations.lastSyncAt })
+      .from(integrations)
+      .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    // Per-domain GSC traffic for the current month bucket. Aggregated below to
+    // template signature so each rendered finding can show "this template
+    // gets X impressions" — the visible justification for ranking by traffic.
+    db.select({
+      url: gscPageMetrics.url,
+      impressions: gscPageMetrics.impressions,
+      clicks: gscPageMetrics.clicks,
+    }).from(gscPageMetrics)
+      .where(and(
+        eq(gscPageMetrics.domainId, domain.id),
+        eq(gscPageMetrics.monthBucket, monthBucketUtc()),
+      )),
   ]);
 
   let summary: AuditSummary | null = null;
@@ -85,6 +105,35 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const riskDelta =
     latestAudit?.risk != null && previousRisk != null ? latestAudit.risk - previousRisk : null;
 
+  // Aggregate URL-level GSC metrics up to the same template signature used for
+  // grouping findings (e.g. /blog/:slug). Findings fan out across many URLs
+  // sharing one template, so impressions must too — otherwise traffic-by-page
+  // wouldn't match the rank score's traffic weighting.
+  const trafficBySig = new Map<string, { impressions: number; clicks: number }>();
+  let totalImpressions = 0;
+  let totalClicks = 0;
+  for (const r of gscRows) {
+    let sig: string;
+    try { sig = inferUrlTemplate(r.url); } catch { sig = r.url; }
+    const cur = trafficBySig.get(sig) ?? { impressions: 0, clicks: 0 };
+    cur.impressions += r.impressions;
+    cur.clicks += r.clicks;
+    trafficBySig.set(sig, cur);
+    totalImpressions += r.impressions;
+    totalClicks += r.clicks;
+  }
+
+  const gscConnected = gscIntegration != null;
+  const gscBound = gscConnected && Boolean(domain.gscSiteUrl);
+  const gscHasData = gscBound && gscRows.length > 0;
+  const gscVariant = !gscConnected
+    ? "not-connected" as const
+    : !domain.gscSiteUrl
+    ? "connected-not-bound" as const
+    : !gscHasData
+    ? "bound-no-data" as const
+    : "bound-with-data" as const;
+
   return (
     <div className="flex flex-col gap-6">
       <WorkspaceHeader domain={{ host: domain.host, sourceUrl: domain.sourceUrl }} />
@@ -95,6 +144,15 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           provider={await detectDnsProvider(domain.host)}
         />
       )}
+
+      <GscStatusStrip
+        variant={gscVariant}
+        host={domain.host}
+        siteUrl={domain.gscSiteUrl}
+        totalImpressions={totalImpressions}
+        totalClicks={totalClicks}
+        lastSyncAt={gscIntegration?.lastSyncAt ?? null}
+      />
 
       {latestAudit && summary && (
         <section className="flex flex-col gap-6">
@@ -173,16 +231,23 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 
       <TimelineStrip runs={timelineRuns} />
 
-      <FindingsPanel findings={openFindings.map((f) => ({
-        id: f.id,
-        ruleId: f.ruleId,
-        severityLatest: f.severityLatest,
-        affectedPageCount: f.affectedPageCount,
-        rankScore: String(f.rankScore),
-        ruleMessageLatest: f.ruleMessageLatest,
-        representativeUrl: f.representativeUrl,
-        status: f.status,
-      }))} />
+      <FindingsPanel
+        findings={openFindings.map((f) => {
+          const traffic = trafficBySig.get(f.templateSignature);
+          return {
+            id: f.id,
+            ruleId: f.ruleId,
+            severityLatest: f.severityLatest,
+            affectedPageCount: f.affectedPageCount,
+            rankScore: String(f.rankScore),
+            ruleMessageLatest: f.ruleMessageLatest,
+            representativeUrl: f.representativeUrl,
+            status: f.status,
+            traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
+          };
+        })}
+        gscBound={gscBound}
+      />
     </div>
   );
 }

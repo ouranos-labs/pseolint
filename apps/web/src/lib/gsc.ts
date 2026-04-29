@@ -10,9 +10,9 @@
  * is per-user; the per-domain property URL ("which GSC site feeds this
  * monitored domain") lives on `monitoredDomains.gscSiteUrl`.
  */
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { integrations } from "@/db/schema";
+import { integrations, monitoredDomains } from "@/db/schema";
 import { env } from "@/lib/env";
 import { sealSecret, openSecret } from "@/lib/secret-box";
 
@@ -270,4 +270,117 @@ export function rollingDateRange(days = 28): { startDate: string; endDate: strin
   const fmt = (d: Date) =>
     `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
   return { startDate: fmt(start), endDate: fmt(end) };
+}
+
+// ---------------------------------------------------------------------------
+// Auto-binding GSC properties to monitored domains
+// ---------------------------------------------------------------------------
+
+interface PropertyMatch {
+  siteUrl: string;
+  /** Lower is better. */
+  confidence: number;
+}
+
+/**
+ * Score how well a GSC property URL matches a monitored host. Confidence:
+ *   0 → URL prefix `https://{host}/` (or http) — exact match including www-state
+ *   1 → URL prefix matching the host's www-variant (naked vs www)
+ *   2 → Domain property `sc-domain:{host}` — exact host match
+ *   3 → Domain property covering host as a subdomain (e.g. sc-domain:example.com for blog.example.com)
+ * Returns null for: unrelated hosts, subpath-only URL prefixes
+ * (`https://example.com/blog/`), unparseable URLs.
+ *
+ * Why subpath properties are rejected: if a user has both `sc-domain:example.com`
+ * and `https://example.com/blog/` and we pick the subpath, we'd weight the
+ * whole monitored host's findings using a sliver of its traffic — silently
+ * wrong. Better to leave unbound and let the user choose.
+ */
+export function scorePropertyMatch(siteUrl: string, host: string): PropertyMatch | null {
+  const monitoredHost = host.toLowerCase();
+  const monitoredNaked = monitoredHost.replace(/^www\./, "");
+
+  if (siteUrl.startsWith("sc-domain:")) {
+    const dom = siteUrl.slice("sc-domain:".length).toLowerCase();
+    if (dom === monitoredNaked) return { siteUrl, confidence: 2 };
+    if (monitoredNaked.endsWith(`.${dom}`)) return { siteUrl, confidence: 3 };
+    return null;
+  }
+
+  let parsed: URL;
+  try { parsed = new URL(siteUrl); } catch { return null; }
+  // Subpath properties cover only part of the site; we don't auto-bind them.
+  if (parsed.pathname !== "/") return null;
+  const propHost = parsed.host.toLowerCase();
+  const propNaked = propHost.replace(/^www\./, "");
+  if (propNaked !== monitoredNaked) return null;
+  // Same naked host — distinguish exact match vs www-variant.
+  return { siteUrl, confidence: propHost === monitoredHost ? 0 : 1 };
+}
+
+/**
+ * Pick the single best GSC property for a host, or null if no unambiguous
+ * match exists. Returns null when two properties tie at the best confidence
+ * — silent wrong-binding would be worse than no binding (user would see
+ * traffic-weighted ranks based on a property that isn't theirs and have no
+ * way to diagnose it).
+ */
+export function pickBestGscProperty(sites: readonly GscSite[], host: string): string | null {
+  const matches = sites
+    .map((s) => scorePropertyMatch(s.siteUrl, host))
+    .filter((m): m is PropertyMatch => m != null)
+    .sort((a, b) => a.confidence - b.confidence);
+  if (matches.length === 0) return null;
+  if (matches.length > 1 && matches[1].confidence === matches[0].confidence) return null;
+  return matches[0].siteUrl;
+}
+
+export interface AutoBindResult {
+  bound: number;
+  ambiguous: number;
+  unmatched: number;
+}
+
+/**
+ * Auto-bind every unbound monitored domain for a user, using the highest-
+ * confidence unique match against their GSC property list. Idempotent and
+ * best-effort: any failure (no grant, revoked perms, network) returns zero
+ * counts rather than throwing — caller should treat this as a UX nicety, not
+ * a critical step.
+ */
+export async function autoBindGscPropertiesForUser(userId: string): Promise<AutoBindResult> {
+  let sites: GscSite[];
+  try {
+    sites = await listSites(userId);
+  } catch {
+    return { bound: 0, ambiguous: 0, unmatched: 0 };
+  }
+  if (sites.length === 0) return { bound: 0, ambiguous: 0, unmatched: 0 };
+
+  const unbound = await db
+    .select({ id: monitoredDomains.id, host: monitoredDomains.host })
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.userId, userId),
+      isNull(monitoredDomains.gscSiteUrl),
+      isNull(monitoredDomains.removedAt),
+    ));
+
+  let bound = 0, ambiguous = 0, unmatched = 0;
+  for (const d of unbound) {
+    const matches = sites
+      .map((s) => scorePropertyMatch(s.siteUrl, d.host))
+      .filter((m): m is PropertyMatch => m != null)
+      .sort((a, b) => a.confidence - b.confidence);
+    if (matches.length === 0) { unmatched++; continue; }
+    if (matches.length > 1 && matches[1].confidence === matches[0].confidence) {
+      ambiguous++;
+      continue;
+    }
+    await db.update(monitoredDomains)
+      .set({ gscSiteUrl: matches[0].siteUrl })
+      .where(eq(monitoredDomains.id, d.id));
+    bound++;
+  }
+  return { bound, ambiguous, unmatched };
 }

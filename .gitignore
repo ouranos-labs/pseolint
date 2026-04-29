@@ -11,3 +11,6 @@ bun.lock
 docs/reports/*
 # Isolated worktrees for in-flight plans
 .worktrees/
+
+# pseolint runtime (cache, state, telemetry — can reach 1 GB+ on large pSEO sites)
+.pseolint/
