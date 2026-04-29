@@ -138,7 +138,7 @@ async function runOneMonitor(monitoredDomainId: string) {
     .update(monitoredDomains)
     .set({
       lastAuditId: audit.id,
-      lastScore: result.score,
+      lastRisk: result.risk,
       lastRunAt: now,
       // lastFullRunAt is stamped only on full runs so the 7-day window advances correctly.
       ...(isFullRun && { lastFullRunAt: now }),
@@ -156,10 +156,10 @@ async function runOneMonitor(monitoredDomainId: string) {
       sourceUrl: d.sourceUrl,
       threshold: d.alertThreshold,
       previousAuditId: d.lastAuditId,
-      previousScore: d.lastScore ?? null,
+      previousRisk: d.lastRisk ?? null,
       currentAuditId: audit.id,
       currentAuditSlug: audit.slug,
-      currentScore: result.score,
+      currentRisk: result.risk,
     });
   }
 
@@ -170,13 +170,13 @@ async function runOneMonitor(monitoredDomainId: string) {
   if (currSummaryRaw) {
     try {
       const currSummary = JSON.parse(currSummaryRaw) as AuditSummary;
-      await mergeFindings(d.id, currSummary.findings);
+      await mergeFindings(d.id, summaryFindings(currSummary));
     } catch {
       // Non-fatal: findings_state is best-effort; don't fail the whole run.
     }
   }
 
-  // Alert gate: evaluate score delta + new error/critical combinations (Task 11).
+  // Alert gate: evaluate risk rise delta + new error/critical combinations (Task 11).
   // Runs after mergeFindings so firstSeenAt === lastSeenAt identifies rows new to this run.
   try {
     const newOnes = await db.select().from(findingsState).where(
@@ -188,8 +188,8 @@ async function runOneMonitor(monitoredDomainId: string) {
     );
     const gate = await evaluateAlertGate({
       domainId: d.id,
-      prevScore: d.lastScore ?? null,
-      currentScore: result.score,
+      prevRisk: d.lastRisk ?? null,
+      currentRisk: result.risk,
       newCombinations: newOnes.map((r) => ({
         ruleId: r.ruleId,
         templateSignature: r.templateSignature,
@@ -204,8 +204,8 @@ async function runOneMonitor(monitoredDomainId: string) {
           await sendMonitoringAlertEmail({
             to: email,
             sourceUrl: d.sourceUrl,
-            previousScore: d.lastScore ?? null,
-            currentScore: result.score,
+            previousRisk: d.lastRisk ?? null,
+            currentRisk: result.risk,
             newRuleIds,
             currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
             reportSlug: audit.slug,
@@ -242,10 +242,10 @@ async function maybeAlert(input: {
   sourceUrl: string;
   threshold: number;
   previousAuditId: string;
-  previousScore: number | null;
+  previousRisk: number | null;
   currentAuditId: string;
   currentAuditSlug: string;
-  currentScore: number;
+  currentRisk: number;
 }): Promise<void> {
   const [prevSummary, currSummary] = await Promise.all([
     loadSummary(input.previousAuditId),
@@ -253,11 +253,12 @@ async function maybeAlert(input: {
   ]);
   const newRuleIds = diffNewRuleIds(prevSummary, currSummary);
   const hasNewError = newRuleIds.some((id) => {
-    const f = currSummary?.findings.find((r) => r.ruleId === id);
+    const f = summaryFindings(currSummary).find((r) => r.ruleId === id);
     return f?.severity === "error" || f?.severity === "critical";
   });
-  const scoreDelta = Math.abs(input.currentScore - (input.previousScore ?? input.currentScore));
-  const shouldAlert = scoreDelta >= input.threshold || hasNewError;
+  // v0.4: alert when risk RISES (current - prev > 0). Lower risk = better.
+  const riskDelta = input.currentRisk - (input.previousRisk ?? input.currentRisk);
+  const shouldAlert = riskDelta >= input.threshold || hasNewError;
   if (!shouldAlert) return;
 
   const [alert] = await db
@@ -266,8 +267,8 @@ async function maybeAlert(input: {
       monitoredDomainId: input.monitoredDomainId,
       auditId: input.currentAuditId,
       previousAuditId: input.previousAuditId,
-      previousScore: input.previousScore,
-      currentScore: input.currentScore,
+      previousRisk: input.previousRisk,
+      currentRisk: input.currentRisk,
       newRuleIds,
     })
     .returning({ id: monitoringAlerts.id });
@@ -278,8 +279,8 @@ async function maybeAlert(input: {
   await sendMonitoringAlertEmail({
     to: email,
     sourceUrl: input.sourceUrl,
-    previousScore: input.previousScore,
-    currentScore: input.currentScore,
+    previousRisk: input.previousRisk,
+    currentRisk: input.currentRisk,
     newRuleIds,
     currSummary,
     reportSlug: input.currentAuditSlug,
@@ -303,9 +304,19 @@ async function loadSummary(auditId: string): Promise<AuditSummary | null> {
 
 function diffNewRuleIds(prev: AuditSummary | null, curr: AuditSummary | null): string[] {
   if (!curr) return [];
-  const prevIds = new Set(prev?.findings.map((f) => f.ruleId) ?? []);
-  const currIds = new Set(curr.findings.map((f) => f.ruleId));
+  const prevIds = new Set(summaryFindings(prev).map((f) => f.ruleId));
+  const currIds = new Set(summaryFindings(curr).map((f) => f.ruleId));
   return Array.from(currIds).filter((id) => !prevIds.has(id));
+}
+
+/** v0.4: AuditSummary no longer exposes a flat `findings` array — re-flatten from issues buckets. */
+function summaryFindings(summary: AuditSummary | null): AuditSummary["issues"]["blockers"] {
+  if (!summary) return [];
+  return [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
 }
 
 async function resolveRecipient(userId: string, override: string | null): Promise<string | null> {

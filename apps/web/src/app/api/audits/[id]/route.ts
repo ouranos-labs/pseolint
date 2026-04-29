@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   }
 
   return NextResponse.json({
-    id: row.id, slug: row.slug, status: row.status, score: row.score, pageCount: row.pageCount,
+    id: row.id, slug: row.slug, status: row.status, risk: row.risk, pageCount: row.pageCount,
     findingCount: row.findingCount, errorMessage: row.errorMessage, completedAt: row.completedAt,
     sourceUrl: row.sourceUrl,
   });

@@ -14,25 +14,26 @@ export function isoWeekOf(d: Date): string {
 
 export interface AlertEvalInput {
   domainId: string;
-  prevScore: number | null;
-  currentScore: number;
+  prevRisk: number | null;
+  currentRisk: number;
   newCombinations: Array<{ ruleId: string; templateSignature: string; severity: Severity }>;
 }
 
 export interface AlertEvalResult {
   shouldAlert: boolean;
-  reasons: Array<"score_delta" | "new_error">;
+  reasons: Array<"risk_rise" | "new_error">;
   firingCombinations: Array<{ ruleId: string; templateSignature: string }>;
 }
 
-const SCORE_DELTA_THRESHOLD = 10;
+const RISK_RISE_THRESHOLD = 10;
 
 export async function evaluateAlertGate(input: AlertEvalInput): Promise<AlertEvalResult> {
   const reasons: AlertEvalResult["reasons"] = [];
   const firing: AlertEvalResult["firingCombinations"] = [];
 
-  if (input.prevScore !== null && Math.abs(input.currentScore - input.prevScore) >= SCORE_DELTA_THRESHOLD) {
-    reasons.push("score_delta");
+  // v0.4: alert when risk RISES (current - prev >= threshold). Lower risk = better.
+  if (input.prevRisk !== null && (input.currentRisk - input.prevRisk) >= RISK_RISE_THRESHOLD) {
+    reasons.push("risk_rise");
   }
 
   const critOrError = input.newCombinations.filter((c) => c.severity === "error" || c.severity === "critical");

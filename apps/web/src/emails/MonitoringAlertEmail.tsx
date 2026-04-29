@@ -3,18 +3,18 @@ import { Html, Head, Body, Container, Section, Heading, Text, Button, Hr } from 
 export type MonitoringAlertEmailProps = {
   host: string;
   sourceUrl: string;
-  previousScore: number | null;
-  currentScore: number;
+  previousRisk: number | null;
+  currentRisk: number;
   newFindings: { ruleId: string; severity: string; message: string }[];
   reportUrl: string;
   dashboardUrl: string;
 };
 
 export default function MonitoringAlertEmail(props: MonitoringAlertEmailProps) {
-  const delta = props.previousScore == null ? null : props.currentScore - props.previousScore;
+  const delta = props.previousRisk == null ? null : props.currentRisk - props.previousRisk;
   const deltaSign = delta == null ? "" : delta > 0 ? "+" : "";
   const worseNow = delta != null && delta > 0;
-  const scoreTone = props.currentScore <= 40 ? "#10b981" : props.currentScore <= 69 ? "#f59e0b" : "#ef4444";
+  const riskTone = props.currentRisk <= 40 ? "#10b981" : props.currentRisk <= 69 ? "#f59e0b" : "#ef4444";
 
   return (
     <Html>
@@ -23,16 +23,16 @@ export default function MonitoringAlertEmail(props: MonitoringAlertEmailProps) {
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#ffffff", padding: 32, borderRadius: 12, border: "1px solid #e5e7eb" }}>
           <Text style={{ margin: 0, color: "#6b7280", fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>pseolint monitoring</Text>
           <Heading style={{ margin: "8px 0 0", fontSize: 22, fontWeight: 600 }}>
-            {worseNow ? "Risk score worsened" : delta === 0 ? "New rule fired" : "Risk score changed"} — {props.host}
+            {worseNow ? "Risk worsened" : delta === 0 ? "New rule fired" : "Risk changed"} — {props.host}
           </Heading>
 
           <Section style={{ marginTop: 24, padding: "16px 18px", backgroundColor: "#f3f4f6", borderRadius: 10 }}>
-            <Text style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>Risk score</Text>
-            <Text style={{ margin: "4px 0 0", fontSize: 32, fontWeight: 600, color: scoreTone }}>
-              {props.currentScore}
+            <Text style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>Risk</Text>
+            <Text style={{ margin: "4px 0 0", fontSize: 32, fontWeight: 600, color: riskTone }}>
+              {props.currentRisk}
               {delta != null && (
                 <span style={{ fontSize: 14, color: worseNow ? "#ef4444" : "#10b981", marginLeft: 10 }}>
-                  {deltaSign}{delta} from {props.previousScore}
+                  {deltaSign}{delta} from {props.previousRisk}
                 </span>
               )}
             </Text>

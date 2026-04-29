@@ -46,9 +46,11 @@ describe("auditSource + telemetry (integration)", () => {
     if (record.type !== "audit") throw new Error("expected audit record");
     expect(record.schemaVersion).toBe(1);
     expect(record.runId).toMatch(/^[0-9a-f]{16}$/);
-    expect(record.score).toBe(result.score);
+    expect(record.score).toBe(result.risk);
     expect(record.pageCount).toBe(result.pageCount);
-    expect(record.findingCount).toBe(result.findings.length);
+    expect(record.findingCount).toBe(
+      result.issues.blockers.length + result.issues.shouldFix.length + result.issues.informational.length,
+    );
     expect(typeof record.durationMs).toBe("number");
     expect(record.durationMs).toBeGreaterThanOrEqual(0);
     // No triage sub-object when AI is disabled.

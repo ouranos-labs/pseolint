@@ -4,6 +4,14 @@
 
 The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets.
 
+## What's new in v0.4
+
+v0.4 reshapes the audit output around a single **verdict** (`ready` / `caution` / `concerning` / `critical`) plus four category grades (`Integrity`, `Discoverability`, `Citation`, `Data`). The old numeric "SpamBrain Risk Score" is no longer the headline — it remains internally as `risk` for CI threshold tuning, trends, and alert gates, but operators ship on verdict, not on a number that needs a translation table.
+
+By default the console output prints the verdict, four grades, and the top 3 fixes. Use `--explain` for the full bucketed list. CI gates use verdict severity (`--ci-threshold`) instead of a numeric risk threshold; the legacy `--threshold` flag is deprecated for one release.
+
+See `docs/superpowers/specs/2026-04-29-pseolint-v0.4-engine-redesign.md` for the full design rationale.
+
 ## Install
 
 ```bash
@@ -26,17 +34,51 @@ npx pseolint http://localhost:3000
 npx pseolint https://yoursite.com
 
 # Audit a build directory
-npx pseolint ./out --threshold 40
+npx pseolint ./out --ci-threshold concerning
+
+# Show every finding (default view shows verdict + grades + top 3 fixes)
+npx pseolint http://localhost:3000 --explain
+
+# Diff two audit runs (verdict, grades, fixed/regressed/new findings)
+npx pseolint diff baseline.json current.json
 
 # Save an HTML report
 npx pseolint http://localhost:3000 --format html --output report.html
+```
+
+A typical first-run console looks like:
+
+```
+Verdict: CAUTION
+Integrity A · Discoverability C · Citation F · Data A
+
+3 blockers, 16 warnings — top fixes by impact:
+  1. /tools/* missing og:image (13 pages)        → add to layout.tsx
+     pseolint.dev/rules/og-completeness
+  2. Symptom Article schema author (5 errors)    → add author + datePublished
+     pseolint.dev/rules/schema-required-fields
+  3. /tools index thin unique words (1 error)    → add 36 distinctive words
+     pseolint.dev/rules/unique-value
+
+Run `pseolint --explain` for the full list.
 ```
 
 ## Options
 
 ```
 -f, --format <type>       console, json, markdown, html (default: "console")
--t, --threshold <n>       Score threshold for CI exit code (default: 40)
+--ci-threshold <severity> Verdict severity that fails CI: ready | caution |
+                          concerning | critical (default: concerning).
+                          Exit non-zero if the audit's verdict is at or worse
+                          than the threshold.
+-t, --threshold <n>       [DEPRECATED — removed in v0.5] Numeric risk threshold.
+                          Use --ci-threshold instead. When set, exits non-zero
+                          if summary.risk >= n (low risk = good).
+--explain                 Print every finding, bucketed by severity (blockers /
+                          should-fix / informational). Default view is the
+                          compact verdict + grades + top-3-fixes view.
+--watch                   [planned, v0.4.1] Re-audit on source changes. Logs
+                          a "not yet implemented" notice and exits in v0.4.0.
 -o, --output <file>       Write report to file
 --no-color                Disable colored output
 --concurrency <n>         Max parallel HTTP fetches (default: 5)
@@ -60,6 +102,21 @@ Render-mode analytics (v0.3.1+)
                           Prevents the audit from injecting fake sessions
                           into the site owner's GA/Plausible/etc.
 --block-host <host>       Extra host substring to block (repeatable).
+```
+
+## Subcommands
+
+```
+pseolint diff <baseline> <current>   Diff two AuditSummary JSON reports.
+                                     Shows verdict + grade deltas, fixed,
+                                     regressed, and new findings.
+                                     Exits non-zero if there are new
+                                     blockers since baseline.
+
+pseolint stats                       Aggregate local telemetry.
+pseolint stats-export <out>          Copy telemetry JSONL for sharing.
+pseolint cache stats|prune|clear     Manage the HTTP fetch cache.
+pseolint upload <report>             Push a JSON report to pseolint Pro.
 ```
 
 Press `ctrl-C` during an audit to cancel cleanly — in-flight fetches abort,
@@ -268,7 +325,7 @@ export default {
 
 Counts only — no URLs, no page content, no API keys:
 
-- Audit: `runId`, `timestamp`, `durationMs`, `score`, `pageCount`, `findingCount`, optional `cacheStats`, optional `triage` metadata (model, token counts, cache hit, cost estimate).
+- Audit: `runId`, `timestamp`, `durationMs`, `verdict`, `risk`, `pageCount`, `findingCount`, optional `cacheStats`, optional `triage` metadata (model, token counts, cache hit, cost estimate). (`score` is retained as an alias for `risk` for backward compatibility through v0.4.)
 - Feedback: `runId`, `timestamp`, `rating`.
 
 ### View

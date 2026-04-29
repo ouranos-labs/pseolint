@@ -15,21 +15,61 @@ const displaySerif = Instrument_Serif({
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const SITE_LAST_UPDATED = new Date().toISOString().slice(0, 10);
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: "pseolint — SpamBrain-proof your pSEO",
   description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
+  authors: [{ name: "pseolint Editorial Team", url: SITE_URL }],
+  creator: "Ouranos Labs",
+  publisher: "Ouranos Labs",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "pseolint — SpamBrain-proof your pSEO",
     description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
     type: "website",
     siteName: "pseolint",
+    images: [{
+      url: "/opengraph-image",
+      width: 1200,
+      height: 630,
+      alt: "pseolint — SpamBrain-proof your pSEO",
+    }],
   },
   twitter: {
     card: "summary_large_image" as const,
     title: "pseolint — SpamBrain-proof your pSEO",
     description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
+    images: [{
+      url: "/opengraph-image",
+      width: 1200,
+      height: 630,
+      alt: "pseolint — SpamBrain-proof your pSEO",
+    }],
+  },
+};
+
+/**
+ * Escape `</` so a JSON-LD string can't terminate the surrounding <script> early.
+ * See https://html.spec.whatwg.org/multipage/scripting.html#restrictions-for-contents-of-script-elements
+ */
+function safeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/<\//g, "<\\/");
+}
+
+const ORGANIZATION_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Ouranos Labs",
+  alternateName: "pseolint",
+  url: SITE_URL,
+  foundingDate: "2026",
+  sameAs: ["https://github.com/ouranos-labs/pseolint"],
+  employee: {
+    "@type": "Person",
+    name: "pseolint Editorial Team",
+    jobTitle: "Author",
   },
 };
 
@@ -40,7 +80,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
         <SiteNav signedIn={ !!session } email={ session?.user.email } />
         <div className="relative">{ children }</div>
-        <SiteFooter />
+        <script
+          type="application/ld+json"
+          // Pre-sanitized: JSON.stringify + escape `</` per HTML spec
+          dangerouslySetInnerHTML={ { __html: safeJsonLd(ORGANIZATION_JSON_LD) } }
+        />
+        <SiteFooter lastUpdated={ SITE_LAST_UPDATED } />
       </body>
     </html>
   );
@@ -58,8 +103,10 @@ function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
+          <Link href="/tools" className={ navLinkClass }>Tools</Link>
+          <Link href="/rules" className={ navLinkClass }>Rules</Link>
+          <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
           <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
-          <Link href="/limits" className={ navLinkClass }>Limits</Link>
           { !signedIn && (
             <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
           ) }
@@ -104,20 +151,45 @@ function GitHubMark({ className = "h-4 w-4" }: { className?: string }) {
   );
 }
 
-function SiteFooter() {
+function SiteFooter({ lastUpdated }: { lastUpdated: string }) {
   return (
     <footer className="mt-24 border-t border-border/60">
-      <div className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-10 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2.5">
-          <NavRing size={ 28 } title="pseolint mark" />
-          <p>© { new Date().getFullYear() } Ouranos Labs · a static analyzer for programmatic SEO.</p>
+      <div className="mx-auto max-w-5xl px-5 py-10">
+        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <NavRing size={ 28 } title="pseolint mark" />
+              <span className="text-sm font-semibold tracking-tight text-foreground">pseolint</span>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              A static analyzer for programmatic SEO. SpamBrain-aware, AEO-aware, OSS-first.
+            </p>
+          </div>
+          <FooterColumn title="Free tools">
+            <Link href="/tools/spambrain-checker" className="hover:text-foreground">SpamBrain checker</Link>
+            <Link href="/tools/thin-content-scanner" className="hover:text-foreground">Thin content scanner</Link>
+            <Link href="/tools/doorway-page-detector" className="hover:text-foreground">Doorway page detector</Link>
+            <Link href="/tools" className="hover:text-foreground">All tools →</Link>
+          </FooterColumn>
+          <FooterColumn title="Learn">
+            <Link href="/rules" className="hover:text-foreground">SpamBrain rules</Link>
+            <Link href="/symptoms" className="hover:text-foreground">Diagnose symptoms</Link>
+            <Link href="/research/state-of-pseo-2026" className="hover:text-foreground">State of pSEO 2026</Link>
+            <Link href="/leaderboard" className="hover:text-foreground">Leaderboard</Link>
+          </FooterColumn>
+          <FooterColumn title="Product">
+            <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
+            <Link href="/limits" className="hover:text-foreground">Limits</Link>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
+          </FooterColumn>
         </div>
-        <div className="flex items-center gap-5">
-          <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
-          <Link href="/leaderboard" className="hover:text-foreground">Leaderboard</Link>
-          <Link href="/limits" className="hover:text-foreground">Limits</Link>
-          <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
-          <Link href="/terms" className="hover:text-foreground">Terms</Link>
+        <div className="mt-10 flex flex-col gap-3 border-t border-border/40 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <p>© { new Date().getFullYear() } Ouranos Labs.</p>
+          <p className="text-[11px] text-muted-foreground/80">
+            Site last updated{ " " }
+            <time dateTime={ lastUpdated } className="font-mono">{ lastUpdated }</time>
+          </p>
           <a
             href="https://github.com/ouranos-labs/pseolint"
             target="_blank"
@@ -131,5 +203,14 @@ function SiteFooter() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-xs font-semibold uppercase tracking-wider text-foreground">{ title }</div>
+      <div className="mt-3 flex flex-col gap-2 text-xs text-muted-foreground">{ children }</div>
+    </div>
   );
 }

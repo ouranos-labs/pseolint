@@ -64,7 +64,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
                     </Link>
                   )}
                 </td>
-                <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "—"}</td>
+                <td className="py-3.5 pr-4 font-mono">{r.lastRisk ?? "—"}</td>
                 <td className="py-3.5 pr-4">
                   <Link href={`/dashboard/queue?domain=${encodeURIComponent(r.host)}`} className="hover:underline">
                     {countMap.get(r.id) ?? 0}

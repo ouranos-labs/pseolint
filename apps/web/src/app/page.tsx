@@ -366,6 +366,56 @@ export default function Home() {
       <CliMarquee />
 
       <section className="border-t border-border/60">
+        <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">By the numbers</p>
+            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+              The audit, in measurable terms.
+            </h2>
+            <p className="mt-3 text-base text-muted-foreground">
+              Specific values you can cite — what we run, what we cap, and which Google policies the ruleset maps to.
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[28px] border border-border/70 bg-border/60 sm:grid-cols-4">
+            { STATS.map((s) => (
+              <div key={ s.label } className="bg-card/60 p-5 backdrop-blur-sm">
+                <dt className="text-[11px] uppercase tracking-wider text-muted-foreground">{ s.label }</dt>
+                <dd className="mt-2 font-mono text-base font-semibold text-foreground">{ s.value }</dd>
+              </div>
+            )) }
+          </dl>
+
+          <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
+            <li>
+              <span className="text-foreground">42 rules across 8 categories</span> — 8 spam/* rules and 8 aeo/* rules landed in core v0.3.3 on April 21, 2026, with CLI v0.3.1 and MCP v0.3.1 shipped the same week to npm.
+            </li>
+            <li>
+              Free tier: 100 pages per audit, 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
+            </li>
+            <li>
+              Pro tier: <span className="text-foreground">$19</span> per month for per-domain monitoring, lifting the ceiling to 500 pages per audit, <span className="text-foreground">50 audits</span> per day, and <span className="text-foreground">90 days</span> of trend history.
+            </li>
+            <li>
+              Detection maps to current Google policy: SpamBrain was rebuilt in 2022, the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole.
+            </li>
+            <li>
+              Crawler defaults: a hard 50 MB bandwidth cap per audit, 5 parallel fetches, full <code className="font-mono text-foreground">robots.txt</code> respect including <code className="font-mono text-foreground">Crawl-delay</code> capped at <span className="text-foreground">2 minutes</span>.
+            </li>
+            <li>
+              Open source: MIT-licensed at github.com/ouranos-labs/pseolint, with the core engine, CLI, GitHub Action, and MCP server published as separate packages on <span className="text-foreground">January 15, 2026</span>.
+            </li>
+            <li>
+              SLA targets: <span className="text-foreground">99.9%</span> hosted-audit availability, deduped responses for repeat URLs in under <span className="text-foreground">5 minutes</span>, and any forced re-crawl held to a <span className="text-foreground">5 minutes</span> minimum spacing.
+            </li>
+            <li>
+              Default thresholds: thin-content fires below <span className="text-foreground">300 words</span>, near-duplicate fires above <span className="text-foreground">85%</span> SimHash similarity, and boilerplate-ratio flags pages with over <span className="text-foreground">60%</span> shared template text.
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-20">
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
             <h2 className="max-w-xl text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
@@ -505,6 +555,13 @@ function buildTiles({
   for (let i = is; i < is + infos && i < total; i++) if (states[i] === "clean") states[i] = "info";
   return states;
 }
+
+const STATS = [
+  { label: "Median audit time", value: "1 minute" },
+  { label: "Free-tier pages", value: "100 / audit" },
+  { label: "Pro plan", value: "$19 / month" },
+  { label: "Anon retention", value: "24 hours" },
+] as const;
 
 const RECEIPTS = [
   {

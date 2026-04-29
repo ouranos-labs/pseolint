@@ -8,16 +8,16 @@ import { getRequiredSession } from "@/lib/session";
 
 export async function updateAlertDefaultsAction(formData: FormData): Promise<void> {
   const session = await getRequiredSession();
-  const rawThreshold = Number(formData.get("scoreDropThreshold"));
+  const rawThreshold = Number(formData.get("riskRiseThreshold"));
   const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0 ? Math.floor(rawThreshold) : 10;
   const rawEmails = String(formData.get("recipientEmails") ?? "");
   const emails = rawEmails.split(",").map((s) => s.trim()).filter(Boolean);
 
   await db.insert(alertDefaults).values({
-    userId: session.user.id, scoreDropThreshold: threshold, recipientEmails: emails,
+    userId: session.user.id, riskRiseThreshold: threshold, recipientEmails: emails,
   }).onConflictDoUpdate({
     target: alertDefaults.userId,
-    set: { scoreDropThreshold: threshold, recipientEmails: emails, updatedAt: new Date() },
+    set: { riskRiseThreshold: threshold, recipientEmails: emails, updatedAt: new Date() },
   });
 
   revalidatePath("/dashboard/settings/alerts");

@@ -83,7 +83,7 @@ describe("auditSource + AI triage (integration)", () => {
     });
 
     expect(result.triage).toBeUndefined();
-    expect(result.findings).toBeDefined();
+    expect(result.issues).toBeDefined();
   });
 
   it("ai disabled => no triage field, no model call", async () => {

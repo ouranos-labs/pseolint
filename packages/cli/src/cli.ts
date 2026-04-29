@@ -13,7 +13,7 @@ import {
   isLocalhostUrl,
   OriginDegradedError,
 } from "@pseolint/core";
-import type { AuditSummary, ConsoleFormatOptions } from "@pseolint/core";
+import type { AuditSummary, Verdict } from "@pseolint/core";
 import type { CliFlags } from "./config.js";
 import { loadConfig, mergeOptions } from "./config.js";
 
@@ -22,16 +22,42 @@ const { version } = require("../package.json") as { version: string };
 
 type FormatType = "console" | "json" | "markdown" | "html";
 
-const formatters: Record<FormatType, (summary: AuditSummary) => string> = {
-  console: formatConsole,
-  json: formatJson,
-  markdown: formatMarkdown,
-  html: formatHtml,
+// Verdict ladder for --ci-threshold gating. Lower = better; we exit non-zero
+// when the audit's verdict is at or worse than the configured threshold.
+const VERDICT_RANK: Record<Verdict, number> = {
+  ready: 0,
+  caution: 1,
+  concerning: 2,
+  critical: 3,
+};
+
+const VERDICT_LADDER: Verdict[] = ["ready", "caution", "concerning", "critical"];
+
+// Default CI threshold: exit non-zero only on `concerning` or worse.
+const DEFAULT_CI_THRESHOLD: Verdict = "concerning";
+
+// Default formatters take a verbose flag. The console formatter additionally
+// accepts a noColor flag. The formatter-rewrite agent owns the formatter
+// signatures; this CLI passes both flags through and casts at the boundary.
+type FormatFn = (summary: AuditSummary, options?: { verbose?: boolean; noColor?: boolean }) => string;
+
+const formatters: Record<FormatType, FormatFn> = {
+  console: formatConsole as unknown as FormatFn,
+  json: formatJson as unknown as FormatFn,
+  markdown: formatMarkdown as unknown as FormatFn,
+  html: formatHtml as unknown as FormatFn,
 };
 
 interface CliOptions {
   format: FormatType;
-  threshold: string;
+  /** Deprecated v0.3 numeric threshold. Replaced by --ci-threshold in v0.4. */
+  threshold?: string;
+  /** v0.4 verdict-severity threshold. One of: ready | caution | concerning | critical. */
+  ciThreshold?: string;
+  /** v0.4: when true, console formatter prints all bucketed issues. */
+  explain?: boolean;
+  /** v0.4: stub for the watch loop (not yet implemented in v0.4.0). */
+  watch?: boolean;
   output?: string;
   color: boolean;
   concurrency: string;
@@ -92,9 +118,20 @@ export async function runCli(
       "console",
     )
     .option(
+      "--ci-threshold <severity>",
+      "Verdict severity that fails CI: ready | caution | concerning | critical (default: concerning)",
+    )
+    .option(
       "-t, --threshold <n>",
-      "SpamBrain Risk Score threshold for CI exit code",
-      "40",
+      "[deprecated] Numeric risk threshold; use --ci-threshold instead",
+    )
+    .option(
+      "--explain",
+      "Print every bucketed finding (default view shows verdict + grades + top 3 fixes)",
+    )
+    .option(
+      "--watch",
+      "[planned, v0.4.1] Re-audit on source changes (not yet implemented)",
     )
     .option("-o, --output <file>", "Write report to file instead of stdout")
     .option("--no-color", "Disable colored output")
@@ -173,6 +210,15 @@ export async function runCli(
         process.stderr.write(`Failed to read ${opts.path}: ${(e as Error).message}\n`);
         exitCode = 1;
       }
+    });
+
+  program
+    .command("diff <baseline> <current>")
+    .description("Diff two AuditSummary JSON reports — verdict + grade deltas, fixed/regressed/new findings")
+    .option("--no-color", "Disable colored output")
+    .action(async (baselinePath: string, currentPath: string, opts: { color: boolean }) => {
+      const { runDiffCommand } = await import("./commands/diff.js");
+      exitCode = await runDiffCommand(baselinePath, currentPath, { noColor: !opts.color });
     });
 
   program
@@ -259,10 +305,36 @@ async function runAudit(
     return 1;
   }
 
-  const threshold = Number(opts.threshold);
-  if (Number.isNaN(threshold)) {
-    console.error(`Error: --threshold must be a number, got "${opts.threshold}"`);
-    return 1;
+  if (opts.watch) {
+    process.stderr.write(
+      "pseolint: watch mode not yet implemented in v0.4.0; coming in v0.4.1.\n",
+    );
+    return 0;
+  }
+
+  // Resolve verdict-severity threshold for CI gating (v0.4).
+  // --ci-threshold takes precedence; --threshold is the deprecated numeric alias.
+  let ciThreshold: Verdict = DEFAULT_CI_THRESHOLD;
+  let legacyRiskThreshold: number | null = null;
+  if (opts.ciThreshold !== undefined) {
+    if (!isVerdict(opts.ciThreshold)) {
+      console.error(
+        `Error: --ci-threshold must be one of: ${VERDICT_LADDER.join(" | ")}, got "${opts.ciThreshold}"`,
+      );
+      return 1;
+    }
+    ciThreshold = opts.ciThreshold;
+  }
+  if (opts.threshold !== undefined) {
+    process.stderr.write(
+      `warning: --threshold is deprecated, use --ci-threshold ${ciThreshold} instead\n`,
+    );
+    const parsed = Number(opts.threshold);
+    if (Number.isNaN(parsed)) {
+      console.error(`Error: --threshold must be a number, got "${opts.threshold}"`);
+      return 1;
+    }
+    legacyRiskThreshold = parsed;
   }
 
   const format = opts.format as FormatType;
@@ -484,10 +556,12 @@ async function runAudit(
     console.error(`Cache: ${hits}/${total} hits (${mb} MB saved)`);
   }
 
-  // Format output
+  // Format output. The console formatter accepts noColor + verbose; non-console
+  // formatters accept verbose. The formatter-rewrite agent owns these signatures.
+  const verbose = Boolean(opts.explain);
   const output = format === "console"
-    ? formatConsole(summary, { noColor: !opts.color })
-    : formatters[format](summary);
+    ? (formatConsole as unknown as FormatFn)(summary, { noColor: !opts.color, verbose })
+    : formatters[format](summary, { verbose });
 
   // Write or print
   if (opts.output) {
@@ -500,13 +574,27 @@ async function runAudit(
     console.log(output);
   }
 
-  // Exit code based on threshold + regression
-  let exitCode = summary.score >= threshold ? 1 : 0;
+  // Exit code based on verdict severity (v0.4) + regression.
+  // Default: --ci-threshold concerning → exit 1 if verdict is concerning or critical.
+  let exitCode = 0;
+  const verdictRank = VERDICT_RANK[summary.verdict];
+  const thresholdRank = VERDICT_RANK[ciThreshold];
+  if (verdictRank >= thresholdRank) {
+    exitCode = 1;
+  }
+  // Legacy --threshold alias: gates on summary.risk >= n (low risk = good).
+  if (legacyRiskThreshold !== null && summary.risk >= legacyRiskThreshold) {
+    exitCode = Math.max(exitCode, 1);
+  }
   if (summary.hasRegression) {
     console.error("Regression detected: new rule IDs fired vs prior state");
     exitCode = Math.max(exitCode, 1);
   }
   return exitCode;
+}
+
+function isVerdict(v: string): v is Verdict {
+  return (VERDICT_LADDER as string[]).includes(v);
 }
 
 import type { TelemetryStats } from "@pseolint/core";

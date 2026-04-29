@@ -1,6 +1,6 @@
-import type { AuditSummary } from "@pseolint/core";
+import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04, RuleResult } from "@/lib/audit-types";
+import { isV04Summary } from "@/lib/audit-types";
 
-type RuleResult = AuditSummary["findings"][number];
 type Severity = RuleResult["severity"];
 
 const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
@@ -17,9 +17,132 @@ const SEVERITY_WEIGHT: Record<Severity, number> = {
   info: 1,
 };
 
-export function FindingsList({ summary }: { summary: AuditSummary }) {
+export function FindingsList({ summary }: { summary: AnyAuditSummary }) {
+  if (isV04Summary(summary)) {
+    return <FindingsListV04 summary={summary} />;
+  }
+  return <FindingsListV03 summary={summary} />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.4 — bucketed by severity-tier (blockers / shouldFix / informational).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FindingsListV04({ summary }: { summary: AuditSummaryV04 }) {
+  const { blockers, shouldFix, informational } = summary.issues;
+  const total = blockers.length + shouldFix.length + informational.length;
+
+  if (total === 0) {
+    return <CleanRunCard />;
+  }
+
+  // Top fixes: prioritise blockers, then shouldFix, weighted by severity × pages.
+  const allWithBucket = [
+    ...blockers.map((f) => ({ f, bucket: "blocker" as const })),
+    ...shouldFix.map((f) => ({ f, bucket: "shouldFix" as const })),
+  ];
+  const groupedAll = groupByRule(allWithBucket.map(({ f }) => f));
+  const top = Array.from(groupedAll.values())
+    .sort((a, b) => {
+      const ia = SEVERITY_WEIGHT[a.representative.severity] * a.findings.length;
+      const ib = SEVERITY_WEIGHT[b.representative.severity] * b.findings.length;
+      return ib - ia;
+    })
+    .slice(0, 5);
+
+  return (
+    <div className="flex flex-col gap-8">
+      {top.length > 0 && <TopFixesHero top={top} />}
+
+      {blockers.length > 0 && (
+        <BucketSection
+          title="Blockers"
+          subtitle="Severity error/critical · must fix before shipping"
+          tone="destructive"
+          findings={blockers}
+        />
+      )}
+      {shouldFix.length > 0 && (
+        <BucketSection
+          title="Should fix"
+          subtitle="Severity warning · should fix before scaling"
+          tone="warning"
+          findings={shouldFix}
+        />
+      )}
+      {informational.length > 0 && (
+        <BucketSection
+          title="Informational"
+          subtitle="Severity info · tracked for trend analysis"
+          tone="muted"
+          findings={informational}
+        />
+      )}
+    </div>
+  );
+}
+
+function BucketSection({
+  title,
+  subtitle,
+  tone,
+  findings,
+}: {
+  title: string;
+  subtitle: string;
+  tone: "destructive" | "warning" | "muted";
+  findings: RuleResult[];
+}) {
+  const grouped = groupByRule(findings);
+  const sorted = Array.from(grouped.values()).sort((a, b) => {
+    const sevA = SEVERITY_ORDER.indexOf(a.representative.severity);
+    const sevB = SEVERITY_ORDER.indexOf(b.representative.severity);
+    if (sevA !== sevB) return sevA - sevB;
+    return b.findings.length - a.findings.length;
+  });
+
+  const headingTone =
+    tone === "destructive" ? "text-destructive" : tone === "warning" ? "text-warning" : "text-muted-foreground";
+  const dotTone =
+    tone === "destructive" ? "bg-destructive" : tone === "warning" ? "bg-warning" : "bg-muted-foreground";
+
+  return (
+    <section>
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h3 className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider ${headingTone}`}>
+          <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotTone}`} />
+          {title}
+          <span className="font-mono text-[11px] font-normal text-muted-foreground">· {findings.length}</span>
+        </h3>
+        <span className="font-mono text-[11px] text-muted-foreground">{subtitle}</span>
+      </div>
+      <div
+        className="gap-4"
+        style={{ columnCount: 2 as unknown as string, columnGap: "1rem", columnFill: "balance" }}
+      >
+        {sorted.map((group) => (
+          <div
+            key={group.ruleId}
+            className="mb-4 inline-block w-full break-inside-avoid"
+            style={{ breakInside: "avoid" }}
+          >
+            <FindingGroup group={group} />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// v0.3 — legacy flat findings array (preserved for posterity).
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FindingsListV03({ summary }: { summary: AuditSummaryV03 }) {
   // `audit/origin-readiness` is rendered above the list by OriginReadinessCard
-  // — keeping it here would show the same data twice.
+  // — keeping it here would show the same data twice. Only relevant for v0.3
+  // where audit/* findings were mixed into `summary.findings`. v0.4 keeps
+  // them in `diagnostics.auditFindings`, never in `summary.issues`.
   const visibleFindings = summary.findings.filter((f) => f.ruleId !== "audit/origin-readiness");
   const grouped = groupByRule(visibleFindings);
   const sorted = Array.from(grouped.values()).sort((a, b) => {
@@ -30,16 +153,7 @@ export function FindingsList({ summary }: { summary: AuditSummary }) {
   });
 
   if (sorted.length === 0) {
-    return (
-      <div className="rounded-[22px] border border-success/30 bg-success/5 p-8 text-center">
-        <p className="text-success" style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400, fontSize: "28px" }}>
-          No findings. A clean run.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          All 40+ rules (SpamBrain + AEO) passed on the pages we sampled. Monitor to catch regressions.
-        </p>
-      </div>
-    );
+    return <CleanRunCard />;
   }
 
   const top = sorted
@@ -68,6 +182,19 @@ export function FindingsList({ summary }: { summary: AuditSummary }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CleanRunCard() {
+  return (
+    <div className="rounded-[22px] border border-success/30 bg-success/5 p-8 text-center">
+      <p className="text-success" style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400, fontSize: "28px" }}>
+        No findings. A clean run.
+      </p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        All 40+ rules (SpamBrain + AEO) passed on the pages we sampled. Monitor to catch regressions.
+      </p>
     </div>
   );
 }
@@ -125,6 +252,11 @@ function FindingGroup({ group }: { group: RuleGroup }) {
   const { ruleId, findings, representative } = group;
   const sev = representative.severity;
   const affected = collectPageUrls(findings);
+  // v0.4 enriches findings with `docsUrl` (the marketing-page deeplink); v0.3
+  // only had `ref` (the upstream Google docs URL). Render whichever is present
+  // — the new "Read more" link is preferred when both exist.
+  const docsHref = representative.docsUrl ?? null;
+  const refHref = representative.ref ?? null;
 
   return (
     <article className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
@@ -141,6 +273,17 @@ function FindingGroup({ group }: { group: RuleGroup }) {
 
       <div className="flex flex-col gap-4 px-6 py-5">
         <p className="text-sm text-foreground">{representative.message}</p>
+        {representative.pageUrl && (
+          <a
+            href={representative.pageUrl}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+            title={representative.pageUrl}
+          >
+            ↗ {pathOf(representative.pageUrl)}
+          </a>
+        )}
 
         {representative.fix && (
           <div className="flex flex-col gap-1.5 rounded-[14px] border border-primary/25 bg-primary/5 p-3 text-sm">
@@ -155,9 +298,19 @@ function FindingGroup({ group }: { group: RuleGroup }) {
               {representative.effort}
             </span>
           )}
-          {representative.ref && (
+          {docsHref && (
             <a
-              href={representative.ref}
+              href={docsHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-1 hover:text-foreground"
+            >
+              ↗ Read more
+            </a>
+          )}
+          {refHref && (
+            <a
+              href={refHref}
               target="_blank"
               rel="noreferrer noopener"
               className="inline-flex items-center gap-1 hover:text-foreground"
@@ -210,7 +363,51 @@ function AffectedPages({ urls }: { urls: string[] }) {
   );
 }
 
-export function CategoryBreakdown({ summary }: { summary: AuditSummary }) {
+/**
+ * Category breakdown — shape-aware.
+ * - v0.4: 4 letter-graded tiles (Integrity, Discoverability, Citation, Data)
+ * - v0.3: legacy 8-category numeric risk breakdown
+ */
+export function CategoryBreakdown({ summary }: { summary: AnyAuditSummary }) {
+  if (isV04Summary(summary)) {
+    return <CategoryBreakdownV04 summary={summary} />;
+  }
+  return <CategoryBreakdownV03 summary={summary} />;
+}
+
+function CategoryBreakdownV04({ summary }: { summary: AuditSummaryV04 }) {
+  // Show only the 4 weighted categories. `audit` is engine-internal (weight 0).
+  const order: Array<{ key: "integrity" | "discoverability" | "citation" | "data"; label: string }> = [
+    { key: "integrity", label: "Integrity" },
+    { key: "discoverability", label: "Discoverability" },
+    { key: "citation", label: "Citation" },
+    { key: "data", label: "Data" },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {order.map(({ key, label }) => {
+        const cat = summary.categories[key];
+        if (!cat) return null;
+        const tone = gradeTone(cat.grade);
+        const bg = gradeBg(cat.grade);
+        return (
+          <div key={key} className="rounded-[18px] border border-border/60 bg-card/40 p-4">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+            <div className="mt-1 flex items-baseline gap-2">
+              <div className={`font-mono text-3xl tabular-nums ${tone}`}>{cat.grade}</div>
+              <div className="font-mono text-[11px] text-muted-foreground">
+                {cat.issues} {cat.issues === 1 ? "issue" : "issues"}
+              </div>
+            </div>
+            <div className={`mt-3 h-1 rounded-full ${bg}`} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function CategoryBreakdownV03({ summary }: { summary: AuditSummaryV03 }) {
   const entries = Object.entries(summary.categoryScores) as [string, number][];
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -306,4 +503,18 @@ function scoreBg(score: number): string {
   if (score <= 40) return "bg-success";
   if (score <= 69) return "bg-warning";
   return "bg-destructive";
+}
+
+function gradeTone(grade: string): string {
+  if (grade === "A" || grade === "B") return "text-success";
+  if (grade === "C") return "text-warning";
+  if (grade === "D") return "text-warning";
+  return "text-destructive"; // F + anything else
+}
+
+function gradeBg(grade: string): string {
+  if (grade === "A" || grade === "B") return "bg-success/60";
+  if (grade === "C") return "bg-warning/60";
+  if (grade === "D") return "bg-warning/80";
+  return "bg-destructive/80";
 }

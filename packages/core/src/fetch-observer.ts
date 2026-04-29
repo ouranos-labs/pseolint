@@ -30,6 +30,12 @@ export interface FetchObservation {
   revalidated: boolean;
   /** `Date.now()` when the fetch began. Ordering, not wall-clock accuracy. */
   startedAt: number;
+  /**
+   * v0.4: lower-cased response headers. Populated when available so the
+   * auditor can sniff framework markers (`x-powered-by`, `x-vite-*`, etc.)
+   * without a separate probe fetch. Optional to keep memory bounded.
+   */
+  headers?: Record<string, string>;
 }
 
 export type ReadinessVerdict = "ready" | "concerning" | "not-ready";
@@ -47,6 +53,32 @@ export interface ReadinessReport {
   /** (revalidated + fromCache) / total observations. How much the cache helped. */
   cacheAssistRatio: number;
   verdict: ReadinessVerdict;
+  /**
+   * v0.4: which dev-server framework was detected on the source response, if any.
+   * When set, readiness thresholds are softened (p95 cap raised to 10s, first
+   * five fetches dropped as warmup grace) so Turbopack/Vite/Astro hot-compile
+   * latency doesn't trip the watchdog when auditing localhost.
+   */
+  detectedFramework?: DetectedFramework;
+}
+
+/** Frameworks the readiness probe knows to grace. */
+export type DetectedFramework = "nextjs" | "vite" | "astro";
+
+/** v0.4: detect dev-server framework from response headers. Returns null when not a known dev server. */
+export function detectDevServer(headers: Record<string, string>): DetectedFramework | null {
+  const lower: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) lower[k.toLowerCase()] = v;
+  const xpb = lower["x-powered-by"] ?? "";
+  if (xpb.toLowerCase().includes("next")) return "nextjs";
+  // x-nextjs-* headers (next/server runtime) and __nextjs_* cookies.
+  const cookie = lower["set-cookie"] ?? lower["cookie"] ?? "";
+  if (Object.keys(lower).some((k) => k.startsWith("x-nextjs-")) || /__nextjs_/i.test(cookie)) {
+    return "nextjs";
+  }
+  if (Object.keys(lower).some((k) => k.startsWith("x-vite-"))) return "vite";
+  if (Object.keys(lower).some((k) => k.startsWith("x-astro-"))) return "astro";
+  return null;
 }
 
 export interface ReadinessThresholds {
@@ -56,6 +88,12 @@ export interface ReadinessThresholds {
   concerningP95Ms?: number;
   /** 5xx/live ratio at or above this → 'not-ready' regardless of latency. Default 0.1. */
   notReadyErrorRatio?: number;
+  /**
+   * v0.4: when set to a known framework, the absolute p95 cap is raised to 10s
+   * (Turbopack/Vite hot-compile envelope) and the first 5 live fetches are
+   * dropped from the percentile calculation as warmup grace.
+   */
+  detectedFramework?: DetectedFramework | null;
 }
 
 function percentile(sortedAsc: number[], p: number): number {
@@ -76,9 +114,16 @@ export function computeReadiness(
   observations: readonly FetchObservation[],
   thresholds: ReadinessThresholds = {},
 ): ReadinessReport | null {
+  const framework = thresholds.detectedFramework ?? null;
+  // Dev servers (Next/Vite/Astro) routinely take seconds on cold compile.
+  // Spec §4.7: cap p95 at 10s and skip the first 5 fetches as warmup grace.
+  const isDevFramework = framework !== null;
+  const defaultNotReady = isDevFramework ? 10000 : 3000;
+  const defaultConcerning = isDevFramework ? 3000 : 800;
+
   const t = {
-    notReadyP95Ms: thresholds.notReadyP95Ms ?? 3000,
-    concerningP95Ms: thresholds.concerningP95Ms ?? 800,
+    notReadyP95Ms: thresholds.notReadyP95Ms ?? defaultNotReady,
+    concerningP95Ms: thresholds.concerningP95Ms ?? defaultConcerning,
     notReadyErrorRatio: thresholds.notReadyErrorRatio ?? 0.1,
   };
 
@@ -87,9 +132,15 @@ export function computeReadiness(
   const live = observations.filter((o) => !o.fromCache || o.revalidated);
   if (live.length === 0) return null;
 
-  const durations = live.map((o) => o.durationMs).sort((a, b) => a - b);
-  const medianMs = percentile(durations, 50);
-  const p95Ms = percentile(durations, 95);
+  // Warmup grace: drop the first 5 live fetches from latency percentiles when
+  // a dev-server framework was detected. Keep them in the success/error ratios
+  // so genuine 5xx during warmup still surface.
+  const liveForLatency = isDevFramework && live.length > 5
+    ? live.slice(5)
+    : live;
+  const durations = liveForLatency.map((o) => o.durationMs).sort((a, b) => a - b);
+  const medianMs = durations.length > 0 ? percentile(durations, 50) : 0;
+  const p95Ms = durations.length > 0 ? percentile(durations, 95) : 0;
 
   const serverErrorCount = live.filter((o) => o.status >= 500 && o.status < 600).length;
   const successCount = live.filter((o) => o.status >= 200 && o.status < 400).length;
@@ -117,6 +168,7 @@ export function computeReadiness(
     serverErrorRatio,
     cacheAssistRatio,
     verdict,
+    ...(framework ? { detectedFramework: framework } : {}),
   };
 }
 

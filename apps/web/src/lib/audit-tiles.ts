@@ -3,9 +3,17 @@ import type { TileState } from "@/components/landing/tile-grid";
 
 const RANK: Record<CoreSeverity, number> = { info: 1, warning: 2, error: 3, critical: 4 };
 
+function flattenIssues(summary: AuditSummary) {
+  return [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
+}
+
 export function worstSeverityPerPage(summary: AuditSummary): Map<string, CoreSeverity> {
   const map = new Map<string, CoreSeverity>();
-  for (const f of summary.findings) {
+  for (const f of flattenIssues(summary)) {
     if (!f.pageUrl) continue;
     const prev = map.get(f.pageUrl);
     if (!prev || RANK[f.severity] > RANK[prev]) map.set(f.pageUrl, f.severity);
@@ -33,7 +41,7 @@ export function severityCounts(summary: AuditSummary): {
   let errors = 0;
   let warnings = 0;
   let infos = 0;
-  for (const f of summary.findings) {
+  for (const f of flattenIssues(summary)) {
     if (f.severity === "critical" || f.severity === "error") errors++;
     else if (f.severity === "warning") warnings++;
     else if (f.severity === "info") infos++;

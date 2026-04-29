@@ -1,4 +1,12 @@
-import type { AuditSummary, FindingContext, FixEffort, RuleResult, Severity } from "../types.js";
+import type {
+  AuditSummary,
+  CategoryGrade,
+  CategoryGrades,
+  CategoryKey,
+  Grade,
+  RuleResult,
+  Verdict,
+} from "../types.js";
 
 // ANSI escape codes
 const RESET = "\x1b[0m";
@@ -9,91 +17,79 @@ const GREEN = "\x1b[32m";
 const YELLOW = "\x1b[33m";
 const RED_BRIGHT = "\x1b[91m";
 const ORANGE = "\x1b[38;5;208m";
+const MAGENTA = "\x1b[35m";
 
-function scoreColor(score: number): string {
-  if (score <= 20) return GREEN;
-  if (score <= 40) return YELLOW;
-  if (score <= 60) return ORANGE;
-  if (score <= 80) return RED;
-  return RED + BOLD;
-}
-
-function scoreLabel(score: number): string {
-  if (score <= 20) return "Safe";
-  if (score <= 40) return "Caution";
-  if (score <= 60) return "Risky";
-  if (score <= 80) return "Dangerous";
-  return "Critical";
-}
-
-/**
- * AEO-specific score label. AEO score is raw "damage" 0–100 — low is good.
- *   0–20  AI-Ready    pages structured for citation
- *  21–40  Partial     some citable, others vulnerable
- *  41–60  Vulnerable  most pages will be summarized away
- *  61–80  Invisible   pages offer nothing AI can't synthesize itself
- *  81–100 Ghost       actively blocked + no citable structure
- */
-export function aeoScoreLabel(score: number): string {
-  if (score <= 20) return "AI-Ready";
-  if (score <= 40) return "Partial";
-  if (score <= 60) return "Vulnerable";
-  if (score <= 80) return "Invisible";
-  return "Ghost";
-}
-
-function bar(score: number, width: number = 10): string {
-  const filled = Math.round((score / 100) * width);
-  const empty = width - filled;
-  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
-}
-
-const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
-
-const EFFORT_ORDER: FixEffort[] = ["quick", "moderate", "structural"];
-
-function severityColor(severity: Severity): string {
-  switch (severity) {
+// ── Verdict / grade colour helpers ──────────────────────────────────────
+function verdictColor(v: Verdict): string {
+  switch (v) {
+    case "ready":
+      return GREEN;
+    case "caution":
+      return YELLOW;
+    case "concerning":
+      return MAGENTA;
     case "critical":
       return RED + BOLD;
-    case "error":
-      return RED_BRIGHT;
-    case "warning":
+  }
+}
+
+function verdictGlyph(v: Verdict): string {
+  switch (v) {
+    case "ready":
+      return "✓"; // ✓
+    case "caution":
+      return "⚠"; // ⚠
+    case "concerning":
+      return "⚠"; // ⚠
+    case "critical":
+      return "✖"; // ✖
+  }
+}
+
+function gradeColor(g: Grade): string {
+  switch (g) {
+    case "A":
+    case "B":
+      return GREEN;
+    case "C":
       return YELLOW;
-    case "info":
-      return DIM;
+    case "D":
+      return ORANGE;
+    case "F":
+      return RED + BOLD;
   }
 }
 
-function effortLabel(effort: FixEffort): string {
-  switch (effort) {
-    case "quick":
-      return `${GREEN}[quick fix]${RESET}`;
-    case "moderate":
-      return `${YELLOW}[moderate]${RESET}`;
-    case "structural":
-      return `${RED}[structural]${RESET}`;
-  }
-}
-
-function shortenUrl(url: string): string {
+function shortenUrl(url: string | undefined): string {
+  if (!url) return "";
   try {
     const u = new URL(url);
-    return u.pathname;
+    return u.pathname || "/";
   } catch {
     return url;
   }
+}
+
+function docsLine(f: RuleResult): string {
+  if (f.docsUrl) {
+    return f.docsUrl.replace(/^https?:\/\//, "");
+  }
+  return `pseolint.dev/rules/${f.ruleId.split("/").pop() ?? f.ruleId}`;
 }
 
 function renderTriageSection(triage: AuditSummary["triage"]): string {
   if (!triage) return "";
   const lines: string[] = [];
   const cacheLabel = triage.cacheHit ? "cached" : "cache miss";
-  lines.push(`\n\u2500\u2500\u2500 AI Triage (${triage.modelUsed}, ${cacheLabel}) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500`);
+  lines.push(
+    `\n─── AI Triage (${triage.modelUsed}, ${cacheLabel}) ─────────────`,
+  );
   lines.push(`Top ${triage.rootCauses.length} root causes:`);
   const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
   for (const cause of sorted) {
-    lines.push(`  ${cause.fixOrder}. ${cause.label} [${cause.severity}, ${cause.findingsCount} findings]`);
+    lines.push(
+      `  ${cause.fixOrder}. ${cause.label} [${cause.severity}, ${cause.findingsCount} findings]`,
+    );
     for (const sentence of cause.rationale.split(/(?<=\.)\s+/)) {
       lines.push(`     ${sentence}`);
     }
@@ -102,260 +98,165 @@ function renderTriageSection(triage: AuditSummary["triage"]): string {
     lines.push("");
     lines.push(`Narrative: ${triage.narrative}`);
   }
-  const cost = triage.estimatedCostUsd !== undefined ? ` \u2022 est $${triage.estimatedCostUsd.toFixed(2)}` : "";
+  const cost =
+    triage.estimatedCostUsd !== undefined ? ` • est $${triage.estimatedCostUsd.toFixed(2)}` : "";
   lines.push("");
   lines.push(
-    `${triage.tokenUsage.input.toLocaleString("en-US")} input / ${triage.tokenUsage.output.toLocaleString("en-US")} output tokens${cost} \u2022 ${cacheLabel}`,
+    `${triage.tokenUsage.input.toLocaleString("en-US")} input / ${triage.tokenUsage.output.toLocaleString("en-US")} output tokens${cost} • ${cacheLabel}`,
   );
-  lines.push("\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500");
+  lines.push(
+    "───────────────────────────────────────────────────────",
+  );
   return lines.join("\n");
 }
 
 export interface ConsoleFormatOptions {
   noColor?: boolean;
+  /** When true, list every finding bucketed by severity instead of just top fixes. */
+  verbose?: boolean;
+}
+
+/** Aggregate findings sharing the same ruleId; rank by page-count then severity. */
+interface RuleAgg {
+  ruleId: string;
+  count: number;
+  representative: RuleResult;
+}
+
+function aggregateByRule(findings: RuleResult[]): RuleAgg[] {
+  const map = new Map<string, RuleAgg>();
+  for (const f of findings) {
+    const existing = map.get(f.ruleId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(f.ruleId, { ruleId: f.ruleId, count: 1, representative: f });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (b.count !== a.count) return b.count - a.count;
+    return a.ruleId.localeCompare(b.ruleId);
+  });
+}
+
+function renderTopFixes(blockers: RuleResult[], shouldFix: RuleResult[]): string[] {
+  // Spec: top fixes by impact = blockers first, then should-fix; aggregated by rule.
+  const lines: string[] = [];
+  const aggBlockers = aggregateByRule(blockers);
+  const aggShould = aggregateByRule(shouldFix);
+  const ranked = [...aggBlockers, ...aggShould].slice(0, 5);
+  if (ranked.length === 0) return lines;
+
+  for (let i = 0; i < ranked.length; i += 1) {
+    const agg = ranked[i];
+    const r = agg.representative;
+    const target = r.pageUrl ? shortenUrl(r.pageUrl) : "";
+    const targetPart = target ? `${target} ` : "";
+    const countLabel = agg.count === 1 ? "" : ` (${agg.count} pages)`;
+    const headline = `${targetPart}${r.message}${countLabel}`.trim();
+    const fix = r.fix ? `  → ${r.fix}` : "";
+    lines.push(`  ${i + 1}. ${headline}${fix}`);
+    lines.push(`     ${DIM}${docsLine(r)}${RESET}`);
+  }
+  return lines;
+}
+
+function renderBucketVerbose(label: string, items: RuleResult[]): string[] {
+  const lines: string[] = [];
+  if (items.length === 0) return lines;
+  lines.push(`${BOLD}${label} (${items.length})${RESET}`);
+  for (const f of items) {
+    const ruleCol = f.ruleId.padEnd(28);
+    const urlCol = (shortenUrl(f.pageUrl) || "—").padEnd(28);
+    const fixCol = f.fix ?? f.message;
+    lines.push(`  ${ruleCol} ${DIM}${urlCol}${RESET} ${fixCol}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+function categoryLine(categories: CategoryGrades): string {
+  // Display the four user-facing buckets — `audit` is engine-internal and weight-0.
+  const order: { key: Exclude<CategoryKey, "audit">; label: string }[] = [
+    { key: "integrity", label: "Integrity" },
+    { key: "discoverability", label: "Discoverability" },
+    { key: "citation", label: "Citation" },
+    { key: "data", label: "Data" },
+  ];
+  return order
+    .map(({ key, label }) => {
+      const cell: CategoryGrade | undefined = categories[key];
+      if (!cell) return `${label} ?`;
+      return `${label} ${gradeColor(cell.grade)}${cell.grade}${RESET}`;
+    })
+    .join(" · ");
 }
 
 export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOptions): string {
   const strip = options?.noColor ?? false;
+  const verbose = options?.verbose ?? false;
   const lines: string[] = [];
 
-  // Score header
-  const color = scoreColor(summary.score);
-  const label = scoreLabel(summary.score);
+  // ── Crawl line ──────────────────────────────────────────────────────
+  const crawl = summary.diagnostics?.crawlStats;
+  if (crawl) {
+    const skippedPart = crawl.skipped > 0 ? ` (${crawl.skipped} utility routes skipped)` : "";
+    lines.push(
+      `${GREEN}✓${RESET} Discovered ${crawl.fetched} content page${crawl.fetched === 1 ? "" : "s"}${skippedPart}`,
+    );
+  } else {
+    lines.push(
+      `${GREEN}✓${RESET} Audited ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"}`,
+    );
+  }
+  lines.push("");
+
+  // ── Verdict + grade strip ───────────────────────────────────────────
+  const vColor = verdictColor(summary.verdict);
+  const vGlyph = verdictGlyph(summary.verdict);
   lines.push(
-    `${BOLD}SpamBrain Risk Score:${RESET} ${color}${summary.score}/100 (${label})${RESET}`
+    `${BOLD}Verdict:${RESET} ${vColor}${summary.verdict.toUpperCase()} ${vGlyph}${RESET}`,
   );
-  lines.push(`Pages analysed: ${summary.pageCount}`);
+  lines.push(categoryLine(summary.categories));
 
-  // Template banner
+  // ── Template banner ────────────────────────────────────────────────
   if (summary.templateDetected) {
+    lines.push("");
     lines.push(
-      `${DIM}Template-generated content detected. Fix suggestions are tailored for template authors.${RESET}`
+      `${DIM}Template-generated content detected. Fix suggestions are tailored for template authors.${RESET}`,
     );
   }
 
   lines.push("");
 
-  // Category scores
-  lines.push(`${BOLD}Category Scores${RESET}`);
-  const categories = summary.categoryScores;
-  for (const [name, value] of Object.entries(categories)) {
-    const catColor = scoreColor(value as number);
-    const padded = name.charAt(0).toUpperCase() + name.slice(1);
-    lines.push(
-      `  ${padded.padEnd(10)} ${catColor}${bar(value as number)}${RESET} ${value}`
-    );
-  }
-  lines.push("");
+  // ── Headline + top fixes ───────────────────────────────────────────
+  const issues = summary.issues;
+  const blockerCount = issues.blockers.length;
+  const shouldFixCount = issues.shouldFix.length;
 
-  // Group scores
-  if (summary.groupScores && summary.groupPageCounts) {
-    lines.push(`${BOLD}Group Scores${RESET}`);
-    for (const [name, value] of Object.entries(summary.groupScores)) {
-      const count = summary.groupPageCounts[name] ?? 0;
-      const gColor = scoreColor(value);
-      lines.push(`  ${name.padEnd(15)} ${gColor}${bar(value)}${RESET} ${value} (${count} pages)`);
-    }
+  if (blockerCount === 0 && shouldFixCount === 0 && issues.informational.length === 0) {
+    lines.push(`${GREEN}No issues detected.${RESET}`);
+  } else {
+    lines.push(`${summary.headline} — top fixes by impact:`);
+    const top = renderTopFixes(issues.blockers, issues.shouldFix);
+    lines.push(...top);
+  }
+
+  // ── Verbose bucket dump ─────────────────────────────────────────────
+  if (verbose) {
     lines.push("");
-  }
-
-  // Dedicated AEO section (AI Overview readiness)
-  const aeoFindings = summary.findings.filter((f) => f.ruleId.startsWith("aeo/"));
-  if (aeoFindings.length > 0) {
-    const aeoScore = summary.categoryScores.aeo;
-    const aeoColor = scoreColor(aeoScore);
-    const aeoLabel = aeoScoreLabel(aeoScore);
-    lines.push(`${BOLD}── AEO: AI Overview Readiness ───────────────${RESET}`);
-    lines.push(`  Score: ${aeoColor}${aeoScore}/100 (${aeoLabel})${RESET}`);
-
-    // Aggregate AEO findings by rule. Per-page findings have a pageUrl (count
-    // unique URLs); site-level findings do not (count the findings themselves and
-    // label them so the count isn't misread as pages affected).
-    interface AeoAgg {
-      severity: Severity;
-      pages: Set<string>;
-      siteLevel: number;
-    }
-    const aeoAgg = new Map<string, AeoAgg>();
-    for (const f of aeoFindings) {
-      const entry = aeoAgg.get(f.ruleId) ?? { severity: f.severity, pages: new Set<string>(), siteLevel: 0 };
-      if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(entry.severity)) {
-        entry.severity = f.severity;
-      }
-      if (f.pageUrl) {
-        entry.pages.add(f.pageUrl);
-      } else {
-        entry.siteLevel += 1;
-      }
-      aeoAgg.set(f.ruleId, entry);
-    }
-
-    const sorted = Array.from(aeoAgg.entries()).sort(
-      (a, b) => SEVERITY_ORDER.indexOf(a[1].severity) - SEVERITY_ORDER.indexOf(b[1].severity),
-    );
-    for (const [ruleId, agg] of sorted) {
-      const mark = agg.severity === "error" || agg.severity === "critical" ? "✖" : "⚠";
-      const sColor = severityColor(agg.severity);
-      const pageCount = agg.pages.size;
-      const detail = pageCount > 0
-        ? `${pageCount} page${pageCount === 1 ? "" : "s"} affected.`
-        : `${agg.siteLevel} finding${agg.siteLevel === 1 ? "" : "s"} (site-level).`;
-      lines.push(`  ${sColor}${mark}${RESET} ${ruleId}  ${detail}`);
-    }
+    lines.push(...renderBucketVerbose("BLOCKERS", issues.blockers));
+    lines.push(...renderBucketVerbose("SHOULD-FIX", issues.shouldFix));
+    lines.push(...renderBucketVerbose("INFORMATIONAL", issues.informational));
+  } else if (blockerCount + shouldFixCount > 0) {
     lines.push("");
+    lines.push(`${DIM}Run \`pseolint --explain\` for the full list.${RESET}`);
   }
 
-  // AI Triage section (between summary and findings)
+  // ── AI triage section (unchanged shape) ─────────────────────────────
   const triageSection = renderTriageSection(summary.triage);
   if (triageSection) {
     lines.push(triageSection);
-    lines.push("");
-  }
-
-  // Top issues by rule (prioritized summary)
-  // Build a map of ruleId -> { severity, effort, clusterCount, totalPages, similarityRange }
-  interface RuleAgg {
-    severity: Severity;
-    effort?: FixEffort;
-    clusterCount: number;
-    totalPages: number;
-    similarityRange?: [number, number];
-  }
-
-  const ruleAgg = new Map<string, RuleAgg>();
-
-  for (const f of summary.findings) {
-    const existing = ruleAgg.get(f.ruleId);
-    const isCluster = f.context?.type === "cluster";
-    const clusterCtx = isCluster ? (f.context as Extract<typeof f.context, { type: "cluster" }>) : undefined;
-
-    if (existing) {
-      // Escalate severity if needed
-      if (SEVERITY_ORDER.indexOf(f.severity) < SEVERITY_ORDER.indexOf(existing.severity)) {
-        existing.severity = f.severity;
-      }
-      // Escalate effort if needed
-      if (f.effort !== undefined) {
-        if (existing.effort === undefined || EFFORT_ORDER.indexOf(f.effort) > EFFORT_ORDER.indexOf(existing.effort)) {
-          existing.effort = f.effort;
-        }
-      }
-      if (isCluster && clusterCtx) {
-        existing.clusterCount += 1;
-        existing.totalPages += clusterCtx.members.length;
-        // Merge similarity range
-        if (existing.similarityRange) {
-          existing.similarityRange[0] = Math.min(existing.similarityRange[0], clusterCtx.similarityRange[0]);
-          existing.similarityRange[1] = Math.max(existing.similarityRange[1], clusterCtx.similarityRange[1]);
-        } else {
-          existing.similarityRange = [...clusterCtx.similarityRange];
-        }
-      } else if (!isCluster) {
-        existing.totalPages += 1;
-      }
-    } else {
-      if (isCluster && clusterCtx) {
-        ruleAgg.set(f.ruleId, {
-          severity: f.severity,
-          effort: f.effort,
-          clusterCount: 1,
-          totalPages: clusterCtx.members.length,
-          similarityRange: [...clusterCtx.similarityRange],
-        });
-      } else {
-        ruleAgg.set(f.ruleId, {
-          severity: f.severity,
-          effort: f.effort,
-          clusterCount: 0,
-          totalPages: 1,
-        });
-      }
-    }
-  }
-
-  if (ruleAgg.size > 0) {
-    const sorted = Array.from(ruleAgg.entries())
-      .sort((a, b) => {
-        const sevDiff = SEVERITY_ORDER.indexOf(a[1].severity) - SEVERITY_ORDER.indexOf(b[1].severity);
-        if (sevDiff !== 0) return sevDiff;
-        // Within same severity, sort effort ascending (quick wins first)
-        const aEffort = a[1].effort ? EFFORT_ORDER.indexOf(a[1].effort) : EFFORT_ORDER.length;
-        const bEffort = b[1].effort ? EFFORT_ORDER.indexOf(b[1].effort) : EFFORT_ORDER.length;
-        return aEffort - bEffort;
-      })
-      .slice(0, 7);
-
-    lines.push(`${BOLD}Top Issues${RESET}`);
-    for (let i = 0; i < sorted.length; i += 1) {
-      const [ruleId, agg] = sorted[i];
-      const sColor = severityColor(agg.severity);
-      let detail: string;
-      if (agg.clusterCount > 0 && agg.similarityRange) {
-        const simMin = Math.round(agg.similarityRange[0] * 100);
-        const simMax = Math.round(agg.similarityRange[1] * 100);
-        detail = `${agg.clusterCount} cluster${agg.clusterCount !== 1 ? "s" : ""} (${agg.totalPages} pages, ${simMin}\u2013${simMax}% similar). Structural fix.`;
-      } else {
-        const effortStr = agg.effort
-          ? ` ${agg.effort.charAt(0).toUpperCase() + agg.effort.slice(1)} fix.`
-          : "";
-        detail = `${agg.totalPages} page${agg.totalPages !== 1 ? "s" : ""}.${effortStr}`;
-      }
-      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId} \u2014 ${detail}`);
-    }
-    lines.push("");
-  }
-
-  // Findings grouped by severity
-  const grouped = new Map<Severity, RuleResult[]>();
-  for (const sev of SEVERITY_ORDER) {
-    grouped.set(sev, []);
-  }
-  for (const f of summary.findings) {
-    grouped.get(f.severity)!.push(f);
-  }
-
-  for (const sev of SEVERITY_ORDER) {
-    const items = grouped.get(sev)!;
-    if (items.length === 0) continue;
-
-    const sevLabel = sev.toUpperCase();
-    lines.push(
-      `${severityColor(sev)}${sevLabel}${RESET} (${items.length})`
-    );
-
-    const showAll = sev === "critical" || sev === "error";
-    const limit = showAll ? items.length : 5;
-    const visible = items.slice(0, limit);
-
-    for (const item of visible) {
-      lines.push(`  ${severityColor(sev)}\u2022${RESET} [${item.ruleId}] ${item.message}`);
-      // Cluster worst pair — show before fix so user sees the problem first
-      if (item.context?.type === "cluster") {
-        const clusterCtx = item.context as Extract<FindingContext, { type: "cluster" }>;
-        if (clusterCtx.worstPairs.length > 0) {
-          const worst = clusterCtx.worstPairs[0];
-          const leftShort = shortenUrl(worst.left);
-          const rightShort = shortenUrl(worst.right);
-          const simPct = (worst.similarity * 100).toFixed(1);
-          lines.push(`    ${DIM}Worst: ${leftShort} \u2194 ${rightShort} (${simPct}%)${RESET}`);
-        }
-      }
-      if (item.fix) {
-        lines.push(`    ${DIM}Fix: ${item.fix}${RESET}`);
-      }
-      if (item.ref) {
-        lines.push(`    ${DIM}Ref: ${item.ref}${RESET}`);
-      }
-      if (item.effort) {
-        lines.push(`    ${effortLabel(item.effort)}`);
-      }
-    }
-
-    if (!showAll && items.length > limit) {
-      lines.push(`  ${DIM}...${items.length - limit} more${RESET}`);
-    }
-
-    lines.push("");
   }
 
   const output = lines.join("\n");
@@ -363,4 +264,16 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     return output.replace(/\x1b\[[0-9;]*m/g, "");
   }
   return output;
+}
+
+/**
+ * Legacy helper retained for back-compat with existing tests/imports.
+ * AEO score band → human label. Low score = AI-Ready, high = Ghost.
+ */
+export function aeoScoreLabel(score: number): string {
+  if (score <= 20) return "AI-Ready";
+  if (score <= 40) return "Partial";
+  if (score <= 60) return "Vulnerable";
+  if (score <= 80) return "Invisible";
+  return "Ghost";
 }

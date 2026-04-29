@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { env } from "@/lib/env";
+
+const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Privacy Policy · pseolint",
   description:
     "What personal data pseolint collects, why, how long we keep it, who we share it with, and the rights you have over it. GDPR-aligned, plain-language.",
+  alternates: { canonical: `${SITE_URL}/privacy` },
 };
 
 const EFFECTIVE = "2026-04-20";
@@ -28,6 +32,14 @@ export default function Privacy() {
         Written plainly. This page tells you exactly what personal data we collect when you use
         pseolint, why we collect it, how long we keep it, who else sees it, and the rights you
         have to change, export, or delete it.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+        Privacy notice scope: this disclosure governs the pseolint hosted dashboard, audit submission
+        endpoints, magic-link authentication flow, billing receipts dispatched via Polar.sh, and the
+        pseolint-bot crawler when it fetches pages from sites you submit. It does not extend to
+        third-party destinations our outbound links reach, nor to self-hosted CLI runs that never
+        contact our servers — those execute entirely on your machine and never transmit audit
+        bodies, IP fragments, or telemetry of any kind back to Ouranos Labs.
       </p>
       <p className="mt-2 font-mono text-xs text-muted-foreground">
         Effective {EFFECTIVE} · contact{" "}

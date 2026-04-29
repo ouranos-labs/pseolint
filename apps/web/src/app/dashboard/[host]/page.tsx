@@ -39,7 +39,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const [timelineRuns, openFindings, latestAudit] = await Promise.all([
     db.select({
       slug: audits.slug,
-      score: audits.score,
+      risk: audits.risk,
       status: audits.status,
       completedAt: audits.completedAt,
       findingCount: audits.findingCount,
@@ -79,11 +79,11 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const counts = summary ? severityCounts(summary) : null;
   const cleanPages = summary ? cleanPageCount(summary) : null;
 
-  // Score delta vs. the previous completed run, used to annotate the big score.
-  const completedScores = timelineRuns.filter((r) => r.status === "completed" && r.score != null);
-  const previousScore = completedScores[1]?.score ?? null;
-  const scoreDelta =
-    latestAudit?.score != null && previousScore != null ? latestAudit.score - previousScore : null;
+  // Risk delta vs. the previous completed run, used to annotate the big number.
+  const completedRuns = timelineRuns.filter((r) => r.status === "completed" && r.risk != null);
+  const previousRisk = completedRuns[1]?.risk ?? null;
+  const riskDelta =
+    latestAudit?.risk != null && previousRisk != null ? latestAudit.risk - previousRisk : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -114,19 +114,19 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             <div className="flex flex-col items-start">
               <div className="flex items-baseline gap-3">
                 <span
-                  className={`leading-[0.9] tabular-nums ${scoreTone(latestAudit.score ?? 0)}`}
+                  className={`leading-[0.9] tabular-nums ${scoreTone(latestAudit.risk ?? 0)}`}
                   style={{ fontSize: "96px", fontFamily: "var(--font-display)" }}
                 >
-                  {latestAudit.score ?? 0}
+                  {latestAudit.risk ?? 0}
                 </span>
-                {scoreDelta != null && scoreDelta !== 0 && (
+                {riskDelta != null && riskDelta !== 0 && (
                   <span
                     className={`font-mono text-sm tabular-nums ${
-                      scoreDelta < 0 ? "text-success" : "text-destructive"
+                      riskDelta < 0 ? "text-success" : "text-destructive"
                     }`}
-                    title={`vs. previous run (${previousScore})`}
+                    title={`vs. previous run (${previousRisk})`}
                   >
-                    {scoreDelta > 0 ? "+" : ""}{scoreDelta}
+                    {riskDelta > 0 ? "+" : ""}{riskDelta}
                   </span>
                 )}
               </div>

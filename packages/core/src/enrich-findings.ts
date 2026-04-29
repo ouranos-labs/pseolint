@@ -11,13 +11,10 @@ import type {
 const CLUSTERABLE_RULES = new Set([
   "spam/near-duplicate",
   "spam/entity-swap",
-  "cannibal/keyword-collision",
-  "cannibal/title-overlap",
 ]);
 
 const GROUPABLE_RULES = new Set([
   "content/unique-value",
-  "content/heading-uniqueness",
   "content/meta-uniqueness",
   "links/orphan-pages",
   "links/dead-ends",
@@ -26,7 +23,6 @@ const GROUPABLE_RULES = new Set([
 
 const EFFORT_BASELINES: Record<string, FixEffort> = {
   // quick
-  "tech/og-completeness": "quick",
   "tech/canonical-consistency": "quick",
   "tech/canonical-noindex-conflict": "quick",
   "tech/robots-noindex-conflict": "quick",
@@ -43,12 +39,10 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   // moderate
   "spam/thin-content": "moderate",
   "spam/publication-velocity": "moderate",
-  "content/heading-uniqueness": "moderate",
   "content/meta-uniqueness": "moderate",
   "content/eeat-signals": "moderate",
   "links/orphan-pages": "moderate",
   "links/dead-ends": "moderate",
-  "links/hub-pages": "moderate",
   "links/link-depth": "moderate",
   "cannibal/url-pattern": "moderate",
   // structural
@@ -59,8 +53,6 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   "spam/template-diversity": "structural",
   "spam/template-coverage": "structural",
   "content/unique-value": "structural",
-  "cannibal/keyword-collision": "structural",
-  "cannibal/title-overlap": "structural",
   "links/cluster-connectivity": "structural",
   // data
   "data/missing-binding": "moderate",
@@ -196,8 +188,6 @@ function groupableRuleMessage(ruleId: string, count: number): string {
   switch (ruleId) {
     case "content/unique-value":
       return `${count} pages have insufficient unique content.`;
-    case "content/heading-uniqueness":
-      return `${count} pages have identical headings after entity masking.`;
     case "content/meta-uniqueness":
       return `${count} pages have identical meta descriptions after entity masking.`;
     case "links/orphan-pages":
@@ -482,9 +472,7 @@ export function enrichFindings(
       const rulePageCount = rulePageCounts.get(f.ruleId)?.size ?? 0;
       // For template sites with many affected pages, suggest template-level fixes
       if (templateDetected && rulePageCount > 5) {
-        if (f.ruleId === "tech/og-completeness") {
-          f.fix = "Add the missing Open Graph tags to your page template: og:title, og:description, og:image.";
-        } else if (f.ruleId === "tech/canonical-consistency") {
+        if (f.ruleId === "tech/canonical-consistency") {
           f.fix = 'Add <link rel="canonical"> to your base template\'s <head>.';
         } else if (f.ruleId === "content/missing-author") {
           f.fix = 'Add author attribution to your base template: <meta name="author"> or JSON-LD author field.';

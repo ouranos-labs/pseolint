@@ -1,10 +1,20 @@
 import type { MetadataRoute } from "next";
 import { env } from "@/lib/env";
+import { MARKETING_TOOLS } from "@/lib/marketing-tools";
+import { MARKETING_RULES } from "@/lib/marketing-rules";
+import { MARKETING_SYMPTOMS } from "@/lib/marketing-symptoms";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const now = new Date();
-  const routes: Array<{ path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }> = [
+
+  type Entry = {
+    path: string;
+    changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"];
+    priority: number;
+  };
+
+  const evergreen: Entry[] = [
     { path: "/", changeFrequency: "weekly", priority: 1.0 },
     { path: "/pricing", changeFrequency: "monthly", priority: 0.9 },
     { path: "/leaderboard", changeFrequency: "daily", priority: 0.7 },
@@ -12,7 +22,41 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
     { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
   ];
-  return routes.map((r) => ({
+
+  const indexes: Entry[] = [
+    { path: "/tools", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/rules", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/symptoms", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/research", changeFrequency: "monthly", priority: 0.7 },
+  ];
+
+  // Tools resist AI Overviews (interactive) — high priority for crawl + cite signals.
+  const tools: Entry[] = MARKETING_TOOLS.map((t) => ({
+    path: `/tools/${t.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.9,
+  }));
+
+  // Rule explainers — primary topical-authority surface.
+  const rules: Entry[] = MARKETING_RULES.map((r) => ({
+    path: `/rules/${r.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.8,
+  }));
+
+  // Symptom diagnostic pages — bottom-funnel intent, evergreen.
+  const symptoms: Entry[] = MARKETING_SYMPTOMS.map((s) => ({
+    path: `/symptoms/${s.slug}`,
+    changeFrequency: "monthly",
+    priority: 0.8,
+  }));
+
+  // Original-data report — link bait + LLM citation magnet.
+  const research: Entry[] = [
+    { path: "/research/state-of-pseo-2026", changeFrequency: "yearly", priority: 0.9 },
+  ];
+
+  return [...evergreen, ...indexes, ...tools, ...rules, ...symptoms, ...research].map((r) => ({
     url: `${base}${r.path}`,
     lastModified: now,
     changeFrequency: r.changeFrequency,

@@ -36,7 +36,7 @@ export async function GET(): Promise<Response> {
   const [auditRows, domains, alerts, findings, integrationRows, tokens, usage] = await Promise.all([
     db.select({
       slug: audits.slug, sourceUrl: audits.sourceUrl, status: audits.status,
-      isPublic: audits.isPublic, score: audits.score, pageCount: audits.pageCount,
+      isPublic: audits.isPublic, risk: audits.risk, pageCount: audits.pageCount,
       findingCount: audits.findingCount, triageRootCauseCount: audits.triageRootCauseCount,
       triageCostUsd: audits.triageCostUsd, createdAt: audits.createdAt,
       completedAt: audits.completedAt, expiresAt: audits.expiresAt,
@@ -45,7 +45,7 @@ export async function GET(): Promise<Response> {
       slug: monitoredDomains.slug, host: monitoredDomains.host, sourceUrl: monitoredDomains.sourceUrl,
       cadence: monitoredDomains.cadence, paused: monitoredDomains.paused,
       alertEmail: monitoredDomains.alertEmail, alertThreshold: monitoredDomains.alertThreshold,
-      lastScore: monitoredDomains.lastScore, lastRunAt: monitoredDomains.lastRunAt,
+      lastRisk: monitoredDomains.lastRisk, lastRunAt: monitoredDomains.lastRunAt,
       verifiedAt: monitoredDomains.verifiedAt, removedAt: monitoredDomains.removedAt,
       createdAt: monitoredDomains.createdAt,
     }).from(monitoredDomains).where(eq(monitoredDomains.userId, userId)),

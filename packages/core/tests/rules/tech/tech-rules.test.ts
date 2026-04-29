@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 import { canonicalConsistencyRule } from "../../../src/rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "../../../src/rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "../../../src/rules/tech/hreflang-consistency.js";
-import { ogCompletenessRule } from "../../../src/rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "../../../src/rules/tech/robots-noindex-conflict.js";
 import type { NormalizeUrlOptions, ParsedPage } from "../../../src/types.js";
 
@@ -56,14 +55,6 @@ describe("technical seo rules", () => {
     });
     const findings = canonicalNoindexConflictRule([a], normalizeOpts);
     expect(findings.some((f) => f.ruleId === "tech/canonical-noindex-conflict")).toBe(true);
-  });
-
-  test("og completeness reports missing fields", () => {
-    const a = page("https://example.dev/a", { og: { title: "x", description: "", image: "" } });
-    const findings = ogCompletenessRule([a]);
-    expect(findings).toHaveLength(1);
-    expect(findings[0].message).toContain("og:description");
-    expect(findings[0].message).toContain("og:image");
   });
 
   test("hreflang consistency warns on duplicate and missing x-default", () => {

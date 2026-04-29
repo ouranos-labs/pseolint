@@ -2,7 +2,7 @@ import Link from "next/link";
 
 type Run = {
   slug: string;
-  score: number | null;
+  risk: number | null;
   status: "queued" | "running" | "completed" | "failed" | "expired" | string;
   completedAt: Date | null;
 };
@@ -11,7 +11,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
   // Order in DB query is desc(createdAt) — flip to oldest→newest for the strip
   // so the eye reads time left-to-right.
   const ordered = [...runs].reverse();
-  const completedRuns = ordered.filter((r) => r.status === "completed" && r.score != null);
+  const completedRuns = ordered.filter((r) => r.status === "completed" && r.risk != null);
   const oldest = completedRuns[0]?.completedAt ?? null;
   const newest = completedRuns[completedRuns.length - 1]?.completedAt ?? null;
 
@@ -24,8 +24,8 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
         </span>
       </header>
       <p className="mt-1 text-xs text-muted-foreground">
-        One bar per audit, oldest → newest. Color shows score change vs. previous run — green is an
-        improvement (score went down — lower is safer), red is a regression. Click a bar to open that report.
+        One bar per audit, oldest → newest. Color shows risk change vs. previous run — green is an
+        improvement (risk went down — lower is safer), red is a regression. Click a bar to open that report.
       </p>
 
       {ordered.length === 0 ? (
@@ -36,11 +36,11 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
         <>
           <ol className="mt-4 flex flex-wrap items-end gap-1.5">
             {ordered.map((r, idx) => {
-              const prevScore = ordered[idx - 1]?.score ?? null;
+              const prevRisk = ordered[idx - 1]?.risk ?? null;
               const delta =
-                r.score != null && prevScore != null ? r.score - prevScore : null;
+                r.risk != null && prevRisk != null ? r.risk - prevRisk : null;
 
-              // Lower score is safer (less SpamBrain risk). So delta < 0 = improvement = green;
+              // Lower risk is safer (less SpamBrain exposure). So delta < 0 = improvement = green;
               // delta > 0 = regression = red. The previous version had this inverted.
               const hue =
                 r.status !== "completed"
@@ -55,7 +55,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
 
               const title =
                 r.status === "completed"
-                  ? `Score ${r.score}` +
+                  ? `Risk ${r.risk}` +
                     (delta != null
                       ? ` (${delta >= 0 ? "+" : ""}${delta} vs. prior)`
                       : " · first run") +

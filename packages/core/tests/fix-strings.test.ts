@@ -49,11 +49,11 @@ describe("fix strings — template-aware", () => {
 
   it("rewrites per-page fix for template sites with > 5 affected pages", () => {
     const findings: RuleResult[] = Array.from({ length: 6 }, (_, i) => ({
-      ruleId: "tech/og-completeness" as const,
+      ruleId: "tech/canonical-consistency" as const,
       severity: "warning" as const,
-      message: "Missing og tags.",
+      message: "Missing canonical.",
       pageUrl: `https://a.com/${i}`,
-      fix: "Add the missing Open Graph tags: og:title, og:description, og:image.",
+      fix: "Add <link rel=\"canonical\"> to each page.",
     }));
     const pages = Array.from({ length: 6 }, (_, i) => makePage(`https://a.com/${i}`));
     const result = enrichFindings(findings, pages, { templateGenerated: true });

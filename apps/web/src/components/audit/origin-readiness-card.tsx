@@ -1,19 +1,35 @@
-import type { AuditSummary } from "@pseolint/core";
+import type { AnyAuditSummary, ReadinessReport } from "@/lib/audit-types";
+import { isV04Summary } from "@/lib/audit-types";
 
 /**
  * Origin-readiness summary card — sits above the Findings list.
  *
- * Renders from `summary.readiness` (structured) when present; falls back to
- * the `audit/origin-readiness` finding's message string for older reports
- * written before that field was added.
+ * Reads the structured readiness report from the appropriate location for
+ * each schema version:
+ *   - v0.4: `summary.diagnostics.originReadiness`
+ *   - v0.3: `summary.readiness` (top-level)
+ *
+ * For very old v0.3 reports written before the structured `readiness` field
+ * was added, falls back to the `audit/origin-readiness` finding's message
+ * string. v0.4 never carries that finding in `summary.issues` (audit/* lives
+ * in `diagnostics.auditFindings`), so the legacy fallback is v0.3-only.
  *
  * Returns null when the audit made no live origin fetches (a directory-only
  * audit, or every page served from cache). In that case we have nothing
  * meaningful to say about origin behaviour.
  */
-export function OriginReadinessCard({ summary }: { summary: AuditSummary }) {
-  const report = summary.readiness;
-  const legacyFinding = summary.findings.find((f) => f.ruleId === "audit/origin-readiness");
+export function OriginReadinessCard({ summary }: { summary: AnyAuditSummary }) {
+  const v04 = isV04Summary(summary);
+  const report: ReadinessReport | null | undefined = v04
+    ? summary.diagnostics.originReadiness
+    : summary.readiness;
+  // Legacy fallback: older v0.3 runs only emitted the audit/origin-readiness
+  // finding in the flat findings array. v0.4 doesn't carry that in `issues`,
+  // so we only check the v0.3 path.
+  const legacyFinding = !v04
+    ? summary.findings.find((f) => f.ruleId === "audit/origin-readiness")
+    : undefined;
+
   if (!report && !legacyFinding) return null;
 
   // Legacy-only path: we have a finding but no structured numbers.

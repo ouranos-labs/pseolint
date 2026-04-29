@@ -4,7 +4,6 @@ import { extname, join, resolve } from "node:path";
 import { parseHtmlPage } from "./parser.js";
 import { mergeNormalizeUrlOptions, normalizeAuditUrl } from "./url-normalize.js";
 import { eeatSignalsRule } from "./rules/content/eeat-signals.js";
-import { headingUniquenessRule } from "./rules/content/heading-uniqueness.js";
 import { metaUniquenessRule } from "./rules/content/meta-uniqueness.js";
 import { missingAuthorRule } from "./rules/content/missing-author.js";
 import { uniqueValueRule } from "./rules/content/unique-value.js";
@@ -18,12 +17,10 @@ import { thinContentRule } from "./rules/spam/thin-content.js";
 import { deadEndsRule } from "./rules/links/dead-ends.js";
 import { linkDepthRule } from "./rules/links/link-depth.js";
 import { clusterConnectivityRule } from "./rules/links/cluster-connectivity.js";
-import { hubPagesRule } from "./rules/links/hub-pages.js";
 import { orphanPagesRule } from "./rules/links/orphan-pages.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
-import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
 import { sitemapCompletenessRule } from "./rules/tech/sitemap-completeness.js";
 import { robotsComplianceRule, parseDisallowPatterns, isBlockedByPattern, parseCrawlDelaySeconds } from "./rules/tech/robots-sitemap-presence.js";
@@ -33,7 +30,6 @@ import { freshnessSignalsRule } from "./rules/aeo/freshness-signals.js";
 import { faqCoverageRule } from "./rules/aeo/faq-coverage.js";
 import { answerFirstRule } from "./rules/aeo/answer-first.js";
 import { citableFactsRule } from "./rules/aeo/citable-facts.js";
-import { nonReplicableValueRule } from "./rules/aeo/non-replicable-value.js";
 import { contentModularityRule } from "./rules/aeo/content-modularity.js";
 import { summaryBaitRule } from "./rules/aeo/summary-bait.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
@@ -41,8 +37,6 @@ import { soft404Rule } from "./rules/tech/soft-404.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
-import { titleOverlapRule } from "./rules/cannibal/title-overlap.js";
-import { keywordCollisionRule } from "./rules/cannibal/keyword-collision.js";
 import { urlPatternRule } from "./rules/cannibal/url-pattern.js";
 import { templateCoverageRule } from "./rules/spam/template-coverage.js";
 import { dataBindingRule, dataIdenticalRule } from "./rules/data/data-binding.js";
@@ -60,11 +54,27 @@ import {
   type AuditRecord,
   type FeedbackRecord,
 } from "./telemetry/index.js";
-import type { AuditOptions, AuditSummary, CacheStats, CategoryScores, EntityMaskPattern, NormalizeUrlOptions, ParsedPage, RuleResult, Severity } from "./types.js";
+import type {
+  AuditOptions,
+  AuditSummary,
+  CacheStats,
+  CategoryGrades,
+  CategoryKey,
+  CrawlStats,
+  EntityMaskPattern,
+  Grade,
+  IssueBuckets,
+  NormalizeUrlOptions,
+  ParsedPage,
+  RuleResult,
+  Severity,
+  Verdict,
+} from "./types.js";
+import { SCHEMA_VERSION } from "./types.js";
 import { cachedFetch, pruneCache, type CacheConfig } from "./cache.js";
 import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
 import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
-import { FetchObserver, computeReadiness, type FetchObservation } from "./fetch-observer.js";
+import { FetchObserver, computeReadiness, detectDevServer, type DetectedFramework, type FetchObservation } from "./fetch-observer.js";
 import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 import { stratifiedSample } from "./stratified-sample.js";
 import {
@@ -82,10 +92,6 @@ const DEFAULTS = {
   uniqueValueMinWords: 100,
   metaUniquenessMinJaccard: 0.9,
   linkDepthMaxClicks: 3,
-  hubPagesMinSiblings: 4,
-  hubPagesMaxSiblings: 50,
-  titleOverlapThreshold: 0.8,
-  keywordCollisionMinShared: 6,
   templateCoverageMinPages: 5,
   answerFirstMaxWords: 100,
   citableFactsMin: 3,
@@ -96,18 +102,80 @@ const DEFAULTS = {
   faqMinQuestionHeadings: 2
 } as const;
 
-const CATEGORY_WEIGHTS = {
-  spam: 0.33,
-  content: 0.19,
-  aeo: 0.14,
-  links: 0.11,
-  tech: 0.07,
-  data: 0.06,
-  schema: 0.05,
-  cannibal: 0.05,
-  /** Dedup / crawl hygiene; does not affect composite score. */
-  audit: 0
+/**
+ * v0.4 four-category weights. Audit is diagnostic-only (weight 0).
+ * See 2026-04-29 v0.4 redesign spec §4.2.
+ */
+const CATEGORY_WEIGHTS: Record<CategoryKey, number> = {
+  integrity:       0.50,  // spam + content + cannibal
+  discoverability: 0.20,  // links + tech
+  citation:        0.25,  // aeo + schema
+  data:            0.05,  // data
+  audit:           0,     // diagnostics, never weighted
 } as const;
+
+/**
+ * Maps the v0.3 ruleId namespace prefix to the v0.4 four-bucket category.
+ * Used by `scoreFromFindings` to bucket findings without changing rule IDs.
+ */
+const CATEGORY_MAP: Record<string, CategoryKey> = {
+  spam: "integrity",
+  content: "integrity",
+  cannibal: "integrity",
+  links: "discoverability",
+  tech: "discoverability",
+  aeo: "citation",
+  schema: "citation",
+  data: "data",
+  audit: "audit",
+};
+
+/** Slug map for `RuleResult.docsUrl`. Defaults to the rule-id segment after the `/`. */
+const RULE_DOCS_SLUG: Record<string, string> = {
+  // intentionally empty for v0.4 — slug = ruleId.split("/").pop() works for every shipped rule
+};
+
+function docsUrlFor(ruleId: string): string {
+  const slug = RULE_DOCS_SLUG[ruleId] ?? ruleId.split("/").pop() ?? ruleId;
+  return `https://pseolint.dev/rules/${slug}`;
+}
+
+/** Verdict ladder thresholds — see spec §4.4. */
+function verdictForRisk(risk: number): Verdict {
+  if (risk <= 20) return "ready";
+  if (risk <= 40) return "caution";
+  if (risk <= 60) return "concerning";
+  return "critical";
+}
+
+function gradeForPenalty(penalty: number): Grade {
+  if (penalty <= 20) return "A";
+  if (penalty <= 40) return "B";
+  if (penalty <= 60) return "C";
+  if (penalty <= 80) return "D";
+  return "F";
+}
+
+/** True for `text/html` and `application/xhtml+xml` only (treat as audit-eligible content). */
+function isHtmlContentType(contentType: string | undefined): boolean {
+  if (!contentType) return true; // Local files / unknown — assume HTML.
+  const lower = contentType.toLowerCase();
+  return lower.includes("text/html") || lower.includes("application/xhtml+xml");
+}
+
+/** Glob match against a URL pathname only (not the full URL). v0.4 spec §4.5. */
+function globMatchPathname(pattern: string, urlOrPath: string): boolean {
+  let pathname: string;
+  try {
+    pathname = new URL(urlOrPath).pathname;
+  } catch {
+    // Not a URL — treat as already-a-path. Force a leading slash for consistency.
+    pathname = urlOrPath.startsWith("/") ? urlOrPath : `/${urlOrPath}`;
+  }
+  // Allow patterns that don't begin with "/" by normalising both sides.
+  const normPattern = pattern.startsWith("/") || pattern.startsWith("*") ? pattern : `/${pattern}`;
+  return matchGlob(normPattern, pathname) || matchGlob(pattern, pathname);
+}
 
 const DEFAULT_ENTITY_PATTERNS: EntityMaskPattern[] = [
   {
@@ -146,10 +214,6 @@ function runRulesOnPages(
     uniqueValueMinWords: number;
     metaUniquenessMinJaccard: number;
     linkDepthMaxClicks: number;
-    hubPagesMinSiblings: number;
-    hubPagesMaxSiblings: number;
-    titleOverlapThreshold: number;
-    keywordCollisionMinShared: number;
     templateCoverageMinPages: number;
     answerFirstMaxWords: number;
     citableFactsMin: number;
@@ -226,10 +290,6 @@ function runRulesOnPages(
     findings.push(...tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
   }
 
-  if (isEnabled("content/heading-uniqueness") && modeOk("content/heading-uniqueness")) {
-    findings.push(...tag(headingUniquenessRule(pages, entityPatterns)));
-  }
-
   if (isEnabled("content/meta-uniqueness") && modeOk("content/meta-uniqueness")) {
     findings.push(...tag(metaUniquenessRule(pages, entityPatterns, resolvedRules.metaUniquenessMinJaccard)));
   }
@@ -261,10 +321,6 @@ function runRulesOnPages(
     findings.push(...tag(clusterConnectivityRule(pages, knownUrls)));
   }
 
-  if (isEnabled("links/hub-pages") && modeOk("links/hub-pages")) {
-    findings.push(...tag(hubPagesRule(pages, knownUrls, resolvedRules.hubPagesMinSiblings, resolvedRules.hubPagesMaxSiblings)));
-  }
-
   // Tech rules
   if (isEnabled("tech/canonical-consistency") && modeOk("tech/canonical-consistency")) {
     findings.push(...tag(canonicalConsistencyRule(pages, knownUrls, normalizeUrlOptions)));
@@ -284,10 +340,6 @@ function runRulesOnPages(
 
   if (isEnabled("tech/soft-404") && modeOk("tech/soft-404")) {
     findings.push(...tag(soft404Rule(pages)));
-  }
-
-  if (isEnabled("tech/og-completeness") && modeOk("tech/og-completeness")) {
-    findings.push(...tag(ogCompletenessRule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
@@ -333,10 +385,6 @@ function runRulesOnPages(
     })));
   }
 
-  if (isEnabled("aeo/non-replicable-value")) {
-    findings.push(...tag(nonReplicableValueRule(pages)));
-  }
-
   if (isEnabled("aeo/content-modularity")) {
     findings.push(...tag(contentModularityRule(pages, {
       maxParagraphWords: resolvedRules.modularityMaxParagraphWords,
@@ -348,15 +396,9 @@ function runRulesOnPages(
     findings.push(...tag(summaryBaitRule(pages, entityPatterns)));
   }
 
-  // Cannibal rules
-  if (isEnabled("cannibal/title-overlap") && modeOk("cannibal/title-overlap")) {
-    findings.push(...tag(titleOverlapRule(pages, entityPatterns, resolvedRules.titleOverlapThreshold)));
-  }
-
-  if (isEnabled("cannibal/keyword-collision") && modeOk("cannibal/keyword-collision")) {
-    findings.push(...tag(keywordCollisionRule(pages, resolvedRules.keywordCollisionMinShared)));
-  }
-
+  // Cannibal rules — only url-pattern survives in v0.4 (title-overlap and
+  // keyword-collision dropped due to high false-positive rates; see
+  // 2026-04-29 v0.4 redesign spec §4.3).
   if (isEnabled("cannibal/url-pattern") && modeOk("cannibal/url-pattern")) {
     findings.push(...tag(urlPatternRule(pages)));
   }
@@ -374,58 +416,121 @@ function hashHtml(html: string): string {
   return createHash("sha256").update(html, "utf8").digest("hex");
 }
 
-function scoreFromFindings(findings: RuleResult[]): { score: number; categoryScores: CategoryScores } {
-  const severityWeights: Record<Severity, number> = {
-    critical: 40,
-    error: 25,
-    warning: 12,
-    info: 5
+interface ScoreOutput {
+  /** v0.4 internal numeric risk (0–100, low=good). Used for thresholding logic only. */
+  risk: number;
+  /** v0.4 four-bucket categories with grades. */
+  categories: CategoryGrades;
+  /** Counts per issue bucket — for the verdict headline. */
+  bucketCounts: { blockers: number; shouldFix: number; informational: number };
+}
+
+const SEVERITY_WEIGHTS: Record<Severity, number> = {
+  critical: 40,
+  error: 25,
+  warning: 12,
+  info: 5,
+};
+
+function scoreFromFindings(findings: RuleResult[]): ScoreOutput {
+  // v0.4 four-bucket raw penalties.
+  const bucketRaw: Record<CategoryKey, number> = {
+    integrity: 0,
+    discoverability: 0,
+    citation: 0,
+    data: 0,
+    audit: 0,
+  };
+  const bucketIssues: Record<CategoryKey, number> = {
+    integrity: 0,
+    discoverability: 0,
+    citation: 0,
+    data: 0,
+    audit: 0,
   };
 
-  const raw: Record<keyof typeof CATEGORY_WEIGHTS, number> = {
-    spam: 0,
-    content: 0,
-    aeo: 0,
-    links: 0,
-    tech: 0,
-    data: 0,
-    schema: 0,
-    cannibal: 0,
-    audit: 0
-  };
+  let blockers = 0;
+  let shouldFix = 0;
+  let informational = 0;
 
   for (const finding of findings) {
-    const category = finding.ruleId.split("/")[0] as keyof typeof CATEGORY_WEIGHTS;
-    if (!(category in raw)) {
-      continue;
+    const namespace = finding.ruleId.split("/")[0];
+    const bucket = CATEGORY_MAP[namespace];
+    if (!bucket) continue;
+
+    const weight = SEVERITY_WEIGHTS[finding.severity];
+
+    // v0.4 buckets.
+    bucketRaw[bucket] = Math.min(100, bucketRaw[bucket] + weight);
+    if (bucket !== "audit") {
+      bucketIssues[bucket] += 1;
     }
-    raw[category] = Math.min(100, raw[category] + severityWeights[finding.severity]);
+
+    // Issue-bucket counts (audit/* findings are diagnostic-only and excluded).
+    if (bucket === "audit") continue;
+    if (finding.severity === "critical" || finding.severity === "error") blockers += 1;
+    else if (finding.severity === "warning") shouldFix += 1;
+    else informational += 1;
   }
 
   const weighted =
-    raw.spam * CATEGORY_WEIGHTS.spam +
-    raw.content * CATEGORY_WEIGHTS.content +
-    raw.aeo * CATEGORY_WEIGHTS.aeo +
-    raw.links * CATEGORY_WEIGHTS.links +
-    raw.tech * CATEGORY_WEIGHTS.tech +
-    raw.data * CATEGORY_WEIGHTS.data +
-    raw.schema * CATEGORY_WEIGHTS.schema +
-    raw.cannibal * CATEGORY_WEIGHTS.cannibal +
-    raw.audit * CATEGORY_WEIGHTS.audit;
+    bucketRaw.integrity * CATEGORY_WEIGHTS.integrity +
+    bucketRaw.discoverability * CATEGORY_WEIGHTS.discoverability +
+    bucketRaw.citation * CATEGORY_WEIGHTS.citation +
+    bucketRaw.data * CATEGORY_WEIGHTS.data;
+
+  const risk = Math.round(Math.min(100, weighted));
+
+  const categories: CategoryGrades = {
+    integrity:       { grade: gradeForPenalty(bucketRaw.integrity),       issues: bucketIssues.integrity },
+    discoverability: { grade: gradeForPenalty(bucketRaw.discoverability), issues: bucketIssues.discoverability },
+    citation:        { grade: gradeForPenalty(bucketRaw.citation),        issues: bucketIssues.citation },
+    data:            { grade: gradeForPenalty(bucketRaw.data),            issues: bucketIssues.data },
+    audit:           { grade: "A",                                        issues: 0 },
+  };
 
   return {
-    score: Math.round(Math.min(100, weighted)),
-    categoryScores: {
-      spam: raw.spam,
-      content: raw.content,
-      aeo: raw.aeo,
-      links: raw.links,
-      tech: raw.tech,
-      data: raw.data,
-      schema: raw.schema,
-      cannibal: raw.cannibal
-    }
+    risk,
+    categories,
+    bucketCounts: { blockers, shouldFix, informational },
   };
+}
+
+function bucketIssues(findings: RuleResult[]): IssueBuckets {
+  const blockers: RuleResult[] = [];
+  const shouldFix: RuleResult[] = [];
+  const informational: RuleResult[] = [];
+  for (const f of findings) {
+    // audit/* findings are diagnostics and never appear in issue buckets.
+    if (f.ruleId.startsWith("audit/")) continue;
+    if (f.severity === "critical" || f.severity === "error") blockers.push(f);
+    else if (f.severity === "warning") shouldFix.push(f);
+    else informational.push(f);
+  }
+  return { blockers, shouldFix, informational };
+}
+
+function buildHeadline(counts: { blockers: number; shouldFix: number; informational: number }): string {
+  const parts: string[] = [];
+  if (counts.blockers > 0) {
+    parts.push(`${counts.blockers} ship-blocker${counts.blockers === 1 ? "" : "s"}`);
+  }
+  if (counts.shouldFix > 0) {
+    parts.push(`${counts.shouldFix} should-fix`);
+  }
+  if (counts.informational > 0 && parts.length < 2) {
+    parts.push(`${counts.informational} informational`);
+  }
+  if (parts.length === 0) return "No issues detected.";
+  return parts.join(", ");
+}
+
+/** Populate `docsUrl` on every finding that doesn't already have one. */
+function withDocsUrls(findings: RuleResult[]): RuleResult[] {
+  for (const f of findings) {
+    if (!f.docsUrl) f.docsUrl = docsUrlFor(f.ruleId);
+  }
+  return findings;
 }
 
 async function collectHtmlFiles(directory: string): Promise<string[]> {
@@ -632,8 +737,13 @@ function matchGlob(pattern: string, value: string): boolean {
 
 function shouldIgnore(url: string, patterns: string[]): boolean {
   if (patterns.length === 0) return false;
+  // v0.4 §4.5: globs match against the URL pathname only, NOT the full URL.
+  // Operator intuition: `ignore: ["dashboard/**"]` should match
+  // `https://example.com/dashboard/...` even though the full URL contains the
+  // host. Previously globs matched the full URL and silently failed for users
+  // who didn't think to write `**/dashboard/**`.
   for (const pattern of patterns) {
-    if (matchGlob(pattern, url)) return true;
+    if (globMatchPathname(pattern, url)) return true;
   }
   return false;
 }
@@ -1057,7 +1167,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       })
     : null;
 
+  // v0.4: framework gets set on the first observation that carries headers
+  // (the source URL fetch). Backpressure thresholds and computeReadiness use
+  // it to soften limits when auditing a dev server.
+  let detectedFramework: DetectedFramework | null = null;
+
   const onObservation = (obs: FetchObservation): void => {
+    if (detectedFramework === null && obs.headers) {
+      detectedFramework = detectDevServer(obs.headers);
+    }
     observer.record(obs);
     if (!monitor) return;
     const decision = monitor.record(obs);
@@ -1088,10 +1206,6 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     metaUniquenessMinJaccard:
       options?.rules?.metaUniquenessMinJaccard ?? DEFAULTS.metaUniquenessMinJaccard,
     linkDepthMaxClicks: options?.rules?.linkDepthMaxClicks ?? DEFAULTS.linkDepthMaxClicks,
-    hubPagesMinSiblings: options?.rules?.hubPagesMinSiblings ?? DEFAULTS.hubPagesMinSiblings,
-    hubPagesMaxSiblings: options?.rules?.hubPagesMaxSiblings ?? DEFAULTS.hubPagesMaxSiblings,
-    titleOverlapThreshold: options?.rules?.titleOverlapThreshold ?? DEFAULTS.titleOverlapThreshold,
-    keywordCollisionMinShared: options?.rules?.keywordCollisionMinShared ?? DEFAULTS.keywordCollisionMinShared,
     templateCoverageMinPages: options?.rules?.templateCoverageMinPages ?? DEFAULTS.templateCoverageMinPages,
     answerFirstMaxWords: options?.rules?.answerFirstMaxWords ?? DEFAULTS.answerFirstMaxWords,
     citableFactsMin: options?.rules?.citableFactsMin ?? DEFAULTS.citableFactsMin,
@@ -1131,9 +1245,36 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const fillBudgetViaLinkDiscovery = options?.fillBudgetViaLinkDiscovery ?? false;
   const maxFetchBytes = options?.maxFetchBytes ?? preset.maxFetchBytes ?? 52_428_800;
   const fetchByteBudget: ByteBudget = { used: 0, cap: maxFetchBytes };
+
+  // v0.4 §4.7: detectedFramework is set in onObservation above, side-effect
+  // of the normal source URL fetch. No separate probe needed.
+
   const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered);
   throwIfAborted();
   const loadedPages = [...loadedPagesRaw];
+
+  // v0.4 §4.7: content-type-aware crawling. Filter out fetched URLs whose
+  // response Content-Type is not HTML (text/html or application/xhtml+xml).
+  // Binary routes like /apple-icon, /opengraph-image, /icon get pushed to
+  // crawlStats.skipped instead of being parsed as thin-content pages.
+  const skippedByContentType: string[] = [];
+  const htmlOnlyPages: LoadedPage[] = [];
+  for (const p of loadedPages) {
+    // httpMeta is set on URL fetches; locally-loaded files have no httpMeta
+    // and are always HTML by definition (collectHtmlFiles only picks .html).
+    // We don't have content-type on the LoadedPage object. Heuristic: if html
+    // body doesn't contain any HTML markers, treat as non-HTML.
+    if (!p.httpMeta) {
+      htmlOnlyPages.push(p);
+      continue;
+    }
+    if (looksLikeHtml(p.html)) {
+      htmlOnlyPages.push(p);
+    } else {
+      skippedByContentType.push(p.url);
+    }
+  }
+  loadedPages.splice(0, loadedPages.length, ...htmlOnlyPages);
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
@@ -1287,26 +1428,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     });
   }
 
-  const readiness = computeReadiness(observer.getAll());
-  if (readiness) {
-    const severity: Severity =
-      readiness.verdict === "not-ready" ? "error" :
-      readiness.verdict === "concerning" ? "warning" : "info";
-    const pct = (n: number): string => `${Math.round(n * 100)}%`;
-    const msg =
-      readiness.verdict === "ready"
-        ? `Origin handled the crawl: median ${readiness.medianMs}ms, p95 ${readiness.p95Ms}ms across ${readiness.liveFetchCount} live fetches (cache assisted ${pct(readiness.cacheAssistRatio)}).`
-        : readiness.verdict === "concerning"
-        ? `Origin latency was high during the crawl: median ${readiness.medianMs}ms, p95 ${readiness.p95Ms}ms. At pSEO scale, search-engine and AI-crawler bursts will likely amplify this.`
-        : `Origin looks unprepared for crawl load: p95 ${readiness.p95Ms}ms, 5xx rate ${pct(readiness.serverErrorRatio)} across ${readiness.liveFetchCount} live fetches. Expect degradation under Googlebot / AI crawler bursts.`;
-    const fix = "Add an edge cache (CDN) with sensible s-maxage, or an app-layer query cache (Redis / Next.js unstable_cache) between the route handler and the database. See https://pseolint.dev/rules/audit/origin-readiness";
-    allFindings.push({
-      ruleId: "audit/origin-readiness",
-      severity,
-      message: msg,
-      fix,
-    });
-  }
+  // v0.4 §4.4: origin readiness is now diagnostic-only. The previous
+  // `audit/origin-readiness` finding emission was retired — the structured
+  // ReadinessReport in `summary.diagnostics.originReadiness` is the canonical
+  // signal now (no double-counting in the issue buckets).
 
   const auditMode = options?.mode ?? "full";
 
@@ -1365,8 +1490,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
     allFindings.push(...findings);
     groupPageCounts[groupName] = groupPages.length;
-    const { score } = scoreFromFindings(findings);
-    groupScores[groupName] = score;
+    const { risk: groupRisk } = scoreFromFindings(findings);
+    groupScores[groupName] = groupRisk;
   }
 
   throwIfAborted();
@@ -1376,16 +1501,43 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     templateGenerated: options?.templateGenerated,
   });
 
-  const { score, categoryScores } = scoreFromFindings(enriched.findings);
+  // Populate docsUrl on every finding before they leave the engine.
+  withDocsUrls(enriched.findings);
+
+  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
+  const issues = bucketIssues(enriched.findings);
+  const verdict = verdictForRisk(risk);
+  const headline = buildHeadline(bucketCounts);
+
+  // audit/* findings are diagnostic-only and never appear in summary.issues.
+  // Surface them under diagnostics so consumers (telemetry, debug UIs) can
+  // still see what was deduped or skipped.
+  const auditFindings = enriched.findings.filter((f) => f.ruleId.startsWith("audit/"));
+
+  const readinessReport = computeReadiness(observer.getAll(), { detectedFramework });
+  const crawlStats: CrawlStats = {
+    discovered: discoveredUrlCount ?? loadedPagesRaw.length,
+    fetched: parsedPages.length,
+    skipped: skippedByContentType.length + skippedByRobots.length + skippedUrls.length,
+  };
+
   const summary: AuditSummary = {
-    score,
-    categoryScores,
+    schemaVersion: SCHEMA_VERSION,
+    verdict,
+    risk,
+    headline,
+    categories,
+    issues,
+    diagnostics: {
+      originReadiness: readinessReport,
+      crawlStats,
+      auditFindings,
+    },
     groupScores: options?.pageGroups ? groupScores : undefined,
     groupPageCounts: options?.pageGroups ? groupPageCounts : undefined,
     pageCount: auditedPageCount || parsedPages.length,
-    findings: enriched.findings,
     templateDetected: enriched.templateDetected,
     rawFindingCount: enriched.rawFindingCount,
   };
@@ -1394,9 +1546,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.cacheStats = cacheStats;
   }
 
-  const readinessReport = computeReadiness(observer.getAll());
-  if (readinessReport) {
-    summary.readiness = readinessReport;
+  // v0.4 §4.5: warn when an `ignore` pattern matched zero discovered URLs.
+  if (ignorePatterns.length > 0) {
+    for (const pattern of ignorePatterns) {
+      const matched = deduped.some((p) => globMatchPathname(pattern, p.url));
+      if (!matched) {
+        // eslint-disable-next-line no-console
+        console.warn(`[pseolint] ignore pattern '${pattern}' matched 0 URLs — likely typo`);
+      }
+    }
   }
 
   // Merge state-skipped (unchanged since last run) and robots-skipped (target
@@ -1406,10 +1564,17 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.skippedUrls = allSkipped;
   }
 
+  // Local flat view of every finding the engine produced, used internally for
+  // state persistence, regression detection, AI triage input, and telemetry
+  // counts. NOT exposed on the AuditSummary — consumers must use
+  // `summary.issues.{blockers,shouldFix,informational}` and
+  // `summary.diagnostics.auditFindings`.
+  const enrichedFindings: RuleResult[] = enriched.findings;
+
   if (priorState && options?.state?.exitOnRegression) {
     let hasRegression = false;
     const currentFindings = new Map<string, Set<string>>();
-    for (const f of summary.findings) {
+    for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
       const set = currentFindings.get(f.pageUrl) ?? new Set<string>();
       set.add(f.ruleId);
@@ -1435,7 +1600,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const renderMode: RenderMode = options.render ? "rendered" : "static";
     const urls: Record<string, UrlStateEntry> = {};
     const findingsByUrl = new Map<string, string[]>();
-    for (const f of summary.findings) {
+    for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
       const list = findingsByUrl.get(f.pageUrl) ?? [];
       if (!list.includes(f.ruleId)) list.push(f.ruleId);
@@ -1464,10 +1629,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       renderMode,
       urls,
       summary: {
-        score: summary.score,
-        totalFindings: summary.findings.length,
+        score: summary.risk,
+        totalFindings: enrichedFindings.length,
         byCategory: Object.fromEntries(
-          Object.entries(summary.categoryScores).map(([k, v]) => [k, v])
+          (Object.entries(summary.categories) as [string, { issues: number }][])
+            .map(([k, v]) => [k, v.issues])
         ),
       },
     };
@@ -1512,7 +1678,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
       throwIfAborted();
 
-      const outcome = await triageFindings(summary.findings, summary.pageCount, {
+      const outcome = await triageFindings(enrichedFindings, summary.pageCount, {
         enabled: true,
         model: resolved.model,
         providerId: resolved.providerId,
@@ -1547,9 +1713,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       runId,
       timestamp: new Date().toISOString(),
       durationMs: Date.now() - runStartedAt,
-      score: summary.score,
+      score: summary.risk,
       pageCount: summary.pageCount,
-      findingCount: summary.findings.length,
+      findingCount: enrichedFindings.length,
       ...(summary.rawFindingCount !== undefined && { rawFindingCount: summary.rawFindingCount }),
       ...(summary.templateDetected !== undefined && { templateDetected: summary.templateDetected }),
       ...(summary.cacheStats && { cacheStats: summary.cacheStats }),
@@ -1607,7 +1773,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const aiHintEnabled = options?.ai?.suggest !== false;
   if (aiHintEnabled && !options?.ai?.enabled && process.env.ANTHROPIC_API_KEY) {
     console.error(
-      `💡 AI triage available — re-run with --ai to prioritize ${summary.findings.length} findings into a fix list.`,
+      `💡 AI triage available — re-run with --ai to prioritize ${enrichedFindings.length} findings into a fix list.`,
     );
   }
 

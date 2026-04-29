@@ -130,8 +130,8 @@ describe("enrichFindings — clustering", () => {
     const findings = [
       makeFinding("spam/near-duplicate", "A", "B", 0.9),
       {
-        ...makeFinding("cannibal/keyword-collision", "A", "B", 0.8),
-        message: "A and B share keywords.",
+        ...makeFinding("spam/entity-swap", "A", "B", 0.8),
+        message: "A and B share entity-swapped boilerplate.",
       },
     ];
 
@@ -144,7 +144,7 @@ describe("enrichFindings — clustering", () => {
 
     const ruleIds = clusters.map((c) => c.ruleId).sort();
     expect(ruleIds).toEqual([
-      "cannibal/keyword-collision",
+      "spam/entity-swap",
       "spam/near-duplicate",
     ]);
   });
@@ -201,7 +201,7 @@ describe("enrichFindings — template detection", () => {
 
   it("respects templateGenerated config override", () => {
     const findings: RuleResult[] = [
-      { ruleId: "tech/og-completeness", severity: "warning", message: "Missing og tags.", pageUrl: "https://a.com/1" },
+      { ruleId: "tech/canonical-consistency", severity: "warning", message: "Missing og tags.", pageUrl: "https://a.com/1" },
     ];
     const pages = [makePage("https://a.com/1")];
     const result = enrichFindings(findings, pages, { templateGenerated: true });
@@ -210,11 +210,11 @@ describe("enrichFindings — template detection", () => {
 });
 
 describe("enrichFindings — effort assignment", () => {
-  it("assigns quick effort to og-completeness with few pages", () => {
+  it("assigns quick effort to canonical-consistency with few pages", () => {
     const findings: RuleResult[] = [
-      { ruleId: "tech/og-completeness", severity: "warning", message: "Missing.", pageUrl: "https://a.com/1" },
-      { ruleId: "tech/og-completeness", severity: "warning", message: "Missing.", pageUrl: "https://a.com/2" },
-      { ruleId: "tech/og-completeness", severity: "warning", message: "Missing.", pageUrl: "https://a.com/3" },
+      { ruleId: "tech/canonical-consistency", severity: "warning", message: "Missing.", pageUrl: "https://a.com/1" },
+      { ruleId: "tech/canonical-consistency", severity: "warning", message: "Missing.", pageUrl: "https://a.com/2" },
+      { ruleId: "tech/canonical-consistency", severity: "warning", message: "Missing.", pageUrl: "https://a.com/3" },
     ];
     const pages = [makePage("https://a.com/1"), makePage("https://a.com/2"), makePage("https://a.com/3")];
     const result = enrichFindings(findings, pages);
@@ -223,7 +223,7 @@ describe("enrichFindings — effort assignment", () => {
 
   it("escalates quick to moderate when > 20 pages affected", () => {
     const findings: RuleResult[] = Array.from({ length: 21 }, (_, i) => ({
-      ruleId: "tech/og-completeness" as const,
+      ruleId: "tech/canonical-consistency" as const,
       severity: "warning" as const,
       message: "Missing.",
       pageUrl: `https://a.com/${i}`,
@@ -235,7 +235,7 @@ describe("enrichFindings — effort assignment", () => {
 
   it("does not escalate at exactly 20 pages", () => {
     const findings: RuleResult[] = Array.from({ length: 20 }, (_, i) => ({
-      ruleId: "tech/og-completeness" as const,
+      ruleId: "tech/canonical-consistency" as const,
       severity: "warning" as const,
       message: "Missing.",
       pageUrl: `https://a.com/${i}`,

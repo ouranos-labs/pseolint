@@ -63,7 +63,7 @@ export const audits = pgTable("audit", {
   sourceUrl: text("source_url").notNull(),
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "expired">().notNull().default("queued"),
   isPublic: boolean("is_public").notNull().default(true),
-  score: integer("score"),
+  risk: integer("risk"),
   pageCount: integer("page_count"),
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
@@ -76,7 +76,7 @@ export const audits = pgTable("audit", {
 }, (t) => ({
   userIdx: index("audit_user_idx").on(t.userId),
   anonIdx: index("audit_anon_idx").on(t.anonSessionId),
-  leaderboardIdx: index("audit_leaderboard_idx").on(t.isPublic, t.status, t.score),
+  leaderboardIdx: index("audit_leaderboard_idx").on(t.isPublic, t.status, t.risk),
   expiresIdx: index("audit_expires_idx").on(t.expiresAt),
   slugIdx: uniqueIndex("audit_slug_uniq").on(t.slug),
 }));
@@ -92,7 +92,7 @@ export const monitoredDomains = pgTable("monitored_domain", {
   alertEmail: text("alert_email"),
   alertThreshold: integer("alert_threshold").notNull().default(10),
   lastAuditId: uuid("last_audit_id"),
-  lastScore: integer("last_score"),
+  lastRisk: integer("last_risk"),
   lastRunAt: timestamp("last_run_at", { withTimezone: true }),
   lastFullRunAt: timestamp("last_full_run_at", { withTimezone: true }),
   nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),
@@ -123,8 +123,8 @@ export const monitoringAlerts = pgTable("monitoring_alert", {
   monitoredDomainId: uuid("monitored_domain_id").notNull().references(() => monitoredDomains.id, { onDelete: "cascade" }),
   auditId: uuid("audit_id").notNull(),
   previousAuditId: uuid("previous_audit_id"),
-  previousScore: integer("previous_score"),
-  currentScore: integer("current_score").notNull(),
+  previousRisk: integer("previous_risk"),
+  currentRisk: integer("current_risk").notNull(),
   newRuleIds: text("new_rule_ids").array().notNull().default([]),
   deliveredAt: timestamp("delivered_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -231,7 +231,7 @@ export const usageLog = pgTable("usage_log", {
 
 export const alertDefaults = pgTable("alert_default", {
   userId: text("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
-  scoreDropThreshold: integer("score_drop_threshold").notNull().default(10),
+  riskRiseThreshold: integer("risk_rise_threshold").notNull().default(10),
   recipientEmails: text("recipient_emails").array().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

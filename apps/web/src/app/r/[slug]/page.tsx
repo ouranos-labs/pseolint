@@ -2,7 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
-import type { AuditSummary } from "@pseolint/core";
+import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04 } from "@/lib/audit-types";
+import { isV04Summary } from "@/lib/audit-types";
 import { db } from "@/db";
 import { audits, monitoredDomains } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
@@ -91,7 +92,12 @@ export default async function Page({
   if (!isReady(row)) notFound();
 
   const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
-  const summary: AuditSummary | null = summaryRaw ? safeParse<AuditSummary>(summaryRaw) : null;
+  // R2 holds a mix of v0.3 and v0.4 blobs — shape-detect at the renderer.
+  // `isV04Summary` discriminates on `schemaVersion` presence, so we can fan
+  // out into the appropriate hero / findings UI without risking field-access
+  // crashes against the wrong shape.
+  const summary: AnyAuditSummary | null = summaryRaw ? safeParse<AnyAuditSummary>(summaryRaw) : null;
+  const isV04 = summary ? isV04Summary(summary) : false;
 
   const domainHost = (() => { try { return new URL(row.sourceUrl).host; } catch { return null; } })();
   const originUrl = (() => {
@@ -136,14 +142,33 @@ export default async function Page({
 
   const shareUrl = absoluteUrl(`/r/${slug}`);
   const host = hostOf(row.sourceUrl);
-  const score = row.score ?? 0;
-  const tone = scoreTone(score);
-  const verdict = scoreVerdict(score);
+  // Legacy v0.3 numeric score — only read on the legacy hero path. v0.4 reports
+  // never display a numeric headline; the verdict ladder is the only public
+  // signal (per Wave 3b spec — no "84/100" anywhere in the v0.4 view).
+  // Sourced from the v0.3 summary blob, NOT the DB row — Agent A renamed the
+  // `audits.score` column to `audits.risk`. Legacy display reads from the
+  // archived JSON, which is the right place anyway (the report's own data).
+  const legacyScore = summary && !isV04 ? Math.round((summary as AuditSummaryV03).score ?? 0) : 0;
   const completedAgo = relTime(row.completedAt ?? row.createdAt);
 
-  const tileStates = summary ? summaryToTileStates(summary) : [];
-  const counts = summary ? severityCounts(summary) : null;
-  const cleanPages = summary ? cleanPageCount(summary) : null;
+  // audit-tiles helpers were updated by Agent C to read the v0.4 issues
+  // buckets. Pass v0.4 summaries directly; for v0.3 we synthesize a minimal
+  // v0.4-shaped projection so tile counts still render for legacy reports.
+  const tileStates = summary
+    ? isV04
+      ? summaryToTileStates(summary as AuditSummaryV04)
+      : summaryToTileStates(legacyToV04Projection(summary as AuditSummaryV03))
+    : [];
+  const counts = summary
+    ? isV04
+      ? severityCounts(summary as AuditSummaryV04)
+      : severityCounts(legacyToV04Projection(summary as AuditSummaryV03))
+    : null;
+  const cleanPages = summary
+    ? isV04
+      ? cleanPageCount(summary as AuditSummaryV04)
+      : cleanPageCount(legacyToV04Projection(summary as AuditSummaryV03))
+    : null;
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
@@ -202,57 +227,27 @@ export default async function Page({
 
       <HowToRead pageCount={row.pageCount ?? 0} />
 
-      <div className="mt-6 grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
-        <div className="flex flex-col items-start">
-          <span
-            className={`leading-[0.9] tabular-nums ${tone}`}
-            style={{ fontSize: "128px", fontFamily: "var(--font-display)" }}
-          >
-            {score}
-          </span>
-          <span className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-            Risk score · lower is safer
-          </span>
-          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
-            <span className={`inline-block h-1 w-1 rounded-full ${toneDot(score)}`} />
-            {verdict}
-          </span>
-        </div>
+      {summary && !isV04 ? <LegacyFormatBanner /> : null}
 
-        <div className="flex flex-col gap-5">
-          {tileStates.length > 0 ? (
-            <TileGrid
-              states={tileStates}
-              title={`${host} — worst rule per page across ${tileStates.length} tiles`}
-            />
-          ) : (
-            <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
-              Tile map unavailable for this audit. Full report below.
-            </div>
-          )}
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-            <Stat label="Pages" value={row.pageCount ?? 0} tone="text-foreground" />
-            <Stat
-              label="Errors"
-              value={counts?.errors ?? 0}
-              tone="text-destructive"
-              placeholder={!counts}
-            />
-            <Stat
-              label="Warnings"
-              value={counts?.warnings ?? 0}
-              tone="text-warning"
-              placeholder={!counts}
-            />
-            <Stat
-              label="Clean pages"
-              value={cleanPages ?? 0}
-              tone="text-success"
-              placeholder={cleanPages == null}
-            />
-          </dl>
-        </div>
-      </div>
+      {summary && isV04 ? (
+        <V04Hero
+          summary={summary as AuditSummaryV04}
+          host={host}
+          tileStates={tileStates}
+          pageCount={row.pageCount ?? 0}
+          counts={counts}
+          cleanPages={cleanPages}
+        />
+      ) : (
+        <LegacyHero
+          score={legacyScore}
+          host={host}
+          tileStates={tileStates}
+          pageCount={row.pageCount ?? 0}
+          counts={counts}
+          cleanPages={cleanPages}
+        />
+      )}
 
       <CoverageCallout pageCount={row.pageCount ?? 0} />
 
@@ -308,7 +303,7 @@ export default async function Page({
 
           <section className="mt-14">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Category scores
+              {isV04 ? "Category grades" : "Category scores"}
             </h2>
             <CategoryBreakdown summary={summary} />
           </section>
@@ -316,7 +311,9 @@ export default async function Page({
           <section className="mt-14">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Findings · {summary.findings.filter((f) => f.ruleId !== "audit/origin-readiness").length}
+                {isV04
+                  ? `Findings · ${countV04Findings(summary as AuditSummaryV04)}`
+                  : `Findings · ${(summary as AuditSummaryV03).findings.filter((f) => f.ruleId !== "audit/origin-readiness").length}`}
               </h2>
               <span className="font-mono text-xs text-muted-foreground">
                 sampled {summary.pageCount} page{summary.pageCount === 1 ? "" : "s"}
@@ -349,6 +346,337 @@ export default async function Page({
       </section>
     </main>
   );
+}
+
+type SeverityCounts = { errors: number; warnings: number; infos: number } | null;
+
+function LegacyFormatBanner() {
+  return (
+    <div className="mt-6 flex flex-wrap items-start gap-3 rounded-[18px] border border-border/60 bg-card/40 p-4 text-xs text-muted-foreground sm:flex-nowrap sm:items-center">
+      <span aria-hidden className="text-base leading-none">ℹ</span>
+      <p className="flex-1 leading-relaxed">
+        This report uses the <span className="font-medium text-foreground">legacy v0.3 format</span>.
+        The scoring model and category breakdown shown below are preserved as-written.{" "}
+        <Link href="/" className="text-primary hover:underline">
+          Re-audit
+        </Link>{" "}
+        for the new view.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * v0.4 hero — verdict ladder + 4 category grades. NO numeric "84/100".
+ * The internal `risk` integer is intentionally never displayed; the verdict
+ * tier is the only public signal so that small score drift doesn't read as a
+ * regression to non-technical users.
+ */
+function V04Hero({
+  summary,
+  host,
+  tileStates,
+  pageCount,
+  counts,
+  cleanPages,
+}: {
+  summary: AuditSummaryV04;
+  host: string;
+  tileStates: import("@/components/landing/tile-grid").TileState[];
+  pageCount: number;
+  counts: SeverityCounts;
+  cleanPages: number | null;
+}) {
+  const v = verdictTone(summary.verdict);
+  return (
+    <div
+      className={`mt-6 grid gap-6 rounded-[28px] border ${v.border} ${v.bg} p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-stretch sm:gap-10 sm:p-8`}
+    >
+      <div className="flex flex-col items-start justify-between gap-5">
+        <div>
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Verdict</span>
+          <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border-strong bg-card px-3 py-1.5">
+            <span className={`inline-block h-2 w-2 rounded-full ${v.dot}`} />
+            <span
+              className={`text-2xl tabular-nums ${v.tone}`}
+              style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
+            >
+              {v.label}
+            </span>
+          </div>
+          <p className="mt-3 max-w-md text-sm leading-relaxed text-foreground">{summary.headline}</p>
+        </div>
+
+        <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
+          {(
+            [
+              { key: "integrity", label: "Integrity" },
+              { key: "discoverability", label: "Discoverability" },
+              { key: "citation", label: "Citation" },
+              { key: "data", label: "Data" },
+            ] as const
+          ).map(({ key, label }) => {
+            const cat = summary.categories[key];
+            if (!cat) return null;
+            const g = gradeTone(cat.grade);
+            return (
+              <div
+                key={key}
+                className={`rounded-[14px] border ${g.border} ${g.bg} p-3 text-center`}
+                title={`${label}: ${cat.issues} ${cat.issues === 1 ? "issue" : "issues"}`}
+              >
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+                <div
+                  className={`mt-1 leading-none tabular-nums ${g.tone}`}
+                  style={{ fontFamily: "var(--font-display)", fontSize: "40px" }}
+                >
+                  {cat.grade}
+                </div>
+                <div className="mt-1 font-mono text-[10px] text-muted-foreground">
+                  {cat.issues} {cat.issues === 1 ? "issue" : "issues"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {tileStates.length > 0 ? (
+          <TileGrid
+            states={tileStates}
+            title={`${host} — worst rule per page across ${tileStates.length} tiles`}
+          />
+        ) : (
+          <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
+            Tile map unavailable for this audit. Full report below.
+          </div>
+        )}
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-5">
+          <Stat label="Pages" value={pageCount} tone="text-foreground" />
+          <Stat
+            label="Blockers"
+            value={summary.issues.blockers.length}
+            tone="text-destructive"
+          />
+          <Stat
+            label="Should fix"
+            value={summary.issues.shouldFix.length}
+            tone="text-warning"
+          />
+          <Stat
+            label="Info"
+            value={summary.issues.informational.length}
+            tone="text-muted-foreground"
+          />
+          <Stat
+            label="Clean pages"
+            value={cleanPages ?? 0}
+            tone="text-success"
+            placeholder={cleanPages == null}
+          />
+        </dl>
+        {/* Counts kept for symmetry but not surfaced — v0.4 prefers the bucket counts above. */}
+        <span className="hidden">{counts ? counts.errors : 0}</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Legacy v0.3 hero — preserved for posterity. Renders the original numeric
+ * 84/100 + scoreVerdict label exactly as before.
+ */
+function LegacyHero({
+  score,
+  host,
+  tileStates,
+  pageCount,
+  counts,
+  cleanPages,
+}: {
+  score: number;
+  host: string;
+  tileStates: import("@/components/landing/tile-grid").TileState[];
+  pageCount: number;
+  counts: SeverityCounts;
+  cleanPages: number | null;
+}) {
+  const tone = scoreTone(score);
+  const verdict = scoreVerdict(score);
+  return (
+    <div className="mt-6 grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
+      <div className="flex flex-col items-start">
+        <span
+          className={`leading-[0.9] tabular-nums ${tone}`}
+          style={{ fontSize: "128px", fontFamily: "var(--font-display)" }}
+        >
+          {score}
+        </span>
+        <span className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
+          Risk score · lower is safer
+        </span>
+        <span className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border-strong bg-card px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+          <span className={`inline-block h-1 w-1 rounded-full ${toneDot(score)}`} />
+          {verdict}
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {tileStates.length > 0 ? (
+          <TileGrid
+            states={tileStates}
+            title={`${host} — worst rule per page across ${tileStates.length} tiles`}
+          />
+        ) : (
+          <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
+            Tile map unavailable for this audit. Full report below.
+          </div>
+        )}
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
+          <Stat label="Pages" value={pageCount} tone="text-foreground" />
+          <Stat
+            label="Errors"
+            value={counts?.errors ?? 0}
+            tone="text-destructive"
+            placeholder={!counts}
+          />
+          <Stat
+            label="Warnings"
+            value={counts?.warnings ?? 0}
+            tone="text-warning"
+            placeholder={!counts}
+          />
+          <Stat
+            label="Clean pages"
+            value={cleanPages ?? 0}
+            tone="text-success"
+            placeholder={cleanPages == null}
+          />
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Project a legacy v0.3 summary onto the v0.4 shape just enough for the
+ * tile-grid helpers (`summaryToTileStates`, `severityCounts`, `cleanPageCount`)
+ * to work. Those helpers were updated by Agent C to read v0.4's bucketed
+ * `summary.issues`. Rather than fork the helpers, we lift v0.3's flat
+ * `findings` array into bucket form here at the renderer boundary — keeps the
+ * tile code single-shape and contains the legacy compat to one place.
+ *
+ * Filters out `audit/origin-readiness` for parity with the legacy renderer
+ * (it's surfaced separately by OriginReadinessCard above the findings list).
+ */
+function legacyToV04Projection(legacy: AuditSummaryV03): AuditSummaryV04 {
+  const visible = legacy.findings.filter((f) => f.ruleId !== "audit/origin-readiness");
+  const blockers = visible.filter((f) => f.severity === "critical" || f.severity === "error");
+  const shouldFix = visible.filter((f) => f.severity === "warning");
+  const informational = visible.filter((f) => f.severity === "info");
+  // The compiled AuditSummary type from `@pseolint/core` is intentionally a
+  // superset of v0.3 + v0.4 during the migration window (deprecated v0.3
+  // fields kept on the same interface for tooling compat). The tile helpers
+  // only read `summary.issues` + `summary.pageCount`, so an `as` cast here is
+  // safe — we're narrowing to the runtime contract the helpers actually use.
+  return {
+    schemaVersion: "2026-04-v0.4",
+    verdict: "ready",
+    risk: legacy.score ?? 0,
+    headline: "",
+    categories: {
+      integrity: { grade: "A", issues: 0 },
+      discoverability: { grade: "A", issues: 0 },
+      citation: { grade: "A", issues: 0 },
+      data: { grade: "A", issues: 0 },
+      audit: { grade: "A", issues: 0 },
+    },
+    issues: { blockers, shouldFix, informational },
+    diagnostics: {
+      originReadiness: legacy.readiness ?? null,
+      crawlStats: { discovered: 0, fetched: 0, skipped: 0 },
+    },
+    pageCount: legacy.pageCount,
+    // Carry over v0.3 deprecated fields so the structurally-broader
+    // transitional type compiles against the workspace dist build.
+    score: legacy.score ?? 0,
+    categoryScores: legacy.categoryScores,
+    findings: legacy.findings,
+    readiness: legacy.readiness,
+    groupScores: legacy.groupScores,
+    groupPageCounts: legacy.groupPageCounts,
+    templateDetected: legacy.templateDetected,
+    rawFindingCount: legacy.rawFindingCount,
+  } as unknown as AuditSummaryV04;
+}
+
+function countV04Findings(summary: AuditSummaryV04): number {
+  return (
+    summary.issues.blockers.length +
+    summary.issues.shouldFix.length +
+    summary.issues.informational.length
+  );
+}
+
+function verdictTone(verdict: AuditSummaryV04["verdict"]): {
+  label: string;
+  tone: string;
+  dot: string;
+  border: string;
+  bg: string;
+} {
+  switch (verdict) {
+    case "ready":
+      return {
+        label: "Ready",
+        tone: "text-success",
+        dot: "bg-success",
+        border: "border-success/30",
+        bg: "bg-success/5",
+      };
+    case "caution":
+      return {
+        label: "Caution",
+        tone: "text-warning",
+        dot: "bg-warning",
+        border: "border-warning/30",
+        bg: "bg-warning/5",
+      };
+    case "concerning":
+      return {
+        // No orange token in this design system — use a more saturated warning
+        // for "concerning" and reserve destructive for "critical". The verdict
+        // ladder still reads in order from the surrounding context.
+        label: "Concerning",
+        tone: "text-warning",
+        dot: "bg-warning",
+        border: "border-warning/50",
+        bg: "bg-warning/10",
+      };
+    case "critical":
+      return {
+        label: "Critical",
+        tone: "text-destructive",
+        dot: "bg-destructive",
+        border: "border-destructive/40",
+        bg: "bg-destructive/5",
+      };
+  }
+}
+
+function gradeTone(grade: string): { tone: string; border: string; bg: string } {
+  if (grade === "A" || grade === "B") {
+    return { tone: "text-success", border: "border-success/30", bg: "bg-success/5" };
+  }
+  if (grade === "C") {
+    return { tone: "text-warning", border: "border-warning/30", bg: "bg-warning/5" };
+  }
+  if (grade === "D") {
+    return { tone: "text-warning", border: "border-warning/50", bg: "bg-warning/10" };
+  }
+  // F + anything else
+  return { tone: "text-destructive", border: "border-destructive/40", bg: "bg-destructive/5" };
 }
 
 function HowToRead({ pageCount }: { pageCount: number }) {

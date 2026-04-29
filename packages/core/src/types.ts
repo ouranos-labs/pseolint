@@ -1,5 +1,14 @@
 export type Severity = "info" | "warning" | "error" | "critical";
 
+/** Verdict ladder — replaces the old numeric `score` field as the user-facing signal. */
+export type Verdict = "ready" | "caution" | "concerning" | "critical";
+
+/** Letter grade per category. */
+export type Grade = "A" | "B" | "C" | "D" | "F";
+
+/** Top-level v0.4 schema version. Bumps on every breaking output change. */
+export const SCHEMA_VERSION = "2026-04-v0.4";
+
 /** Options for `normalizeAuditUrl` (HTTP identity). */
 export interface NormalizeUrlOptions {
   /** When true (default), drop `?query` for URL identity. */
@@ -42,6 +51,12 @@ export interface RuleResult {
   fix?: string;
   /** Google documentation URL backing this finding. */
   ref?: string;
+  /**
+   * Marketing-page deeplink for this rule (v0.4+). Always populated by the
+   * auditor — points to https://pseolint.dev/rules/{slug} where slug is the
+   * rule-id segment after the namespace prefix.
+   */
+  docsUrl?: string;
   /** Primary page this finding refers to, when applicable. */
   pageUrl?: string;
   /** Other URLs involved (e.g. cluster members, related pairs). */
@@ -56,15 +71,52 @@ export interface RuleResult {
   effort?: FixEffort;
 }
 
-export interface CategoryScores {
-  spam: number;
-  content: number;
-  aeo: number;
-  links: number;
-  tech: number;
-  data: number;
-  schema: number;
-  cannibal: number;
+/** v0.4 four-category bucket keys. */
+export type CategoryKey = "integrity" | "discoverability" | "citation" | "data" | "audit";
+
+/** Per-category grade + raw issue count. Audit category exists for completeness but is never weighted. */
+export interface CategoryGrade {
+  grade: Grade;
+  issues: number;
+}
+
+export type CategoryGrades = Record<CategoryKey, CategoryGrade>;
+
+/** Issues bucketed by severity — the v0.4 replacement for the flat `findings` array. */
+export interface IssueBuckets {
+  /** Severity = error or critical. Must be fixed before shipping. */
+  blockers: RuleResult[];
+  /** Severity = warning. Should be fixed before scaling. */
+  shouldFix: RuleResult[];
+  /** Severity = info. Tracked for trend analysis. */
+  informational: RuleResult[];
+}
+
+/** Crawl statistics surfaced under diagnostics. */
+export interface CrawlStats {
+  /** Total URLs the crawler considered (sitemap + discovered links). */
+  discovered: number;
+  /** URLs the crawler successfully fetched and audited. */
+  fetched: number;
+  /**
+   * URLs the crawler fetched but excluded from the rule pipeline (non-HTML
+   * content-type, dedup, robots-disallow, render budget, etc.).
+   */
+  skipped: number;
+}
+
+/** Engine-internal diagnostics — weight 0, never affects verdict. */
+export interface Diagnostics {
+  /** Origin readiness aggregate (median/p95/error ratio). Null when no live fetches occurred. */
+  originReadiness: import("./fetch-observer.js").ReadinessReport | null;
+  crawlStats: CrawlStats;
+  /**
+   * Engine-emitted `audit/*` findings (e.g. `audit/duplicate-url`,
+   * `audit/skipped-by-robots`). Always severity=info, never affect the
+   * verdict, never appear in `summary.issues`. Surfaced here so consumers
+   * (telemetry, debug UIs) can still see what was skipped or deduped.
+   */
+  auditFindings: RuleResult[];
 }
 
 /** Options for HTTP caching during audits. */
@@ -132,12 +184,27 @@ export interface AiOptions {
 }
 
 export interface AuditSummary {
-  score: number;
-  categoryScores: CategoryScores;
+  /** Schema version. v0.4 = "2026-04-v0.4". Wave 2 / 3 consumers branch on this. */
+  schemaVersion: typeof SCHEMA_VERSION;
+  /** User-facing verdict ladder. */
+  verdict: Verdict;
+  /**
+   * Internal numeric risk score (0–100, low = good). Retained for CI thresholding,
+   * trend deltas, and alert-gate diff logic. NEVER displayed to humans.
+   */
+  risk: number;
+  /** One-liner summarising counts: e.g. "3 ship-blockers, 16 should-fix". */
+  headline: string;
+  /** Per-category grade + count. */
+  categories: CategoryGrades;
+  /** Findings bucketed by severity. */
+  issues: IssueBuckets;
+  /** Engine-internal diagnostics (origin readiness, crawl stats). Weight 0. */
+  diagnostics: Diagnostics;
+
   groupScores?: Record<string, number>;
   groupPageCounts?: Record<string, number>;
   pageCount: number;
-  findings: RuleResult[];
   /** True when the enrichment pipeline detects template-generated content. */
   templateDetected?: boolean;
   /** Pre-enrichment finding count, for backward compatibility with CI scripts. */
@@ -150,10 +217,6 @@ export interface AuditSummary {
   skippedUrls?: string[];
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
-  /** Origin readiness aggregate. Present when the crawl made at least one
-   *  live (non-cache) fetch. Mirrors the `audit/origin-readiness` finding
-   *  but in structured form so UI can render numbers without parsing. */
-  readiness?: import("./fetch-observer.js").ReadinessReport;
 }
 
 export interface PageGroupConfig {
@@ -181,12 +244,6 @@ export interface AuditOptions {
     uniqueValueMinWords?: number;
     metaUniquenessMinJaccard?: number;
     linkDepthMaxClicks?: number;
-    /** Minimum pages in one directory before hub/index coverage is required. */
-    hubPagesMinSiblings?: number;
-    /** Skip hub/index checks when a directory has more than this many pages (e.g. large blogs). */
-    hubPagesMaxSiblings?: number;
-    titleOverlapThreshold?: number;
-    keywordCollisionMinShared?: number;
     templateCoverageMinPages?: number;
     /** aeo/answer-first: max words in the first paragraph for extractable answer. */
     answerFirstMaxWords?: number;
@@ -209,7 +266,12 @@ export interface AuditOptions {
   timeout?: number;
   /** Audit a random subset of N pages. 0 means all pages (default: 0). */
   sampleSize?: number;
-  /** URL/path glob patterns to exclude from the audit. */
+  /**
+   * URL/path glob patterns to exclude from the audit. v0.4: globs match
+   * against the URL pathname only (e.g. "/api/foo"), not the full URL.
+   * The auditor logs a warning at the end of the audit for any pattern that
+   * matched zero discovered URLs (likely-typo signal).
+   */
   ignore?: string[];
   crawlDiscovery?: boolean;
   /**
@@ -356,6 +418,12 @@ export interface HttpMeta {
   redirectChain: string[];
   xRobotsTag: string;
   linkHeader: string;
+  /**
+   * v0.4: lower-cased response headers. Populated for the source URL only
+   * (used by the dev-server framework detector). Other crawled pages can
+   * leave this undefined to keep the audit memory-bounded.
+   */
+  headers?: Record<string, string>;
 }
 
 export interface ParsedPage {

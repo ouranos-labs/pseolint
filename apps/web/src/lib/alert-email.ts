@@ -7,8 +7,8 @@ import type { AuditSummary } from "@pseolint/core";
 export type AlertEmailInput = {
   to: string;
   sourceUrl: string;
-  previousScore: number | null;
-  currentScore: number;
+  previousRisk: number | null;
+  currentRisk: number;
   newRuleIds: string[];
   currSummary: AuditSummary | null;
   /** Public slug for the report URL (e.g. nanoid). Use audit.slug, not audit.id. */
@@ -18,7 +18,14 @@ export type AlertEmailInput = {
 export async function sendMonitoringAlertEmail(input: AlertEmailInput): Promise<void> {
   const base = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const host = safeHost(input.sourceUrl);
-  const newFindings = (input.currSummary?.findings ?? [])
+  const allFindings = input.currSummary
+    ? [
+        ...input.currSummary.issues.blockers,
+        ...input.currSummary.issues.shouldFix,
+        ...input.currSummary.issues.informational,
+      ]
+    : [];
+  const newFindings = allFindings
     .filter((f) => input.newRuleIds.includes(f.ruleId))
     .map((f) => ({ ruleId: f.ruleId, severity: f.severity, message: f.message }));
 
@@ -26,8 +33,8 @@ export async function sendMonitoringAlertEmail(input: AlertEmailInput): Promise<
     MonitoringAlertEmail({
       host,
       sourceUrl: input.sourceUrl,
-      previousScore: input.previousScore,
-      currentScore: input.currentScore,
+      previousRisk: input.previousRisk,
+      currentRisk: input.currentRisk,
       newFindings,
       reportUrl: `${base}/r/${input.reportSlug}`,
       dashboardUrl: `${base}/dashboard`,
@@ -36,8 +43,8 @@ export async function sendMonitoringAlertEmail(input: AlertEmailInput): Promise<
 
   const resend = new Resend(env().RESEND_API_KEY);
   const subject =
-    input.previousScore != null && input.currentScore > input.previousScore
-      ? `Risk ↑ ${input.previousScore} → ${input.currentScore} on ${host}`
+    input.previousRisk != null && input.currentRisk > input.previousRisk
+      ? `Risk ↑ ${input.previousRisk} → ${input.currentRisk} on ${host}`
       : `New findings detected on ${host}`;
 
   const { error } = await resend.emails.send({

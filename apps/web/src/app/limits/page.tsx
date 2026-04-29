@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { env } from "@/lib/env";
+
+const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Limits & fair-use · pseolint",
   description:
     "What a free pseolint audit includes, the rate limits we enforce, what gets shared publicly, and how retention works. Written plainly so there are no surprises.",
+  alternates: { canonical: `${SITE_URL}/limits` },
 };
 
 export default function LimitsPage() {
@@ -21,8 +25,17 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Written plainly. No dark patterns, no asterisks hiding behind footnotes. If something here
+        Free tier: 50 pages per audit, 24-hour anonymous retention (30 days for free accounts), 3 audits per day per browser session. Pro tier: 200 pages per audit, 50 audits per day, indefinite retention. Written plainly. No dark patterns, no asterisks hiding behind footnotes. If something here
         feels unfair or unclear, reply to <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a> and we&apos;ll fix it.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+        Why publish concrete limits at all? Because every undocumented quota becomes a support
+        ticket waiting to happen, and because the operators whose sites we crawl deserve to know in
+        advance how aggressive our fetcher is allowed to be. The numbers below describe the
+        runtime envelope that the hosted scheduler enforces today: bandwidth ceilings, concurrency
+        caps, the per-host throttle, retry-after honouring, and the cooldown between forced
+        re-audits. They are tuned to be polite to small origins on shared hosting, not optimised
+        for the absolute fastest crawl we could perform against a content delivery network.
       </p>
 
       <Section title="Scope — what we actually audit">

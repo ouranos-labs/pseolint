@@ -7,7 +7,7 @@ import { HistoryRowActions } from "./history-row-actions";
 type Row = {
   slug: string;
   sourceUrl: string;
-  score: number | null;
+  risk: number | null;
   findingCount: number | null;
   completedAt: Date | null;
   createdAt: Date;
@@ -35,7 +35,7 @@ function groupByHost(rows: Row[]): Group[] {
   return Array.from(map.entries()).map(([host, rows]) => ({
     host,
     rows,
-    completedRows: rows.filter((r) => r.status === "completed" && r.score != null),
+    completedRows: rows.filter((r) => r.status === "completed" && r.risk != null),
   }));
 }
 
@@ -44,7 +44,7 @@ export async function HistoryList({ userId }: { userId: string }) {
     .select({
       slug: audits.slug,
       sourceUrl: audits.sourceUrl,
-      score: audits.score,
+      risk: audits.risk,
       findingCount: audits.findingCount,
       completedAt: audits.completedAt,
       createdAt: audits.createdAt,
@@ -77,8 +77,8 @@ function DomainGroup({ group }: { group: Group }) {
   const { host, rows, completedRows } = group;
   const latest = completedRows[0] ?? null;
   const prior = completedRows[1] ?? null;
-  const delta = latest && prior && latest.score != null && prior.score != null
-    ? latest.score - prior.score
+  const delta = latest && prior && latest.risk != null && prior.risk != null
+    ? latest.risk - prior.risk
     : null;
 
   return (
@@ -89,9 +89,9 @@ function DomainGroup({ group }: { group: Group }) {
           <span className="font-mono text-[11px] text-muted-foreground">
             {rows.length} {rows.length === 1 ? "run" : "runs"}
           </span>
-          {latest?.score != null && (
+          {latest?.risk != null && (
             <span className="font-mono text-xs tabular-nums text-foreground">
-              latest: {latest.score}
+              latest: {latest.risk}
               {delta != null && (
                 <span className={delta >= 0 ? " text-destructive" : " text-primary"}>
                   {" "}({delta >= 0 ? "+" : ""}{delta})
@@ -101,7 +101,7 @@ function DomainGroup({ group }: { group: Group }) {
           )}
         </div>
         <div className="flex items-center gap-4">
-          <Sparkline values={completedRows.slice(0, 7).map((r) => r.score!).reverse()} />
+          <Sparkline values={completedRows.slice(0, 7).map((r) => r.risk!).reverse()} />
           {prior && latest && (
             <Link
               href={`/r/compare?a=${prior.slug}&b=${latest.slug}`}
@@ -125,7 +125,7 @@ function DomainGroup({ group }: { group: Group }) {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="font-mono tabular-nums text-foreground">{r.score ?? "—"}</span>
+              <span className="font-mono tabular-nums text-foreground">{r.risk ?? "—"}</span>
               <span className="text-xs text-muted-foreground">{r.findingCount ?? 0} findings</span>
               <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">
                 View

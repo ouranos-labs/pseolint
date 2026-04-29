@@ -38,8 +38,8 @@ describe("assignFindingId", () => {
   });
 
   it("encodes ruleId in id prefix", () => {
-    const f: RuleResult = { ruleId: "tech/og-completeness", severity: "warning", message: "M" };
-    expect(assignFindingId(f).startsWith("tech/og-completeness:")).toBe(true);
+    const f: RuleResult = { ruleId: "tech/canonical-consistency", severity: "warning", message: "M" };
+    expect(assignFindingId(f).startsWith("tech/canonical-consistency:")).toBe(true);
   });
 });
 

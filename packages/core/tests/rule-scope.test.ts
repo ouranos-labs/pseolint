@@ -10,7 +10,7 @@ describe("rule scope map", () => {
       "links/orphan-pages",
       "tech/redirect-chain",
       "schema/json-ld-valid",
-      "cannibal/title-overlap",
+      "cannibal/url-pattern",
       "data/missing-binding",
     ];
     for (const id of critical) {
@@ -27,7 +27,7 @@ describe("rule scope map", () => {
 
   it("blocks corpus rules in diff mode", () => {
     expect(isRuleAllowedInDiff("spam/near-duplicate")).toBe(false);
-    expect(isRuleAllowedInDiff("cannibal/title-overlap")).toBe(false);
+    expect(isRuleAllowedInDiff("cannibal/url-pattern")).toBe(false);
     expect(isRuleAllowedInDiff("links/orphan-pages")).toBe(false);
   });
 
@@ -41,7 +41,6 @@ describe("rule scope map", () => {
     expect(isRuleAllowedInDiff("aeo/citable-facts")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/freshness-signals")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/content-modularity")).toBe(true);
-    expect(isRuleAllowedInDiff("aeo/non-replicable-value")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/llms-txt")).toBe(false);
     expect(isRuleAllowedInDiff("aeo/crawler-access")).toBe(false);
   });

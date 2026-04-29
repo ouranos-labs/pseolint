@@ -1,32 +1,56 @@
-import type { AuditSummary, FixEffort, RuleResult, Severity } from "../types.js";
+import type {
+  AuditSummary,
+  CategoryGrade,
+  CategoryGrades,
+  CategoryKey,
+  RuleResult,
+  Verdict,
+} from "../types.js";
 
-const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
+export interface MarkdownFormatOptions {
+  /** When true, list every finding bucketed by severity (kept for parity with other formatters; markdown always lists everything). */
+  verbose?: boolean;
+}
 
-function severityEmoji(severity: Severity): string {
-  switch (severity) {
-    case "critical":
-      return "🔴";
-    case "error":
-      return "🟠";
-    case "warning":
-      return "🟡";
-    case "info":
-      return "🔵";
+const VERDICT_GLYPH: Record<Verdict, string> = {
+  ready: "✅",
+  caution: "⚠️",
+  concerning: "⚠️",
+  critical: "🔴",
+};
+
+const VERDICT_LABEL: Record<Verdict, string> = {
+  ready: "Ready",
+  caution: "Caution",
+  concerning: "Concerning",
+  critical: "Critical",
+};
+
+const CATEGORY_LABEL: Record<Exclude<CategoryKey, "audit">, string> = {
+  integrity: "Integrity",
+  discoverability: "Discoverability",
+  citation: "Citation",
+  data: "Data",
+};
+
+function shortenUrl(url: string | undefined): string {
+  if (!url) return "";
+  try {
+    return new URL(url).pathname || "/";
+  } catch {
+    return url;
   }
 }
 
-function effortBadge(effort?: string): string {
-  if (!effort) return "";
-  return ` (**${effort} fix**)`;
-}
-
-function shortenUrl(url: string): string {
-  try { return new URL(url).pathname; } catch { return url; }
+function docsLink(f: RuleResult): string {
+  const url = f.docsUrl ?? `https://pseolint.dev/rules/${f.ruleId.split("/").pop() ?? f.ruleId}`;
+  return `[docs](${url})`;
 }
 
 function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): string {
   const lines: string[] = ["", "## AI Triage", ""];
-  const cost = triage.estimatedCostUsd !== undefined ? `, est $${triage.estimatedCostUsd.toFixed(2)}` : "";
+  const cost =
+    triage.estimatedCostUsd !== undefined ? `, est $${triage.estimatedCostUsd.toFixed(2)}` : "";
   const cacheLabel = triage.cacheHit ? "cached" : "cache miss";
   lines.push(
     `> _Model: ${triage.modelUsed} (${cacheLabel}). ${triage.tokenUsage.input.toLocaleString()} in / ${triage.tokenUsage.output.toLocaleString()} out${cost}._`,
@@ -41,7 +65,9 @@ function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): stri
     lines.push("|---|---|---|---|---|");
     const sorted = triage.rootCauses.slice().sort((a, b) => a.fixOrder - b.fixOrder);
     for (const c of sorted) {
-      lines.push(`| ${c.fixOrder} | ${c.label} | ${c.severity} | ${c.findingsCount} | ${c.affectedRuleIds.join(", ")} |`);
+      lines.push(
+        `| ${c.fixOrder} | ${c.label} | ${c.severity} | ${c.findingsCount} | ${c.affectedRuleIds.join(", ")} |`,
+      );
     }
     lines.push("");
     for (const c of sorted) {
@@ -52,81 +78,91 @@ function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): stri
   return lines.join("\n");
 }
 
-export function formatMarkdown(summary: AuditSummary): string {
+function renderBucket(label: string, items: RuleResult[]): string[] {
+  const lines: string[] = [];
+  if (items.length === 0) return lines;
+  lines.push(`## ${label} (${items.length})`);
+  for (const f of items) {
+    const target = f.pageUrl ? ` — ${f.pageUrl}` : "";
+    const message = f.fix ?? f.message;
+    lines.push(`- **\`${f.ruleId}\`**${target} — ${message} ${docsLink(f)}`);
+  }
+  lines.push("");
+  return lines;
+}
+
+function categoryRows(categories: CategoryGrades): string[] {
+  const rows: string[] = [];
+  const order: Array<Exclude<CategoryKey, "audit">> = [
+    "integrity",
+    "discoverability",
+    "citation",
+    "data",
+  ];
+  for (const key of order) {
+    const cell: CategoryGrade | undefined = categories[key];
+    if (!cell) continue;
+    rows.push(`| ${CATEGORY_LABEL[key]} | ${cell.grade} | ${cell.issues} |`);
+  }
+  return rows;
+}
+
+export function formatMarkdown(
+  summary: AuditSummary,
+  _options?: MarkdownFormatOptions,
+): string {
   const lines: string[] = [];
 
-  lines.push(`# pSEOlint Audit Report`);
+  lines.push(`# pseolint report`);
   lines.push("");
-  lines.push(`**SpamBrain Risk Score:** ${summary.score}/100`);
+  lines.push(
+    `**Verdict:** ${VERDICT_GLYPH[summary.verdict]} ${VERDICT_LABEL[summary.verdict]}`,
+  );
+  lines.push(`**Risk:** ${summary.risk} / 100 (lower is better)`);
+  lines.push("");
+  lines.push(`**Headline:** ${summary.headline}`);
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
+
   if (summary.templateDetected) {
     lines.push("");
-    lines.push(`> Template-generated content detected. Fix suggestions are tailored for template authors.`);
+    lines.push(
+      `> Template-generated content detected. Fix suggestions are tailored for template authors.`,
+    );
   }
+
+  lines.push("");
+  lines.push(`## Categories`);
+  lines.push("");
+  lines.push(`| Category | Grade | Issues |`);
+  lines.push(`|---|---|---|`);
+  lines.push(...categoryRows(summary.categories));
   lines.push("");
 
-  // Category scores table
-  lines.push(`## Category Scores`);
-  lines.push("");
-  lines.push(`| Category | Score |`);
-  lines.push(`|----------|------:|`);
-  for (const [name, value] of Object.entries(summary.categoryScores)) {
-    const label = name.charAt(0).toUpperCase() + name.slice(1);
-    lines.push(`| ${label} | ${value} |`);
+  // Crawl diagnostics
+  const crawl = summary.diagnostics?.crawlStats;
+  if (crawl) {
+    lines.push(
+      `_Crawl: ${crawl.fetched} fetched · ${crawl.discovered} discovered · ${crawl.skipped} skipped._`,
+    );
+    lines.push("");
   }
-  lines.push("");
 
-  // Group scores
-  if (summary.groupScores && summary.groupPageCounts) {
-    lines.push(`## Group Scores`);
-    lines.push("");
-    lines.push(`| Group | Score | Pages |`);
-    lines.push(`|-------|------:|------:|`);
-    for (const [name, value] of Object.entries(summary.groupScores)) {
-      const count = summary.groupPageCounts[name] ?? 0;
-      lines.push(`| ${name} | ${value} | ${count} |`);
-    }
-    lines.push("");
-  }
+  // Issue buckets
+  lines.push(...renderBucket("Blockers", summary.issues.blockers));
+  lines.push(...renderBucket("Should fix", summary.issues.shouldFix));
+  lines.push(...renderBucket("Informational", summary.issues.informational));
 
   // AI Triage (if present)
   if (summary.triage) {
     lines.push(renderTriageMarkdown(summary.triage));
   }
 
-  // Findings
-  lines.push(`## Findings`);
-  lines.push("");
-
-  const grouped = new Map<Severity, RuleResult[]>();
-  for (const sev of SEVERITY_ORDER) {
-    grouped.set(sev, []);
+  // Trim trailing blank lines
+  while (lines.length > 0 && lines[lines.length - 1] === "") {
+    lines.pop();
   }
-  for (const f of summary.findings) {
-    grouped.get(f.severity)!.push(f);
-  }
-
-  for (const sev of SEVERITY_ORDER) {
-    const items = grouped.get(sev)!;
-    if (items.length === 0) continue;
-
-    lines.push(`### ${severityEmoji(sev)} ${sev.charAt(0).toUpperCase() + sev.slice(1)} (${items.length})`);
-    lines.push("");
-    for (const item of items) {
-      lines.push(`- **${item.ruleId}**${effortBadge(item.effort)}: ${item.message}`);
-      if (item.context?.type === "cluster" && item.context.worstPairs.length > 0) {
-        const p = item.context.worstPairs[0];
-        lines.push(`  > Worst: ${shortenUrl(p.left)} ↔ ${shortenUrl(p.right)} (${(p.similarity * 100).toFixed(1)}%)`);
-      }
-      if (item.fix) {
-        lines.push(`  > ${item.fix}`);
-      }
-      if (item.ref) {
-        lines.push(`  > [Google reference](${item.ref})`);
-      }
-    }
-    lines.push("");
-  }
-
   return lines.join("\n");
 }
+
+// Helper used by callers that want short URLs in fix-queue listings.
+export { shortenUrl };

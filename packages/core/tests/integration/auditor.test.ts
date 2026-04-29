@@ -3,6 +3,16 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { auditSource } from "../../src/auditor.js";
+import type { AuditSummary, RuleResult } from "../../src/types.js";
+
+/** Test helper: flatten v0.4 issue buckets back into a single array. */
+function allIssues(summary: AuditSummary): RuleResult[] {
+  return [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
+}
 
 const tempDirs: string[] = [];
 
@@ -47,11 +57,12 @@ describe("auditSource", () => {
     });
 
     expect(summary.pageCount).toBe(3);
-    expect(summary.findings.some((f) => f.ruleId === "spam/near-duplicate")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "spam/entity-swap")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "spam/thin-content")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "spam/template-diversity")).toBe(true);
-    expect(summary.score).toBeGreaterThan(0);
+    const findings = allIssues(summary);
+    expect(findings.some((f) => f.ruleId === "spam/near-duplicate")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "spam/entity-swap")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "spam/thin-content")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "spam/template-diversity")).toBe(true);
+    expect(summary.risk).toBeGreaterThan(0);
   });
 
   test("throws a clear error when source path does not exist", async () => {
@@ -88,7 +99,7 @@ describe("auditSource", () => {
       rules: { publicationVelocityMaxPerDay: 1 }
     });
     expect(summary.pageCount).toBe(2);
-    expect(summary.findings.some((f) => f.ruleId === "spam/publication-velocity")).toBe(false);
+    expect(allIssues(summary).some((f) => f.ruleId === "spam/publication-velocity")).toBe(false);
   });
 
   test("emits audit/duplicate-url when normalized URLs repeat with different HTML", async () => {
@@ -115,7 +126,10 @@ describe("auditSource", () => {
     }) as typeof fetch;
 
     const summary = await auditSource("https://example.dev/sitemap-dup.xml");
-    expect(summary.findings.some((f) => f.ruleId === "audit/duplicate-url")).toBe(true);
+    // audit/* findings are diagnostic-only in v0.4 — excluded from the issue
+    // buckets, surfaced under `summary.diagnostics.auditFindings`.
+    expect(allIssues(summary).some((f) => f.ruleId === "audit/duplicate-url")).toBe(false);
+    expect(summary.diagnostics.auditFindings.some((f) => f.ruleId === "audit/duplicate-url")).toBe(true);
     expect(summary.pageCount).toBe(1);
   });
 
@@ -187,7 +201,7 @@ describe("auditSource", () => {
     await writeFile(join(dir, "c.html"), html("C"), "utf-8");
 
     const summary = await auditSource(dir, { rules: { publicationVelocityMaxPerDay: 2 } });
-    expect(summary.findings.some((f) => f.ruleId === "spam/publication-velocity")).toBe(true);
+    expect(allIssues(summary).some((f) => f.ruleId === "spam/publication-velocity")).toBe(true);
   });
 
   test("user entity pattern missing 'g' flag is auto-normalized", async () => {
@@ -233,13 +247,13 @@ describe("auditSource", () => {
 
     // Default target (8) should flag citable-facts on this single-fact page.
     const defaultRun = await auditSource(dir);
-    expect(defaultRun.findings.some((f) => f.ruleId === "aeo/citable-facts")).toBe(true);
+    expect(allIssues(defaultRun).some((f) => f.ruleId === "aeo/citable-facts")).toBe(true);
 
     // Lowering the target below 1 makes the same page pass the citable-facts check.
     const tuned = await auditSource(dir, {
       rules: { citableFactsMin: 1, citableFactsTarget: 1 },
     });
-    expect(tuned.findings.some((f) => f.ruleId === "aeo/citable-facts")).toBe(false);
+    expect(allIssues(tuned).some((f) => f.ruleId === "aeo/citable-facts")).toBe(false);
   });
 
   test("AbortSignal cancels audit mid-run", async () => {
@@ -330,9 +344,14 @@ describe("auditSource", () => {
     await writeFile(join(dir, "nv.html"), pageB, "utf-8");
 
     const summary = await auditSource(dir);
-    expect(summary.findings.some((f) => f.ruleId === "content/unique-value")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "content/heading-uniqueness")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "content/meta-uniqueness")).toBe(true);
+    expect(summary.issues).toBeDefined();
+    const allFindings = [
+      ...summary.issues.blockers,
+      ...summary.issues.shouldFix,
+      ...summary.issues.informational,
+    ];
+    expect(allFindings.some((f) => f.ruleId === "content/unique-value")).toBe(true);
+    expect(allFindings.some((f) => f.ruleId === "content/meta-uniqueness")).toBe(true);
   });
 
   test("flags orphan pages, dead ends, and deep links", async () => {
@@ -370,12 +389,13 @@ describe("auditSource", () => {
     await writeFile(join(dir, "orphan.html"), orphanHtml, "utf-8");
 
     const summary = await auditSource(dir);
-    expect(summary.findings.some((f) => f.ruleId === "links/orphan-pages")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "links/dead-ends")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "links/link-depth")).toBe(true);
+    const findings = allIssues(summary);
+    expect(findings.some((f) => f.ruleId === "links/orphan-pages")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "links/dead-ends")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "links/link-depth")).toBe(true);
   });
 
-  test("flags isolated directory clusters and missing hubs", async () => {
+  test("flags isolated directory clusters", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-cluster-"));
     tempDirs.push(dir);
 
@@ -400,33 +420,7 @@ describe("auditSource", () => {
     );
 
     const summary = await auditSource(dir);
-    expect(summary.findings.some((f) => f.ruleId === "links/cluster-connectivity")).toBe(true);
-
-    const hubDir = join(dir, "many-siblings");
-    await mkdir(hubDir, { recursive: true });
-    await writeFile(
-      join(hubDir, "s0.html"),
-      `<html><body><h1>S0</h1><p>${"s ".repeat(200)}</p></body></html>`,
-      "utf-8"
-    );
-    await writeFile(
-      join(hubDir, "s1.html"),
-      `<html><body><h1>S1</h1><p>${"s ".repeat(200)}</p></body></html>`,
-      "utf-8"
-    );
-    await writeFile(
-      join(hubDir, "s2.html"),
-      `<html><body><h1>S2</h1><p>${"s ".repeat(200)}</p></body></html>`,
-      "utf-8"
-    );
-    await writeFile(
-      join(hubDir, "s3.html"),
-      `<html><body><h1>S3</h1><p>${"s ".repeat(200)}</p></body></html>`,
-      "utf-8"
-    );
-
-    const hubSummary = await auditSource(dir);
-    expect(hubSummary.findings.some((f) => f.ruleId === "links/hub-pages")).toBe(true);
+    expect(allIssues(summary).some((f) => f.ruleId === "links/cluster-connectivity")).toBe(true);
   });
 
   test("emits technical SEO findings", async () => {
@@ -460,11 +454,11 @@ describe("auditSource", () => {
     await writeFile(join(dir, "state.html"), stateHtml, "utf-8");
 
     const summary = await auditSource(dir);
-    expect(summary.findings.some((f) => f.ruleId === "tech/canonical-consistency")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "tech/canonical-noindex-conflict")).toBe(false);
-    expect(summary.findings.some((f) => f.ruleId === "tech/robots-noindex-conflict")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "tech/og-completeness")).toBe(true);
-    expect(summary.findings.some((f) => f.ruleId === "tech/hreflang-consistency")).toBe(true);
+    const findings = allIssues(summary);
+    expect(findings.some((f) => f.ruleId === "tech/canonical-consistency")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "tech/canonical-noindex-conflict")).toBe(false);
+    expect(findings.some((f) => f.ruleId === "tech/robots-noindex-conflict")).toBe(true);
+    expect(findings.some((f) => f.ruleId === "tech/hreflang-consistency")).toBe(true);
   });
 
   test("respects ignore patterns to exclude matching pages", async () => {
@@ -547,12 +541,13 @@ describe("auditSource", () => {
 
     expect(summary.pageCount).toBeGreaterThanOrEqual(2);
 
-    const pseoThin = summary.findings.filter(
+    const findings = allIssues(summary);
+    const pseoThin = findings.filter(
       (f) => f.ruleId === "spam/thin-content" && f.message.includes("templates")
     );
     expect(pseoThin.length).toBeGreaterThanOrEqual(1);
 
-    const marketingSpam = summary.findings.filter(
+    const marketingSpam = findings.filter(
       (f) => f.ruleId.startsWith("spam/") && (f.pageUrl?.includes("about") || f.message.includes("about"))
     );
     expect(marketingSpam.length).toBe(0);

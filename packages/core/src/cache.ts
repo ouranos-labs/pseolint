@@ -216,6 +216,7 @@ export async function cachedFetch(
       fromCache: result.fromCache,
       revalidated: (result as CachedFetchResult & { _revalidated?: boolean })._revalidated === true,
       startedAt,
+      headers: result.headers,
     });
     // Strip the internal flag before returning to the caller.
     if ("_revalidated" in (result as object)) {

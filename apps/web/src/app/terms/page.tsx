@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { env } from "@/lib/env";
+
+const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Terms of Service · pseolint",
   description:
     "The agreement between you and pseolint: acceptable use, what the service guarantees (and doesn't), billing, intellectual property, liability, and governing law.",
+  alternates: { canonical: `${SITE_URL}/terms` },
 };
 
 const EFFECTIVE = "2026-04-20";
@@ -29,6 +33,15 @@ export default function Terms() {
         These terms are the agreement between you and pseolint. By using the service, you accept
         them. We wrote them in plain English — if a clause seems unreasonable, email us and
         we&apos;ll explain or fix it.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+        Terms scope clarification: this contract binds your usage of every surface labelled
+        pseolint, whether browsed interactively from the dashboard, invoked headlessly via the
+        REST API, scheduled through the GitHub Action runner, or wired into an editor through the
+        Model Context Protocol bridge. Self-hosted CLI executions remain governed solely by the
+        Apache-2.0 licence published alongside the source. Conflicts of interpretation between this
+        agreement and the open-source licence resolve in favour of the licence for the affected
+        component. Signed amendments require both parties to countersign in writing.
       </p>
       <p className="mt-2 font-mono text-xs text-muted-foreground">
         Effective {EFFECTIVE} · contact{" "}

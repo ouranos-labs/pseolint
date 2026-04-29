@@ -10,21 +10,43 @@ import type { RuleResult } from "@pseolint/core";
 
 export const runtime = "nodejs";
 
+const FindingSchema = z.object({
+  ruleId: z.string(),
+  severity: z.enum(["info", "warning", "error", "critical"]),
+  message: z.string(),
+  pageUrl: z.string().optional(),
+  relatedUrls: z.array(z.string()).optional(),
+});
+
+const GradeSchema = z.enum(["A", "B", "C", "D", "F"]);
+
+const CategoryGradeSchema = z.object({
+  grade: GradeSchema,
+  issues: z.number(),
+});
+
 const BodySchema = z.object({
   domainId: z.string().uuid(),
   summary: z.object({
-    score: z.number(),
+    schemaVersion: z.string(),
+    verdict: z.enum(["ready", "caution", "concerning", "critical"]),
+    risk: z.number(),
+    headline: z.string().optional(),
     pageCount: z.number(),
-    findings: z.array(
-      z.object({
-        ruleId: z.string(),
-        severity: z.enum(["info", "warning", "error", "critical"]),
-        message: z.string(),
-        pageUrl: z.string().optional(),
-        relatedUrls: z.array(z.string()).optional(),
-      }),
-    ).max(10_000),
-  }),
+    categories: z.object({
+      integrity: CategoryGradeSchema,
+      discoverability: CategoryGradeSchema,
+      citation: CategoryGradeSchema,
+      data: CategoryGradeSchema,
+      audit: CategoryGradeSchema.optional(),
+    }).passthrough(),
+    issues: z.object({
+      blockers: z.array(FindingSchema).max(10_000),
+      shouldFix: z.array(FindingSchema).max(10_000),
+      informational: z.array(FindingSchema).max(10_000),
+    }),
+    diagnostics: z.unknown().optional(),
+  }).passthrough(),
 });
 
 export async function POST(req: Request): Promise<Response> {
@@ -64,7 +86,12 @@ export async function POST(req: Request): Promise<Response> {
     .set({ lastUsedAt: new Date() })
     .where(eq(uploadTokens.id, row.id));
 
-  await mergeFindings(parsed.domainId, parsed.summary.findings as RuleResult[]);
+  const allFindings = [
+    ...parsed.summary.issues.blockers,
+    ...parsed.summary.issues.shouldFix,
+    ...parsed.summary.issues.informational,
+  ];
+  await mergeFindings(parsed.domainId, allFindings as RuleResult[]);
 
-  return NextResponse.json({ ok: true, ingested: parsed.summary.findings.length });
+  return NextResponse.json({ ok: true, ingested: allFindings.length });
 }

@@ -206,7 +206,14 @@ export async function triage(
   opts?: { maxCostUsd?: number },
 ): Promise<TriageResult> {
   const resolved = await createLanguageModel({});
-  const outcome = await triageFindings(summary.findings, summary.pageCount, {
+  // v0.4: AuditSummary no longer exposes a flat `findings` array — flatten the
+  // three issue buckets so triage sees every rule-fired finding the engine emitted.
+  const allIssues = [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
+  const outcome = await triageFindings(allIssues, summary.pageCount, {
     enabled: true,
     model: resolved.model,
     providerId: resolved.providerId,

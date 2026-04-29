@@ -19,9 +19,9 @@ export default async function AlertSettings() {
       <h1 className="text-xl font-medium">Alert defaults</h1>
       <form action={updateAlertDefaultsAction} className="flex flex-col gap-5 rounded-[22px] border border-border/60 p-5">
         <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Score drop threshold</span>
-          <span className="text-xs text-muted-foreground">Triggers email when any monitored domain&apos;s score drops by this much.</span>
-          <input name="scoreDropThreshold" type="number" min={1} defaultValue={row?.scoreDropThreshold ?? 10} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
+          <span className="text-sm font-medium">Risk rise threshold</span>
+          <span className="text-xs text-muted-foreground">Triggers email when any monitored domain&apos;s risk rises by this much (lower risk = better).</span>
+          <input name="riskRiseThreshold" type="number" min={1} defaultValue={row?.riskRiseThreshold ?? 10} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Recipient emails</span>

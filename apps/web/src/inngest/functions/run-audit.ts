@@ -128,12 +128,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   await runStep("upload-summary", async () => uploadSummary(jsonKey, JSON.stringify(summary)));
 
   const completedAt = new Date();
+  const findingCount =
+    summary.issues.blockers.length +
+    summary.issues.shouldFix.length +
+    summary.issues.informational.length;
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
       status: "completed",
-      score: summary.score,
+      risk: summary.risk,
       pageCount: summary.pageCount,
-      findingCount: summary.findings.length,
+      findingCount,
       triageRootCauseCount: summary.triage?.rootCauses.length ?? null,
       triageCostUsd: summary.triage?.estimatedCostUsd != null ? String(summary.triage.estimatedCostUsd) : null,
       storageKey: jsonKey,
@@ -142,22 +146,22 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   });
 
   // Sync the monitored-domain row so the workspace header / portfolio strip /
-  // alert-delta logic see the latest score, not just the cron-run score.
+  // alert-delta logic see the latest risk, not just the cron-run risk.
   // Without this, `Re-audit now` and the initial add-domain audit silently
-  // diverge from `/r/[slug]` (which reads `audits.score` directly).
-  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.score, completedAt));
+  // diverge from `/r/[slug]` (which reads `audits.risk` directly).
+  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, completedAt));
 
   auditLog("audit.completed", {
     auditId,
-    score: summary.score,
+    risk: summary.risk,
     pageCount: summary.pageCount,
-    findingCount: summary.findings.length,
+    findingCount,
     ms: Date.now() - startedAt,
   });
-  return { ok: true as const, score: summary.score };
+  return { ok: true as const, risk: summary.risk };
 }
 
-async function syncMonitoredDomain(auditId: string, score: number, completedAt: Date): Promise<void> {
+async function syncMonitoredDomain(auditId: string, risk: number, completedAt: Date): Promise<void> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
     .from(audits)
@@ -167,7 +171,7 @@ async function syncMonitoredDomain(auditId: string, score: number, completedAt: 
   let host: string;
   try { host = new URL(audit.sourceUrl).host; } catch { return; }
   await db.update(monitoredDomains)
-    .set({ lastScore: score, lastAuditId: auditId, lastRunAt: completedAt })
+    .set({ lastRisk: risk, lastAuditId: auditId, lastRunAt: completedAt })
     .where(and(
       eq(monitoredDomains.userId, audit.userId),
       eq(monitoredDomains.host, host),

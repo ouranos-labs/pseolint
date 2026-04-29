@@ -24,6 +24,7 @@ export function uniqueValueRule(pages: ParsedPage[], minUniqueWords: number): Ru
         ruleId: "content/unique-value",
         severity: "error",
         message: `${page.url} has only ${uniqueCount} unique words (min ${minUniqueWords}).`,
+        pageUrl: page.url,
         fix: `Add ${minUniqueWords - uniqueCount} more words of content not found on any other page.`
       });
     }

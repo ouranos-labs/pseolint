@@ -16,15 +16,21 @@ describe("evaluateAlertGate", () => {
     domainId = d.id;
   });
 
-  it("triggers on score delta >= 10", async () => {
-    const out = await evaluateAlertGate({ domainId, prevScore: 80, currentScore: 65, newCombinations: [] });
+  it("triggers on risk rise >= 10", async () => {
+    // v0.4: alert when risk RISES (current > prev). Lower risk = better.
+    const out = await evaluateAlertGate({ domainId, prevRisk: 65, currentRisk: 80, newCombinations: [] });
     expect(out.shouldAlert).toBe(true);
-    expect(out.reasons).toContain("score_delta");
+    expect(out.reasons).toContain("risk_rise");
+  });
+
+  it("does not trigger when risk drops (improvement)", async () => {
+    const out = await evaluateAlertGate({ domainId, prevRisk: 80, currentRisk: 65, newCombinations: [] });
+    expect(out.shouldAlert).toBe(false);
   });
 
   it("triggers on new critical/error combination not seen before", async () => {
     const out = await evaluateAlertGate({
-      domainId, prevScore: 80, currentScore: 79,
+      domainId, prevRisk: 80, currentRisk: 79,
       newCombinations: [{ ruleId: "spam/near-duplicate", templateSignature: "__global__", severity: "error" }],
     });
     expect(out.shouldAlert).toBe(true);
@@ -33,7 +39,7 @@ describe("evaluateAlertGate", () => {
 
   it("does not trigger below thresholds", async () => {
     const out = await evaluateAlertGate({
-      domainId, prevScore: 80, currentScore: 79,
+      domainId, prevRisk: 80, currentRisk: 79,
       newCombinations: [{ ruleId: "content/missing-author", templateSignature: "sig", severity: "warning" }],
     });
     expect(out.shouldAlert).toBe(false);
@@ -41,10 +47,10 @@ describe("evaluateAlertGate", () => {
 
   it("dedups within the same ISO week", async () => {
     const combo = { ruleId: "spam/near-duplicate", templateSignature: "__global__", severity: "error" as const };
-    const first = await evaluateAlertGate({ domainId, prevScore: 80, currentScore: 79, newCombinations: [combo] });
+    const first = await evaluateAlertGate({ domainId, prevRisk: 80, currentRisk: 79, newCombinations: [combo] });
     expect(first.shouldAlert).toBe(true);
     await db.insert(alertsDedup).values({ domainId, ruleId: combo.ruleId, templateSignature: combo.templateSignature, isoWeek: isoWeekOf(new Date()) });
-    const second = await evaluateAlertGate({ domainId, prevScore: 80, currentScore: 79, newCombinations: [combo] });
+    const second = await evaluateAlertGate({ domainId, prevRisk: 80, currentRisk: 79, newCombinations: [combo] });
     expect(second.shouldAlert).toBe(false);
   });
 });
