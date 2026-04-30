@@ -182,8 +182,8 @@ export default async function ToolPage({ params }: { params: Promise<RouteParams
       <div className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
         <p>
           Want every rule, not just this lens? The full audit on the homepage
-          runs all 40+ SpamBrain + AEO rules and produces the same shareable
-          report — same backend, broader output.
+          runs the complete SpamBrain + AEO rule set and produces the same
+          shareable report — same backend, broader output.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link

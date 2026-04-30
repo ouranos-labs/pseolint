@@ -138,7 +138,7 @@ export default function LimitsPage() {
       <Section title="Accuracy caveats">
         <Item k="Sampling is lossy" v="A 50-page sample of an 860-page site can miss template clusters entirely. The score reflects what we saw, not what&apos;s there. For full coverage, monitor on Pro or make sure your sitemap is complete." />
         <Item k="No JavaScript rendering by default" v="We audit server-rendered HTML. Client-side rendered pages will look empty to us. Pro has optional browser rendering via CDP." />
-        <Item k="35 rules are a subset of SpamBrain" v="We infer plausible SpamBrain signals from public documentation, research, and observed patterns. We do not have access to Google&apos;s actual classifier and make no claim of one-to-one correspondence." />
+        <Item k="The rule set is a subset of SpamBrain" v="We infer plausible SpamBrain signals from public documentation, research, and observed patterns. We do not have access to Google&apos;s actual classifier and make no claim of one-to-one correspondence." />
         <Item k="Score is a heuristic" v="Treat it as a structured conversation, not a verdict. A low score isn&apos;t a guarantee of indexing success. A high score isn&apos;t proof SpamBrain will act." />
       </Section>
 

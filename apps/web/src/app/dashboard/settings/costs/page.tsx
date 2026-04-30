@@ -39,11 +39,11 @@ export default async function CostDashboard() {
       </p>
 
       {(agg?.auditCount ?? 0) === 0 ? (
-        <div className="rounded-[22px] border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
+        <div className="rounded-[18px] border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
           No audits this month yet. Run one from <a href="/dashboard" className="text-primary hover:underline">your portfolio</a> to start tracking usage.
         </div>
       ) : (
-        <div className="rounded-[22px] border border-border/60 p-5">
+        <div className="rounded-[18px] border border-border/60 p-5">
           <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
             <dt className="text-muted-foreground">Audits run</dt>
             <dd className="font-mono tabular-nums text-foreground">{agg?.auditCount ?? 0}</dd>

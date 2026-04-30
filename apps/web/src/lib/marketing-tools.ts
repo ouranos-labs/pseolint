@@ -92,7 +92,7 @@ export const MARKETING_TOOLS: readonly MarketingTool[] = [
       },
       {
         q: "Is the rule engine open source?",
-        a: "Yes. The full rule set lives at github.com/ouranos-labs/pseolint under the MIT license as the @pseolint/core package (v0.4.3) — you can run it locally with the CLI (`npm i -g pseolint@0.3.1`), audit your CI builds, or fork the rules. The hosted checker on this page is the same engine wrapped in a sampler and a UI.",
+        a: "Yes. The full rule set lives at github.com/ouranos-labs/pseolint under the MIT license as the @pseolint/core package (v0.4.3) — you can run it locally with the CLI (`npm i -g pseolint@0.4.3`), audit your CI builds, or fork the rules. The hosted checker on this page is the same engine wrapped in a sampler and a UI.",
       },
     ],
     related: ["thin-content-scanner", "doorway-page-detector"],

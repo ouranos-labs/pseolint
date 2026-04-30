@@ -6,8 +6,9 @@ import { db } from "@/db";
 import { monitoredDomains, findingsState } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
+import { sevDot, sevBorderBg, sevText, type Severity } from "@/lib/severity-style";
+import { FindingRowActions } from "@/components/dashboard/finding-row-actions";
 
-type Severity = "critical" | "error" | "warning" | "info";
 const SEV_RANK: Record<Severity, number> = { critical: 0, error: 1, warning: 2, info: 3 };
 const SEV_ORDER: Severity[] = ["critical", "error", "warning", "info"];
 const SEV_LABEL: Record<Severity, string> = {
@@ -142,7 +143,7 @@ export default async function UrlDeepDive({
         </div>
       </header>
 
-      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[22px] border border-border/60 bg-card/40 p-6 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[18px] border border-border/60 bg-card/40 p-6 sm:grid-cols-4">
         <Stat label="Findings" value={String(total)} tone="text-foreground" />
         <Stat label="Open" value={String(open)} tone={open > 0 ? "text-destructive" : "text-foreground"} />
         <Stat label="Suppressed" value={String(suppressed)} tone="text-muted-foreground" />
@@ -150,7 +151,7 @@ export default async function UrlDeepDive({
       </dl>
 
       {sorted.length === 0 ? (
-        <div className="rounded-[22px] border border-success/30 bg-success/5 p-8 text-center">
+        <div className="rounded-[18px] border border-success/30 bg-success/5 p-8 text-center">
           <p
             className="text-success"
             style={{
@@ -225,8 +226,11 @@ export default async function UrlDeepDive({
                             </span>
                           </div>
                           <p className="text-sm text-foreground">{r.ruleMessageLatest}</p>
-                          <div className="font-mono text-[11px] text-muted-foreground">
-                            first seen {relTime(firstSeen)} · last seen {relTime(lastSeenAt)}
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="font-mono text-[11px] text-muted-foreground">
+                              first seen {relTime(firstSeen)} · last seen {relTime(lastSeenAt)}
+                            </div>
+                            {!isSuppressed && <FindingRowActions findingId={r.id} />}
                           </div>
                         </div>
                       </article>
@@ -272,21 +276,3 @@ function relTime(d: Date): string {
   return days + "d ago";
 }
 
-function sevText(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "text-destructive";
-  if (sev === "warning") return "text-warning";
-  return "text-muted-foreground";
-}
-
-function sevDot(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "bg-destructive";
-  if (sev === "warning") return "bg-warning";
-  return "bg-muted-foreground";
-}
-
-function sevBorderBg(sev: Severity): string {
-  if (sev === "critical" || sev === "error")
-    return "border-destructive/40 bg-destructive/10 text-destructive";
-  if (sev === "warning") return "border-warning/40 bg-warning/10 text-warning";
-  return "border-border/60 bg-card/60 text-muted-foreground";
-}

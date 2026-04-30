@@ -12,6 +12,7 @@ export type AuditLogEvent =
   | "audit.request.cooldown"
   | "audit.request.deduped"
   | "audit.request.rate_limited"
+  | "audit.request.in_flight_limited"
   | "audit.created"
   | "audit.dispatched"
   | "audit.started"

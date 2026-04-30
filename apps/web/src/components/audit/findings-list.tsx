@@ -194,7 +194,7 @@ function CleanRunCard() {
         No findings. A clean run.
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
-        All 40+ rules (SpamBrain + AEO) passed on the pages we sampled. Monitor to catch regressions.
+        All SpamBrain + AEO rules passed on the pages we sampled. Monitor to catch regressions.
       </p>
     </div>
   );

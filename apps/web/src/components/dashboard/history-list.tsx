@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { getPlan } from "@/lib/plan";
 import { HistoryRowActions } from "./history-row-actions";
 
 type Row = {
@@ -40,24 +41,27 @@ function groupByHost(rows: Row[]): Group[] {
 }
 
 export async function HistoryList({ userId }: { userId: string }) {
-  const rows = await db
-    .select({
-      slug: audits.slug,
-      sourceUrl: audits.sourceUrl,
-      risk: audits.risk,
-      findingCount: audits.findingCount,
-      completedAt: audits.completedAt,
-      createdAt: audits.createdAt,
-      status: audits.status,
-    })
-    .from(audits)
-    .where(eq(audits.userId, userId))
-    .orderBy(desc(audits.createdAt))
-    .limit(100);
+  const [rows, plan] = await Promise.all([
+    db
+      .select({
+        slug: audits.slug,
+        sourceUrl: audits.sourceUrl,
+        risk: audits.risk,
+        findingCount: audits.findingCount,
+        completedAt: audits.completedAt,
+        createdAt: audits.createdAt,
+        status: audits.status,
+      })
+      .from(audits)
+      .where(eq(audits.userId, userId))
+      .orderBy(desc(audits.createdAt))
+      .limit(100),
+    getPlan(userId),
+  ]);
 
   if (!rows.length) {
     return (
-      <div className="rounded-[22px] border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+      <div className="rounded-[18px] border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
         No audits yet — run your first one above.
       </div>
     );
@@ -68,21 +72,25 @@ export async function HistoryList({ userId }: { userId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {groups.map((g) => <DomainGroup key={g.host} group={g} />)}
+      {groups.map((g) => <DomainGroup key={g.host} group={g} plan={plan} />)}
     </div>
   );
 }
 
-function DomainGroup({ group }: { group: Group }) {
+function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
   const { host, rows, completedRows } = group;
   const latest = completedRows[0] ?? null;
   const prior = completedRows[1] ?? null;
   const delta = latest && prior && latest.risk != null && prior.risk != null
     ? latest.risk - prior.risk
     : null;
+  // Surface a contextual upgrade nudge only when the user has shown intent —
+  // re-auditing the same domain twice means they care about regressions, which
+  // is exactly what monitoring solves.
+  const showMonitoringCta = plan === "free" && completedRows.length >= 2;
 
   return (
-    <section className="overflow-hidden rounded-[22px] border border-border/60 bg-card/40">
+    <section className="overflow-hidden rounded-[18px] border border-border/60 bg-card/40">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-3">
         <div className="flex items-center gap-3">
           <span className="font-medium text-foreground">{host}</span>
@@ -135,6 +143,21 @@ function DomainGroup({ group }: { group: Group }) {
           </li>
         ))}
       </ul>
+
+      {showMonitoringCta && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-primary/20 bg-primary/5 px-5 py-3 text-xs">
+          <span className="text-foreground">
+            You&apos;ve audited <span className="font-medium">{host}</span> {completedRows.length} times.
+            Want to catch regressions automatically?
+          </span>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center rounded-[12px] border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary hover:bg-primary/15"
+          >
+            Add to monitoring →
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-export function AccountMenu({ email }: { email: string }) {
+export function AccountMenu({ email, plan }: { email: string; plan: "free" | "pro" }) {
   const initials = email.slice(0, 2).toUpperCase();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -43,8 +43,16 @@ export function AccountMenu({ email }: { email: string }) {
         {initials}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+        <DropdownMenuLabel className="truncate">
+          {email}
+          <span className="ml-2 inline-flex items-center rounded-full border border-border/60 px-1.5 py-0.5 align-middle text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{plan}</span>
+        </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {plan === "free" && (
+          <DropdownMenuItem asChild>
+            <Link href="/pricing" className="block w-full font-medium text-primary">Upgrade to Pro →</Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link href="/dashboard/settings/account" className="block w-full">Account</Link>
         </DropdownMenuItem>

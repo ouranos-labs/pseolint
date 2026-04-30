@@ -91,7 +91,7 @@ export default function ToolsIndexPage() {
         Free SEO tools
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Three free SEO tools backed by the open-source pseolint engine v0.4.0 —
+        Three free SEO tools backed by the open-source pseolint engine v0.4.3 —
         SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
         signup, runs in a 60-second median. Pick a tool below; methodology and
         comparison table follow.

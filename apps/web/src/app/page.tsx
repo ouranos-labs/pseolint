@@ -181,7 +181,7 @@ export default function Home() {
               <p className="text-base leading-relaxed text-muted-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
                 and AI Overview readiness. Paste your site. In 60 seconds, see how close to the line
-                it is — across 40+ rules covering SpamBrain classifier triggers and Answer Engine
+                it is — site-type-aware scoring across SpamBrain classifier triggers and Answer Engine
                 Optimization (how citable your pages are to ChatGPT, Perplexity, and Google AI Overviews).
                 Not a general SEO audit — see scope below.
               </p>
@@ -567,7 +567,7 @@ function mapApiError(status: number, message: string): FormError {
     if (lower.includes("daily")) {
       return {
         message: "You've hit today's free audit limit (5 per day).",
-        hint: "Pro lifts it to 50 per day and unlocks 1,000-page crawls.",
+        hint: "Pro lifts it to 50 per day and unlocks 500-page manual re-audits.",
         action: { label: "See pricing", href: "/pricing" },
       };
     }

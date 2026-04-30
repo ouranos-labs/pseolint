@@ -232,7 +232,14 @@ export async function executeAuditInProcess(input: RunAuditInput) {
 }
 
 export const runAudit = inngest.createFunction(
-  { id: "run-audit", retries: 1 },
+  {
+    id: "run-audit",
+    retries: 1,
+    // Function-wide concurrency cap. Prevents a single viral moment (e.g. HN front
+    // page hit on `/`) from spawning unbounded parallel crawls. Per-host cap in
+    // /api/audits gates target-side burst; this gates worker-pool burst.
+    concurrency: { limit: 20 },
+  },
   { event: "audit/requested" },
   async ({ event, step }) => executeAudit(
     event.data,

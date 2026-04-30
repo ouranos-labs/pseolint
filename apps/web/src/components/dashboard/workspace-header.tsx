@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { reAuditNowAction, removeDomainAction } from "@/app/dashboard/domain-actions";
@@ -17,8 +18,10 @@ export function WorkspaceHeader({ domain }: {
     start(async () => {
       const res = await reAuditNowAction(domain.host);
       if (!res.ok) { setErr(res.error); return; }
-      // Standard /a → /r flow, same as free tier and add-domain.
-      router.push(`/a/${res.auditId}`);
+      // Show /a progress UI, then return to the domain workspace on completion
+      // (instead of the public /r/[slug] report) so monitoring context isn't lost.
+      const next = `/dashboard/${encodeURIComponent(domain.host)}`;
+      router.push(`/a/${res.auditId}?next=${encodeURIComponent(next)}`);
     });
   }
 
@@ -35,7 +38,7 @@ export function WorkspaceHeader({ domain }: {
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border/60 pb-5">
       <div>
         <nav className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <a href="/dashboard" className="hover:text-foreground">Portfolio</a>
+          <Link href="/dashboard" className="hover:text-foreground">Portfolio</Link>
           <span>/</span>
           <span className="text-foreground">{domain.host}</span>
         </nav>
@@ -52,7 +55,7 @@ export function WorkspaceHeader({ domain }: {
       <div className="flex flex-col items-end gap-1">
         <div className="flex items-center gap-2">
           <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
-          <a href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</a>
+          <Link href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</Link>
           <button
             onClick={() => { setErr(null); setRemoveOpen(true); }}
             disabled={pending}

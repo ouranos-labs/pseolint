@@ -17,7 +17,7 @@ export default async function AlertSettings() {
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h1 className="text-xl font-medium">Alert defaults</h1>
-      <form action={updateAlertDefaultsAction} className="flex flex-col gap-5 rounded-[22px] border border-border/60 p-5">
+      <form action={updateAlertDefaultsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Risk rise threshold</span>
           <span className="text-xs text-muted-foreground">Triggers email when any monitored domain&apos;s risk rises by this much (lower risk = better).</span>
