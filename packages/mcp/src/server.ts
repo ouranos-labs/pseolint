@@ -1,9 +1,28 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import type { ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { z } from "zod";
 import { createRequire } from "node:module";
 import { auditSource, formatConsole, formatJson } from "@pseolint/core";
 import type { AuditOptions, AuditSummary, RuleResult } from "@pseolint/core";
+
+/**
+ * MCP SDK 1.29's `inputSchema` is typed as `ZodRawShapeCompat = Record<string,
+ * z3.ZodTypeAny | z4.$ZodType>` via a zod-compat shim. zod 4.4.x's high-level
+ * `ZodString` / `ZodNumber` extend `core.$ZodType` from `zod/v4/core`, so they
+ * satisfy the runtime contract — but TypeScript 6 strict mode infers the
+ * union's z3 branch first and reports a structural mismatch against z3
+ * internals (`_type`, `_parse`, etc.) that v4 schemas don't have.
+ *
+ * We name the SDK's expected shape via `inputShape<T>()`: it accepts a
+ * Record<string, ZodTypeAny> at the call site (so each tool's schema stays
+ * authored in plain zod 4 syntax) and returns a value typed as the SDK's
+ * `ZodRawShapeCompat`. One cast, one place, no runtime cost. Handler args
+ * keep their explicit types below to compensate for the lost inference.
+ */
+function inputShape<T extends Record<string, z.ZodTypeAny>>(shape: T): T & ZodRawShapeCompat {
+  return shape as unknown as T & ZodRawShapeCompat;
+}
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -148,12 +167,12 @@ export function createServer(): McpServer {
     {
       title: "Audit Site for SpamBrain Risk",
       description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 32 rules across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless --strict is passed.",
-      inputSchema: {
+      inputSchema: inputShape({
         source: z.string().describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
         threshold: z.number().optional().default(40).describe("Risk threshold — audit fails if risk >= this value (default: 40, semantically equivalent to 'caution' verdict)"),
         sampleSize: z.number().optional().default(0).describe("Audit a random subset of N pages. 0 = all pages up to internal cap of 50 for MCP. Set explicitly to override."),
         format: z.enum(["console", "json"]).optional().default("console").describe("Output format. Use 'json' for structured data, 'console' for human-readable summary."),
-      },
+      }),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -204,10 +223,10 @@ export function createServer(): McpServer {
     {
       title: "Explain pseolint Verdict",
       description: "Use when a user wants to understand WHY their pseolint verdict is concerning/critical, what categories are failing, and what to fix first. Returns a prioritized breakdown with quick wins listed before structural fixes, plus a pass/fail verdict against the risk threshold.",
-      inputSchema: {
+      inputSchema: inputShape({
         source: z.string().describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
         threshold: z.number().optional().default(40).describe("Risk threshold for pass/fail verdict (default: 40)"),
-      },
+      }),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -238,9 +257,9 @@ export function createServer(): McpServer {
     {
       title: "Check Single Page Technical SEO",
       description: "Use when a user asks to check a specific page URL for technical SEO issues. Checks per-page rules only: canonical tags, Open Graph tags, JSON-LD schema, robots directives, meta tags, thin content, and author signals. Does NOT check cross-page rules (duplicates, cannibalization, linking) — use audit_site for those.",
-      inputSchema: {
+      inputSchema: inputShape({
         url: z.string().describe("Full URL of the page to check (e.g. https://yoursite.com/templates/california-llc)"),
-      },
+      }),
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
