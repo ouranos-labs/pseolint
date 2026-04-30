@@ -24,7 +24,7 @@ console.log(`Findings: ${summary.findings.length}`);
 
 ## What It Checks
 
-43 rules across 8 categories. Seven categories feed the composite score; `data/*` is a separate data-binding family.
+32 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
 
 - **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern
 - **Technical SEO** (8) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, Open Graph, hreflang

@@ -1,5 +1,70 @@
 # @pseolint/core
 
+## 0.4.0
+
+### Minor Changes
+
+- v0.4.0 — engine redesign
+
+  Breaking-change release coordinated across all three packages.
+
+  **@pseolint/core (0.3.3 → 0.4.0)**
+
+  - Replaced numeric `score` (0–100, lower = better) with the verdict ladder
+    `ready` (≤20) | `caution` (≤40) | `concerning` (≤60) | `critical` (>60).
+    The numeric value is still emitted as `risk` for sorting and CI gating.
+  - Consolidated 8 source-tree categories into 4 scoring super-categories:
+    `integrity` (spam + content + cannibal, weight 0.50), `discoverability`
+    (links + tech, 0.20), `citation` (aeo + schema, 0.25), `data` (0.05).
+  - Dropped 8 noisy rules (cannibal/title-overlap, cannibal/keyword-collision,
+    content/heading-uniqueness, links/hub-pages, plus four others). Total
+    rule count is now 32.
+  - New `AuditSummary` shape: `schemaVersion: "2026-04-v0.4"`, `verdict`,
+    `risk`, `headline`, `categories[].grade/issues`, `issues.{blockers,
+shouldFix, informational}`, `diagnostics.{originReadiness, crawlStats,
+auditFindings}`, `siteClassification`.
+  - New `siteClassification` field (§4.11): pre-flight URL-pattern + sitemap
+    - framework heuristics infer `small-marketing | blog | programmatic-
+directory | unknown` and suppress pSEO-only rules
+      (`spam/template-coverage`, `spam/template-diversity`,
+      `spam/entity-swap`, `cannibal/url-pattern`) on small sites unless the
+      caller passes `strict: true`.
+  - New `AuditOptions.strict` flag to bypass classification-driven rule
+    suppression.
+
+  **pseolint CLI (0.3.2 → 0.4.0)**
+
+  - New flags: `--ci-threshold <severity>` (replaces numeric `--threshold`
+    for CI gating), `--explain` (full bucketed finding view), `--strict`
+    (bypass pSEO-only rule suppression).
+  - `--threshold` deprecated with a runtime warning — still functional for
+    one minor.
+  - New `pseolint diff <baseline> <current>` subcommand: verdict-rank
+    deltas + fixed/regressed/new findings between two AuditSummary JSON
+    reports. Tolerates mixed v0.3 / v0.4 JSON.
+  - Console formatter rewritten around the verdict ladder. JSON, HTML, and
+    Markdown formatters all consume the new shape.
+  - `--watch` flag reserved (planned for v0.4.1, not implemented).
+
+  **@pseolint/mcp (0.3.1 → 0.4.0)**
+
+  - All three tools (`audit_site`, `explain_score`, `check_page_technical`)
+    migrated to the v0.4 `AuditSummary` shape: `summary.score` →
+    `summary.risk`, `summary.findings` → flattened from `issues.*`,
+    `summary.categoryScores` → `summary.categories`.
+  - `explain_score` now surfaces `siteClassification` (type, confidence,
+    suppressed-rule count) when present.
+  - `CROSS_PAGE_RULES` set updated to remove the 4 dropped cross-page rules.
+
+  **Migration**
+
+  Pre-existing v0.3 JSON reports remain readable — `/r/[slug]` and
+  `/r/compare` in the web app detect `summary.schemaVersion` and route
+  through legacy renderers. New CI gates should switch from
+  `--threshold 40` (numeric) to `--ci-threshold concerning` (semantic).
+
+  Spec: `docs/superpowers/specs/2026-04-29-pseolint-v0.4-engine-redesign.md`.
+
 ## 0.3.3
 
 ### Patch Changes

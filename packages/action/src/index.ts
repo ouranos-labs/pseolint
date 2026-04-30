@@ -1,44 +1,58 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { auditSource } from "@pseolint/core";
-import type { AuditSummary, Severity } from "@pseolint/core";
+import type { AuditSummary, RuleResult, Severity } from "@pseolint/core";
 
 const COMMENT_MARKER = "<!-- pseolint-report -->";
 const SEVERITY_ORDER: Severity[] = ["critical", "error", "warning", "info"];
 
-function scoreLabel(score: number): string {
-  if (score <= 20) return "Safe";
-  if (score <= 40) return "Caution";
-  if (score <= 60) return "Risky";
-  if (score <= 80) return "Dangerous";
-  return "Critical";
+function verdictLabel(verdict: AuditSummary["verdict"]): string {
+  switch (verdict) {
+    case "ready":      return "Ready";
+    case "caution":    return "Caution";
+    case "concerning": return "Concerning";
+    case "critical":   return "Critical";
+  }
+}
+
+function flattenIssues(summary: AuditSummary): RuleResult[] {
+  return [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
 }
 
 function formatPrComment(summary: AuditSummary): string {
   const lines: string[] = [COMMENT_MARKER];
+  const allFindings = flattenIssues(summary);
 
-  lines.push(`## pSEO Lint — Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
+  lines.push(`## pseolint — Verdict: ${verdictLabel(summary.verdict)} (risk ${summary.risk}/100, lower is better)`);
   lines.push("");
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
   if (summary.templateDetected) {
     lines.push("");
     lines.push("> Template-generated content detected. Fix suggestions are tailored for template authors.");
   }
-  lines.push("");
-
-  lines.push("| Category | Score |");
-  lines.push("|----------|------:|");
-  for (const [name, value] of Object.entries(summary.categoryScores)) {
-    const label = name.charAt(0).toUpperCase() + name.slice(1);
-    lines.push(`| ${label} | ${value} |`);
+  if (summary.siteClassification) {
+    lines.push("");
+    lines.push(`> Site type: \`${summary.siteClassification.type}\` (${Math.round(summary.siteClassification.confidence * 100)}% confidence). ${summary.siteClassification.suppressedRules.length} pSEO-only rule${summary.siteClassification.suppressedRules.length === 1 ? "" : "s"} suppressed.`);
   }
   lines.push("");
 
-  const grouped = new Map<Severity, typeof summary.findings>();
+  lines.push("| Category | Grade | Issues |");
+  lines.push("|----------|:-----:|------:|");
+  for (const [name, info] of Object.entries(summary.categories)) {
+    const label = name.charAt(0).toUpperCase() + name.slice(1);
+    lines.push(`| ${label} | ${info.grade} | ${info.issues} |`);
+  }
+  lines.push("");
+
+  const grouped = new Map<Severity, RuleResult[]>();
   for (const sev of SEVERITY_ORDER) {
     grouped.set(sev, []);
   }
-  for (const f of summary.findings) {
+  for (const f of allFindings) {
     grouped.get(f.severity)!.push(f);
   }
 
@@ -76,12 +90,16 @@ async function run(): Promise<void> {
   const threshold = Number(core.getInput("threshold") || "40");
   const token = core.getInput("token") || process.env.GITHUB_TOKEN || "";
 
-  core.info(`Running pseolint on ${source} with threshold ${threshold}`);
+  core.info(`Running pseolint on ${source} with risk threshold ${threshold}`);
 
   const summary = await auditSource(source);
 
-  core.info(`Score: ${summary.score}/100 (${summary.pageCount} pages)`);
-  core.setOutput("score", summary.score);
+  core.info(`Verdict: ${verdictLabel(summary.verdict)} · risk ${summary.risk}/100 (${summary.pageCount} pages)`);
+  // Outputs preserved for backwards compatibility with downstream workflow steps
+  // that read `score` — the value now reflects `risk` (numerically identical).
+  core.setOutput("score", summary.risk);
+  core.setOutput("risk", summary.risk);
+  core.setOutput("verdict", summary.verdict);
   core.setOutput("pageCount", summary.pageCount);
 
   const context = github.context;
@@ -117,9 +135,9 @@ async function run(): Promise<void> {
     }
   }
 
-  if (summary.score >= threshold) {
+  if (summary.risk >= threshold) {
     core.setFailed(
-      `SpamBrain Risk Score ${summary.score} exceeds threshold ${threshold}`
+      `pseolint risk ${summary.risk} exceeds threshold ${threshold} (verdict: ${verdictLabel(summary.verdict)})`
     );
   }
 }
