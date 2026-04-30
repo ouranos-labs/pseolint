@@ -1,4 +1,6 @@
 import { cosmiconfig } from "cosmiconfig";
+import { createJiti } from "jiti";
+import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import type { AuditOptions } from "@pseolint/core";
 
@@ -62,6 +64,8 @@ const auditOptionsSchema = z.object({
   autoDevPreset: z.boolean().optional(),
   backpressure: z.boolean().optional(),
   respectRobotsTxt: z.boolean().optional(),
+  respectNoindex: z.boolean().optional(),
+  skipDetectedAuth: z.boolean().optional(),
   followRedirects: z.boolean().optional(),
   strict: z.boolean().optional(),
   maxCrawlDiscovered: z.number().optional(),
@@ -93,8 +97,51 @@ const auditOptionsSchema = z.object({
   }).optional(),
 });
 
+/**
+ * Loads `pseolint.config.{ts,mts,js,cjs,mjs,json}` etc. via cosmiconfig.
+ *
+ * v0.4.1 fix: cosmiconfig 9 ships with a `.ts` loader that depends on the
+ * `typescript` package being installed at runtime. The CLI does not (and
+ * should not) ship `typescript` as a runtime dependency, so config files
+ * authored as `pseolint.config.ts` would fail to load — leaving users to
+ * inline `--ignore` patterns. We replace the `.ts`/`.mts` loaders with
+ * `jiti`, which transpiles TS at runtime without any peer deps.
+ */
 export async function loadConfig(): Promise<AuditOptions> {
-  const explorer = cosmiconfig("pseolint");
+  // Anchor jiti to the cwd so it resolves the user's tsconfig and node_modules.
+  const jiti = createJiti(pathToFileURL(`${process.cwd()}/`).href, {
+    interopDefault: true,
+  });
+
+  const tsLoader = async (filepath: string): Promise<unknown> => {
+    // jiti.import with { default: true } unwraps `export default { ... }`.
+    return await jiti.import(filepath, { default: true });
+  };
+
+  const explorer = cosmiconfig("pseolint", {
+    searchPlaces: [
+      "package.json",
+      ".pseolintrc",
+      ".pseolintrc.json",
+      ".pseolintrc.yaml",
+      ".pseolintrc.yml",
+      ".pseolintrc.js",
+      ".pseolintrc.ts",
+      ".pseolintrc.mts",
+      ".pseolintrc.cjs",
+      ".pseolintrc.mjs",
+      "pseolint.config.js",
+      "pseolint.config.ts",
+      "pseolint.config.mts",
+      "pseolint.config.cjs",
+      "pseolint.config.mjs",
+      "pseolint.config.json",
+    ],
+    loaders: {
+      ".ts": tsLoader,
+      ".mts": tsLoader,
+    },
+  });
   const result = await explorer.search();
 
   if (!result || result.isEmpty) {
@@ -123,6 +170,8 @@ export interface CliFlags {
   autoDevPreset?: boolean;
   backpressure?: boolean;
   respectRobotsTxt?: boolean;
+  respectNoindex?: boolean;
+  skipDetectedAuth?: boolean;
   followRedirects?: boolean;
   /** v0.4 §4.11: bypass site-classification rule suppression. */
   strict?: boolean;
@@ -164,6 +213,8 @@ export function mergeOptions(
   if (cliFlags.autoDevPreset !== undefined) result.autoDevPreset = cliFlags.autoDevPreset;
   if (cliFlags.backpressure !== undefined) result.backpressure = cliFlags.backpressure;
   if (cliFlags.respectRobotsTxt !== undefined) result.respectRobotsTxt = cliFlags.respectRobotsTxt;
+  if (cliFlags.respectNoindex !== undefined) result.respectNoindex = cliFlags.respectNoindex;
+  if (cliFlags.skipDetectedAuth !== undefined) result.skipDetectedAuth = cliFlags.skipDetectedAuth;
   if (cliFlags.followRedirects !== undefined) result.followRedirects = cliFlags.followRedirects;
   if (cliFlags.strict !== undefined) result.strict = cliFlags.strict;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;

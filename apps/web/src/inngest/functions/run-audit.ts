@@ -7,6 +7,7 @@ import { assertSafeUrl } from "@/lib/ssrf";
 import { auditSource, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
 import { openSecret } from "@/lib/secret-box";
+import { WEB_AUDIT_DEFAULT_IGNORE } from "@/lib/audit-defaults";
 
 const MAX_COST_USD = 0.50;
 
@@ -113,6 +114,18 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       render: render ? {} : undefined,
       rules: ruleOverrides,
       dataSource: dataRecords ? { records: dataRecords } : undefined,
+      // Hosted audits run on user-submitted URLs — skip framework metadata,
+      // auth, admin, and API routes by default so the report focuses on
+      // marketing surface. See lib/audit-defaults.ts for rationale + Pro
+      // override path.
+      ignore: [...WEB_AUDIT_DEFAULT_IGNORE],
+      // Honour the site owner's `<meta robots noindex>` (true by default in
+      // engine; explicit here for clarity) and additionally drop pages
+      // heuristically detected as auth surfaces — covers the case where a
+      // login page sits at an unconventional URL like `/account` or
+      // `/portal` that URL patterns can't pre-declare.
+      respectNoindex: true,
+      skipDetectedAuth: true,
       ai,
     }));
   } catch (e) {

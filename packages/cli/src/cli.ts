@@ -74,6 +74,8 @@ interface CliOptions {
   strict?: boolean;
   backpressure: boolean;
   respectRobots: boolean;
+  respectNoindex: boolean;
+  skipDetectedAuth: boolean;
   followRedirects: boolean;
   crawl: boolean;
   mcp: boolean;
@@ -150,6 +152,8 @@ export async function runCli(
     .option("--strict", "Run all rules regardless of detected site type (bypass pSEO-only rule suppression on small sites)")
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
+    .option("--no-respect-noindex", "Audit pages marked noindex (via meta robots or X-Robots-Tag) instead of skipping them")
+    .option("--skip-detected-auth", "Heuristically detect login/signup/password-reset pages and skip them from rule evaluation")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
@@ -372,6 +376,8 @@ async function runAudit(
     autoDevPreset: opts.full ? false : undefined,
     backpressure: opts.backpressure === false ? false : undefined,
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
+    respectNoindex: opts.respectNoindex === false ? false : undefined,
+    skipDetectedAuth: opts.skipDetectedAuth === true ? true : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
     strict: opts.strict === true ? true : undefined,
   };

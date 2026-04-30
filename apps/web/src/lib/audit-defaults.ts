@@ -1,0 +1,76 @@
+/**
+ * Default ignore patterns applied to every audit run via the public web form
+ * (`/api/audits` → Inngest `run-audit`). These exclude routes that are never
+ * marketing content and would just add noise to the report.
+ *
+ * Why this lives in the WEB app, not the engine:
+ *
+ *   The CLI engine (@pseolint/core) is policy-free on purpose — it audits
+ *   exactly the URLs you point it at. Power users running it locally know
+ *   their own surface and can declare ignores in `pseolint.config.ts`. But
+ *   end users running an audit via the public form have no way to know they
+ *   should exclude `/signin` or `/api/foo`. The web app is the right layer to
+ *   apply opinionated defaults — bundled with the same UX it delivers
+ *   (no-signup, 60-second audit, sensible output).
+ *
+ * Categories below are roughly in order of confidence:
+ *
+ *   1. Framework metadata routes — emitted by Next.js, Vercel, Astro, Nuxt.
+ *      These return PNG/JSON, not HTML; auditing them produces empty findings.
+ *   2. API routes — return JSON. Same reason.
+ *   3. Auth surfaces — signin / login / register pages. These are short stubs
+ *      with no marketing body content; they fail thin-content / citable-facts /
+ *      answer-first rules and pollute the report. Convention is dense enough
+ *      across Next.js, Remix, Astro, WordPress, and Rails apps that the
+ *      false-positive risk on real marketing routes is very low.
+ *   4. Admin / dashboard surfaces — private app shells. Same reasoning.
+ *
+ * Edge cases we accept:
+ *
+ *   - A real-estate listing site with `/admin/listings/[id]` as REAL marketing
+ *     URLs would skip those pages. Mitigation: power users hit the CLI with
+ *     a custom config; the web form is for the typical case.
+ *   - Sites that root their docs/blog under `/api/docs/*`. Mitigation: same.
+ *
+ * Pro / future: surface this list as an editable per-domain setting so Pro
+ * users can opt in/out per pattern. v0.4.2 candidate.
+ */
+export const WEB_AUDIT_DEFAULT_IGNORE: readonly string[] = [
+  // Framework metadata (Next.js, Vercel, Astro, Nuxt, generic _next/_vercel)
+  "**/apple-icon*",
+  "**/icon",
+  "**/icon.*",
+  "**/icon-*",
+  "**/opengraph-image*",
+  "**/twitter-image*",
+  "**/_next/**",
+  "**/_vercel/**",
+  "**/_astro/**",
+  "**/_nuxt/**",
+
+  // API routes — return JSON, not marketing HTML
+  "**/api/**",
+
+  // Auth surfaces
+  "**/signin*",
+  "**/sign-in*",
+  "**/login*",
+  "**/log-in*",
+  "**/signup*",
+  "**/sign-up*",
+  "**/register*",
+  "**/sso*",
+  "**/oauth/**",
+  "**/auth/**",
+
+  // WordPress conventions
+  "**/wp-admin/**",
+  "**/wp-login*",
+  "**/wp-json/**",
+  "**/xmlrpc.php",
+
+  // Admin / dashboard / private app shells
+  "**/admin/**",
+  "**/dashboard/**",
+  "**/account/settings/**",
+];

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { parseHtmlPage } from "./parser.js";
+import { pageSkipReason } from "./page-filter.js";
 import { mergeNormalizeUrlOptions, normalizeAuditUrl } from "./url-normalize.js";
 import { eeatSignalsRule } from "./rules/content/eeat-signals.js";
 import { metaUniquenessRule } from "./rules/content/meta-uniqueness.js";
@@ -205,6 +206,15 @@ function resolveGroupRules(
 
 function runRulesOnPages(
   pages: ParsedPage[],
+  /**
+   * Full set of parsed pages including those filtered out by `respectNoindex`
+   * / `skipDetectedAuth`. Defaults to `pages` for backwards compat. The two
+   * noindex-conflict rules (`tech/canonical-noindex-conflict`,
+   * `tech/robots-noindex-conflict`) read this list specifically — without it,
+   * `respectNoindex: true` would hide noindex'd pages from the very rules
+   * designed to flag accidental noindex'ing.
+   */
+  noindexAwarePages: ParsedPage[],
   resolvedRules: {
     nearDuplicateThreshold: number;
     entitySwapThreshold: number;
@@ -328,11 +338,11 @@ function runRulesOnPages(
   }
 
   if (isEnabled("tech/canonical-noindex-conflict") && modeOk("tech/canonical-noindex-conflict")) {
-    findings.push(...tag(canonicalNoindexConflictRule(pages, normalizeUrlOptions)));
+    findings.push(...tag(canonicalNoindexConflictRule(noindexAwarePages, normalizeUrlOptions)));
   }
 
   if (isEnabled("tech/robots-noindex-conflict") && modeOk("tech/robots-noindex-conflict")) {
-    findings.push(...tag(robotsNoindexConflictRule(pages, inbound)));
+    findings.push(...tag(robotsNoindexConflictRule(noindexAwarePages, inbound)));
   }
 
   if (isEnabled("tech/redirect-chain") && modeOk("tech/redirect-chain")) {
@@ -344,7 +354,9 @@ function runRulesOnPages(
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
-    findings.push(...tag(hreflangConsistencyRule(pages, normalizeUrlOptions)));
+    // hreflang declarations on noindex'd pages are still bugs when they're
+    // inconsistent — see auditor.test.ts "emits technical SEO findings".
+    findings.push(...tag(hreflangConsistencyRule(noindexAwarePages, normalizeUrlOptions)));
   }
 
   // Schema rules
@@ -1142,6 +1154,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const concurrency = options?.concurrency ?? preset.concurrency ?? 5;
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
+  const respectNoindex = options?.respectNoindex ?? true;
+  const skipDetectedAuth = options?.skipDetectedAuth ?? false;
   const sampleSize = options?.sampleSize ?? preset.sampleSize ?? 0;
   const externalSignal = options?.signal;
   const guardSsrf = options?.guardSsrf ?? preset.guardSsrf ?? false;
@@ -1358,12 +1372,27 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         : fisherYatesSample(filtered, sampleSize))
     : filtered;
 
-  const parsedPages = sampled.map((page) => {
+  const parsedPagesAll = sampled.map((page) => {
     const parsed = parseHtmlPage(page.html, page.url, { normalizeUrl: normalizeUrlOptions });
     if (page.httpMeta) {
       (parsed as unknown as Record<string, unknown>).httpMeta = page.httpMeta;
     }
     return parsed;
+  });
+
+  // v0.4.1 §page-filter: drop noindex'd pages and (when enabled) heuristically
+  // detected auth pages BEFORE rule evaluation. The site owner's noindex is a
+  // hard signal — they already opted out of SEO indexing, so auditing those
+  // URLs produces only noise. Auth detection is opt-in via skipDetectedAuth
+  // (off for the CLI by default; on for the hosted web form).
+  const skippedByPolicy: Array<{ url: string; reason: "noindex" | "auth-detected" }> = [];
+  const parsedPages = parsedPagesAll.filter((p) => {
+    const reason = pageSkipReason(p, { respectNoindex, skipDetectedAuth });
+    if (reason) {
+      skippedByPolicy.push({ url: p.url, reason });
+      return false;
+    }
+    return true;
   });
   const knownUrls = new Set(parsedPages.map((p) => p.url));
   const rootUrl =
@@ -1508,7 +1537,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       !suppressedRuleSet.has(ruleId) && isRuleEnabled(ruleId, groupConfig?.rules);
 
     const findings = runRulesOnPages(
-      groupPages, groupRules, enabledCheck, groupName,
+      groupPages, parsedPagesAll, groupRules, enabledCheck, groupName,
       knownUrls, adjacency, inbound, rootUrl,
       normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
       groupConfig?.overrides,
@@ -1599,11 +1628,36 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  // Merge state-skipped (unchanged since last run) and robots-skipped (target
-  // robots.txt Disallow'd) URLs so callers have a single audit-skipped surface.
-  const allSkipped = [...skippedUrls, ...skippedByRobots];
+  // Merge state-skipped (unchanged since last run), robots-skipped (target
+  // robots.txt Disallow'd), and policy-skipped (noindex / detected-auth) URLs
+  // so callers have a single audit-skipped surface.
+  const allSkipped = [
+    ...skippedUrls,
+    ...skippedByRobots,
+    ...skippedByPolicy.map((s) => s.url),
+  ];
   if (allSkipped.length > 0) {
     summary.skippedUrls = allSkipped;
+  }
+
+  // v0.4.1: surface noindex / auth skips as a discoverable diagnostic so the
+  // user sees what the engine excluded. Catches the accidental-noindex bug:
+  // pages silently dropped from indexing show up as a visible skip line
+  // instead of being absent without explanation.
+  if (skippedByPolicy.length > 0) {
+    const noindexCount = skippedByPolicy.filter((s) => s.reason === "noindex").length;
+    const authCount = skippedByPolicy.filter((s) => s.reason === "auth-detected").length;
+    const sample = skippedByPolicy.slice(0, 5).map((s) => `${s.url} (${s.reason})`).join(", ");
+    const more = skippedByPolicy.length > 5 ? `, +${skippedByPolicy.length - 5} more` : "";
+    const parts: string[] = [];
+    if (noindexCount > 0) parts.push(`${noindexCount} marked noindex`);
+    if (authCount > 0) parts.push(`${authCount} detected as auth (login/register/etc)`);
+    auditFindings.push({
+      ruleId: "audit/skipped-by-policy",
+      severity: "info",
+      message: `Skipped ${skippedByPolicy.length} page${skippedByPolicy.length === 1 ? "" : "s"} from rule evaluation — ${parts.join(", ")}. First few: ${sample}${more}.`,
+      relatedUrls: skippedByPolicy.map((s) => s.url),
+    });
   }
 
   // Local flat view of every finding the engine produced, used internally for

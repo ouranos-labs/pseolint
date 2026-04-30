@@ -366,6 +366,25 @@ export interface AuditOptions {
    */
   respectRobotsTxt?: boolean;
   /**
+   * When true (default), pages explicitly marked `noindex` (via
+   * `<meta name="robots">` or `X-Robots-Tag` header) are excluded from rule
+   * evaluation — the site owner already opted out of SEO indexing for them.
+   * The skipped URLs surface in `summary.skippedUrls` with reason `"noindex"`.
+   * Set to false to audit them anyway (useful when investigating why a
+   * specific page was accidentally noindex'd).
+   */
+  respectNoindex?: boolean;
+  /**
+   * When true, pages heuristically detected as auth surfaces (login / signup /
+   * password reset) are excluded from rule evaluation. Detection requires 2+
+   * signals: `<input type="password">` in a < 200-word body, title matching
+   * the auth-page regex (case-insensitive, after stripping brand suffix), or
+   * H1 matching the same regex. Default: false (CLI runs unchanged; the
+   * hosted web form turns this on so end-user audits aren't polluted by auth
+   * pages at unconventional URLs like `/account` or `/portal`).
+   */
+  skipDetectedAuth?: boolean;
+  /**
    * Preset that flips several safety options at once.
    *   "saas" — intended for hosted services auditing user-submitted URLs:
    *     guardSsrf=true, respectRobotsTxt=true, tighter maxFetchBytes cap,

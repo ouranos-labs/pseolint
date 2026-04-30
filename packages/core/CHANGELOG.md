@@ -1,5 +1,68 @@
 # @pseolint/core
 
+## 0.4.1
+
+### Patch Changes
+
+- v0.4.1 — config UX fixes + page-skip policy
+
+  **@pseolint/core (0.4.0 → 0.4.1)**
+
+  - New `respectNoindex?: boolean` (default `true`) — pages explicitly marked
+    `noindex` (via `<meta name="robots">` or `X-Robots-Tag` header) are
+    excluded from rule evaluation. The site owner already opted out of SEO
+    indexing for them; auditing produces noise the reader can't act on. The
+    two noindex-conflict rules (`tech/canonical-noindex-conflict`,
+    `tech/robots-noindex-conflict`) and `tech/hreflang-consistency` still
+    receive noindex'd pages so they can flag accidental noindex'ing /
+    inconsistent hreflang declarations.
+  - New `skipDetectedAuth?: boolean` (default `false`) — heuristic detection
+    of login / signup / password-reset / verify-email pages via password-input
+    density, page title pattern (brand-suffix-stripped), and H1 pattern.
+    Requires 2+ signals for a positive verdict, keeping false-positives low
+    on marketing pages with single-signal characteristics.
+  - New `audit/skipped-by-policy` diagnostic surfaces every URL skipped by the
+    above policies in `summary.diagnostics.auditFindings` — the
+    accidentally-noindex'd page now shows up as a visible skip line instead of
+    being absent without explanation.
+  - New `warnUnmatchedIgnore?: boolean` (default `false`) — per-pattern warning
+    for unmatched `--ignore` patterns is now opt-in. The CLI sets it to true
+    only when `--ignore` came from the command line. Config-loaded patterns
+    (e.g. `pseolint.config.ts` with broad safety patterns like `**/api/**`)
+    no longer spam warnings when the patterns legitimately don't match a
+    small site's surface. A consolidated `none of the N ignore patterns
+matched any URLs — check config or --ignore for typos` warning still
+    fires when ALL patterns miss, regardless of source.
+  - New helpers exported from the entry point: `detectNoindex`,
+    `detectAuthPage`, `pageSkipReason` from `./page-filter.js`.
+
+  **pseolint CLI (0.4.0 → 0.4.1)**
+
+  - `pseolint.config.ts` files are now auto-loaded via cosmiconfig (jiti
+    loader). Previously only `.js` / `.cjs` / `.mjs` / `.json` configs were
+    picked up; `.ts` files silently fell through, forcing users to inline
+    `--ignore` patterns. Both `pseolint.config.ts` and `.mts` variants are
+    now in the searchPlaces list.
+  - New flag `--no-respect-noindex` — audit pages marked noindex anyway
+    (useful when investigating an accidentally-noindex'd page).
+  - New flag `--skip-detected-auth` — opt into the heuristic auth-page skip.
+
+  **@pseolint/mcp (0.4.0 → 0.4.1)**
+
+  - Picks up the core changes via the workspace dep bump. No tool surface
+    changes; auth-page detection / noindex respect are now available to
+    callers that pass the relevant `AuditOptions` fields.
+
+  **Web app**
+
+  Public-form audits run through `apps/web/src/inngest/functions/run-audit.ts`
+  now apply opinionated defaults: a `WEB_AUDIT_DEFAULT_IGNORE` URL pattern
+  list (framework metadata + auth + admin + API + WordPress conventions) plus
+  `respectNoindex: true` and `skipDetectedAuth: true`. End users running
+  audits via the public form no longer see noise from utility routes.
+
+  Tests: 604 / 604 pass. Engine + CLI + MCP + action all typecheck clean.
+
 ## 0.4.0
 
 ### Minor Changes
@@ -23,12 +86,11 @@
     `risk`, `headline`, `categories[].grade/issues`, `issues.{blockers,
 shouldFix, informational}`, `diagnostics.{originReadiness, crawlStats,
 auditFindings}`, `siteClassification`.
-  - New `siteClassification` field (§4.11): pre-flight URL-pattern + sitemap
-    - framework heuristics infer `small-marketing | blog | programmatic-
+  - New `siteClassification` field (§4.11): pre-flight URL-pattern + sitemap - framework heuristics infer `small-marketing | blog | programmatic-
 directory | unknown` and suppress pSEO-only rules
-      (`spam/template-coverage`, `spam/template-diversity`,
-      `spam/entity-swap`, `cannibal/url-pattern`) on small sites unless the
-      caller passes `strict: true`.
+    (`spam/template-coverage`, `spam/template-diversity`,
+    `spam/entity-swap`, `cannibal/url-pattern`) on small sites unless the
+    caller passes `strict: true`.
   - New `AuditOptions.strict` flag to bypass classification-driven rule
     suppression.
 
