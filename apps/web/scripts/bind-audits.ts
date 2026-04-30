@@ -28,14 +28,16 @@
  * keep claimed audits aligned with the signed-in retention window.
  */
 
-import { eq, and, isNull, inArray, sql } from "drizzle-orm";
+import { eq, and, isNull, inArray, sql, ilike, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { audits, users } from "@/db/schema";
 
 interface Args {
   userId: string;
   sources: string[];
+  hostSubstring: string;
   dryRun: boolean;
+  list: boolean;
   retentionDays: number;
 }
 
@@ -43,6 +45,7 @@ function parseArgs(argv: string[]): Args {
   let userId = "";
   let source = "";
   let dryRun = false;
+  let list = false;
   let retentionDays = 90;
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i];
@@ -51,9 +54,14 @@ function parseArgs(argv: string[]): Args {
     else if (flag === "--source") { source = next; i++; }
     else if (flag === "--retention-days") { retentionDays = Number(next); i++; }
     else if (flag === "--dry-run") { dryRun = true; }
+    else if (flag === "--list") { list = true; }
     else if (flag === "--help" || flag === "-h") { printHelpAndExit(0); }
   }
-  if (!userId || !source) {
+  if (list && !source) {
+    console.error("Missing required --source flag for --list.\n");
+    printHelpAndExit(1);
+  }
+  if (!list && (!userId || !source)) {
     console.error("Missing required --user and/or --source flags.\n");
     printHelpAndExit(1);
   }
@@ -66,16 +74,54 @@ function parseArgs(argv: string[]): Args {
   const origin = `${url.protocol}//${url.host}`;
   const sources = [origin, `${origin}/`];
   if (origin.startsWith("https://")) sources.push(origin.replace("https://", "http://"));
-  return { userId, sources, dryRun, retentionDays };
+  // For --list, strip leading "www." so a substring search across both
+  // pseolint.dev and www.pseolint.dev returns the same set of rows.
+  const hostSubstring = url.host.replace(/^www\./, "");
+  return { userId, sources, hostSubstring, dryRun, list, retentionDays };
 }
 
 function printHelpAndExit(code: number): never {
   console.log(`Usage: bun run scripts/bind-audits.ts --user <USER_ID> --source <URL> [--dry-run] [--retention-days N]`);
+  console.log(`       bun run scripts/bind-audits.ts --source <URL> --list`);
+  console.log(`         (lists ALL audit rows whose source_url contains the host, regardless of binding state)`);
   process.exit(code);
 }
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+
+  // --list bypasses the bind path entirely. Useful for diagnosing "where
+  // is my audit row stored?" when a normal --dry-run returns 0 matches —
+  // the actual sourceUrl might be `www.host`, an http variant, or already
+  // bound to a different user.
+  if (args.list) {
+    const rows = await db.select({
+      id: audits.id,
+      slug: audits.slug,
+      sourceUrl: audits.sourceUrl,
+      userId: audits.userId,
+      anonSessionId: audits.anonSessionId,
+      status: audits.status,
+      isPublic: audits.isPublic,
+      risk: audits.risk,
+      createdAt: audits.createdAt,
+      completedAt: audits.completedAt,
+      expiresAt: audits.expiresAt,
+    }).from(audits)
+      .where(ilike(audits.sourceUrl, `%${args.hostSubstring}%`))
+      .orderBy(desc(audits.createdAt));
+
+    if (rows.length === 0) {
+      console.log(`No audit rows found whose source_url contains "${args.hostSubstring}".`);
+      return;
+    }
+    console.log(`Found ${rows.length} audit row${rows.length === 1 ? "" : "s"} matching "%${args.hostSubstring}%":\n`);
+    for (const r of rows) {
+      const owner = r.userId ? `user=${r.userId}` : r.anonSessionId ? `anon=${r.anonSessionId.slice(0, 12)}…` : "(orphan)";
+      console.log(`  ${r.slug}  ${owner}  status=${r.status}  public=${r.isPublic}  risk=${r.risk ?? "-"}  source=${r.sourceUrl}  created=${r.createdAt.toISOString()}`);
+    }
+    return;
+  }
 
   const [user] = await db.select({ id: users.id, email: users.email })
     .from(users).where(eq(users.id, args.userId)).limit(1);
