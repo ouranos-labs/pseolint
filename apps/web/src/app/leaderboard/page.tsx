@@ -159,13 +159,15 @@ export default async function Leaderboard() {
           engine v0.4.0 (github.com/ouranos-labs/pseolint).
         </p>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          Leaderboard methodology in one paragraph: the ranking is rebuilt every ten minutes from
+          Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
           completed public audits, deduplicated by hostname so a domain occupies exactly one slot,
           and sorted ascending by composite score with createdAt as the tiebreaker. Audits below the
-          five-page floor are excluded because too-small samples produce volatile rankings. Pages
+          5-page floor are excluded because too-small samples produce volatile rankings. Pages
           marked private by their owner never appear, regardless of score. Listings inherit the
-          retention window of the underlying audit, so anonymous entries fall off after twenty-four
-          hours and free-tier entries after thirty days unless the operator upgrades and pins them.
+          retention window of the underlying audit, so anonymous entries fall off after 24 hours
+          and free-tier entries after 30 days unless the operator upgrades and pins them. The board
+          first shipped on March 15, 2026 alongside the v0.4.0 engine cut, and the scoring weights
+          were last rebalanced on April 21, 2026 when the AEO category landed.
         </p>
       </div>
 
@@ -203,7 +205,10 @@ export default async function Leaderboard() {
           <span className="text-foreground">61+ = severe</span>. Anything under 30 is healthy
           enough that we wouldn&rsquo;t expect manual-action exposure on the SpamBrain axis.
           The middle band is where most undermaintained pSEO sites live; the top of the band
-          is where deindexation events tend to start.
+          is where deindexation events tend to start. The thresholds were calibrated against
+          the August 2022 helpful-content rollout and the March 2024 core update, so a site
+          that lands in the 0&ndash;30 band today should also have been clean against those
+          historical baselines.
         </p>
       </section>
 
@@ -214,10 +219,11 @@ export default async function Leaderboard() {
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Any audit a user runs with{" "}
           <span className="font-mono text-foreground">isPublic = true</span> shows up here once
-          it completes and crosses the 5-page minimum. Free-tier audits default to public —
-          that&rsquo;s the trade for unlimited one-shot acquisition runs. Pro audits default
-          to private and stay private unless an operator explicitly flips the visibility
-          toggle on the audit detail page.
+          it completes and crosses the 5-page minimum. Free-tier audits cost $0 and default to
+          public — that&rsquo;s the trade for unlimited one-shot acquisition runs, capped at 3
+          audits per browser per 24-hour window. Pro plans start at $19/mo, default to private,
+          and stay private unless an operator explicitly flips the visibility toggle on the
+          audit detail page.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Listings are deduplicated by hostname; only the most recent audit per domain

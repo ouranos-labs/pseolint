@@ -36,6 +36,15 @@ function getRisk(summary: AnyAuditSummary): number {
   return isV04Summary(summary) ? summary.risk : summary.score;
 }
 
+type SiteType = { type: string; confidence: number } | null;
+function getClassification(summary: AnyAuditSummary): SiteType {
+  if (!isV04Summary(summary) || !summary.siteClassification) return null;
+  return {
+    type: summary.siteClassification.type,
+    confidence: summary.siteClassification.confidence,
+  };
+}
+
 function safeHost(url: string): string {
   try { return new URL(url).host; } catch { return url; }
 }
@@ -96,6 +105,10 @@ export default async function ComparePage({
   const bRisk = getRisk(bS);
   const scoreDelta = bRisk - aRisk;
 
+  const aClass = getClassification(aS);
+  const bClass = getClassification(bS);
+  const classChanged = aClass && bClass && aClass.type !== bClass.type;
+
   // Category-delta strip is only meaningful when both summaries share a shape.
   // Mixed v0.3↔v0.4 comparisons skip the strip — the headline risk delta + the
   // resolved/added finding panels carry the story without it.
@@ -128,6 +141,30 @@ export default async function ComparePage({
 
       <div className="text-xs uppercase tracking-wider text-muted-foreground">Compare runs</div>
       <h1 className="mt-2 text-3xl tracking-tight">{host}</h1>
+
+      {(aClass || bClass) && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+          {aClass && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1">
+              <span className="text-muted-foreground/70">Before:</span>
+              <span className="font-mono text-foreground">{aClass.type}</span>
+              <span className="tabular-nums">{Math.round(aClass.confidence * 100)}%</span>
+            </span>
+          )}
+          {bClass && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1">
+              <span className="text-muted-foreground/70">After:</span>
+              <span className="font-mono text-foreground">{bClass.type}</span>
+              <span className="tabular-nums">{Math.round(bClass.confidence * 100)}%</span>
+            </span>
+          )}
+          {classChanged && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/5 px-2.5 py-1 text-warning">
+              Site type reclassified — applicable rule set changed
+            </span>
+          )}
+        </div>
+      )}
 
       <section className="mt-6 grid gap-4 rounded-[22px] border border-border/60 bg-card/40 p-6 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
         <div>

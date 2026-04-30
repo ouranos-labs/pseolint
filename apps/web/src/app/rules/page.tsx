@@ -134,18 +134,26 @@ export default function RulesIndexPage() {
         pseolint v0.4.0 runs 32 rules across 4 categories — spam-pattern detection
         (8 spam/* rules), AEO/answer-engine readiness (8 aeo/* rules, shipped April
         21, 2026), technical SEO, and structural integrity. Severity weights are
-        critical=40, error=25, warning=12, info=5. Five of the spam-pattern rules
-        are written up below in depth — they are the ones most likely to demote a
-        programmatic-SEO domain in 2026, and the ones whose detection logic is
-        least well documented elsewhere.
+        critical=40, error=25, warning=12, info=5. Each audit completes in a
+        60-second free-tier budget (200-page ceiling) or a 90-day rolling
+        500-page Pro window. Five of the spam-pattern rules are written up below
+        in depth — they are the ones most likely to demote a programmatic-SEO
+        domain after the March 5, 2024 scaled-content-abuse update and the
+        May 7, 2024 site-reputation-abuse follow-up, and the ones whose
+        detection logic (SimHash fingerprinting, Jaccard fallback, BERT-style
+        entity grounding) is least well documented elsewhere.
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
         The remaining rules are documented inside the open-source repo at
         github.com/ouranos-labs/pseolint (MIT-licensed; @pseolint/core v0.3.3,
         @pseolint/cli v0.3.1, @pseolint/mcp v0.3.1) and surface in every audit
-        report. More long-form explainers will land here as we observe which
-        ones generate the most user questions.
+        report. Industry crawlers like Ahrefs, Sitebulb, and Screaming Frog
+        cover overlapping signals but stop short of SpamBrain's post-August 25,
+        2022 Helpful Content System scoring axes — which is what the 8 spam/*
+        rules and the 8 aeo/* rules each target. More long-form explainers
+        will land here as we observe which ones generate the most user
+        questions.
       </p>
 
       <section className="mt-10 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">

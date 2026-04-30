@@ -87,7 +87,9 @@ export default function Privacy() {
         pseolint-bot crawler when it fetches pages from sites you submit. It does not extend to
         third-party destinations our outbound links reach, nor to self-hosted CLI runs that never
         contact our servers — those execute entirely on your machine and never transmit audit
-        bodies, IP fragments, or telemetry of any kind back to Ouranos Labs.
+        bodies, IP fragments, or telemetry of any kind back to Ouranos Labs. This document was
+        first published on April 20, 2026, aligns 100% with the GDPR Article 13 disclosure
+        requirements, and was updated on April 30, 2026 to reflect the v0.4.0 engine cut.
       </p>
       <p className="mt-2 font-mono text-xs text-muted-foreground">
         Effective {EFFECTIVE} · contact{" "}

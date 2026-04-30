@@ -91,13 +91,13 @@ export default function ToolsIndexPage() {
         Free SEO tools
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Three free, single-purpose tools for programmatic SEO operators. Each runs
-        the same open-source pseolint audit engine (MIT-licensed, v0.4.0) against any
-        public URL, but frames the output through a different lens — SpamBrain risk,
-        thin content, or doorway patterns. $0, no signup, 3 audits per day per
-        browser, 100 pages per audit, a shareable 30-day-retention report link in a
-        60-second median run. Comparable hosted crawlers cost between $35/month
-        (Sitebulb) and $259/year (Screaming Frog) for the same surface area.
+        Three free SEO tools backed by the open-source pseolint engine v0.4.0 —
+        SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
+        signup, runs in a 60-second median. Each tool frames the same audit
+        through a different lens — SpamBrain risk, thin content, or doorway
+        patterns — so operators see the subset of findings they came for first.
+        Scroll down for a side-by-side breakdown against the hosted crawlers
+        most pSEO teams already evaluate.
       </p>
 
       <section className="mt-10 space-y-5 text-sm leading-relaxed text-muted-foreground">
@@ -108,25 +108,20 @@ export default function ToolsIndexPage() {
           Programmatic SEO sites get demoted for a small, well-defined set of
           reasons, and almost all of them trace back to Google&apos;s SpamBrain
           system — the machine-learning spam classifier Google rolled out in 2018
-          and re-architected in 2022 to score pages instead of just links.
-          SpamBrain is the same system that drove the March 5, 2024
-          scaled-content-abuse update (which knocked ~45% of low-quality content
-          off page one in the rollout window), and the same one that powers the
-          May 7, 2024 site-reputation-abuse policy enforcement against
-          parasite-SEO landing pages. If your site is templated, your audit needs
-          to mirror how SpamBrain reasons.
+          and re-architected to score pages, not just links. The same classifier
+          drives scaled-content-abuse demotions and powers site-reputation-abuse
+          enforcement against parasite-SEO landing pages. If your site is
+          templated, your audit needs to mirror how SpamBrain reasons about
+          templates.
         </p>
         <p>
-          The pseolint engine ships{" "}
-          <span className="font-medium text-foreground">42 rules across 8 categories</span>{" "}
-          (spam, content, aeo, links, schema, tech, data, cannibal). Of those,{" "}
-          <span className="font-medium text-foreground">8 spam/* rules</span> map
+          The pseolint engine ships rules across spam, content, aeo, links,
+          schema, tech, data, and cannibalization categories. The spam rules map
           directly to documented SpamBrain signals — thin content, doorway
           patterns, near-duplicate clusters, boilerplate ratio, template
-          diversity, scaled-content density, and two link-spam detectors. Another{" "}
-          <span className="font-medium text-foreground">8 aeo/* rules</span>{" "}
-          (shipped in the v0.3.0 landing on April 21, 2026) cover answer-engine
-          readiness for AI Overviews, Perplexity, and ChatGPT search.
+          diversity, scaled-content density, and link-spam detectors. The aeo
+          rules cover answer-engine readiness for AI Overviews, Perplexity, and
+          ChatGPT search.
         </p>
         <h2 className="pt-2 text-base font-semibold tracking-tight text-foreground">
           Why three tools and not one
@@ -134,12 +129,11 @@ export default function ToolsIndexPage() {
         <p>
           A single &quot;run-the-full-audit&quot; CTA scares people who already
           suspect what&apos;s wrong. The SpamBrain checker is for operators who
-          watched a March-2024-style ranking drop and want a numerical risk
-          score. The thin-content scanner is for editors triaging a content
-          library. The doorway-page detector is for paid-acquisition teams worried
-          their landing pages will get reclassified under the May 2024 policy.
-          Same engine, same 42 rules under the hood, three different framings of
-          the report so each operator sees the subset they came for first.
+          watched a ranking drop and want a numerical risk score. The
+          thin-content scanner is for editors triaging a content library. The
+          doorway-page detector is for paid-acquisition teams worried their
+          landing pages will get reclassified under site-reputation-abuse policy.
+          Same engine under the hood, three different framings of the report.
         </p>
         <p>
           The whole engine is{" "}
@@ -148,13 +142,11 @@ export default function ToolsIndexPage() {
             className="font-medium text-foreground underline decoration-border-strong underline-offset-2 hover:text-primary"
           >
             MIT-licensed on GitHub
-          </a>{" "}
-          (core 0.3.3, CLI 0.3.1, MCP 0.3.1 as of April 2026), so anything you
-          run in the browser here you can also run locally against pre-deploy
-          builds, in CI, or via the Model Context Protocol server. Median audit
-          time is ~60 seconds for a single URL; the JSON report contains every
-          finding, every rule reference, and a deterministic severity score
-          between 0 and 100.
+          </a>
+          , so anything you run in the browser here you can also run locally
+          against pre-deploy builds, in CI, or via the Model Context Protocol
+          server. The JSON report contains every finding, every rule reference,
+          and a deterministic severity score between 0 and 100.
         </p>
       </section>
 
@@ -182,6 +174,80 @@ export default function ToolsIndexPage() {
           </Link>
         ))}
       </div>
+
+      <section className="mt-14 space-y-5 text-sm leading-relaxed text-muted-foreground">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
+          How it compares to hosted SEO crawlers
+        </h2>
+        <p>
+          Most pSEO teams already pay for at least one general-purpose crawler.
+          The table below lines up the lowest entry-tier price for the four
+          tools we hear most often in customer interviews — Ahrefs, Semrush,
+          Sitebulb, ContentKing — alongside Screaming Frog (the desktop
+          incumbent) and pseolint. Numbers are list price as published on each
+          vendor&apos;s pricing page; per-seat surcharges and annual-billing
+          discounts are excluded for parity.
+        </p>
+        <div className="overflow-x-auto rounded-[18px] border border-border/60">
+          <table className="w-full min-w-[560px] text-left text-xs">
+            <thead className="bg-card/60 text-foreground">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Tool</th>
+                <th className="px-4 py-3 font-semibold">Entry price</th>
+                <th className="px-4 py-3 font-semibold">Audit limit (entry tier)</th>
+                <th className="px-4 py-3 font-semibold">SpamBrain-aware?</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/50">
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">pseolint (this site)</td>
+                <td className="px-4 py-3">$0/month</td>
+                <td className="px-4 py-3">100 pages per audit, 3 audits/day per browser</td>
+                <td className="px-4 py-3">Yes — 8 spam/* rules</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">Ahrefs</td>
+                <td className="px-4 py-3">$129/month (Lite plan)</td>
+                <td className="px-4 py-3">10,000 crawl credits/month, 1 project</td>
+                <td className="px-4 py-3">No — generic site-audit ruleset</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">Semrush</td>
+                <td className="px-4 py-3">$139.95/month (Pro plan)</td>
+                <td className="px-4 py-3">100,000 pages/month across 5 projects</td>
+                <td className="px-4 py-3">No — generic site-audit ruleset</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">Sitebulb</td>
+                <td className="px-4 py-3">$35/month (Lite plan)</td>
+                <td className="px-4 py-3">1 project, 10,000 URLs per audit</td>
+                <td className="px-4 py-3">Partial — thin-content + duplicate detection</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">Screaming Frog</td>
+                <td className="px-4 py-3">$259/year (paid license)</td>
+                <td className="px-4 py-3">Free up to 500 URLs, then unlimited per license</td>
+                <td className="px-4 py-3">No — desktop crawler, raw signals only</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-3 font-medium text-foreground">ContentKing</td>
+                <td className="px-4 py-3">$44/month (Basic plan)</td>
+                <td className="px-4 py-3">500 pages monitored, 1 user</td>
+                <td className="px-4 py-3">Partial — change-tracking + on-page audit</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          The honest read: pseolint is not a replacement for Ahrefs or Semrush
+          if you need backlink data, keyword volumes, or rank tracking. It is a
+          replacement for the &quot;site audit&quot; module those suites bolt
+          on, specifically for templated programmatic content. The engine
+          shipped its v0.4.0 redesign on April 29, 2026, runs as a Cloudflare R2
+          + Inngest pipeline on Vercel, and stays MIT-licensed end-to-end so
+          anything you see in the browser audit is reproducible from the CLI.
+        </p>
+      </section>
 
       <div className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
         <p>

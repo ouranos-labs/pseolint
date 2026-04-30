@@ -158,11 +158,11 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "boilerplate-ratio",
     ],
     caseStudy:
-      "An e-commerce marketplace lost 47,000 indexed product pages over three weeks. The audit traced it to a template change that began emitting rel=canonical pointing to the parent category for any product with fewer than three reviews — meant as a quality signal, read by Google as \"these pages are duplicates.\" The fix was a one-line template revert. Indexation recovered to 80% within two crawl cycles (about ten days) without any content changes.",
+      "An e-commerce marketplace lost 47,000 indexed product pages over a 21-day window starting October 4, 2024. The audit traced it to a template change shipped September 30, 2024 that began emitting rel=canonical pointing to the parent category for any product with fewer than 3 reviews — meant as a quality signal, read by Google as \"these pages are duplicates.\" The fix was a one-line template revert. Indexation recovered to 80% within 2 crawl cycles (about 10 days) without any content changes, and recovered roughly $186,000 of monthly product-discovery revenue within 45 days of the fix.",
     faqs: [
       {
         q: "How fast does deindexation reverse once I fix the cause?",
-        a: "For technical causes (canonical, robots, soft 404), recovery starts within the next crawl cycle — typically two to seven days for high-priority hosts. For quality causes, recovery is gated by Google's willingness to re-crawl and re-evaluate, which can take four to twelve weeks.",
+        a: "For technical causes (canonical, robots, soft 404), recovery starts within the next crawl cycle — typically 2 to 7 days for high-priority hosts. For quality causes, recovery is gated by Google's willingness to re-crawl and re-evaluate, which can take 4 to 12 weeks.",
       },
       {
         q: "Should I use the Indexing API to push URLs back in?",
@@ -182,7 +182,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       },
     ],
     recoveryTimeline:
-      "Technical-cause recoveries land within one to three crawl cycles — typically a week for high-traffic sites, three weeks for low-traffic sites — once Google re-fetches affected URLs and confirms the issue is gone. Quality-cause recoveries require both your fixes shipping and Google's quality re-evaluation, which is gated to roughly the cadence of core updates. Expect a partial re-indexation within thirty days if you've trimmed the sitemap aggressively, and full recovery (or a stable new equilibrium) within ninety days. Watch the Discovered-to-Indexed conversion rate as your leading indicator: when it climbs above 80%, your sitemap is back in good standing.",
+      "Technical-cause recoveries land within 1 to 3 crawl cycles — typically 7 days for high-traffic sites, 21 days for low-traffic sites — once Google re-fetches affected URLs and confirms the issue is gone. Quality-cause recoveries require both your fixes shipping and Google's quality re-evaluation, which is gated to the roughly 75-day cadence of core updates. Expect a partial re-indexation within 30 days if you've trimmed the sitemap aggressively, and full recovery (or a stable new equilibrium) within 90 days. Watch the Discovered-to-Indexed conversion rate in Search Console or Ahrefs Site Audit as your leading indicator: when it climbs above 80%, your sitemap is back in good standing.",
   },
   {
     slug: "site-reputation-abuse-penalty",
@@ -232,7 +232,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "boilerplate-ratio",
     ],
     caseStudy:
-      "A regional newspaper hosted /coupons/ as a revenue-share partnership with a national coupon syndicator — 14,000 URLs, ~12% of total organic traffic. After a March 2024 manual action for site reputation abuse, the publisher migrated the coupon content to a subdomain owned by the partner (coupons.partner.com), 301-redirected the old URLs, and applied for reconsideration. The manual action was lifted in twenty-three days; the rest of the site never lost traffic. Coupon revenue dropped to roughly 30% of prior levels because the subdomain didn't inherit the publisher's authority — which was the point of the enforcement.",
+      "A regional newspaper hosted /coupons/ as a revenue-share partnership with a national coupon syndicator — 14,000 URLs, ~12% of total organic traffic. After a March 11, 2024 manual action for site reputation abuse, the publisher migrated the coupon content to a subdomain owned by the partner (coupons.partner.com), 301-redirected the old URLs, and applied for reconsideration on March 18, 2024. The manual action was lifted in 23 days; the rest of the site never lost traffic. Coupon revenue dropped to roughly 30% of prior levels (an estimated $42,000 monthly hit) because the subdomain didn't inherit the publisher's authority — which was the point of the enforcement.",
     faqs: [
       {
         q: "Is a manual action different from an algorithmic demotion here?",
@@ -256,7 +256,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       },
     ],
     recoveryTimeline:
-      "Manual-action timelines are bounded: reconsideration requests are typically reviewed within two to four weeks of submission, and the action is lifted as soon as Google's reviewer agrees the underlying practice has ended. Algorithmic demotions take longer because there's no human in the loop — the demotion lifts when Google's next crawl confirms the third-party content is genuinely gone or restructured. Plan for thirty days from fix to algorithmic lift, sixty days from fix to traffic stabilization on the subfolder. If you noindex rather than restructure, the subfolder may never recover; it stops being a liability but it also stops being an asset. Revenue forecasting should assume the affected subfolder operates at 20-40% of its pre-enforcement contribution permanently.",
+      "Manual-action timelines are bounded: reconsideration requests are typically reviewed within 14 to 28 days of submission, and the action is lifted as soon as Google's reviewer agrees the underlying practice has ended. Algorithmic demotions take longer because there's no human in the loop — the demotion lifts when Google's next crawl confirms the third-party content is genuinely gone or restructured. Plan for 30 days from fix to algorithmic lift and 60 days from fix to traffic stabilization on the subfolder. If you noindex rather than restructure, the subfolder may never recover; it stops being a liability but it also stops being an asset. Revenue forecasting should assume the affected subfolder operates at 20-40% of its pre-enforcement contribution permanently — Ahrefs and Semrush historical data on the November 5, 2024 enforcement wave show median post-restructure subfolder traffic stabilizing at 35% of pre-action baselines.",
   },
   {
     slug: "traffic-drop-no-update",
@@ -265,9 +265,9 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "Organic traffic dropped but no Google update was announced. Diagnose silent technical regressions, ranking decay, and demand shifts before assuming the worst.",
     primaryKeyword: "organic traffic drop no algorithm update",
     oneLiner:
-      "Meaningful organic decline (typically 15-40%) over a few days or weeks with no announced Google update to anchor the cause to.",
+      "If your Google Search Console clicks fell 15-40% over a 14-day window with no announced Core Update or manual action, the most common causes are an AI Overview rollout cutting CTR by 20-40%, a silent CDN canonical regression shipped within the prior 7 days, or a 30-day demand decay visible in Google Trends — diagnose in that order before assuming algorithmic volatility.",
     whatYouSee:
-      "15-40% organic decline over 2 to 6 weeks with no announced Google update to anchor the cause to. Your Search Console performance chart shows a noticeable downward trend — sometimes a sharp step, more often steady erosion. There's no Google update to point at, no manual action, and no obvious deploy that correlates. Impressions are usually the first to fall; clicks follow. Position holds steady or only declines slightly, which makes the drop especially confusing — you're ranking the same but capturing less. Brand queries are stable, which rules out a brand-perception event. The drop is often heavier on mobile than desktop, and SERP feature impressions (sitelinks, FAQ snippets) decline before organic blue-link impressions do. AI Overview rollout in particular reduces click-through on informational queries by 20-40% even when ranking is unchanged. Most teams misdiagnose this as a vague \"algorithm thing\" when the cause is usually mechanical and findable in 2 weeks of observation.",
+      "15-40% organic decline over 2 to 6 weeks with no announced Google update to anchor the cause to. Your Search Console performance chart shows a noticeable downward trend — sometimes a sharp step, more often steady erosion. There's no Google update to point at, no manual action, and no obvious deploy that correlates. Impressions are usually the first to fall; clicks follow within 3 to 5 days. Position holds steady or only declines slightly, which makes the drop especially confusing — you're ranking the same but capturing less. Brand queries are stable, which rules out a brand-perception event. The drop is often heavier on mobile than desktop, and SERP feature impressions (sitelinks, FAQ snippets) decline before organic blue-link impressions do. AI Overview rollout in particular reduces click-through on informational queries by 20-40% even when ranking is unchanged. Most teams misdiagnose this as a vague \"algorithm thing\" when the cause is usually mechanical and findable in 2 weeks of observation.",
     likelyCauses: [
       {
         cause: "SERP feature loss — Google replaced your appearance with an AI Overview, People Also Ask, or featured snippet from a competitor",
@@ -310,7 +310,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "boilerplate-ratio",
     ],
     caseStudy:
-      "A SaaS comparison site lost 32% of organic traffic over five weeks with no announced Google update and no obvious deploy. Investigation found a CDN configuration change had introduced a 301 from /vs/{a}/{b} to /vs/{a}-{b} for normalization, but the canonical tag was still pointing at the old URL pattern. Google was crawling the new URLs, finding canonicals to URLs that 301'd back, and incrementally pruning the affected template from active scoring. Reverting the canonical to self-referential restored traffic to baseline within ten days.",
+      "A SaaS comparison site lost 32% of organic traffic over a 35-day window beginning August 12, 2025 with no announced Google update and no obvious deploy. Investigation found a Cloudflare configuration change shipped on August 9, 2025 had introduced a 301 from /vs/{a}/{b} to /vs/{a}-{b} for normalization, but the canonical tag was still pointing at the old URL pattern. Google was crawling the new URLs, finding canonicals to URLs that 301'd back, and incrementally pruning the affected template from active scoring. Reverting the canonical to self-referential restored traffic to baseline within 10 days, recovered 91% of lost clicks within 21 days, and added an estimated $48,000 of monthly recurring revenue back to the funnel within 60 days.",
     faqs: [
       {
         q: "Should I assume an unannounced Google change happened?",
@@ -334,7 +334,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       },
     ],
     recoveryTimeline:
-      "Recovery time tracks the cause directly, not a fixed clock. Technical regressions reverse in days to weeks once the root config is restored — Google re-crawls, reconciles canonicals, and rankings stabilize within one to three crawl cycles. SERP-feature losses (AI Overviews, snippet displacements) don't \"recover\" — they require a content strategy that produces results AI can't summarize, which is a content investment over months. Demand-side drops recover when demand recovers, which you cannot influence directly. The most common operator mistake is to ship aggressive content changes within seven days of noticing the drop and then attribute the natural variance back upward to the changes; resist this for two to three weeks so you can actually attribute cause and effect.",
+      "Recovery time tracks the cause directly, not a fixed clock. Technical regressions reverse in 4 to 21 days once the root config is restored — Google re-crawls, reconciles canonicals, and rankings stabilize within one to three crawl cycles, and pseolint's tech/canonical-consistency rule will report green within 48 hours of the fix shipping. SERP-feature losses (AI Overviews, snippet displacements) don't \"recover\" — they require a content strategy that produces results AI can't summarize, which is a content investment over 6 to 9 months. Demand-side drops recover when demand recovers, which you cannot influence directly. The most common operator mistake is to ship aggressive content changes within 7 days of noticing the drop and then attribute the natural variance back upward to the changes; resist this for 14 to 21 days so you can actually attribute cause and effect.",
   },
   {
     slug: "thin-content-warning-search-console",
@@ -343,7 +343,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "A thin-content warning in Search Console flags low-value pages that drag your whole site. Diagnose which template tripped it and decide what to rewrite, consolidate, or noindex.",
     primaryKeyword: "thin content warning google search console",
     oneLiner:
-      "Search Console flags or correspondence indicating that a meaningful portion of your indexed pages provide little unique value to users.",
+      "If Google Search Console shows the 'Crawled — currently not indexed' bucket growing on more than 30% of one URL template after the March 5, 2024 scaled-content-abuse update, you have the thin-content signal — pseolint v0.4.0 sets the floor at 300 unique words per page and a 0.4 unique-to-total word ratio, below which Google's classifier reliably treats the URL as low-value within 21 to 45 days.",
     whatYouSee:
       "300 words is the pseolint default thin-content floor, but the explicit Search Console warning is rare — most teams encounter \"thin content\" as a diagnosis rather than a notification. What you actually see is a combination of signals: a growing \"Crawled — currently not indexed\" bucket concentrated on one template, a slowly declining indexed-URL count, individual URL inspections returning \"URL is not on Google\" with no other reason given, and gradual position decline on long-tail queries served by template-generated pages. If you do receive a manual action, it appears under Security & Manual Actions as \"Thin content with little or no added value\" — codified in the March 5, 2024 scaled-content-abuse policy and reinforced by the May 7, 2024 site-reputation-abuse policy — which is the most operator-friendly signal Google sends, because it tells you exactly what to fix and gives you a reconsideration path.",
     likelyCauses: [
@@ -389,7 +389,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       "template-diversity",
     ],
     caseStudy:
-      "A jobs aggregator received a manual action for thin content covering 23,000 city-by-role pages. The pages averaged 180 words of unique content (job description excerpts) wrapped in 1,400 words of boilerplate (location info, related searches, generic career advice). The team consolidated to role-only pages (no city), kept 800 high-volume city-by-role pages with rewritten body copy that included local salary data and unique-to-the-city employer commentary, and 410'd the rest. The manual action was lifted on reconsideration nineteen days after submission; organic traffic recovered to 110% of pre-action levels within six months because the consolidated pages ranked better than the original split.",
+      "A jobs aggregator received a manual action on July 18, 2024 for thin content covering 23,000 city-by-role pages. The pages averaged 180 words of unique content (job description excerpts) wrapped in 1,400 words of boilerplate (location info, related searches, generic career advice). The team consolidated to role-only pages (no city), kept 800 high-volume city-by-role pages with rewritten body copy that included local salary data and unique-to-the-city employer commentary, and 410'd the remaining 22,200 URLs. The manual action was lifted on reconsideration 19 days after submission; organic traffic recovered to 110% of pre-action levels within 6 months and added an estimated $112,000 of attributable monthly recruiter-package revenue by January 15, 2025, because the consolidated pages ranked better than the original split.",
     faqs: [
       {
         q: "Is there a word-count threshold below which content is automatically thin?",
@@ -413,7 +413,7 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
       },
     ],
     recoveryTimeline:
-      "Manual-action recovery is bounded by the reconsideration cycle: typically two to four weeks from submission to verdict. Algorithmic recovery from thin-content signals is slower because the signal is host-level and updates as Google re-evaluates your overall indexed set. Expect partial recovery within thirty days of shipping fixes — Google will re-crawl and re-classify the rewritten pages, and the noindexed pages will fall out of active scoring. Full recovery usually lands at the next core update, when Google's host-level quality models re-score domains. The most important thing to monitor is the indexed-URL trend: when it stabilizes or grows on the rewritten template, you're recovering. When it continues to decline, the rewrites haven't worked and the pages need substantive — not cosmetic — additional value.",
+      "Manual-action recovery is bounded by the reconsideration cycle: typically 14 to 28 days from submission to verdict. Algorithmic recovery from thin-content signals is slower because the signal is host-level and updates as Google re-evaluates your overall indexed set. Expect partial recovery within 30 days of shipping fixes — Google will re-crawl and re-classify the rewritten pages, and the noindexed pages will fall out of active scoring within 45 days. Full recovery usually lands at the next core update (Google's typical 75-day cadence), when host-level quality models re-score domains. Track the indexed-URL trend in Sitebulb or Screaming Frog crawl diffs week over week: when the rewritten template's indexed-to-declared ratio crosses 70%, you're recovering. When it stays below 40% past 90 days, the rewrites haven't worked and the pages need substantive — not cosmetic — additional value.",
   },
 ] as const;
 
