@@ -188,7 +188,10 @@ export async function POST(req: Request): Promise<Response> {
     userId = session.user.id;
     // getPlan encapsulates the expiry check + dev-bypass — single source of truth.
     plan = await getPlan(userId);
-    expiresAt = plan === "pro" ? new Date(8640000000000000) : addDays(30);
+    // "Never expires" for Pro — far-future sentinel Postgres can serialize.
+    // JS max date (year 275760) round-trips as `+275760-09-13T...` which Postgres's
+    // timestamptz parser rejects.
+    expiresAt = plan === "pro" ? new Date("9999-12-31T23:59:59.999Z") : addDays(30);
 
     if (!devFlags.rateLimitDisabled) {
       const key = plan === "pro" ? `pro:${userId}:${today}` : `free:${userId}:${today}`;

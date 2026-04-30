@@ -6,6 +6,7 @@ import { executeAuditInProcess } from "@/inngest/functions/run-audit";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import type { AuditSummary } from "@pseolint/core";
 import { sendMonitoringAlertEmail } from "@/lib/alert-email";
+import { sendSlackAlert } from "@/lib/slack-notify";
 import { bumpRateLimit } from "@/lib/rate-limit";
 import { todayDateString } from "@/lib/ids";
 import { auditMode } from "@/lib/audit-mode";
@@ -13,6 +14,7 @@ import { auditLog } from "@/lib/audit-log";
 import { mergeFindings } from "@/lib/findings-state";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 import { publicSlug } from "@/lib/slug";
+import { env } from "@/lib/env";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -210,6 +212,24 @@ async function runOneMonitor(monitoredDomainId: string) {
             currSummary: currSummaryRaw ? (() => { try { return JSON.parse(currSummaryRaw) as AuditSummary; } catch { return null; } })() : null,
             reportSlug: audit.slug,
           });
+          if (d.slackWebhookUrl) {
+            try {
+              await sendSlackAlert({
+                webhookUrl: d.slackWebhookUrl,
+                sourceUrl: d.sourceUrl,
+                previousRisk: d.lastRisk ?? null,
+                currentRisk: result.risk,
+                newRuleIds,
+                reportSlug: audit.slug,
+                appUrl: env().BETTER_AUTH_URL,
+              });
+            } catch (e) {
+              auditLog("monitor.alert_gate.slack_failed", {
+                domainId: d.id,
+                err: e instanceof Error ? e.message : String(e),
+              });
+            }
+          }
           // Email succeeded — now write dedup rows so we don't re-send this week.
           const week = isoWeekOf(new Date());
           for (const f of gate.firingCombinations) {

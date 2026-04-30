@@ -48,16 +48,15 @@ export async function isSafePublicUrl(raw: string): Promise<boolean> {
     if (net.isIPv6(host) && isPrivateV6(host)) return false;
     return true;
   }
+  // `dns.lookup` uses the OS resolver (getaddrinfo) which is far more reliable
+  // for short-lived requests than c-ares-based resolve4/resolve6 — those time
+  // out under cold-start conditions and falsely reject valid public domains.
   try {
-    const [v4, v6] = await Promise.allSettled([dns.resolve4(host), dns.resolve6(host)]);
-    const ips: string[] = [
-      ...(v4.status === "fulfilled" ? v4.value : []),
-      ...(v6.status === "fulfilled" ? v6.value : []),
-    ];
-    if (ips.length === 0) return false;
-    for (const ip of ips) {
-      if (net.isIPv4(ip) && isPrivateV4(ip)) return false;
-      if (net.isIPv6(ip) && isPrivateV6(ip)) return false;
+    const addrs = await dns.lookup(host, { all: true });
+    if (addrs.length === 0) return false;
+    for (const { address, family } of addrs) {
+      if (family === 4 && isPrivateV4(address)) return false;
+      if (family === 6 && isPrivateV6(address)) return false;
     }
     return true;
   } catch {

@@ -4,6 +4,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, domainDataSources, domainRuleOverrides } from "@/db/schema";
 import { requireSession } from "@/lib/session";
+import { validateSlackWebhookUrl, sendSlackAlert } from "@/lib/slack-notify";
+import { auditLog } from "@/lib/audit-log";
+import { env } from "@/lib/env";
 
 async function ownDomainId(userId: string, host: string): Promise<string | null> {
   const [row] = await db.select({ id: monitoredDomains.id })
@@ -111,6 +114,72 @@ export async function updateRuleOverridesAction(formData: FormData): Promise<voi
       target: domainRuleOverrides.domainId,
       set: { overrides: serialized, updatedAt: new Date() },
     });
+
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+}
+
+export async function updateSlackWebhookAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
+
+  const raw = String(formData.get("slackWebhookUrl") ?? "").trim();
+  let webhookUrl: string | null;
+  if (raw.length === 0) {
+    webhookUrl = null;
+  } else {
+    const v = validateSlackWebhookUrl(raw);
+    if (!v.ok) throw new Error(v.reason);
+    webhookUrl = raw;
+  }
+
+  await db.update(monitoredDomains).set({ slackWebhookUrl: webhookUrl })
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ));
+
+  auditLog("settings.slack.updated", { userId: session.user.id, host, configured: webhookUrl !== null });
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+}
+
+export async function testSlackWebhookAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
+
+  const [domain] = await db.select({
+    id: monitoredDomains.id,
+    sourceUrl: monitoredDomains.sourceUrl,
+    slackWebhookUrl: monitoredDomains.slackWebhookUrl,
+  })
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ))
+    .limit(1);
+  if (!domain) throw new Error("not found");
+  if (!domain.slackWebhookUrl) throw new Error("No webhook configured");
+
+  try {
+    await sendSlackAlert({
+      webhookUrl: domain.slackWebhookUrl,
+      sourceUrl: domain.sourceUrl,
+      previousRisk: 10,
+      currentRisk: 12,
+      newRuleIds: ["meta/title-too-long"],
+      reportSlug: "test-message",
+      appUrl: env().BETTER_AUTH_URL,
+    });
+    auditLog("settings.slack.test_sent", { userId: session.user.id, host });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    auditLog("settings.slack.test_failed", { userId: session.user.id, host, err: msg });
+    throw new Error(`Slack test failed: ${msg}`);
+  }
 
   revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
 }

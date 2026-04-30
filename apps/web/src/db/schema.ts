@@ -118,6 +118,8 @@ export const monitoredDomains = pgTable("monitored_domain", {
    * verified property within that grant feeds this row.
    */
   gscSiteUrl: text("gsc_site_url"),
+  /** Optional Slack incoming webhook URL. Presence enables Slack alerts; null = disabled. */
+  slackWebhookUrl: text("slack_webhook_url"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { snoozeFinding, dismissFinding } from "@/app/dashboard/_actions/findings";
 
@@ -25,6 +26,8 @@ interface FindingsPanelProps {
   findings: Finding[];
   /** Whether the domain has a GSC property bound — controls rank-source annotation. */
   gscBound?: boolean;
+  /** Domain host — used to build per-URL deep-dive links. */
+  host: string;
 }
 
 const SEV_ORDER = ["critical", "error", "warning", "info"] as const;
@@ -37,7 +40,7 @@ const SEV_LABEL: Record<Severity, string> = {
   info: "Info",
 };
 
-export function FindingsPanel({ findings, gscBound = false }: FindingsPanelProps) {
+export function FindingsPanel({ findings, gscBound = false, host }: FindingsPanelProps) {
   const [showSuppressed, setShowSuppressed] = useState(false);
   const visible = findings.filter((f) => showSuppressed || f.status === "open");
   const groups = SEV_ORDER
@@ -103,7 +106,7 @@ export function FindingsPanel({ findings, gscBound = false }: FindingsPanelProps
       ) : (
         <div className="flex flex-col gap-6">
           {groups.map((g) => (
-            <SeverityGroup key={g.sev} sev={g.sev} rows={g.rows} gscBound={gscBound} />
+            <SeverityGroup key={g.sev} sev={g.sev} rows={g.rows} gscBound={gscBound} host={host} />
           ))}
         </div>
       )}
@@ -134,7 +137,7 @@ function CleanState({ hasSuppressed, onShow }: { hasSuppressed: boolean; onShow:
   );
 }
 
-function SeverityGroup({ sev, rows, gscBound }: { sev: Severity; rows: Finding[]; gscBound: boolean }) {
+function SeverityGroup({ sev, rows, gscBound, host }: { sev: Severity; rows: Finding[]; gscBound: boolean; host: string }) {
   return (
     <div>
       <h3 className={`mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${sevText(sev)}`}>
@@ -143,13 +146,13 @@ function SeverityGroup({ sev, rows, gscBound }: { sev: Severity; rows: Finding[]
         <span className="font-mono text-[11px] font-normal text-muted-foreground">· {rows.length}</span>
       </h3>
       <ul className="flex flex-col gap-2">
-        {rows.map((f) => <FindingRow key={f.id} f={f} gscBound={gscBound} />)}
+        {rows.map((f) => <FindingRow key={f.id} f={f} gscBound={gscBound} host={host} />)}
       </ul>
     </div>
   );
 }
 
-function FindingRow({ f, gscBound }: { f: Finding; gscBound: boolean }) {
+function FindingRow({ f, gscBound, host }: { f: Finding; gscBound: boolean; host: string }) {
   const [pending, start] = useTransition();
   const isSuppressed = f.status !== "open";
   const hasTraffic = Boolean(f.traffic && (f.traffic.impressions > 0 || f.traffic.clicks > 0));
@@ -196,15 +199,24 @@ function FindingRow({ f, gscBound }: { f: Finding; gscBound: boolean }) {
           )}
 
           {f.representativeUrl && (
-            <a
-              href={f.representativeUrl}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="truncate font-mono text-[11px] text-muted-foreground hover:text-foreground"
-              title={f.representativeUrl}
-            >
-              ↗ {pathOf(f.representativeUrl)}
-            </a>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <a
+                href={f.representativeUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="truncate font-mono text-[11px] text-muted-foreground hover:text-foreground"
+                title={f.representativeUrl}
+              >
+                ↗ {pathOf(f.representativeUrl)}
+              </a>
+              <Link
+                href={`/dashboard/${encodeURIComponent(host)}/url/${encodeURIComponent(f.representativeUrl)}`}
+                className="font-mono text-[11px] text-primary hover:underline"
+                title="See every finding ever recorded for this URL"
+              >
+                View page history →
+              </Link>
+            </div>
           )}
 
           {f.help && <RemediationDetails help={f.help} />}

@@ -1,5 +1,8 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { authClient } from "@/lib/auth-client";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,6 +14,26 @@ import {
 
 export function AccountMenu({ email }: { email: string }) {
   const initials = email.slice(0, 2).toUpperCase();
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  function handleSignOut() {
+    start(async () => {
+      try {
+        await authClient.signOut();
+      } catch {
+        // Best-effort: even if the API call fails, navigate away — the cookie
+        // may already be cleared and staying on a dashboard page would 500.
+      }
+      // replace() (not push) so the back button doesn't bounce the user into
+      // a page that re-checks the now-missing session and redirects again.
+      router.replace("/");
+      // refresh() invalidates the RSC cache so any server-rendered authenticated
+      // shell on the destination is re-fetched without the old session.
+      router.refresh();
+    });
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -29,10 +52,15 @@ export function AccountMenu({ email }: { email: string }) {
           <Link href="/dashboard/settings/billing" className="block w-full">Billing</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <form action="/api/auth/sign-out" method="post" className="contents">
-            <button type="submit" className="block w-full text-left text-muted-foreground">Sign out</button>
-          </form>
+        <DropdownMenuItem
+          disabled={pending}
+          onSelect={(e) => {
+            e.preventDefault();
+            handleSignOut();
+          }}
+          className="cursor-pointer text-muted-foreground"
+        >
+          {pending ? "Signing out…" : "Sign out"}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

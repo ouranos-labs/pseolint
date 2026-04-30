@@ -1574,11 +1574,25 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.cacheStats = cacheStats;
   }
 
-  // v0.4 §4.5: warn when an `ignore` pattern matched zero discovered URLs.
+  // v0.4 §4.5 / v0.4.1: warn when ignore patterns matched zero discovered URLs.
+  //   - Per-pattern warning fires only when `warnUnmatchedIgnore` is true
+  //     (set by the CLI when `--ignore` was passed explicitly). Quiet by
+  //     default for config-loaded patterns where broad safety lists like
+  //     `**/dashboard/**` legitimately don't match small marketing sites.
+  //   - When ALL patterns matched zero (strongest typo signal, e.g. user
+  //     wrote `*.json` instead of `**/*.json`), emit a single consolidated
+  //     warning regardless of source.
   if (ignorePatterns.length > 0) {
-    for (const pattern of ignorePatterns) {
-      const matched = deduped.some((p) => globMatchPathname(pattern, p.url));
-      if (!matched) {
+    const unmatched = ignorePatterns.filter(
+      (pattern) => !deduped.some((p) => globMatchPathname(pattern, p.url)),
+    );
+    if (unmatched.length === ignorePatterns.length) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[pseolint] none of the ${ignorePatterns.length} ignore pattern${ignorePatterns.length === 1 ? "" : "s"} matched any URLs — check config or --ignore for typos`,
+      );
+    } else if (options?.warnUnmatchedIgnore === true) {
+      for (const pattern of unmatched) {
         // eslint-disable-next-line no-console
         console.warn(`[pseolint] ignore pattern '${pattern}' matched 0 URLs — likely typo`);
       }

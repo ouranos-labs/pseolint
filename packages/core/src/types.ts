@@ -277,10 +277,22 @@ export interface AuditOptions {
   /**
    * URL/path glob patterns to exclude from the audit. v0.4: globs match
    * against the URL pathname only (e.g. "/api/foo"), not the full URL.
-   * The auditor logs a warning at the end of the audit for any pattern that
-   * matched zero discovered URLs (likely-typo signal).
+   * When `warnUnmatchedIgnore` is true, the auditor logs a per-pattern
+   * warning for any pattern that matched zero discovered URLs. Regardless
+   * of the flag, if EVERY ignore pattern matched zero URLs, a single
+   * consolidated warning is emitted (likely systematic typo).
    */
   ignore?: string[];
+  /**
+   * v0.4.1: when true, emit a per-pattern warning for each `ignore` glob
+   * that matched zero discovered URLs. Default: false (quiet) — config-
+   * loaded patterns commonly include broad safety lists like
+   * `**\/dashboard\/**` that legitimately don't match a small site. The
+   * CLI sets this to true only when `--ignore` was passed explicitly on
+   * the command line. The all-zero consolidated warning still fires
+   * regardless of this flag.
+   */
+  warnUnmatchedIgnore?: boolean;
   crawlDiscovery?: boolean;
   /**
    * When true and crawlDiscovery is also true, top the sample budget up to `sampleSize` by

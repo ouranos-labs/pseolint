@@ -64,6 +64,13 @@
       "when": 1777300000000,
       "tag": "0008_site_classification",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1777536339167,
+      "tag": "0009_slack_webhook_url",
+      "breakpoints": true
     }
   ]
 }

@@ -16,6 +16,7 @@ import { VerifyBanner } from "@/components/dashboard/verify-banner";
 import { GscStatusStrip } from "@/components/dashboard/gsc-status-strip";
 import { RiskTrendChart } from "@/components/dashboard/risk-trend-chart";
 import { RunDiffStrip } from "@/components/dashboard/run-diff-strip";
+import { AlertThresholdSimulator } from "@/components/dashboard/alert-threshold-simulator";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
@@ -112,15 +113,29 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   // previous completed audit's timestamp to bound the new/recovered windows.
   // findingsState is cumulative (rows persist across runs); we slice it by
   // firstSeenAt / lastSeenAt against the prior run's completedAt.
-  let runDiff: { newFindings: { ruleId: string; severity: "info" | "warning" | "error" | "critical"; templateSignature: string }[]; recoveredCount: number; previousAt: Date | null } = {
+  type RecoveredRow = {
+    ruleId: string;
+    severity: "info" | "warning" | "error" | "critical";
+    templateSignature: string;
+    lastSeenAt: Date;
+    representativeUrl: string | null;
+    affectedPageCount: number;
+  };
+  let runDiff: {
+    newFindings: { ruleId: string; severity: "info" | "warning" | "error" | "critical"; templateSignature: string }[];
+    recoveredCount: number;
+    recoveredFindings: RecoveredRow[];
+    previousAt: Date | null;
+  } = {
     newFindings: [],
     recoveredCount: 0,
+    recoveredFindings: [],
     previousAt: null,
   };
   if (latestAudit?.completedAt) {
     const previousCompletedAt = completedRuns[1]?.completedAt ?? null;
     if (previousCompletedAt) {
-      const [newRows, [{ recoveredCount }]] = await Promise.all([
+      const [newRows, [{ recoveredCount }], recoveredRows] = await Promise.all([
         db.select({
           ruleId: findingsState.ruleId,
           severity: findingsState.severityLatest,
@@ -140,10 +155,31 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             gte(findingsState.lastSeenAt, previousCompletedAt),
             lt(findingsState.lastSeenAt, latestAudit.completedAt),
           )),
+        // Recovered rows for the drawer — bounded so the page stays cheap when
+        // a big chunk of issues drop off in one run. Anything beyond the cap
+        // is folded into a "+N more" affordance in the strip.
+        db.select({
+          ruleId: findingsState.ruleId,
+          severity: findingsState.severityLatest,
+          templateSignature: findingsState.templateSignature,
+          lastSeenAt: findingsState.lastSeenAt,
+          representativeUrl: findingsState.representativeUrl,
+          affectedPageCount: findingsState.affectedPageCount,
+        })
+          .from(findingsState)
+          .where(and(
+            eq(findingsState.domainId, domain.id),
+            eq(findingsState.status, "open"),
+            gte(findingsState.lastSeenAt, previousCompletedAt),
+            lt(findingsState.lastSeenAt, latestAudit.completedAt),
+          ))
+          .orderBy(desc(findingsState.rankScore))
+          .limit(25),
       ]);
       runDiff = {
         newFindings: newRows,
         recoveredCount,
+        recoveredFindings: recoveredRows,
         previousAt: previousCompletedAt,
       };
     }
@@ -217,6 +253,28 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </Link>
           </div>
 
+          {/* v0.4 §4.11 site-classification badge — surfaces what type of site the
+              engine inferred and how many pSEO-only rules were suppressed. Only
+              rendered for v0.4+ reports (legacy v0.3 summaries lack the field). */}
+          {summary.siteClassification && (
+            <div className="-mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1">
+                <span className="text-muted-foreground/70">Site type:</span>
+                <span className="font-mono text-foreground">{summary.siteClassification.type}</span>
+                <span aria-hidden="true">·</span>
+                <span className="tabular-nums">{Math.round(summary.siteClassification.confidence * 100)}% confidence</span>
+              </span>
+              {summary.siteClassification.suppressedRules.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1"
+                  title={summary.siteClassification.suppressedRules.join(", ")}
+                >
+                  <span className="tabular-nums">{summary.siteClassification.suppressedRules.length}</span>
+                  <span>pSEO-only rule{summary.siteClassification.suppressedRules.length === 1 ? "" : "s"} suppressed</span>
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
             <div className="flex flex-col items-start">
               <div className="flex items-baseline gap-3">
@@ -276,6 +334,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         <RunDiffStrip
           newFindings={runDiff.newFindings}
           recoveredCount={runDiff.recoveredCount}
+          recoveredFindings={runDiff.recoveredFindings}
           latestAt={latestAudit.completedAt}
           previousAt={runDiff.previousAt}
         />
@@ -284,7 +343,14 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       {/* 5. HOW AM I TRENDING — the visual narrative of monitoring. */}
       <RiskTrendChart runs={timelineRuns} alertThreshold={domain.alertThreshold} />
 
-      {/* 6. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
+      {/* 6. ALERT THRESHOLD — interactive replay so the user sees what their threshold buys */}
+      <AlertThresholdSimulator
+        runs={timelineRuns}
+        currentThreshold={domain.alertThreshold}
+        host={domain.host}
+      />
+
+      {/* 7. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
           *below* the trend so they don't break the state→change→trend flow. */}
       {latestAudit && summary && (
         <>
@@ -298,13 +364,13 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         </>
       )}
 
-      {/* 7. PICK A SPECIFIC RUN — clickable bar grid for drill-down into a
+      {/* 8. PICK A SPECIFIC RUN — clickable bar grid for drill-down into a
           past report. Lives above the findings panel because that's where the
           user goes if they want to compare a finding to a specific historical
           state. */}
       <TimelineStrip runs={timelineRuns} />
 
-      {/* 8. WHAT'S WRONG — the work surface. Each row carries traffic chips,
+      {/* 9. WHAT'S WRONG — the work surface. Each row carries traffic chips,
           rank-source annotation, and (when documented) inline remediation. */}
       <FindingsPanel
         findings={openFindings.map((f) => {
@@ -326,6 +392,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           };
         })}
         gscBound={gscBound}
+        host={domain.host}
       />
     </div>
   );

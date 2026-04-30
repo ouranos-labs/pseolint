@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { findingsState, monitoredDomains, integrations } from "@/db/schema";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { audits, findingsState, monitoredDomains, integrations } from "@/db/schema";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 type DomainRow = typeof monitoredDomains.$inferSelect;
 
@@ -10,12 +10,16 @@ interface PortfolioStripProps {
   userId: string;
 }
 
+type TrendPoint = { risk: number; t: number };
+
 export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
   const domainIds = domains.map((d) => d.id);
+  const sourceUrls = domains.map((d) => d.sourceUrl);
+  const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
 
-  const counts =
+  const [counts, gscIntegration, runs] = await Promise.all([
     domainIds.length > 0
-      ? await db
+      ? db
           .select({
             domainId: findingsState.domainId,
             openCount: sql<number>`count(${findingsState.id}) filter (where ${findingsState.status} = 'open')::int`.as("open_count"),
@@ -23,19 +27,47 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           .from(findingsState)
           .where(inArray(findingsState.domainId, domainIds))
           .groupBy(findingsState.domainId)
-      : [];
+      : Promise.resolve([] as { domainId: string; openCount: number }[]),
+    // User-level GSC grant (one row per user, kind='gsc'). Per-domain binding is
+    // checked via `domain.gscSiteUrl` below — the OAuth grant alone is not enough
+    // to weight findings; each domain still needs a bound property.
+    db
+      .select({ id: integrations.id })
+      .from(integrations)
+      .where(and(eq(integrations.userId, userId), eq(integrations.kind, "gsc")))
+      .limit(1)
+      .then((rows) => rows[0] ?? null),
+    // 30-day completed-run history across all of this user's monitored domains,
+    // grouped client-side by sourceUrl. Single query is cheaper than N per-domain
+    // ones, and 30d × N sites stays in the low hundreds even for power users.
+    sourceUrls.length > 0
+      ? db
+          .select({
+            sourceUrl: audits.sourceUrl,
+            risk: audits.risk,
+            completedAt: audits.completedAt,
+          })
+          .from(audits)
+          .where(and(
+            eq(audits.userId, userId),
+            eq(audits.status, "completed"),
+            inArray(audits.sourceUrl, sourceUrls),
+            gte(audits.createdAt, since),
+          ))
+      : Promise.resolve([] as { sourceUrl: string; risk: number | null; completedAt: Date | null }[]),
+  ]);
 
   const countMap = new Map(counts.map((c) => [c.domainId, c.openCount]));
-
-  // User-level GSC grant (one row per user, kind='gsc'). Per-domain binding is
-  // checked via `domain.gscSiteUrl` below — the OAuth grant alone is not enough
-  // to weight findings; each domain still needs a bound property.
-  const [gscIntegration] = await db
-    .select({ id: integrations.id })
-    .from(integrations)
-    .where(and(eq(integrations.userId, userId), eq(integrations.kind, "gsc")))
-    .limit(1);
   const gscGrantExists = Boolean(gscIntegration);
+
+  const trendsBySource = new Map<string, TrendPoint[]>();
+  for (const r of runs) {
+    if (r.risk == null || r.completedAt == null) continue;
+    const arr = trendsBySource.get(r.sourceUrl) ?? [];
+    arr.push({ risk: r.risk, t: r.completedAt.getTime() });
+    trendsBySource.set(r.sourceUrl, arr);
+  }
+  for (const arr of trendsBySource.values()) arr.sort((a, b) => a.t - b.t);
 
   return (
     <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card">
@@ -44,6 +76,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           <tr className="border-b border-border bg-card/80 text-left text-xs uppercase tracking-wider text-muted-foreground">
             <th className="py-3 pl-5 pr-4">Domain</th>
             <th className="py-3 pr-4">Score</th>
+            <th className="py-3 pr-4">30d trend</th>
             <th className="py-3 pr-4">Open findings</th>
             <th className="py-3 pr-4">Last audit</th>
             <th className="py-3 pr-5 text-right">GSC</th>
@@ -53,6 +86,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           {domains.map((r) => {
             const unverified = !r.verifiedAt;
             const noRunsYet = !r.lastRunAt;
+            const trend = trendsBySource.get(r.sourceUrl) ?? [];
             return (
               <tr key={r.id} className="border-b border-border/60 last:border-b-0">
                 <td className="py-3.5 pl-5 pr-4">
@@ -68,7 +102,12 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
                     </Link>
                   )}
                 </td>
-                <td className="py-3.5 pr-4 font-mono">{r.lastRisk ?? "—"}</td>
+                <td className={`py-3.5 pr-4 font-mono ${scoreTone(r.lastRisk)}`}>
+                  {r.lastRisk ?? "—"}
+                </td>
+                <td className="py-3.5 pr-4">
+                  <Sparkline points={trend} />
+                </td>
                 <td className="py-3.5 pr-4">
                   <Link href={`/dashboard/${encodeURIComponent(r.host)}`} className="hover:underline">
                     {countMap.get(r.id) ?? 0}
@@ -134,4 +173,59 @@ function GscCell({
       Bound
     </span>
   );
+}
+
+/**
+ * Per-domain risk-trend sparkline. Lets the user scan a multi-domain portfolio
+ * for "which one is regressing?" without drilling in. Tone is keyed off the
+ * latest run's score band so the eye reads color = current risk, slope =
+ * direction. Cold-start state (<2 completed runs) renders a dash so the column
+ * doesn't shift width.
+ */
+function Sparkline({ points }: { points: TrendPoint[] }) {
+  const W = 80;
+  const H = 20;
+  if (points.length < 2) {
+    return (
+      <span
+        className="inline-block font-mono text-[11px] text-muted-foreground/60"
+        title="Need two completed runs to chart a trend"
+      >
+        —
+      </span>
+    );
+  }
+  const tMin = points[0].t;
+  const tMax = points[points.length - 1].t;
+  const tSpan = Math.max(1, tMax - tMin);
+  const x = (t: number) => ((t - tMin) / tSpan) * W;
+  const y = (r: number) => (1 - Math.min(100, Math.max(0, r)) / 100) * H;
+  const path = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.t).toFixed(1)} ${y(p.risk).toFixed(1)}`)
+    .join(" ");
+  const latest = points[points.length - 1];
+  const first = points[0];
+  const delta = latest.risk - first.risk;
+  const tone = scoreTone(latest.risk);
+  const directionLabel = delta < 0 ? "improving" : delta > 0 ? "regressing" : "flat";
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      className={`h-5 w-20 ${tone}`}
+      role="img"
+      aria-label={`30-day risk trend, ${directionLabel}`}
+    >
+      <title>{`30d trend · ${directionLabel} (${first.risk} → ${latest.risk})`}</title>
+      <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <circle cx={x(latest.t)} cy={y(latest.risk)} r="1.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function scoreTone(score: number | null): string {
+  if (score == null) return "text-muted-foreground";
+  if (score < 20) return "text-success";
+  if (score < 40) return "text-primary";
+  if (score < 60) return "text-warning";
+  return "text-destructive";
 }

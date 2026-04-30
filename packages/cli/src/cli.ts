@@ -456,6 +456,17 @@ async function runAudit(
 
   const options = mergeOptions(configFile, cliFlags);
 
+  // v0.4.1: only emit per-pattern unmatched-ignore warnings when the user
+  // explicitly passed `--ignore` on the CLI. Patterns inherited from
+  // pseolint.config.ts often include broad safety lists (e.g.
+  // `**/dashboard/**`) that legitimately don't match a small marketing site;
+  // warning per pattern was noisy. The all-zero consolidated warning still
+  // fires regardless (catches genuine typos like `*.json` vs `**/*.json`).
+  const cliPassedIgnore = opts.ignore != null;
+  if (cliPassedIgnore) {
+    options.warnUnmatchedIgnore = true;
+  }
+
   // Localhost ergonomics: a cache-cold first run against `http://localhost`
   // can thundering-herd a dev server's DB. Two mitigations — both opt-out:
   //   1) auto-promote to the "dev" safeMode preset (tiny crawl budget)

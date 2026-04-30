@@ -1,0 +1,1 @@
+ALTER TABLE "monitored_domain" ADD COLUMN "slack_webhook_url" text;

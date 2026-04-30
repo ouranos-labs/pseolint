@@ -84,8 +84,8 @@ const SCRIPT: ScriptEvent[] = [
 ];
 
 const INITIAL_SCORE = 100;
-const FINAL_MS = 5500;
-const LOOP_PAUSE_MS = 2800;
+const FINAL_MS = 8800;
+const LOOP_PAUSE_MS = 7800;
 
 type State = {
   pages: number;
@@ -252,20 +252,20 @@ export function LiveDemo({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn(
+      className={ cn(
         "relative flex flex-col overflow-hidden rounded-[28px] border border-border bg-card/80",
         "shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)]",
         className,
-      )}
+      ) }
       aria-label="Live demo of an audit running on airport-hotels.example"
     >
       <div className="flex items-center justify-between border-b border-border/70 px-6 py-3.5">
         <div className="flex items-center gap-2 text-xs">
           <span
-            className={cn(
+            className={ cn(
               "inline-block h-1.5 w-1.5 rounded-full",
               state.done ? "bg-muted-foreground" : "animate-pulse bg-primary",
-            )}
+            ) }
           />
           <span className="font-mono text-muted-foreground">airport-hotels.example</span>
           <span className="rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -274,7 +274,7 @@ export function LiveDemo({ className }: { className?: string }) {
         </div>
         <button
           type="button"
-          onClick={handleReplay}
+          onClick={ handleReplay }
           className="rounded-[12px] px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Replay demo"
         >
@@ -284,7 +284,7 @@ export function LiveDemo({ className }: { className?: string }) {
 
       <div className="px-6 pb-4 pt-6">
         <TileGrid
-          states={tileStates}
+          states={ tileStates }
           title="200 pages of the site, shaded by the worst rule that fires on each page"
         />
       </div>
@@ -292,13 +292,13 @@ export function LiveDemo({ className }: { className?: string }) {
       <div className="grid grid-cols-[auto_1fr] items-end gap-6 px-6 pb-6">
         <div className="flex flex-col gap-1">
           <span
-            className={cn(
+            className={ cn(
               "font-display leading-none tabular-nums tracking-tight transition-colors",
               scoreTone,
-            )}
-            style={{ fontSize: "88px", fontFamily: "var(--font-display)" }}
+            ) }
+            style={ { fontSize: "88px", fontFamily: "var(--font-display)" } }
           >
-            {scoreRounded}
+            { scoreRounded }
           </span>
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
             Risk score
@@ -306,36 +306,36 @@ export function LiveDemo({ className }: { className?: string }) {
         </div>
         <div className="flex flex-col gap-2 pb-1 text-xs text-muted-foreground">
           <div className="grid grid-cols-2 gap-x-5 gap-y-1">
-            <CountRow label="Errors" value={counts.error} tone="text-destructive" />
-            <CountRow label="Warnings" value={counts.warning} tone="text-warning" />
-            <CountRow label="Info" value={counts.info} tone="text-warning/60" />
-            <CountRow label="Clean" value={counts.clean} tone="text-muted-foreground" />
+            <CountRow label="Errors" value={ counts.error } tone="text-destructive" />
+            <CountRow label="Warnings" value={ counts.warning } tone="text-warning" />
+            <CountRow label="Info" value={ counts.info } tone="text-warning/60" />
+            <CountRow label="Clean" value={ counts.clean } tone="text-muted-foreground" />
           </div>
           <div className="mt-1 flex items-baseline justify-between border-t border-border/50 pt-1.5">
             <span className="uppercase tracking-wider">Pages</span>
             <span className="font-mono tabular-nums text-foreground">
-              {state.pages} / {TOTAL_TILES} · {elapsed}s
+              { state.pages } / { TOTAL_TILES } · { elapsed }s
             </span>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/70 bg-background/30 px-6 py-3.5 font-mono text-[11px] text-muted-foreground">
-        {state.firedCodes.length === 0 ? (
+        { state.firedCodes.length === 0 ? (
           <span>scanning…</span>
         ) : (
           state.firedCodes.map((c) => {
             const f = FINDINGS[c];
             return (
-              <span key={c} className="inline-flex items-center gap-1.5">
-                <span className={cn("inline-block h-1 w-1 rounded-full", sevDot(f.sev))} />
+              <span key={ c } className="inline-flex items-center gap-1.5">
+                <span className={ cn("inline-block h-1 w-1 rounded-full", sevDot(f.sev)) } />
                 <span>
-                  {c} <span className="tabular-nums text-foreground/70">×{f.count}</span>
+                  { c } <span className="tabular-nums text-foreground/70">×{ f.count }</span>
                 </span>
               </span>
             );
           })
-        )}
+        ) }
       </div>
     </div>
   );
@@ -344,8 +344,8 @@ export function LiveDemo({ className }: { className?: string }) {
 function CountRow({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="flex items-baseline justify-between">
-      <span className="uppercase tracking-wider">{label}</span>
-      <span className={cn("font-mono tabular-nums", tone)}>{value}</span>
+      <span className="uppercase tracking-wider">{ label }</span>
+      <span className={ cn("font-mono tabular-nums", tone) }>{ value }</span>
     </div>
   );
 }

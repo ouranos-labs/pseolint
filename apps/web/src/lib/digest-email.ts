@@ -22,7 +22,7 @@ export async function sendWeeklyDigestTo(userId: string, userEmail: string): Pro
         ruleId: f.ruleId,
         message: f.ruleMessageLatest,
         affectedPages: f.affectedPageCount,
-        detailUrl: `${env().BETTER_AUTH_URL}/dashboard/queue?focus=${f.id}`,
+        detailUrl: `${env().BETTER_AUTH_URL}/dashboard/${encodeURIComponent(d.host)}`,
       });
     }
   }

@@ -7,7 +7,6 @@ type Item = { href: string; label: string };
 
 const PRO_ITEMS: Item[] = [
   { href: "/dashboard", label: "Portfolio" },
-  { href: "/dashboard/queue", label: "Queue" },
   { href: "/dashboard/integrations", label: "Integrations" },
   { href: "/dashboard/settings/costs", label: "Costs" },
   { href: "/dashboard/settings/account", label: "Settings" },

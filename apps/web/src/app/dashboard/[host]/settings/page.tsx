@@ -11,6 +11,8 @@ import {
   uploadDataSourceAction,
   removeDataSourceAction,
   updateRuleOverridesAction,
+  updateSlackWebhookAction,
+  testSlackWebhookAction,
 } from "./actions";
 
 export default async function DomainSettings({ params }: { params: Promise<{ host: string }> }) {
@@ -112,6 +114,45 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
 
         <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>
       </form>
+
+      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+        <header>
+          <h2 className="text-sm font-medium">Slack notifications</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            POST every alert to a Slack channel via incoming webhook. Create one at{" "}
+            <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noreferrer noopener" className="text-primary hover:underline">
+              api.slack.com/messaging/webhooks
+            </a>{" "}
+            and paste it below. Cleared when you save an empty value.
+          </p>
+        </header>
+        <form action={updateSlackWebhookAction} className="flex flex-col gap-3">
+          <input type="hidden" name="domainHost" value={domain.host} />
+          <input
+            name="slackWebhookUrl"
+            type="url"
+            placeholder="https://hooks.slack.com/services/T…/B…/…"
+            defaultValue={domain.slackWebhookUrl ?? ""}
+            className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+              Save
+            </button>
+          </div>
+        </form>
+        {domain.slackWebhookUrl && (
+          <form action={testSlackWebhookAction} className="flex items-center gap-2">
+            <input type="hidden" name="domainHost" value={domain.host} />
+            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] border border-border-strong px-3 text-xs hover:bg-card">
+              Send test message
+            </button>
+            <span className="font-mono text-[11px] text-success">
+              ● Webhook configured
+            </span>
+          </form>
+        )}
+      </section>
 
       <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
         <header>
