@@ -125,7 +125,7 @@ export default function SymptomsIndexPage() {
         If your traffic chart looks wrong and you don&apos;t yet know why, start here. Each
         page below covers one specific failure mode we see on programmatic-SEO sites — what
         it looks like in Google Search Console, the few things that actually cause it, and
-        the order to investigate. The free pseolint audit covers up to 100 pages with
+        the order to investigate. The free pseolint audit covers up to 200 pages with
         30-day retention at $0; comparable tools like Screaming Frog ($259/year),
         Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for the same
         triage surface. When you&apos;ve matched the symptom, run a real audit on your

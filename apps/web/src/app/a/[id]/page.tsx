@@ -81,7 +81,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         <span className="font-mono text-xs text-muted-foreground">audit · {id.slice(0, 8)}</span>
       </div>
       <p className="mt-3 max-w-xl text-sm text-muted-foreground">
-        Crawling up to 200 pages, classifying templates, scoring against 35 SpamBrain rules. Usually
+        Crawling up to 200 pages, classifying templates, scoring against the SpamBrain + AEO rule set. Usually
         30–120 seconds. Safe to leave this page open — your report link is already stable.
       </p>
 

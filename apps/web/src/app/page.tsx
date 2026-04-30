@@ -9,6 +9,7 @@ import { LiveDemo } from "@/components/landing/live-demo";
 import { TileGrid, type TileState } from "@/components/landing/tile-grid";
 import { CliMarquee } from "@/components/landing/cli-marquee";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { scoreTone } from "@/lib/grade";
 
 declare global {
   interface Window {
@@ -170,7 +171,7 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                40+ SpamBrain + AEO rules · v0.3.0
+                Site-type-aware SpamBrain + AEO · v0.4.3
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
@@ -460,13 +461,13 @@ export default function Home() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">42 rules across 8 categories</span> — 8 spam/* rules and 8 aeo/* rules landed in core v0.3.3 on April 21, 2026, with CLI v0.3.1 and MCP v0.3.1 shipped the same week to npm.
+              <span className="text-foreground">Site-type-aware SpamBrain + AEO scoring</span> — programmatic-directories, blogs, ecommerce, docs, and small-marketing sites are weighted differently because Google's quality systems treat them differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span> on April 30, 2026 (core, CLI, and MCP all on npm).
             </li>
             <li>
-              Free tier: 100 pages per audit, 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
+              Free tier: 200 pages per audit, 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
             </li>
             <li>
-              Pro tier: <span className="text-foreground">$19</span> per month for per-domain monitoring, lifting the ceiling to 500 pages per audit, <span className="text-foreground">50 audits</span> per day, and <span className="text-foreground">90 days</span> of trend history.
+              Pro tier: <span className="text-foreground">$19</span> per month for per-domain monitoring with <span className="text-foreground">50 audits</span> per day, weekly full re-audits, daily diff-audits, and unlimited trend history.
             </li>
             <li>
               Detection maps to current Google policy: SpamBrain was rebuilt in 2022, the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole.
@@ -529,9 +530,7 @@ export default function Home() {
 }
 
 function scoreToneClass(score: number): string {
-  if (score <= 40) return "text-success";
-  if (score <= 69) return "text-warning";
-  return "text-destructive";
+  return scoreTone(score);
 }
 
 function normalizeUrl(raw: string): string | null {

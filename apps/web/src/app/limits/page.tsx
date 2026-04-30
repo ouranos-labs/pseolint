@@ -61,13 +61,14 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Free tier: $0, 100 pages per audit, 24-hour anonymous retention (30-day window
-        for free accounts), 3 audits per day per browser session. Pro tier: $19/month
-        ($228/year with 14-day refund), 500 pages per audit, 50 audits per day,
-        indefinite retention. Comparable hosted crawlers like Screaming Frog
-        ($259/year), Sitebulb ($35/month), and Ahrefs Site Audit ($129/month) charge
-        for the same surface area. Written plainly. No dark patterns, no asterisks
-        hiding behind footnotes. If something here feels unfair or unclear, reply to{" "}
+        Free tier: $0, 200 pages per audit (50 without an account), 24-hour anonymous
+        retention (30-day window for signed-in accounts), 3 audits per day per browser
+        session. Pro tier: $19/month ($180/year with 14-day refund), up to 500 pages on
+        manual re-audits, 200 pages on the recurring weekly cron, 50 audits per day,
+        unlimited retention. Comparable hosted crawlers like Screaming Frog ($259/year),
+        Sitebulb ($35/month), and Ahrefs Site Audit ($129/month) charge for the same
+        surface area. Written plainly. No dark patterns, no asterisks hiding behind
+        footnotes. If something here feels unfair or unclear, reply to{" "}
         <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a>{" "}
         and we&apos;ll fix it.
       </p>
@@ -83,8 +84,10 @@ export default function LimitsPage() {
 
       <Section title="Scope — what we actually audit">
         <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
-        <Item k="Pages per free audit" v="Up to 50, sampled from your sitemap.xml" />
-        <Item k="Pages per Pro audit" v="Up to 200 (Pro plan)" />
+        <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml" />
+        <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml" />
+        <Item k="Pages per Pro audit (manual re-audit)" v="Up to 500" />
+        <Item k="Pages per Pro scheduled monitoring run" v="Up to 200 — bumped to 500 only on manual re-audits and the initial monitoring kickoff" />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
         <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample — respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />

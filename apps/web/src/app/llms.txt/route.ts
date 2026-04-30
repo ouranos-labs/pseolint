@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 export function GET(): Response {
   const body = `# pseolint
 
-> A static analyzer for programmatic SEO. SpamBrain-aware, AEO-aware, MIT-licensed. Audits pSEO sites against 42 rules across 8 categories in ~60 seconds.
+> A static analyzer for programmatic SEO. SpamBrain-aware, AEO-aware, MIT-licensed. Site-type-aware scoring — programmatic-directories, blogs, ecommerce, docs, and small-marketing sites are scored against the rule weights that match how Google's quality systems treat each archetype. Median audit ~60 seconds.
 
 ## Authoritative reports
 
@@ -17,7 +17,7 @@ export function GET(): Response {
 
 ## Rule explainers
 
-- [SpamBrain rules index](/rules): 42-rule taxonomy across 8 categories (spam, content, aeo, links, schema, tech, data, cannibal). spam/* and aeo/* rules ship in v0.3.3 (April 2026).
+- [SpamBrain rules index](/rules): the full SpamBrain + AEO rule set with classification-driven scoring (shipped v0.4.3, April 30, 2026).
 - [Thin content rule](/rules/thin-content)
 - [Doorway pattern rule](/rules/doorway-pattern)
 - [Near-duplicate rule](/rules/near-duplicate)
@@ -31,7 +31,7 @@ export function GET(): Response {
 ## Source
 
 - GitHub: https://github.com/ouranos-labs/pseolint
-- npm: pseolint v0.3.1 (CLI), @pseolint/core v0.3.3, @pseolint/mcp v0.3.1
+- npm: pseolint v0.4.3 (CLI), @pseolint/core v0.4.3, @pseolint/mcp v0.4.3
 `;
   return new Response(body, {
     headers: {

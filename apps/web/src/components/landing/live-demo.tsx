@@ -3,6 +3,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { setFiredRules } from "@/lib/demo-pubsub";
 import { TileGrid, deriveTileStates, type Severity } from "./tile-grid";
+import { scoreTone as canonicalScoreTone } from "@/lib/grade";
 
 type Finding = {
   code: string;
@@ -241,8 +242,7 @@ export function LiveDemo({ className }: { className?: string }) {
   );
 
   const scoreRounded = Math.round(displayScore);
-  const scoreTone =
-    scoreRounded <= 40 ? "text-success" : scoreRounded <= 69 ? "text-warning" : "text-destructive";
+  const scoreTone = canonicalScoreTone(scoreRounded);
   const elapsed = (state.elapsedMs / 1000).toFixed(1);
 
   function handleReplay() {

@@ -20,6 +20,7 @@ import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-lis
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
 import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
 import { TileLegend } from "@/components/audit/tile-legend";
+import { gradeOf } from "@/lib/grade";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 
 export const runtime = "nodejs";
@@ -843,15 +844,11 @@ function Stat({
 }
 
 function scoreTone(score: number): string {
-  if (score <= 40) return "text-success";
-  if (score <= 69) return "text-warning";
-  return "text-destructive";
+  return gradeOf(score).text;
 }
 
 function toneDot(score: number): string {
-  if (score <= 40) return "bg-success";
-  if (score <= 69) return "bg-warning";
-  return "bg-destructive";
+  return gradeOf(score).dot;
 }
 
 function scoreVerdict(score: number): string {

@@ -24,6 +24,7 @@ import { ExportMenu } from "@/components/report/export-menu";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
 import { TileLegend } from "@/components/audit/tile-legend";
+import { gradeOf, scoreTone } from "@/lib/grade";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 
@@ -286,6 +287,17 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                 >
                   {latestAudit.risk ?? 0}
                 </span>
+                {(() => {
+                  const g = gradeOf(latestAudit.risk ?? 0);
+                  return (
+                    <span
+                      className={`inline-flex h-10 w-10 items-center justify-center rounded-md font-mono text-lg font-bold ${g.bg} ${g.text}`}
+                      title={`Grade ${g.letter} · ${g.band}`}
+                    >
+                      {g.letter}
+                    </span>
+                  );
+                })()}
                 {riskDelta != null && riskDelta !== 0 && (
                   <span
                     className={`font-mono text-sm tabular-nums ${
@@ -415,11 +427,4 @@ function Stat({ label, sub, value, tone }: { label: string; sub?: string; value:
       {sub && <span className="font-mono text-[10px] text-muted-foreground/70">{sub}</span>}
     </div>
   );
-}
-
-function scoreTone(score: number): string {
-  if (score < 20) return "text-success";
-  if (score < 40) return "text-primary";
-  if (score < 60) return "text-warning";
-  return "text-destructive";
 }

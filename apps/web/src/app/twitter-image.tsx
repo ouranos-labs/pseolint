@@ -56,7 +56,7 @@ export default function TwitterImage() {
               letterSpacing: "0.04em",
             }}
           >
-            42 rules · 60-second audit · OSS-first
+            site-type-aware audit · 60-second · OSS-first
           </div>
         </div>
       </div>

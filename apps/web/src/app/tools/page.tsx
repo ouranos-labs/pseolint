@@ -37,15 +37,15 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What do these free tools actually detect?",
-    a: "All three run the same open-source pseolint engine — 42 rules across 8 categories (spam, content, aeo, links, schema, tech, data, cannibal). 8 spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and two link-spam detectors. Another 8 aeo/* rules (shipped April 21, 2026) cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.",
+    a: "All three run the same open-source pseolint engine — site-type-aware SpamBrain + AEO scoring that adapts the rule weights to your site's archetype (programmatic-directory, blog, ecommerce, docs, small-marketing). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.",
   },
   {
     q: "Why three separate tools instead of one full audit?",
-    a: "A single 'run-the-full-audit' CTA scares people who already suspect what's wrong. The SpamBrain checker is for operators who watched a March 2024-style ranking drop and want a numerical risk score. The thin-content scanner is for editors triaging a content library. The doorway-page detector is for paid-acquisition teams worried their landing pages will get reclassified under the May 7, 2024 site-reputation-abuse policy. Same engine, same 42 rules, three different framings.",
+    a: "A single 'run-the-full-audit' CTA scares people who already suspect what's wrong. The SpamBrain checker is for operators who watched a March 2024-style ranking drop and want a numerical risk score. The thin-content scanner is for editors triaging a content library. The doorway-page detector is for paid-acquisition teams worried their landing pages will get reclassified under the May 7, 2024 site-reputation-abuse policy. Same engine, same rule set, three different framings.",
   },
   {
     q: "Is the engine open source?",
-    a: "Yes — MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core 0.3.3, CLI 0.3.1, MCP 0.3.1 as of April 2026). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
+    a: "Yes — MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core 0.4.3, CLI 0.4.3, MCP 0.4.3 as of April 30, 2026). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
   },
 ];
 
@@ -228,8 +228,8 @@ export default function ToolsIndexPage() {
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">pseolint (this site)</td>
                 <td className="px-4 py-3">$0/month</td>
-                <td className="px-4 py-3">100 pages per audit, 3 audits/day per browser</td>
-                <td className="px-4 py-3">Yes — 8 spam/* rules</td>
+                <td className="px-4 py-3">200 pages per audit, 3 audits/day per browser</td>
+                <td className="px-4 py-3">Yes — site-type-aware spam/* rule set</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Ahrefs</td>

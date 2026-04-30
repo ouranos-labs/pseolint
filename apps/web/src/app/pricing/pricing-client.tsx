@@ -9,7 +9,7 @@ type Interval = "monthly" | "yearly";
 
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
   { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
-  { feature: "Pages per audit (web UI)", free: "Up to 100", pro: "Up to 500" },
+  { feature: "Pages per audit (web UI)", free: "Up to 200", pro: "Up to 500 (manual re-audit)" },
   { feature: "Background monitoring", free: "—", pro: "Per-domain, weekly full + daily diff" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
   { feature: "BYO AI key", free: "CLI only", pro: "Anthropic / OpenAI, no markup" },
@@ -26,7 +26,7 @@ type FAQ = { q: string; a: string };
 const FAQS: ReadonlyArray<FAQ> = [
   {
     q: "Is the free tier really unlimited?",
-    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 100 pages from the web UI; the open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
+    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages from the web UI; the open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
   },
   {
     q: "What happens if I cancel Pro?",
@@ -46,7 +46,7 @@ const FAQS: ReadonlyArray<FAQ> = [
   },
   {
     q: "Is there a self-hosted option?",
-    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.3.3, pseolint 0.3.1, and @pseolint/mcp 0.3.1. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same 42+ rule coverage that powers the hosted product.",
+    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.4.3, pseolint 0.4.3, and @pseolint/mcp 0.4.3. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same site-type-aware SpamBrain + AEO scoring that powers the hosted product.",
   },
   {
     q: "What is the refund policy?",
@@ -73,7 +73,7 @@ function buildFaqJsonLd(faqs: ReadonlyArray<FAQ>) {
 const PRO_FEATURES = [
   { title: "Unlimited monitored domains", detail: "Daily diff-audits + weekly full re-audits, running in the background." },
   { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it." },
-  { title: "SpamBrain + AEO coverage", detail: "42+ rules spanning classical SEO and Answer Engine Optimization — your pages stay rankable AND citable by LLMs." },
+  { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype — your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
   { title: "Integrations", detail: "GitHub Action upload · Search Console (v1.1) · Webflow (v1.1) · WordPress plugin (v1.2)." },
   { title: "Dashboard + history", detail: "Portfolio strip, per-domain timelines, suppressions that persist across runs." },
@@ -121,7 +121,7 @@ function PricingInner() {
       <div className="mt-3 max-w-2xl">
         <h1
           className="text-balance text-3xl tracking-tight sm:text-4xl lg:text-5xl"
-          style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
+          style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
         >
           Audits stay free. <span className="text-primary">Monitoring</span> is the upgrade.
         </h1>
@@ -137,24 +137,24 @@ function PricingInner() {
         Pro adds the infrastructure around them.
       </p>
 
-      {intent === "monitor" && auditSlug && (
+      { intent === "monitor" && auditSlug && (
         <div className="mt-6 rounded-[18px] border border-primary/30 bg-primary/10 px-5 py-3 text-xs text-foreground">
-          After checkout we&apos;ll start monitoring the domain from{" "}
-          <a className="font-mono underline-offset-4 hover:underline" href={`/r/${auditSlug}`}>
+          After checkout we&apos;ll start monitoring the domain from{ " " }
+          <a className="font-mono underline-offset-4 hover:underline" href={ `/r/${auditSlug}` }>
             this audit
           </a>.
         </div>
-      )}
+      ) }
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <PlanCard interval="monthly" price="19" cadence="/ month" loading={loading} onClick={go} />
+        <PlanCard interval="monthly" price="19" cadence="/ month" loading={ loading } onClick={ go } />
         <PlanCard
           interval="yearly"
           price="180"
           cadence="/ year"
           note="2 months free · $48 saved"
-          loading={loading}
-          onClick={go}
+          loading={ loading }
+          onClick={ go }
           highlight
         />
       </div>
@@ -164,20 +164,20 @@ function PricingInner() {
           What Pro unlocks
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {PRO_FEATURES.map((f) => (
+          { PRO_FEATURES.map((f) => (
             <li
-              key={f.title}
+              key={ f.title }
               className="flex items-start gap-3 rounded-[22px] border border-border/60 bg-card/40 p-5"
             >
               <span className="mt-0.5 inline-grid h-6 w-6 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/10 text-primary">
-                <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
+                <Check className="h-3.5 w-3.5" strokeWidth={ 2.5 } />
               </span>
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium text-foreground">{f.title}</span>
-                <span className="text-xs leading-relaxed text-muted-foreground">{f.detail}</span>
+                <span className="text-sm font-medium text-foreground">{ f.title }</span>
+                <span className="text-xs leading-relaxed text-muted-foreground">{ f.detail }</span>
               </div>
             </li>
-          ))}
+          )) }
         </ul>
       </section>
 
@@ -189,15 +189,15 @@ function PricingInner() {
           <span className="font-mono text-[11px] text-muted-foreground">no credit card</span>
         </div>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-          {FREE_FEATURES.map((f) => (
-            <li key={f} className="flex items-start gap-2 text-sm text-foreground/90">
+          { FREE_FEATURES.map((f) => (
+            <li key={ f } className="flex items-start gap-2 text-sm text-foreground/90">
               <span
                 aria-hidden
                 className="mt-2 inline-block h-1 w-1 shrink-0 rounded-full bg-muted-foreground"
               />
-              {f}
+              { f }
             </li>
-          ))}
+          )) }
         </ul>
       </section>
 
@@ -206,8 +206,8 @@ function PricingInner() {
           Free vs Pro · feature by feature
         </h2>
         <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
-          Both tiers run the same 42+ SpamBrain and AEO rules from{" "}
-          <code className="font-mono text-xs">@pseolint/core 0.3.3</code>. The difference is what
+          Both tiers run the same site-type-aware SpamBrain and AEO engine from{ " " }
+          <code className="font-mono text-xs">@pseolint/core 0.4.3</code>. The difference is what
           happens around the audit: monitoring, triage, integrations, retention, and overrides.
           The numbers below are the live limits enforced by the platform — quote them.
         </p>
@@ -221,9 +221,9 @@ function PricingInner() {
               </tr>
             </thead>
             <tbody>
-              {COMPARISON_ROWS.map((row, idx) => (
+              { COMPARISON_ROWS.map((row, idx) => (
                 <tr
-                  key={row.feature}
+                  key={ row.feature }
                   className={
                     idx === COMPARISON_ROWS.length - 1
                       ? ""
@@ -234,25 +234,25 @@ function PricingInner() {
                     scope="row"
                     className="w-[34%] px-5 py-3 text-left text-xs font-medium text-foreground/90"
                   >
-                    {row.feature}
+                    { row.feature }
                   </th>
                   <td className="px-5 py-3 text-xs text-muted-foreground">
-                    {row.free === "—" ? (
+                    { row.free === "—" ? (
                       <span className="inline-flex items-center gap-1.5 text-muted-foreground/60">
                         <X className="h-3 w-3" aria-hidden /> Not included
                       </span>
                     ) : (
                       row.free
-                    )}
+                    ) }
                   </td>
                   <td className="px-5 py-3 text-xs text-foreground/90">
                     <span className="inline-flex items-center gap-1.5">
                       <Check className="h-3 w-3 text-primary" aria-hidden />
-                      {row.pro}
+                      { row.pro }
                     </span>
                   </td>
                 </tr>
-              ))}
+              )) }
             </tbody>
           </table>
         </div>
@@ -265,10 +265,10 @@ function PricingInner() {
         <div className="mt-4 grid gap-4 text-sm leading-relaxed text-foreground/90 sm:grid-cols-2">
           <p>
             pseolint is OSS-first by design. The CLI, the rule engine, and the MCP server are
-            MIT-licensed and free forever — published to npm as{" "}
-            <code className="font-mono text-xs">@pseolint/core 0.3.3</code>,{" "}
-            <code className="font-mono text-xs">pseolint 0.3.1</code>, and{" "}
-            <code className="font-mono text-xs">@pseolint/mcp 0.3.1</code>. Anyone can audit a site
+            MIT-licensed and free forever — published to npm as{ " " }
+            <code className="font-mono text-xs">@pseolint/core 0.4.3</code>,{ " " }
+            <code className="font-mono text-xs">pseolint 0.4.3</code>, and{ " " }
+            <code className="font-mono text-xs">@pseolint/mcp 0.4.3</code>. Anyone can audit a site
             from a laptop, drop the GitHub Action into CI, or fork the rules. That part of the
             product never goes behind a paywall.
           </p>
@@ -287,14 +287,14 @@ function PricingInner() {
           Frequently asked questions
         </h2>
         <div className="grid gap-3">
-          {FAQS.map((faq) => (
+          { FAQS.map((faq) => (
             <details
-              key={faq.q}
+              key={ faq.q }
               className="group rounded-[22px] border border-border/60 bg-card/40 p-5 open:border-border-strong"
             >
               <summary className="cursor-pointer list-none text-sm font-medium text-foreground marker:hidden">
                 <span className="flex items-start justify-between gap-4">
-                  <span>{faq.q}</span>
+                  <span>{ faq.q }</span>
                   <span
                     aria-hidden
                     className="mt-1 inline-block font-mono text-xs text-muted-foreground transition-transform group-open:rotate-45"
@@ -303,9 +303,9 @@ function PricingInner() {
                   </span>
                 </span>
               </summary>
-              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{faq.a}</p>
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{ faq.a }</p>
             </details>
-          ))}
+          )) }
         </div>
       </section>
 
@@ -319,7 +319,7 @@ function PricingInner() {
         </Link>
       </div>
 
-      <FaqJsonLd faqs={FAQS} />
+      <FaqJsonLd faqs={ FAQS } />
     </main>
   );
 }
@@ -331,7 +331,7 @@ function FaqJsonLd({ faqs }: { faqs: ReadonlyArray<FAQ> }) {
   const html = safeJsonLd(buildFaqJsonLd(faqs));
   // eslint-disable-next-line react/no-danger
   const props = { dangerouslySetInnerHTML: { __html: html } } as const;
-  return <script type="application/ld+json" {...props} />;
+  return <script type="application/ld+json" { ...props } />;
 }
 
 export default function PricingClient() {
@@ -362,43 +362,43 @@ function PlanCard({
   return (
     <div
       className={
-        "relative flex flex-col gap-6 rounded-[28px] border bg-card/60 p-7 backdrop-blur-sm transition-colors " +
+        "relative flex flex-col gap-6 rounded-[28px] border bg-card/60 p-7 backdrop-blur-sm transition-colors justify-between " +
         (highlight ? "border-primary/40" : "border-border/70 hover:border-border-strong")
       }
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wider text-muted-foreground">{interval}</span>
-        {highlight && (
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">{ interval }</span>
+        { highlight && (
           <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary">
             best value
           </span>
-        )}
+        ) }
       </div>
 
       <div className="flex items-baseline gap-1.5">
         <span
-          className={`leading-[0.9] tabular-nums ${highlight ? "text-primary" : "text-foreground"}`}
-          style={{ fontSize: "72px", fontFamily: "var(--font-display)", fontStyle: "italic" }}
+          className={ `leading-[0.9] tabular-nums ${highlight ? "text-primary" : "text-foreground"}` }
+          style={ { fontSize: "72px", fontFamily: "var(--font-display)", fontStyle: "italic" } }
         >
-          ${price}
+          ${ price }
         </span>
-        <span className="text-sm text-muted-foreground">{cadence}</span>
+        <span className="text-sm text-muted-foreground">{ cadence }</span>
       </div>
 
-      {note && (
+      { note && (
         <p className="-mt-2 inline-flex items-center gap-1.5 font-mono text-xs text-primary/90">
           <span className="inline-block h-1 w-1 rounded-full bg-primary" />
-          {note}
+          { note }
         </p>
-      )}
+      ) }
 
       <Button
         className="h-11 w-full rounded-[14px]"
-        onClick={() => onClick(interval)}
-        disabled={loading === interval}
-        variant={highlight ? "default" : "secondary"}
+        onClick={ () => onClick(interval) }
+        disabled={ loading === interval }
+        variant={ highlight ? "default" : "secondary" }
       >
-        {loading === interval ? "Redirecting…" : "Subscribe"}
+        { loading === interval ? "Redirecting…" : "Subscribe" }
       </Button>
     </div>
   );

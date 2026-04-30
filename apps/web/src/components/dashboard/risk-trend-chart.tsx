@@ -1,3 +1,5 @@
+import { scoreTone } from "@/lib/grade";
+
 interface TrendPoint {
   /** Risk score for the run (0–100, lower is safer). Null for non-completed runs (skipped). */
   risk: number | null;
@@ -209,12 +211,9 @@ function fmtDate(t: number): string {
 }
 
 function scoreFill(score: number): string {
-  if (score < 20) return "text-success";
-  if (score < 40) return "text-primary";
-  if (score < 60) return "text-warning";
-  return "text-destructive";
+  return scoreTone(score);
 }
 
 function scoreText(score: number): string {
-  return scoreFill(score);
+  return scoreTone(score);
 }

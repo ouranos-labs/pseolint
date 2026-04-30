@@ -1,5 +1,6 @@
 import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04, RuleResult } from "@/lib/audit-types";
 import { isV04Summary } from "@/lib/audit-types";
+import { gradeOf as canonicalGradeOf } from "@/lib/grade";
 
 type Severity = RuleResult["severity"];
 
@@ -493,16 +494,14 @@ function effortTone(effort: string): string {
   return "border-border text-muted-foreground";
 }
 
+// v0.3 category scores are a risk model (lower is safer), so the canonical
+// 5-band system applies — keeps the colour vocabulary consistent with v0.4.
 function scoreTone(score: number): string {
-  if (score <= 40) return "text-success";
-  if (score <= 69) return "text-warning";
-  return "text-destructive";
+  return canonicalGradeOf(score).text;
 }
 
 function scoreBg(score: number): string {
-  if (score <= 40) return "bg-success";
-  if (score <= 69) return "bg-warning";
-  return "bg-destructive";
+  return canonicalGradeOf(score).dot;
 }
 
 function gradeTone(grade: string): string {

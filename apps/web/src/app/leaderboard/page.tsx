@@ -5,6 +5,9 @@ import { audits } from "@/db/schema";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
 import { fetchOgMeta } from "@/lib/og-fetch";
+import { gradeOf } from "@/lib/grade";
+import { GradeChip } from "@/components/audit/grade-chip";
+import { SiteThumbnail } from "@/components/audit/site-thumbnail";
 
 export const runtime = "nodejs";
 export const revalidate = 600;
@@ -164,7 +167,7 @@ export default async function Leaderboard() {
     "@type": "CollectionPage",
     name: "pSEO Leaderboard",
     description:
-      "Public ranking of programmatic SEO sites scored by the pseolint engine across 42 rules in 8 categories. Lower scores indicate lower SpamBrain risk.",
+      "Public ranking of programmatic SEO sites scored by the pseolint engine with site-type-aware SpamBrain + AEO weights. Lower scores indicate lower SpamBrain risk.",
     url: `${baseUrl}/leaderboard`,
     isPartOf: {
       "@type": "WebSite",
@@ -234,7 +237,6 @@ export default async function Leaderboard() {
           // never splits across columns.
           <div className="mt-4 columns-1 gap-4 sm:columns-2 lg:columns-3">
             { deduped.map((r, i) => {
-              const grade = gradeOf(r.risk);
               const og = ogFor(r);
               const host = hostOf(r.sourceUrl);
               return (
@@ -260,16 +262,8 @@ export default async function Leaderboard() {
                     { og.description ?? `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
                   </p>
 
-                  <div className="mt-4 flex items-center justify-end gap-2 mr-2">
-                    <span
-                      className={ `inline-flex h-7 w-7 items-center justify-center rounded-md font-mono text-sm font-bold ${grade.bg} ${grade.text}` }
-                      title={ `Grade ${grade.letter} · ${grade.band}` }
-                    >
-                      { grade.letter }
-                    </span>
-                    <span className="font-mono text-sm m font-semibold tabular-nums text-foreground">
-                      { r.risk ?? "—" }
-                    </span>
+                  <div className="mt-4 mr-2 flex items-center justify-end">
+                    <GradeChip risk={r.risk} />
                   </div>
                 </article>
               );
@@ -305,10 +299,10 @@ export default async function Leaderboard() {
           The pseolint leaderboard ranks programmatic SEO sites by their composite{ " " }
           <span className="text-foreground">risk score</span> — a 0-to-100 number where lower
           is better. The score is a weighted aggregate of findings across{ " " }
-          <span className="text-foreground">42 rules in 8 categories</span>: spam, content,
-          aeo, links, tech, data, schema, and cannibal. Each finding contributes
-          severity-weighted points (critical = 40, error = 25, warning = 12, info = 5),
-          capped per category, then combined using fixed category weights.
+          <span className="text-foreground">SpamBrain + AEO rules</span> weighted by your site's
+          archetype (programmatic-directory, blog, ecommerce, docs, small-marketing). Each finding
+          contributes severity- and confidence-weighted points; the site-type profile decides which
+          rule families dominate the final score.
         </p>
         <p>
           The dominant signal is the spam category, weighted at{ " " }
@@ -329,15 +323,17 @@ export default async function Leaderboard() {
         </p>
         <p>
           Ranges to keep in mind:{ " " }
-          <span className="text-foreground">0&ndash;30 risk = ready</span>,{ " " }
-          <span className="text-foreground">31&ndash;60 = concerning</span>,{ " " }
-          <span className="text-foreground">61+ = severe</span>. Anything under 30 is healthy
-          enough that we wouldn&rsquo;t expect manual-action exposure on the SpamBrain axis.
-          The middle band is where most undermaintained pSEO sites live; the top of the band
-          is where deindexation events tend to start. The thresholds were calibrated against
+          <span className="text-foreground">A = 0&ndash;19 (ready)</span>,{ " " }
+          <span className="text-foreground">B = 20&ndash;39 (good)</span>,{ " " }
+          <span className="text-foreground">C = 40&ndash;59 (concerning)</span>,{ " " }
+          <span className="text-foreground">D = 60&ndash;79 (severe)</span>,{ " " }
+          <span className="text-foreground">F = 80+ (critical)</span>. Anything in the A
+          band is healthy enough that we wouldn&rsquo;t expect manual-action exposure on the
+          SpamBrain axis. C-band sites are where most undermaintained pSEO domains live; D and
+          F is where deindexation events tend to start. The thresholds were calibrated against
           the August 2022 helpful-content rollout and the March 2024 core update, so a site
-          that lands in the 0&ndash;30 band today should also have been clean against those
-          historical baselines.
+          that lands in the A band today should also have been clean against those historical
+          baselines.
         </p>
       </section>
 
@@ -368,8 +364,8 @@ export default async function Leaderboard() {
           Scoring methodology
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Audits crawl up to <span className="text-foreground">100 pages on the free tier</span>{ " " }
-          and <span className="text-foreground">500 on Pro</span>, sampling URLs from the
+          Audits crawl up to <span className="text-foreground">200 pages on the free tier</span>{ " " }
+          and <span className="text-foreground">500 on Pro (manual re-audits)</span>, sampling URLs from the
           sitemap and the homepage&rsquo;s outbound links. Render mode is opt-in via the{ " " }
           <span className="font-mono text-foreground">--render</span> flag — useful for SPA
           frameworks that hydrate content client-side, but skipped by default to keep audits
@@ -382,9 +378,8 @@ export default async function Leaderboard() {
           multiplying by the fixed category weight and summing. The 8 spam/* rules and 8
           aeo/* rules are the biggest individual contributors because they map directly to
           the patterns search and answer engines penalise. A clean, well-templated site can
-          run hundreds of pages and still land in the 0&ndash;30 band; a site that trips even
-          one critical doorway rule across many pages will jump into the concerning band
-          quickly.
+          run hundreds of pages and still land in the A or B band; a site that trips even
+          one critical doorway rule across many pages will jump into the C/D band quickly.
         </p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           { CATEGORY_BREAKDOWN.map((cat) => (
@@ -414,22 +409,6 @@ function GradeKey({ letter, tone, desc }: { letter: string; tone: string; desc: 
   );
 }
 
-/**
- * Letter grade derived from risk score (lower-is-safer model).
- * Mapped to the same tone tokens used elsewhere so the leaderboard's color
- * language stays consistent with the per-host hero and tile-grid legend.
- */
-function gradeOf(risk: number | null): { letter: string; band: string; bg: string; text: string } {
-  if (risk == null) {
-    return { letter: "—", band: "no score", bg: "bg-muted/40", text: "text-muted-foreground" };
-  }
-  if (risk < 20) return { letter: "A", band: "ready · 0–19", bg: "bg-success/15", text: "text-success" };
-  if (risk < 40) return { letter: "B", band: "good · 20–39", bg: "bg-success/10", text: "text-success" };
-  if (risk < 60) return { letter: "C", band: "concerning · 40–59", bg: "bg-warning/15", text: "text-warning" };
-  if (risk < 80) return { letter: "D", band: "severe · 60–79", bg: "bg-warning/25", text: "text-warning" };
-  return { letter: "F", band: "critical · 80+", bg: "bg-destructive/15", text: "text-destructive" };
-}
-
 /** Tight relative-time label for card descriptions. Server-rendered at revalidate boundary. */
 function timeAgo(d: Date): string {
   const ms = Date.now() - d.getTime();
@@ -440,42 +419,6 @@ function timeAgo(d: Date): string {
   const months = Math.floor(days / 30);
   if (months < 12) return `${months}mo`;
   return `${Math.floor(months / 12)}y`;
-}
-
-/**
- * Card thumbnail. Renders the audited site's OG image when we've captured one
- * (via lazy backfill in the page handler), otherwise a branded gradient + first
- * letter of host so the card still has visual identity. Plain <img> (not
- * Next/Image) so we don't need a remote-pattern allowlist for arbitrary hosts;
- * referrer-policy=no-referrer prevents leaking the visitor's referer to every
- * audited domain on first paint.
- */
-function SiteThumbnail({ host, imageUrl }: { host: string; imageUrl: string | null }) {
-  if (imageUrl) {
-    return (
-      <div className="aspect-[16/10] overflow-hidden rounded-[14px] border border-border/40 bg-secondary/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt={`${host} preview`}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="h-full w-full object-cover"
-        />
-      </div>
-    );
-  }
-  const initial = host.replace(/^www\./, "").charAt(0).toUpperCase();
-  return (
-    <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-[14px] border border-border/40 bg-gradient-to-br from-secondary/50 via-secondary/20 to-card/60">
-      <span
-        className="font-mono text-4xl font-semibold text-muted-foreground/60"
-        aria-hidden
-      >
-        { initial }
-      </span>
-    </div>
-  );
 }
 
 function hostOf(url: string): string {

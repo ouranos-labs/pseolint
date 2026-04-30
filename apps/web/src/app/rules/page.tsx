@@ -10,12 +10,12 @@ const PAGE_URL = `${SITE_URL.replace(/\/$/, "")}/rules`;
 export const metadata: Metadata = {
   title: "SpamBrain rules — what pseolint detects · pseolint",
   description:
-    "Reference for the 42 rules pseolint runs against programmatic-SEO sites. Five flagship rules are written up here in depth — thin content, doorway pattern, near-duplicate, boilerplate ratio, template diversity.",
+    "Reference for the SpamBrain + AEO rule set pseolint runs against programmatic-SEO sites. Five flagship rules are written up here in depth — thin content, doorway pattern, near-duplicate, boilerplate ratio, template diversity.",
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "SpamBrain rules — what pseolint detects",
     description:
-      "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity. The rest of the 42-rule taxonomy is documented in pseolint itself.",
+      "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity. The rest of the SpamBrain + AEO rule set is documented in pseolint itself.",
     type: "website",
     url: PAGE_URL,
     siteName: "pseolint"
@@ -51,8 +51,8 @@ const FAQS: { q: string; a: string }[] = [
     a: "Open source at github.com/ouranos-labs/pseolint, and Google's underlying spam policies are documented at developers.google.com/search/docs/essentials/spam-policies. Every rule in pseolint links back to the specific policy paragraph it implements, so you can see exactly which Google guideline a finding maps to.",
   },
   {
-    q: "Why are only 5 of the 42 rules written up here?",
-    a: "These five spam-pattern rules are the ones most likely to demote a programmatic-SEO domain in 2026, and the ones whose detection logic is least well documented elsewhere. The remaining 37 rules surface in every audit report and are documented inside the open-source repo. More long-form explainers will land here as we observe which generate the most user questions.",
+    q: "Why are only 5 rules written up here?",
+    a: "These five spam-pattern rules are the ones most likely to demote a programmatic-SEO domain in 2026, and the ones whose detection logic is least well documented elsewhere. The rest of the rule set surfaces in every audit report and is documented inside the open-source repo. More long-form explainers will land here as we observe which generate the most user questions.",
   },
 ];
 
@@ -191,12 +191,12 @@ export default function RulesIndexPage() {
           How the rules map to SpamBrain
         </h2>
         <p>
-          The 42 rules cluster into 8 categories that correspond to the major
-          axes Google&apos;s SpamBrain classifier scores against. Spam/* (8
-          rules) covers the patterns that triggered the March 5, 2024
-          scaled-content-abuse update — thin content under 300 words, doorway
-          clusters with shared boilerplate, near-duplicate templates with
-          &gt;85% lexical overlap, and templates that don&apos;t vary their
+          The rule set clusters around the major axes Google&apos;s SpamBrain
+          classifier scores against. Spam/* covers the patterns that triggered
+          the March 5, 2024 scaled-content-abuse update — thin content under
+          300 words, doorway clusters with shared boilerplate, near-duplicate
+          templates with &gt;85% lexical overlap, and templates that don&apos;t
+          vary their
           structural skeleton across the corpus. Content/* (6 rules) checks
           intent match, originality, and reading level. Aeo/* (8 rules,
           shipped April 21, 2026) audits answer-engine readiness — citable
@@ -253,7 +253,7 @@ export default function RulesIndexPage() {
 
       <section className="mt-14 rounded-[28px] border border-border/70 bg-card/40 p-7 backdrop-blur-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-          Run all 42 rules on your site
+          Run the full rule set on your site
         </h2>
         <p className="mt-3 max-w-2xl text-sm text-foreground">
           The rules above are the ones most likely to fire on a templated site. The

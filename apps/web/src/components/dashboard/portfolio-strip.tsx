@@ -3,6 +3,9 @@ import { db } from "@/db";
 import { audits, findingsState, monitoredDomains, integrations } from "@/db/schema";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 import { fetchOgMeta } from "@/lib/og-fetch";
+import { GradeChip } from "@/components/audit/grade-chip";
+import { Sparkline, type TrendPoint } from "@/components/audit/sparkline";
+import { SiteThumbnail } from "@/components/audit/site-thumbnail";
 
 type DomainRow = typeof monitoredDomains.$inferSelect;
 
@@ -11,7 +14,6 @@ interface PortfolioStripProps {
   userId: string;
 }
 
-type TrendPoint = { risk: number; t: number };
 type OgFields = { title: string | null; description: string | null; image: string | null };
 
 /** Cap how many missing-OG audits we backfill per render so a slow homepage
@@ -137,7 +139,6 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
         const noRunsYet = !d.lastRunAt;
         const trend = trendsBySource.get(d.sourceUrl) ?? [];
         const og = ogFor(d);
-        const grade = gradeOf(d.lastRisk);
         const findingsCount = countMap.get(d.id) ?? 0;
         const description =
           og.description ??
@@ -196,17 +197,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
               >
                 {findingsCount} {findingsCount === 1 ? "finding" : "findings"}
               </Link>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-md font-mono text-sm font-bold ${grade.bg} ${grade.text}`}
-                  title={`Grade ${grade.letter} · ${grade.band}`}
-                >
-                  {grade.letter}
-                </span>
-                <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                  {d.lastRisk ?? "—"}
-                </span>
-              </div>
+              <GradeChip risk={d.lastRisk} />
             </div>
           </article>
         );
@@ -258,104 +249,3 @@ function GscPill({
   );
 }
 
-/**
- * Per-domain risk-trend sparkline. Lets the user scan a multi-domain portfolio
- * for "which one is regressing?" without drilling in. Tone is keyed off the
- * latest run's score band so the eye reads color = current risk, slope =
- * direction. Cold-start state (<2 completed runs) renders a dash so the row
- * doesn't shift width.
- */
-function Sparkline({ points }: { points: TrendPoint[] }) {
-  const W = 80;
-  const H = 20;
-  if (points.length < 2) {
-    return (
-      <span
-        className="inline-block font-mono text-[11px] text-muted-foreground/60"
-        title="Need two completed runs to chart a trend"
-      >
-        —
-      </span>
-    );
-  }
-  const tMin = points[0].t;
-  const tMax = points[points.length - 1].t;
-  const tSpan = Math.max(1, tMax - tMin);
-  const x = (t: number) => ((t - tMin) / tSpan) * W;
-  const y = (r: number) => (1 - Math.min(100, Math.max(0, r)) / 100) * H;
-  const path = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.t).toFixed(1)} ${y(p.risk).toFixed(1)}`)
-    .join(" ");
-  const latest = points[points.length - 1];
-  const first = points[0];
-  const delta = latest.risk - first.risk;
-  const tone = scoreTone(latest.risk);
-  const directionLabel = delta < 0 ? "improving" : delta > 0 ? "regressing" : "flat";
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      className={`h-5 w-20 ${tone}`}
-      role="img"
-      aria-label={`30-day risk trend, ${directionLabel}`}
-    >
-      <title>{`30d trend · ${directionLabel} (${first.risk} → ${latest.risk})`}</title>
-      <path d={path} fill="none" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx={x(latest.t)} cy={y(latest.risk)} r="1.8" fill="currentColor" />
-    </svg>
-  );
-}
-
-/**
- * Card thumbnail. Mirrors the leaderboard's SiteThumbnail — renders the OG
- * image when captured, otherwise a branded gradient + initial. Plain <img>
- * (not Next/Image) so we don't need a remote-pattern allowlist for arbitrary
- * audited hosts; referrer-policy=no-referrer prevents referer leakage.
- */
-function SiteThumbnail({ host, imageUrl }: { host: string; imageUrl: string | null }) {
-  if (imageUrl) {
-    return (
-      <div className="aspect-[16/10] overflow-hidden rounded-[14px] border border-border/40 bg-secondary/40">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={imageUrl}
-          alt={`${host} preview`}
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          className="h-full w-full object-cover"
-        />
-      </div>
-    );
-  }
-  const initial = host.replace(/^www\./, "").charAt(0).toUpperCase();
-  return (
-    <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-[14px] border border-border/40 bg-gradient-to-br from-secondary/50 via-secondary/20 to-card/60">
-      <span className="font-mono text-4xl font-semibold text-muted-foreground/60" aria-hidden>
-        {initial}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Letter grade derived from risk score (lower-is-safer).
- * Same mapping as the leaderboard so the visual language is consistent across
- * dashboard surfaces — A clean, B good, C concerning, D severe, F critical.
- */
-function gradeOf(risk: number | null): { letter: string; band: string; bg: string; text: string } {
-  if (risk == null) {
-    return { letter: "—", band: "no score yet", bg: "bg-muted/40", text: "text-muted-foreground" };
-  }
-  if (risk < 20) return { letter: "A", band: "ready · 0–19", bg: "bg-success/15", text: "text-success" };
-  if (risk < 40) return { letter: "B", band: "good · 20–39", bg: "bg-success/10", text: "text-success" };
-  if (risk < 60) return { letter: "C", band: "concerning · 40–59", bg: "bg-warning/15", text: "text-warning" };
-  if (risk < 80) return { letter: "D", band: "severe · 60–79", bg: "bg-warning/25", text: "text-warning" };
-  return { letter: "F", band: "critical · 80+", bg: "bg-destructive/15", text: "text-destructive" };
-}
-
-function scoreTone(score: number | null): string {
-  if (score == null) return "text-muted-foreground";
-  if (score < 20) return "text-success";
-  if (score < 40) return "text-primary";
-  if (score < 60) return "text-warning";
-  return "text-destructive";
-}

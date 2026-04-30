@@ -97,9 +97,9 @@ function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
     <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
-          <NavRing size={ 30 } title="pseolint — 42 SpamBrain + AEO rules" />
+          <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.3.3</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.4.3</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
