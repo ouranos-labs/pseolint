@@ -3,11 +3,13 @@ import type {
   CategoryGrade,
   CategoryGrades,
   CategoryKey,
+  FixEffort,
   Grade,
   RuleResult,
   Verdict,
 } from "../types.js";
 import type { SiteClassification, SiteType } from "../site-classifier.js";
+import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
 
 /**
  * Total rule count surfaced in the "pass --strict to run all N" hint.
@@ -78,13 +80,6 @@ function shortenUrl(url: string | undefined): string {
   }
 }
 
-function docsLine(f: RuleResult): string {
-  if (f.docsUrl) {
-    return f.docsUrl.replace(/^https?:\/\//, "");
-  }
-  return `pseolint.dev/rules/${f.ruleId.split("/").pop() ?? f.ruleId}`;
-}
-
 function renderTriageSection(triage: AuditSummary["triage"]): string {
   if (!triage) return "";
   const lines: string[] = [];
@@ -124,47 +119,75 @@ export interface ConsoleFormatOptions {
   verbose?: boolean;
 }
 
-/** Aggregate findings sharing the same ruleId; rank by page-count then severity. */
-interface RuleAgg {
-  ruleId: string;
-  count: number;
-  representative: RuleResult;
+/** Effort-prefix glyph used by `[quick]`, `[moderate]`, `[structural]` rule lines. */
+function effortPrefix(effort: FixEffort | undefined): string {
+  if (!effort) return "";
+  return `[${effort}] `;
 }
 
-function aggregateByRule(findings: RuleResult[]): RuleAgg[] {
-  const map = new Map<string, RuleAgg>();
-  for (const f of findings) {
-    const existing = map.get(f.ruleId);
-    if (existing) {
-      existing.count += 1;
-    } else {
-      map.set(f.ruleId, { ruleId: f.ruleId, count: 1, representative: f });
-    }
+/** Mimic the legacy `docsLine(RuleResult)` API for buckets. */
+function bucketDocsLine(b: BucketedFinding): string {
+  if (b.representativeDocsUrl) {
+    return b.representativeDocsUrl.replace(/^https?:\/\//, "");
   }
-  return Array.from(map.values()).sort((a, b) => {
-    if (b.count !== a.count) return b.count - a.count;
-    return a.ruleId.localeCompare(b.ruleId);
-  });
+  return `pseolint.dev/rules/${b.ruleId.split("/").pop() ?? b.ruleId}`;
 }
 
+/**
+ * Render a single bucket as one or more output lines. Single-instance buckets
+ * keep their pre-bucketing format (no "× 1" suffix). Multi-instance buckets
+ * get a `× N instances on TEMPLATE` headline plus a "Fix once, resolve all N"
+ * callout when they share a template signature.
+ */
+function renderBucketLines(b: BucketedFinding, index: number): string[] {
+  const out: string[] = [];
+  const eff = effortPrefix(b.effort);
+  const target = b.representativeUrl !== "<site-wide>" ? shortenUrl(b.representativeUrl) : "";
+
+  if (b.count === 1) {
+    // Single finding: keep the legacy headline format.
+    const targetPart = target ? `${target} ` : "";
+    const headline = `${eff}${targetPart}${b.representativeMessage}`.trim();
+    const fix = b.representativeFix ? `  → ${b.representativeFix}` : "";
+    out.push(`  ${index + 1}. ${headline}${fix}`);
+    out.push(`     ${DIM}${bucketDocsLine(b)}${RESET}`);
+    return out;
+  }
+
+  // Multi-instance: bucket headline + example + fix-once callout.
+  const isTemplateBucket = b.templateSignature !== null;
+  const countLabel = isTemplateBucket
+    ? `× ${b.count} instances on ${b.templateSignature} template`
+    : `× ${b.count} affected pages`;
+  out.push(`  ${index + 1}. ${eff}${b.ruleId} ${countLabel}`);
+
+  const targetPart = target ? `${target} ` : "";
+  out.push(`     e.g. ${targetPart}${b.representativeMessage}`.trimEnd());
+
+  if (b.representativeFix) {
+    out.push(`     → ${b.representativeFix}`);
+  }
+  if (isTemplateBucket) {
+    out.push(`     ${DIM}Fix once, resolve all ${b.count}.${RESET}`);
+  }
+  out.push(`     ${DIM}${bucketDocsLine(b)}${RESET}`);
+  return out;
+}
+
+/**
+ * Top-fixes section. Buckets blockers first, then should-fix, by template
+ * signature so duplicate findings collapse. Limits to 5 buckets — anything
+ * past that is verbose-mode territory.
+ */
 function renderTopFixes(blockers: RuleResult[], shouldFix: RuleResult[]): string[] {
-  // Spec: top fixes by impact = blockers first, then should-fix; aggregated by rule.
   const lines: string[] = [];
-  const aggBlockers = aggregateByRule(blockers);
-  const aggShould = aggregateByRule(shouldFix);
-  const ranked = [...aggBlockers, ...aggShould].slice(0, 5);
+  const bucketedBlockers = bucketByTemplate(blockers);
+  const bucketedShould = bucketByTemplate(shouldFix);
+  const ranked = [...bucketedBlockers, ...bucketedShould].slice(0, 5);
   if (ranked.length === 0) return lines;
 
   for (let i = 0; i < ranked.length; i += 1) {
-    const agg = ranked[i];
-    const r = agg.representative;
-    const target = r.pageUrl ? shortenUrl(r.pageUrl) : "";
-    const targetPart = target ? `${target} ` : "";
-    const countLabel = agg.count === 1 ? "" : ` (${agg.count} pages)`;
-    const headline = `${targetPart}${r.message}${countLabel}`.trim();
-    const fix = r.fix ? `  → ${r.fix}` : "";
-    lines.push(`  ${i + 1}. ${headline}${fix}`);
-    lines.push(`     ${DIM}${docsLine(r)}${RESET}`);
+    lines.push(...renderBucketLines(ranked[i], i));
   }
   return lines;
 }

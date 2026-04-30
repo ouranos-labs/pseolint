@@ -3,9 +3,11 @@ import type {
   CategoryGrade,
   CategoryGrades,
   CategoryKey,
+  FixEffort,
   RuleResult,
   Verdict,
 } from "../types.js";
+import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
 
 export interface MarkdownFormatOptions {
   /** When true, list every finding bucketed by severity (kept for parity with other formatters; markdown always lists everything). */
@@ -42,9 +44,15 @@ function shortenUrl(url: string | undefined): string {
   }
 }
 
-function docsLink(f: RuleResult): string {
-  const url = f.docsUrl ?? `https://pseolint.dev/rules/${f.ruleId.split("/").pop() ?? f.ruleId}`;
+function bucketDocsLink(b: BucketedFinding): string {
+  const url =
+    b.representativeDocsUrl ??
+    `https://pseolint.dev/rules/${b.ruleId.split("/").pop() ?? b.ruleId}`;
   return `[docs](${url})`;
+}
+
+function effortPrefix(effort: FixEffort | undefined): string {
+  return effort ? `[${effort}] ` : "";
 }
 
 function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): string {
@@ -78,16 +86,55 @@ function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): stri
   return lines.join("\n");
 }
 
+/**
+ * Render a severity bucket. Findings are first collapsed by template
+ * signature so a single template bug surfaces once with a "Fix once,
+ * resolve all N" callout instead of N near-identical lines.
+ *
+ * Single-instance findings keep the legacy bullet format (no `### header`)
+ * so simple, low-volume reports still read like a flat list.
+ */
 function renderBucket(label: string, items: RuleResult[]): string[] {
   const lines: string[] = [];
   if (items.length === 0) return lines;
   lines.push(`## ${label} (${items.length})`);
-  for (const f of items) {
-    const target = f.pageUrl ? ` — ${f.pageUrl}` : "";
-    const message = f.fix ?? f.message;
-    lines.push(`- **\`${f.ruleId}\`**${target} — ${message} ${docsLink(f)}`);
-  }
   lines.push("");
+
+  const buckets = bucketByTemplate(items);
+  for (const b of buckets) {
+    if (b.count === 1) {
+      const target = b.representativeUrl !== "<site-wide>" ? ` — ${b.representativeUrl}` : "";
+      const message = b.representativeFix ?? b.representativeMessage;
+      const eff = effortPrefix(b.effort);
+      lines.push(`- **\`${b.ruleId}\`**${target} — ${eff}${message} ${bucketDocsLink(b)}`);
+      continue;
+    }
+
+    // Multi-instance bucket: dedicated header + body block.
+    const isTemplateBucket = b.templateSignature !== null;
+    const eff = effortPrefix(b.effort);
+    const countLabel = isTemplateBucket
+      ? `× ${b.count} instances on \`${b.templateSignature}\` template`
+      : `× ${b.count} affected pages`;
+    lines.push(`### ${eff}\`${b.ruleId}\` ${countLabel}`);
+    lines.push("");
+
+    const moreSuffix = isTemplateBucket
+      ? ` — and ${b.count - 1} more page${b.count - 1 === 1 ? "" : "s"} match${
+          b.count - 1 === 1 ? "es" : ""
+        } this template.`
+      : ` — affecting ${b.count} pages total.`;
+    lines.push(`\`${b.representativeUrl}\` ${b.representativeMessage}${moreSuffix}`);
+    lines.push("");
+
+    if (b.representativeFix) {
+      const fixOnce = isTemplateBucket ? ` Fix once, resolve all ${b.count}.` : "";
+      lines.push(`**Fix:** ${b.representativeFix}${fixOnce} ${bucketDocsLink(b)}`);
+    } else {
+      lines.push(bucketDocsLink(b));
+    }
+    lines.push("");
+  }
   return lines;
 }
 

@@ -1156,6 +1156,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const ignorePatterns = options?.ignore ?? [];
   const respectNoindex = options?.respectNoindex ?? true;
   const skipDetectedAuth = options?.skipDetectedAuth ?? false;
+  const skipBoilerplate = options?.skipBoilerplate ?? false;
+  const skipSearchPages = options?.skipSearchPages ?? false;
+  const skipEmptyBody = options?.skipEmptyBody ?? false;
   const sampleSize = options?.sampleSize ?? preset.sampleSize ?? 0;
   const externalSignal = options?.signal;
   const guardSsrf = options?.guardSsrf ?? preset.guardSsrf ?? false;
@@ -1385,9 +1388,18 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // hard signal — they already opted out of SEO indexing, so auditing those
   // URLs produces only noise. Auth detection is opt-in via skipDetectedAuth
   // (off for the CLI by default; on for the hosted web form).
-  const skippedByPolicy: Array<{ url: string; reason: "noindex" | "auth-detected" }> = [];
+  const skippedByPolicy: Array<{
+    url: string;
+    reason: "noindex" | "auth-detected" | "boilerplate" | "search-result" | "spa-shell";
+  }> = [];
   const parsedPages = parsedPagesAll.filter((p) => {
-    const reason = pageSkipReason(p, { respectNoindex, skipDetectedAuth });
+    const reason = pageSkipReason(p, {
+      respectNoindex,
+      skipDetectedAuth,
+      skipBoilerplate,
+      skipSearchPages,
+      skipEmptyBody,
+    });
     if (reason) {
       skippedByPolicy.push({ url: p.url, reason });
       return false;
@@ -1647,11 +1659,17 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (skippedByPolicy.length > 0) {
     const noindexCount = skippedByPolicy.filter((s) => s.reason === "noindex").length;
     const authCount = skippedByPolicy.filter((s) => s.reason === "auth-detected").length;
+    const boilerplateCount = skippedByPolicy.filter((s) => s.reason === "boilerplate").length;
+    const searchCount = skippedByPolicy.filter((s) => s.reason === "search-result").length;
+    const spaShellCount = skippedByPolicy.filter((s) => s.reason === "spa-shell").length;
     const sample = skippedByPolicy.slice(0, 5).map((s) => `${s.url} (${s.reason})`).join(", ");
     const more = skippedByPolicy.length > 5 ? `, +${skippedByPolicy.length - 5} more` : "";
     const parts: string[] = [];
     if (noindexCount > 0) parts.push(`${noindexCount} marked noindex`);
     if (authCount > 0) parts.push(`${authCount} detected as auth (login/register/etc)`);
+    if (boilerplateCount > 0) parts.push(`${boilerplateCount} cookie/legal/consent boilerplate`);
+    if (searchCount > 0) parts.push(`${searchCount} search-result page${searchCount === 1 ? "" : "s"}`);
+    if (spaShellCount > 0) parts.push(`${spaShellCount} un-hydrated SPA shell${spaShellCount === 1 ? "" : "s"}`);
     auditFindings.push({
       ruleId: "audit/skipped-by-policy",
       severity: "info",

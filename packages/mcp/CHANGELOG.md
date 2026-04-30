@@ -1,5 +1,85 @@
 # @pseolint/mcp
 
+## 0.4.2
+
+### Patch Changes
+
+- v0.4.2 — page-skip extensions, framework-aware web defaults, template bucketing, fixplan artifact
+
+  **@pseolint/core (0.4.1 → 0.4.2)**
+
+  Three new page-skip filters extending the v0.4.1 noindex / auth machinery:
+
+  - `skipBoilerplate?: boolean` (default `false`) — skip cookie / legal /
+    consent / imprint pages via title, H1, or URL pathname matching
+    well-known compliance-page patterns (`/privacy`, `/terms`, `/cookies`,
+    `/gdpr`, `/ccpa`, `/impressum`, `/disclaimer`, `/accessibility`,
+    `/do-not-sell`, etc.). Single-signal trigger because patterns are
+    anchored — a marketing page that mentions "privacy" in its body won't
+    fire. New `detectBoilerplatePage(page)` exported from `./page-filter.js`.
+  - `skipSearchPages?: boolean` (default `false`) — skip pages with
+    search-result URL hallmarks: query parameter `q` / `query` / `search` /
+    `s` / `keyword`, or pathname starting with `/search`. Per Google's own
+    guidance these should be `noindex`'d but many sites don't tag them.
+  - `skipEmptyBody?: boolean` (default `false`) — skip un-hydrated SPA
+    shells: body text < 100 chars, script tags present, no substantive
+    `<noscript>` fallback. The right fix is `--render`, not content rules.
+
+  `pageSkipReason()` now returns `"noindex" | "auth-detected" |
+"boilerplate" | "search-result" | "spa-shell" | null` in priority order.
+  The `audit/skipped-by-policy` diagnostic surfaces all five reason
+  categories with per-reason counts.
+
+  Plus a refactor for output ergonomics:
+
+  - New `bucketByTemplate(findings)` helper at `./formatters/bucket-findings.js`.
+    Console + markdown formatters now collapse findings sharing a template
+    signature into one line (`× 23 instances on /templates/[state]-llc-fees
+template — fix once, resolve all 23.`). Single-instance findings keep
+    the legacy format. Site-wide / non-template buckets render as
+    `× 2 affected pages`.
+  - New `formatFixplan(summary)` formatter at `./formatters/fixplan.js`.
+    Emits a markdown checklist of fixes ordered by effort (quick wins →
+    moderate → structural → other), each item bucketed by template, with a
+    Skipped section breaking down noindex / auth-detected counts and a
+    footer wallclock estimate. Designed for paste-into-GitHub-issue use.
+
+  **pseolint CLI (0.4.1 → 0.4.2)**
+
+  - New flags: `--skip-boilerplate`, `--skip-search-pages`,
+    `--skip-empty-body` mirror the corresponding `AuditOptions`. All
+    off-by-default to preserve CLI back-compat.
+
+  **@pseolint/mcp (0.4.1 → 0.4.2)**
+
+  - Workspace dep bump to pick up the new `AuditOptions` fields. No tool
+    surface changes; callers can pass the new flags via the MCP audit
+    tool's options if they want them.
+
+  **Web app (0.0.4 → 0.0.5)**
+
+  The hosted form audit pipeline now adapts to the audited site's framework:
+
+  - New `FRAMEWORK_IGNORE_PATTERNS` map keyed on `nextjs | wordpress |
+shopify | webflow | astro | nuxt | remix`. Each framework's
+    idiomatic-but-non-marketing routes (e.g. WordPress `/wp-includes/`,
+    Shopify `/cart`, Next `/_next/data/`, etc.) layer additively on top
+    of the base `WEB_AUDIT_DEFAULT_IGNORE`.
+  - New `detectFrameworkFromUrl(url, signal?)` helper does a single
+    preflight HEAD/GET of the source root, checks `x-powered-by`,
+    `x-vercel-id`, `x-shopify-*` response headers + script-src body
+    signatures, and returns the framework key. Wrapped in an
+    `AbortController` with a hard 5s timeout so a slow root doesn't
+    block the audit.
+  - `run-audit.ts` runs framework detection in its own Inngest step
+    (`detect-framework`) before the audit step. Failure / timeout falls
+    through to `resolveAuditIgnorePatterns(undefined)` (base list only).
+
+  Tests: 646/646 pass. core + cli + mcp + action all build clean.
+
+- Updated dependencies
+  - @pseolint/core@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes

@@ -76,6 +76,9 @@ interface CliOptions {
   respectRobots: boolean;
   respectNoindex: boolean;
   skipDetectedAuth: boolean;
+  skipBoilerplate: boolean;
+  skipSearchPages: boolean;
+  skipEmptyBody: boolean;
   followRedirects: boolean;
   crawl: boolean;
   mcp: boolean;
@@ -154,6 +157,9 @@ export async function runCli(
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-respect-noindex", "Audit pages marked noindex (via meta robots or X-Robots-Tag) instead of skipping them")
     .option("--skip-detected-auth", "Heuristically detect login/signup/password-reset pages and skip them from rule evaluation")
+    .option("--skip-boilerplate", "Skip cookie/legal/consent/imprint pages")
+    .option("--skip-search-pages", "Skip pages with search-result URL hallmarks (?q=, /search, etc.)")
+    .option("--skip-empty-body", "Skip un-hydrated SPA shells (script-driven pages with empty body)")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
@@ -378,6 +384,9 @@ async function runAudit(
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
     respectNoindex: opts.respectNoindex === false ? false : undefined,
     skipDetectedAuth: opts.skipDetectedAuth === true ? true : undefined,
+    skipBoilerplate: opts.skipBoilerplate === true ? true : undefined,
+    skipSearchPages: opts.skipSearchPages === true ? true : undefined,
+    skipEmptyBody: opts.skipEmptyBody === true ? true : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
     strict: opts.strict === true ? true : undefined,
   };

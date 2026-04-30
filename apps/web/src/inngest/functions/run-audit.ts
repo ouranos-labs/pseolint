@@ -7,7 +7,10 @@ import { assertSafeUrl } from "@/lib/ssrf";
 import { auditSource, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
 import { openSecret } from "@/lib/secret-box";
-import { WEB_AUDIT_DEFAULT_IGNORE } from "@/lib/audit-defaults";
+import {
+  resolveAuditIgnorePatterns,
+  detectFrameworkFromUrl,
+} from "@/lib/audit-defaults";
 
 const MAX_COST_USD = 0.50;
 
@@ -106,6 +109,31 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
         ? { enabled: true, maxCostUsd: MAX_COST_USD }
         : undefined;
 
+    // v0.4.2 — preflight framework detection so the audit can layer
+    // framework-idiomatic ignore patterns on top of WEB_AUDIT_DEFAULT_IGNORE.
+    // Capped at 5s; any failure (timeout, network, parse) falls through to
+    // base defaults so the audit still runs.
+    const detectedFramework = await runStep("detect-framework", async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 5000);
+      try {
+        const fw = await detectFrameworkFromUrl(url, ctrl.signal);
+        // Surface to logs without expanding the AuditLogEvent union; the
+        // runStep name "detect-framework" is the primary Inngest signal.
+        try {
+          console.log(JSON.stringify({
+            ts: new Date().toISOString(),
+            evt: "audit.framework_detected",
+            auditId,
+            framework: fw ?? null,
+          }));
+        } catch { /* never let logging crash the audit */ }
+        return fw;
+      } finally {
+        clearTimeout(timer);
+      }
+    });
+
     summary = await runStep("audit", async () => auditSource(url, {
       sampleSize,
       mode,
@@ -117,8 +145,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // Hosted audits run on user-submitted URLs — skip framework metadata,
       // auth, admin, and API routes by default so the report focuses on
       // marketing surface. See lib/audit-defaults.ts for rationale + Pro
-      // override path.
-      ignore: [...WEB_AUDIT_DEFAULT_IGNORE],
+      // override path. When the preflight detector identifies a known
+      // framework (Next.js, WordPress, Shopify, Webflow, Astro, Nuxt,
+      // Remix), additional framework-specific patterns are merged in.
+      ignore: resolveAuditIgnorePatterns(detectedFramework),
       // Honour the site owner's `<meta robots noindex>` (true by default in
       // engine; explicit here for clarity) and additionally drop pages
       // heuristically detected as auth surfaces — covers the case where a

@@ -6,3 +6,5 @@ export { formatMarkdown } from "./markdown.js";
 export type { MarkdownFormatOptions } from "./markdown.js";
 export { formatHtml } from "./html.js";
 export type { HtmlFormatOptions } from "./html.js";
+export { formatFixplan } from "./fixplan.js";
+export type { FixplanFormatOptions } from "./fixplan.js";

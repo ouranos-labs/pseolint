@@ -385,6 +385,30 @@ export interface AuditOptions {
    */
   skipDetectedAuth?: boolean;
   /**
+   * When true, skip pages that look like cookie / legal / consent / imprint
+   * boilerplate (title, H1, or URL path matches well-known compliance-page
+   * patterns). These exist for legal compliance and are never SEO targets —
+   * auditing them produces routine findings the user already knows about.
+   * Default: false on the CLI; the hosted web form turns this on.
+   */
+  skipBoilerplate?: boolean;
+  /**
+   * When true, skip pages with search-result URL hallmarks (query parameter
+   * `q` / `query` / `search` / `s` / `keyword`, or path starting with
+   * `/search`). Per Google's own SEO guidance these should be noindex'd but
+   * many sites don't tag them; auditing them generates noise. Default: false
+   * on the CLI.
+   */
+  skipSearchPages?: boolean;
+  /**
+   * When true, skip pages that look like un-hydrated SPA shells (body text
+   * < 100 chars, script tags present, no substantive noscript fallback).
+   * These fail every content rule but the underlying problem is server-side
+   * rendering, not content quality. Use --render mode instead. Default: false
+   * on the CLI.
+   */
+  skipEmptyBody?: boolean;
+  /**
    * Preset that flips several safety options at once.
    *   "saas" — intended for hosted services auditing user-submitted URLs:
    *     guardSsrf=true, respectRobotsTxt=true, tighter maxFetchBytes cap,

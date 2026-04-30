@@ -11,6 +11,8 @@ import { formatConsole, aeoScoreLabel } from "../../src/formatters/console.js";
 import { formatJson } from "../../src/formatters/json.js";
 import { formatMarkdown } from "../../src/formatters/markdown.js";
 import { formatHtml } from "../../src/formatters/html.js";
+import { bucketByTemplate } from "../../src/formatters/bucket-findings.js";
+import { formatFixplan } from "../../src/formatters/fixplan.js";
 
 // ── helpers to build valid v0.4 summaries ──────────────────────────────
 function emptyCategories(): CategoryGrades {
@@ -490,5 +492,395 @@ describe("aeoScoreLabel", () => {
     expect(aeoScoreLabel(80)).toBe("Invisible");
     expect(aeoScoreLabel(81)).toBe("Ghost");
     expect(aeoScoreLabel(100)).toBe("Ghost");
+  });
+});
+
+// ── fixplan formatter ──────────────────────────────────────────────────
+describe("formatFixplan — markdown checklist output", () => {
+  it("emits the 'no findings' line when there's nothing to fix", () => {
+    const summary = buildSummary({ verdict: "ready", risk: 5, findings: [] });
+    const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
+    expect(out).toContain("# pseolint fix plan");
+    expect(out).toContain("Verdict: **ready**");
+    expect(out).toContain("No findings to fix");
+    expect(out).not.toContain("## Quick wins");
+  });
+
+  it("groups findings into quick / moderate / structural sections in order", () => {
+    const summary = buildSummary({
+      verdict: "caution",
+      risk: 25,
+      pageCount: 23,
+      findings: [
+        {
+          ruleId: "aeo/citable-facts",
+          severity: "warning",
+          message: "Only 2 citable facts found.",
+          fix: "Add 3+ more entity-specific facts ($X, %, dates, named refs).",
+          pageUrl: "https://example.com/leaderboard",
+          effort: "quick",
+        },
+        {
+          ruleId: "aeo/summary-bait",
+          severity: "warning",
+          message: "71% of citable facts (5/7) currently sit in the first 150 words",
+          fix: "Restructure to push citable facts below the fold. Add interactive comparison element above.",
+          pageUrl: "https://example.com/tools",
+          effort: "moderate",
+        },
+        {
+          ruleId: "content/unique-value",
+          severity: "error",
+          message: "Page has fewer than 100 words of unique-to-page text.",
+          fix: "Each affected page has fewer than 100 words of unique-to-page text. Add page-specific paragraphs.",
+          pageUrl: "https://example.com/a",
+          effort: "structural",
+        },
+        {
+          ruleId: "content/unique-value",
+          severity: "error",
+          message: "Page has fewer than 100 words of unique-to-page text.",
+          fix: "Each affected page has fewer than 100 words of unique-to-page text. Add page-specific paragraphs.",
+          pageUrl: "https://example.com/b",
+          effort: "structural",
+        },
+      ],
+    });
+    const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
+    const quickIdx = out.indexOf("## Quick wins");
+    const moderateIdx = out.indexOf("## Moderate fixes");
+    const structuralIdx = out.indexOf("## Structural changes");
+    expect(quickIdx).toBeGreaterThan(-1);
+    expect(moderateIdx).toBeGreaterThan(quickIdx);
+    expect(structuralIdx).toBeGreaterThan(moderateIdx);
+    // Check checkbox markdown is present.
+    expect(out).toContain("- [ ] **`aeo/citable-facts`");
+    expect(out).toContain("- [ ] **`aeo/summary-bait`");
+    expect(out).toContain("- [ ] **`content/unique-value`");
+    // Footer estimate.
+    expect(out).toContain("fix-plan items");
+    expect(out).toContain("Estimated time-to-`ready`");
+  });
+
+  it("collapses template-pattern findings into a single bucket with × N", () => {
+    const summary = buildSummary({
+      verdict: "concerning",
+      risk: 55,
+      pageCount: 4,
+      findings: [
+        {
+          ruleId: "aeo/answer-first",
+          severity: "warning",
+          message: "Opener has no specific numbers, dates, or dollar amounts.",
+          fix: "Restructure each page opener to lead with a number + named entity (<100 words).",
+          pageUrl: "https://example.com/rules/thin-content-rule",
+          effort: "quick",
+        },
+        {
+          ruleId: "aeo/answer-first",
+          severity: "warning",
+          message: "Opener has no specific numbers, dates, or dollar amounts.",
+          fix: "Restructure each page opener to lead with a number + named entity (<100 words).",
+          pageUrl: "https://example.com/rules/doorway-pattern-rule",
+          effort: "quick",
+        },
+        {
+          ruleId: "aeo/answer-first",
+          severity: "warning",
+          message: "Opener has no specific numbers, dates, or dollar amounts.",
+          fix: "Restructure each page opener to lead with a number + named entity (<100 words).",
+          pageUrl: "https://example.com/rules/near-duplicate-rule",
+          effort: "quick",
+        },
+      ],
+    });
+    const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
+    // Template signature should generalise the slug segment.
+    expect(out).toContain("× 3 instances");
+    // Should mention the slugged template, not the per-page urls in the headline.
+    expect(out).toMatch(/`\/rules\/:slug`\s+template/);
+    // First-instance + Pages bullets.
+    expect(out).toContain("First instance:");
+    expect(out).toContain("/rules/thin-content");
+    expect(out).toContain("/rules/doorway-pattern");
+    expect(out).toContain("/rules/near-duplicate");
+    // Only 1 fix-plan item, even though 3 findings rolled up.
+    expect(out).toContain("Total: 1 fix-plan item");
+  });
+
+  it("renders the Skipped this run section when skippedUrls is non-empty", () => {
+    const summary = buildSummary({
+      verdict: "caution",
+      risk: 30,
+      pageCount: 10,
+      findings: [
+        {
+          ruleId: "aeo/citable-facts",
+          severity: "warning",
+          message: "Only 2 citable facts found.",
+          pageUrl: "https://example.com/x",
+          effort: "quick",
+        },
+      ],
+    });
+    summary.skippedUrls = [
+      "https://example.com/login",
+      "https://example.com/account",
+      "https://example.com/private",
+      "https://example.com/internal",
+    ];
+    summary.diagnostics.auditFindings = [
+      {
+        ruleId: "audit/skipped-by-policy",
+        severity: "info",
+        message:
+          "Skipped 3 pages from rule evaluation — 1 marked noindex, 2 detected as auth (login/register/etc). First few: a, b, c.",
+      },
+    ];
+    const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
+    expect(out).toContain("## Skipped this run");
+    expect(out).toContain("1 page skipped (noindex)");
+    expect(out).toContain("2 pages skipped (auth-detected)");
+    // Remainder (4 total - 3 policy = 1) renders as state-cache.
+    expect(out).toContain("1 page skipped (unchanged since prior run)");
+  });
+});
+
+// ── template bucketing helper ──────────────────────────────────────────
+describe("bucketByTemplate — collapses findings by (ruleId, templateSignature)", () => {
+  function mk(over: Partial<RuleResult>): RuleResult {
+    return {
+      ruleId: "aeo/citable-facts",
+      severity: "warning",
+      message: "msg",
+      ...over,
+    };
+  }
+
+  it("collapses three findings sharing a template signature into one bucket", () => {
+    const buckets = bucketByTemplate([
+      mk({ pageUrl: "https://ex.com/rules/california-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/rules/texas-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/rules/florida-llc-fees" }),
+    ]);
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0].count).toBe(3);
+    expect(buckets[0].ruleId).toBe("aeo/citable-facts");
+    expect(buckets[0].templateSignature).toBe("/rules/:slug");
+  });
+
+  it("keeps findings on different templates as separate buckets", () => {
+    const buckets = bucketByTemplate([
+      mk({ pageUrl: "https://ex.com/rules/california-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/rules/texas-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/blog/some-post-here" }),
+    ]);
+    expect(buckets).toHaveLength(2);
+    const sigs = buckets.map((b) => b.templateSignature).sort();
+    expect(sigs).toEqual(["/blog/:slug", "/rules/:slug"]);
+  });
+
+  it("gives a site-wide finding (no pageUrl) its own bucket", () => {
+    const buckets = bucketByTemplate([
+      mk({ ruleId: "tech/robots-compliance", pageUrl: undefined }),
+      mk({ pageUrl: "https://ex.com/rules/california-llc-fees" }),
+    ]);
+    expect(buckets).toHaveLength(2);
+    const siteWide = buckets.find((b) => b.ruleId === "tech/robots-compliance");
+    expect(siteWide).toBeDefined();
+    expect(siteWide!.templateSignature).toBeNull();
+    expect(siteWide!.representativeUrl).toBe("<site-wide>");
+  });
+
+  it("orders buckets by count DESC, then severity DESC", () => {
+    const buckets = bucketByTemplate([
+      // 1 instance, critical
+      mk({
+        ruleId: "spam/near-duplicate",
+        severity: "critical",
+        pageUrl: "https://ex.com/dupes/page-one",
+      }),
+      // 3 instances, warning
+      mk({ pageUrl: "https://ex.com/rules/california-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/rules/texas-llc-fees" }),
+      mk({ pageUrl: "https://ex.com/rules/florida-llc-fees" }),
+      // 2 instances, error
+      mk({
+        ruleId: "content/unique-value",
+        severity: "error",
+        pageUrl: "https://ex.com/blog/some-post-one",
+      }),
+      mk({
+        ruleId: "content/unique-value",
+        severity: "error",
+        pageUrl: "https://ex.com/blog/another-post-two",
+      }),
+    ]);
+    // count DESC: 3, 2, 1.
+    expect(buckets.map((b) => b.count)).toEqual([3, 2, 1]);
+    // Within count tier the more severe wins; here counts differ, so check ordering directly.
+    expect(buckets[0].ruleId).toBe("aeo/citable-facts"); // 3 warning
+    expect(buckets[1].ruleId).toBe("content/unique-value"); // 2 error
+    expect(buckets[2].ruleId).toBe("spam/near-duplicate"); // 1 critical
+  });
+
+  it("respects an enriched templateSignature override on the finding", () => {
+    const buckets = bucketByTemplate([
+      mk({
+        pageUrl: "https://ex.com/some/legacy/url",
+        // Engine-supplied signature wins over inference.
+        templateSignature: "/legacy/preset",
+      } as RuleResult & { templateSignature: string }),
+      mk({
+        pageUrl: "https://ex.com/totally/different/url",
+        templateSignature: "/legacy/preset",
+      } as RuleResult & { templateSignature: string }),
+    ]);
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0].templateSignature).toBe("/legacy/preset");
+    expect(buckets[0].count).toBe(2);
+  });
+});
+
+// ── console formatter — bucketed top fixes ─────────────────────────────
+describe("formatConsole — template bucketing in top fixes", () => {
+  function summaryWithFindings(findings: RuleResult[]): AuditSummary {
+    return buildSummary({ verdict: "concerning", risk: 55, findings });
+  }
+
+  it("collapses 3 same-template findings into one '× 3 instances on TEMPLATE' line", () => {
+    const summary = summaryWithFindings([
+      {
+        ruleId: "aeo/citable-facts",
+        severity: "warning",
+        message: "Only 2 citable facts found.",
+        fix: "Add 8+ entity-specific facts per page.",
+        pageUrl: "https://ex.com/rules/california-llc-fees",
+        effort: "quick",
+      },
+      {
+        ruleId: "aeo/citable-facts",
+        severity: "warning",
+        message: "Only 3 citable facts found.",
+        fix: "Add 8+ entity-specific facts per page.",
+        pageUrl: "https://ex.com/rules/texas-llc-fees",
+        effort: "quick",
+      },
+      {
+        ruleId: "aeo/citable-facts",
+        severity: "warning",
+        message: "Only 4 citable facts found.",
+        fix: "Add 8+ entity-specific facts per page.",
+        pageUrl: "https://ex.com/rules/florida-llc-fees",
+        effort: "quick",
+      },
+    ]);
+    const out = formatConsole(summary, { noColor: true });
+    expect(out).toContain("aeo/citable-facts × 3 instances on /rules/:slug template");
+    expect(out).toContain("Fix once, resolve all 3.");
+    // Should NOT print all three rule IDs as separate top-fix lines.
+    const lines = out.split("\n").filter((l) => l.includes("aeo/citable-facts"));
+    expect(lines.length).toBeLessThan(3);
+  });
+
+  it("keeps single-instance findings in their existing format (no '× 1' suffix)", () => {
+    const summary = summaryWithFindings([
+      {
+        ruleId: "spam/thin-content",
+        severity: "error",
+        message: "Page has thin content (50 words).",
+        pageUrl: "https://ex.com/page-1",
+      },
+    ]);
+    const out = formatConsole(summary, { noColor: true });
+    expect(out).not.toContain("× 1");
+    expect(out).not.toContain("Fix once, resolve all 1");
+    expect(out).toContain("Page has thin content (50 words).");
+  });
+
+  it("uses '× N affected pages' (no template) when bucketed by pageUrl rather than signature", () => {
+    // Two findings on the SAME pageUrl with no template signature would bucket
+    // by pageUrl. The signature is `/about` (single-segment), still inferred,
+    // but template is just the path. Use a root URL where signature == pageUrl
+    // path so the template bucket label still makes sense — instead, simulate
+    // by using two findings on the SAME concrete pageUrl that the inference
+    // returns as the path itself ("__site__"-style fallback path). To force
+    // the "affected pages" branch, use site-wide findings on the same rule.
+    const summary = summaryWithFindings([
+      {
+        ruleId: "tech/robots-compliance",
+        severity: "warning",
+        message: "robots.txt issue",
+      },
+      {
+        ruleId: "tech/robots-compliance",
+        severity: "warning",
+        message: "robots.txt issue",
+      },
+    ]);
+    const out = formatConsole(summary, { noColor: true });
+    // Site-wide findings have null templateSignature → "× 2 affected pages".
+    expect(out).toContain("× 2 affected pages");
+    expect(out).not.toContain("Fix once, resolve all 2");
+  });
+});
+
+// ── markdown formatter — bucketed buckets ──────────────────────────────
+describe("formatMarkdown — template bucketing in severity sections", () => {
+  it("renders a bucket header + 'Fix once, resolve all N' callout for template buckets", () => {
+    const summary = buildSummary({
+      verdict: "concerning",
+      findings: [
+        {
+          ruleId: "aeo/citable-facts",
+          severity: "warning",
+          message: "Only 2 citable facts found.",
+          fix: "Add 8+ entity-specific facts per page.",
+          pageUrl: "https://ex.com/rules/california-llc-fees",
+          effort: "quick",
+        },
+        {
+          ruleId: "aeo/citable-facts",
+          severity: "warning",
+          message: "Only 3 citable facts found.",
+          fix: "Add 8+ entity-specific facts per page.",
+          pageUrl: "https://ex.com/rules/texas-llc-fees",
+          effort: "quick",
+        },
+        {
+          ruleId: "aeo/citable-facts",
+          severity: "warning",
+          message: "Only 4 citable facts found.",
+          fix: "Add 8+ entity-specific facts per page.",
+          pageUrl: "https://ex.com/rules/florida-llc-fees",
+          effort: "quick",
+        },
+      ],
+    });
+    const out = formatMarkdown(summary);
+    expect(out).toContain("× 3 instances on `/rules/:slug` template");
+    expect(out).toContain("Fix once, resolve all 3");
+    // Single H3 rule header for the bucketed group, not three.
+    const headerMatches = out.match(/^### .*aeo\/citable-facts/gm) ?? [];
+    expect(headerMatches.length).toBe(1);
+  });
+
+  it("falls back to the legacy bullet format for single-instance findings", () => {
+    const summary = buildSummary({
+      verdict: "caution",
+      findings: [
+        {
+          ruleId: "spam/thin-content",
+          severity: "error",
+          message: "Page has thin content (50 words).",
+          pageUrl: "https://example.com/page-1",
+        },
+      ],
+    });
+    const out = formatMarkdown(summary);
+    // No `### aeo/...` header — single findings stay as bullets.
+    expect(out).toMatch(/- \*\*`spam\/thin-content`\*\*/);
+    expect(out).not.toContain("× 1");
+    expect(out).not.toContain("Fix once, resolve all 1");
   });
 });

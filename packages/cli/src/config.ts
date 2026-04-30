@@ -66,6 +66,9 @@ const auditOptionsSchema = z.object({
   respectRobotsTxt: z.boolean().optional(),
   respectNoindex: z.boolean().optional(),
   skipDetectedAuth: z.boolean().optional(),
+  skipBoilerplate: z.boolean().optional(),
+  skipSearchPages: z.boolean().optional(),
+  skipEmptyBody: z.boolean().optional(),
   followRedirects: z.boolean().optional(),
   strict: z.boolean().optional(),
   maxCrawlDiscovered: z.number().optional(),
@@ -172,6 +175,9 @@ export interface CliFlags {
   respectRobotsTxt?: boolean;
   respectNoindex?: boolean;
   skipDetectedAuth?: boolean;
+  skipBoilerplate?: boolean;
+  skipSearchPages?: boolean;
+  skipEmptyBody?: boolean;
   followRedirects?: boolean;
   /** v0.4 §4.11: bypass site-classification rule suppression. */
   strict?: boolean;
@@ -215,6 +221,9 @@ export function mergeOptions(
   if (cliFlags.respectRobotsTxt !== undefined) result.respectRobotsTxt = cliFlags.respectRobotsTxt;
   if (cliFlags.respectNoindex !== undefined) result.respectNoindex = cliFlags.respectNoindex;
   if (cliFlags.skipDetectedAuth !== undefined) result.skipDetectedAuth = cliFlags.skipDetectedAuth;
+  if (cliFlags.skipBoilerplate !== undefined) result.skipBoilerplate = cliFlags.skipBoilerplate;
+  if (cliFlags.skipSearchPages !== undefined) result.skipSearchPages = cliFlags.skipSearchPages;
+  if (cliFlags.skipEmptyBody !== undefined) result.skipEmptyBody = cliFlags.skipEmptyBody;
   if (cliFlags.followRedirects !== undefined) result.followRedirects = cliFlags.followRedirects;
   if (cliFlags.strict !== undefined) result.strict = cliFlags.strict;
   if (cliFlags.state !== undefined) result.state = cliFlags.state;
