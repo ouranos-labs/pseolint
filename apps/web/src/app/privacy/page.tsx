@@ -15,9 +15,57 @@ const EFFECTIVE = "2026-04-20";
 const CONTROLLER_NAME = "pseolint";
 const CONTACT_EMAIL = "philippe.kam27@gmail.com";
 
+/**
+ * Escape `</` sequences inside a JSON-LD payload so a stray closing tag inside
+ * a string can't terminate the surrounding `<script>` block.
+ */
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
+}
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: "Who is the data controller?",
+    a: "pseolint, operating the service at pseolint.dev. Contact philippe.kam27@gmail.com. The policy covers pseolint.dev, its API, the CLI when it communicates with our servers, and transactional email we send you. It does not cover websites we audit on your instruction — those are separately controlled by their operators.",
+  },
+  {
+    q: "What personal data does pseolint collect, and why?",
+    a: "Email address (for magic-link auth and audit-completion notifications), account metadata (name, timezone, UI preferences), audited URLs and rendered reports, a SHA-256 hashed IP combined with a 30-day rotating server-side salt for rate limiting, an anonymous session cookie, an authentication cookie (HttpOnly, Secure, SameSite=Lax, 30-day inactivity expiry), billing metadata via Polar.sh ($19/month Pro), and aggregate request logs retained 30 days. No raw IPs, no card data, no behavioral tracking.",
+  },
+  {
+    q: "How long does pseolint keep data?",
+    a: "Anonymous audit reports: 24 hours. Free-account reports: 30 days. Pro-account reports: kept until you delete. Account email and profile: kept while your account is open, deleted within 30 days of account closure. Invoices: 10 years per EU tax law. Salted IP hashes: 14 days, with the salt itself rotating every 30 days. Aggregate request logs: 30 days. Email delivery logs purge after 90 days.",
+  },
+  {
+    q: "Who does pseolint share data with?",
+    a: "Subprocessors: Neon (EU Postgres hosting), Cloudflare R2 (EU-first object storage), Cloudflare Turnstile (bot challenge), Polar.sh (merchant of record for $19/month Pro subscriptions), Resend (transactional email), Google (only if you choose OAuth sign-in), Anthropic (Pro AI triage under zero-retention API terms), and Inngest (background job orchestration). International transfers rely on the EU-US Data Privacy Framework and Standard Contractual Clauses.",
+  },
+  {
+    q: "What rights do I have under GDPR?",
+    a: "Right of access (we respond within 30 days), rectification, erasure (DELETE /api/account or email us — removes everything within 30 days), portability (GET /api/account/export returns JSON), restriction, objection, withdrawing consent, and lodging a complaint with your local data-protection authority (in France: CNIL, cnil.fr). We do not perform automated decision-making with legal effect.",
+  },
+];
+
 export default function Privacy() {
+  const faqLd = safeJsonLd({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  });
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+      <script
+        type="application/ld+json"
+        // FAQPage JSON-LD from a compile-time-static FAQS array. safeJsonLd
+        // escapes `<` so a string field cannot prematurely close the script
+        // tag — same pattern used on tools/page.tsx and rules/page.tsx.
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: faqLd }}
+      />
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
         Legal · privacy

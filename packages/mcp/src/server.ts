@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { createRequire } from "node:module";
 import { auditSource, formatConsole, formatJson } from "@pseolint/core";
-import type { AuditOptions, AuditSummary } from "@pseolint/core";
+import type { AuditOptions, AuditSummary, RuleResult } from "@pseolint/core";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
@@ -29,20 +29,33 @@ function friendlyError(err: unknown, source: string): string {
   return `Audit failed for ${source}: ${msg}`;
 }
 
-function scoreLabel(score: number): string {
-  if (score <= 20) return "Safe";
-  if (score <= 40) return "Caution";
-  if (score <= 60) return "Risky";
-  if (score <= 80) return "Dangerous";
-  return "Critical";
+/**
+ * v0.4: verdict ladder replaces the old numeric score-label.
+ * Risk values are still 0–100 (low=good); verdict is the human-readable layer.
+ */
+function verdictLabel(verdict: AuditSummary["verdict"]): string {
+  switch (verdict) {
+    case "ready":       return "Ready";
+    case "caution":     return "Caution";
+    case "concerning":  return "Concerning";
+    case "critical":    return "Critical";
+  }
+}
+
+function flattenIssues(summary: AuditSummary): RuleResult[] {
+  return [
+    ...summary.issues.blockers,
+    ...summary.issues.shouldFix,
+    ...summary.issues.informational,
+  ];
 }
 
 function buildExplanation(summary: AuditSummary, threshold: number): string {
   const lines: string[] = [];
-  const label = scoreLabel(summary.score);
-  const passFail = summary.score >= threshold ? "FAIL" : "PASS";
+  const label = verdictLabel(summary.verdict);
+  const passFail = summary.risk >= threshold ? "FAIL" : "PASS";
 
-  lines.push(`SpamBrain Risk Score: ${summary.score}/100 (${label}) — ${passFail} at threshold ${threshold}`);
+  lines.push(`pseolint Verdict: ${label} (risk ${summary.risk}/100, lower=better) — ${passFail} at threshold ${threshold}`);
   lines.push(`Pages analysed: ${summary.pageCount}`);
 
   if (summary.templateDetected) {
@@ -50,25 +63,35 @@ function buildExplanation(summary: AuditSummary, threshold: number): string {
     lines.push("Template-generated content detected. Fix suggestions are tailored for template authors.");
   }
 
-  lines.push("");
-  lines.push("Category breakdown:");
-  for (const [cat, score] of Object.entries(summary.categoryScores)) {
-    const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
-    lines.push(`  ${catLabel}: ${score}/100`);
+  if (summary.siteClassification) {
+    const sc = summary.siteClassification;
+    lines.push("");
+    lines.push(`Site type: ${sc.type} (confidence ${(sc.confidence * 100).toFixed(0)}%).`);
+    if (sc.suppressedRules.length > 0) {
+      lines.push(`Suppressed ${sc.suppressedRules.length} rule${sc.suppressedRules.length === 1 ? "" : "s"} not applicable to this site type.`);
+    }
   }
 
+  lines.push("");
+  lines.push("Category breakdown:");
+  for (const [cat, info] of Object.entries(summary.categories)) {
+    const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+    lines.push(`  ${catLabel}: ${info.grade} (${info.issues} issue${info.issues === 1 ? "" : "s"})`);
+  }
+
+  const allFindings = flattenIssues(summary);
   const ruleCounts = new Map<string, number>();
-  for (const f of summary.findings) {
+  for (const f of allFindings) {
     ruleCounts.set(f.ruleId, (ruleCounts.get(f.ruleId) ?? 0) + 1);
   }
 
   if (ruleCounts.size > 0) {
     lines.push("");
-    lines.push("What's driving the score (fix in this order):");
+    lines.push("What's driving the verdict (fix in this order):");
 
     const effortOrder = ["quick", "moderate", "structural"];
     const withEffort = Array.from(ruleCounts.entries()).map(([ruleId, count]) => {
-      const finding = summary.findings.find((f) => f.ruleId === ruleId);
+      const finding = allFindings.find((f) => f.ruleId === ruleId);
       return { ruleId, count, finding };
     }).sort((a, b) => {
       const ea = effortOrder.indexOf(a.finding?.effort ?? "moderate");
@@ -86,24 +109,32 @@ function buildExplanation(summary: AuditSummary, threshold: number): string {
     }
   }
 
-  if (summary.score >= threshold) {
+  if (summary.risk >= threshold) {
     lines.push("");
-    lines.push(`Your score of ${summary.score} exceeds the threshold of ${threshold}. Focus on the quick fixes first to bring the score down, then tackle structural issues.`);
+    lines.push(`Risk ${summary.risk} exceeds threshold ${threshold}. Focus on quick fixes first to bring risk down, then tackle structural issues.`);
   } else {
     lines.push("");
-    lines.push(`Your score of ${summary.score} is below the threshold of ${threshold}. Site passes CI checks.`);
+    lines.push(`Risk ${summary.risk} is below threshold ${threshold}. Site passes CI checks.`);
   }
 
   return lines.join("\n");
 }
 
+/**
+ * Rules that operate on the page corpus (cross-page) rather than per-URL.
+ * Used to filter check_page_technical output to per-page findings only.
+ *
+ * Updated for v0.4: dropped rules removed (cannibal/title-overlap,
+ * cannibal/keyword-collision, content/heading-uniqueness, links/hub-pages).
+ */
 const CROSS_PAGE_RULES = new Set([
   "spam/near-duplicate", "spam/entity-swap", "spam/boilerplate-ratio",
   "spam/template-diversity", "spam/publication-velocity", "spam/doorway-pattern",
-  "spam/template-coverage", "content/unique-value", "content/heading-uniqueness",
-  "content/meta-uniqueness", "cannibal/title-overlap", "cannibal/keyword-collision",
-  "cannibal/url-pattern", "links/orphan-pages", "links/dead-ends",
-  "links/cluster-connectivity", "links/hub-pages",
+  "spam/template-coverage", "content/unique-value",
+  "content/meta-uniqueness",
+  "cannibal/url-pattern",
+  "links/orphan-pages", "links/dead-ends",
+  "links/cluster-connectivity",
 ]);
 
 export function createServer(): McpServer {
@@ -116,10 +147,10 @@ export function createServer(): McpServer {
     "audit_site",
     {
       title: "Audit Site for SpamBrain Risk",
-      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 35 rules across 6 categories, and returns a SpamBrain Risk Score (0-100) with actionable findings. For sites with many pages, results are automatically capped to keep response times reasonable.",
+      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 32 rules across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless --strict is passed.",
       inputSchema: {
         source: z.string().describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
-        threshold: z.number().optional().default(40).describe("Score threshold — audit fails if score >= this value (default: 40)"),
+        threshold: z.number().optional().default(40).describe("Risk threshold — audit fails if risk >= this value (default: 40, semantically equivalent to 'caution' verdict)"),
         sampleSize: z.number().optional().default(0).describe("Audit a random subset of N pages. 0 = all pages up to internal cap of 50 for MCP. Set explicitly to override."),
         format: z.enum(["console", "json"]).optional().default("console").describe("Output format. Use 'json' for structured data, 'console' for human-readable summary."),
       },
@@ -157,7 +188,7 @@ export function createServer(): McpServer {
 
         return {
           content: [{ type: "text" as const, text }],
-          isError: summary.score >= threshold,
+          isError: summary.risk >= threshold,
         };
       } catch (err) {
         return {
@@ -171,11 +202,11 @@ export function createServer(): McpServer {
   server.registerTool(
     "explain_score",
     {
-      title: "Explain SpamBrain Risk Score",
-      description: "Use when a user wants to understand WHY their SpamBrain score is high, what categories are failing, and what to fix first. Returns a prioritized breakdown with quick wins listed before structural fixes, and a pass/fail verdict against the threshold.",
+      title: "Explain pseolint Verdict",
+      description: "Use when a user wants to understand WHY their pseolint verdict is concerning/critical, what categories are failing, and what to fix first. Returns a prioritized breakdown with quick wins listed before structural fixes, plus a pass/fail verdict against the risk threshold.",
       inputSchema: {
         source: z.string().describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
-        threshold: z.number().optional().default(40).describe("Score threshold for pass/fail verdict (default: 40)"),
+        threshold: z.number().optional().default(40).describe("Risk threshold for pass/fail verdict (default: 40)"),
       },
       annotations: {
         readOnlyHint: true,
@@ -191,7 +222,7 @@ export function createServer(): McpServer {
 
         return {
           content: [{ type: "text" as const, text }],
-          isError: summary.score >= threshold,
+          isError: summary.risk >= threshold,
         };
       } catch (err) {
         return {
@@ -224,7 +255,7 @@ export function createServer(): McpServer {
         };
 
         const summary = await auditSource(url, options);
-        const perPageFindings = summary.findings.filter((f) => !CROSS_PAGE_RULES.has(f.ruleId));
+        const perPageFindings = flattenIssues(summary).filter((f) => !CROSS_PAGE_RULES.has(f.ruleId));
 
         const lines: string[] = [];
         lines.push(`Technical SEO check for ${url}`);

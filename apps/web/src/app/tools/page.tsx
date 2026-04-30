@@ -92,10 +92,12 @@ export default function ToolsIndexPage() {
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
         Three free, single-purpose tools for programmatic SEO operators. Each runs
-        the same open-source pseolint audit engine against any public URL, but frames
-        the output through a different lens — SpamBrain risk, thin content, or doorway
-        patterns. No signup, three audits per day per browser, a shareable report
-        link in 60 seconds.
+        the same open-source pseolint audit engine (MIT-licensed, v0.4.0) against any
+        public URL, but frames the output through a different lens — SpamBrain risk,
+        thin content, or doorway patterns. $0, no signup, 3 audits per day per
+        browser, 100 pages per audit, a shareable 30-day-retention report link in a
+        60-second median run. Comparable hosted crawlers cost between $35/month
+        (Sitebulb) and $259/year (Screaming Frog) for the same surface area.
       </p>
 
       <section className="mt-10 space-y-5 text-sm leading-relaxed text-muted-foreground">

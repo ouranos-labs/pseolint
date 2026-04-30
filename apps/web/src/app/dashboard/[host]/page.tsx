@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
@@ -14,6 +14,8 @@ import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
 import { VerifyBanner } from "@/components/dashboard/verify-banner";
 import { GscStatusStrip } from "@/components/dashboard/gsc-status-strip";
+import { RiskTrendChart } from "@/components/dashboard/risk-trend-chart";
+import { RunDiffStrip } from "@/components/dashboard/run-diff-strip";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
@@ -21,6 +23,7 @@ import { ExportMenu } from "@/components/report/export-menu";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
 import { detectDnsProvider } from "@/lib/dns-provider";
+import { MARKETING_RULES } from "@/lib/marketing-rules";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -105,6 +108,47 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const riskDelta =
     latestAudit?.risk != null && previousRisk != null ? latestAudit.risk - previousRisk : null;
 
+  // Diff vs. the run before the latest — the "what changed" strip needs the
+  // previous completed audit's timestamp to bound the new/recovered windows.
+  // findingsState is cumulative (rows persist across runs); we slice it by
+  // firstSeenAt / lastSeenAt against the prior run's completedAt.
+  let runDiff: { newFindings: { ruleId: string; severity: "info" | "warning" | "error" | "critical"; templateSignature: string }[]; recoveredCount: number; previousAt: Date | null } = {
+    newFindings: [],
+    recoveredCount: 0,
+    previousAt: null,
+  };
+  if (latestAudit?.completedAt) {
+    const previousCompletedAt = completedRuns[1]?.completedAt ?? null;
+    if (previousCompletedAt) {
+      const [newRows, [{ recoveredCount }]] = await Promise.all([
+        db.select({
+          ruleId: findingsState.ruleId,
+          severity: findingsState.severityLatest,
+          templateSignature: findingsState.templateSignature,
+        })
+          .from(findingsState)
+          .where(and(
+            eq(findingsState.domainId, domain.id),
+            eq(findingsState.status, "open"),
+            gte(findingsState.firstSeenAt, previousCompletedAt),
+          )),
+        db.select({ recoveredCount: sql<number>`count(*)::int` })
+          .from(findingsState)
+          .where(and(
+            eq(findingsState.domainId, domain.id),
+            eq(findingsState.status, "open"),
+            gte(findingsState.lastSeenAt, previousCompletedAt),
+            lt(findingsState.lastSeenAt, latestAudit.completedAt),
+          )),
+      ]);
+      runDiff = {
+        newFindings: newRows,
+        recoveredCount,
+        previousAt: previousCompletedAt,
+      };
+    }
+  }
+
   // Aggregate URL-level GSC metrics up to the same template signature used for
   // grouping findings (e.g. /blog/:slug). Findings fan out across many URLs
   // sharing one template, so impressions must too — otherwise traffic-by-page
@@ -136,6 +180,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 1. WHERE AM I — header + verify banner if blocking. */}
       <WorkspaceHeader domain={{ host: domain.host, sourceUrl: domain.sourceUrl }} />
       {!domain.verifiedAt && (
         <VerifyBanner
@@ -145,6 +190,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       )}
 
+      {/* 2. INTEGRATION HEALTH — only loud when actionable; the bound-with-data
+          variant renders as a single compact pill so the happy path doesn't
+          dominate the hero. */}
       <GscStatusStrip
         variant={gscVariant}
         host={domain.host}
@@ -154,6 +202,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         lastSyncAt={gscIntegration?.lastSyncAt ?? null}
       />
 
+      {/* 3. WHERE I AM — the headline (latest risk + tile grid). */}
       {latestAudit && summary && (
         <section className="flex flex-col gap-6">
           <div className="flex items-baseline justify-between">
@@ -217,23 +266,50 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             <CopyLinkButton url={`/r/${latestAudit.slug}`} />
             <ExportMenu auditId={latestAudit.id} auditSlug={latestAudit.slug} isPro={true} />
           </div>
+        </section>
+      )}
 
+      {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads
+          state-then-delta. Stronger Pro-justification per pixel than any
+          other strip. */}
+      {latestAudit?.completedAt && (
+        <RunDiffStrip
+          newFindings={runDiff.newFindings}
+          recoveredCount={runDiff.recoveredCount}
+          latestAt={latestAudit.completedAt}
+          previousAt={runDiff.previousAt}
+        />
+      )}
+
+      {/* 5. HOW AM I TRENDING — the visual narrative of monitoring. */}
+      <RiskTrendChart runs={timelineRuns} alertThreshold={domain.alertThreshold} />
+
+      {/* 6. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
+          *below* the trend so they don't break the state→change→trend flow. */}
+      {latestAudit && summary && (
+        <>
           <OriginReadinessCard summary={summary} />
-
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Category scores
             </h3>
             <CategoryBreakdown summary={summary} />
           </div>
-        </section>
+        </>
       )}
 
+      {/* 7. PICK A SPECIFIC RUN — clickable bar grid for drill-down into a
+          past report. Lives above the findings panel because that's where the
+          user goes if they want to compare a finding to a specific historical
+          state. */}
       <TimelineStrip runs={timelineRuns} />
 
+      {/* 8. WHAT'S WRONG — the work surface. Each row carries traffic chips,
+          rank-source annotation, and (when documented) inline remediation. */}
       <FindingsPanel
         findings={openFindings.map((f) => {
           const traffic = trafficBySig.get(f.templateSignature);
+          const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
           return {
             id: f.id,
             ruleId: f.ruleId,
@@ -244,6 +320,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             representativeUrl: f.representativeUrl,
             status: f.status,
             traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
+            help: rule
+              ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
+              : null,
           };
         })}
         gscBound={gscBound}

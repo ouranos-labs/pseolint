@@ -30,9 +30,13 @@ export default function Terms() {
         Terms of Service
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        These terms are the agreement between you and pseolint. By using the service, you accept
-        them. We wrote them in plain English — if a clause seems unreasonable, email us and
-        we&apos;ll explain or fix it.
+        These terms are the agreement between you and pseolint (engine v0.4.0;
+        @pseolint/core v0.3.3, @pseolint/cli v0.3.1, @pseolint/mcp v0.3.1, all
+        MIT-licensed at github.com/ouranos-labs/pseolint). By using the service,
+        you accept them. We wrote them in plain English — if a clause seems
+        unreasonable, email us and we&apos;ll explain or fix it. Pro
+        subscriptions are $19/month or $228/year via Polar.sh, with a 14-day
+        no-questions-asked refund.
       </p>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
         Terms scope clarification: this contract binds your usage of every surface labelled

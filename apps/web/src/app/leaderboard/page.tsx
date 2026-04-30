@@ -154,7 +154,9 @@ export default async function Leaderboard() {
           The cleanest pSEO sites on record.
         </h1>
         <p className="mt-4 text-base text-muted-foreground">
-          Lower is safer. Ranked by SpamBrain risk score — one entry per domain.
+          Lower is safer. Ranked by SpamBrain risk score across 32 rules in 4
+          categories — one entry per domain. Powered by the MIT-licensed pseolint
+          engine v0.4.0 (github.com/ouranos-labs/pseolint).
         </p>
         <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
           Leaderboard methodology in one paragraph: the ranking is rebuilt every ten minutes from

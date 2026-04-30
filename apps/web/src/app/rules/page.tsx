@@ -131,16 +131,20 @@ export default function RulesIndexPage() {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-        pseolint runs 42 rules against your site, grouped into spam-pattern detection,
-        AEO/answer-engine readiness, technical SEO, and structural integrity. Five of the
-        spam-pattern rules are written up below in depth — they are the ones most likely
-        to demote a programmatic-SEO domain in 2026, and the ones whose detection logic
-        is least well documented elsewhere.
+        pseolint v0.4.0 runs 32 rules across 4 categories — spam-pattern detection
+        (8 spam/* rules), AEO/answer-engine readiness (8 aeo/* rules, shipped April
+        21, 2026), technical SEO, and structural integrity. Severity weights are
+        critical=40, error=25, warning=12, info=5. Five of the spam-pattern rules
+        are written up below in depth — they are the ones most likely to demote a
+        programmatic-SEO domain in 2026, and the ones whose detection logic is
+        least well documented elsewhere.
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        The remaining 37 rules are documented inside the open-source repo and surface in
-        every audit report. More long-form explainers will land here as we observe which
+        The remaining rules are documented inside the open-source repo at
+        github.com/ouranos-labs/pseolint (MIT-licensed; @pseolint/core v0.3.3,
+        @pseolint/cli v0.3.1, @pseolint/mcp v0.3.1) and surface in every audit
+        report. More long-form explainers will land here as we observe which
         ones generate the most user questions.
       </p>
 

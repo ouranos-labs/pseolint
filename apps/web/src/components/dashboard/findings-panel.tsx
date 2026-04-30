@@ -13,6 +13,12 @@ type Finding = {
   status: "open" | "snoozed" | "dismissed";
   /** GSC traffic for this finding's template signature, when bound + synced. */
   traffic?: { impressions: number; clicks: number } | null;
+  /** Inline remediation pulled from marketing-rules — one-liner + actionable bullets. */
+  help?: {
+    slug: string;
+    oneLiner: string;
+    howToFix: string[];
+  } | null;
 };
 
 interface FindingsPanelProps {
@@ -201,6 +207,8 @@ function FindingRow({ f, gscBound }: { f: Finding; gscBound: boolean }) {
             </a>
           )}
 
+          {f.help && <RemediationDetails help={f.help} />}
+
           {!isSuppressed && (
             <div className="flex items-center gap-1.5 pt-1">
               <button
@@ -258,6 +266,48 @@ function RankChip({ rankScore, hasTraffic, gscBound }: { rankScore: string; hasT
       <span className="text-[10px]">~</span>
       rank {formatted}
     </span>
+  );
+}
+
+/**
+ * Inline remediation drawer — collapsed by default to keep the row scannable,
+ * expanded on click for users who want the actionable bullets without opening
+ * the marketing-rules page in a separate tab. Closes the "rule fired but how
+ * do I fix it?" gap that used to require a context switch.
+ */
+function RemediationDetails({ help }: { help: NonNullable<Finding["help"]> }) {
+  return (
+    <details className="group rounded-[12px] border border-primary/25 bg-primary/[0.04]">
+      <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs">
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+            How to fix
+          </span>
+          <span className="truncate text-muted-foreground">{help.oneLiner}</span>
+        </span>
+        <span className="font-mono text-[11px] text-muted-foreground transition-transform group-open:rotate-90">
+          ›
+        </span>
+      </summary>
+      <div className="border-t border-primary/15 px-3 py-3">
+        <ul className="flex flex-col gap-1.5 text-xs text-foreground">
+          {help.howToFix.map((step, i) => (
+            <li key={i} className="flex gap-2">
+              <span className="mt-[3px] inline-block h-1 w-1 shrink-0 rounded-full bg-primary/60" />
+              <span className="text-muted-foreground">{step}</span>
+            </li>
+          ))}
+        </ul>
+        <a
+          href={`/rules/${help.slug}`}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-3 inline-flex font-mono text-[11px] text-primary hover:underline"
+        >
+          Read the full rule explainer →
+        </a>
+      </div>
+    </details>
   );
 }
 

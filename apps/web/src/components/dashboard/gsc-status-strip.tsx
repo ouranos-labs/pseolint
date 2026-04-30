@@ -63,18 +63,27 @@ export function GscStatusStrip(props: GscStatusStripProps) {
     );
   }
 
-  // bound-with-data
+  // bound-with-data — single compact pill so the happy path doesn't eat
+  // hero real estate. Actionable states (not-connected / unbound / no-data)
+  // get the loud full strip; working state earns one subtle line.
   return (
-    <Strip tone="success" eyebrow="Search Console · ranking by traffic">
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
-        <Stat label="Impressions" value={fmt(props.totalImpressions ?? 0)} />
-        <Stat label="Clicks" value={fmt(props.totalClicks ?? 0)} />
-        <span className="font-mono text-[11px] text-muted-foreground">
-          trailing 28d · bound to <span className="text-foreground">{props.siteUrl}</span>
-          {props.lastSyncAt && <> · synced {relTime(props.lastSyncAt)}</>}
-        </span>
-      </div>
-    </Strip>
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-success/30 bg-success/5 px-3 py-1.5 font-mono text-[11px]"
+      title={`Bound to ${props.siteUrl}${props.lastSyncAt ? ` · last sync ${props.lastSyncAt.toLocaleString()}` : ""}`}
+    >
+      <span className="inline-flex items-center gap-1.5 text-success">
+        <span className="inline-block h-1 w-1 rounded-full bg-success" />
+        Search Console · ranking by traffic
+      </span>
+      <span className="text-muted-foreground">
+        <span className="tabular-nums text-foreground">{fmt(props.totalImpressions ?? 0)}</span> impr ·{" "}
+        <span className="tabular-nums text-foreground">{fmt(props.totalClicks ?? 0)}</span> clicks{" "}
+        <span className="text-muted-foreground/70">(28d)</span>
+      </span>
+      {props.lastSyncAt && (
+        <span className="text-muted-foreground/70">synced {relTime(props.lastSyncAt)}</span>
+      )}
+    </div>
   );
 }
 
@@ -100,15 +109,6 @@ function Strip({
       <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">{eyebrow}</p>
       <div className="mt-1.5">{children}</div>
     </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      <span className="font-mono text-lg tabular-nums text-foreground">{value}</span>
-      <span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span>
-    </div>
   );
 }
 

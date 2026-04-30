@@ -11,9 +11,45 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/limits` },
 };
 
+/**
+ * Escape `</` sequences inside a JSON-LD payload so a stray closing tag inside
+ * a string can't terminate the surrounding `<script>` block.
+ */
+function safeJsonLd(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
+}
+
+const FAQS: { q: string; a: string }[] = [
+  {
+    q: "Why publish concrete limits at all?",
+    a: "Because every undocumented quota becomes a support ticket waiting to happen, and because the operators whose sites we crawl deserve to know in advance how aggressive our fetcher is allowed to be. The numbers describe the runtime envelope the hosted scheduler enforces today: bandwidth ceilings (50 MB per audit), concurrency caps (5 parallel fetches), the per-host throttle (30 fresh audits per hour), Retry-After honouring (capped at 30 seconds), and a 5-minute cooldown between forced re-audits. Tuned to be polite to small origins on shared hosting.",
+  },
+  {
+    q: "How does pseolint treat the site it's auditing?",
+    a: "The crawler identifies as Mozilla/5.0 (compatible; pseolint/0.4.0; +https://pseolint.dev/bot), fully honours robots.txt (both Disallow paths and Crawl-delay pacing capped at 60 seconds per request), respects Retry-After once per URL up to 30 seconds, holds at most 5 parallel fetches (dropping to 1 if Crawl-delay is declared), and stops at 50 MB of fetched bytes per audit. SSRF protection rejects localhost, private networks, and non-http(s) schemes.",
+  },
+];
+
 export default function LimitsPage() {
+  const faqLd = safeJsonLd({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQS.map((f) => ({
+      "@type": "Question",
+      name: f.q,
+      acceptedAnswer: { "@type": "Answer", text: f.a },
+    })),
+  });
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+      <script
+        type="application/ld+json"
+        // FAQPage payload from compile-time-static FAQS array, escaped via
+        // safeJsonLd to prevent script-tag breakout. Same defensive pattern
+        // used on tools/page.tsx and rules/page.tsx.
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: faqLd }}
+      />
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
         Fair-use & limits
@@ -25,8 +61,15 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Free tier: 50 pages per audit, 24-hour anonymous retention (30 days for free accounts), 3 audits per day per browser session. Pro tier: 200 pages per audit, 50 audits per day, indefinite retention. Written plainly. No dark patterns, no asterisks hiding behind footnotes. If something here
-        feels unfair or unclear, reply to <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a> and we&apos;ll fix it.
+        Free tier: $0, 100 pages per audit, 24-hour anonymous retention (30-day window
+        for free accounts), 3 audits per day per browser session. Pro tier: $19/month
+        ($228/year with 14-day refund), 500 pages per audit, 50 audits per day,
+        indefinite retention. Comparable hosted crawlers like Screaming Frog
+        ($259/year), Sitebulb ($35/month), and Ahrefs Site Audit ($129/month) charge
+        for the same surface area. Written plainly. No dark patterns, no asterisks
+        hiding behind footnotes. If something here feels unfair or unclear, reply to{" "}
+        <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a>{" "}
+        and we&apos;ll fix it.
       </p>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
         Why publish concrete limits at all? Because every undocumented quota becomes a support

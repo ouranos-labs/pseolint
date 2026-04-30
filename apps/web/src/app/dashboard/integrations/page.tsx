@@ -8,8 +8,9 @@ import { getOptionalSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 
-const STATUS_BANNERS: Record<string, { tone: "success" | "warning" | "destructive"; text: string }> = {
-  connected: { tone: "success", text: "Search Console connected. Pick a property in each domain's settings to start traffic-weighting findings." },
+type BannerTone = "success" | "warning" | "destructive";
+
+const STATUS_BANNERS: Record<string, { tone: BannerTone; text: string }> = {
   disconnected: { tone: "warning", text: "Search Console disconnected. Bound properties have been unlinked." },
   denied: { tone: "warning", text: "Search Console authorization was cancelled." },
   exchange_failed: { tone: "destructive", text: "Couldn't complete the connection — try again, or check that the redirect URI is whitelisted in Google Cloud Console." },
@@ -18,12 +19,39 @@ const STATUS_BANNERS: Record<string, { tone: "success" | "warning" | "destructiv
   missing_params: { tone: "destructive", text: "OAuth response was missing required parameters." },
 };
 
+/**
+ * Build the post-connection banner from auto-bind counts. Surfaces what got
+ * paired automatically vs what still needs the user's attention — the silent
+ * "connected ✓" we used to show was the worst possible feedback because it
+ * implied the binding step was done when it usually wasn't.
+ */
+function buildConnectedBanner(bound: number, ambiguous: number, unmatched: number): { tone: BannerTone; text: string } {
+  if (bound === 0 && ambiguous === 0 && unmatched === 0) {
+    // No monitored domains yet — they'll get auto-bound as they're added.
+    return { tone: "success", text: "Search Console connected. Domains you add will be auto-paired with their matching property." };
+  }
+  if (bound > 0 && ambiguous === 0 && unmatched === 0) {
+    return {
+      tone: "success",
+      text: `Search Console connected · auto-bound ${bound} domain${bound === 1 ? "" : "s"}. Findings now ranked by traffic-at-risk.`,
+    };
+  }
+  const parts: string[] = [];
+  if (bound > 0) parts.push(`auto-bound ${bound}`);
+  if (ambiguous > 0) parts.push(`${ambiguous} ambiguous (multiple properties match — pick one in domain settings)`);
+  if (unmatched > 0) parts.push(`${unmatched} without a matching property`);
+  return {
+    tone: bound > 0 ? "success" : "warning",
+    text: `Search Console connected · ${parts.join(" · ")}.`,
+  };
+}
+
 export default async function IntegrationsPage({
   searchParams,
-}: { searchParams: Promise<{ gsc?: string }> }) {
+}: { searchParams: Promise<{ gsc?: string; bound?: string; ambiguous?: string; unmatched?: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/integrations");
-  const { gsc: gscStatus } = await searchParams;
+  const { gsc: gscStatus, bound: boundParam, ambiguous: ambiguousParam, unmatched: unmatchedParam } = await searchParams;
 
   const [gscRow] = await db.select({ id: integrations.id, lastSyncAt: integrations.lastSyncAt, createdAt: integrations.createdAt })
     .from(integrations)
@@ -34,7 +62,16 @@ export default async function IntegrationsPage({
   const yaml = `- run: npx pseolint audit ./out --format json --out report.json
 - run: npx pseolint upload report.json --token \${{ secrets.PSEOLINT_TOKEN }} --domain-id <id>`;
 
-  const banner = gscStatus ? STATUS_BANNERS[gscStatus] : null;
+  const banner =
+    gscStatus === "connected"
+      ? buildConnectedBanner(
+          parseInt(boundParam ?? "0", 10) || 0,
+          parseInt(ambiguousParam ?? "0", 10) || 0,
+          parseInt(unmatchedParam ?? "0", 10) || 0,
+        )
+      : gscStatus
+      ? STATUS_BANNERS[gscStatus]
+      : null;
 
   return (
     <div className="flex flex-col gap-6">

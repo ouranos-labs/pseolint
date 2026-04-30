@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getOptionalSession } from "@/lib/session";
-import { exchangeCodeForTokens, persistGscTokens, unpackState } from "@/lib/gsc";
+import {
+  autoBindGscPropertiesForUser,
+  exchangeCodeForTokens,
+  persistGscTokens,
+  unpackState,
+} from "@/lib/gsc";
 import { auditLog } from "@/lib/audit-log";
 
 export const runtime = "nodejs";
@@ -52,5 +57,17 @@ export async function GET(req: Request): Promise<Response> {
     auditLog("gsc.oauth.exchange_failed", { err: e instanceof Error ? e.message : String(e) });
     return back({ gsc: "exchange_failed" });
   }
-  return back({ gsc: "connected" });
+
+  // Best-effort auto-bind: now that we have tokens, try to pair every
+  // unbound monitored domain with its GSC property. Counts are surfaced in
+  // the redirect's query so the banner can report what happened. A failure
+  // here is non-fatal — the connection itself succeeded.
+  const result = await autoBindGscPropertiesForUser(session.user.id);
+  auditLog("gsc.autobind", { userId: session.user.id, ...result });
+  return back({
+    gsc: "connected",
+    bound: String(result.bound),
+    ambiguous: String(result.ambiguous),
+    unmatched: String(result.unmatched),
+  });
 }

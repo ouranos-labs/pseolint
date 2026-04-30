@@ -2,11 +2,12 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { monitoredDomains } from "@/db/schema";
+import { integrations, monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { publicSlug } from "@/lib/slug";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { autoBindGscPropertiesForUser } from "@/lib/gsc";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -41,6 +42,18 @@ export async function addMonitoredDomain(rawUrl: string): Promise<ActionResult> 
       return { ok: false, error: "Already monitoring this domain" };
     }
     return { ok: false, error: "Could not add domain" };
+  }
+
+  // If GSC is already connected for this user, attempt to auto-bind the new
+  // domain to its matching property. Best-effort — the user's domain is
+  // already added; binding failure shouldn't surface as an error.
+  const [gscRow] = await db
+    .select({ id: integrations.id })
+    .from(integrations)
+    .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+    .limit(1);
+  if (gscRow) {
+    await autoBindGscPropertiesForUser(session.user.id).catch(() => undefined);
   }
 
   revalidatePath("/dashboard");
