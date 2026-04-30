@@ -1,4 +1,4 @@
-import type { EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
+import type { Confidence, EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
 
 export interface CitableFactsOptions {
   /** Below this count → error. Default: 3. */
@@ -87,17 +87,29 @@ export function citableFactsRule(
     if (unique.length >= targetFacts) continue;
 
     const severity = unique.length < minFacts ? "error" : "warning";
+    // Confidence ladder:
+    //   0 unique facts → high (almost certainly content-poor)
+    //   1-2 facts      → medium (borderline; could be a short-form page)
+    //   3-7 facts      → low (warning tier; narrative pages legitimately have fewer concrete numbers)
+    const confidence: Confidence =
+      unique.length === 0 ? "high" :
+      unique.length < minFacts ? "medium" :
+      "low";
     const templateDrag = facts.length - unique.length;
     const templateNote = templateDrag > 0
       ? ` (${templateDrag} additional fact${templateDrag === 1 ? "" : "s"} appear on most pages and don't count as entity-specific)`
+      : "";
+    const lowConfidenceCaveat = confidence === "low"
+      ? " Low confidence: prose-style pages can legitimately cite fewer hard numbers — verify whether AI Overview citation matters for this page."
       : "";
 
     findings.push({
       ruleId: "aeo/citable-facts",
       severity,
+      confidence,
       message:
         `${page.url} has ${unique.length} unique citable fact${unique.length === 1 ? "" : "s"}${templateNote}. ` +
-        `AI Overviews cite specific numbers and named references.`,
+        `AI Overviews cite specific numbers and named references.${lowConfidenceCaveat}`,
       pageUrl: page.url,
       fix:
         `Replace vague language ("varies", "several weeks", "affordable", "many options") with ` +

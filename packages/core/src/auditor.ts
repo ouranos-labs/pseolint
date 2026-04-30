@@ -61,6 +61,7 @@ import type {
   CacheStats,
   CategoryGrades,
   CategoryKey,
+  Confidence,
   CrawlStats,
   EntityMaskPattern,
   Grade,
@@ -78,7 +79,7 @@ import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
 import { FetchObserver, computeReadiness, detectDevServer, type DetectedFramework, type FetchObservation } from "./fetch-observer.js";
 import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 import { stratifiedSample } from "./stratified-sample.js";
-import { classifySite, type SiteClassification } from "./site-classifier.js";
+import { classifySite, type SiteClassification, type SiteType } from "./site-classifier.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
@@ -105,18 +106,6 @@ const DEFAULTS = {
 } as const;
 
 /**
- * v0.4 four-category weights. Audit is diagnostic-only (weight 0).
- * See 2026-04-29 v0.4 redesign spec §4.2.
- */
-const CATEGORY_WEIGHTS: Record<CategoryKey, number> = {
-  integrity:       0.50,  // spam + content + cannibal
-  discoverability: 0.20,  // links + tech
-  citation:        0.25,  // aeo + schema
-  data:            0.05,  // data
-  audit:           0,     // diagnostics, never weighted
-} as const;
-
-/**
  * Maps the v0.3 ruleId namespace prefix to the v0.4 four-bucket category.
  * Used by `scoreFromFindings` to bucket findings without changing rule IDs.
  */
@@ -130,6 +119,194 @@ const CATEGORY_MAP: Record<string, CategoryKey> = {
   schema: "citation",
   data: "data",
   audit: "audit",
+};
+
+/**
+ * v0.4.3 — site-type-aware scoring profile. Each profile defines:
+ *   - `categoryWeights`: how much each category contributes to the verdict.
+ *     Must sum to 1.0 (audit always 0).
+ *   - `severityOverrides`: ruleId → final severity. Applied AFTER the rule
+ *     emits its native severity, BEFORE bucketing. So a rule that fires as
+ *     `error` but is overridden to `info` for this site type will not
+ *     increment `blockers`.
+ *   - `confidenceOverrides`: ruleId → final confidence. Same timing as
+ *     severity overrides. Drives the per-finding caveat in formatters and
+ *     the impact multiplier in `scoreFromFindings`.
+ *
+ * Threshold: site-type profiles only apply when the classifier is at least
+ * 70% confident. Below that we fall back to the conservative "unclear"
+ * defaults — never demote findings on a site we can't confidently classify.
+ */
+interface ScoringProfile {
+  /** Per-category weight; must sum to 1.0. */
+  categoryWeights: Record<CategoryKey, number>;
+  /** ruleId → severity remap. Applied AFTER the rule emits its native severity. */
+  severityOverrides: Record<string, Severity>;
+  /** ruleId → confidence remap. Applied AFTER the rule emits its native confidence. */
+  confidenceOverrides: Record<string, Confidence>;
+}
+
+const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
+  "small-marketing": {
+    categoryWeights: { integrity: 0.30, discoverability: 0.40, citation: 0.20, data: 0.05, audit: 0 },
+    severityOverrides: {
+      "aeo/citable-facts":  "info",
+      "aeo/answer-first":   "info",
+      "aeo/summary-bait":   "warning",
+      "spam/thin-content":  "warning",
+    },
+    confidenceOverrides: {
+      "aeo/citable-facts":  "low",
+      "aeo/answer-first":   "low",
+      "aeo/summary-bait":   "medium",
+      "spam/thin-content":  "medium",
+    },
+  },
+  "blog": {
+    categoryWeights: { integrity: 0.40, discoverability: 0.25, citation: 0.30, data: 0.05, audit: 0 },
+    severityOverrides: {
+      "content/missing-author": "error",
+      "spam/thin-content":      "error",
+    },
+    confidenceOverrides: {},
+  },
+  "programmatic-directory": {
+    categoryWeights: { integrity: 0.55, discoverability: 0.15, citation: 0.20, data: 0.10, audit: 0 },
+    severityOverrides: {},
+    confidenceOverrides: {},
+  },
+  "ecommerce": {
+    categoryWeights: { integrity: 0.20, discoverability: 0.40, citation: 0.15, data: 0.25, audit: 0 },
+    severityOverrides: {
+      "aeo/citable-facts":      "info",
+      "schema/required-fields": "error",
+    },
+    confidenceOverrides: {
+      "aeo/citable-facts":      "low",
+    },
+  },
+  "docs": {
+    categoryWeights: { integrity: 0.30, discoverability: 0.30, citation: 0.30, data: 0.10, audit: 0 },
+    severityOverrides: {
+      "aeo/citable-facts":      "info",
+      "aeo/answer-first":       "warning",
+      "content/missing-author": "info",
+    },
+    confidenceOverrides: {
+      "aeo/citable-facts":      "low",
+      "aeo/answer-first":       "low",
+      "content/missing-author": "low",
+    },
+  },
+  "unclear": {
+    categoryWeights: { integrity: 0.50, discoverability: 0.20, citation: 0.25, data: 0.05, audit: 0 },
+    severityOverrides: {},
+    confidenceOverrides: {},
+  },
+};
+
+/**
+ * Pick the scoring profile for a classification. Falls back to `unclear`
+ * (the conservative default) when classifier confidence is below 70%.
+ */
+function profileFor(classification: SiteClassification | undefined): ScoringProfile {
+  if (!classification || classification.confidence < 0.7) return SCORING_PROFILES.unclear;
+  return SCORING_PROFILES[classification.type] ?? SCORING_PROFILES.unclear;
+}
+
+/**
+ * v0.4.3 — per-rule impact model. Replaces flat severity weights so a single
+ * "error" doesn't always cost the same: a `spam/near-duplicate` cluster of 5
+ * pages should hurt much more than a single `aeo/citable-facts` warning, even
+ * though both could theoretically be "error" severity.
+ *
+ *   impact = min(maxImpact, baseImpact + (count - 1) * perInstance)
+ *           × CONFIDENCE_MULTIPLIER[confidence]
+ *
+ * The result is then summed into the rule's category bucket; the bucket is
+ * capped at 100 before category weighting.
+ */
+interface RuleImpact {
+  /** First-occurrence penalty. */
+  baseImpact: number;
+  /** Per-additional-instance penalty (capped — see below). */
+  perInstance: number;
+  /** Hard cap on per-rule contribution (so no single rule can dominate). */
+  maxImpact?: number;
+}
+
+const RULE_IMPACTS: Record<string, RuleImpact> = {
+  // SpamBrain — high baseline, count amplifies (cluster matters)
+  "spam/near-duplicate":      { baseImpact: 25, perInstance: 5,  maxImpact: 80 },
+  "spam/entity-swap":         { baseImpact: 25, perInstance: 5,  maxImpact: 80 },
+  "spam/doorway-pattern":     { baseImpact: 30, perInstance: 0,  maxImpact: 30 },
+  "spam/template-coverage":   { baseImpact: 15, perInstance: 3,  maxImpact: 60 },
+  "spam/template-diversity":  { baseImpact: 12, perInstance: 3,  maxImpact: 50 },
+  "spam/boilerplate-ratio":   { baseImpact: 10, perInstance: 2,  maxImpact: 40 },
+  "spam/thin-content":        { baseImpact: 8,  perInstance: 2,  maxImpact: 40 },
+  "spam/publication-velocity":{ baseImpact: 8,  perInstance: 2,  maxImpact: 30 },
+  "cannibal/url-pattern":     { baseImpact: 10, perInstance: 2,  maxImpact: 40 },
+
+  // Content
+  "content/unique-value":     { baseImpact: 10, perInstance: 2,  maxImpact: 40 },
+  "content/meta-uniqueness":  { baseImpact: 8,  perInstance: 2,  maxImpact: 40 },
+  "content/missing-author":   { baseImpact: 4,  perInstance: 1,  maxImpact: 20 },
+  "content/eeat-signals":     { baseImpact: 4,  perInstance: 1,  maxImpact: 20 },
+
+  // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
+  // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
+  // canonicals on a CDN). Per-instance now 1 (was 3).
+  "tech/canonical-consistency":          { baseImpact: 8,  perInstance: 1, maxImpact: 25 },
+  "tech/canonical-noindex-conflict":     { baseImpact: 10, perInstance: 2, maxImpact: 40 },
+  "tech/robots-noindex-conflict":        { baseImpact: 10, perInstance: 2, maxImpact: 40 },
+  "tech/redirect-chain":                 { baseImpact: 5,  perInstance: 1, maxImpact: 25 },
+  "tech/sitemap-completeness":           { baseImpact: 8,  perInstance: 1, maxImpact: 30 },
+  "tech/robots-sitemap-presence":        { baseImpact: 8,  perInstance: 0, maxImpact: 8 },
+  "tech/soft-404":                       { baseImpact: 6,  perInstance: 1, maxImpact: 30 },
+  // hreflang — one bad declaration breaks all language pairs, so the COUNT
+  // doesn't compound. perInstance: 0 keeps it at the base impact regardless
+  // of how many language pairs are affected. Dogfood showed 350 findings on
+  // stripe.com from a single missing reciprocal pair — that should not be
+  // treated as 350× the impact.
+  "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
+
+  // Links
+  "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
+  "links/dead-ends":           { baseImpact: 3, perInstance: 1, maxImpact: 20 },
+  "links/cluster-connectivity":{ baseImpact: 5, perInstance: 1, maxImpact: 25 },
+  "links/link-depth":          { baseImpact: 3, perInstance: 1, maxImpact: 20 },
+
+  // AEO — much lower baselines than spam (AEO is opt-in optimization)
+  "aeo/citable-facts":        { baseImpact: 2,  perInstance: 1,  maxImpact: 25 },
+  "aeo/answer-first":         { baseImpact: 3,  perInstance: 1,  maxImpact: 25 },
+  "aeo/summary-bait":         { baseImpact: 4,  perInstance: 1,  maxImpact: 25 },
+  "aeo/crawler-access":       { baseImpact: 8,  perInstance: 0,  maxImpact: 8  },
+  "aeo/freshness-signals":    { baseImpact: 2,  perInstance: 1,  maxImpact: 20 },
+  "aeo/llms-txt":             { baseImpact: 4,  perInstance: 0,  maxImpact: 4  },
+  "aeo/faq-coverage":         { baseImpact: 2,  perInstance: 1,  maxImpact: 15 },
+  "aeo/content-modularity":   { baseImpact: 2,  perInstance: 1,  maxImpact: 15 },
+
+  // Schema
+  "schema/json-ld-valid":     { baseImpact: 8,  perInstance: 2,  maxImpact: 35 },
+  "schema/required-fields":   { baseImpact: 6,  perInstance: 1,  maxImpact: 30 },
+  "schema/consistency":       { baseImpact: 3,  perInstance: 1,  maxImpact: 15 },
+
+  // Data
+  "data/data-binding":        { baseImpact: 6,  perInstance: 1,  maxImpact: 30 },
+};
+
+const DEFAULT_RULE_IMPACT: RuleImpact = { baseImpact: 5, perInstance: 1, maxImpact: 25 };
+
+/**
+ * v0.4.3 — confidence-based discount applied to each finding's impact.
+ * Low-confidence findings contribute less to the bucket so they don't
+ * inflate the verdict on site types where they false-positive.
+ */
+const CONFIDENCE_MULTIPLIER: Record<Confidence, number> = {
+  high: 1.0,
+  medium: 0.6,
+  low: 0.3,
+  speculative: 0.1,
 };
 
 /** Slug map for `RuleResult.docsUrl`. Defaults to the rule-id segment after the `/`. */
@@ -438,14 +615,53 @@ interface ScoreOutput {
   bucketCounts: { blockers: number; shouldFix: number; informational: number };
 }
 
-const SEVERITY_WEIGHTS: Record<Severity, number> = {
-  critical: 40,
-  error: 25,
-  warning: 12,
-  info: 5,
-};
+/**
+ * v0.4.3 — apply per-site-type severity + confidence overrides BEFORE any
+ * bucketing happens, so blocker/shouldFix counts and category buckets all
+ * reflect the user-visible severity, not the rule's native severity.
+ *
+ * Returns a NEW array of findings (does not mutate the input). Only the
+ * `severity` and `confidence` fields are remapped; everything else is
+ * preserved by reference.
+ */
+export function applyScoringProfileOverrides(
+  findings: RuleResult[],
+  classification: SiteClassification | undefined,
+): RuleResult[] {
+  const profile = profileFor(classification);
+  const sevHas = Object.keys(profile.severityOverrides).length > 0;
+  const confHas = Object.keys(profile.confidenceOverrides).length > 0;
+  if (!sevHas && !confHas) return findings;
+  return findings.map((f) => {
+    const newSev = profile.severityOverrides[f.ruleId];
+    const newConf = profile.confidenceOverrides[f.ruleId];
+    if (newSev === undefined && newConf === undefined) return f;
+    return {
+      ...f,
+      ...(newSev !== undefined ? { severity: newSev } : {}),
+      ...(newConf !== undefined ? { confidence: newConf } : {}),
+    };
+  });
+}
 
-function scoreFromFindings(findings: RuleResult[]): ScoreOutput {
+/**
+ * v0.4.3 — confidence-and-count-aware scoring. Replaces the v0.4 model that
+ * counted only severity. Each rule has a `baseImpact + (count - 1) *
+ * perInstance` contribution capped by `maxImpact`. The result is multiplied
+ * by the finding's `confidence` (default `high` → 1.0). Per-site-type
+ * profiles can remap a rule's severity / confidence; this function expects
+ * those overrides to ALREADY be applied to the input findings.
+ *
+ * Bucket math: per-rule impacts sum into the rule's `CATEGORY_MAP` bucket;
+ * each bucket is then capped at 100 and weighted by the active scoring
+ * profile's `categoryWeights`.
+ */
+function scoreFromFindings(
+  findings: RuleResult[],
+  classification: SiteClassification | undefined,
+): ScoreOutput {
+  const profile = profileFor(classification);
+
   // v0.4 four-bucket raw penalties.
   const bucketRaw: Record<CategoryKey, number> = {
     integrity: 0,
@@ -466,31 +682,57 @@ function scoreFromFindings(findings: RuleResult[]): ScoreOutput {
   let shouldFix = 0;
   let informational = 0;
 
+  // Group findings by ruleId so we can apply baseImpact + perInstance.
+  // Each group's weighted impact lands in its category bucket.
+  const groups = new Map<string, RuleResult[]>();
   for (const finding of findings) {
     const namespace = finding.ruleId.split("/")[0];
     const bucket = CATEGORY_MAP[namespace];
     if (!bucket) continue;
-
-    const weight = SEVERITY_WEIGHTS[finding.severity];
-
-    // v0.4 buckets.
-    bucketRaw[bucket] = Math.min(100, bucketRaw[bucket] + weight);
-    if (bucket !== "audit") {
-      bucketIssues[bucket] += 1;
-    }
-
-    // Issue-bucket counts (audit/* findings are diagnostic-only and excluded).
+    if (bucket !== "audit") bucketIssues[bucket] += 1;
     if (bucket === "audit") continue;
+
     if (finding.severity === "critical" || finding.severity === "error") blockers += 1;
     else if (finding.severity === "warning") shouldFix += 1;
     else informational += 1;
+
+    const arr = groups.get(finding.ruleId) ?? [];
+    arr.push(finding);
+    groups.set(finding.ruleId, arr);
   }
 
+  for (const [ruleId, group] of groups) {
+    const namespace = ruleId.split("/")[0];
+    const bucket = CATEGORY_MAP[namespace];
+    if (!bucket || bucket === "audit") continue;
+
+    const impactSpec = RULE_IMPACTS[ruleId] ?? DEFAULT_RULE_IMPACT;
+    const count = group.length;
+    const rawImpact = impactSpec.baseImpact + Math.max(0, count - 1) * impactSpec.perInstance;
+    const cap = impactSpec.maxImpact ?? Number.POSITIVE_INFINITY;
+    const cappedImpact = Math.min(cap, rawImpact);
+
+    // Confidence multiplier — use the WORST (highest-multiplier) confidence
+    // in the group so a rule that fires repeatedly with mixed confidence is
+    // not unfairly downweighted to its lowest-confidence instance.
+    let bestMultiplier = 0;
+    for (const f of group) {
+      const conf: Confidence = f.confidence ?? "high";
+      const m = CONFIDENCE_MULTIPLIER[conf];
+      if (m > bestMultiplier) bestMultiplier = m;
+    }
+    if (bestMultiplier === 0) bestMultiplier = CONFIDENCE_MULTIPLIER.high;
+
+    const weighted = cappedImpact * bestMultiplier;
+    bucketRaw[bucket] = Math.min(100, bucketRaw[bucket] + weighted);
+  }
+
+  const cw = profile.categoryWeights;
   const weighted =
-    bucketRaw.integrity * CATEGORY_WEIGHTS.integrity +
-    bucketRaw.discoverability * CATEGORY_WEIGHTS.discoverability +
-    bucketRaw.citation * CATEGORY_WEIGHTS.citation +
-    bucketRaw.data * CATEGORY_WEIGHTS.data;
+    bucketRaw.integrity * cw.integrity +
+    bucketRaw.discoverability * cw.discoverability +
+    bucketRaw.citation * cw.citation +
+    bucketRaw.data * cw.data;
 
   const risk = Math.round(Math.min(100, weighted));
 
@@ -1558,7 +1800,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
     allFindings.push(...findings);
     groupPageCounts[groupName] = groupPages.length;
-    const { risk: groupRisk } = scoreFromFindings(findings);
+    // v0.4.3: per-group scoring uses the same site-classification profile so
+    // group-level risk numbers reflect the same severity / confidence remaps
+    // as the headline verdict.
+    const { risk: groupRisk } = scoreFromFindings(
+      applyScoringProfileOverrides(findings, siteClassification),
+      siteClassification,
+    );
     groupScores[groupName] = groupRisk;
   }
 
@@ -1572,7 +1820,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // Populate docsUrl on every finding before they leave the engine.
   withDocsUrls(enriched.findings);
 
-  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings);
+  // v0.4.3: apply site-type-aware severity + confidence overrides so blocker
+  // counts, issue buckets, and category bucketing all reflect the user-visible
+  // severity (not the rule's native severity). The remapped findings replace
+  // the enrichment output so every downstream consumer (summary.issues, AI
+  // triage input, telemetry, formatters) sees the corrected severity.
+  enriched.findings = applyScoringProfileOverrides(enriched.findings, siteClassification);
+
+  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   const issues = bucketIssues(enriched.findings);

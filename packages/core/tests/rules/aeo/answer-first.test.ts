@@ -72,6 +72,26 @@ describe("aeo/answer-first", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
     expect(findings[0].message).toMatch(/boilerplate/i);
+    // Boilerplate opener is unambiguous → high confidence.
+    expect(findings[0].confidence).toBe("high");
+  });
+
+  test("emits low confidence when opener is too long", () => {
+    const longOpener = Array.from({ length: 180 }, (_, i) =>
+      i === 0 ? "Filing" : "wordy",
+    ).join(" ") + ".";
+    const html = `
+      <h1>Filing Guide</h1>
+      <p>${longOpener}</p>
+    `;
+    const p = page("https://example.dev/long", {
+      html,
+      headings: { h1: ["Filing Guide"], h2: [] },
+    });
+    const findings = answerFirstRule([p], STATE_MASK);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].confidence).toBe("low");
+    expect(findings[0].message).toMatch(/marketing pages legitimately/i);
   });
 
   test("penalizes template openers that are identical after entity masking", () => {
@@ -139,5 +159,6 @@ describe("aeo/answer-first", () => {
     const findings = answerFirstRule([p], STATE_MASK);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
+    expect(findings[0].confidence).toBe("medium");
   });
 });

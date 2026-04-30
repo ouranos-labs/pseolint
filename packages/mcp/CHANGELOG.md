@@ -1,5 +1,74 @@
 # @pseolint/mcp
 
+## 0.4.3
+
+### Patch Changes
+
+- v0.4.3 — classification-driven scoring, fixes credibility crisis
+
+  Trigger: an external reviewer ran pseolint on his own site and didn't
+  believe the verdict. Three-site dogfood (nextjs.org, wordpress.com,
+  shopify.com) confirmed the issue — nextjs.org would score `concerning`
+  (60) on a meaningful sample, with 7 of 11 actionable findings being
+  AEO-style "your marketing page doesn't read like a fact database."
+  Citation category alone drove 25 risk points just from the AEO bucket
+  maxing out.
+
+  This release rewires scoring so the verdict is **classification-aware**:
+  a docs site is judged by what matters for docs sites; a programmatic
+  directory is judged by what matters for pSEO; a marketing site isn't
+  penalized for being marketing-shaped.
+
+  **Changes:**
+
+  - New `SCORING_PROFILES` map keyed on `SiteType`. Each profile defines
+    per-category weights + severity overrides + confidence overrides.
+    Applied when classifier confidence ≥ 0.7; below that, conservative
+    `unclear` defaults.
+  - New `RULE_IMPACTS` map gives every rule its own
+    `baseImpact + perInstance × maxImpact` curve, replacing the global
+    4-tier `SEVERITY_WEIGHTS`. Spam findings amplify with cluster size;
+    AEO findings stay capped low.
+  - New `Confidence` type (`high | medium | low | speculative`) on
+    `RuleResult`. Per-rule emit logic on 10 rules. Low-confidence
+    findings carry a caveat in the message and contribute proportionally
+    less to scoring.
+  - New site classifier types: `docs` (Docusaurus / Nextra / GitBook
+    / VuePress shape) and improved `ecommerce` (Shopify / WooCommerce
+    shape). Plus a `tryClassifyLocalizedMarketing()` detector that
+    prevents stripe.com / vercel.com / linear.app from being misclassified
+    as `programmatic-directory` because of `/[lang]/` URL prefixes.
+  - Re-tuned tech rule impacts: `tech/hreflang-consistency` is now a
+    single base-impact finding regardless of how many language pairs
+    break (one declaration breaks them all — count shouldn't compound).
+    `tech/canonical-consistency` lowered to base 8, perInstance 1.
+  - Formatters surface "Audited as &lt;type&gt; (NN% confidence)." prominently.
+    Confidence caveats render after low-/speculative-confidence findings.
+  - Marketing copy on /, /tools, /rules, /symptoms, /limits clarifies
+    scope: "pseolint audits programmatic-SEO + AI Overview readiness.
+    Not a general SEO audit — for Core Web Vitals and broken links use
+    Sitebulb, Screaming Frog, or Ahrefs."
+
+  **Dogfood results (post-change):**
+
+  ```
+  nextjs.org      ready (14)   → ready (15)   no regression
+  react.dev       caution (23) → ready (15)   improved
+  stripe.com      [aborted]    → ready (9)    correctly classifies localized
+  wordpress.com   caution (24) → ready (12)   improved
+  shopify.com     concerning(58)→ caution(28) -30 risk; remaining findings real
+  ```
+
+  Tests: 663/663 pass (was 646 in v0.4.2 — +17 new tests for classifier
+  types, scoring profiles, confidence emission, formatter output).
+
+  **Reasoning trail:** see
+  `docs/superpowers/specs/2026-04-30-pseolint-scoring-credibility.md`
+  for the full diagnosis + design rationale.
+
+- Updated dependencies
+  - @pseolint/core@0.4.3
+
 ## 0.4.2
 
 ### Patch Changes

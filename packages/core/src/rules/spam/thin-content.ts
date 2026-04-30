@@ -1,4 +1,4 @@
-import type { ParsedPage, RuleResult } from "../../types.js";
+import type { Confidence, ParsedPage, RuleResult } from "../../types.js";
 
 function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
@@ -18,10 +18,20 @@ export function thinContentRule(
     }
 
     thinContentUrls.add(page.url);
+    // Confidence ladder:
+    //   far below threshold (<50%) → high (clearly under-built)
+    //   just under threshold        → medium (could legitimately be a short page)
+    const confidence: Confidence = words < minWords / 2 ? "high" : "medium";
+    const shortPageNote =
+      confidence === "medium"
+        ? " Some pages — landing pages, contact, status, tools — are legitimately short; verify whether this URL is meant to host substantive content."
+        : "";
+
     findings.push({
       ruleId: "spam/thin-content",
       severity: "error",
-      message: `${page.url} has thin content (${words} words).`,
+      confidence,
+      message: `${page.url} has thin content (${words} words).${shortPageNote}`,
       fix: `Add at least ${minWords - words} more words of substantive content relevant to this page's specific topic.`
     });
   }

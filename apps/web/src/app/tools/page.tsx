@@ -93,14 +93,65 @@ export default function ToolsIndexPage() {
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
         Three free SEO tools backed by the open-source pseolint engine v0.4.0 —
         SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
-        signup, runs in a 60-second median. Each tool frames the same audit
-        through a different lens — SpamBrain risk, thin content, or doorway
-        patterns — so operators see the subset of findings they came for first.
-        Scroll down for a side-by-side breakdown against the hosted crawlers
-        most pSEO teams already evaluate.
+        signup, runs in a 60-second median. Pick a tool below; methodology and
+        comparison table follow.
       </p>
 
-      <section className="mt-10 space-y-5 text-sm leading-relaxed text-muted-foreground">
+      <div className="mt-6 grid gap-4 rounded-[22px] border border-border/60 bg-card/40 p-5 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">
+            What these tools are for
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">
+            Programmatic-SEO sites (template-driven content at scale) and AI Overview
+            readiness — SpamBrain triggers from the March 5, 2024 scaled-content-abuse
+            update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns
+            that determine ChatGPT, Perplexity, and Google AI Overview citations.
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            What they aren&apos;t
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">
+            A general SEO audit. For Core Web Vitals use{" "}
+            <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>.
+            For broken links + general crawl use{" "}
+            <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{" "}
+            <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a> ($259/yr).
+            For competitor / backlink data use{" "}
+            <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo) or{" "}
+            <a href="https://semrush.com" className="text-primary hover:underline" rel="nofollow">Semrush</a> ($139.95/mo).
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-8 flex flex-col gap-4">
+        {MARKETING_TOOLS.map((tool) => (
+          <Link
+            key={tool.slug}
+            href={`/tools/${tool.slug}`}
+            className="group flex flex-col gap-3 rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-card"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                {tool.title}
+              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                {tool.ruleLens}
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {tool.shortPitch}
+            </p>
+            <span className="inline-flex items-center text-sm font-medium text-primary group-hover:underline">
+              Open tool →
+            </span>
+          </Link>
+        ))}
+      </div>
+
+      <section className="mt-12 space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
           What these tools actually detect
         </h2>
@@ -149,31 +200,6 @@ export default function ToolsIndexPage() {
           and a deterministic severity score between 0 and 100.
         </p>
       </section>
-
-      <div className="mt-10 flex flex-col gap-4">
-        {MARKETING_TOOLS.map((tool) => (
-          <Link
-            key={tool.slug}
-            href={`/tools/${tool.slug}`}
-            className="group flex flex-col gap-3 rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-card"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                {tool.title}
-              </h2>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                {tool.ruleLens}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {tool.shortPitch}
-            </p>
-            <span className="inline-flex items-center text-sm font-medium text-primary group-hover:underline">
-              Open tool →
-            </span>
-          </Link>
-        ))}
-      </div>
 
       <section className="mt-14 space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">

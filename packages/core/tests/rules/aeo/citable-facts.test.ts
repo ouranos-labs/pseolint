@@ -16,9 +16,21 @@ describe("aeo/citable-facts", () => {
     const findings = citableFactsRule([p], NO_MASK);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
+    // Zero unique facts → high confidence (almost certainly content-poor).
+    expect(findings[0].confidence).toBe("high");
   });
 
-  test("warns when count is between min and target", () => {
+  test("emits medium confidence when count is between 1 and minFactsPerPage-1", () => {
+    const p = page("https://example.dev/a", {
+      contentText: "Filing is $70 and takes about a year to complete in our state.",
+    });
+    const findings = citableFactsRule([p], NO_MASK, { minFactsPerPage: 3, targetFactsPerPage: 8 });
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].confidence).toBe("medium");
+  });
+
+  test("warns when count is between min and target (low confidence + caveat)", () => {
     const p = page("https://example.dev/a", {
       contentText:
         "Filing is $70. It takes 2-4 weeks. Annual fee is $25. Renewal by March 15, 2026.",
@@ -26,6 +38,8 @@ describe("aeo/citable-facts", () => {
     const findings = citableFactsRule([p], NO_MASK, { minFactsPerPage: 3, targetFactsPerPage: 8 });
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
+    expect(findings[0].confidence).toBe("low");
+    expect(findings[0].message).toMatch(/low confidence/i);
   });
 
   test("passes at or above targetFactsPerPage", () => {

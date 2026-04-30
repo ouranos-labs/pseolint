@@ -88,7 +88,12 @@ export async function llmsTxtRule(
     return [{
       ruleId: "aeo/llms-txt",
       severity: "warning",
-      message: `No llms.txt found at ${llmsUrl}.`,
+      // Always low: llms.txt is a draft proposal with low industry adoption. Absence
+      // is not a defect, only a missed opportunity.
+      confidence: "low",
+      message:
+        `No llms.txt found at ${llmsUrl}. ` +
+        `llms.txt is a draft standard with low adoption — absence isn't a defect, only a missed opportunity.`,
       fix:
         `Create ${llmsUrl} to guide AI engines toward your most authoritative, citable content. ` +
         `Start with an # H1 title, a blockquote summary, then ## sections listing your key pages as markdown links. ` +
@@ -101,6 +106,7 @@ export async function llmsTxtRule(
     return [{
       ruleId: "aeo/llms-txt",
       severity: "warning",
+      confidence: "low",
       message: `${llmsUrl} exists but is malformed: ${check.reason}.`,
       fix:
         `Ensure ${llmsUrl} opens with an "# Site Name" H1, has at least one "## Section" heading, ` +

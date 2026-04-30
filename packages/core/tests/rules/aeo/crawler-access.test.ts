@@ -67,6 +67,8 @@ describe("aeo/crawler-access rule", () => {
     const findings = crawlerAccessRule(robots);
     expect(findings).toHaveLength(2);
     expect(findings.every((f) => f.severity === "warning")).toBe(true);
+    // Partial blocks → medium confidence (often deliberate per-crawler decisions).
+    expect(findings.every((f) => f.confidence === "medium")).toBe(true);
     const messages = findings.map((f) => f.message).join("\n");
     expect(messages).toMatch(/GPTBot/);
     expect(messages).toMatch(/ClaudeBot/);
@@ -81,6 +83,8 @@ describe("aeo/crawler-access rule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
     expect(findings[0].message).toMatch(/all.*AI crawlers/i);
+    // All-blocked → high confidence (clear intent or clear mistake).
+    expect(findings[0].confidence).toBe("high");
   });
 
   test("a wildcard Disallow: / blocks crawlers that have no explicit block", () => {

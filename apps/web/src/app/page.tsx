@@ -178,9 +178,11 @@ export default function Home() {
               </h1>
 
               <p className="text-base leading-relaxed text-muted-foreground">
-                Paste your site. In 60 seconds, see how close to the line it is —
-                across 40+ rules covering SpamBrain risk and Answer Engine
-                Optimization (how citable your pages are to LLMs).
+                An audit specifically for programmatic-SEO sites (template-driven content at scale)
+                and AI Overview readiness. Paste your site. In 60 seconds, see how close to the line
+                it is — across 40+ rules covering SpamBrain classifier triggers and Answer Engine
+                Optimization (how citable your pages are to ChatGPT, Perplexity, and Google AI Overviews).
+                Not a general SEO audit — see scope below.
               </p>
 
               <form onSubmit={ submit } className="flex flex-col gap-3">
@@ -284,6 +286,76 @@ export default function Home() {
                 ↑ Each tile = one page. Color = worst rule that fires on that
                 page. Watch the identity mark in the nav.
               </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60 bg-card/30">
+        <div className="mx-auto max-w-5xl px-5 py-14 sm:py-16">
+          <div className="mb-8 max-w-2xl">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Scope</p>
+            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
+              What pseolint is — and isn&apos;t.
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Self-select before you run it. The audit is narrow on purpose; if you want a 360°
+              SEO crawl, the right tool is somewhere else on this page.
+            </p>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="rounded-[22px] border border-success/30 bg-success/5 p-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-success">
+                What pseolint is
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-foreground">
+                An audit specifically for programmatic-SEO sites (template-driven content at scale)
+                and AI Overview readiness. It catches the SpamBrain-classifier triggers from the
+                March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse
+                policy + the AEO patterns that determine whether ChatGPT, Perplexity, and Google
+                AI Overviews cite your pages.
+              </p>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Use it when
+              </p>
+              <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
+                <li>— You run a programmatic SEO site (city × service grids, state × LLC fees, app × integration matrices)</li>
+                <li>— You&apos;re worried about a Helpful Content System / scaled-content-abuse hit</li>
+                <li>— You want your pages cited in AI Overviews / Perplexity / ChatGPT search</li>
+                <li>— You want a CI gate that fails the build when scaled-content patterns regress</li>
+              </ul>
+            </div>
+
+            <div className="rounded-[22px] border border-border/60 bg-card/60 p-6">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                What pseolint isn&apos;t
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-foreground">
+                A general SEO audit. We don&apos;t measure Core Web Vitals, broken links,
+                competitor research, keyword research, or backlink audits. If that&apos;s what you
+                need, run one of these instead:
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <span className="font-medium text-foreground">Core Web Vitals</span> ·{" "}
+                  <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>{" "}
+                  (free)
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Broken links + general crawl</span> ·{" "}
+                  <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{" "}
+                  <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a> ($259/yr, free up to 500 URLs)
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Competitor research / backlinks</span> ·{" "}
+                  <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo)
+                </li>
+                <li>
+                  <span className="font-medium text-foreground">Keyword research</span> ·{" "}
+                  <a href="https://semrush.com" className="text-primary hover:underline" rel="nofollow">Semrush</a> ($139.95/mo)
+                </li>
+              </ul>
             </div>
           </div>
         </div>

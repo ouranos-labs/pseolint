@@ -26,6 +26,8 @@ describe("aeo/content-modularity", () => {
     const findings = contentModularityRule([p], { minSelfContainedRatio: 0.9 });
     expect(findings).toHaveLength(1);
     expect(findings[0].message).toMatch(/cross-references/);
+    // Modularity is stylistic — always low confidence.
+    expect(findings[0].confidence).toBe("low");
   });
 
   test("flags vague headings", () => {

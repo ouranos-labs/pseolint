@@ -25,6 +25,7 @@ export type SiteType =
   | "small-marketing"
   | "blog"
   | "ecommerce"
+  | "docs"
   | "unclear";
 
 export type ClassificationSignal =
@@ -106,6 +107,19 @@ export function normalizePathToTemplate(pathname: string): string {
   return "/" + out.join("/");
 }
 
+/** Extract a normalized pathname from a URL string (or raw path). */
+function urlToPath(url: string): string | null {
+  try {
+    return new URL(url).pathname || "/";
+  } catch {
+    if (typeof url === "string" && url.length > 0) {
+      const path = url.split("?")[0].split("#")[0];
+      return path.startsWith("/") ? path : `/${path}`;
+    }
+    return null;
+  }
+}
+
 /** Convert a URL string to its template path (no host, no query). */
 function urlToTemplate(url: string): string | null {
   try {
@@ -149,6 +163,178 @@ export interface ClassifySiteInput {
 }
 
 /**
+ * v0.4.3 — common docs path prefixes. Match is case-insensitive and exact
+ * on the FIRST path segment (so `/docs/...` matches but a stray `/somethingdocs`
+ * does not). Tuned to the docs frameworks we see most: Docusaurus, Nextra,
+ * GitBook, MkDocs, VuePress, mintlify, fumadocs, Astro Starlight.
+ */
+const DOCS_PATH_PREFIXES: readonly string[] = [
+  "/docs",
+  "/doc",
+  "/documentation",
+  "/api",
+  "/api-docs",
+  "/api-reference",
+  "/reference",
+  "/guide",
+  "/guides",
+  "/learn",
+  "/tutorials",
+  "/manual",
+  "/handbook",
+];
+
+/**
+ * v0.4.3 — common ecommerce path prefixes. Same matching rules as docs:
+ * case-insensitive, anchored at the FIRST path segment.
+ */
+const ECOMMERCE_PATH_PREFIXES: readonly string[] = [
+  "/products",
+  "/product",
+  "/collections",
+  "/collection",
+  "/shop",
+  "/store",
+  "/cart",
+  "/checkout",
+  "/category",
+  "/categories",
+  "/p", // Shopify shortlink convention
+];
+
+function firstSegmentMatches(pathname: string, prefixes: readonly string[]): boolean {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return false;
+  const first = `/${segments[0].toLowerCase()}`;
+  return prefixes.includes(first);
+}
+
+/** Ratio of URLs whose first path segment matches one of `prefixes`. */
+function pathPrefixRatio(urls: string[], prefixes: readonly string[]): number {
+  if (urls.length === 0) return 0;
+  let hits = 0;
+  let total = 0;
+  for (const u of urls) {
+    const path = urlToPath(u);
+    if (path === null) continue;
+    total += 1;
+    if (firstSegmentMatches(path, prefixes)) hits += 1;
+  }
+  if (total === 0) return 0;
+  return hits / total;
+}
+
+/**
+ * v0.4.3 — docs site detection. A site is `docs` when its URL distribution
+ * is dominated by docs-shaped path prefixes:
+ *   - 50+ URLs total (docs sites are not tiny — guard against false-positives
+ *     on a 5-page marketing site with one /docs link)
+ *   - ≥ 60% of URLs sit under a docs prefix
+ * Returns `null` when not enough evidence; otherwise the SiteClassification.
+ */
+function tryClassifyDocs(
+  urls: string[],
+  signals: ClassificationSignal[],
+): SiteClassification | null {
+  if (urls.length < 50) return null;
+  const ratio = pathPrefixRatio(urls, DOCS_PATH_PREFIXES);
+  if (ratio < 0.6) return null;
+  let confidence = 0.7;
+  if (ratio >= 0.75) confidence = 0.85;
+  if (ratio >= 0.9) confidence = 0.92;
+  if (urls.length >= 200) confidence = Math.min(0.95, confidence + 0.03);
+  return { type: "docs", confidence, signals, suppressedRules: [] };
+}
+
+/**
+ * v0.4.3 — ecommerce site detection. Two paths to a positive classification:
+ *   - URL count ≥ 50 AND ≥ 70% of URLs match /products/* or /collections/*
+ *     (high-confidence: this is the canonical Shopify/Woo URL shape)
+ *   - URL count ≥ 100 AND ≥ 50% match a broader ecommerce-shaped prefix
+ *     (looser fallback for sites that mix /shop, /store, /category)
+ * Returns `null` when not enough evidence.
+ */
+function tryClassifyEcommerce(
+  urls: string[],
+  signals: ClassificationSignal[],
+): SiteClassification | null {
+  if (urls.length < 50) return null;
+  const productsRatio = pathPrefixRatio(urls, ["/products", "/collections"]);
+  if (productsRatio >= 0.7) {
+    const confidence = productsRatio >= 0.85 ? 0.92 : 0.85;
+    return { type: "ecommerce", confidence, signals, suppressedRules: [] };
+  }
+  const broadRatio = pathPrefixRatio(urls, ECOMMERCE_PATH_PREFIXES);
+  if (broadRatio >= 0.5 && urls.length >= 100) {
+    const confidence = broadRatio >= 0.7 ? 0.85 : 0.75;
+    return { type: "ecommerce", confidence, signals, suppressedRules: [] };
+  }
+  return null;
+}
+
+/**
+ * Locale-code regex for the FIRST path segment. Matches BCP-47-shaped slugs:
+ * `/en`, `/de`, `/en-us`, `/zh-hant`, `/pt-br`, etc. Two-letter language code
+ * with optional two-letter region. Lowercase only — sites that uppercase
+ * locale codes are rare; we don't normalize.
+ */
+const LOCALE_SEGMENT_REGEX = /^[a-z]{2}(?:-[a-z]{2})?$/;
+
+function isLocalizedRoot(pathname: string): boolean {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length === 0) return false;
+  return LOCALE_SEGMENT_REGEX.test(segments[0]);
+}
+
+/** Ratio of URLs whose first path segment looks like a locale code. */
+function localizedRatio(urls: string[]): number {
+  if (urls.length === 0) return 0;
+  let hits = 0;
+  let total = 0;
+  for (const u of urls) {
+    const path = urlToPath(u);
+    if (path === null) continue;
+    total += 1;
+    if (isLocalizedRoot(path)) hits += 1;
+  }
+  if (total === 0) return 0;
+  return hits / total;
+}
+
+/**
+ * v0.4.3-rc2 — localized-marketing detector. Stripe, Vercel, Linear, Cloudflare
+ * etc. publish each marketing page under multiple `/[lang]/` prefixes. Their
+ * sitemap looks like a programmatic directory to the size+cluster heuristic
+ * (10k+ URLs all matching `/:slug/:slug` after normalization), but they are
+ * NOT pSEO sites — they're high-quality marketing sites with i18n.
+ *
+ * Signal: ≥30% of URLs have a first segment that matches `/[a-z]{2}(-[a-z]{2})?/`.
+ * Returns small-marketing with 0.75 confidence (lower than ecommerce/docs
+ * because some localized pSEO directories DO exist — we'd rather under-classify
+ * here than mis-suppress real spam findings).
+ */
+function tryClassifyLocalizedMarketing(
+  urls: string[],
+  signals: ClassificationSignal[],
+): SiteClassification | null {
+  const ratio = localizedRatio(urls);
+  if (ratio < 0.3) return null;
+  // Higher confidence when the locale prefix dominates AND the site isn't
+  // ALSO matching the docs/ecommerce shape underneath the locale (those
+  // would have caught it earlier — by reaching this point we know it's
+  // generic marketing).
+  let confidence = 0.75;
+  if (ratio >= 0.5) confidence = 0.82;
+  if (ratio >= 0.7) confidence = 0.88;
+  return {
+    type: "small-marketing",
+    confidence,
+    signals,
+    suppressedRules: [...PSEO_ONLY_RULE_IDS],
+  };
+}
+
+/**
  * Classify a site from its URL list + framework signal. Pure function.
  *
  * Contract: callers must pass the FULL discovered URL list (sitemap +
@@ -179,6 +365,26 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
   if (urls.length === 0) {
     return { type: "unclear", confidence: 0, signals, suppressedRules: [] };
   }
+
+  // v0.4.3 — try the new high-confidence URL-shape detectors first. These
+  // override the legacy size-based heuristics when they fire because URL
+  // shape is a stronger signal than raw URL count. Order matters:
+  //   1. ecommerce — strongest signal first; /products/* and /collections/*
+  //      are an extremely specific URL shape that doesn't occur elsewhere.
+  //   2. docs — /docs/*, /api/*, /reference/* are nearly as specific.
+  //   3. localized-marketing — /[lang]/ first segment indicates i18n marketing
+  //      (stripe.com, vercel.com, etc.) which v0.4.3-rc1 mis-classified as
+  //      programmatic-directory because the localized URL count tripped the
+  //      ≥1000 URL + ≥60% top-3 cluster heuristic.
+  // After all three fail, fall through to the legacy size-clustering logic.
+  const ecommerce = tryClassifyEcommerce(urls, signals);
+  if (ecommerce) return ecommerce;
+
+  const docs = tryClassifyDocs(urls, signals);
+  if (docs) return docs;
+
+  const localized = tryClassifyLocalizedMarketing(urls, signals);
+  if (localized) return localized;
 
   // Step 4: synthesize.
   let type: SiteType = "unclear";

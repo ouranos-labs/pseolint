@@ -251,4 +251,76 @@ describe("classifySite", () => {
     const c = classifySite({ urls: ["https://example.com/x"] });
     expect(c.signals[0]).toEqual({ kind: "sitemap-url-count", value: 1 });
   });
+
+  test("v0.4.3 — docs site detected when /docs/* dominates URL set", () => {
+    const urls: string[] = [
+      "https://example.com/",
+      "https://example.com/about",
+      "https://example.com/pricing",
+    ];
+    for (let i = 0; i < 80; i += 1) {
+      urls.push(`https://example.com/docs/page-${i}`);
+    }
+    const c = classifySite({ urls });
+    expect(c.type).toBe("docs");
+    expect(c.confidence).toBeGreaterThanOrEqual(0.7);
+    expect(c.suppressedRules).toEqual([]);
+  });
+
+  test("v0.4.3 — docs site detected with mixed /docs + /api + /reference paths", () => {
+    const urls: string[] = [];
+    for (let i = 0; i < 40; i += 1) urls.push(`https://example.com/docs/section-${i}`);
+    for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/api/endpoint-${i}`);
+    for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/reference/symbol-${i}`);
+    // 90 of 100 URLs match docs prefixes — high confidence.
+    for (let i = 0; i < 10; i += 1) urls.push(`https://example.com/blog/post-${i}`);
+    const c = classifySite({ urls });
+    expect(c.type).toBe("docs");
+    expect(c.confidence).toBeGreaterThanOrEqual(0.85);
+  });
+
+  test("v0.4.3 — docs detector does NOT fire on tiny site with one /docs link", () => {
+    // Only 5 URLs total — below the 50-URL guard. Falls through to small-marketing.
+    const urls = [
+      "https://example.com/",
+      "https://example.com/about",
+      "https://example.com/pricing",
+      "https://example.com/contact",
+      "https://example.com/docs/intro",
+    ];
+    const c = classifySite({ urls });
+    expect(c.type).not.toBe("docs");
+  });
+
+  test("v0.4.3 — ecommerce detected when /products/* dominates", () => {
+    const urls: string[] = [];
+    for (let i = 0; i < 80; i += 1) urls.push(`https://example.com/products/widget-${i}`);
+    for (let i = 0; i < 10; i += 1) urls.push(`https://example.com/collections/spring-${i}`);
+    for (let i = 0; i < 5; i += 1) urls.push(`https://example.com/about-${i}`);
+    const c = classifySite({ urls });
+    expect(c.type).toBe("ecommerce");
+    expect(c.confidence).toBeGreaterThanOrEqual(0.85);
+    expect(c.suppressedRules).toEqual([]);
+  });
+
+  test("v0.4.3 — ecommerce detected via broader prefix mix at 100+ URLs", () => {
+    const urls: string[] = [];
+    for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/shop/item-${i}`);
+    for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/store/sku-${i}`);
+    for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/category/cat-${i}`);
+    for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/blog/post-${i}`);
+    // 90 of 110 URLs match ecommerce prefixes (~82%).
+    const c = classifySite({ urls });
+    expect(c.type).toBe("ecommerce");
+    expect(c.confidence).toBeGreaterThanOrEqual(0.75);
+  });
+
+  test("v0.4.3 — ecommerce takes precedence over docs when both prefixes present", () => {
+    const urls: string[] = [];
+    // 80% products vs 20% docs — ecommerce should win.
+    for (let i = 0; i < 80; i += 1) urls.push(`https://example.com/products/p-${i}`);
+    for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/docs/page-${i}`);
+    const c = classifySite({ urls });
+    expect(c.type).toBe("ecommerce");
+  });
 });

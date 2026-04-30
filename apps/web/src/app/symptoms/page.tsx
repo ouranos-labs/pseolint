@@ -132,11 +132,40 @@ export default function SymptomsIndexPage() {
         domain to confirm.
       </p>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        These pages do not replace the audit. They tell you what to look for so the audit
-        results make sense.
+        These symptoms cover programmatic-SEO patterns + AI Overview readiness — not a
+        general SEO audit. For Core Web Vitals use{" "}
+        <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>,
+        and for broken-link scanning use{" "}
+        <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a>{" "}
+        ($35/mo) or{" "}
+        <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a>{" "}
+        ($259/yr).
+      </p>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        Pick the symptom matching what you see in Search Console; triage methodology and
+        recovery timelines follow.
       </p>
 
-      <section className="mt-10 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        {MARKETING_SYMPTOMS.map((s) => (
+          <Link
+            key={s.slug}
+            href={`/symptoms/${s.slug}`}
+            className="group block rounded-xl border border-border/60 bg-card p-6 transition-colors hover:border-border-strong hover:bg-card/80"
+          >
+            <h2 className="text-base font-semibold leading-snug tracking-tight text-foreground">
+              {s.title}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{s.oneLiner}</p>
+            <p className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:underline">
+              Diagnose
+              <span aria-hidden="true">→</span>
+            </p>
+          </Link>
+        ))}
+      </div>
+
+      <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
           How to triage a SpamBrain hit
         </h2>
@@ -202,25 +231,6 @@ export default function SymptomsIndexPage() {
           differential rather than committing to a fix.
         </p>
       </section>
-
-      <div className="mt-10 grid gap-4 sm:grid-cols-2">
-        {MARKETING_SYMPTOMS.map((s) => (
-          <Link
-            key={s.slug}
-            href={`/symptoms/${s.slug}`}
-            className="group block rounded-xl border border-border/60 bg-card p-6 transition-colors hover:border-border-strong hover:bg-card/80"
-          >
-            <h2 className="text-base font-semibold leading-snug tracking-tight text-foreground">
-              {s.title}
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{s.oneLiner}</p>
-            <p className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-primary group-hover:underline">
-              Diagnose
-              <span aria-hidden="true">→</span>
-            </p>
-          </Link>
-        ))}
-      </div>
 
       <section className="mt-14 rounded-xl border border-border/60 bg-card/50 p-6">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">

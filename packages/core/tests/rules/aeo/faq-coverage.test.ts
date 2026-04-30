@@ -17,6 +17,8 @@ describe("aeo/faq-coverage", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("info");
     expect(findings[0].message).toMatch(/no FAQPage/);
+    // FAQ-shape detection is heuristic → always medium confidence.
+    expect(findings[0].confidence).toBe("medium");
   });
 
   test("does not flag when FAQPage JSON-LD is present", () => {

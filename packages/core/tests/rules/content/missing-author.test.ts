@@ -19,6 +19,21 @@ describe("missingAuthorRule", () => {
     expect(findings[0].ruleId).toBe("content/missing-author");
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].pageUrl).toBe("https://example.com/no-author");
+    // Always medium — many page types legitimately omit author bylines.
+    expect(findings[0].confidence).toBe("medium");
+    expect(findings[0].message).toMatch(/blog\/news/i);
+  });
+
+  test("emits site-wide finding with medium confidence when ALL pages lack author", () => {
+    const findings = missingAuthorRule([
+      page("https://example.com/a"),
+      page("https://example.com/b"),
+      page("https://example.com/c"),
+      page("https://example.com/d"),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].confidence).toBe("medium");
+    expect(findings[0].message).toMatch(/blog\/news/i);
   });
 
   test("passes when metaAuthor is present", () => {

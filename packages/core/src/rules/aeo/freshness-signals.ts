@@ -94,7 +94,12 @@ export function freshnessSignalsRule(
       findings.push({
         ruleId: "aeo/freshness-signals",
         severity: "warning",
-        message: `${page.url} has no dateModified signal (no JSON-LD dateModified, no modification meta tag, no visible "Last updated").`,
+        // Medium: a missing dateModified is often deliberate on evergreen pages (about,
+        // pricing, policy) where re-stamping would mislead readers.
+        confidence: "medium",
+        message:
+          `${page.url} has no dateModified signal (no JSON-LD dateModified, no modification meta tag, no visible "Last updated"). ` +
+          `Evergreen pages may legitimately omit this — verify whether freshness signals matter for this page type.`,
         pageUrl: page.url,
         fix:
           `Add a freshness signal so AI engines know the page is current. Three recommended places: ` +
@@ -118,7 +123,11 @@ export function freshnessSignalsRule(
         findings.push({
           ruleId: "aeo/freshness-signals",
           severity: "info",
-          message: `${page.url} was last updated ${ageDays} days ago (threshold: ${maxStaleDays}).`,
+          // Low: stale-by-clock isn't always stale-by-meaning. Some pages are evergreen by design.
+          confidence: "low",
+          message:
+            `${page.url} was last updated ${ageDays} days ago (threshold: ${maxStaleDays}). ` +
+            `Some pages are evergreen by design — only act if this page's information changes over time.`,
           pageUrl: page.url,
           fix:
             `AI engines prioritize fresh content for citation. If the page is still accurate, ` +

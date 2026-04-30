@@ -139,12 +139,15 @@ export function summaryBaitRule(
     findings.push({
       ruleId: "aeo/summary-bait",
       severity: "error",
+      // Always medium: this is a forecast — we measure what AI MIGHT do (cite without
+      // sending the click), not what it WILL do for any given page.
+      confidence: "medium",
       message:
         `${page.url} is optimized for summarization, not retention. ` +
         `${Math.round(concentration * 100)}% of citable facts (${openerFacts.length}/${fullFacts.length}) ` +
         `sit in the first ${openerWords} words, the page has no interactive / downloadable / gated value ` +
-        `below the fold, and the opener passes answer-first. AI Overviews will cite this page ` +
-        `without sending the click.`,
+        `below the fold, and the opener passes answer-first. AI Overviews are likely to cite this page ` +
+        `without sending the click — this is a forecast based on page shape, not a guarantee.`,
       pageUrl: page.url,
       fix:
         `Redistribute value across the page so the full answer requires scrolling: ` +

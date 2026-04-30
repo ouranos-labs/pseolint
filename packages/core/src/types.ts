@@ -1,5 +1,18 @@
 export type Severity = "info" | "warning" | "error" | "critical";
 
+/**
+ * v0.4.3 — confidence level attached to a finding. Independent of severity:
+ * a `low`-confidence `error` finding is "we think this is bad but might be a
+ * false-positive on your site type." Formatters can render the caveat in the
+ * message; scoring profiles can downweight low/speculative findings.
+ *
+ *   - `high`        — rule fires on signals it was designed to detect
+ *   - `medium`      — rule fires but site context might justify ignoring
+ *   - `low`         — known false-positive risk on this site type / shape
+ *   - `speculative` — heuristic match; verify before acting
+ */
+export type Confidence = "high" | "medium" | "low" | "speculative";
+
 /** Verdict ladder — replaces the old numeric `score` field as the user-facing signal. */
 export type Verdict = "ready" | "caution" | "concerning" | "critical";
 
@@ -69,6 +82,14 @@ export interface RuleResult {
   context?: FindingContext;
   /** Fix effort level assigned by the enrichment pipeline. */
   effort?: FixEffort;
+  /**
+   * v0.4.3 — confidence in this finding. Defaults to `high` when omitted.
+   * Set to `low` / `speculative` when the rule is known to false-positive on
+   * the audited site's type (e.g. `aeo/citable-facts` on a docs site).
+   * Scoring profiles can downweight low-confidence findings; formatters
+   * render a caveat in the message.
+   */
+  confidence?: Confidence;
 }
 
 /** v0.4 four-category bucket keys. */

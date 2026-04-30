@@ -3,11 +3,13 @@ import type {
   CategoryGrade,
   CategoryGrades,
   CategoryKey,
+  Confidence,
   Grade,
   RuleResult,
   Verdict,
 } from "../types.js";
 import type { ReadinessReport } from "../fetch-observer.js";
+import type { SiteClassification } from "../site-classifier.js";
 
 export interface HtmlFormatOptions {
   /** No-op for HTML — every finding is rendered regardless. Accepted for option-signature parity. */
@@ -105,6 +107,12 @@ function renderCategoryTiles(categories: CategoryGrades): string {
     .join("");
 }
 
+function confidenceCaveat(c: Confidence | undefined): string | null {
+  if (c === "low") return "low confidence — known false-positive risk on this site type";
+  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  return null;
+}
+
 function renderFindingRow(f: RuleResult): string {
   const tone = severityTone(f.severity);
   const effortPill = f.effort
@@ -114,6 +122,10 @@ function renderFindingRow(f: RuleResult): string {
   const fix = f.fix ? `<div class="fix"><span class="fix-label">Fix</span>${escapeHtml(f.fix)}</div>` : "";
   const docsHref =
     f.docsUrl ?? `https://pseolint.dev/rules/${f.ruleId.split("/").pop() ?? f.ruleId}`;
+  const caveat = confidenceCaveat(f.confidence);
+  const caveatPill = caveat
+    ? `<div class="caveat">${escapeHtml(caveat)}</div>`
+    : "";
 
   // Cluster context (collapsed details) — only on findings that carry one.
   let cluster = "";
@@ -144,10 +156,23 @@ function renderFindingRow(f: RuleResult): string {
       ${url}
     </div>
     <p class="finding-msg">${escapeHtml(f.message)}</p>
+    ${caveatPill}
     ${fix}
     ${cluster}
     <a class="docs-link" href="${escapeHtml(docsHref)}" target="_blank" rel="noopener">${escapeHtml(docsHref.replace(/^https?:\/\//, ""))} ↗</a>
   </li>`;
+}
+
+/** v0.4.3 — "Audited as <type>" line shown under the verdict badge. */
+function auditedAsHtml(c: SiteClassification | undefined): string {
+  if (!c) return "";
+  const confPct = Math.round(c.confidence * 100);
+  const suppressed = c.suppressedRules.length;
+  const suppressedPart =
+    suppressed > 0
+      ? ` ${suppressed} pSEO-only rule${suppressed === 1 ? "" : "s"} suppressed.`
+      : "";
+  return `<div class="audited-as">Audited as <strong>${escapeHtml(c.type)}</strong> (${confPct}% confidence).${escapeHtml(suppressedPart)}</div>`;
 }
 
 function renderBucketSection(label: string, items: RuleResult[], tone: string): string {
@@ -350,6 +375,9 @@ export function formatHtml(summary: AuditSummary, _options?: HtmlFormatOptions):
   .sev.sev-warning{background:color-mix(in oklab,var(--warning) 14%,transparent);color:var(--warning);border-color:color-mix(in oklab,var(--warning) 35%,transparent)}
   .sev.sev-muted{background:var(--card-2);color:var(--muted);border-color:var(--border-strong)}
 
+  .caveat{margin-top:6px;padding:6px 10px;border-radius:8px;background:color-mix(in oklab,var(--warning) 8%,transparent);color:var(--warning);font-size:12px;line-height:1.4;border:1px solid color-mix(in oklab,var(--warning) 22%,transparent)}
+  .audited-as{display:block;margin-top:10px;font-size:13px;color:var(--muted);font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  .audited-as strong{color:var(--fg)}
   .fix{margin-top:8px;padding:10px 12px;background:var(--card-2);border-radius:10px;color:var(--muted);font-size:13px;line-height:1.55}
   .fix-label{display:inline-block;margin-right:8px;padding:1px 6px;border-radius:4px;
              background:color-mix(in oklab,var(--primary) 18%,transparent);color:var(--primary);
@@ -400,6 +428,7 @@ export function formatHtml(summary: AuditSummary, _options?: HtmlFormatOptions):
 
   <section class="card">
     <span class="verdict-badge tone-${verdictTone}"><span class="verdict-dot"></span>${escapeHtml(VERDICT_LABEL[verdict])}</span>
+    ${auditedAsHtml(summary.siteClassification)}
     <span class="verdict-headline">${escapeHtml(summary.headline)}</span>
     <div class="cat-grid">${renderCategoryTiles(summary.categories)}</div>
   </section>

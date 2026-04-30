@@ -34,6 +34,8 @@ describe("aeo/llms-txt rule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].message).toMatch(/No llms\.txt/);
+    // llms.txt is a draft standard — always low confidence.
+    expect(findings[0].confidence).toBe("low");
   });
 
   test("warns when llms.txt is malformed", async () => {
@@ -43,6 +45,7 @@ describe("aeo/llms-txt rule", () => {
     );
     expect(findings).toHaveLength(1);
     expect(findings[0].message).toMatch(/malformed/);
+    expect(findings[0].confidence).toBe("low");
   });
 
   test("passes when llms.txt is valid", async () => {

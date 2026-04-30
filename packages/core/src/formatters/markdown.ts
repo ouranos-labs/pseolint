@@ -3,10 +3,12 @@ import type {
   CategoryGrade,
   CategoryGrades,
   CategoryKey,
+  Confidence,
   FixEffort,
   RuleResult,
   Verdict,
 } from "../types.js";
+import type { SiteClassification } from "../site-classifier.js";
 import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
 
 export interface MarkdownFormatOptions {
@@ -53,6 +55,25 @@ function bucketDocsLink(b: BucketedFinding): string {
 
 function effortPrefix(effort: FixEffort | undefined): string {
   return effort ? `[${effort}] ` : "";
+}
+
+/** v0.4.3 — caveat suffix for low-confidence findings, rendered inline. */
+function confidenceCaveat(c: Confidence | undefined): string | null {
+  if (c === "low") return "low confidence — known false-positive risk on this site type";
+  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  return null;
+}
+
+/** v0.4.3 — "Audited as <type>" line shown under the verdict header. */
+function auditedAsLine(c: SiteClassification | undefined): string | null {
+  if (!c) return null;
+  const confPct = Math.round(c.confidence * 100);
+  const suppressed = c.suppressedRules.length;
+  const suppressedPart =
+    suppressed > 0
+      ? ` ${suppressed} pSEO-only rule${suppressed === 1 ? "" : "s"} suppressed.`
+      : "";
+  return `_Audited as **${c.type}** (${confPct}% confidence).${suppressedPart}_`;
 }
 
 function renderTriageMarkdown(triage: NonNullable<AuditSummary["triage"]>): string {
@@ -102,11 +123,13 @@ function renderBucket(label: string, items: RuleResult[]): string[] {
 
   const buckets = bucketByTemplate(items);
   for (const b of buckets) {
+    const caveat = confidenceCaveat(b.representativeConfidence);
     if (b.count === 1) {
       const target = b.representativeUrl !== "<site-wide>" ? ` — ${b.representativeUrl}` : "";
       const message = b.representativeFix ?? b.representativeMessage;
       const eff = effortPrefix(b.effort);
       lines.push(`- **\`${b.ruleId}\`**${target} — ${eff}${message} ${bucketDocsLink(b)}`);
+      if (caveat) lines.push(`  - _${caveat}_`);
       continue;
     }
 
@@ -126,6 +149,11 @@ function renderBucket(label: string, items: RuleResult[]): string[] {
       : ` — affecting ${b.count} pages total.`;
     lines.push(`\`${b.representativeUrl}\` ${b.representativeMessage}${moreSuffix}`);
     lines.push("");
+
+    if (caveat) {
+      lines.push(`> _${caveat}_`);
+      lines.push("");
+    }
 
     if (b.representativeFix) {
       const fixOnce = isTemplateBucket ? ` Fix once, resolve all ${b.count}.` : "";
@@ -165,6 +193,10 @@ export function formatMarkdown(
   lines.push(
     `**Verdict:** ${VERDICT_GLYPH[summary.verdict]} ${VERDICT_LABEL[summary.verdict]}`,
   );
+  // v0.4.3 — show "Audited as <type>" right under the verdict so the
+  // operator knows which scoring profile produced the verdict.
+  const audited = auditedAsLine(summary.siteClassification);
+  if (audited) lines.push(audited);
   lines.push(`**Risk:** ${summary.risk} / 100 (lower is better)`);
   lines.push("");
   lines.push(`**Headline:** ${summary.headline}`);

@@ -1,4 +1,5 @@
-import type { AuditSummary, FixEffort, RuleResult, Severity } from "../types.js";
+import type { AuditSummary, Confidence, FixEffort, RuleResult, Severity } from "../types.js";
+import type { SiteClassification } from "../site-classifier.js";
 import { inferUrlTemplate } from "../stratified-sample.js";
 
 export interface FixplanFormatOptions {
@@ -19,6 +20,21 @@ interface Bucket {
   exemplar: RuleResult;
   /** Distinct page URLs in this bucket (in encounter order, deduped). */
   urls: string[];
+  /** v0.4.3 — lowest confidence in the bucket (drives caveat rendering). */
+  worstConfidence?: Confidence;
+}
+
+const CONFIDENCE_RANK: Record<Confidence, number> = {
+  speculative: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+};
+
+function confidenceCaveat(c: Confidence | undefined): string | null {
+  if (c === "low") return "low confidence — known false-positive risk on this site type";
+  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  return null;
 }
 
 const SEVERITY_RANK: Record<Severity, number> = {
@@ -97,6 +113,7 @@ function bucketByTemplate(findings: RuleResult[]): Bucket[] {
         effort: f.effort ?? "other",
         exemplar: f,
         urls: [],
+        worstConfidence: f.confidence,
       };
       map.set(key, b);
     }
@@ -108,6 +125,12 @@ function bucketByTemplate(findings: RuleResult[]): Bucket[] {
     // Promote effort if the bucket was "other" but a later finding declares one.
     if (b.effort === "other" && f.effort) {
       b.effort = f.effort;
+    }
+    if (f.confidence !== undefined) {
+      const cur = b.worstConfidence;
+      if (cur === undefined || CONFIDENCE_RANK[f.confidence] < CONFIDENCE_RANK[cur]) {
+        b.worstConfidence = f.confidence;
+      }
     }
     if (f.pageUrl && !b.urls.includes(f.pageUrl)) {
       b.urls.push(f.pageUrl);
@@ -147,6 +170,11 @@ function bucketNarrative(b: Bucket): string {
 function renderBucketLines(b: Bucket): string[] {
   const lines: string[] = [];
   lines.push(`- [ ] ${bucketHeadline(b)} — ${bucketNarrative(b)}`);
+
+  const caveat = confidenceCaveat(b.worstConfidence);
+  if (caveat) {
+    lines.push(`  - _${caveat}_`);
+  }
 
   // Nested bullet: first concrete URL example (only useful when we have one).
   if (b.exemplar.pageUrl) {
@@ -252,6 +280,17 @@ function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function auditedAsFixplanLine(c: SiteClassification | undefined): string | null {
+  if (!c) return null;
+  const confPct = Math.round(c.confidence * 100);
+  const suppressed = c.suppressedRules.length;
+  const suppressedPart =
+    suppressed > 0
+      ? ` ${suppressed} pSEO-only rule${suppressed === 1 ? "" : "s"} suppressed.`
+      : "";
+  return `> Audited as **${c.type}** (${confPct}% confidence).${suppressedPart}`;
+}
+
 function estimateHours(buckets: Bucket[]): number {
   let h = 0;
   for (const b of buckets) {
@@ -286,6 +325,13 @@ export function formatFixplan(
   lines.push(
     `> Generated ${date}. Verdict: **${verdict}** (risk ${summary.risk}/100). ${summary.pageCount} pages audited.`,
   );
+  // v0.4.3 — surface the scoring profile so plan readers know which
+  // site-type-aware overrides shaped the plan.
+  const auditedLine = auditedAsFixplanLine(summary.siteClassification);
+  if (auditedLine) {
+    lines.push(`>`);
+    lines.push(auditedLine);
+  }
   lines.push(`>`);
   lines.push(
     `> Run \`pseolint <source> --fixplan plan.md\` after each fix round to refresh`,

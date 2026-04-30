@@ -145,18 +145,48 @@ export default function RulesIndexPage() {
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        The remaining rules are documented inside the open-source repo at
-        github.com/ouranos-labs/pseolint (MIT-licensed; @pseolint/core v0.3.3,
-        @pseolint/cli v0.3.1, @pseolint/mcp v0.3.1) and surface in every audit
-        report. Industry crawlers like Ahrefs, Sitebulb, and Screaming Frog
-        cover overlapping signals but stop short of SpamBrain's post-August 25,
-        2022 Helpful Content System scoring axes — which is what the 8 spam/*
-        rules and the 8 aeo/* rules each target. More long-form explainers
-        will land here as we observe which ones generate the most user
-        questions.
+        These rules cover programmatic-SEO patterns + AI Overview readiness. They don&apos;t
+        replace a general SEO audit — for Core Web Vitals use{" "}
+        <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>,
+        and for broken-link scanning use{" "}
+        <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a>{" "}
+        ($35/mo) or{" "}
+        <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a>{" "}
+        ($259/yr).
       </p>
 
-      <section className="mt-10 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
+      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+        Featured deep-dive explainers below; full taxonomy and SpamBrain
+        mapping further down.
+      </p>
+
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+        {MARKETING_RULES.map((rule) => (
+          <li key={rule.slug}>
+            <Link
+              href={`/rules/${rule.slug}`}
+              className="group flex h-full flex-col rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {rule.ruleId}
+                </span>
+                <span className="text-xs text-primary transition-transform group-hover:translate-x-0.5">
+                  Read &rarr;
+                </span>
+              </div>
+              <h2 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
+                {rule.title.split("—")[0]?.trim() ?? rule.title}
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {rule.oneLiner}
+              </p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+
+      <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
           How the rules map to SpamBrain
         </h2>
@@ -220,32 +250,6 @@ export default function RulesIndexPage() {
           finding maps to.
         </p>
       </section>
-
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2">
-        {MARKETING_RULES.map((rule) => (
-          <li key={rule.slug}>
-            <Link
-              href={`/rules/${rule.slug}`}
-              className="group flex h-full flex-col rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/40 hover:bg-card/80"
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                  {rule.ruleId}
-                </span>
-                <span className="text-xs text-primary transition-transform group-hover:translate-x-0.5">
-                  Read &rarr;
-                </span>
-              </div>
-              <h2 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
-                {rule.title.split("—")[0]?.trim() ?? rule.title}
-              </h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {rule.oneLiner}
-              </p>
-            </Link>
-          </li>
-        ))}
-      </ul>
 
       <section className="mt-14 rounded-[28px] border border-border/70 bg-card/40 p-7 backdrop-blur-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">

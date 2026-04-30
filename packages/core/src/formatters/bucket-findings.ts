@@ -1,4 +1,4 @@
-import type { FixEffort, RuleResult, Severity } from "../types.js";
+import type { Confidence, FixEffort, RuleResult, Severity } from "../types.js";
 import { inferUrlTemplate } from "../stratified-sample.js";
 
 /**
@@ -31,7 +31,16 @@ export interface BucketedFinding {
   representativeDocsUrl?: string;
   severity: Severity;
   effort?: FixEffort;
+  /** v0.4.3 — confidence of the representative finding (used for caveat rendering). */
+  representativeConfidence?: Confidence;
 }
+
+const CONFIDENCE_RANK: Record<Confidence, number> = {
+  speculative: 1,
+  low: 2,
+  medium: 3,
+  high: 4,
+};
 
 const SEVERITY_RANK: Record<Severity, number> = {
   critical: 4,
@@ -90,12 +99,22 @@ export function bucketByTemplate(findings: RuleResult[]): BucketedFinding[] {
         existing.representativeFix = f.fix;
         existing.representativeUrl = f.pageUrl ?? existing.representativeUrl;
         existing.representativeDocsUrl = f.docsUrl ?? existing.representativeDocsUrl;
+        if (f.confidence !== undefined) existing.representativeConfidence = f.confidence;
       }
       if (
         f.effort &&
         (!existing.effort || EFFORT_RANK[f.effort] > EFFORT_RANK[existing.effort])
       ) {
         existing.effort = f.effort;
+      }
+      // Track the lowest-confidence variant so the caveat surfaces if any
+      // member of the bucket is low/speculative — we don't want to hide a
+      // "low confidence" caveat behind a high-confidence representative.
+      if (f.confidence !== undefined) {
+        const cur = existing.representativeConfidence;
+        if (cur === undefined || CONFIDENCE_RANK[f.confidence] < CONFIDENCE_RANK[cur]) {
+          existing.representativeConfidence = f.confidence;
+        }
       }
     } else {
       map.set(key, {
@@ -108,6 +127,7 @@ export function bucketByTemplate(findings: RuleResult[]): BucketedFinding[] {
         representativeDocsUrl: f.docsUrl,
         severity: f.severity,
         effort: f.effort,
+        representativeConfidence: f.confidence,
       });
     }
   }

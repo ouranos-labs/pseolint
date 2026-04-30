@@ -82,11 +82,21 @@ export default function LimitsPage() {
       </p>
 
       <Section title="Scope — what we actually audit">
+        <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
         <Item k="Pages per free audit" v="Up to 50, sampled from your sitemap.xml" />
         <Item k="Pages per Pro audit" v="Up to 200 (Pro plan)" />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
         <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample — respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />
+      </Section>
+
+      <Section title="What pseolint doesn&apos;t audit">
+        <Item k="Core Web Vitals / page speed" v={<span>Out of scope. Use <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a> (free) or the Chrome DevTools Lighthouse panel.</span>} />
+        <Item k="Broken links + general site crawl" v={<span>Out of scope. Use <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a> ($259/yr, free up to 500 URLs).</span>} />
+        <Item k="Competitor research / backlink audits" v={<span>Out of scope. Use <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo).</span>} />
+        <Item k="Keyword research + rank tracking" v={<span>Out of scope. Use <a href="https://semrush.com" className="text-primary hover:underline" rel="nofollow">Semrush</a> ($139.95/mo) or Ahrefs.</span>} />
+        <Item k="Image weight / asset optimization" v="Out of scope. PageSpeed Insights covers it; Sitebulb and Screaming Frog go deeper." />
+        <Item k="Schema-validator-style validation" v="Partial. We check schema-content consistency and required JSON-LD types as part of the AEO ruleset, but we don't replace Google's Rich Results Test for full schema validation." />
       </Section>
 
       <Section title="Rate limits & cooldowns">

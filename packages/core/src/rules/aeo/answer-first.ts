@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import type { EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
+import type { Confidence, EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
 
 export interface AnswerFirstOptions {
   /** First paragraph should fit under this many words to be "extractable". Default: 100. */
@@ -193,13 +193,31 @@ export function answerFirstRule(
     if (isTemplated) reasons.push("opener is identical to other pages after entity masking");
     if (s.wordCount > tooLong) reasons.push(`opener is ${s.wordCount} words (too long to extract)`);
     if (isBoilerplateOpener(s.paragraph)) reasons.push("opener is boilerplate ('Welcome to...', 'Generate your...')");
-    if (!hasConcreteFact(s.paragraph)) reasons.push("no specific numbers, dates, or dollar amounts");
-    if (!hasNamedEntity(s.paragraph, entityPatterns)) reasons.push("no named entities (agencies, laws, proper nouns)");
+    const lacksFact = !hasConcreteFact(s.paragraph);
+    const lacksEntity = !hasNamedEntity(s.paragraph, entityPatterns);
+    if (lacksFact) reasons.push("no specific numbers, dates, or dollar amounts");
+    if (lacksEntity) reasons.push("no named entities (agencies, laws, proper nouns)");
+
+    // Confidence ladder:
+    //   too-long opener         → low (marketing/narrative pages legitimately use long openers)
+    //   no facts AND no entity  → medium (signal is present but interpretation is ambiguous)
+    //   otherwise               → high (templated/boilerplate openers are clear AEO failures)
+    const confidence: Confidence =
+      s.wordCount > tooLong ? "low" :
+      (lacksFact && lacksEntity) ? "medium" :
+      "high";
+    const contextNote =
+      confidence === "low" || confidence === "medium"
+        ? " Marketing pages legitimately use narrative openers; this matters more for FAQ-style or directory pages."
+        : "";
 
     findings.push({
       ruleId: "aeo/answer-first",
       severity,
-      message: `${s.url} does not open with a direct, extractable answer${reasons.length ? `: ${reasons.join("; ")}` : "."}`,
+      confidence,
+      message:
+        `${s.url} does not open with a direct, extractable answer${reasons.length ? `: ${reasons.join("; ")}` : "."}` +
+        contextNote,
       pageUrl: s.url,
       fix:
         `Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, ` +

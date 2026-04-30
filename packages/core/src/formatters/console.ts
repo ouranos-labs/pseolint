@@ -3,6 +3,7 @@ import type {
   CategoryGrade,
   CategoryGrades,
   CategoryKey,
+  Confidence,
   FixEffort,
   Grade,
   RuleResult,
@@ -125,6 +126,21 @@ function effortPrefix(effort: FixEffort | undefined): string {
   return `[${effort}] `;
 }
 
+/**
+ * v0.4.3 — one-line caveat for low-confidence findings. Renders only when
+ * `confidence` is `low` or `speculative` so high/medium-confidence findings
+ * don't clutter the output.
+ */
+function confidenceCaveat(c: Confidence | undefined): string | null {
+  if (c === "low") {
+    return "low confidence — this rule is known to false-positive on this site type";
+  }
+  if (c === "speculative") {
+    return "speculative — heuristic match; verify before acting";
+  }
+  return null;
+}
+
 /** Mimic the legacy `docsLine(RuleResult)` API for buckets. */
 function bucketDocsLine(b: BucketedFinding): string {
   if (b.representativeDocsUrl) {
@@ -143,6 +159,7 @@ function renderBucketLines(b: BucketedFinding, index: number): string[] {
   const out: string[] = [];
   const eff = effortPrefix(b.effort);
   const target = b.representativeUrl !== "<site-wide>" ? shortenUrl(b.representativeUrl) : "";
+  const caveat = confidenceCaveat(b.representativeConfidence);
 
   if (b.count === 1) {
     // Single finding: keep the legacy headline format.
@@ -150,6 +167,7 @@ function renderBucketLines(b: BucketedFinding, index: number): string[] {
     const headline = `${eff}${targetPart}${b.representativeMessage}`.trim();
     const fix = b.representativeFix ? `  → ${b.representativeFix}` : "";
     out.push(`  ${index + 1}. ${headline}${fix}`);
+    if (caveat) out.push(`     ${DIM}(${caveat})${RESET}`);
     out.push(`     ${DIM}${bucketDocsLine(b)}${RESET}`);
     return out;
   }
@@ -164,6 +182,7 @@ function renderBucketLines(b: BucketedFinding, index: number): string[] {
   const targetPart = target ? `${target} ` : "";
   out.push(`     e.g. ${targetPart}${b.representativeMessage}`.trimEnd());
 
+  if (caveat) out.push(`     ${DIM}(${caveat})${RESET}`);
   if (b.representativeFix) {
     out.push(`     → ${b.representativeFix}`);
   }
@@ -201,6 +220,10 @@ function renderBucketVerbose(label: string, items: RuleResult[]): string[] {
     const urlCol = (shortenUrl(f.pageUrl) || "—").padEnd(28);
     const fixCol = f.fix ?? f.message;
     lines.push(`  ${ruleCol} ${DIM}${urlCol}${RESET} ${fixCol}`);
+    const caveat = confidenceCaveat(f.confidence);
+    if (caveat) {
+      lines.push(`  ${"".padEnd(28)} ${DIM}(${caveat})${RESET}`);
+    }
   }
   lines.push("");
   return lines;
@@ -261,6 +284,24 @@ function classificationLines(c: SiteClassification | undefined): string[] {
   return lines;
 }
 
+/**
+ * v0.4.3 — prominent "Audited as <type>" banner shown right under the
+ * verdict pill so the operator knows which scoring profile produced the
+ * verdict. Surfaces classification confidence as a percent and notes how
+ * many pSEO-only rules were suppressed (mirrors the more verbose
+ * classificationLines() block but lives next to the verdict for legibility).
+ */
+function auditedAsBanner(c: SiteClassification | undefined): string | null {
+  if (!c) return null;
+  const confPct = Math.round(c.confidence * 100);
+  const suppressed = c.suppressedRules.length;
+  const suppressedPart =
+    suppressed > 0
+      ? ` ${suppressed} pSEO-only rule${suppressed === 1 ? "" : "s"} suppressed.`
+      : "";
+  return `${DIM}Audited as ${c.type} (${confPct}% confidence).${suppressedPart}${RESET}`;
+}
+
 function categoryLine(categories: CategoryGrades): string {
   // Display the four user-facing buckets — `audit` is engine-internal and weight-0.
   const order: { key: Exclude<CategoryKey, "audit">; label: string }[] = [
@@ -309,6 +350,11 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   lines.push(
     `${BOLD}Verdict:${RESET} ${vColor}${summary.verdict.toUpperCase()} ${vGlyph}${RESET}`,
   );
+  // v0.4.3 — "Audited as <type>" sits between the verdict and grade strip
+  // so the operator immediately sees which scoring profile produced the
+  // verdict. Skipped when classification is missing (pre-v0.4 reports).
+  const banner = auditedAsBanner(summary.siteClassification);
+  if (banner) lines.push(banner);
   lines.push(categoryLine(summary.categories));
 
   // ── Template banner ────────────────────────────────────────────────

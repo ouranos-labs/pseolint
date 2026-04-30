@@ -134,6 +134,9 @@ export function contentModularityRule(
     findings.push({
       ruleId: "aeo/content-modularity",
       severity: "warning",
+      // Always low: these are stylistic recommendations, not penalties. A page that
+      // ignores all of them can still rank and get cited.
+      confidence: "low",
       message:
         `${page.url} has ${issues.length}/${sections.length} sections that are not independently extractable. ` +
         `Examples — ${examples}.`,

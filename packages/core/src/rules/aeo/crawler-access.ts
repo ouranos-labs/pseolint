@@ -107,6 +107,9 @@ export function crawlerAccessRule(
     findings.push({
       ruleId: "aeo/crawler-access",
       severity: "error",
+      // High: blocking ALL crawlers is either deliberate (clear intent) or a clear
+      // mistake — either way the finding is unambiguous.
+      confidence: "high",
       message: `robots.txt blocks all ${crawlers.length} configured AI crawlers: ${blocked.join(", ")}.`,
       fix:
         `Blocking every AI crawler makes your pages invisible to answer engines. ` +
@@ -120,6 +123,9 @@ export function crawlerAccessRule(
     findings.push({
       ruleId: "aeo/crawler-access",
       severity: "warning",
+      // Medium: partial blocks are often deliberate (e.g. blocking Bytespider for
+      // policy reasons while leaving GPTBot allowed).
+      confidence: "medium",
       message: `robots.txt blocks ${crawler}.`,
       fix:
         `Remove the "Disallow: /" directive for User-agent: ${crawler} in your robots.txt. ` +

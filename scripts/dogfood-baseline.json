@@ -1,0 +1,259 @@
+{
+  "capturedAt": "2026-04-30T17:43:23.572Z",
+  "phase": "baseline",
+  "results": [
+    {
+      "url": "https://nextjs.org",
+      "expectedType": "docs",
+      "expectedFramework": "nextjs",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 14,
+        "pageCount": 5,
+        "blockers": 10,
+        "shouldFix": 8,
+        "informational": 2,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 11037,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 5,
+            "impact": 125,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "tech/canonical-consistency",
+            "count": 4,
+            "impact": 100,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 5,
+            "impact": 60,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://react.dev",
+      "expectedType": "docs",
+      "expectedFramework": "nextjs",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "caution",
+        "risk": 23,
+        "pageCount": 5,
+        "blockers": 9,
+        "shouldFix": 37,
+        "informational": 1,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 5015,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 30,
+            "impact": 360,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 5,
+            "impact": 125,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 5,
+            "impact": 60,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://stripe.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": null,
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 812ms is 2.5× the warmup baseline 319ms. p95=812ms, baseline=319ms, 5xx=0%, fetches=16."
+    },
+    {
+      "url": "https://linear.app",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "caution",
+        "risk": 23,
+        "pageCount": 4,
+        "blockers": 10,
+        "shouldFix": 6,
+        "informational": 4,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 1,
+        "durationMs": 28731,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 4,
+            "impact": 100,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "spam/thin-content",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.allbirds.com",
+      "expectedType": "ecommerce",
+      "expectedFramework": "shopify",
+      "humanGrade": "ready",
+      "detectedFramework": "shopify",
+      "audit": null,
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 1806ms is 5.9× the warmup baseline 304ms. p95=1806ms, baseline=304ms, 5xx=0%, fetches=34."
+    },
+    {
+      "url": "https://wordpress.com",
+      "expectedType": "blog",
+      "expectedFramework": "wordpress",
+      "humanGrade": "caution",
+      "detectedFramework": "wordpress",
+      "audit": {
+        "verdict": "caution",
+        "risk": 24,
+        "pageCount": 5,
+        "blockers": 7,
+        "shouldFix": 104,
+        "informational": 4,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 15429,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 97,
+            "impact": 1164,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 4,
+            "impact": 100,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 4,
+            "impact": 61,
+            "severities": [
+              "error",
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.shopify.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "audit": {
+        "verdict": "concerning",
+        "risk": 58,
+        "pageCount": 5,
+        "blockers": 12,
+        "shouldFix": 308,
+        "informational": 1,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 6414,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 300,
+            "impact": 3600,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 5,
+            "impact": 99,
+            "severities": [
+              "error",
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 3,
+            "impact": 75,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.softschools.com",
+      "expectedType": "programmatic-directory",
+      "humanGrade": "concerning",
+      "audit": null,
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 2033ms is 3.4× the warmup baseline 590ms. p95=2033ms, baseline=590ms, 5xx=0%, fetches=31."
+    }
+  ]
+}

@@ -11,6 +11,8 @@ describe("aeo/freshness-signals", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].message).toMatch(/no dateModified/);
+    // Missing dateModified → medium (could be intentional on evergreen pages).
+    expect(findings[0].confidence).toBe("medium");
   });
 
   test("accepts JSON-LD dateModified and does not warn", () => {
@@ -45,6 +47,8 @@ describe("aeo/freshness-signals", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("info");
     expect(findings[0].message).toMatch(/days ago/);
+    // Stale-but-present dateModified → low (some pages are evergreen by design).
+    expect(findings[0].confidence).toBe("low");
   });
 
   test("respects custom maxStaleDays", () => {

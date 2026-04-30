@@ -73,6 +73,10 @@ export function faqCoverageRule(
     findings.push({
       ruleId: "aeo/faq-coverage",
       severity: "info",
+      // Always medium: detecting FAQ-shape from H2 phrasing + URL is heuristic — some
+      // pages with question-style headings aren't actually FAQ content (e.g. blog
+      // posts titled "How we built X").
+      confidence: "medium",
       message: `${page.url} contains FAQ-style content (${detail}) but no FAQPage/HowTo JSON-LD.`,
       pageUrl: page.url,
       fix:
