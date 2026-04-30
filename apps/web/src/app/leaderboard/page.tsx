@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { and, eq, gt, sql } from "drizzle-orm";
 import { env } from "@/lib/env";
+import { fetchOgMeta } from "@/lib/og-fetch";
 
 export const runtime = "nodejs";
 export const revalidate = 600;
@@ -73,6 +74,11 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
   },
 ];
 
+/** Cap how many missing-OG rows we backfill per render so a slow homepage
+ *  can't extend the leaderboard render past a few seconds. Other rows get
+ *  picked up on subsequent revalidations. */
+const OG_BACKFILL_PER_RENDER = 12;
+
 export default async function Leaderboard() {
   const rows = await db
     .select({
@@ -82,6 +88,9 @@ export default async function Leaderboard() {
       risk: audits.risk,
       pageCount: audits.pageCount,
       createdAt: audits.createdAt,
+      ogTitle: audits.ogTitle,
+      ogDescription: audits.ogDescription,
+      ogImageUrl: audits.ogImageUrl,
     })
     .from(audits)
     .where(
@@ -106,6 +115,48 @@ export default async function Leaderboard() {
       return false;
     }
   });
+
+  // Lazy OG backfill: for rows missing all OG fields, fetch + persist a few
+  // per render. Bounded by OG_BACKFILL_PER_RENDER and 5s per fetch (see
+  // og-fetch.ts), so worst-case added latency is ~5s on a render that hits
+  // many slow homepages. Subsequent revalidations finish the backfill.
+  const missing = deduped
+    .filter((r) => !r.ogImageUrl && !r.ogTitle && !r.ogDescription)
+    .slice(0, OG_BACKFILL_PER_RENDER);
+  const ogByRowId = new Map<string, { title: string | null; description: string | null; image: string | null }>();
+  if (missing.length > 0) {
+    const results = await Promise.allSettled(
+      missing.map(async (r) => {
+        const og = await fetchOgMeta(r.sourceUrl);
+        return { id: r.id, og };
+      }),
+    );
+    const updates: Promise<unknown>[] = [];
+    for (const result of results) {
+      if (result.status !== "fulfilled") continue;
+      const { id, og } = result.value;
+      if (!og.title && !og.description && !og.image) continue;
+      ogByRowId.set(id, og);
+      updates.push(
+        db
+          .update(audits)
+          .set({
+            ogTitle: og.title?.slice(0, 200) ?? null,
+            ogDescription: og.description?.slice(0, 500) ?? null,
+            ogImageUrl: og.image?.slice(0, 1000) ?? null,
+          })
+          .where(eq(audits.id, id)),
+      );
+    }
+    // Persist in parallel; failures don't block render — next revalidation retries.
+    await Promise.allSettled(updates);
+  }
+
+  function ogFor(r: (typeof deduped)[number]): { title: string | null; description: string | null; image: string | null } {
+    const fresh = ogByRowId.get(r.id);
+    if (fresh) return fresh;
+    return { title: r.ogTitle, description: r.ogDescription, image: r.ogImageUrl };
+  }
 
   const baseUrl = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const collectionJsonLd = {
@@ -145,7 +196,7 @@ export default async function Leaderboard() {
         // so no string can prematurely close the surrounding script tag. Same
         // pattern as rules/page.tsx and tools/page.tsx.
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionJsonLd) }}
+        dangerouslySetInnerHTML={ { __html: safeJsonLd(collectionJsonLd) } }
       />
 
       <div className="max-w-2xl">
@@ -154,35 +205,113 @@ export default async function Leaderboard() {
           The cleanest pSEO sites on record.
         </h1>
         <p className="mt-4 text-base text-muted-foreground">
-          Lower is safer. Ranked by SpamBrain risk score across 32 rules in 4
-          categories — one entry per domain. Powered by the MIT-licensed pseolint
-          engine v0.4.0 (github.com/ouranos-labs/pseolint).
-        </p>
-        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-          Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
-          completed public audits, deduplicated by hostname so a domain occupies exactly one slot,
-          and sorted ascending by composite score with createdAt as the tiebreaker. Audits below the
-          5-page floor are excluded because too-small samples produce volatile rankings. Pages
-          marked private by their owner never appear, regardless of score. Listings inherit the
-          retention window of the underlying audit, so anonymous entries fall off after 24 hours
-          and free-tier entries after 30 days unless the operator upgrades and pins them. The board
-          first shipped on March 15, 2026 alongside the v0.4.0 engine cut, and the scoring weights
-          were last rebalanced on April 21, 2026 when the AEO category landed.
+          Lower is safer. Ranked by SpamBrain risk score, one entry per domain. Methodology
+          and category breakdown below the table.
         </p>
       </div>
 
+      <section className="mt-8">
+        <h2 className="text-lg font-semibold tracking-tight text-foreground">
+          { deduped.length === 0 ? "Be the first on the board" : "Current rankings" }
+        </h2>
+        { deduped.length === 0 ? (
+          <div className="mt-4 rounded-[28px] border border-dashed border-border bg-card/30 p-10 text-center">
+            <p className="text-sm text-muted-foreground">
+              No public audits have completed yet. The leaderboard populates automatically as
+              users run public audits — start one from the homepage and you&rsquo;ll claim
+              position #1 by default.
+            </p>
+            <Link
+              href="/"
+              className="mt-5 inline-flex items-center rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            >
+              Run a public audit
+            </Link>
+          </div>
+        ) : (
+          // CSS-columns masonry: cleanest cross-browser path; no JS reflow, no
+          // chart-of-life library. Each card is `break-inside-avoid` so it
+          // never splits across columns.
+          <div className="mt-4 columns-1 gap-4 sm:columns-2 lg:columns-3">
+            { deduped.map((r, i) => {
+              const grade = gradeOf(r.risk);
+              const og = ogFor(r);
+              const host = hostOf(r.sourceUrl);
+              return (
+                <article
+                  key={ r.id }
+                  className="relative mb-4 break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5  backdrop-blur-sm transition-colors hover:border-primary/40 shadow-sm"
+                >
+                  <span className="absolute right-3 top-3 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-[8px] bg-secondary/80 px-1.5 shadow-sm font-mono text-[11px] tabular-nums text-muted-foreground">
+                    { i + 1 }
+                  </span>
+
+                  <SiteThumbnail host={ host } imageUrl={ og.image } />
+
+                  <h3 className="mt-1 mx-1 text-base font-semibold tracking-tight">
+                    <Link
+                      href={ `/r/${r.slug}` }
+                      className="text-foreground transition-colors hover:text-primary hover:underline"
+                    >
+                      { host }
+                    </Link>
+                  </h3>
+                  <p className="mt-0.5 mx-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                    { og.description ?? `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-end gap-2 mr-2">
+                    <span
+                      className={ `inline-flex h-7 w-7 items-center justify-center rounded-md font-mono text-sm font-bold ${grade.bg} ${grade.text}` }
+                      title={ `Grade ${grade.letter} · ${grade.band}` }
+                    >
+                      { grade.letter }
+                    </span>
+                    <span className="font-mono text-sm m font-semibold tabular-nums text-foreground">
+                      { r.risk ?? "—" }
+                    </span>
+                  </div>
+                </article>
+              );
+            }) }
+          </div>
+        ) }
+
+        <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+          <span className="font-mono uppercase tracking-wider text-muted-foreground/80">Grades</span>
+          <GradeKey letter="A" tone="text-success" desc="0–19" />
+          <GradeKey letter="B" tone="text-success/80" desc="20–39" />
+          <GradeKey letter="C" tone="text-warning" desc="40–59" />
+          <GradeKey letter="D" tone="text-warning" desc="60–79" />
+          <GradeKey letter="F" tone="text-destructive" desc="80+" />
+          <span className="ml-auto">Lower = safer</span>
+        </div>
+      </section>
+
+      <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
+        Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
+        completed public audits, deduplicated by hostname so a domain occupies exactly one slot,
+        and sorted ascending by composite score with createdAt as the tiebreaker. Audits below the
+        5-page floor are excluded because too-small samples produce volatile rankings. Pages
+        marked private by their owner never appear, regardless of score. Listings inherit the
+        retention window of the underlying audit, so anonymous entries fall off after 24 hours
+        and free-tier entries after 30 days unless the operator upgrades and pins them. The board
+        first shipped on March 15, 2026 alongside the v0.4.0 engine cut, and the scoring weights
+        were last rebalanced on April 21, 2026 when the AEO category landed.
+      </p>
+
       <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground">
         <p>
-          The pseolint leaderboard ranks programmatic SEO sites by their composite{" "}
+          The pseolint leaderboard ranks programmatic SEO sites by their composite{ " " }
           <span className="text-foreground">risk score</span> — a 0-to-100 number where lower
-          is better. The score is a weighted aggregate of findings across{" "}
+          is better. The score is a weighted aggregate of findings across{ " " }
           <span className="text-foreground">42 rules in 8 categories</span>: spam, content,
           aeo, links, tech, data, schema, and cannibal. Each finding contributes
           severity-weighted points (critical = 40, error = 25, warning = 12, info = 5),
           capped per category, then combined using fixed category weights.
         </p>
         <p>
-          The dominant signal is the spam category, weighted at{" "}
+          The dominant signal is the spam category, weighted at{ " " }
           <span className="text-foreground">33%</span>, because doorway-style scaled abuse is
           what Google&rsquo;s SpamBrain classifier targets most aggressively on programmatic
           sites. Content quality contributes 19%, AEO readiness 14%, internal links 11%, and
@@ -199,9 +328,9 @@ export default async function Leaderboard() {
           shipped doorway pattern.
         </p>
         <p>
-          Ranges to keep in mind:{" "}
-          <span className="text-foreground">0&ndash;30 risk = ready</span>,{" "}
-          <span className="text-foreground">31&ndash;60 = concerning</span>,{" "}
+          Ranges to keep in mind:{ " " }
+          <span className="text-foreground">0&ndash;30 risk = ready</span>,{ " " }
+          <span className="text-foreground">31&ndash;60 = concerning</span>,{ " " }
           <span className="text-foreground">61+ = severe</span>. Anything under 30 is healthy
           enough that we wouldn&rsquo;t expect manual-action exposure on the SpamBrain axis.
           The middle band is where most undermaintained pSEO sites live; the top of the band
@@ -217,7 +346,7 @@ export default async function Leaderboard() {
           How sites end up on this leaderboard
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Any audit a user runs with{" "}
+          Any audit a user runs with{ " " }
           <span className="font-mono text-foreground">isPublic = true</span> shows up here once
           it completes and crosses the 5-page minimum. Free-tier audits cost $0 and default to
           public — that&rsquo;s the trade for unlimited one-shot acquisition runs, capped at 3
@@ -239,9 +368,9 @@ export default async function Leaderboard() {
           Scoring methodology
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Audits crawl up to <span className="text-foreground">100 pages on the free tier</span>{" "}
+          Audits crawl up to <span className="text-foreground">100 pages on the free tier</span>{ " " }
           and <span className="text-foreground">500 on Pro</span>, sampling URLs from the
-          sitemap and the homepage&rsquo;s outbound links. Render mode is opt-in via the{" "}
+          sitemap and the homepage&rsquo;s outbound links. Render mode is opt-in via the{ " " }
           <span className="font-mono text-foreground">--render</span> flag — useful for SPA
           frameworks that hydrate content client-side, but skipped by default to keep audits
           fast and deterministic. Each sampled page runs through every rule in the engine, and
@@ -258,107 +387,95 @@ export default async function Leaderboard() {
           quickly.
         </p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-          {CATEGORY_BREAKDOWN.map((cat) => (
+          { CATEGORY_BREAKDOWN.map((cat) => (
             <li
-              key={cat.key}
+              key={ cat.key }
               className="rounded-2xl border border-border/70 bg-card/40 p-4 text-sm"
             >
               <div className="flex items-baseline justify-between">
-                <span className="font-mono font-semibold text-foreground">{cat.key}</span>
-                <span className="text-xs text-muted-foreground">{cat.weight}</span>
+                <span className="font-mono font-semibold text-foreground">{ cat.key }</span>
+                <span className="text-xs text-muted-foreground">{ cat.weight }</span>
               </div>
-              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{cat.blurb}</p>
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{ cat.blurb }</p>
             </li>
-          ))}
+          )) }
         </ul>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold tracking-tight text-foreground">
-          {deduped.length === 0 ? "Be the first on the board" : "Current rankings"}
-        </h2>
-        {deduped.length === 0 ? (
-          <div className="mt-4 rounded-[28px] border border-dashed border-border bg-card/30 p-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              No public audits have completed yet. The leaderboard populates automatically as
-              users run public audits — start one from the homepage and you&rsquo;ll claim
-              position #1 by default.
-            </p>
-            <Link
-              href="/"
-              className="mt-5 inline-flex items-center rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
-            >
-              Run a public audit
-            </Link>
-          </div>
-        ) : (
-          <div className="mt-4 overflow-hidden rounded-[28px] border border-border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-card/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <th className="py-3 pl-5 pr-4 font-medium">#</th>
-                  <th className="py-3 pr-4 font-medium">Domain</th>
-                  <th className="py-3 pr-4 font-medium">Score</th>
-                  <th className="py-3 pr-5 text-right font-medium">Pages</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deduped.map((r, i) => {
-                  const risk = r.risk ?? 0;
-                  const tone = scoreTone(risk);
-                  return (
-                    <tr
-                      key={r.id}
-                      className="border-b border-border/60 transition-colors last:border-b-0 hover:bg-card/60"
-                    >
-                      <td className="py-3.5 pl-5 pr-4 text-muted-foreground">{i + 1}</td>
-                      <td className="py-3.5 pr-4">
-                        <Link
-                          href={`/r/${r.slug}`}
-                          className="text-foreground transition-colors hover:text-primary hover:underline"
-                        >
-                          {hostOf(r.sourceUrl)}
-                        </Link>
-                      </td>
-                      <td className="py-3.5 pr-4">
-                        <span className={`font-mono font-semibold ${tone}`}>
-                          {r.risk ?? "—"}
-                        </span>
-                      </td>
-                      <td className="py-3.5 pr-5 text-right text-muted-foreground">
-                        {r.pageCount ?? "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-          <LegendDot className="bg-success" label="0–40 safe" />
-          <LegendDot className="bg-warning" label="41–69 watch" />
-          <LegendDot className="bg-destructive" label="70+ risky" />
-        </div>
       </section>
     </main>
   );
 }
 
-function LegendDot({ className, label }: { className: string; label: string }) {
+function GradeKey({ letter, tone, desc }: { letter: string; tone: string; desc: string }) {
   return (
-    <span className="inline-flex items-center gap-2">
-      <span className={`inline-block h-1.5 w-1.5 rounded-full ${className}`} />
-      {label}
+    <span className="inline-flex items-center gap-1.5">
+      <span className={ `font-mono text-[10px] font-bold ${tone}` }>{ letter }</span>
+      <span className="text-muted-foreground/80">{ desc }</span>
     </span>
   );
 }
 
-function scoreTone(score: number) {
-  if (score <= 40) return "text-success";
-  if (score <= 69) return "text-warning";
-  return "text-destructive";
+/**
+ * Letter grade derived from risk score (lower-is-safer model).
+ * Mapped to the same tone tokens used elsewhere so the leaderboard's color
+ * language stays consistent with the per-host hero and tile-grid legend.
+ */
+function gradeOf(risk: number | null): { letter: string; band: string; bg: string; text: string } {
+  if (risk == null) {
+    return { letter: "—", band: "no score", bg: "bg-muted/40", text: "text-muted-foreground" };
+  }
+  if (risk < 20) return { letter: "A", band: "ready · 0–19", bg: "bg-success/15", text: "text-success" };
+  if (risk < 40) return { letter: "B", band: "good · 20–39", bg: "bg-success/10", text: "text-success" };
+  if (risk < 60) return { letter: "C", band: "concerning · 40–59", bg: "bg-warning/15", text: "text-warning" };
+  if (risk < 80) return { letter: "D", band: "severe · 60–79", bg: "bg-warning/25", text: "text-warning" };
+  return { letter: "F", band: "critical · 80+", bg: "bg-destructive/15", text: "text-destructive" };
+}
+
+/** Tight relative-time label for card descriptions. Server-rendered at revalidate boundary. */
+function timeAgo(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days === 0) return "today";
+  if (days === 1) return "1 day";
+  if (days < 30) return `${days} days`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo`;
+  return `${Math.floor(months / 12)}y`;
+}
+
+/**
+ * Card thumbnail. Renders the audited site's OG image when we've captured one
+ * (via lazy backfill in the page handler), otherwise a branded gradient + first
+ * letter of host so the card still has visual identity. Plain <img> (not
+ * Next/Image) so we don't need a remote-pattern allowlist for arbitrary hosts;
+ * referrer-policy=no-referrer prevents leaking the visitor's referer to every
+ * audited domain on first paint.
+ */
+function SiteThumbnail({ host, imageUrl }: { host: string; imageUrl: string | null }) {
+  if (imageUrl) {
+    return (
+      <div className="aspect-[16/10] overflow-hidden rounded-[14px] border border-border/40 bg-secondary/40">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt={`${host} preview`}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+        />
+      </div>
+    );
+  }
+  const initial = host.replace(/^www\./, "").charAt(0).toUpperCase();
+  return (
+    <div className="grid aspect-[16/10] place-items-center overflow-hidden rounded-[14px] border border-border/40 bg-gradient-to-br from-secondary/50 via-secondary/20 to-card/60">
+      <span
+        className="font-mono text-4xl font-semibold text-muted-foreground/60"
+        aria-hidden
+      >
+        { initial }
+      </span>
+    </div>
+  );
 }
 
 function hostOf(url: string): string {

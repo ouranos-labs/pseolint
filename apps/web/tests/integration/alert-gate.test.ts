@@ -4,8 +4,9 @@ import { findingsState, monitoredDomains, users, alertsDedup } from "@/db/schema
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 import { publicSlug } from "@/lib/slug";
 import { eq } from "drizzle-orm";
+import { RUN_DB_INTEGRATION } from "../util/db-integration";
 
-describe("evaluateAlertGate", () => {
+describe.skipIf(!RUN_DB_INTEGRATION)("evaluateAlertGate", () => {
   let userId: string;
   let domainId: string;
 

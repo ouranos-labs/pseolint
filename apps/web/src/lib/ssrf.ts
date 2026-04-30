@@ -2,6 +2,20 @@ import { promises as dns } from "node:dns";
 import net from "node:net";
 
 const ALLOWED_SCHEMES = new Set(["http:", "https:"]);
+// Cap DNS lookup so unreachable internal hostnames (metadata.google.internal,
+// corporate sinkholes, etc.) reject quickly instead of hanging on the OS
+// resolver's longer default timeout. 2s is well above public-DNS p99.
+const DNS_TIMEOUT_MS = 2000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("dns lookup timeout")), ms);
+    p.then(
+      (v) => { clearTimeout(timer); resolve(v); },
+      (e) => { clearTimeout(timer); reject(e); },
+    );
+  });
+}
 const PRIVATE_V4 = [
   ["0.0.0.0", "0.255.255.255"],
   ["10.0.0.0", "10.255.255.255"],
@@ -52,7 +66,7 @@ export async function isSafePublicUrl(raw: string): Promise<boolean> {
   // for short-lived requests than c-ares-based resolve4/resolve6 — those time
   // out under cold-start conditions and falsely reject valid public domains.
   try {
-    const addrs = await dns.lookup(host, { all: true });
+    const addrs = await withTimeout(dns.lookup(host, { all: true }), DNS_TIMEOUT_MS);
     if (addrs.length === 0) return false;
     for (const { address, family } of addrs) {
       if (family === 4 && isPrivateV4(address)) return false;

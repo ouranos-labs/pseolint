@@ -5,8 +5,9 @@ import { uploadTokens, monitoredDomains, users, findingsState } from "@/db/schem
 import { createUploadToken } from "@/lib/upload-token";
 import { publicSlug } from "@/lib/slug";
 import { eq } from "drizzle-orm";
+import { RUN_DB_INTEGRATION } from "../util/db-integration";
 
-describe("POST /api/audits/upload", () => {
+describe.skipIf(!RUN_DB_INTEGRATION)("POST /api/audits/upload", () => {
   let token: string;
   let userId: string;
   let domainId: string;

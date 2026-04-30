@@ -4,10 +4,11 @@ import { rateLimits } from "@/db/schema";
 import { reserveAnonAuditSlot, ANON_DAILY_CAP } from "@/lib/audit-limits";
 import { hashIp } from "@/lib/ip";
 import { like } from "drizzle-orm";
+import { RUN_DB_INTEGRATION } from "../util/db-integration";
 
 const IP = "203.0.113.42";
 
-describe("anon audit rate limit", () => {
+describe.skipIf(!RUN_DB_INTEGRATION)("anon audit rate limit", () => {
   beforeEach(async () => {
     await db.delete(rateLimits).where(like(rateLimits.key, `anon:audit:${hashIp(IP)}:%`));
   });

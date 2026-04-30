@@ -5,8 +5,9 @@ import { eq } from "drizzle-orm";
 import { mergeFindings } from "@/lib/findings-state";
 import { publicSlug } from "@/lib/slug";
 import type { RuleResult } from "@pseolint/core";
+import { RUN_DB_INTEGRATION } from "../util/db-integration";
 
-describe("mergeFindings", () => {
+describe.skipIf(!RUN_DB_INTEGRATION)("mergeFindings", () => {
   let userId: string;
   let domainId: string;
 

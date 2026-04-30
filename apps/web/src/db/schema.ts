@@ -78,6 +78,11 @@ export const audits = pgTable("audit", {
   siteClassification: jsonb("site_classification").$type<SiteClassification>(),
   storageKey: text("storage_key"),
   errorMessage: text("error_message"),
+  /** OG metadata captured from the audited site's homepage — used by the leaderboard
+   *  card layout. Lazily backfilled on leaderboard render for legacy rows. */
+  ogTitle: text("og_title"),
+  ogDescription: text("og_description"),
+  ogImageUrl: text("og_image_url"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
