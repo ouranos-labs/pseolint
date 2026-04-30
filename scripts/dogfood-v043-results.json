@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-04-30T18:18:51.268Z",
+  "capturedAt": "2026-04-30T18:35:05.762Z",
   "phase": "v0.4.3",
   "results": [
     {
@@ -10,35 +10,35 @@
       "detectedFramework": "nextjs",
       "audit": {
         "verdict": "ready",
-        "risk": 15,
-        "pageCount": 5,
-        "blockers": 7,
+        "risk": 11,
+        "pageCount": 3,
+        "blockers": 4,
         "shouldFix": 6,
-        "informational": 11,
+        "informational": 9,
         "classification": "docs",
         "classificationConfidence": 0.7,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 6977,
+        "durationMs": 6793,
         "topDrivers": [
           {
             "ruleId": "tech/canonical-consistency",
-            "count": 4,
-            "impact": 100,
+            "count": 3,
+            "impact": 75,
             "severities": [
               "error"
             ]
           },
           {
             "ruleId": "aeo/freshness-signals",
-            "count": 5,
-            "impact": 60,
+            "count": 3,
+            "impact": 36,
             "severities": [
               "warning"
             ]
           },
           {
-            "ruleId": "spam/thin-content",
+            "ruleId": "links/orphan-pages",
             "count": 1,
             "impact": 25,
             "severities": [
@@ -56,39 +56,83 @@
       "detectedFramework": "nextjs",
       "audit": {
         "verdict": "ready",
-        "risk": 15,
-        "pageCount": 5,
-        "blockers": 7,
-        "shouldFix": 38,
-        "informational": 1,
+        "risk": 8,
+        "pageCount": 3,
+        "blockers": 3,
+        "shouldFix": 25,
+        "informational": 3,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 4280,
+        "durationMs": 3481,
         "topDrivers": [
           {
             "ruleId": "tech/hreflang-consistency",
-            "count": 30,
-            "impact": 360,
+            "count": 18,
+            "impact": 216,
             "severities": [
               "warning"
             ]
           },
           {
             "ruleId": "aeo/citable-facts",
-            "count": 5,
-            "impact": 125,
+            "count": 3,
+            "impact": 75,
             "severities": [
               "error"
             ]
           },
           {
-            "ruleId": "aeo/freshness-signals",
-            "count": 5,
-            "impact": 60,
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 36,
             "severities": [
               "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://docs.python.org/3/",
+      "expectedType": "docs",
+      "humanGrade": "ready",
+      "audit": {
+        "verdict": "ready",
+        "risk": 15,
+        "pageCount": 2,
+        "blockers": 7,
+        "shouldFix": 2,
+        "informational": 3,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 1,
+        "durationMs": 1316,
+        "topDrivers": [
+          {
+            "ruleId": "spam/thin-content",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
             ]
           }
         ]
@@ -100,38 +144,38 @@
       "humanGrade": "ready",
       "detectedFramework": "nextjs",
       "audit": {
-        "verdict": "ready",
-        "risk": 9,
-        "pageCount": 5,
-        "blockers": 1,
-        "shouldFix": 356,
-        "informational": 11,
+        "verdict": "caution",
+        "risk": 21,
+        "pageCount": 3,
+        "blockers": 7,
+        "shouldFix": 221,
+        "informational": 6,
         "classification": "small-marketing",
         "classificationConfidence": 0.88,
         "suppressedRules": 4,
         "skippedUrls": 0,
-        "durationMs": 12438,
+        "durationMs": 6681,
         "topDrivers": [
           {
             "ruleId": "tech/hreflang-consistency",
-            "count": 350,
-            "impact": 4200,
+            "count": 216,
+            "impact": 2592,
             "severities": [
               "warning"
             ]
           },
           {
-            "ruleId": "aeo/freshness-signals",
-            "count": 5,
-            "impact": 60,
+            "ruleId": "content/unique-value",
+            "count": 3,
+            "impact": 75,
             "severities": [
-              "warning"
+              "error"
             ]
           },
           {
             "ruleId": "links/orphan-pages",
-            "count": 1,
-            "impact": 25,
+            "count": 2,
+            "impact": 50,
             "severities": [
               "error"
             ]
@@ -144,8 +188,179 @@
       "expectedType": "small-marketing",
       "humanGrade": "ready",
       "detectedFramework": "nextjs",
-      "audit": null,
-      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 1420ms is 2.1× the warmup baseline 681ms. p95=1420ms, baseline=681ms, 5xx=0%, fetches=11."
+      "audit": {
+        "verdict": "ready",
+        "risk": 4,
+        "pageCount": 1,
+        "blockers": 1,
+        "shouldFix": 2,
+        "informational": 1,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 2,
+        "durationMs": 21697,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 1,
+            "impact": 12,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 1,
+            "impact": 12,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://supabase.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 9,
+        "pageCount": 2,
+        "blockers": 3,
+        "shouldFix": 6,
+        "informational": 2,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 1,
+        "durationMs": 5810,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "tech/canonical-consistency",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 2,
+            "impact": 24,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://posthog.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 4,
+        "pageCount": 3,
+        "blockers": 0,
+        "shouldFix": 6,
+        "informational": 7,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.85,
+        "suppressedRules": 4,
+        "skippedUrls": 0,
+        "durationMs": 6173,
+        "topDrivers": [
+          {
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.shopify.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "audit": {
+        "verdict": "ready",
+        "risk": 19,
+        "pageCount": 3,
+        "blockers": 4,
+        "shouldFix": 192,
+        "informational": 6,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.88,
+        "suppressedRules": 4,
+        "skippedUrls": 0,
+        "durationMs": 5646,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 186,
+            "impact": 2232,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "spam/near-duplicate",
+            "count": 1,
+            "impact": 40,
+            "severities": [
+              "critical"
+            ]
+          }
+        ]
+      }
     },
     {
       "url": "https://www.allbirds.com",
@@ -153,8 +368,91 @@
       "expectedFramework": "shopify",
       "humanGrade": "ready",
       "detectedFramework": "shopify",
-      "audit": null,
-      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 2471ms is 16.0× the warmup baseline 154ms. p95=2471ms, baseline=154ms, 5xx=0%, fetches=17."
+      "audit": {
+        "verdict": "caution",
+        "risk": 24,
+        "pageCount": 3,
+        "blockers": 7,
+        "shouldFix": 262,
+        "informational": 3,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 24149,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 252,
+            "impact": 3024,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "schema/json-ld-valid",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.gymshark.com",
+      "expectedType": "ecommerce",
+      "expectedFramework": "shopify",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 10,
+        "pageCount": 3,
+        "blockers": 3,
+        "shouldFix": 49,
+        "informational": 3,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 26812,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 42,
+            "impact": 504,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
     },
     {
       "url": "https://wordpress.com",
@@ -164,27 +462,73 @@
       "detectedFramework": "wordpress",
       "audit": {
         "verdict": "ready",
-        "risk": 12,
-        "pageCount": 5,
-        "blockers": 1,
-        "shouldFix": 83,
+        "risk": 9,
+        "pageCount": 3,
+        "blockers": 0,
+        "shouldFix": 69,
         "informational": 10,
         "classification": "small-marketing",
         "classificationConfidence": 0.75,
         "suppressedRules": 4,
         "skippedUrls": 0,
-        "durationMs": 14428,
+        "durationMs": 16648,
         "topDrivers": [
           {
             "ruleId": "tech/hreflang-consistency",
-            "count": 78,
-            "impact": 936,
+            "count": 61,
+            "impact": 732,
             "severities": [
               "warning"
             ]
           },
           {
-            "ruleId": "links/unreachable-from-root",
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "spam/thin-content",
+            "count": 2,
+            "impact": 24,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://blog.cloudflare.com",
+      "expectedType": "blog",
+      "humanGrade": "ready",
+      "detectedFramework": "astro",
+      "audit": {
+        "verdict": "ready",
+        "risk": 15,
+        "pageCount": 3,
+        "blockers": 2,
+        "shouldFix": 43,
+        "informational": 6,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.75,
+        "suppressedRules": 4,
+        "skippedUrls": 0,
+        "durationMs": 18891,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 38,
+            "impact": 442,
+            "severities": [
+              "info",
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
             "count": 3,
             "impact": 36,
             "severities": [
@@ -203,42 +547,42 @@
       }
     },
     {
-      "url": "https://www.shopify.com",
-      "expectedType": "small-marketing",
-      "humanGrade": "ready",
+      "url": "https://www.softschools.com",
+      "expectedType": "programmatic-directory",
+      "humanGrade": "concerning",
       "audit": {
-        "verdict": "caution",
-        "risk": 28,
-        "pageCount": 5,
-        "blockers": 8,
-        "shouldFix": 306,
-        "informational": 9,
-        "classification": "small-marketing",
-        "classificationConfidence": 0.88,
-        "suppressedRules": 4,
+        "verdict": "ready",
+        "risk": 19,
+        "pageCount": 3,
+        "blockers": 11,
+        "shouldFix": 7,
+        "informational": 3,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 5645,
+        "durationMs": 15938,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 300,
-            "impact": 3600,
+            "ruleId": "tech/canonical-consistency",
+            "count": 3,
+            "impact": 75,
             "severities": [
-              "warning"
+              "error"
             ]
           },
           {
-            "ruleId": "spam/doorway-pattern",
+            "ruleId": "aeo/citable-facts",
             "count": 3,
-            "impact": 120,
+            "impact": 75,
             "severities": [
-              "critical"
+              "error"
             ]
           },
           {
             "ruleId": "content/unique-value",
-            "count": 3,
-            "impact": 75,
+            "count": 2,
+            "impact": 50,
             "severities": [
               "error"
             ]
@@ -247,11 +591,50 @@
       }
     },
     {
-      "url": "https://www.softschools.com",
+      "url": "https://www.expatistan.com",
       "expectedType": "programmatic-directory",
-      "humanGrade": "concerning",
-      "audit": null,
-      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 1635ms is 6.4× the warmup baseline 255ms. p95=1635ms, baseline=255ms, 5xx=0%, fetches=31."
+      "humanGrade": "caution",
+      "audit": {
+        "verdict": "ready",
+        "risk": 12,
+        "pageCount": 3,
+        "blockers": 2,
+        "shouldFix": 18,
+        "informational": 6,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 22260,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 9,
+            "impact": 87,
+            "severities": [
+              "info",
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 2,
+            "impact": 37,
+            "severities": [
+              "error",
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 36,
+            "severities": [
+              "warning"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

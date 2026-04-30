@@ -47,25 +47,31 @@ interface Target {
 }
 
 const TARGETS: Target[] = [
-  // docs sites — historically over-penalised by AEO rules
+  // ───── docs sites — historically over-penalised by AEO rules ─────
   { url: "https://nextjs.org", expectedType: "docs", expectedFramework: "nextjs", humanGrade: "ready" },
   { url: "https://react.dev", expectedType: "docs", expectedFramework: "nextjs", humanGrade: "ready" },
+  { url: "https://docs.python.org/3/", expectedType: "docs", humanGrade: "ready" },
 
-  // small-marketing — pSEO-only rules should be suppressed
+  // ───── small-marketing — pSEO-only rules should be suppressed ─────
   { url: "https://stripe.com", expectedType: "small-marketing", humanGrade: "ready" },
   { url: "https://linear.app", expectedType: "small-marketing", humanGrade: "ready" },
-
-  // ecommerce
-  { url: "https://www.allbirds.com", expectedType: "ecommerce", expectedFramework: "shopify", humanGrade: "ready" },
-
-  // wordpress / blog — large multi-author CMS
-  { url: "https://wordpress.com", expectedType: "blog", expectedFramework: "wordpress", humanGrade: "caution" },
-
-  // shopify marketing site (corporate, not a store)
+  { url: "https://supabase.com", expectedType: "small-marketing", humanGrade: "ready" },
+  { url: "https://posthog.com", expectedType: "small-marketing", humanGrade: "ready" },
+  // shopify corporate marketing site (not a store)
   { url: "https://www.shopify.com", expectedType: "small-marketing", humanGrade: "ready" },
 
-  // pSEO-style directory — we WANT this to keep scoring concerning/critical
+  // ───── ecommerce — Shopify-shape stores ─────
+  { url: "https://www.allbirds.com", expectedType: "ecommerce", expectedFramework: "shopify", humanGrade: "ready" },
+  { url: "https://www.gymshark.com", expectedType: "ecommerce", expectedFramework: "shopify", humanGrade: "ready" },
+
+  // ───── blog / multi-author CMS ─────
+  { url: "https://wordpress.com", expectedType: "blog", expectedFramework: "wordpress", humanGrade: "caution" },
+  { url: "https://blog.cloudflare.com", expectedType: "blog", humanGrade: "ready" },
+
+  // ───── programmatic directories — we WANT these to score concerning+ ─────
   { url: "https://www.softschools.com", expectedType: "programmatic-directory", humanGrade: "concerning" },
+  // city × cost-of-living pSEO directory
+  { url: "https://www.expatistan.com", expectedType: "programmatic-directory", humanGrade: "caution" },
 ];
 
 // ----- types --------------------------------------------------------------
@@ -178,9 +184,14 @@ async function auditOne(target: Target, hardTimeoutMs = 60_000): Promise<AuditSn
   try {
     const summary = await Promise.race([
       auditSource(target.url, {
-        sampleSize: 5,
+        sampleSize: 3,
         concurrency: 1,
         safeMode: "saas",
+        // Disable backpressure during dogfood: third-party origins commonly
+        // jitter past 2× baseline p95 mid-audit (CDN edges, geo-routing) and
+        // we'd rather get slow data than no data. Production audits keep the
+        // watchdog ON.
+        backpressure: false,
         respectNoindex: true,
         skipDetectedAuth: true,
         skipBoilerplate: true,

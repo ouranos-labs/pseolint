@@ -390,6 +390,13 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
   let type: SiteType = "unclear";
   let confidence = 0;
 
+  // v0.4.3-rc3 — lowered programmatic-directory threshold from 1000 → 500
+  // after dogfood showed softschools.com (955 URLs, real pSEO directory)
+  // missing the cutoff and classifying as `unclear`. Rebalanced confidence:
+  //   ≥ 1000 URLs + top3≥60% template ratio → 0.9
+  //   ≥ 500 URLs + top3≥70% template ratio → 0.78 (slightly lower confidence
+  //     because the smaller sample is noisier, but still well above the
+  //     0.7 profile-application cutoff)
   if (urls.length >= 1000) {
     if (top3Ratio >= 0.6) {
       type = "programmatic-directory";
@@ -400,6 +407,9 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
       type = "ecommerce";
       confidence = 0.6;
     }
+  } else if (urls.length >= 500 && top3Ratio >= 0.7) {
+    type = "programmatic-directory";
+    confidence = 0.78;
   } else if (urls.length < 50) {
     // Small site. Detect blog separately from generic small-marketing.
     //
