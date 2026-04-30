@@ -23,7 +23,7 @@ describe("mergeFindings", () => {
     const findings: RuleResult[] = [
       { ruleId: "spam/thin-content", severity: "warning", message: "thin", pageUrl: "https://ex.com/p/1" },
     ];
-    await mergeFindings(domainId, findings, 1000);
+    await mergeFindings(domainId, findings);
     const rows = await db.select().from(findingsState).where(eq(findingsState.domainId, domainId));
     expect(rows).toHaveLength(1);
     expect(rows[0].firstSeenAt.getTime()).toBe(rows[0].lastSeenAt.getTime());
@@ -31,10 +31,10 @@ describe("mergeFindings", () => {
 
   it("updates last_seen and page count on recurrence", async () => {
     const f: RuleResult = { ruleId: "spam/thin-content", severity: "warning", message: "thin", pageUrl: "https://ex.com/p/1" };
-    await mergeFindings(domainId, [f], 1000);
+    await mergeFindings(domainId, [f]);
     const t1 = (await db.select().from(findingsState).where(eq(findingsState.domainId, domainId)))[0];
     await new Promise((r) => setTimeout(r, 5));
-    await mergeFindings(domainId, [f, { ...f, pageUrl: "https://ex.com/p/2" }], 1000);
+    await mergeFindings(domainId, [f, { ...f, pageUrl: "https://ex.com/p/2" }]);
     const t2 = (await db.select().from(findingsState).where(eq(findingsState.domainId, domainId)))[0];
     expect(t2.firstSeenAt.getTime()).toBe(t1.firstSeenAt.getTime());
     expect(t2.lastSeenAt.getTime()).toBeGreaterThan(t1.lastSeenAt.getTime());
@@ -42,9 +42,9 @@ describe("mergeFindings", () => {
 
   it("does not resurrect dismissed findings", async () => {
     const f: RuleResult = { ruleId: "spam/thin-content", severity: "warning", message: "thin", pageUrl: "https://ex.com/p/1" };
-    await mergeFindings(domainId, [f], 1000);
+    await mergeFindings(domainId, [f]);
     await db.update(findingsState).set({ status: "dismissed" }).where(eq(findingsState.domainId, domainId));
-    await mergeFindings(domainId, [f], 1000);
+    await mergeFindings(domainId, [f]);
     const row = (await db.select().from(findingsState).where(eq(findingsState.domainId, domainId)))[0];
     expect(row.status).toBe("dismissed");
   });
@@ -52,7 +52,7 @@ describe("mergeFindings", () => {
   it("stores CMS-aware rewritten message", async () => {
     await mergeFindings(domainId, [
       { ruleId: "spam/thin-content", severity: "warning", message: "thin", pageUrl: "https://ex.com/collections/p/a" },
-    ], 1000);
+    ]);
     const [row] = await db.select().from(findingsState).where(eq(findingsState.domainId, domainId));
     expect(row.ruleMessageLatest).toMatch(/Webflow Collection/i);
   });

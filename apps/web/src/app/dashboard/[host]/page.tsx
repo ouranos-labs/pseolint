@@ -22,7 +22,8 @@ import { CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
 import { ExportMenu } from "@/components/report/export-menu";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
-import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
+import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
+import { TileLegend } from "@/components/audit/tile-legend";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 
@@ -100,6 +101,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   }
 
   const tileStates = summary ? summaryToTileStates(summary) : [];
+  const tileMeta = summary ? summaryToTileMeta(summary, domain.host) : [];
   const counts = summary ? severityCounts(summary) : null;
   const cleanPages = summary ? cleanPageCount(summary) : null;
 
@@ -300,22 +302,29 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
               </span>
             </div>
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
               {tileStates.length > 0 ? (
-                <TileGrid
-                  states={tileStates}
-                  title={`${domain.host} — worst rule per page across ${tileStates.length} tiles`}
-                />
+                <>
+                  <TileGrid
+                    states={tileStates}
+                    meta={tileMeta}
+                    title={`${domain.host} — worst rule per page across ${tileStates.length} tiles. Click a tile to see its history.`}
+                  />
+                  <TileLegend
+                    {...pagesByWorstSeverity(summary)}
+                    total={tileStates.length}
+                  />
+                </>
               ) : (
                 <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
                   Tile map unavailable for this audit.
                 </div>
               )}
-              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-                <Stat label="Pages" value={latestAudit.pageCount ?? 0} tone="text-foreground" />
-                <Stat label="Errors" value={counts?.errors ?? 0} tone="text-destructive" />
-                <Stat label="Warnings" value={counts?.warnings ?? 0} tone="text-warning" />
-                <Stat label="Clean pages" value={cleanPages ?? 0} tone="text-success" />
+              <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+                <Stat label="Pages" sub="scanned" value={latestAudit.pageCount ?? 0} tone="text-foreground" />
+                <Stat label="Errors" sub="findings" value={counts?.errors ?? 0} tone="text-destructive" />
+                <Stat label="Warnings" sub="findings" value={counts?.warnings ?? 0} tone="text-warning" />
+                <Stat label="Clean" sub="pages" value={cleanPages ?? 0} tone="text-success" />
               </dl>
             </div>
           </div>
@@ -398,11 +407,12 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
+function Stat({ label, sub, value, tone }: { label: string; sub?: string; value: number; tone: string }) {
   return (
     <div>
       <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
       <dd className={`mt-1 font-mono tabular-nums text-2xl ${tone}`}>{value}</dd>
+      {sub && <span className="font-mono text-[10px] text-muted-foreground/70">{sub}</span>}
     </div>
   );
 }

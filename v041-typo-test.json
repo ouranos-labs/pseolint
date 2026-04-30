@@ -1,0 +1,423 @@
+{
+  "schemaVersion": "2026-04-v0.4",
+  "verdict": "concerning",
+  "risk": 52,
+  "headline": "3 ship-blockers, 26 should-fix",
+  "categories": {
+    "integrity": {
+      "grade": "C",
+      "issues": 2
+    },
+    "discoverability": {
+      "grade": "A",
+      "issues": 1
+    },
+    "citation": {
+      "grade": "F",
+      "issues": 29
+    },
+    "data": {
+      "grade": "A",
+      "issues": 0
+    },
+    "audit": {
+      "grade": "A",
+      "issues": 0
+    }
+  },
+  "issues": {
+    "blockers": [
+      {
+        "ruleId": "spam/thin-content",
+        "severity": "error",
+        "message": "http://localhost:3003/signin has thin content (12 words).",
+        "fix": "Add at least 288 more words of substantive content relevant to this page's specific topic.",
+        "ref": "https://developers.google.com/search/docs/essentials/spam-policies#thin-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/thin-content"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "error",
+        "message": "http://localhost:3003/signin has 0 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/signin",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "content/unique-value",
+        "severity": "error",
+        "message": "http://localhost:3003/signin has only 4 unique words (min 100).",
+        "pageUrl": "http://localhost:3003/signin",
+        "fix": "Add 96 more words of content not found on any other page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "structural",
+        "docsUrl": "https://pseolint.dev/rules/unique-value"
+      }
+    ],
+    "shouldFix": [
+      {
+        "ruleId": "tech/robots-noindex-conflict",
+        "severity": "warning",
+        "message": "http://localhost:3003/signin is marked noindex (via both HTML meta and X-Robots-Tag) but has 24 inbound internal links.",
+        "pageUrl": "http://localhost:3003/signin",
+        "fix": "Either remove noindex or remove internal links pointing to this page.",
+        "ref": "https://developers.google.com/search/docs/crawling-indexing/block-indexing",
+        "effort": "quick",
+        "docsUrl": "https://pseolint.dev/rules/robots-noindex-conflict"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/signin does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts",
+        "pageUrl": "http://localhost:3003/signin",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/thin-content does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts; no named entities (agencies, laws, proper nouns)",
+        "pageUrl": "http://localhost:3003/rules/thin-content",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/doorway-pattern does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts; no named entities (agencies, laws, proper nouns)",
+        "pageUrl": "http://localhost:3003/rules/doorway-pattern",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/near-duplicate does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts; no named entities (agencies, laws, proper nouns)",
+        "pageUrl": "http://localhost:3003/rules/near-duplicate",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/template-diversity does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts; no named entities (agencies, laws, proper nouns)",
+        "pageUrl": "http://localhost:3003/rules/template-diversity",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/lost-rankings-after-google-update does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts",
+        "pageUrl": "http://localhost:3003/symptoms/lost-rankings-after-google-update",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/traffic-drop-no-update does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts",
+        "pageUrl": "http://localhost:3003/symptoms/traffic-drop-no-update",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/answer-first",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/thin-content-warning-search-console does not open with a direct, extractable answer: no specific numbers, dates, or dollar amounts",
+        "pageUrl": "http://localhost:3003/symptoms/thin-content-warning-search-console",
+        "fix": "Restructure the template to open with entity-specific facts. Instead of boilerplate or a topic preamble, lead with a complete-answer sentence containing the key number, date, agency, or form name a reader (or AI Overview) would cite. Target: <100 words, at least one concrete number, at least one named entity.",
+        "ref": "https://developers.google.com/search/docs/appearance/featured-snippets",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/answer-first"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/tools has 4 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/tools",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules has 4 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/rules",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms has 5 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/symptoms",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/leaderboard has 5 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/leaderboard",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/limits has 5 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/limits",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/tools/thin-content-scanner has 3 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/tools/thin-content-scanner",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/tools/doorway-page-detector has 4 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/tools/doorway-page-detector",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/privacy has 7 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/privacy",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/terms has 6 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/terms",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/thin-content has 5 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/rules/thin-content",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/near-duplicate has 3 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/rules/near-duplicate",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/boilerplate-ratio has 7 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/rules/boilerplate-ratio",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/rules/template-diversity has 3 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/rules/template-diversity",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/pages-deindexed-bulk has 5 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/symptoms/pages-deindexed-bulk",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/site-reputation-abuse-penalty has 4 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/symptoms/site-reputation-abuse-penalty",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/traffic-drop-no-update has 4 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/symptoms/traffic-drop-no-update",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      },
+      {
+        "ruleId": "aeo/citable-facts",
+        "severity": "warning",
+        "message": "http://localhost:3003/symptoms/thin-content-warning-search-console has 6 unique citable facts. AI Overviews cite specific numbers and named references.",
+        "pageUrl": "http://localhost:3003/symptoms/thin-content-warning-search-console",
+        "fix": "Replace vague language (\"varies\", \"several weeks\", \"affordable\", \"many options\") with specific values a reader or AI engine would cite: exact prices, percentages, dates, timeframes, version numbers, named products, standards, or regulations that apply to this page. For pSEO templates, bind these values from your data source so each page gets entity-specific numbers instead of repeating the same template wording. Target: 8+ unique facts per page.",
+        "ref": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/citable-facts"
+      }
+    ],
+    "informational": [
+      {
+        "ruleId": "schema/consistency",
+        "severity": "info",
+        "message": "Pages use mixed schema types (Article, BreadcrumbList, CollectionPage, Dataset, FAQPage, HowTo, Organization, SoftwareApplication, TechArticle). Consider using a consistent @type across template pages.",
+        "relatedUrls": [
+          "http://localhost:3003/",
+          "http://localhost:3003/tools",
+          "http://localhost:3003/rules",
+          "http://localhost:3003/symptoms",
+          "http://localhost:3003/leaderboard",
+          "http://localhost:3003/pricing",
+          "http://localhost:3003/signin",
+          "http://localhost:3003/limits",
+          "http://localhost:3003/tools/spambrain-checker",
+          "http://localhost:3003/tools/thin-content-scanner",
+          "http://localhost:3003/tools/doorway-page-detector",
+          "http://localhost:3003/research/state-of-pseo-2026",
+          "http://localhost:3003/privacy",
+          "http://localhost:3003/terms",
+          "http://localhost:3003/rules/thin-content",
+          "http://localhost:3003/rules/doorway-pattern",
+          "http://localhost:3003/rules/near-duplicate",
+          "http://localhost:3003/rules/boilerplate-ratio",
+          "http://localhost:3003/rules/template-diversity",
+          "http://localhost:3003/symptoms/lost-rankings-after-google-update",
+          "http://localhost:3003/symptoms/pages-deindexed-bulk",
+          "http://localhost:3003/symptoms/site-reputation-abuse-penalty",
+          "http://localhost:3003/symptoms/traffic-drop-no-update",
+          "http://localhost:3003/symptoms/thin-content-warning-search-console"
+        ],
+        "fix": "Use a consistent @type across all template pages, or separate pages into groups with different schema types.",
+        "ref": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/consistency"
+      },
+      {
+        "ruleId": "aeo/faq-coverage",
+        "severity": "info",
+        "message": "http://localhost:3003/limits contains FAQ-style content (2 question-style headings (e.g. \"How we treat the site we're auditing\", \"What's public vs private\")) but no FAQPage/HowTo JSON-LD.",
+        "pageUrl": "http://localhost:3003/limits",
+        "fix": "Add FAQPage JSON-LD that mirrors the existing Q&A content. For pSEO templates, generate the schema programmatically from the same data source that renders the headings — don't ship identical questions with only the entity name swapped.",
+        "ref": "https://developers.google.com/search/docs/appearance/structured-data/faqpage",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/faq-coverage"
+      },
+      {
+        "ruleId": "aeo/faq-coverage",
+        "severity": "info",
+        "message": "http://localhost:3003/privacy contains FAQ-style content (5 question-style headings (e.g. \"Who is the data controller\", \"What we collect, and why\", \"What we do NOT collect\")) but no FAQPage/HowTo JSON-LD.",
+        "pageUrl": "http://localhost:3003/privacy",
+        "fix": "Add FAQPage JSON-LD that mirrors the existing Q&A content. For pSEO templates, generate the schema programmatically from the same data source that renders the headings — don't ship identical questions with only the entity name swapped.",
+        "ref": "https://developers.google.com/search/docs/appearance/structured-data/faqpage",
+        "effort": "moderate",
+        "docsUrl": "https://pseolint.dev/rules/faq-coverage"
+      }
+    ]
+  },
+  "siteClassification": {
+    "type": "small-marketing",
+    "confidence": 0.9,
+    "signals": [
+      {
+        "kind": "sitemap-url-count",
+        "value": 26
+      },
+      {
+        "kind": "url-pattern-cluster-coverage",
+        "topTemplate": "/rules/:slug",
+        "pages": 5,
+        "ratio": 0.19230769230769232
+      },
+      {
+        "kind": "framework-detected",
+        "value": "nextjs"
+      }
+    ],
+    "suppressedRules": [
+      "spam/template-coverage",
+      "spam/template-diversity",
+      "spam/entity-swap",
+      "cannibal/url-pattern"
+    ]
+  },
+  "diagnostics": {
+    "originReadiness": null,
+    "crawlStats": {
+      "discovered": 26,
+      "fetched": 24,
+      "skipped": 1
+    },
+    "auditFindings": []
+  },
+  "pageCount": 24,
+  "templateDetected": false,
+  "rawFindingCount": 32,
+  "cacheStats": {
+    "hits": 27,
+    "total": 27,
+    "bytesSavedEstimate": 2383647
+  }
+}

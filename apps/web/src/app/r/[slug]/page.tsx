@@ -18,7 +18,8 @@ import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
 import { ReauditButton } from "@/components/report/reaudit-button";
 import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
-import { summaryToTileStates, severityCounts, cleanPageCount } from "@/lib/audit-tiles";
+import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
+import { TileLegend } from "@/components/audit/tile-legend";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 
 export const runtime = "nodejs";
@@ -463,36 +464,47 @@ function V04Hero({
         </div>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
         {tileStates.length > 0 ? (
-          <TileGrid
-            states={tileStates}
-            title={`${host} — worst rule per page across ${tileStates.length} tiles`}
-          />
+          <>
+            <TileGrid
+              states={tileStates}
+              meta={summaryToTileMeta(summary)}
+              title={`${host} — worst rule per page across ${tileStates.length} tiles. Hover for page details.`}
+            />
+            <TileLegend
+              {...pagesByWorstSeverity(summary)}
+              total={tileStates.length}
+            />
+          </>
         ) : (
           <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
             Tile map unavailable for this audit. Full report below.
           </div>
         )}
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-5">
-          <Stat label="Pages" value={pageCount} tone="text-foreground" />
+        <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-5">
+          <Stat label="Pages" sub="scanned" value={pageCount} tone="text-foreground" />
           <Stat
             label="Blockers"
+            sub="findings"
             value={summary.issues.blockers.length}
             tone="text-destructive"
           />
           <Stat
             label="Should fix"
+            sub="findings"
             value={summary.issues.shouldFix.length}
             tone="text-warning"
           />
           <Stat
             label="Info"
+            sub="findings"
             value={summary.issues.informational.length}
             tone="text-muted-foreground"
           />
           <Stat
-            label="Clean pages"
+            label="Clean"
+            sub="pages"
             value={cleanPages ?? 0}
             tone="text-success"
             placeholder={cleanPages == null}
@@ -544,33 +556,42 @@ function LegacyHero({
         </span>
       </div>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
         {tileStates.length > 0 ? (
-          <TileGrid
-            states={tileStates}
-            title={`${host} — worst rule per page across ${tileStates.length} tiles`}
-          />
+          <>
+            <TileGrid
+              states={tileStates}
+              title={`${host} — worst rule per page across ${tileStates.length} tiles`}
+            />
+            <TileLegend
+              {...countTileStates(tileStates)}
+              total={tileStates.length}
+            />
+          </>
         ) : (
           <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
             Tile map unavailable for this audit. Full report below.
           </div>
         )}
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-          <Stat label="Pages" value={pageCount} tone="text-foreground" />
+        <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
+          <Stat label="Pages" sub="scanned" value={pageCount} tone="text-foreground" />
           <Stat
             label="Errors"
+            sub="findings"
             value={counts?.errors ?? 0}
             tone="text-destructive"
             placeholder={!counts}
           />
           <Stat
             label="Warnings"
+            sub="findings"
             value={counts?.warnings ?? 0}
             tone="text-warning"
             placeholder={!counts}
           />
           <Stat
-            label="Clean pages"
+            label="Clean"
+            sub="pages"
             value={cleanPages ?? 0}
             tone="text-success"
             placeholder={cleanPages == null}
@@ -579,6 +600,17 @@ function LegacyHero({
       </div>
     </div>
   );
+}
+
+function countTileStates(states: import("@/components/landing/tile-grid").TileState[]) {
+  let blockers = 0, shouldFix = 0, info = 0, clean = 0;
+  for (const s of states) {
+    if (s === "error") blockers++;
+    else if (s === "warning") shouldFix++;
+    else if (s === "info") info++;
+    else if (s === "clean") clean++;
+  }
+  return { blockers, shouldFix, info, clean };
 }
 
 /**
@@ -785,11 +817,14 @@ function CoverageCallout({ pageCount }: { pageCount: number }) {
 
 function Stat({
   label,
+  sub,
   value,
   tone,
   placeholder = false,
 }: {
   label: string;
+  /** Tiny subtitle that disambiguates page-counts from finding-counts. */
+  sub?: string;
   value: number;
   tone: string;
   placeholder?: boolean;
@@ -800,6 +835,9 @@ function Stat({
       <dd className={`font-mono text-lg tabular-nums ${placeholder ? "text-muted-foreground/50" : tone}`}>
         {placeholder ? "—" : value}
       </dd>
+      {sub && (
+        <span className="font-mono text-[10px] text-muted-foreground/70">{sub}</span>
+      )}
     </div>
   );
 }

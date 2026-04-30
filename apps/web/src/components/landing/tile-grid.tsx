@@ -2,8 +2,18 @@ import { cn } from "@/lib/cn";
 
 export type TileState = "unscanned" | "clean" | "info" | "warning" | "error";
 
+/** Per-tile context. When provided in same order as `states`, enables tooltip + drill-down. */
+export type TileMeta = {
+  /** Hover text. Required when meta is provided so the tile is self-explanatory. */
+  label: string;
+  /** Optional drill-down target. Tile becomes an SVG <a> when set. */
+  href?: string;
+};
+
 export type TileGridProps = {
   states: TileState[];
+  /** Per-tile metadata (tooltip + optional href). Length must match states[]. */
+  meta?: TileMeta[];
   cols?: number;
   rows?: number;
   className?: string;
@@ -13,7 +23,7 @@ export type TileGridProps = {
 const GAP = 0.18;
 const RADIUS = 0.3;
 
-export function TileGrid({ states, cols = 25, rows = 8, className, title }: TileGridProps) {
+export function TileGrid({ states, meta, cols = 25, rows = 8, className, title }: TileGridProps) {
   const total = cols * rows;
   return (
     <svg
@@ -28,9 +38,9 @@ export function TileGrid({ states, cols = 25, rows = 8, className, title }: Tile
         const col = i % cols;
         const row = Math.floor(i / cols);
         const state = states[i] ?? "unscanned";
-        return (
+        const m = meta?.[i];
+        const rect = (
           <rect
-            key={i}
             x={col + GAP / 2}
             y={row + GAP / 2}
             width={1 - GAP}
@@ -40,6 +50,23 @@ export function TileGrid({ states, cols = 25, rows = 8, className, title }: Tile
             style={{ transition: "fill 320ms cubic-bezier(0.2,0.7,0.2,1)" }}
           />
         );
+        if (m?.href) {
+          return (
+            <a key={i} href={m.href} aria-label={m.label} className="cursor-pointer">
+              {rect}
+              <title>{m.label}</title>
+            </a>
+          );
+        }
+        if (m?.label) {
+          return (
+            <g key={i}>
+              {rect}
+              <title>{m.label}</title>
+            </g>
+          );
+        }
+        return <g key={i}>{rect}</g>;
       })}
     </svg>
   );
@@ -52,7 +79,8 @@ function tileFill(state: TileState): string {
     case "clean":
       return "hsl(var(--success) / 0.55)";
     case "info":
-      return "hsl(var(--warning) / 0.3)";
+      // Distinct neutral tone so info pages don't look like washed-out warnings.
+      return "hsl(var(--muted-foreground) / 0.55)";
     case "warning":
       return "hsl(var(--warning) / 0.75)";
     case "error":
