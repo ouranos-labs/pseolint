@@ -71,6 +71,20 @@
       "when": 1777536339167,
       "tag": "0009_slack_webhook_url",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1777800000000,
+      "tag": "0010_audit_og_meta",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1778000000000,
+      "tag": "0011_audit_scrape_plan",
+      "breakpoints": true
     }
   ]
 }

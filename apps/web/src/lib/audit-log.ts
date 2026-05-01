@@ -29,6 +29,8 @@ export type AuditLogEvent =
   | "monitor.alert_gate.email_failed"
   | "monitor.alert_gate.slack_failed"
   | "monitor.auto_verify.success"
+  | "monitor.state.download_failed"
+  | "monitor.state.upload_failed"
   | "settings.slack.updated"
   | "settings.slack.test_sent"
   | "settings.slack.test_failed"

@@ -1,5 +1,5 @@
 import { pgTable, text, integer, boolean, numeric, timestamp, uuid, index, uniqueIndex, jsonb } from "drizzle-orm/pg-core";
-import type { SiteClassification } from "@pseolint/core";
+import type { ScrapePlanSummary, SiteClassification } from "@pseolint/core";
 
 export const users = pgTable("user", {
   id: text("id").primaryKey(),
@@ -76,6 +76,14 @@ export const audits = pgTable("audit", {
    * the R2 blob. Nullable for backfill — legacy v0.3 audits never had this.
    */
   siteClassification: jsonb("site_classification").$type<SiteClassification>(),
+  /**
+   * v0.5+ change-driven monitoring summary mirrored from AuditSummary.scrapePlan.
+   * Lets the dashboard render "X/Y URLs re-scraped, Z carried forward" without
+   * reading the full R2 blob. Nullable: only populated on monitoring runs
+   * (prior state existed and not --mode=fresh); fresh / one-shot / filesystem
+   * audits don't produce a scrapePlan.
+   */
+  scrapePlan: jsonb("scrape_plan").$type<ScrapePlanSummary>(),
   storageKey: text("storage_key"),
   errorMessage: text("error_message"),
   /** OG metadata captured from the audited site's homepage — used by the leaderboard
