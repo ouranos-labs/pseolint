@@ -1,5 +1,35 @@
 # pseolint
 
+## 0.5.0
+
+### Minor Changes
+
+- v0.5.0 — Change-driven monitoring CLI surface
+
+  Tracks `@pseolint/core` v0.5.0. New flags:
+
+  - `--mode <monitoring|fresh>` — explicit monitoring control. `monitoring`
+    applies the pre-fetch decision matrix (default when prior state exists);
+    `fresh` forces a full re-audit even when prior state is present.
+  - `--age-floor-days <n>` — minimum days since a URL's last fetch before
+    monitoring forces a re-fetch regardless of other signals (default: 7).
+  - `--since` is now an alias for `--mode=monitoring` (back-compat).
+
+  End-of-run summary line when monitoring is active:
+  ```
+  Monitoring: 47/4012 URLs re-scraped (recheck=23, lastmod=12, age=8, new=4),
+  3965 carried forward.
+  ```
+
+  When `fetched < intended`, the line shows both ("X/Y (intended)"), surfacing
+  URLs the matrix wanted to refetch but downstream filters dropped (robots,
+  byte budget, content-type, 4xx).
+
+  Filesystem-source bypass now logs a one-line warning when explicit
+  `--mode=monitoring` or `--since` is requested against a local source.
+
+  See spec: `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
+
 ## 0.4.3
 
 ### Patch Changes

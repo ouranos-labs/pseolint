@@ -259,11 +259,16 @@ Sampling
   --strategy <random|stratified> Sampling strategy (default: stratified)
   --max-per-template <n>         Cap samples per URL template cluster (default: 0)
 
-Cache & delta
+Cache & monitoring
   --cache [dir]                  Enable HTTP cache (default: .pseolint/cache)
   --cache-ttl <duration>         TTL for entries without validators, e.g. 7d, 1h, 30m (default: 7d)
   --state [path]                 Enable state persistence (default: .pseolint/state.json)
-  --since                        Delta mode: audit only URLs changed since prior --state
+  --mode <monitoring|fresh>      v0.5+ change-driven monitoring mode. Auto-monitoring is the
+                                 default when prior state exists. Use 'fresh' to force a full
+                                 re-audit even with prior state.
+  --age-floor-days <n>           v0.5+ minimum days since a URL's last fetch before monitoring
+                                 forces a re-fetch regardless of other signals (default: 7)
+  --since                        v0.5+ alias for --mode=monitoring (kept for back-compat)
   --exit-on-regression           Exit non-zero when new rule IDs fire vs prior --state
 
 Data
@@ -295,18 +300,41 @@ Commands:
   stats-export <outPath>         Copy telemetry JSONL to <outPath> for manual review/sharing
 ```
 
-### Caching & delta audits
+### Caching & change-driven monitoring (v0.5)
 
 ```bash
-# First run: populates .pseolint/cache and .pseolint/state.json
+# First run: populates .pseolint/cache and .pseolint/state.json with full baseline
 npx pseolint https://yoursite.com --cache --state
 
-# Subsequent runs: only refetch URLs that changed (ETag / Last-Modified),
-# and only re-audit URLs whose content hash changed
-npx pseolint https://yoursite.com --cache --state --since
+# Subsequent runs auto-enter monitoring mode. The decision matrix decides which
+# URLs to fetch BEFORE the network round-trip:
+#   - new URL                         → fetch (reason: new)
+#   - prior fetch ≥ 7 days old        → fetch (reason: age)
+#   - ruleset version bumped          → fetch (reason: ruleset)
+#   - prior warning/error finding     → fetch (reason: recheck) — info findings carry forward
+#   - sitemap <lastmod> newer         → fetch (reason: lastmod)
+#   - none of the above + lastmod present → SKIP (carry findings forward)
+npx pseolint https://yoursite.com --cache --state
 
-# CI gate that fails when a *new* rule ID starts firing vs last run
+# Force a full re-audit even with prior state
+npx pseolint https://yoursite.com --cache --state --mode=fresh
+
+# Lower the age-floor for tighter monitoring (default: 7 days)
+npx pseolint https://yoursite.com --cache --state --age-floor-days=3
+
+# CI gate that fails when a *new* rule ID starts firing on actually-fetched URLs
 npx pseolint https://yoursite.com --cache --state --exit-on-regression
+```
+
+Sites whose sitemaps emit `<lastmod>` (Next.js, Yoast/WordPress, Astro) get the
+biggest savings — typically ~95% fewer fetches on steady-state monitoring runs.
+Sites without `<lastmod>` hit `no-signal` and refetch every URL; bandwidth is
+still saved via cache.ts conditional GETs but round-trips aren't skipped (a
+HEAD-fallback path is on the roadmap).
+
+End-of-run summary line:
+```
+Monitoring: 47/4012 URLs re-scraped (recheck=23, lastmod=12, age=8, new=4), 3965 carried forward.
 ```
 
 ### AI triage

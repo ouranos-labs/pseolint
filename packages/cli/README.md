@@ -4,6 +4,10 @@
 
 The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets.
 
+## What's new in v0.5
+
+v0.5 ships **change-driven monitoring**. When prior state exists, the auditor decides which URLs to fetch *before* the network round-trip, using a 7-reason matrix (new / age / ruleset / recheck / lastmod / GSC / no-signal). Sites with reliable sitemap `<lastmod>` (Next.js, WordPress/Yoast, Astro) typically see ~95% fewer fetches on steady-state monitoring runs. `--since` is kept as an alias for `--mode=monitoring`. New: `--mode=monitoring|fresh` and `--age-floor-days=N`. State schema bumped to v2 (existing `.pseolint/state.json` files trigger one baseline re-audit). See `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
+
 ## What's new in v0.4
 
 v0.4 reshapes the audit output around a single **verdict** (`ready` / `caution` / `concerning` / `critical`) plus four category grades (`Integrity`, `Discoverability`, `Citation`, `Data`). The old numeric "SpamBrain Risk Score" is no longer the headline — it remains internally as `risk` for CI threshold tuning, trends, and alert gates, but operators ship on verdict, not on a number that needs a translation table.
@@ -185,24 +189,52 @@ pseolint is a polite crawler by default — it sets a distinct `User-Agent`, res
 
 If pSEO pages return CDN-cached responses for normal GET requests, the audit costs you effectively zero DB load regardless of page count.
 
-### Run state + delta mode
+### Run state + change-driven monitoring (v0.5)
 
-Persist audit state across runs for CI/monitoring:
+Persist audit state across runs and let pseolint decide which URLs to refetch:
 
 ```bash
 # First run (writes baseline state)
 pseolint https://example.com --state
 
-# Subsequent run: audit only changed pages
-pseolint https://example.com --state --since
+# Subsequent runs auto-enter monitoring mode — no flag required.
+# The pre-fetch decision matrix skips URLs without change signals.
+pseolint https://example.com --state
 
-# Monitoring: fail on new rule ID regressions
+# Force a full re-audit even with prior state
+pseolint https://example.com --state --mode=fresh
+
+# Tighten the age floor (default: 7 days). URLs older than this re-fetch regardless.
+pseolint https://example.com --state --age-floor-days=3
+
+# CI gate that fails when a *new* rule ID starts firing on actually-fetched URLs
 pseolint https://example.com --state --exit-on-regression
+
+# Back-compat: --since still works (alias for --mode=monitoring)
+pseolint https://example.com --state --since
 ```
 
-State is stored at `.pseolint/state.json` by default. Commit it to share baseline across CI workers. On the first run (no prior state), `--since` and `--exit-on-regression` bootstrap gracefully — they audit everything and write state without erroring.
+**Decision matrix.** For each URL in the candidate set, the first matching reason wins:
 
-Switching between `--render` modes invalidates prior state (different renderMode produces different hashes), triggering a full re-audit.
+| Reason | Trigger |
+|---|---|
+| `new` | URL not in prior state |
+| `age` | Prior fetch older than `--age-floor-days` (default 7) |
+| `ruleset` | `CORE_RULESET_VERSION` changed since last run |
+| `recheck` | Prior `error`/`critical`/`warning` finding (info-only carries forward) |
+| `lastmod` | Sitemap `<lastmod>` newer than prior fetch |
+| `gsc` | GSC delta crosses threshold (Pro / when wired) |
+| `no-signal` | No sitemap-lastmod and no GSC for this URL |
+| `unchanged` | None of the above — **skip the fetch**, carry findings forward |
+
+End-of-run summary line:
+```
+Monitoring: 47/4012 URLs re-scraped (recheck=23, lastmod=12, age=8, new=4), 3965 carried forward.
+```
+
+State is stored at `.pseolint/state.json` by default. Commit it to share baseline across CI workers. State schema v2 (v0.5+); upgrading from v0.4 discards the old file with a warning and triggers one baseline re-audit. Switching between `--render` modes also invalidates prior state.
+
+**Savings depend on sitemap hygiene.** Sites whose sitemaps emit `<lastmod>` (Next.js, WordPress/Yoast, Astro) get up to ~95% fetch reduction on steady-state monitoring runs. Sites without `<lastmod>` hit `no-signal` and refetch every URL — bandwidth is still saved via cache.ts conditional GETs but round-trips aren't skipped (a HEAD-fallback path is on the roadmap).
 
 ### Stratified sampling
 
