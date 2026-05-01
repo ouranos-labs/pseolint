@@ -935,6 +935,24 @@ function parseSitemapUrls(xml: string): string[] {
   return matches.map((match) => match[1]).filter(Boolean);
 }
 
+export function parseSitemapUrlsWithLastmod(xml: string): Array<{ url: string; lastmod?: string }> {
+  const out: Array<{ url: string; lastmod?: string }> = [];
+  // Match both <url>...</url> blocks (in <urlset>) and <sitemap>...</sitemap>
+  // blocks (in <sitemapindex>). Both carry <loc> + optional <lastmod>.
+  const blocks = xml.matchAll(/<(url|sitemap)\b[^>]*>([\s\S]*?)<\/\1>/gi);
+  for (const block of blocks) {
+    const inner = block[2] ?? "";
+    const locMatch = inner.match(/<loc\b[^>]*>([\s\S]*?)<\/loc>/i);
+    if (!locMatch) continue;
+    const url = locMatch[1].trim();
+    if (!url) continue;
+    const lastmodMatch = inner.match(/<lastmod\b[^>]*>([\s\S]*?)<\/lastmod>/i);
+    const lastmod = lastmodMatch ? lastmodMatch[1].trim() : undefined;
+    out.push({ url, lastmod });
+  }
+  return out;
+}
+
 function looksLikeSitemap(text: string): boolean {
   const lowered = text.toLowerCase();
   return lowered.includes("<urlset") || lowered.includes("<sitemapindex");
@@ -1022,26 +1040,39 @@ async function collectUrlsFromSitemap(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
-): Promise<string[]> {
+): Promise<{ urls: string[]; lastmodByUrl: Map<string, string> }> {
   visited.add(sitemapUrl);
-  const locs = parseSitemapUrls(sitemapText);
+  const entries = parseSitemapUrlsWithLastmod(sitemapText);
 
   if (!isSitemapIndex(sitemapText)) {
-    return locs;
+    const urls: string[] = [];
+    const lastmodByUrl = new Map<string, string>();
+    for (const entry of entries) {
+      urls.push(entry.url);
+      if (entry.lastmod !== undefined) {
+        lastmodByUrl.set(entry.url, entry.lastmod);
+      }
+    }
+    return { urls, lastmodByUrl };
   }
 
   const allUrls: string[] = [];
-  for (const childUrl of locs) {
+  const allLastmodByUrl = new Map<string, string>();
+  for (const entry of entries) {
+    const childUrl = entry.url;
     if (signal?.aborted) throw signal.reason ?? new Error("aborted");
     if (visited.has(childUrl)) continue;
     const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop);
+    const { urls: childUrls, lastmodByUrl: childLastmodByUrl } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop);
     allUrls.push(...childUrls);
+    for (const [u, lm] of childLastmodByUrl) {
+      allLastmodByUrl.set(u, lm);
+    }
   }
-  return allUrls;
+  return { urls: allUrls, lastmodByUrl: allLastmodByUrl };
 }
 
 async function fetchRobotsMeta(
@@ -1101,7 +1132,7 @@ async function loadPagesFromSource(
   skippedByRobots: string[] = [],
   followRedirects: boolean = true,
   maxCrawlDiscovered: number = 5000,
-): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
+): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
   // this. DNS is hit once per unique hostname per audit — a 4k-page audit on
@@ -1159,7 +1190,7 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
+      const { urls: allSitemapUrls, lastmodByUrl: sitemapLastmodByUrl } = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
 
       // If we have a budget, sample from sitemap URLs before fetching
       const urlsToFetch = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
@@ -1267,7 +1298,7 @@ async function loadPagesFromSource(
         }
       }
 
-      return { pages, sitemapUrls: new Set(allSitemapUrls), discoveredUrlCount: allSitemapUrls.length };
+      return { pages, sitemapUrls: new Set(allSitemapUrls), sitemapLastmodByUrl, discoveredUrlCount: allSitemapUrls.length };
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
@@ -1510,7 +1541,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // v0.4 §4.7: detectedFramework is set in onObservation above, side-effect
   // of the normal source URL fetch. No separate probe needed.
 
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered);
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, sitemapLastmodByUrl, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered);
+  // Captured for Task 6 (planScrapeStrategy wiring); intentionally unused at this stage.
+  void sitemapLastmodByUrl;
   throwIfAborted();
   const loadedPages = [...loadedPagesRaw];
 
