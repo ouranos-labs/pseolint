@@ -90,6 +90,19 @@ export interface RuleResult {
    * render a caveat in the message.
    */
   confidence?: Confidence;
+  /**
+   * v0.5+ change-driven monitoring. True when the finding was carried forward
+   * from a prior audit because the page was skipped under monitoring mode (no
+   * sitemap-lastmod change, within age floor, no other refetch trigger). The
+   * finding has not been re-verified this run.
+   */
+  carriedForward?: boolean;
+  /**
+   * v0.5+ change-driven monitoring. ISO timestamp of the last audit that
+   * actually re-fetched the page and confirmed this finding fires. Set on
+   * carried-forward findings so consumers can reason about staleness.
+   */
+  lastVerifiedAt?: string;
 }
 
 /** v0.4 four-category bucket keys. */

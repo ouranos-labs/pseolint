@@ -64,6 +64,8 @@ import type {
   Confidence,
   CrawlStats,
   EntityMaskPattern,
+  FindingContext,
+  FixEffort,
   Grade,
   IssueBuckets,
   NormalizeUrlOptions,
@@ -1930,6 +1932,43 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // triage input, telemetry, formatters) sees the corrected severity.
   enriched.findings = applyScoringProfileOverrides(enriched.findings, siteClassification);
 
+  // v0.5: change-driven monitoring carry-forward. URLs that the pre-fetch
+  // strategy marked as "skip" were never fetched this run, so no rule produced
+  // findings for them. Restore their findings from prior state, marked with
+  // `carriedForward: true` and `lastVerifiedAt` so consumers can reason about
+  // staleness. Inject after enrichment + overrides — these findings already
+  // went through both in their original run; re-running enrichment would
+  // strip their template / cluster assignments because parsedPages doesn't
+  // contain the skipped pages.
+  if (priorState && skippedUrls.length > 0) {
+    for (const url of skippedUrls) {
+      const prior = priorState.urls[url];
+      if (!prior || prior.findings.length === 0) continue;
+      for (const f of prior.findings) {
+        const carried: RuleResult = {
+          ruleId: f.ruleId,
+          severity: f.severity as Severity,
+          message: f.message,
+          confidence: f.confidence as Confidence,
+          carriedForward: true,
+          lastVerifiedAt: prior.fetchedAt,
+          // State stores `url` but the engine type uses `pageUrl` — map back.
+          pageUrl: typeof f.url === "string" ? f.url : url,
+        };
+        // Optional fields are preserved opportunistically when present in state.
+        if (typeof f.fix === "string") carried.fix = f.fix;
+        if (typeof f.ref === "string") carried.ref = f.ref;
+        if (typeof f.docsUrl === "string") carried.docsUrl = f.docsUrl;
+        if (Array.isArray(f.relatedUrls)) carried.relatedUrls = f.relatedUrls as string[];
+        if (typeof f.group === "string") carried.group = f.group;
+        if (typeof f.similarity === "number") carried.similarity = f.similarity;
+        if (f.context !== undefined) carried.context = f.context as FindingContext;
+        if (f.effort !== undefined) carried.effort = f.effort as FixEffort;
+        enriched.findings.push(carried);
+      }
+    }
+  }
+
   const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
@@ -2072,11 +2111,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const renderMode: RenderMode = options.render ? "rendered" : "static";
     const urls: Record<string, UrlStateEntry> = {};
     const findingsByUrl = new Map<string, string[]>();
+    // v0.5+: persist full finding records per URL so future monitoring runs
+    // can carry them forward when the URL is skipped pre-fetch. Carried-
+    // forward findings (carriedForward=true) are NOT re-persisted under the
+    // fetched URL — they belong to the prior entry that's preserved verbatim
+    // for skipped URLs above.
+    const fullFindingsByUrl = new Map<string, RuleResult[]>();
     for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
       const list = findingsByUrl.get(f.pageUrl) ?? [];
       if (!list.includes(f.ruleId)) list.push(f.ruleId);
       findingsByUrl.set(f.pageUrl, list);
+      if (!f.carriedForward) {
+        const records = fullFindingsByUrl.get(f.pageUrl) ?? [];
+        records.push(f);
+        fullFindingsByUrl.set(f.pageUrl, records);
+      }
     }
     // Preserve prior entries for URLs the monitoring matrix skipped (we never
     // fetched them this run; their fetchedAt MUST NOT advance or the age floor
@@ -2100,7 +2150,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         fetchedAt: nowIso,
         status: p.httpMeta?.statusCode ?? 200,
         findingIds: findingsByUrl.get(p.url) ?? [],
-        findings: [],
+        findings: (fullFindingsByUrl.get(p.url) ?? []).map((f) => ({
+          id: `${f.ruleId}::${p.url}`,
+          ruleId: f.ruleId,
+          severity: f.severity,
+          confidence: f.confidence ?? "high",
+          message: f.message,
+          ...(f.fix !== undefined ? { fix: f.fix } : {}),
+          ...(f.ref !== undefined ? { ref: f.ref } : {}),
+          ...(f.docsUrl !== undefined ? { docsUrl: f.docsUrl } : {}),
+          ...(f.pageUrl !== undefined ? { url: f.pageUrl } : {}),
+          ...(f.relatedUrls !== undefined ? { relatedUrls: f.relatedUrls } : {}),
+          ...(f.group !== undefined ? { group: f.group } : {}),
+          ...(f.similarity !== undefined ? { similarity: f.similarity } : {}),
+          ...(f.context !== undefined ? { context: f.context } : {}),
+          ...(f.effort !== undefined ? { effort: f.effort } : {}),
+        })),
         rulesetVersion: CORE_RULESET_VERSION,
       };
       if (lastModifiedHeader) entry.lastModified = lastModifiedHeader;
