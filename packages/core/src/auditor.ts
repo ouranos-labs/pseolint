@@ -84,6 +84,7 @@ import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
 } from "./state.js";
+import { CORE_RULESET_VERSION } from "./ruleset-version.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -1983,19 +1984,31 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         if (prior) urls[url] = prior;
       }
     }
+    const nowIso = new Date().toISOString();
     for (const p of loadedPages) {
       urls[p.url] = {
         contentHash: computeContentHash(p.html),
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: nowIso,
         status: p.httpMeta?.statusCode ?? 200,
         findingIds: findingsByUrl.get(p.url) ?? [],
+        findings: [],
+        rulesetVersion: CORE_RULESET_VERSION,
       };
     }
+    // `lastFullAuditAt` advances only when we did NOT run as a `--since` delta.
+    // For delta runs we preserve the prior baseline timestamp (or fall back to
+    // now when no prior state exists, which means baseline-from-empty anyway).
+    const isDeltaRun = options.state.since === true;
+    const lastFullAuditAt = isDeltaRun
+      ? (priorState?.lastFullAuditAt ?? priorState?.lastRun ?? nowIso)
+      : nowIso;
     const newState: RunState = {
       version: STATE_SCHEMA_VERSION,
-      lastRun: new Date().toISOString(),
+      lastRun: nowIso,
+      lastFullAuditAt,
       source,
       renderMode,
+      rulesetVersion: CORE_RULESET_VERSION,
       urls,
       summary: {
         score: summary.risk,

@@ -2,22 +2,54 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile, mkdir, rename } from "node:fs/promises";
 import { dirname } from "node:path";
 
-export const STATE_SCHEMA_VERSION = 1;
+export const STATE_SCHEMA_VERSION = 2;
 
 export type RenderMode = "static" | "rendered";
+
+/**
+ * Permissive snapshot of a finding stored in state for carry-forward across
+ * delta runs. The canonical Finding type lives in types.ts; state intentionally
+ * accepts a wider shape so we can persist whatever fields the engine emitted at
+ * audit time without coupling state IO to the rule-result schema.
+ */
+export interface Finding {
+  id: string;
+  ruleId: string;
+  severity: string;
+  confidence: string;
+  message: string;
+  url?: string;
+  [key: string]: unknown;
+}
 
 export interface UrlStateEntry {
   contentHash: string;
   fetchedAt: string;
   status: number;
+  /** Kept for back-compat within v2; derived from `findings`. */
   findingIds: string[];
+  /** Full finding records persisted so unchanged URLs can carry findings forward. */
+  findings: Finding[];
+  /** Ruleset signature at the time this URL was last fetched. */
+  rulesetVersion: string;
+  /** HTTP `Last-Modified` response header captured at fetch. */
+  lastModified?: string;
+  /** HTTP `ETag` response header captured at fetch. */
+  etag?: string;
+  /** Sitemap `<lastmod>` value associated with this URL at the audit. */
+  sitemapLastmodAtAudit?: string;
+  gscMetricsAtLastRun?: { impressions: number; clicks: number; period: string };
 }
 
 export interface RunState {
   version: number;
   lastRun: string;
+  /** ISO timestamp of the last full (non-delta) audit. */
+  lastFullAuditAt: string;
   source: string;
   renderMode: RenderMode;
+  /** Ruleset signature at the time this state file was written. */
+  rulesetVersion: string;
   urls: Record<string, UrlStateEntry>;
   summary: {
     score: number;
@@ -73,8 +105,10 @@ export async function readState(path: string): Promise<RunState | null> {
     );
   }
   if (typeof state.lastRun !== "string" ||
+      typeof state.lastFullAuditAt !== "string" ||
       typeof state.source !== "string" ||
       typeof state.renderMode !== "string" ||
+      typeof state.rulesetVersion !== "string" ||
       !state.urls || typeof state.urls !== "object" ||
       !state.summary || typeof state.summary !== "object") {
     throw new Error(`state file at ${path} has malformed shape`);
