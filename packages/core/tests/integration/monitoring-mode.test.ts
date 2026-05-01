@@ -288,6 +288,56 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     }
   });
 
+  it("AuditSummary.scrapePlan reports fetched/carriedForward and reason counts", async () => {
+    const fixedOldDate = "2026-04-01T00:00:00Z";
+    server = await startTestServer({
+      pages: { "/old": baseHtml("Old"), "/new": baseHtml("New") },
+      sitemapEntries: [
+        { path: "/old", lastmod: fixedOldDate },
+        { path: "/new", lastmod: fixedOldDate }, // /new not in priorState → reason: new
+      ],
+    });
+
+    const recentFetch = "2026-04-28T00:00:00Z";
+    const statePath = join(workDir, "state.json");
+    await writeState(statePath, buildPriorState(server.origin, {
+      [`${server.origin}/old`]: baseEntry({ fetchedAt: recentFetch }),
+    }));
+
+    const summary = await auditSource(`${server.origin}/sitemap.xml`, {
+      state: { path: statePath },
+      crawlDiscovery: false,
+    });
+
+    expect(summary.scrapePlan).toBeDefined();
+    const sp = summary.scrapePlan!;
+    expect(sp.fetched).toBe(1);             // /new
+    expect(sp.carriedForward).toBe(1);       // /old
+    expect(sp.reasonCounts.new).toBe(1);
+    expect(sp.reasonCounts.unchanged).toBe(1);
+    expect(sp.rulesetVersion).toBe(CORE_RULESET_VERSION);
+    expect(sp.lastFullAuditAt).not.toBeNull();
+  });
+
+  it("AuditSummary.scrapePlan is absent on fresh-mode runs", async () => {
+    server = await startTestServer({
+      pages: { "/a": baseHtml("A") },
+      sitemapEntries: [{ path: "/a" }],
+    });
+
+    const statePath = join(workDir, "state.json");
+    await writeState(statePath, buildPriorState(server.origin, {
+      [`${server.origin}/a`]: baseEntry({ fetchedAt: new Date().toISOString() }),
+    }));
+
+    const summary = await auditSource(`${server.origin}/sitemap.xml`, {
+      state: { path: statePath, mode: "fresh" },
+      crawlDiscovery: false,
+    });
+
+    expect(summary.scrapePlan).toBeUndefined();
+  });
+
   it("filesystem source ignores monitoring mode (always reads all files)", async () => {
     // Filesystem sources bypass the strategy: local reads are cheap and the
     // single-page reading code path doesn't need a pre-fetch decision matrix.

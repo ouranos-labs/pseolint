@@ -2049,6 +2049,26 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.skippedUrls = allSkipped;
   }
 
+  // v0.5+: surface the change-driven monitoring summary when this run was a
+  // monitoring run (had prior state and didn't force --mode=fresh). Filesystem
+  // sources don't get a scrapePlan because they bypass the matrix.
+  if (effectiveMode === "monitoring" && priorState && scrapePlan) {
+    const reasonCounts: Record<string, number> = {};
+    for (const reason of scrapePlan.refetch.values()) {
+      reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
+    }
+    for (const reason of scrapePlan.skip.values()) {
+      reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
+    }
+    summary.scrapePlan = {
+      fetched: scrapePlan.refetch.size,
+      carriedForward: scrapePlan.skip.size,
+      reasonCounts,
+      rulesetVersion: CORE_RULESET_VERSION,
+      lastFullAuditAt: priorState.lastFullAuditAt ?? priorState.lastRun ?? null,
+    };
+  }
+
   // v0.4.1: surface noindex / auth skips as a discoverable diagnostic so the
   // user sees what the engine excluded. Catches the accidental-noindex bug:
   // pages silently dropped from indexing show up as a visible skip line

@@ -276,10 +276,41 @@ export interface AuditSummary {
   cacheStats?: CacheStats;
   /** True when --exit-on-regression detected a new rule ID vs prior state. */
   hasRegression?: boolean;
-  /** URLs that were skipped because their contentHash matched prior state. */
+  /**
+   * v0.5+: URLs the change-driven monitoring matrix decided to skip pre-fetch
+   * (their findings were carried forward from prior state). Pre-v0.5 this
+   * field carried URLs whose contentHash matched prior state under `--since`;
+   * the new pre-fetch decision replaces that meaning.
+   */
   skippedUrls?: string[];
+  /**
+   * v0.5+: change-driven monitoring summary. Present whenever the auditor ran
+   * in monitoring mode (prior state existed and no `--mode=fresh` override).
+   * Absent on fresh runs and on filesystem-source audits.
+   */
+  scrapePlan?: ScrapePlanSummary;
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
+}
+
+/**
+ * v0.5+ change-driven monitoring summary surfaced on AuditSummary so dashboards
+ * and CI consumers can show "X/Y URLs re-scraped" without recomputing.
+ */
+export interface ScrapePlanSummary {
+  /** URLs that were actually fetched this run. */
+  fetched: number;
+  /** URLs whose findings were carried forward from prior state without re-fetching. */
+  carriedForward: number;
+  /**
+   * Counts per matrix reason (`new`, `age`, `ruleset`, `recheck`, `lastmod`,
+   * `gsc`, `no-signal`, `unchanged`). Sums to `fetched + carriedForward`.
+   */
+  reasonCounts: Record<string, number>;
+  /** CORE_RULESET_VERSION active during this run. */
+  rulesetVersion: string;
+  /** ISO timestamp of the last full (non-monitoring) audit, or null if never. */
+  lastFullAuditAt: string | null;
 }
 
 export interface PageGroupConfig {
