@@ -1,5 +1,67 @@
 # @pseolint/core
 
+## 0.5.0
+
+### Minor Changes
+
+- v0.5.0 — Change-driven monitoring
+
+  **Why:** Monitoring runs on a 4k-page site re-fetched everything. Rule
+  evaluation is microseconds; the fetch is seconds. The pre-v0.5 `--since`
+  flag did change-detection at the wrong layer — it post-filtered findings
+  on already-fetched pages, paying the network cost on every URL just to
+  skip a few microseconds of CPU. v0.5 moves the decision upstream of the
+  fetch so unchanged URLs are never network-touched.
+
+  **Architecture:** New `planScrapeStrategy()` pure module evaluates each
+  candidate URL against a 7-reason decision matrix BEFORE fetching: new,
+  age floor (default 7d), ruleset version mismatch, open findings recheck,
+  sitemap `<lastmod>` newer than prior fetch, GSC delta (Pro), or no skip
+  evidence. URLs that match a refetch reason are fetched as today; URLs
+  that match `unchanged` are skipped entirely and their findings are
+  carried forward from prior state with `carriedForward: true` and
+  `lastVerifiedAt` markers.
+
+  Expected savings on a 4k-page pSEO site with normal change velocity
+  (~50 pages/wk changing): ~95% reduction in fetches and Playwright
+  invocations on steady-state monitoring runs.
+
+  **Breaking:**
+
+  - **State schema bumped to v2.** Existing `.pseolint/state.json` files
+    from v0.4.x are discarded with a warning on first read; users get one
+    full baseline audit, then incremental monitoring kicks in.
+  - **Auto-monitoring is the new default** when a prior state file
+    exists. Pre-v0.5 required `--since` to opt in. Use `--mode=fresh` to
+    force a full re-audit even with prior state present.
+
+  **Added:**
+
+  - `planScrapeStrategy()` exported from `@pseolint/core` — pure decision
+    matrix; testable without I/O.
+  - `CORE_RULESET_VERSION` constant. Bump when adding rules or materially
+    changing rule logic so monitoring runs re-evaluate previously-skipped
+    URLs against the new ruleset.
+  - `AuditSummary.scrapePlan` reports `fetched` / `carriedForward` counts,
+    per-reason breakdown, ruleset version, and last full audit timestamp.
+  - `RuleResult.carriedForward` and `RuleResult.lastVerifiedAt` mark
+    findings carried over from a prior run for staleness reasoning.
+  - `UrlStateEntry.findings` now persists full RuleResult records (not
+    just IDs) so future runs can carry them forward.
+  - `parseSitemapUrlsWithLastmod()` exported — sitemap walker now surfaces
+    `<lastmod>` alongside URLs.
+  - CLI: `--mode=monitoring|fresh` and `--age-floor-days=N`.
+
+  **Changed:**
+
+  - `--since` is now an alias for `--mode=monitoring` (kept for
+    back-compat). Behavior is unchanged for users who passed it explicitly.
+  - `collectUrlsFromSitemap` returns `{ urls, lastmodByUrl }` instead of
+    `string[]`. Internal API; no external consumers.
+  - `RunState` adds required `rulesetVersion` and `lastFullAuditAt`.
+
+  See spec: `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
+
 ## 0.4.3
 
 ### Patch Changes
