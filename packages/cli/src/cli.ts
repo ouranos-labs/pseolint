@@ -92,6 +92,8 @@ interface CliOptions {
   state?: string | boolean;
   since: boolean;
   exitOnRegression: boolean;
+  mode?: string;
+  ageFloorDays?: number;
   ai?: boolean;
   aiProvider?: string;
   aiModel?: string;
@@ -170,7 +172,9 @@ export async function runCli(
     .option("--strategy <random|stratified>", "Sampling strategy when --sample-size is set", "stratified")
     .option("--max-per-template <n>", "Cap samples per URL template cluster", "0")
     .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
-    .option("--since", "Delta mode: audit only URLs changed since prior --state (requires --state)")
+    .option("--since", "v0.5+ alias for --mode=monitoring (kept for back-compat; auto-monitoring is the default when prior state exists)")
+    .option("--mode <monitoring|fresh>", "v0.5+ change-driven monitoring mode. 'monitoring' applies the pre-fetch decision matrix (default when prior state exists). 'fresh' forces a full re-audit even with prior state.")
+    .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: 7)", "7")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--ai", "Enable AI triage of findings")
     .option(
@@ -408,16 +412,33 @@ async function runAudit(
     }
   }
 
-  if ((opts.since || opts.exitOnRegression) && !opts.state) {
-    console.error("Error: --since and --exit-on-regression require --state to be set");
+  if ((opts.since || opts.exitOnRegression || opts.mode) && !opts.state) {
+    console.error("Error: --since, --mode, and --exit-on-regression require --state to be set");
     return 1;
   }
 
-  if (opts.state || opts.since || opts.exitOnRegression) {
+  if (opts.mode !== undefined && opts.mode !== "monitoring" && opts.mode !== "fresh") {
+    console.error(`Error: --mode must be 'monitoring' or 'fresh', got '${opts.mode}'`);
+    return 1;
+  }
+
+  let ageFloorDaysParsed: number | undefined;
+  if (opts.ageFloorDays !== undefined) {
+    const n = Number(opts.ageFloorDays);
+    if (!Number.isFinite(n) || n <= 0 || !Number.isInteger(n)) {
+      console.error(`Error: --age-floor-days must be a positive integer, got '${opts.ageFloorDays}'`);
+      return 1;
+    }
+    ageFloorDaysParsed = n;
+  }
+
+  if (opts.state || opts.since || opts.exitOnRegression || opts.mode) {
     cliFlags.state = {
       path: typeof opts.state === "string" ? opts.state : undefined,
       since: Boolean(opts.since),
       exitOnRegression: Boolean(opts.exitOnRegression),
+      ...(opts.mode ? { mode: opts.mode as "monitoring" | "fresh" } : {}),
+      ...(ageFloorDaysParsed !== undefined ? { ageFloorDays: ageFloorDaysParsed } : {}),
     };
   }
 
@@ -584,6 +605,20 @@ async function runAudit(
     const { hits, total, bytesSavedEstimate } = summary.cacheStats;
     const mb = (bytesSavedEstimate / (1024 * 1024)).toFixed(2);
     console.error(`Cache: ${hits}/${total} hits (${mb} MB saved)`);
+  }
+
+  if (summary.scrapePlan) {
+    const sp = summary.scrapePlan;
+    const total = sp.fetched + sp.carriedForward;
+    const refetchReasons = Object.entries(sp.reasonCounts)
+      .filter(([k]) => k !== "unchanged")
+      .sort(([, a], [, b]) => b - a)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(", ");
+    const reasonSuffix = refetchReasons ? ` (${refetchReasons})` : "";
+    console.error(
+      `Monitoring: ${sp.fetched}/${total} URLs re-scraped${reasonSuffix}, ${sp.carriedForward} carried forward.`,
+    );
   }
 
   // Format output. The console formatter accepts noColor + verbose; non-console
