@@ -174,7 +174,7 @@ export async function runCli(
     .option("--state [path]", "Enable state persistence (default path: .pseolint/state.json)")
     .option("--since", "v0.5+ alias for --mode=monitoring (kept for back-compat; auto-monitoring is the default when prior state exists)")
     .option("--mode <monitoring|fresh>", "v0.5+ change-driven monitoring mode. 'monitoring' applies the pre-fetch decision matrix (default when prior state exists). 'fresh' forces a full re-audit even with prior state.")
-    .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: 7)", "7")
+    .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: pseolint core's DEFAULT_AGE_FLOOR_DAYS, currently 7)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--ai", "Enable AI triage of findings")
     .option(
@@ -609,15 +609,22 @@ async function runAudit(
 
   if (summary.scrapePlan) {
     const sp = summary.scrapePlan;
-    const total = sp.fetched + sp.carriedForward;
+    const total = sp.intended + sp.carriedForward;
     const refetchReasons = Object.entries(sp.reasonCounts)
       .filter(([k]) => k !== "unchanged")
       .sort(([, a], [, b]) => b - a)
       .map(([k, v]) => `${k}=${v}`)
       .join(", ");
     const reasonSuffix = refetchReasons ? ` (${refetchReasons})` : "";
+    // Show "fetched / intended" when downstream filters dropped some URLs the
+    // matrix wanted to refetch (robots, byte budget, content-type, 4xx).
+    // When fetched === intended (the common case) this collapses to the
+    // simpler "X URLs re-scraped" form.
+    const fetchedDisplay = sp.fetched === sp.intended
+      ? `${sp.fetched}`
+      : `${sp.fetched}/${sp.intended} (intended)`;
     console.error(
-      `Monitoring: ${sp.fetched}/${total} URLs re-scraped${reasonSuffix}, ${sp.carriedForward} carried forward.`,
+      `Monitoring: ${fetchedDisplay}/${total} URLs re-scraped${reasonSuffix}, ${sp.carriedForward} carried forward.`,
     );
   }
 

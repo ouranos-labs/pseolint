@@ -1,5 +1,19 @@
 import type { RunState } from "./state.js";
 
+/** v0.5: shared default age-floor for monitoring. Single source of truth. */
+export const DEFAULT_AGE_FLOOR_DAYS = 7;
+
+/**
+ * v0.5: severities that trigger an unconditional recheck under monitoring mode.
+ * Open blockers and warnings are re-verified every run; informational findings
+ * are carried forward without re-fetching the page. Without this gate the
+ * carry-forward path would be dead code on any site with any prior finding,
+ * because every URL with findings would round-trip through `recheck` and be
+ * fetched anyway. Pre-v0.5 had no recheck distinction (no monitoring); the
+ * gate is the load-bearing semantic difference.
+ */
+const RECHECK_SEVERITIES: ReadonlySet<string> = new Set(["error", "critical", "warning", "warn"]);
+
 export type RefetchReason =
   | "new"
   | "age"
@@ -44,6 +58,22 @@ function gscExceedsThreshold(delta: GscDelta, thresholds: GscThresholds): boolea
       || Math.abs(delta.clicksDelta) >= thresholds.clicksAbsolute;
 }
 
+/**
+ * Returns true when the URL has at least one prior finding whose severity is
+ * in `RECHECK_SEVERITIES`. Informational findings alone do NOT trigger
+ * recheck — they're carried forward. Pre-v0.5 state files (or carriers from
+ * older runs) only have `findingIds`; for those we can't tell severity, so we
+ * assume worst-case and recheck. New runs persist full Finding records, so
+ * the severity-gated path applies on the very next monitoring run.
+ */
+function priorFindingsTriggerRecheck(prior: RunState["urls"][string]): boolean {
+  if (prior.findings.length > 0) {
+    return prior.findings.some((f) => RECHECK_SEVERITIES.has(f.severity));
+  }
+  // Fallback: legacy entries with findingIds but no full records — be safe.
+  return prior.findingIds.length > 0;
+}
+
 export function planScrapeStrategy(inputs: ScrapeStrategyInputs): ScrapePlan {
   const refetch = new Map<string, RefetchReason>();
   const skip = new Map<string, SkipReason>();
@@ -67,7 +97,7 @@ export function planScrapeStrategy(inputs: ScrapeStrategyInputs): ScrapePlan {
       continue;
     }
 
-    if (prior.findings.length > 0 || prior.findingIds.length > 0) {
+    if (priorFindingsTriggerRecheck(prior)) {
       refetch.set(url, "recheck");
       continue;
     }

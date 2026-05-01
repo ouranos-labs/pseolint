@@ -298,13 +298,22 @@ export interface AuditSummary {
  * and CI consumers can show "X/Y URLs re-scraped" without recomputing.
  */
 export interface ScrapePlanSummary {
-  /** URLs that were actually fetched this run. */
+  /**
+   * URLs whose bodies actually came back this run. May be lower than
+   * `intended` when downstream filters drop URLs (robots disallow, byte
+   * budget, content-type, 4xx).
+   */
   fetched: number;
+  /**
+   * URLs the decision matrix marked for refetch. `intended - fetched` =
+   * URLs the matrix wanted to fetch but downstream filters dropped.
+   */
+  intended: number;
   /** URLs whose findings were carried forward from prior state without re-fetching. */
   carriedForward: number;
   /**
    * Counts per matrix reason (`new`, `age`, `ruleset`, `recheck`, `lastmod`,
-   * `gsc`, `no-signal`, `unchanged`). Sums to `fetched + carriedForward`.
+   * `gsc`, `no-signal`, `unchanged`). Sums to `intended + carriedForward`.
    */
   reasonCounts: Record<string, number>;
   /** CORE_RULESET_VERSION active during this run. */

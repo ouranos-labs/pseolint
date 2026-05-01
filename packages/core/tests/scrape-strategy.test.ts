@@ -76,7 +76,7 @@ describe("planScrapeStrategy", () => {
     expect(plan.refetch.get("https://example.com/a")).toBe("ruleset");
   });
 
-  it("refetches when prior findings are non-empty (reason: recheck)", () => {
+  it("refetches when prior findings include a warning (reason: recheck)", () => {
     const plan = planScrapeStrategy({
       candidateUrls: ["https://example.com/a"],
       priorState: baseState({
@@ -85,7 +85,61 @@ describe("planScrapeStrategy", () => {
           findingIds: ["f1"],
         }),
       }),
-      sitemapLastmodByUrl: new Map(),
+      sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
+      currentRulesetVersion: "1",
+      ageFloorDays: 7,
+      now: NOW,
+    });
+    expect(plan.refetch.get("https://example.com/a")).toBe("recheck");
+  });
+
+  it("refetches when prior findings include a critical or error (reason: recheck)", () => {
+    for (const severity of ["error", "critical"]) {
+      const plan = planScrapeStrategy({
+        candidateUrls: ["https://example.com/a"],
+        priorState: baseState({
+          "https://example.com/a": baseEntry({
+            findings: [{ id: "f1", ruleId: "r", severity, confidence: "high", message: "m" }],
+            findingIds: ["f1"],
+          }),
+        }),
+        sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+      });
+      expect(plan.refetch.get("https://example.com/a")).toBe("recheck");
+    }
+  });
+
+  it("SKIPS when prior findings are info-only — they carry forward without refetch", () => {
+    const plan = planScrapeStrategy({
+      candidateUrls: ["https://example.com/a"],
+      priorState: baseState({
+        "https://example.com/a": baseEntry({
+          findings: [{ id: "f1", ruleId: "r", severity: "info", confidence: "high", message: "m" }],
+          findingIds: ["f1"],
+        }),
+      }),
+      sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
+      currentRulesetVersion: "1",
+      ageFloorDays: 7,
+      now: NOW,
+    });
+    expect(plan.skip.get("https://example.com/a")).toBe("unchanged");
+    expect(plan.refetch.size).toBe(0);
+  });
+
+  it("falls back to refetch on legacy entries with findingIds but no full findings records", () => {
+    const plan = planScrapeStrategy({
+      candidateUrls: ["https://example.com/a"],
+      priorState: baseState({
+        "https://example.com/a": baseEntry({
+          findings: [], // no full records (legacy v2 entry written before T7's full-records persistence)
+          findingIds: ["legacy-id"],
+        }),
+      }),
+      sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
       currentRulesetVersion: "1",
       ageFloorDays: 7,
       now: NOW,

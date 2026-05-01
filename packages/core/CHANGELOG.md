@@ -22,9 +22,19 @@
   carried forward from prior state with `carriedForward: true` and
   `lastVerifiedAt` markers.
 
-  Expected savings on a 4k-page pSEO site with normal change velocity
-  (~50 pages/wk changing): ~95% reduction in fetches and Playwright
-  invocations on steady-state monitoring runs.
+  Expected savings depend strongly on sitemap hygiene:
+  - **Sites with `<lastmod>` in sitemap.xml** (Next.js, WordPress/Yoast,
+    Astro): up to ~95% fetch reduction on steady-state monitoring runs
+    once the prior state has aged past the recheck-trigger findings.
+  - **Sites without `<lastmod>`** (custom-rolled sitemaps, older CMSes):
+    every URL hits the `no-signal` reason and gets refetched. v0.5
+    monitoring helps via faster cache revalidation but doesn't skip the
+    round-trip. A future HEAD-fallback path (deferred) will close this gap.
+
+  Severity gate on the `recheck` reason: only `error`, `critical`, and
+  `warning` findings trigger a per-run recheck. `info` findings carry
+  forward without re-fetching the page. Without the gate, any URL with
+  any finding would refetch and the carry-forward path would be dead code.
 
   **Breaking:**
 

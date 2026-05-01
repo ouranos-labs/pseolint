@@ -87,7 +87,7 @@ import {
   type RunState, type RenderMode, type UrlStateEntry,
 } from "./state.js";
 import { CORE_RULESET_VERSION } from "./ruleset-version.js";
-import { planScrapeStrategy, type ScrapePlan } from "./scrape-strategy.js";
+import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -1614,12 +1614,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // exempted from the strategy (a single-page audit has nothing to plan; local
   // reads are cheap so re-reading every file beats branch complexity).
   const isHttpSource = /^https?:\/\//i.test(source);
+  // If the user asked for monitoring against a filesystem source, surface that
+  // we're ignoring the request. Silent bypass leads to "why is my state file
+  // not being used?" debugging. Only log when the user actively chose
+  // monitoring (explicit --mode or --since) — auto-monitoring on prior state
+  // existence is implicit and shouldn't warn.
+  if (!isHttpSource && effectiveMode === "monitoring" && (options?.state?.mode === "monitoring" || options?.state?.since)) {
+    console.error(
+      "warning: monitoring mode requested but source is a local file/directory; reading every HTML file (the matrix only applies to HTTP sources).",
+    );
+  }
   const monitoringContext: MonitoringContext | null =
     effectiveMode === "monitoring" && priorState && isHttpSource
       ? {
           priorState,
           currentRulesetVersion: CORE_RULESET_VERSION,
-          ageFloorDays: options?.state?.ageFloorDays ?? 7,
+          ageFloorDays: options?.state?.ageFloorDays ?? DEFAULT_AGE_FLOOR_DAYS,
           now: new Date(),
         }
       : null;
@@ -2060,8 +2070,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     for (const reason of scrapePlan.skip.values()) {
       reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
     }
+    // `fetched` is the number of URLs whose bodies actually came back —
+    // robots-disallowed, byte-budget-exceeded, content-type-filtered, and 4xx
+    // URLs the matrix INTENDED to refetch may have dropped out before we got
+    // here. `intended` (= scrapePlan.refetch.size) is exposed too so callers
+    // can spot the gap (e.g. "intended 200, fetched 187, 13 URLs dropped").
     summary.scrapePlan = {
-      fetched: scrapePlan.refetch.size,
+      fetched: loadedPages.length,
+      intended: scrapePlan.refetch.size,
       carriedForward: scrapePlan.skip.size,
       reasonCounts,
       rulesetVersion: CORE_RULESET_VERSION,
@@ -2107,6 +2123,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const currentFindings = new Map<string, Set<string>>();
     for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
+      // Carried-forward findings are not "current" — we did not re-verify them
+      // this run. Including them would mask a genuine regression on a skipped
+      // URL: prior set has rule X carried-forward, current set also has X
+      // (carried-forward), comparison says "no new rule", we miss the case
+      // where the page actually started failing rule Y too.
+      if (f.carriedForward) continue;
       const set = currentFindings.get(f.pageUrl) ?? new Set<string>();
       set.add(f.ruleId);
       currentFindings.set(f.pageUrl, set);

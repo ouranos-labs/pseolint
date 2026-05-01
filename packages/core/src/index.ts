@@ -53,7 +53,17 @@ export type { SafeMode } from "./types.js";
 export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from "./types.js";
 export { stratifiedSample, inferUrlTemplate } from "./stratified-sample.js";
 export { readState, writeState, computeContentHash, normalizeHtmlForHash, STATE_SCHEMA_VERSION } from "./state.js";
-export type { RunState, UrlStateEntry, RenderMode } from "./state.js";
+export type { RunState, UrlStateEntry, RenderMode, Finding } from "./state.js";
+export { CORE_RULESET_VERSION } from "./ruleset-version.js";
+export { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS } from "./scrape-strategy.js";
+export type {
+  ScrapePlan,
+  ScrapeStrategyInputs,
+  RefetchReason,
+  SkipReason,
+  GscDelta,
+  GscThresholds,
+} from "./scrape-strategy.js";
 
 // AI triage
 export type {
