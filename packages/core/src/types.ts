@@ -166,10 +166,31 @@ export interface CacheStats {
 export interface StateOptions {
   /** Path to state file. Default: `.pseolint/state.json`. */
   path?: string;
-  /** If true, audit only URLs with changed/new contentHash since prior state. */
+  /**
+   * v0.5+: alias for `mode: "monitoring"`. Kept for back-compat with users who
+   * passed `--since` explicitly. Auto-monitoring on prior state existence is
+   * the new default and does not require this flag.
+   */
   since?: boolean;
   /** If true, exit non-zero when a new rule ID fires on any URL vs prior state. */
   exitOnRegression?: boolean;
+  /**
+   * v0.5+: monitoring strategy.
+   *   "monitoring" — apply the pre-fetch decision matrix (default when prior
+   *     state exists). Skipped URLs are NOT fetched; their findings are
+   *     carried forward.
+   *   "fresh" — fetch every candidate URL even when prior state exists. Still
+   *     writes a fresh state file at end of run.
+   * When omitted, the auditor picks "monitoring" if prior state exists, else
+   * "fresh".
+   */
+  mode?: "monitoring" | "fresh";
+  /**
+   * v0.5+: minimum age (in days) since a URL's last fetch before the
+   * monitoring matrix forces a re-fetch regardless of other signals. Defends
+   * against silently-incorrect skips (e.g. lying sitemap lastmods). Default: 7.
+   */
+  ageFloorDays?: number;
 }
 
 /** Options for local-only telemetry JSONL output. */
