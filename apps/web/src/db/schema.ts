@@ -296,3 +296,70 @@ export const domainRuleOverrides = pgTable("domain_rule_override", {
   overrides: text("overrides").notNull(),   // JSON-serialized AuditOptions["rules"]
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * AI-orchestrator session row. One per `orchestrate()` invocation. Tracks
+ * budget consumption, terminal status, and pointers into R2 for the durable
+ * NDJSON event log. The actual fix manifest (when produced) lives in
+ * `fixManifests`, joined by session_id.
+ *
+ * Note: not the same as the better-auth `sessions` table — this one is
+ * specific to orchestrator runs. Distinct table name (`orchestrator_session`)
+ * prevents collision.
+ */
+export const orchestratorSessions = pgTable("orchestrator_session", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  domain: text("domain").notNull(),
+  status: text("status").$type<"queued" | "running" | "completed" | "failed" | "aborted">().notNull().default("queued"),
+  /** StopReason from `@pseolint/core` — completed | tool_call_limit | usd_limit | etc. */
+  reason: text("reason"),
+  /** Hard USD cap configured for this session. Mirrors BudgetCaps.maxSessionUsd. */
+  budgetUsd: numeric("budget_usd", { precision: 10, scale: 4 }).notNull(),
+  /** Actual USD spent (LLM tokens + external probe APIs). */
+  spentUsd: numeric("spent_usd", { precision: 10, scale: 4 }).notNull().default("0"),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  toolCallCount: integer("tool_call_count").notNull().default(0),
+  durationMs: integer("duration_ms"),
+  modelId: text("model_id"),
+  providerId: text("provider_id"),
+  /** R2 key for the durable NDJSON event log — `orchestrator/<id>/log.ndjson`. */
+  logKey: text("log_key"),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+}, (t) => ({
+  userIdx: index("orch_session_user_idx").on(t.userId),
+  statusIdx: index("orch_session_status_idx").on(t.status),
+  startedIdx: index("orch_session_started_idx").on(t.startedAt),
+}));
+
+/**
+ * Fix manifest produced by a successful orchestrator session. Stored as
+ * a row keyed by `slug` (used for `/m/<slug>` URLs) plus an R2 pointer to
+ * the full manifest JSON. Top-level counts mirrored for dashboard rendering
+ * without re-fetching R2.
+ */
+export const fixManifests = pgTable("fix_manifest", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  sessionId: uuid("session_id").notNull().references(() => orchestratorSessions.id, { onDelete: "cascade" }),
+  slug: text("slug").notNull(),
+  schemaVersion: text("schema_version").notNull(),
+  domain: text("domain").notNull(),
+  verdict: text("verdict").$type<"ready" | "caution" | "concerning" | "critical">().notNull(),
+  pagePatchCount: integer("page_patch_count").notNull().default(0),
+  templatePatchCount: integer("template_patch_count").notNull().default(0),
+  domainPatchCount: integer("domain_patch_count").notNull().default(0),
+  validPatchCount: integer("valid_patch_count").notNull().default(0),
+  totalPatchCount: integer("total_patch_count").notNull().default(0),
+  /** R2 key for the manifest + validation + diff JSON blob. */
+  manifestKey: text("manifest_key").notNull(),
+  isPublic: boolean("is_public").notNull().default(false),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  slugIdx: uniqueIndex("fix_manifest_slug_uniq").on(t.slug),
+  sessionIdx: index("fix_manifest_session_idx").on(t.sessionId),
+  domainIdx: index("fix_manifest_domain_idx").on(t.domain),
+}));

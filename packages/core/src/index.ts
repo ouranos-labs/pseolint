@@ -77,6 +77,42 @@ export type {
 export { triageFindings, triage } from "./ai/triage.js";
 export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
 export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
+
+// AI orchestrator (single public entry point composing tools + runner +
+// manifest validation + diff generation).
+export { orchestrate } from "./ai/orchestrate.js";
+export type { OrchestrateOptions, OrchestrateResult } from "./ai/orchestrate.js";
+export {
+  runOrchestrator,
+  finishAuditTool,
+  manifestSchema,
+  buildSystemPrompt,
+  DEFAULT_BUDGET,
+} from "./ai/orchestrator/index.js";
+export type {
+  RunOrchestratorOptions,
+  FixManifest,
+  BudgetCaps,
+  UsageSnapshot,
+  StopReason,
+  SessionEvent,
+  SessionResult,
+} from "./ai/orchestrator/index.js";
+export { orchestratorTools, defineTool } from "./ai/tools/index.js";
+export type { OrchestratorToolName } from "./ai/tools/index.js";
+export {
+  validateManifest,
+  diffManifest,
+  diffPageChange,
+  diffDomainPatch,
+} from "./ai/manifest/index.js";
+export type {
+  ManifestValidationReport,
+  PatchValidationFailure,
+  ValidationResult,
+  PatchDiff,
+  ManifestDiff,
+} from "./ai/manifest/index.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";

@@ -44,7 +44,10 @@ export type AuditLogEvent =
   | "gsc.sync.ok"
   | "gsc.sync.failed"
   | "gsc.oauth.disconnected"
-  | "gsc.autobind";
+  | "gsc.autobind"
+  | "orchestrator.started"
+  | "orchestrator.completed"
+  | "orchestrator.failed";
 
 type Payload = Record<string, unknown>;
 

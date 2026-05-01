@@ -239,6 +239,53 @@ export async function runCli(
     });
 
   program
+    .command("orchestrate <domain>")
+    .description("Run the AI-orchestrated auditor against a domain. Produces a fix manifest, validates every patch, prints a structured diff summary.")
+    .option("--ai-provider <id>", "AI provider (anthropic | openai | google | ollama). Default: env-var auto-detect.")
+    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-7. Default: provider's default.")
+    .option("--ai-key <key>", "API key (or use the provider's env var).")
+    .option("--max-cost <usd>", "Max session USD cap. Default $5.", parseFloat)
+    .option("--max-tool-calls <n>", "Max tool calls per session. Default 100.", (v) => parseInt(v, 10))
+    .option("--max-wall-seconds <n>", "Max wall-clock seconds. Default 300.", (v) => parseInt(v, 10))
+    .option("--watchdog <n>", "Inject convergence reminder every N tool calls (0 disables). Default 20.", (v) => parseInt(v, 10))
+    .option("--ndjson <path>", "Write durable session log to this NDJSON file.")
+    .option("--manifest-out <path>", "Write final manifest + validation + diff JSON to this path.")
+    .option("--quiet", "Suppress live event stream; print only the summary.")
+    .option("--no-color", "Disable colored output.")
+    .action(async (
+      domain: string,
+      o: {
+        aiProvider?: string;
+        aiModel?: string;
+        aiKey?: string;
+        maxCost?: number;
+        maxToolCalls?: number;
+        maxWallSeconds?: number;
+        watchdog?: number;
+        ndjson?: string;
+        manifestOut?: string;
+        quiet?: boolean;
+        color?: boolean;
+      },
+    ) => {
+      const { runOrchestrateCommand } = await import("./commands/orchestrate.js");
+      exitCode = await runOrchestrateCommand({
+        domain,
+        aiProvider: o.aiProvider,
+        aiModel: o.aiModel,
+        aiKey: o.aiKey,
+        maxCostUsd: o.maxCost,
+        maxToolCalls: o.maxToolCalls,
+        maxWallSeconds: o.maxWallSeconds,
+        watchdogIntervalCalls: o.watchdog,
+        ndjsonPath: o.ndjson,
+        manifestOut: o.manifestOut,
+        quiet: o.quiet,
+        noColor: o.color === false,
+      });
+    });
+
+  program
     .command("upload <report>")
     .description("Upload an audit JSON report to the pseolint Pro ingestion endpoint")
     .option("--token <token>", "API token (or PSEOLINT_TOKEN env var)")
