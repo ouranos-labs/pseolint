@@ -11,10 +11,7 @@ import { HistoryList } from "@/components/dashboard/history-list";
 import { AddDomainCard } from "@/components/dashboard/add-domain-card";
 import { PortfolioStrip } from "@/components/dashboard/portfolio-strip";
 import { CrossDomainFixQueue } from "@/components/dashboard/cross-domain-fix-queue";
-<<<<<<< HEAD
-=======
 import { StartOrchestratorButton } from "@/components/dashboard/start-orchestrator-button";
->>>>>>> 30291fbceae686338c194a5bcbaf3b7df8a5e079
 
 export const runtime = "nodejs";
 
@@ -97,8 +94,6 @@ export default async function DashboardHome({
         <AddDomainCard variant="compact" />
       </div>
       <PortfolioStrip domains={domains} userId={session.user.id} />
-<<<<<<< HEAD
-=======
       <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
         <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
         <p className="mb-3 text-xs text-muted-foreground">
@@ -106,7 +101,6 @@ export default async function DashboardHome({
         </p>
         <StartOrchestratorButton />
       </section>
->>>>>>> 30291fbceae686338c194a5bcbaf3b7df8a5e079
       <CrossDomainFixQueue userId={session.user.id} />
     </div>
   );

@@ -58,22 +58,6 @@ export default async function CostDashboard() {
         This month ({monthLabel}). Refreshes on every audit completion.
       </p>
 
-<<<<<<< HEAD
-      {(agg?.auditCount ?? 0) === 0 ? (
-        <div className="rounded-[18px] border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
-          No audits this month yet. Run one from <a href="/dashboard" className="text-primary hover:underline">your portfolio</a> to start tracking usage.
-        </div>
-      ) : (
-        <div className="rounded-[18px] border border-border/60 p-5">
-          <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
-            <dt className="text-muted-foreground">Audits run</dt>
-            <dd className="font-mono tabular-nums text-foreground">{agg?.auditCount ?? 0}</dd>
-            <dt className="text-muted-foreground">AI triage calls</dt>
-            <dd className="font-mono tabular-nums text-foreground">{agg?.triageCount ?? 0}</dd>
-            <dt className="text-muted-foreground">AI triage spend</dt>
-            <dd className="font-mono tabular-nums text-foreground">${Number(agg?.triageSumUsd ?? 0).toFixed(2)}</dd>
-          </dl>
-=======
       {(auditAgg?.auditCount ?? 0) === 0 && (orchAgg?.sessionCount ?? 0) === 0 ? (
         <div className="rounded-[18px] border border-dashed border-border/60 p-6 text-center text-sm text-muted-foreground">
           No audits or orchestrator sessions this month yet. Start one from <a href="/dashboard" className="text-primary hover:underline">your dashboard</a> to track usage.
@@ -116,7 +100,6 @@ export default async function CostDashboard() {
               <dd className="font-mono tabular-nums text-foreground">${Number(orchAgg?.sumUsd ?? 0).toFixed(2)}</dd>
             </dl>
           </div>
->>>>>>> 30291fbceae686338c194a5bcbaf3b7df8a5e079
         </div>
       )}
 
