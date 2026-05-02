@@ -1,11 +1,13 @@
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { orchestratorSessions, fixManifests, userAiKeys } from "@/db/schema";
+import { orchestratorSessions, fixManifests, userAiKeys, users } from "@/db/schema";
 import { uploadSummary } from "@/lib/r2";
 import { auditLog } from "@/lib/audit-log";
 import { openSecret } from "@/lib/secret-box";
 import { publicSlug } from "@/lib/slug";
+import { sendOrchestratorCompleteEmail } from "@/lib/resend";
+import { env } from "@/lib/env";
 import { orchestrate, type SessionEvent } from "@pseolint/core";
 
 /**
@@ -40,6 +42,20 @@ export const runOrchestratorSession = inngest.createFunction(
      * status, not silently re-charge them.
      */
     retries: 0,
+    /**
+     * User-initiated cancellation. The DELETE /api/orchestrate/[id]
+     * endpoint dispatches `orchestrator/cancel-requested`; Inngest matches
+     * on `data.sessionId` and aborts this function. The race-safe
+     * mark-terminal step (`ne(status, "aborted")`) ensures we don't
+     * un-cancel a user's intent if the function happens to finish a step
+     * after the cancel event.
+     */
+    cancelOn: [
+      {
+        event: "orchestrator/cancel-requested",
+        match: "data.sessionId",
+      },
+    ],
   },
   { event: "orchestrator/requested" },
   async ({ event, step }) => {
@@ -165,6 +181,12 @@ export const runOrchestratorSession = inngest.createFunction(
           : "failed";
 
     await step.run("mark-terminal", async () => {
+      // Race-safe terminal write: if the user cancelled mid-flight (DELETE
+      // /api/orchestrate/[id] flipped status to "aborted"), the WHERE
+      // clause `ne(status, "aborted")` skips the update so we don't
+      // overwrite the user's intent. The orchestrator's own usage stats
+      // would be lost in that case, but losing $0.50 of analytics is the
+      // right trade vs silently un-cancelling a user request.
       await db
         .update(orchestratorSessions)
         .set({
@@ -181,7 +203,9 @@ export const runOrchestratorSession = inngest.createFunction(
           errorMessage: result.sessionResult.error ?? null,
           completedAt: new Date(),
         })
-        .where(eq(orchestratorSessions.id, sessionId));
+        .where(
+          and(eq(orchestratorSessions.id, sessionId), ne(orchestratorSessions.status, "aborted")),
+        );
     });
 
     auditLog("orchestrator.completed", {
@@ -191,6 +215,47 @@ export const runOrchestratorSession = inngest.createFunction(
       toolCallCount: result.sessionResult.usage.toolCallCount,
       spentUsd: result.sessionResult.usage.estimatedUsd,
     });
+
+    // Email notification on terminal status (success OR failure — both warrant
+    // an inbox ping since the user paid for the run). User-cancelled
+    // sessions skip the email since the user already knows. Best-effort —
+    // delivery failures don't roll back the session.
+    const wantsEmail =
+      (result.sessionResult.reason === "completed" || terminalStatus === "failed") &&
+      result.sessionResult.reason !== "aborted";
+    if (wantsEmail) {
+      await step.run("notify-user", async () => {
+        const [userRow] = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(eq(users.id, sessionRow.userId))
+          .limit(1);
+        if (!userRow?.email) return;
+
+        const baseUrl = env().BETTER_AUTH_URL.replace(/\/$/, "");
+        // For success: link to the manifest. For failure: link to the
+        // session-progress page so the user can see what went wrong.
+        const followUpUrl =
+          manifestSlug && result.manifest
+            ? `${baseUrl}/m/${manifestSlug}`
+            : `${baseUrl}/o/${sessionId}`;
+
+        await sendOrchestratorCompleteEmail(userRow.email, {
+          domain: sessionRow.domain,
+          verdict: result.manifest?.verdict ?? "concerning",
+          manifestUrl: followUpUrl,
+          pagePatchCount: result.manifest?.pages.length ?? 0,
+          templatePatchCount: result.manifest?.templates.length ?? 0,
+          domainPatchCount: result.manifest?.domainLevel.length ?? 0,
+          validPatchCount: result.validation?.validPatches ?? 0,
+          totalPatchCount: result.validation?.totalPatches ?? 0,
+          spentUsd: result.sessionResult.usage.estimatedUsd,
+          durationSeconds: result.sessionResult.usage.elapsedMs / 1000,
+          terminalStatus,
+          errorMessage: result.sessionResult.error ?? null,
+        });
+      });
+    }
 
     return {
       ok: result.sessionResult.reason === "completed",

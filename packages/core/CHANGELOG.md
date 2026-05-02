@@ -4,6 +4,55 @@
 
 ### Minor Changes
 
+- v0.5.0 (continued) — AI orchestrator: 25 tools, fix-manifest output, validators + diffs
+
+  Net-new public API: `orchestrate(opts)` — drives an LLM through 25
+  deterministic tools (sitemap fetch, template clustering, per-page rule
+  checks, AEO probes against live Anthropic/Perplexity/Gemini, SerpAPI)
+  and produces a **fix manifest** of concrete patches (`replace_h1`,
+  `rewrite_meta`, `add_jsonld`, `add_faq_block`, `rewrite_intro`,
+  `add_internal_link`, `remove_thin_block`, plus domain-level
+  `robots_txt`/`sitemap_xml`/`canonical_strategy`).
+
+  **Architecture**: rules become tools the LLM calls; the LLM picks order;
+  budget caps (LLM tokens + external probe USD, pre-flight + reactive
+  enforcement) bound spend. Watchdog injects a convergence reminder every
+  N tool calls. Page cache by reference (HTML never travels in
+  conversation history) keeps token cost bounded as audits scale.
+
+  **Manifest validation** (Phase 4): 11 deterministic patch validators
+  (Schema.org required-properties, robots.txt structure, sitemap XML,
+  cheerio HTML safety with allowlisted tags, etc.) run on every
+  LLM-proposed patch. Failed patches are dropped from the manifest and
+  surfaced in `validation.failures` with structured location info — the
+  LLM never gets the chance to ship a malformed JSON-LD block or an
+  unsafe `<iframe>` to a user.
+
+  **Structured diffs** (`diffManifest`): every patch maps to one of 5
+  `PatchDiff` kinds (text_replace, html_insert, html_remove, file_replace,
+  guidance) suitable for direct UI rendering with HTML-escaped attributes.
+
+  **External probe tooling**: `query_serp` (SerpAPI, $0.005/call),
+  `ask_ai_engine` (Anthropic / Perplexity Sonar / Gemini citation
+  probes), `validate_jsonld`, `check_robots`, `check_indexability`,
+  `check_domain_llms_txt`, `check_domain_crawler_access`. All
+  cost-tracked.
+
+  Public exports: `orchestrate`, `runOrchestrator`, `orchestratorTools`,
+  `defineTool`, `validateManifest`, `diffManifest`, `manifestSchema`,
+  `buildSystemPrompt`, `DEFAULT_BUDGET`, plus types `FixManifest`,
+  `BudgetCaps`, `UsageSnapshot`, `StopReason`, `SessionEvent`,
+  `SessionResult`, `PatchDiff`, `ManifestDiff`,
+  `ManifestValidationReport`. AbortSignal threading through every I/O
+  tool. AsyncLocalStorage-backed page cache.
+
+  Verified end-to-end across 4 dogfood runs against pseolint.dev (final
+  run: 36 tool calls, $0.55, 4 minutes wall, completed manifest with 5/6
+  patches passing validators — one rejected meta-description for being
+  167 > 160 chars).
+
+### Minor Changes
+
 - v0.5.0 — Change-driven monitoring
 
   **Why:** Monitoring runs on a 4k-page site re-fetched everything. Rule

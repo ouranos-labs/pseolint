@@ -4,6 +4,37 @@
 
 ### Minor Changes
 
+- v0.5.0 (continued) — `pseolint orchestrate` subcommand
+
+  Wraps `@pseolint/core` v0.5.0's new `orchestrate()` API as a CLI command.
+
+  ```bash
+  export ANTHROPIC_API_KEY=sk-...
+  pseolint orchestrate https://example.com \
+    --max-cost 3 \
+    --ndjson session.ndjson \
+    --manifest-out manifest.json
+  ```
+
+  Live event stream to stdout with ANSI colors: tool calls, results,
+  thoughts, per-step token + cost + duration, watchdog firings, budget
+  warnings, session terminus.
+
+  End-of-run summary: verdict + 4 category grades, page / template /
+  domain patch counts, `valid/total` patches with the first 10 dropped
+  patches surfaced.
+
+  Three exit codes: 0 = completed + all patches valid · 1 = session
+  didn't reach finish_audit · 2 = completed but some patches were
+  rejected by validators (manifest still written).
+
+  Options mirror the public API: `--ai-provider`, `--ai-model`, `--ai-key`,
+  `--max-cost <usd>`, `--max-tool-calls <n>`, `--max-wall-seconds <n>`,
+  `--watchdog <n>` (0 disables), `--ndjson <path>`, `--manifest-out <path>`,
+  `--quiet`, `--no-color`.
+
+### Minor Changes
+
 - v0.5.0 — Change-driven monitoring CLI surface
 
   Tracks `@pseolint/core` v0.5.0. New flags:

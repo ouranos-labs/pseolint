@@ -31,8 +31,19 @@ export interface PageCacheEntry {
  * → tool execute() without changing the AI SDK's tool surface. Tools that
  * don't need page content ignore it entirely.
  */
+/**
+ * Soft cap on per-session cache size. Generous enough for any realistic
+ * orchestrator session (200 pages × 100KB ≈ 20MB) but bounds memory growth
+ * for misbehaving runs. `put` rejects with a tool-friendly error past this
+ * cap so the LLM can adapt rather than the orchestrator OOMing silently.
+ */
+const DEFAULT_MAX_BYTES = 50 * 1024 * 1024; // 50MB
+
 export class PageCache {
   private readonly store = new Map<string, PageCacheEntry>();
+  private currentBytes = 0;
+
+  constructor(private readonly maxBytes: number = DEFAULT_MAX_BYTES) {}
 
   /**
    * Stable pageId derivation: sha256 of the URL, truncated to 16 hex chars
@@ -46,7 +57,29 @@ export class PageCache {
 
   put(entry: Omit<PageCacheEntry, "fetchedAt">): string {
     const pageId = PageCache.idFor(entry.url);
+    const bytes =
+      entry.html.length +
+      entry.url.length +
+      Object.entries(entry.headers).reduce((acc, [k, v]) => acc + k.length + v.length, 0);
+
+    // Replacing an existing entry: subtract its old size from the running total
+    // before checking the cap — re-fetching the same URL shouldn't re-bill cap.
+    const existing = this.store.get(pageId);
+    if (existing) {
+      this.currentBytes -=
+        existing.html.length +
+        existing.url.length +
+        Object.entries(existing.headers).reduce((acc, [k, v]) => acc + k.length + v.length, 0);
+    }
+
+    if (this.currentBytes + bytes > this.maxBytes) {
+      throw new Error(
+        `page cache full (${this.maxBytes} bytes); reduce concurrent fetches or finalize the audit before fetching more`,
+      );
+    }
+
     this.store.set(pageId, { ...entry, fetchedAt: Date.now() });
+    this.currentBytes += bytes;
     return pageId;
   }
 
@@ -64,14 +97,7 @@ export class PageCache {
 
   /** Memory usage estimate in bytes — useful for orchestrator-side monitoring. */
   approximateBytes(): number {
-    let total = 0;
-    for (const entry of this.store.values()) {
-      total += entry.html.length + entry.url.length;
-      for (const [k, v] of Object.entries(entry.headers)) {
-        total += k.length + v.length;
-      }
-    }
-    return total;
+    return this.currentBytes;
   }
 }
 

@@ -5,6 +5,13 @@ type Events = {
   "audit/requested": { data: { auditId: string; url: string; plan: "free" | "pro"; sampleSize: number; render?: boolean; mode?: "full" | "diff" } };
   "audit/completed-for-monitoring": { data: { monitoredDomainId: string; auditId: string } };
   "orchestrator/requested": { data: { sessionId: string } };
+  /**
+   * Dispatched by the DELETE /api/orchestrate/[id] endpoint. Inngest matches
+   * this against the function's cancelOn rule and aborts the in-flight
+   * runOrchestratorSession invocation — preventing further LLM steps from
+   * billing after a user clicks Cancel.
+   */
+  "orchestrator/cancel-requested": { data: { sessionId: string } };
 };
 
 const useLocalInngest = devFlags.inngestLocal;

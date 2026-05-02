@@ -152,6 +152,50 @@ import { triageFindings, createLanguageModel, estimateCostUsd } from "@pseolint/
 
 Cost and daily-budget caps are enforced pre-flight; results are cached on disk by default.
 
+### AI orchestrator (v0.5)
+
+Net-new in v0.5. `orchestrate()` drives an LLM through 25 deterministic tools (sitemap fetch, template clustering, per-page rule checks, AEO probes against live answer engines, SerpAPI) and produces a **fix manifest** of concrete patches — not just a list of findings.
+
+```ts
+import { orchestrate } from "@pseolint/core";
+
+const { session, manifest, validation, diff } = await orchestrate({
+  domain: "https://example.com",
+  userId: "demo",
+  budget: { maxSessionUsd: 3 },         // optional; default $5
+  onEvent: (e) => console.log(e),       // optional; SSE-friendly callback
+});
+
+if (session.reason === "completed") {
+  console.log(`Verdict: ${manifest!.verdict}`);
+  console.log(`${validation!.validPatches}/${validation!.totalPatches} patches valid`);
+}
+```
+
+**What you get:**
+- `manifest` — `FixManifest` with verdict, category grades, page/template/domain patches (replace_h1, rewrite_meta, add_jsonld, add_faq_block, rewrite_intro, add_internal_link, remove_thin_block, robots_txt, sitemap_xml, canonical_strategy)
+- `validation` — patch-by-patch `ManifestValidationReport`. Failed patches are dropped from the manifest before it returns; `failures` carries the location + reason.
+- `diff` — `ManifestDiff` of structured `PatchDiff` objects (5 kinds — text_replace, html_insert, html_remove, file_replace, guidance) suitable for direct UI rendering.
+
+**Architecture**: rules become tools the LLM calls. The LLM picks order. Budget caps (LLM tokens + external probe USD, pre-flight + reactive) bound spend. Watchdog injects a convergence reminder every N tool calls. AsyncLocalStorage-backed page cache means HTML never travels in conversation history — token cost stays bounded as audits scale.
+
+**Lower-level exports** for callers who want individual pieces:
+
+```ts
+import {
+  runOrchestrator,           // direct runner — bring your own LanguageModel
+  orchestratorTools,         // the 25-tool registry
+  defineTool,                // helper to add custom tools
+  validateManifest,          // walk a manifest, return per-failure report
+  diffManifest,              // produce a structured-diff projection
+  manifestSchema,            // Zod schema for FixManifest
+  buildSystemPrompt,         // canonical orchestrator system prompt
+  DEFAULT_BUDGET,            // BudgetCaps defaults
+} from "@pseolint/core";
+```
+
+External probes (`query_serp`, `ask_ai_engine`) read API keys from the call's `apiKey` arg or `SERPAPI_API_KEY` / `ANTHROPIC_API_KEY` / `PERPLEXITY_API_KEY` / `GOOGLE_GENERATIVE_AI_API_KEY` env vars.
+
 ### Change-driven monitoring (v0.5)
 
 When prior state exists, `auditSource` defaults to **monitoring mode**: the decision matrix decides which URLs to fetch BEFORE the network round-trip. URLs without change signals are skipped entirely; their findings are carried forward from prior state with `carriedForward: true` and `lastVerifiedAt` markers.

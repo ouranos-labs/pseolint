@@ -20,7 +20,7 @@ describe("buildSystemPrompt", () => {
     expect(p).toContain("17 tool calls");
     expect(p).toContain("123,456");
     expect(p).toContain("$4.25");
-    expect(p).toContain("99 seconds");
+    expect(p).toMatch(/99\s*s\s+wall/);
   });
 
   it("mentions confidence-aware tool use", () => {

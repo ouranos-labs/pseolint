@@ -286,6 +286,40 @@ export async function runCli(
     });
 
   program
+    .command("orchestrate-batch")
+    .description("Run the AI orchestrator across a list of domains. Emits aggregate stats + per-site manifests for launch artifacts / batch audits.")
+    .option("--sites <path>", "Path to a text file with one URL per line (blank lines + # comments OK)", "sites.txt")
+    .option("--out <dir>", "Output directory for manifests + summary", ".pseolint/batch")
+    .option("--max-cost <usd>", "Per-site USD cap. Default $2.", parseFloat, 2)
+    .option("--max-tool-calls <n>", "Per-site tool-call cap. Default 60.", (v) => parseInt(v, 10), 60)
+    .option("--max-wall-seconds <n>", "Per-site wall-clock cap. Default 240.", (v) => parseInt(v, 10), 240)
+    .option("--concurrency <n>", "Sites in flight at once. Default 1 (sequential — parallelism burns money on rate-limit errors).", (v) => parseInt(v, 10), 1)
+    .option("--dry-run", "Print the site list and exit without auditing anything.")
+    .option("--no-color", "Disable colored output.")
+    .action(async (o: {
+      sites: string;
+      out: string;
+      maxCost: number;
+      maxToolCalls: number;
+      maxWallSeconds: number;
+      concurrency: number;
+      dryRun?: boolean;
+      color: boolean;
+    }) => {
+      const { runOrchestrateBatchCommand } = await import("./commands/orchestrate-batch.js");
+      exitCode = await runOrchestrateBatchCommand({
+        sitesPath: o.sites,
+        outDir: o.out,
+        maxCostUsd: o.maxCost,
+        maxToolCalls: o.maxToolCalls,
+        maxWallSeconds: o.maxWallSeconds,
+        concurrency: o.concurrency,
+        dryRun: o.dryRun ?? false,
+        noColor: o.color === false,
+      });
+    });
+
+  program
     .command("upload <report>")
     .description("Upload an audit JSON report to the pseolint Pro ingestion endpoint")
     .option("--token <token>", "API token (or PSEOLINT_TOKEN env var)")

@@ -6,7 +6,18 @@ The only tool purpose-built for **programmatic SEO compliance**. Audits page *re
 
 ## What's new in v0.5
 
-v0.5 ships **change-driven monitoring**. When prior state exists, the auditor decides which URLs to fetch *before* the network round-trip, using a 7-reason matrix (new / age / ruleset / recheck / lastmod / GSC / no-signal). Sites with reliable sitemap `<lastmod>` (Next.js, WordPress/Yoast, Astro) typically see ~95% fewer fetches on steady-state monitoring runs. `--since` is kept as an alias for `--mode=monitoring`. New: `--mode=monitoring|fresh` and `--age-floor-days=N`. State schema bumped to v2 (existing `.pseolint/state.json` files trigger one baseline re-audit). See `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
+**AI orchestrator (`pseolint orchestrate <domain>`).** Drives an LLM through 25 deterministic tools and produces a **fix manifest** with concrete copy-paste patches (rewritten H1s, JSON-LD blocks, robots.txt diffs, internal-link suggestions). Every patch passes a deterministic schema validator before reaching the manifest — the LLM can't ship a malformed JSON-LD block or unsafe HTML.
+
+```bash
+export ANTHROPIC_API_KEY=sk-...
+pseolint orchestrate https://example.com \
+  --max-cost 3 \
+  --manifest-out manifest.json
+```
+
+Live event stream to stdout, three exit codes (0 clean / 1 didn't finish / 2 some patches dropped). See `pseolint orchestrate --help` for full options.
+
+**Change-driven monitoring** also ships in v0.5. When prior state exists, the auditor decides which URLs to fetch *before* the network round-trip using a 7-reason matrix (new / age / ruleset / recheck / lastmod / GSC / no-signal). Sites with reliable sitemap `<lastmod>` (Next.js, WordPress/Yoast, Astro) typically see ~95% fewer fetches on steady-state monitoring runs. `--since` is an alias for `--mode=monitoring`. New: `--mode=monitoring|fresh` and `--age-floor-days=N`. State schema bumped to v2 (existing `.pseolint/state.json` files trigger one baseline re-audit). See `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
 
 ## What's new in v0.4
 
