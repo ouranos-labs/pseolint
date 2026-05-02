@@ -14,7 +14,7 @@ export default async function BillingSettings() {
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h1 className="text-xl font-medium">Billing</h1>
-      <div className="rounded-[22px] border border-border/60 p-5">
+      <div className="rounded-[18px] border border-border/60 p-5">
         <dl className="grid grid-cols-[140px_1fr] gap-y-2 text-sm">
           <dt className="text-muted-foreground">Plan</dt>
           <dd className="font-medium capitalize text-foreground">{plan}</dd>
@@ -28,7 +28,11 @@ export default async function BillingSettings() {
         {plan === "free" ? (
           <a href="/pricing" className="mt-4 inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Upgrade to Pro →</a>
         ) : (
-          <a href="https://polar.sh/account" target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Manage in Polar →</a>
+          <form action="/api/billing/portal" method="POST" className="mt-4">
+            <button type="submit" className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">
+              Manage in Polar →
+            </button>
+          </form>
         )}
       </div>
     </div>

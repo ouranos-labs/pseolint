@@ -19,6 +19,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/pricing", changeFrequency: "monthly", priority: 0.9 },
     { path: "/leaderboard", changeFrequency: "daily", priority: 0.7 },
     { path: "/limits", changeFrequency: "monthly", priority: 0.4 },
+    { path: "/abuse", changeFrequency: "yearly", priority: 0.4 },
     { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
     { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
   ];

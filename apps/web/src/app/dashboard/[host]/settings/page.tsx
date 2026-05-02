@@ -8,12 +8,12 @@ import { getPlan } from "@/lib/plan";
 import { listSites, type GscSite } from "@/lib/gsc";
 import {
   updateDomainSettingsAction,
-  uploadDataSourceAction,
   removeDataSourceAction,
   updateRuleOverridesAction,
   updateSlackWebhookAction,
   testSlackWebhookAction,
 } from "./actions";
+import { DataSourceForm } from "./data-source-form";
 
 export default async function DomainSettings({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -53,24 +53,25 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
   const [ruleOverride] = await db.select().from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domain.id)).limit(1);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-2xl flex-col gap-6">
       <nav className="flex items-center gap-2 text-xs text-muted-foreground">
-        <a href="/dashboard" className="hover:text-foreground">Portfolio</a>
+        <Link href="/dashboard" className="hover:text-foreground">Portfolio</Link>
         <span>/</span>
-        <a href={`/dashboard/${encodeURIComponent(domain.host)}`} className="hover:text-foreground">{domain.host}</a>
+        <Link href={`/dashboard/${encodeURIComponent(domain.host)}`} className="hover:text-foreground">{domain.host}</Link>
         <span>/</span>
         <span className="text-foreground">Settings</span>
       </nav>
       <h1 className="text-xl font-medium">Settings — {domain.host}</h1>
 
-      <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[22px] border border-border/60 p-5">
+      <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
         <input type="hidden" name="domainHost" value={domain.host} />
 
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1">
           <span className="text-sm font-medium">Cadence</span>
-          <span className="text-xs text-muted-foreground">Daily diff-audit · Weekly full re-audit</span>
-          <span className="text-[11px] text-muted-foreground">(editable in a future release)</span>
-        </label>
+          <span className="text-xs text-muted-foreground">
+            Daily diff-audit at 04:00 UTC · weekly full re-audit on Sunday.
+          </span>
+        </div>
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Alert threshold</span>
@@ -115,7 +116,7 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
         <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>
       </form>
 
-      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+      <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
         <header>
           <h2 className="text-sm font-medium">Slack notifications</h2>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -154,13 +155,12 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
         )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+      <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
         <header>
           <h2 className="text-sm font-medium">Data source (pSEO data-binding)</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Upload the dataset that drives your pSEO pages. The <code className="font-mono">data/data-binding</code> rule
-            verifies each page surfaces its expected records. Format:
-            <code className="ml-1 font-mono">[{"{"}"url": "/p/:slug", "data": {"{"}"title": "...", "faqs": [...]{"}"}{"}"}]</code>.
+            verifies each page surfaces its expected records.
           </p>
         </header>
         {dataSource && (
@@ -168,32 +168,18 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
             ✓ {dataSource.recordCount} records loaded — last updated {new Date(dataSource.updatedAt).toLocaleString()}
           </p>
         )}
-        <form action={uploadDataSourceAction} className="flex flex-col gap-3">
-          <input type="hidden" name="domainHost" value={domain.host} />
-          <textarea
-            name="recordsJson"
-            rows={6}
-            placeholder='[{"url":"/blog/:slug","data":{"title":"…"}}]'
-            defaultValue=""
-            className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
-          />
-          <div className="flex items-center gap-2">
-            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
-              {dataSource ? "Replace" : "Upload"}
+        <DataSourceForm host={domain.host} hasExisting={Boolean(dataSource)} />
+        {dataSource && (
+          <form action={removeDataSourceAction} className="inline">
+            <input type="hidden" name="domainHost" value={domain.host} />
+            <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] border border-destructive/50 px-3 text-xs text-destructive hover:bg-destructive/10">
+              Remove current dataset
             </button>
-            {dataSource && (
-              <form action={removeDataSourceAction} className="inline">
-                <input type="hidden" name="domainHost" value={domain.host} />
-                <button type="submit" className="inline-flex h-9 items-center rounded-[14px] border border-destructive/50 px-3 text-xs text-destructive hover:bg-destructive/10">
-                  Remove
-                </button>
-              </form>
-            )}
-          </div>
-        </form>
+          </form>
+        )}
       </section>
 
-      <section className="flex flex-col gap-3 rounded-[22px] border border-border/60 p-5">
+      <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
         <header>
           <h2 className="text-sm font-medium">Rule thresholds (advanced)</h2>
           <p className="mt-1 text-xs text-muted-foreground">

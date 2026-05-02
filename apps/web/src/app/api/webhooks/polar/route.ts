@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { userProfiles, users, audits } from "@/db/schema";
 import { env } from "@/lib/env";
-import { rememberEventOnce } from "@/lib/polar";
+import { rememberEventOnce, isActiveSubscriptionStatus } from "@/lib/polar";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
+
+// Email casing varies between BetterAuth (preserves what user typed) and Polar
+// (often normalizes to lowercase). Compare with lower() on both sides so a payment
+// from "Alice@x.com" still finds the user signed up as "alice@x.com".
+async function findUserByEmailCi(email: string): Promise<{ id: string } | undefined> {
+  const [u] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(sql`lower(${users.email}) = ${email.toLowerCase()}`)
+    .limit(1);
+  return u;
+}
 
 export const runtime = "nodejs";
 
@@ -36,20 +48,21 @@ export async function POST(req: Request): Promise<Response> {
     const customer = event.data.customer;
     const email = customer?.email;
     if (!email) return NextResponse.json({ error: "no email on event" }, { status: 400 });
-    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
+    const u = await findUserByEmailCi(email);
     if (!u) return NextResponse.json({ ok: true, note: "user not yet signed up" });
+
+    // active|trialing|past_due all keep the user on Pro until currentPeriodEnd;
+    // past_due covers Polar's renewal-retry window (~7 days) so a transient card
+    // failure doesn't immediately downgrade an active subscriber.
+    const plan = isActiveSubscriptionStatus(event.data.status) ? "pro" : "free";
+    const planExpiresAt = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
 
     await db.insert(userProfiles).values({
       userId: u.id, polarCustomerId: customer.id,
-      plan: event.data.status === "active" ? "pro" : "free",
-      planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null,
+      plan, planExpiresAt,
     }).onConflictDoUpdate({
       target: userProfiles.userId,
-      set: {
-        polarCustomerId: customer.id,
-        plan: event.data.status === "active" ? "pro" : "free",
-        planExpiresAt: event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null,
-      },
+      set: { polarCustomerId: customer.id, plan, planExpiresAt },
     });
   }
 
@@ -79,7 +92,7 @@ export async function POST(req: Request): Promise<Response> {
     // Previously we left plan=pro but only updated planExpiresAt; without an explicit plan write,
     // users who upgraded in the same cycle wouldn't reflect their final expiry. Make this explicit.
     const customer = event.data.customer;
-    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.email, customer.email)).limit(1);
+    const u = await findUserByEmailCi(customer.email);
     if (u) {
       const periodEnd = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
       if (periodEnd && periodEnd > new Date()) {

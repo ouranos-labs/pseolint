@@ -3,8 +3,8 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-compat.js";
 import { z } from "zod";
 import { createRequire } from "node:module";
-import { auditSource, formatConsole, formatJson } from "@pseolint/core";
-import type { AuditOptions, AuditSummary, RuleResult } from "@pseolint/core";
+import { auditSource, formatConsole, formatJson, orchestrate } from "@pseolint/core";
+import type { AuditOptions, AuditSummary, FixManifest, ManifestValidationReport, RuleResult } from "@pseolint/core";
 
 /**
  * MCP SDK 1.29's `inputSchema` is typed as `ZodRawShapeCompat = Record<string,
@@ -309,7 +309,143 @@ export function createServer(): McpServer {
     }
   );
 
+  server.registerTool(
+    "orchestrate_audit",
+    {
+      title: "Orchestrate AI-Native pSEO Audit",
+      description:
+        "Use when a user wants concrete, paste-able fixes (rewritten H1s, JSON-LD blocks, robots.txt patches, internal-link suggestions) — not just a list of issues. " +
+        "An LLM drives 25 tools (sitemap fetch, template clustering, per-page rule checks, AEO probes) and produces a fix manifest with structured patches, each validated against a deterministic schema. " +
+        "Costs real money (~$1-3 per audit on managed Anthropic). Capped at $2 / 60 tool calls / 180 seconds by default — adjust if the user asks for a deeper run. " +
+        "Returns a text summary plus the structured manifest if `format` is 'json'. The full manifest can be streamed via the CLI: `pseolint orchestrate <domain> --manifest-out manifest.json`.",
+      inputSchema: inputShape({
+        domain: z.string().describe("URL of the site to audit (e.g. https://example.com). The orchestrator's first tool call fetches the sitemap."),
+        maxCostUsd: z.number().optional().default(2).describe("Hard USD cap for this session. Default $2 (conservative for MCP-invoked sessions)."),
+        maxToolCalls: z.number().int().optional().default(60).describe("Hard tool-call cap. Default 60."),
+        maxWallSeconds: z.number().int().optional().default(180).describe("Hard wall-clock cap in seconds. Default 180 (3 minutes)."),
+        format: z.enum(["summary", "json"]).optional().default("summary").describe("'summary' = terse text for chat UI; 'json' = full manifest + validation + diff."),
+      }),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    },
+    async ({ domain, maxCostUsd, maxToolCalls, maxWallSeconds, format }) => {
+      try {
+        const result = await orchestrate({
+          domain,
+          userId: "mcp",
+          budget: {
+            maxSessionUsd: maxCostUsd,
+            maxToolCalls,
+            maxWallSeconds,
+          },
+        });
+
+        if (format === "json") {
+          return {
+            content: [{ type: "text" as const, text: JSON.stringify(
+              { session: { reason: result.session.reason, usage: result.session.usage, error: result.session.error },
+                manifest: result.manifest,
+                validation: result.validation,
+                diff: result.diff },
+              null, 2,
+            ) }],
+            isError: result.session.reason !== "completed",
+          };
+        }
+
+        const text = buildOrchestrateSummary(result.session.reason, result.session.usage, result.manifest, result.validation);
+        return {
+          content: [{ type: "text" as const, text }],
+          isError: result.session.reason !== "completed",
+        };
+      } catch (err) {
+        return {
+          content: [{ type: "text" as const, text: friendlyError(err, domain) }],
+          isError: true,
+        };
+      }
+    }
+  );
+
   return server;
+}
+
+/**
+ * Compact text summary suitable for an MCP chat UI. Long manifests get
+ * truncated to top-3 patches per bucket; full output is available via the
+ * CLI's `--manifest-out` flag.
+ */
+function buildOrchestrateSummary(
+  reason: string,
+  usage: { toolCallCount: number; estimatedUsd: number; elapsedMs: number },
+  manifest: FixManifest | null,
+  validation: ManifestValidationReport | null,
+): string {
+  const lines: string[] = [];
+  lines.push(`pseolint orchestrate · reason=${reason}`);
+  lines.push(
+    `  tool calls: ${usage.toolCallCount}` +
+      `  ·  cost: $${usage.estimatedUsd.toFixed(3)}` +
+      `  ·  duration: ${(usage.elapsedMs / 1000).toFixed(1)}s`,
+  );
+
+  if (!manifest) {
+    lines.push("");
+    lines.push("No manifest produced. The orchestrator stopped before calling finish_audit.");
+    return lines.join("\n");
+  }
+
+  const cats = manifest.categories;
+  lines.push(
+    `  verdict: ${manifest.verdict}` +
+      `  ·  ${cats.integrity}/${cats.discoverability}/${cats.citation}/${cats.data}` +
+      ` (integrity / discoverability / citation / data)`,
+  );
+
+  if (validation) {
+    const dropped = validation.failures.length;
+    lines.push(
+      `  patches: ${validation.validPatches}/${validation.totalPatches} valid` +
+        (dropped > 0 ? `  ·  ${dropped} dropped (failed validation)` : ""),
+    );
+  }
+
+  lines.push("");
+  if (manifest.pages.length === 0 && manifest.templates.length === 0 && manifest.domainLevel.length === 0) {
+    lines.push("Manifest is empty — orchestrator found nothing actionable.");
+  } else {
+    if (manifest.pages.length > 0) {
+      lines.push(`Page-level patches (${manifest.pages.length} pages):`);
+      for (const p of manifest.pages.slice(0, 3)) {
+        const types = p.changes.map((c) => c.type).join(", ");
+        lines.push(`  • ${p.url}: ${types}`);
+      }
+      if (manifest.pages.length > 3) lines.push(`  … and ${manifest.pages.length - 3} more`);
+      lines.push("");
+    }
+    if (manifest.templates.length > 0) {
+      lines.push(`Template-level patches (${manifest.templates.length} templates):`);
+      for (const t of manifest.templates.slice(0, 3)) {
+        lines.push(`  • ${t.templateId} (${t.affectedUrlCount} URLs): ${t.recommendation}`);
+      }
+      if (manifest.templates.length > 3) lines.push(`  … and ${manifest.templates.length - 3} more`);
+      lines.push("");
+    }
+    if (manifest.domainLevel.length > 0) {
+      lines.push(`Domain-level patches (${manifest.domainLevel.length}):`);
+      for (const d of manifest.domainLevel.slice(0, 3)) {
+        lines.push(`  • ${d.type}: ${d.reason}`);
+      }
+      if (manifest.domainLevel.length > 3) lines.push(`  … and ${manifest.domainLevel.length - 3} more`);
+      lines.push("");
+    }
+  }
+
+  lines.push("For full manifest + diffs: `pseolint orchestrate " + manifest.domain + " --manifest-out manifest.json`");
+  return lines.join("\n");
 }
 
 export async function startMcpServer(): Promise<void> {

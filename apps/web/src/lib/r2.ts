@@ -43,3 +43,38 @@ export async function fetchSummaryJson(key: string): Promise<string | null> {
 export function summaryKey(auditId: string): string {
   return `reports/${auditId}.json`;
 }
+
+/**
+ * v0.5+: per-monitored-domain state file (RunState JSON) used by the
+ * change-driven monitoring matrix. Persisted across Inngest invocations
+ * because the worker filesystem is ephemeral on Vercel — without R2
+ * persistence the matrix never sees prior state and refetches every URL.
+ */
+export function monitoringStateKey(monitoredDomainId: string): string {
+  return `state/monitoring/${monitoredDomainId}.json`;
+}
+
+/** Upload arbitrary JSON to a key. Used by monitoring state. */
+export async function uploadJson(key: string, json: string): Promise<void> {
+  await client().send(new PutObjectCommand({
+    Bucket: env().R2_BUCKET, Key: key, Body: json, ContentType: "application/json; charset=utf-8",
+  }));
+}
+
+/**
+ * Fetch arbitrary JSON; null if missing. Used by monitoring state — first
+ * monitoring run for a domain has no prior state file and that's expected.
+ */
+export async function fetchJson(key: string): Promise<string | null> {
+  try {
+    const res = await client().send(new GetObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+    return (await res.Body?.transformToString()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Delete arbitrary key. Used by monitoring state when a domain is removed. */
+export async function deleteObject(key: string): Promise<void> {
+  await client().send(new DeleteObjectCommand({ Bucket: env().R2_BUCKET, Key: key }));
+}

@@ -2,6 +2,19 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { snoozeFinding, dismissFinding } from "@/app/dashboard/_actions/findings";
+import { sevDot, sevBorderBg, sevText } from "@/lib/severity-style";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const SNOOZE_OPTIONS: { days: number; label: string }[] = [
+  { days: 7, label: "1 week" },
+  { days: 30, label: "30 days" },
+  { days: 90, label: "90 days" },
+];
 
 type Finding = {
   id: string;
@@ -40,11 +53,28 @@ const SEV_LABEL: Record<Severity, string> = {
   info: "Info",
 };
 
+const PAGE_SIZE = 50;
+
 export function FindingsPanel({ findings, gscBound = false, host }: FindingsPanelProps) {
   const [showSuppressed, setShowSuppressed] = useState(false);
+  const [pages, setPages] = useState(1);
   const visible = findings.filter((f) => showSuppressed || f.status === "open");
+
+  // Sort once globally by severity → rank, then slice. This preserves the
+  // overall priority order across pages so "load more" reveals lower-ranked
+  // findings rather than re-sorting within a clipped window.
+  const sevRank: Record<Severity, number> = { critical: 0, error: 1, warning: 2, info: 3 };
+  const ordered = [...visible].sort((a, b) => {
+    const sevDelta = sevRank[a.severityLatest] - sevRank[b.severityLatest];
+    if (sevDelta !== 0) return sevDelta;
+    return Number(b.rankScore) - Number(a.rankScore);
+  });
+  const pageCap = pages * PAGE_SIZE;
+  const sliced = ordered.slice(0, pageCap);
+  const remaining = ordered.length - sliced.length;
+
   const groups = SEV_ORDER
-    .map((sev) => ({ sev, rows: visible.filter((f) => f.severityLatest === sev) }))
+    .map((sev) => ({ sev, rows: sliced.filter((f) => f.severityLatest === sev) }))
     .filter((g) => g.rows.length > 0);
 
   const openCount = findings.filter((f) => f.status === "open").length;
@@ -108,6 +138,20 @@ export function FindingsPanel({ findings, gscBound = false, host }: FindingsPane
           {groups.map((g) => (
             <SeverityGroup key={g.sev} sev={g.sev} rows={g.rows} gscBound={gscBound} host={host} />
           ))}
+          {remaining > 0 && (
+            <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-card/40 px-4 py-3 text-xs">
+              <span className="font-mono text-muted-foreground">
+                Showing {sliced.length} of {ordered.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPages((p) => p + 1)}
+                className="inline-flex h-9 items-center rounded-[12px] border border-border-strong bg-card px-3 text-xs font-medium hover:bg-secondary"
+              >
+                Show next {Math.min(PAGE_SIZE, remaining)} →
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>
@@ -116,7 +160,7 @@ export function FindingsPanel({ findings, gscBound = false, host }: FindingsPane
 
 function CleanState({ hasSuppressed, onShow }: { hasSuppressed: boolean; onShow: () => void }) {
   return (
-    <div className="rounded-[22px] border border-success/30 bg-success/5 p-8 text-center">
+    <div className="rounded-[18px] border border-success/30 bg-success/5 p-8 text-center">
       <p
         className="text-success"
         style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400, fontSize: "24px" }}
@@ -223,13 +267,27 @@ function FindingRow({ f, gscBound, host }: { f: Finding; gscBound: boolean; host
 
           {!isSuppressed && (
             <div className="flex items-center gap-1.5 pt-1">
-              <button
-                disabled={pending}
-                onClick={() => start(() => snoozeFinding(f.id, 7))}
-                className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground disabled:opacity-50"
-              >
-                Snooze 7d
-              </button>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  disabled={pending}
+                  className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground disabled:opacity-50"
+                >
+                  Snooze ▾
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[8rem]">
+                  {SNOOZE_OPTIONS.map((opt) => (
+                    <DropdownMenuItem
+                      key={opt.days}
+                      onSelect={() => start(() => snoozeFinding(f.id, opt.days))}
+                    >
+                      <span className="font-mono text-xs">{opt.label}</span>
+                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                        until {new Date(Date.now() + opt.days * 86_400_000).toLocaleDateString()}
+                      </span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
               <button
                 disabled={pending}
                 onClick={() => start(() => dismissFinding(f.id))}
@@ -341,24 +399,6 @@ function StatusBadge({ status }: { status: "snoozed" | "dismissed" }) {
       {label}
     </span>
   );
-}
-
-function sevText(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "text-destructive";
-  if (sev === "warning") return "text-warning";
-  return "text-muted-foreground";
-}
-
-function sevDot(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "bg-destructive";
-  if (sev === "warning") return "bg-warning";
-  return "bg-muted-foreground";
-}
-
-function sevBorderBg(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "border-destructive/40 bg-destructive/10 text-destructive";
-  if (sev === "warning") return "border-warning/40 bg-warning/10 text-warning";
-  return "border-border/60 bg-card/60 text-muted-foreground";
 }
 
 function pathOf(url: string): string {

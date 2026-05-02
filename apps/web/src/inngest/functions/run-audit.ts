@@ -187,6 +187,11 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // dashboard / report card / portfolio strip can render the badge
       // without round-tripping to R2.
       siteClassification: summary.siteClassification ?? null,
+      // v0.5+ change-driven monitoring: mirror the scrapePlan summary onto
+      // the row so per-domain dashboards can show "X/Y URLs re-scraped, Z
+      // carried forward" without fetching the full R2 blob. Null on fresh
+      // and one-shot audits — only monitoring runs produce a scrapePlan.
+      scrapePlan: summary.scrapePlan ?? null,
       storageKey: jsonKey,
       completedAt,
     }).where(eq(audits.id, auditId));
@@ -232,7 +237,14 @@ export async function executeAuditInProcess(input: RunAuditInput) {
 }
 
 export const runAudit = inngest.createFunction(
-  { id: "run-audit", retries: 1 },
+  {
+    id: "run-audit",
+    retries: 1,
+    // Function-wide concurrency cap. Prevents a single viral moment (e.g. HN front
+    // page hit on `/`) from spawning unbounded parallel crawls. Per-host cap in
+    // /api/audits gates target-side burst; this gates worker-pool burst.
+    concurrency: { limit: 20 },
+  },
   { event: "audit/requested" },
   async ({ event, step }) => executeAudit(
     event.data,

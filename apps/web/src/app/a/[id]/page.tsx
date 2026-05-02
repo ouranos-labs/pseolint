@@ -1,8 +1,15 @@
 "use client";
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScanningTiles } from "@/components/audit/scanning-tiles";
+
+// Only allow same-origin relative paths to prevent open-redirect via ?next=.
+function safeNext(next: string | null): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/") || next.startsWith("//")) return null;
+  return next;
+}
 
 type Status = "queued" | "running" | "completed" | "failed" | string;
 
@@ -19,6 +26,8 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
   const [err, setErr] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = safeNext(searchParams.get("next"));
 
   useEffect(() => {
     const start = Date.now();
@@ -39,7 +48,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
         setStatus(json.status);
         if (typeof json.sourceUrl === "string") setSourceUrl(json.sourceUrl);
         if (json.status === "completed") {
-          router.replace(`/r/${json.slug ?? id}`);
+          router.replace(nextParam ?? `/r/${json.slug ?? id}`);
           return;
         }
         if (json.status === "failed") {
@@ -55,7 +64,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     return () => {
       stopped = true;
     };
-  }, [id, router]);
+  }, [id, router, nextParam]);
 
   const activeIndex = STEPS.findIndex((s) => s.key === status);
   const host = hostOf(sourceUrl);

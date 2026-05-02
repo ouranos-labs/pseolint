@@ -26,16 +26,6 @@ export const devFlags = {
     return flag("DEV_INNGEST_LOCAL");
   },
   /**
-   * Treat every sessioned user as Pro — bypasses paywalls in the request path
-   * (visibility toggle, AI triage, audit retention, page caps).
-   * Does NOT affect server-side jobs (weekly digest, monitoring cron) which
-   * still read `userProfiles.plan` directly so dev never accidentally schedules
-   * monitoring/digest work for unverified accounts.
-   */
-  get proBypass(): boolean {
-    return flag("DEV_PRO_BYPASS");
-  },
-  /**
    * Auto-mark monitored domains as verified at insert/reactivate time so the
    * cron will pick them up locally without a real DNS TXT record. Only the
    * write side is affected — the cron's `isNotNull(verifiedAt)` filter is

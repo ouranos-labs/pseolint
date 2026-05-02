@@ -40,7 +40,10 @@ describe("auditor + cache integration", () => {
     expect(result.cacheStats).toBeUndefined();
   });
 
-  it("--since preserves prior state entries for skipped URLs", async () => {
+  it("delta run on filesystem source preserves state entries (full re-read, no monitoring matrix applies)", async () => {
+    // v0.5: filesystem sources bypass the change-driven monitoring matrix
+    // (local reads are cheap). Every file is re-read on every run, but the
+    // state file is rewritten with the same set of URLs, preserving coverage.
     const siteDir = join(dir, "site");
     await mkdir(siteDir, { recursive: true });
     const html = "<!doctype html><html><head><title>Stable Page</title><meta name=\"description\" content=\"This page never changes between audit runs.\"></head><body><h1>Stable</h1><p>Stable body content for the test.</p></body></html>";
@@ -53,9 +56,10 @@ describe("auditor + cache integration", () => {
     expect(before).not.toBeNull();
     const stableBefore = Object.keys(before!.urls).find((u) => u.includes("stable"));
     expect(stableBefore).toBeDefined();
-    // Delta run with no content changes — every URL should be skipped, but state must still contain them
-    const delta = await auditSource(siteDir, { state: { path: statePath, since: true } });
-    expect(delta.skippedUrls?.length ?? 0).toBeGreaterThanOrEqual(1);
+    // Delta run: filesystem source, --since alias maps to monitoring mode but
+    // filesystem path is exempt, so all files are read again. The state file
+    // must still contain every URL after the run.
+    await auditSource(siteDir, { state: { path: statePath, since: true } });
     const after = await readState(statePath);
     expect(after).not.toBeNull();
     expect(Object.keys(after!.urls).length).toBe(Object.keys(before!.urls).length);

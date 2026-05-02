@@ -1,4 +1,4 @@
-type Severity = "info" | "warning" | "error" | "critical";
+import { sevDot, sevBorderBg, type Severity } from "@/lib/severity-style";
 
 interface NewFinding {
   ruleId: string;
@@ -228,14 +228,3 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-function sevDot(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "bg-destructive";
-  if (sev === "warning") return "bg-warning";
-  return "bg-muted-foreground";
-}
-
-function sevBorderBg(sev: Severity): string {
-  if (sev === "critical" || sev === "error") return "border-destructive/40 bg-destructive/10 text-destructive";
-  if (sev === "warning") return "border-warning/40 bg-warning/10 text-warning";
-  return "border-border/60 bg-card/60 text-muted-foreground";
-}

@@ -64,6 +64,8 @@ import type {
   Confidence,
   CrawlStats,
   EntityMaskPattern,
+  FindingContext,
+  FixEffort,
   Grade,
   IssueBuckets,
   NormalizeUrlOptions,
@@ -84,6 +86,8 @@ import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
 } from "./state.js";
+import { CORE_RULESET_VERSION } from "./ruleset-version.js";
+import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -934,6 +938,24 @@ function parseSitemapUrls(xml: string): string[] {
   return matches.map((match) => match[1]).filter(Boolean);
 }
 
+export function parseSitemapUrlsWithLastmod(xml: string): Array<{ url: string; lastmod?: string }> {
+  const out: Array<{ url: string; lastmod?: string }> = [];
+  // Match both <url>...</url> blocks (in <urlset>) and <sitemap>...</sitemap>
+  // blocks (in <sitemapindex>). Both carry <loc> + optional <lastmod>.
+  const blocks = xml.matchAll(/<(url|sitemap)\b[^>]*>([\s\S]*?)<\/\1>/gi);
+  for (const block of blocks) {
+    const inner = block[2] ?? "";
+    const locMatch = inner.match(/<loc\b[^>]*>([\s\S]*?)<\/loc>/i);
+    if (!locMatch) continue;
+    const url = locMatch[1].trim();
+    if (!url) continue;
+    const lastmodMatch = inner.match(/<lastmod\b[^>]*>([\s\S]*?)<\/lastmod>/i);
+    const lastmod = lastmodMatch ? lastmodMatch[1].trim() : undefined;
+    out.push({ url, lastmod });
+  }
+  return out;
+}
+
 function looksLikeSitemap(text: string): boolean {
   const lowered = text.toLowerCase();
   return lowered.includes("<urlset") || lowered.includes("<sitemapindex");
@@ -1021,26 +1043,39 @@ async function collectUrlsFromSitemap(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
-): Promise<string[]> {
+): Promise<{ urls: string[]; lastmodByUrl: Map<string, string> }> {
   visited.add(sitemapUrl);
-  const locs = parseSitemapUrls(sitemapText);
+  const entries = parseSitemapUrlsWithLastmod(sitemapText);
 
   if (!isSitemapIndex(sitemapText)) {
-    return locs;
+    const urls: string[] = [];
+    const lastmodByUrl = new Map<string, string>();
+    for (const entry of entries) {
+      urls.push(entry.url);
+      if (entry.lastmod !== undefined) {
+        lastmodByUrl.set(entry.url, entry.lastmod);
+      }
+    }
+    return { urls, lastmodByUrl };
   }
 
   const allUrls: string[] = [];
-  for (const childUrl of locs) {
+  const allLastmodByUrl = new Map<string, string>();
+  for (const entry of entries) {
+    const childUrl = entry.url;
     if (signal?.aborted) throw signal.reason ?? new Error("aborted");
     if (visited.has(childUrl)) continue;
     const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const childUrls = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop);
+    const { urls: childUrls, lastmodByUrl: childLastmodByUrl } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop);
     allUrls.push(...childUrls);
+    for (const [u, lm] of childLastmodByUrl) {
+      allLastmodByUrl.set(u, lm);
+    }
   }
-  return allUrls;
+  return { urls: allUrls, lastmodByUrl: allLastmodByUrl };
 }
 
 async function fetchRobotsMeta(
@@ -1084,6 +1119,20 @@ function budgetExceeded(b: ByteBudget): boolean {
   return b.cap > 0 && b.used >= b.cap;
 }
 
+/**
+ * v0.5+: when present, the sitemap-source path runs the change-driven
+ * monitoring decision matrix between candidate-URL discovery and body fetch.
+ * URLs the matrix marks as "skip" are NOT fetched. Filesystem and single-page
+ * HTML sources ignore this context (local reads are cheap; single-page
+ * audits have nothing to plan).
+ */
+interface MonitoringContext {
+  priorState: RunState;
+  currentRulesetVersion: string;
+  ageFloorDays: number;
+  now: Date;
+}
+
 async function loadPagesFromSource(
   source: string,
   concurrency: number,
@@ -1100,7 +1149,8 @@ async function loadPagesFromSource(
   skippedByRobots: string[] = [],
   followRedirects: boolean = true,
   maxCrawlDiscovered: number = 5000,
-): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; discoveredUrlCount?: number }> {
+  monitoringContext: MonitoringContext | null = null,
+): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number; scrapePlan?: ScrapePlan }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
   // this. DNS is hit once per unique hostname per audit — a 4k-page audit on
@@ -1158,12 +1208,33 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const allSitemapUrls = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
+      const { urls: allSitemapUrls, lastmodByUrl: sitemapLastmodByUrl } = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
 
       // If we have a budget, sample from sitemap URLs before fetching
-      const urlsToFetch = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
+      const sampledUrls = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
         ? fisherYatesSample(allSitemapUrls, discoveryBudget)
         : allSitemapUrls;
+
+      // v0.5: change-driven monitoring. Apply the decision matrix BEFORE
+      // fetching bodies. URLs in plan.skip are not network-touched at all —
+      // their findings will be carried forward from prior state by the caller.
+      // This is the whole point of monitoring mode: rule eval is microseconds,
+      // the fetch is seconds; move the skip decision upstream of the fetch.
+      let scrapePlan: ScrapePlan | undefined;
+      let urlsToFetch: string[];
+      if (monitoringContext) {
+        scrapePlan = planScrapeStrategy({
+          candidateUrls: sampledUrls,
+          priorState: monitoringContext.priorState,
+          sitemapLastmodByUrl,
+          currentRulesetVersion: monitoringContext.currentRulesetVersion,
+          ageFloorDays: monitoringContext.ageFloorDays,
+          now: monitoringContext.now,
+        });
+        urlsToFetch = Array.from(scrapePlan.refetch.keys());
+      } else {
+        urlsToFetch = sampledUrls;
+      }
 
       const pages: LoadedPage[] = [];
 
@@ -1266,7 +1337,7 @@ async function loadPagesFromSource(
         }
       }
 
-      return { pages, sitemapUrls: new Set(allSitemapUrls), discoveredUrlCount: allSitemapUrls.length };
+      return { pages, sitemapUrls: new Set(allSitemapUrls), sitemapLastmodByUrl, discoveredUrlCount: allSitemapUrls.length, scrapePlan };
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
@@ -1509,7 +1580,74 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // v0.4 §4.7: detectedFramework is set in onObservation above, side-effect
   // of the normal source URL fetch. No separate probe needed.
 
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, discoveredUrlCount } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered);
+  // v0.5: read prior state BEFORE loadPagesFromSource so the change-driven
+  // monitoring decision matrix can run pre-fetch and tell loadPagesFromSource
+  // which URLs to actually fetch. Reading state is cheap; doing it here also
+  // means we know `priorState` once for both the monitoring path and the
+  // post-audit state-write path further down.
+  let priorState: RunState | null = null;
+  const skippedUrls: string[] = [];
+  const currentRenderMode: RenderMode = options?.render ? "rendered" : "static";
+  if (options?.state?.path || options?.state?.since || options?.state?.exitOnRegression || options?.state?.mode) {
+    const statePath = options.state?.path ?? ".pseolint/state.json";
+    priorState = await readState(statePath);
+    if (priorState && priorState.renderMode !== currentRenderMode) {
+      console.error(
+        `warning: prior state renderMode=${priorState.renderMode} differs from current ${currentRenderMode}. Performing full re-audit.`
+      );
+      priorState = null;
+    }
+  }
+
+  // Effective monitoring mode:
+  //   - explicit `state.mode` wins ("monitoring" or "fresh")
+  //   - else if `--since` is passed and prior state exists → "monitoring" (back-compat alias)
+  //   - else if prior state exists → "monitoring" (auto, v0.5 default)
+  //   - else → "fresh" (no prior state available)
+  const explicitMode = options?.state?.mode;
+  const effectiveMode: "monitoring" | "fresh" =
+    explicitMode ??
+    (priorState ? "monitoring" : "fresh");
+
+  // Build the monitoring context only for HTTP sources in monitoring mode with
+  // prior state. Single-page HTML and filesystem sources skip this — they are
+  // exempted from the strategy (a single-page audit has nothing to plan; local
+  // reads are cheap so re-reading every file beats branch complexity).
+  const isHttpSource = /^https?:\/\//i.test(source);
+  // If the user asked for monitoring against a filesystem source, surface that
+  // we're ignoring the request. Silent bypass leads to "why is my state file
+  // not being used?" debugging. Only log when the user actively chose
+  // monitoring (explicit --mode or --since) — auto-monitoring on prior state
+  // existence is implicit and shouldn't warn.
+  if (!isHttpSource && effectiveMode === "monitoring" && (options?.state?.mode === "monitoring" || options?.state?.since)) {
+    console.error(
+      "warning: monitoring mode requested but source is a local file/directory; reading every HTML file (the matrix only applies to HTTP sources).",
+    );
+  }
+  const monitoringContext: MonitoringContext | null =
+    effectiveMode === "monitoring" && priorState && isHttpSource
+      ? {
+          priorState,
+          currentRulesetVersion: CORE_RULESET_VERSION,
+          ageFloorDays: options?.state?.ageFloorDays ?? DEFAULT_AGE_FLOOR_DAYS,
+          now: new Date(),
+        }
+      : null;
+
+  if (!priorState && options?.state?.since) {
+    console.error("no prior state found — performing full baseline audit");
+  }
+
+  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, sitemapLastmodByUrl, discoveredUrlCount, scrapePlan } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered, monitoringContext);
+  // The scrapePlan tells us which URLs were skipped pre-fetch under monitoring
+  // mode. Surface them in skippedUrls so they show up under summary.skippedUrls
+  // (kept for back-compat with --since consumers); T7 will carry their prior
+  // findings forward and T8 will surface the full plan in summary.scrapePlan.
+  if (scrapePlan) {
+    for (const url of scrapePlan.skip.keys()) {
+      skippedUrls.push(url);
+    }
+  }
   throwIfAborted();
   const loadedPages = [...loadedPagesRaw];
 
@@ -1540,34 +1678,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
   }
 
-  // State read + delta filtering
-  let priorState: RunState | null = null;
-  const skippedUrls: string[] = [];
-  if (options?.state?.since || options?.state?.exitOnRegression) {
-    const statePath = options.state.path ?? ".pseolint/state.json";
-    priorState = await readState(statePath);
-    const currentRenderMode: RenderMode = options.render ? "rendered" : "static";
-    if (priorState && priorState.renderMode !== currentRenderMode) {
-      console.error(
-        `warning: prior state renderMode=${priorState.renderMode} differs from current ${currentRenderMode}. Performing full re-audit.`
-      );
-      priorState = null;
-    }
-    if (priorState && options.state.since) {
-      const kept: LoadedPage[] = [];
-      for (const p of loadedPages) {
-        const prior = priorState.urls[p.url];
-        if (prior && prior.contentHash === computeContentHash(p.html)) {
-          skippedUrls.push(p.url);
-        } else {
-          kept.push(p);
-        }
-      }
-      loadedPages.splice(0, loadedPages.length, ...kept);
-    } else if (!priorState && options.state.since) {
-      console.error("no prior state found — performing full baseline audit");
-    }
-  }
+  // v0.5: prior state was loaded BEFORE loadPagesFromSource so the change-
+  // driven monitoring decision matrix could run pre-fetch. URLs the matrix
+  // marked as "skip" were never fetched and are recorded in skippedUrls
+  // above. The old post-fetch contentHash skip is gone — the decision now
+  // happens upstream of the network round-trip.
 
   let robotsTxtContent = "";
   if (/^https?:\/\//i.test(source)) {
@@ -1827,6 +1942,43 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // triage input, telemetry, formatters) sees the corrected severity.
   enriched.findings = applyScoringProfileOverrides(enriched.findings, siteClassification);
 
+  // v0.5: change-driven monitoring carry-forward. URLs that the pre-fetch
+  // strategy marked as "skip" were never fetched this run, so no rule produced
+  // findings for them. Restore their findings from prior state, marked with
+  // `carriedForward: true` and `lastVerifiedAt` so consumers can reason about
+  // staleness. Inject after enrichment + overrides — these findings already
+  // went through both in their original run; re-running enrichment would
+  // strip their template / cluster assignments because parsedPages doesn't
+  // contain the skipped pages.
+  if (priorState && skippedUrls.length > 0) {
+    for (const url of skippedUrls) {
+      const prior = priorState.urls[url];
+      if (!prior || prior.findings.length === 0) continue;
+      for (const f of prior.findings) {
+        const carried: RuleResult = {
+          ruleId: f.ruleId,
+          severity: f.severity as Severity,
+          message: f.message,
+          confidence: f.confidence as Confidence,
+          carriedForward: true,
+          lastVerifiedAt: prior.fetchedAt,
+          // State stores `url` but the engine type uses `pageUrl` — map back.
+          pageUrl: typeof f.url === "string" ? f.url : url,
+        };
+        // Optional fields are preserved opportunistically when present in state.
+        if (typeof f.fix === "string") carried.fix = f.fix;
+        if (typeof f.ref === "string") carried.ref = f.ref;
+        if (typeof f.docsUrl === "string") carried.docsUrl = f.docsUrl;
+        if (Array.isArray(f.relatedUrls)) carried.relatedUrls = f.relatedUrls as string[];
+        if (typeof f.group === "string") carried.group = f.group;
+        if (typeof f.similarity === "number") carried.similarity = f.similarity;
+        if (f.context !== undefined) carried.context = f.context as FindingContext;
+        if (f.effort !== undefined) carried.effort = f.effort as FixEffort;
+        enriched.findings.push(carried);
+      }
+    }
+  }
+
   const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
@@ -1907,6 +2059,32 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.skippedUrls = allSkipped;
   }
 
+  // v0.5+: surface the change-driven monitoring summary when this run was a
+  // monitoring run (had prior state and didn't force --mode=fresh). Filesystem
+  // sources don't get a scrapePlan because they bypass the matrix.
+  if (effectiveMode === "monitoring" && priorState && scrapePlan) {
+    const reasonCounts: Record<string, number> = {};
+    for (const reason of scrapePlan.refetch.values()) {
+      reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
+    }
+    for (const reason of scrapePlan.skip.values()) {
+      reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
+    }
+    // `fetched` is the number of URLs whose bodies actually came back —
+    // robots-disallowed, byte-budget-exceeded, content-type-filtered, and 4xx
+    // URLs the matrix INTENDED to refetch may have dropped out before we got
+    // here. `intended` (= scrapePlan.refetch.size) is exposed too so callers
+    // can spot the gap (e.g. "intended 200, fetched 187, 13 URLs dropped").
+    summary.scrapePlan = {
+      fetched: loadedPages.length,
+      intended: scrapePlan.refetch.size,
+      carriedForward: scrapePlan.skip.size,
+      reasonCounts,
+      rulesetVersion: CORE_RULESET_VERSION,
+      lastFullAuditAt: priorState.lastFullAuditAt ?? priorState.lastRun ?? null,
+    };
+  }
+
   // v0.4.1: surface noindex / auth skips as a discoverable diagnostic so the
   // user sees what the engine excluded. Catches the accidental-noindex bug:
   // pages silently dropped from indexing show up as a visible skip line
@@ -1945,6 +2123,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const currentFindings = new Map<string, Set<string>>();
     for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
+      // Carried-forward findings are not "current" — we did not re-verify them
+      // this run. Including them would mask a genuine regression on a skipped
+      // URL: prior set has rule X carried-forward, current set also has X
+      // (carried-forward), comparison says "no new rule", we miss the case
+      // where the page actually started failing rule Y too.
+      if (f.carriedForward) continue;
       const set = currentFindings.get(f.pageUrl) ?? new Set<string>();
       set.add(f.ruleId);
       currentFindings.set(f.pageUrl, set);
@@ -1969,33 +2153,86 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const renderMode: RenderMode = options.render ? "rendered" : "static";
     const urls: Record<string, UrlStateEntry> = {};
     const findingsByUrl = new Map<string, string[]>();
+    // v0.5+: persist full finding records per URL so future monitoring runs
+    // can carry them forward when the URL is skipped pre-fetch. Carried-
+    // forward findings (carriedForward=true) are NOT re-persisted under the
+    // fetched URL — they belong to the prior entry that's preserved verbatim
+    // for skipped URLs above.
+    const fullFindingsByUrl = new Map<string, RuleResult[]>();
     for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
       const list = findingsByUrl.get(f.pageUrl) ?? [];
       if (!list.includes(f.ruleId)) list.push(f.ruleId);
       findingsByUrl.set(f.pageUrl, list);
+      if (!f.carriedForward) {
+        const records = fullFindingsByUrl.get(f.pageUrl) ?? [];
+        records.push(f);
+        fullFindingsByUrl.set(f.pageUrl, records);
+      }
     }
-    // Preserve prior entries for URLs skipped by --since (they didn't change).
-    // Without this, delta runs would lose state for unchanged URLs.
+    // Preserve prior entries for URLs the monitoring matrix skipped (we never
+    // fetched them this run; their fetchedAt MUST NOT advance or the age floor
+    // never trips). Skipped URLs include those in scrapePlan.skip plus any
+    // robots-skipped URLs from prior runs that are still in priorState.
     if (priorState && skippedUrls.length > 0) {
       for (const url of skippedUrls) {
         const prior = priorState.urls[url];
         if (prior) urls[url] = prior;
       }
     }
+    const nowIso = new Date().toISOString();
     for (const p of loadedPages) {
-      urls[p.url] = {
+      const priorEntry = priorState?.urls[p.url];
+      const responseHeaders = p.httpMeta?.headers;
+      const lastModifiedHeader = responseHeaders?.["last-modified"];
+      const etagHeader = responseHeaders?.["etag"];
+      const sitemapLastmodForUrl = sitemapLastmodByUrl?.get(p.url);
+      const entry: UrlStateEntry = {
         contentHash: computeContentHash(p.html),
-        fetchedAt: new Date().toISOString(),
+        fetchedAt: nowIso,
         status: p.httpMeta?.statusCode ?? 200,
         findingIds: findingsByUrl.get(p.url) ?? [],
+        findings: (fullFindingsByUrl.get(p.url) ?? []).map((f) => ({
+          id: `${f.ruleId}::${p.url}`,
+          ruleId: f.ruleId,
+          severity: f.severity,
+          confidence: f.confidence ?? "high",
+          message: f.message,
+          ...(f.fix !== undefined ? { fix: f.fix } : {}),
+          ...(f.ref !== undefined ? { ref: f.ref } : {}),
+          ...(f.docsUrl !== undefined ? { docsUrl: f.docsUrl } : {}),
+          ...(f.pageUrl !== undefined ? { url: f.pageUrl } : {}),
+          ...(f.relatedUrls !== undefined ? { relatedUrls: f.relatedUrls } : {}),
+          ...(f.group !== undefined ? { group: f.group } : {}),
+          ...(f.similarity !== undefined ? { similarity: f.similarity } : {}),
+          ...(f.context !== undefined ? { context: f.context } : {}),
+          ...(f.effort !== undefined ? { effort: f.effort } : {}),
+        })),
+        rulesetVersion: CORE_RULESET_VERSION,
       };
+      if (lastModifiedHeader) entry.lastModified = lastModifiedHeader;
+      else if (priorEntry?.lastModified) entry.lastModified = priorEntry.lastModified;
+      if (etagHeader) entry.etag = etagHeader;
+      else if (priorEntry?.etag) entry.etag = priorEntry.etag;
+      if (sitemapLastmodForUrl) entry.sitemapLastmodAtAudit = sitemapLastmodForUrl;
+      else if (priorEntry?.sitemapLastmodAtAudit) entry.sitemapLastmodAtAudit = priorEntry.sitemapLastmodAtAudit;
+      urls[p.url] = entry;
     }
+    // `lastFullAuditAt` advances only when this run actually re-fetched every
+    // candidate URL. In monitoring mode (matrix skipped some URLs), preserve
+    // the prior baseline timestamp so callers can reason about staleness.
+    // In fresh mode (every candidate URL was fetched), bump to now.
+    const isMonitoringRun = effectiveMode === "monitoring" && priorState !== null;
+    const lastFullAuditAt = isMonitoringRun
+      ? (priorState?.lastFullAuditAt ?? priorState?.lastRun ?? nowIso)
+      : nowIso;
     const newState: RunState = {
       version: STATE_SCHEMA_VERSION,
-      lastRun: new Date().toISOString(),
+      lastRun: nowIso,
+      lastFullAuditAt,
       source,
       renderMode,
+      rulesetVersion: CORE_RULESET_VERSION,
       urls,
       summary: {
         score: summary.risk,

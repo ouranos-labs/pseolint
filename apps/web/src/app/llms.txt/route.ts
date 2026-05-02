@@ -31,7 +31,8 @@ export function GET(): Response {
 ## Source
 
 - GitHub: https://github.com/ouranos-labs/pseolint
-- npm: pseolint v0.4.3 (CLI), @pseolint/core v0.4.3, @pseolint/mcp v0.4.3
+- npm: pseolint v0.5.0 (CLI), @pseolint/core v0.5.0, @pseolint/mcp v0.4.3
+- v0.5 added change-driven monitoring (May 1, 2026): per-URL state persists across runs and only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor) get re-fetched.
 `;
   return new Response(body, {
     headers: {

@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { NavRing } from "@/components/landing/nav-ring";
 import { getOptionalSession } from "@/lib/session";
+import { getPlan } from "@/lib/plan";
 import { AccountMenu } from "@/components/dashboard/account-menu";
 
 const displaySerif = Instrument_Serif({
@@ -75,11 +76,12 @@ const ORGANIZATION_JSON_LD = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getOptionalSession();
+  const plan: "free" | "pro" | null = session ? await getPlan(session.user.id) : null;
   return (
     <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
-      <body className="relative min-h-screen bg-background font-sans text-foreground antialiased">
-        <SiteNav signedIn={ !!session } email={ session?.user.email } />
-        <div className="relative">{ children }</div>
+      <body className="relative flex min-h-screen flex-col bg-background font-sans text-foreground antialiased">
+        <SiteNav signedIn={ !!session } email={ session?.user.email } plan={ plan } />
+        <div className="relative flex-1">{ children }</div>
         <script
           type="application/ld+json"
           // Pre-sanitized: JSON.stringify + escape `</` per HTML spec
@@ -91,7 +93,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   );
 }
 
-function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
+function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string; plan: "free" | "pro" | null }) {
   const navLinkClass = "hidden rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:inline-flex";
   return (
     <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
@@ -99,7 +101,7 @@ function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.4.3</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.5.0</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
@@ -109,6 +111,14 @@ function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
           <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
           { !signedIn && (
             <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+          ) }
+          { signedIn && plan === "free" && (
+            <Link
+              href="/pricing"
+              className="ml-1 hidden h-8 items-center rounded-[18px] border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/15 sm:inline-flex"
+            >
+              Upgrade
+            </Link>
           ) }
           <a
             href="https://github.com/ouranos-labs/pseolint"
@@ -124,7 +134,7 @@ function SiteNav({ signedIn, email }: { signedIn: boolean; email?: string }) {
             <Link href="/dashboard" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Dashboard</Link>
           ) }
           { signedIn ? (
-            <AccountMenu email={ email ?? "" } />
+            <AccountMenu email={ email ?? "" } plan={ plan ?? "free" } />
           ) : (
             <Link href="/signin" className="ml-2 inline-flex h-8 items-center rounded-[18px] bg-primary px-3.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90">Sign in</Link>
           ) }
@@ -180,6 +190,7 @@ function SiteFooter({ lastUpdated }: { lastUpdated: string }) {
           <FooterColumn title="Product">
             <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
             <Link href="/limits" className="hover:text-foreground">Limits</Link>
+            <Link href="/abuse" className="hover:text-foreground">Report abuse</Link>
             <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
             <Link href="/terms" className="hover:text-foreground">Terms</Link>
           </FooterColumn>

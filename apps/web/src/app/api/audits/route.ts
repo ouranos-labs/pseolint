@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { assertSafeUrl } from "@/lib/ssrf";
@@ -42,6 +42,16 @@ const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 const URL_COOLDOWN_MS = 5 * 60 * 1000;
 const PER_HOST_HOURLY_LIMIT = 30;
 const SAMPLE_SIZE_CEILING = 300;
+const IN_FLIGHT_LIMIT_FREE = 1;
+const IN_FLIGHT_LIMIT_PRO = 5;
+const IN_FLIGHT_LIMIT_ANON = 1;
+// Anti-harassment: one user can only audit a given host N times per day. Caps
+// the realistic damage one attacker can do to a third-party site, even if they
+// max out their daily quota across many different targets.
+const PER_USER_HOST_DAILY_PRO = 15;
+const PER_USER_HOST_DAILY_FREE = 3;
+const PER_ANON_HOST_DAILY = 1;
+const PER_ANON_IP_HOST_DAILY = 1;
 
 function addDays(n: number): Date { return new Date(Date.now() + n * 86_400_000); }
 function currentHourKey(): string { return new Date().toISOString().slice(0, 13); } // YYYY-MM-DDTHH
@@ -136,6 +146,13 @@ export async function POST(req: Request): Promise<Response> {
 
   if (!forceNew) {
     const cutoff = new Date(Date.now() - DEDUPE_WINDOW_MS);
+    // Match recent completed audits for this URL that the caller can actually view:
+    // public audits OR private audits owned by the current session. This closes the
+    // loophole where Pro users (private-by-default) could re-audit the same URL
+    // unbounded since the public-only filter never matched their previous runs.
+    const visibleToCaller = session
+      ? or(eq(audits.isPublic, true), eq(audits.userId, session.user.id))
+      : eq(audits.isPublic, true);
     const [cached] = await db
       .select({ id: audits.id, slug: audits.slug })
       .from(audits)
@@ -143,7 +160,7 @@ export async function POST(req: Request): Promise<Response> {
         and(
           eq(audits.sourceUrl, url),
           eq(audits.status, "completed"),
-          eq(audits.isPublic, true),
+          visibleToCaller,
           gt(audits.completedAt, cutoff),
         ),
       )
@@ -201,6 +218,17 @@ export async function POST(req: Request): Promise<Response> {
         auditLog("audit.request.rate_limited", { reason: "per_user", userId, plan });
         return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
       }
+      // Per-user-per-host daily cap — anti-harassment for third-party targets.
+      const hostKey = `user-host:${userId}:${host}:${today}`;
+      const hostLimit = plan === "pro" ? PER_USER_HOST_DAILY_PRO : PER_USER_HOST_DAILY_FREE;
+      const hostRes = await bumpRateLimit(hostKey, hostLimit);
+      if (!hostRes.allowed) {
+        auditLog("audit.request.rate_limited", { reason: "per_user_host", userId, plan, host });
+        return NextResponse.json(
+          { error: `You've reached today's limit for ${host} (${hostLimit}/day). Try a different site or come back tomorrow.` },
+          { status: 429 },
+        );
+      }
     }
   } else {
     anonSessionId = await getOrCreateAnonSessionId();
@@ -211,6 +239,17 @@ export async function POST(req: Request): Promise<Response> {
       if (!allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_anon", anonSessionId });
         return NextResponse.json({ error: "Session limit reached — sign in for more" }, { status: 429 });
+      }
+      // Per-anon-session-per-host daily cap — anon attackers can't focus all
+      // their daily quota on one target.
+      const anonHostKey = `anon-host:${anonSessionId}:${host}:${today}`;
+      const anonHostRes = await bumpRateLimit(anonHostKey, PER_ANON_HOST_DAILY);
+      if (!anonHostRes.allowed) {
+        auditLog("audit.request.rate_limited", { reason: "per_anon_host", anonSessionId, host });
+        return NextResponse.json(
+          { error: `Anon limit for ${host} reached (${PER_ANON_HOST_DAILY}/day). Sign in to audit it again.` },
+          { status: 429 },
+        );
       }
     }
   }
@@ -224,6 +263,41 @@ export async function POST(req: Request): Promise<Response> {
       auditLog("audit.request.rate_limited", { reason: "per_ip_anon" });
       return NextResponse.json(
         { error: `Anon audits limited to ${ANON_DAILY_CAP} per day. Sign in for unlimited.` },
+        { status: 429 },
+      );
+    }
+    // Per-IP-per-host daily cap — closes residential-proxy + anon-cookie-clear
+    // attack vector. Even with rotating IPs, each IP can only target a host once.
+    const ipHostKey = `anon-ip-host:${hashIp(clientIp(req))}:${host}:${today}`;
+    const ipHostRes = await bumpRateLimit(ipHostKey, PER_ANON_IP_HOST_DAILY);
+    if (!ipHostRes.allowed) {
+      auditLog("audit.request.rate_limited", { reason: "per_ip_anon_host", host });
+      return NextResponse.json(
+        { error: `Anon limit for ${host} reached (${PER_ANON_IP_HOST_DAILY}/day from this network). Sign in to audit it again.` },
+        { status: 429 },
+      );
+    }
+  }
+
+  // In-flight cap: prevents a single caller from queueing many audits in parallel
+  // (the daily cap rejects #N+1 but doesn't space out the burst). Bounds Inngest
+  // queue depth and target-site burst per origin.
+  if (!devFlags.rateLimitDisabled) {
+    const inFlightLimit =
+      tier === "pro" ? IN_FLIGHT_LIMIT_PRO :
+      tier === "free" ? IN_FLIGHT_LIMIT_FREE :
+      IN_FLIGHT_LIMIT_ANON;
+    const ownerFilter = userId
+      ? eq(audits.userId, userId)
+      : eq(audits.anonSessionId, anonSessionId!);
+    const [{ count } = { count: 0 }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(audits)
+      .where(and(ownerFilter, inArray(audits.status, ["queued", "running"])));
+    if (count >= inFlightLimit) {
+      auditLog("audit.request.in_flight_limited", { tier, userId, anonSessionId, count, inFlightLimit });
+      return NextResponse.json(
+        { error: `Too many audits in flight (${count}/${inFlightLimit}). Wait for one to finish.` },
         { status: 429 },
       );
     }

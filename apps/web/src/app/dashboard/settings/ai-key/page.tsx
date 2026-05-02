@@ -3,11 +3,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { userAiKeys } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
+import { getPlan } from "@/lib/plan";
 import { saveAiKeyAction, removeAiKeyAction } from "./actions";
 
 export default async function AiKeySettings() {
   const session = await getOptionalSession();
   if (!session) redirect("/signin");
+  const plan = await getPlan(session.user.id);
 
   const [row] = await db
     .select({ provider: userAiKeys.provider, model: userAiKeys.model, updatedAt: userAiKeys.updatedAt })
@@ -18,14 +20,22 @@ export default async function AiKeySettings() {
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h1 className="text-xl font-medium">Bring your own AI key</h1>
-      <p className="text-sm text-muted-foreground">
-        By default, Pro includes managed AI triage (we pay the LLM bill). You can swap in your own
-        Anthropic / OpenAI / Google key to bypass our managed quotas and pay the provider directly —
-        unlimited triage on any tier.
-      </p>
+      {plan === "free" ? (
+        <p className="text-sm text-muted-foreground">
+          Free tier uses your own LLM key for triage — you pay the provider directly, no quotas
+          from us. Add an Anthropic / OpenAI / Google / Ollama key below. Audits without a key
+          still produce rule-based findings, but the AI-written remediation steps are skipped.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          Pro includes managed AI triage (we pay the LLM bill). You can swap in your own
+          Anthropic / OpenAI / Google key to bypass our managed quotas and pay the provider
+          directly — unlimited triage on any tier.
+        </p>
+      )}
 
       {row ? (
-        <div className="rounded-[22px] border border-primary/30 bg-primary/5 p-5">
+        <div className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
           <dl className="grid grid-cols-[120px_1fr] gap-y-2 text-sm">
             <dt className="text-muted-foreground">Provider</dt>
             <dd className="font-mono text-foreground">{row.provider}</dd>
@@ -47,7 +57,7 @@ export default async function AiKeySettings() {
           </form>
         </div>
       ) : (
-        <form action={saveAiKeyAction} className="flex flex-col gap-4 rounded-[22px] border border-border/60 p-5">
+        <form action={saveAiKeyAction} className="flex flex-col gap-4 rounded-[18px] border border-border/60 p-5">
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Provider</span>
             <select name="provider" required defaultValue="anthropic" className="rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm">

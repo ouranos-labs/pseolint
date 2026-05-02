@@ -285,7 +285,7 @@ function mapApiError(status: number, message: string): FormError {
     if (lower.includes("daily")) {
       return {
         message: "You've hit today's free audit limit (5 per day).",
-        hint: "Pro lifts it to 50 per day and unlocks 1,000-page crawls.",
+        hint: "Pro lifts it to 50 per day and unlocks 500-page manual re-audits.",
         action: { label: "See pricing", href: "/pricing" },
       };
     }

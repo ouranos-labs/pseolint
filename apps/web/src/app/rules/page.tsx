@@ -40,7 +40,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do the pseolint rules map to Google's SpamBrain classifier?",
-    a: "The 42 rules cluster into 8 categories that correspond to the major axes SpamBrain scores against. Spam/* (8 rules) covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. Content/* (6 rules) checks intent match, originality, and reading level. Aeo/* (8 rules, shipped April 21, 2026) audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews.",
+    a: "The rule set clusters around the major axes SpamBrain scores against. spam/* covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. content/* checks intent match, originality, and reading level. aeo/* audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews. v0.4.3 added site-type-aware weights so a programmatic-directory is scored differently from a small-marketing site.",
   },
   {
     q: "What makes a rule 'AEO-aligned'?",
