@@ -1,9 +1,12 @@
 import { and, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { alertsDedup, audits, findingsState, monitoredDomains, monitoringAlerts, userProfiles, users } from "@/db/schema";
 import { executeAuditInProcess } from "@/inngest/functions/run-audit";
-import { fetchSummaryJson, summaryKey } from "@/lib/r2";
+import { fetchJson, fetchSummaryJson, monitoringStateKey, summaryKey, uploadJson } from "@/lib/r2";
 import type { AuditSummary } from "@pseolint/core";
 import { sendMonitoringAlertEmail } from "@/lib/alert-email";
 import { sendSlackAlert } from "@/lib/slack-notify";
@@ -115,14 +118,57 @@ async function runOneMonitor(monitoredDomainId: string) {
     .returning({ id: audits.id, slug: audits.slug });
 
   const SAMPLE_SIZE_CEILING = 300;
+
+  // v0.5+ change-driven monitoring: persist per-domain state across Inngest
+  // invocations via R2 (the worker filesystem is ephemeral on Vercel).
+  // Download prior state to a tmp file, point the auditor at it, upload the
+  // updated file back to R2 after the audit. On the very first run for a
+  // domain, R2 returns null and the auditor performs a baseline full audit.
+  // On full-cycle runs (every 7 days via FULL_REAUDIT_INTERVAL_MS) we pass
+  // mode="fresh" so the matrix doesn't skip anything; the rest of the time
+  // auto-monitoring kicks in because prior state is present.
+  const stateKey = monitoringStateKey(d.id);
+  let stateTmpDir: string | null = null;
+  let stateTmpPath: string | null = null;
+  try {
+    stateTmpDir = await mkdtemp(join(tmpdir(), `pseolint-state-${d.id}-`));
+    stateTmpPath = join(stateTmpDir, "state.json");
+    const priorStateJson = await fetchJson(stateKey);
+    if (priorStateJson) {
+      await writeFile(stateTmpPath, priorStateJson, "utf8");
+    }
+  } catch (e) {
+    auditLog("monitor.state.download_failed", { monitoredDomainId: d.id, err: e instanceof Error ? e.message : String(e) });
+    // Continue without prior state — auditor will baseline.
+    stateTmpPath = null;
+  }
+
   const result = await executeAuditInProcess({
     auditId: audit.id,
     url: d.sourceUrl,
     plan: plan === "pro" ? "pro" : "free",
     sampleSize: Math.min(plan === "pro" ? 200 : 50, SAMPLE_SIZE_CEILING),
     mode,
-    ...(mode === "diff" && { state: { since: true, path: `.pseolint/state-${d.id}.json` } }),
+    ...(stateTmpPath
+      ? { state: { path: stateTmpPath, mode: isFullRun ? "fresh" : undefined } }
+      : {}),
   });
+
+  // Upload the post-audit state file back to R2 so the next monitoring tick
+  // sees prior state. Best-effort: a failed upload means next run does a
+  // baseline; the audit itself already succeeded. Always tear down the tmp
+  // dir even if the upload fails.
+  if (stateTmpPath) {
+    try {
+      const newStateJson = await readFile(stateTmpPath, "utf8");
+      await uploadJson(stateKey, newStateJson);
+    } catch (e) {
+      auditLog("monitor.state.upload_failed", { monitoredDomainId: d.id, err: e instanceof Error ? e.message : String(e) });
+    }
+  }
+  if (stateTmpDir) {
+    try { await rm(stateTmpDir, { recursive: true, force: true }); } catch { /* tmp cleanup is best-effort */ }
+  }
 
   // nextRunAt is always 24h (jittered): whether this run was diff or full is decided at
   // dispatch time by the isFullRun check, not by a separate cadence column.

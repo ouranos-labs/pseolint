@@ -53,7 +53,17 @@ export type { SafeMode } from "./types.js";
 export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from "./types.js";
 export { stratifiedSample, inferUrlTemplate } from "./stratified-sample.js";
 export { readState, writeState, computeContentHash, normalizeHtmlForHash, STATE_SCHEMA_VERSION } from "./state.js";
-export type { RunState, UrlStateEntry, RenderMode } from "./state.js";
+export type { RunState, UrlStateEntry, RenderMode, Finding } from "./state.js";
+export { CORE_RULESET_VERSION } from "./ruleset-version.js";
+export { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS } from "./scrape-strategy.js";
+export type {
+  ScrapePlan,
+  ScrapeStrategyInputs,
+  RefetchReason,
+  SkipReason,
+  GscDelta,
+  GscThresholds,
+} from "./scrape-strategy.js";
 
 // AI triage
 export type {
@@ -67,6 +77,42 @@ export type {
 export { triageFindings, triage } from "./ai/triage.js";
 export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
 export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
+
+// AI orchestrator (single public entry point composing tools + runner +
+// manifest validation + diff generation).
+export { orchestrate } from "./ai/orchestrate.js";
+export type { OrchestrateOptions, OrchestrateResult } from "./ai/orchestrate.js";
+export {
+  runOrchestrator,
+  finishAuditTool,
+  manifestSchema,
+  buildSystemPrompt,
+  DEFAULT_BUDGET,
+} from "./ai/orchestrator/index.js";
+export type {
+  RunOrchestratorOptions,
+  FixManifest,
+  BudgetCaps,
+  UsageSnapshot,
+  StopReason,
+  SessionEvent,
+  SessionResult,
+} from "./ai/orchestrator/index.js";
+export { orchestratorTools, defineTool } from "./ai/tools/index.js";
+export type { OrchestratorToolName } from "./ai/tools/index.js";
+export {
+  validateManifest,
+  diffManifest,
+  diffPageChange,
+  diffDomainPatch,
+} from "./ai/manifest/index.js";
+export type {
+  ManifestValidationReport,
+  PatchValidationFailure,
+  ValidationResult,
+  PatchDiff,
+  ManifestDiff,
+} from "./ai/manifest/index.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";

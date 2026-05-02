@@ -275,6 +275,31 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                   <span>pSEO-only rule{summary.siteClassification.suppressedRules.length === 1 ? "" : "s"} suppressed</span>
                 </span>
               )}
+              {summary.scrapePlan && (() => {
+                const sp = summary.scrapePlan;
+                const total = sp.intended + sp.carriedForward;
+                const refetchReasons = Object.entries(sp.reasonCounts)
+                  .filter(([k]) => k !== "unchanged")
+                  .sort(([, a], [, b]) => (b as number) - (a as number))
+                  .map(([k, v]) => `${k}=${v}`)
+                  .join(", ");
+                const fetchedDisplay = sp.fetched === sp.intended
+                  ? `${sp.fetched}`
+                  : `${sp.fetched}/${sp.intended} (intended)`;
+                return (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1"
+                    title={`Reasons: ${refetchReasons || "none"} · Ruleset v${sp.rulesetVersion}`}
+                  >
+                    <span className="text-muted-foreground/70">Monitoring:</span>
+                    <span className="tabular-nums text-foreground">{fetchedDisplay}/{total}</span>
+                    <span>re-scraped</span>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{sp.carriedForward}</span>
+                    <span>carried forward</span>
+                  </span>
+                );
+              })()}
             </div>
           )}
 

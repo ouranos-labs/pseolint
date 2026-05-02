@@ -4,6 +4,14 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
+### What's new in v0.5
+
+**`orchestrate_audit` tool.** Drives an LLM through 25 deterministic audit tools and produces a fix manifest with concrete copy-paste patches (rewritten H1s, JSON-LD blocks, robots.txt diffs). Use when a user wants concrete fixes — not just a list of issues.
+
+**Conservative MCP defaults**: $2 / 60 tool calls / 180 seconds wall (vs CLI's $5 / 100 / 300). Two output modes: `summary` (terse text for chat UI) and `json` (full manifest + validation + diff). Each invocation reports actual USD spend. Patches that fail deterministic validators are dropped from the manifest and surfaced separately.
+
+**Example prompt**: "Use the orchestrate_audit tool to run an AI-native audit of https://example.com with concrete fix proposals."
+
 ### Safety defaults (v0.3.3+)
 
 All three tools default to `safeMode: "saas"` — AI assistants running in end-user
@@ -17,6 +25,21 @@ or RFC1918 networks via a malicious URL argument. Specifically:
 - Tighter `maxFetchBytes` (10 MB) and `maxCrawlDiscovered` (2000) caps
 
 ## Tools
+
+### `orchestrate_audit` (v0.5)
+
+Drive an LLM through 25 audit tools and produce a fix manifest with concrete patches. Use when a user wants paste-able fixes (not just a list of issues). Costs ~$1-3 per audit on managed Anthropic.
+
+**Parameters:**
+- `domain` (required) — URL of the site to audit (e.g. https://example.com)
+- `maxCostUsd` — Hard USD cap (default 2)
+- `maxToolCalls` — Hard tool-call cap (default 60)
+- `maxWallSeconds` — Hard wall-clock cap (default 180)
+- `format` — `summary` (terse text) or `json` (full manifest + validation + diff)
+
+**Returns**: text summary with verdict + categories + top-3 patches per bucket (or full JSON when `format: "json"`). Validation failures listed separately so the LLM-host conversation stays grounded in what actually shipped.
+
+**Example prompt:** "Use orchestrate_audit on https://example.com with format=summary"
 
 ### `audit_site`
 

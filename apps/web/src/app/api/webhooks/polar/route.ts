@@ -3,7 +3,7 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { userProfiles, users, audits } from "@/db/schema";
 import { env } from "@/lib/env";
-import { rememberEventOnce, isActiveSubscriptionStatus, upsertProSubscription } from "@/lib/polar";
+import { rememberEventOnce, isActiveSubscriptionStatus } from "@/lib/polar";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
 
@@ -17,27 +17,6 @@ async function findUserByEmailCi(email: string): Promise<{ id: string } | undefi
     .where(sql`lower(${users.email}) = ${email.toLowerCase()}`)
     .limit(1);
   return u;
-}
-
-async function findUserById(id: string): Promise<{ id: string } | undefined> {
-  const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
-  return u;
-}
-
-// Resolve the local user behind a Polar event. We embed `userId` in the checkout
-// metadata, so prefer that over email — emails can mismatch (BetterAuth uses what
-// the user signed up with; Polar uses what they typed at checkout, sometimes
-// lowercased, sometimes a different address entirely).
-async function resolveUser(opts: {
-  metadataUserId: string | undefined;
-  email: string | undefined;
-}): Promise<{ id: string } | undefined> {
-  if (opts.metadataUserId) {
-    const byId = await findUserById(opts.metadataUserId);
-    if (byId) return byId;
-  }
-  if (opts.email) return findUserByEmailCi(opts.email);
-  return undefined;
 }
 
 export const runtime = "nodejs";
@@ -77,37 +56,23 @@ export async function POST(req: Request): Promise<Response> {
   ) {
     const customer = event.data.customer;
     const email = customer?.email;
-    const md = (event.data.metadata ?? {}) as Record<string, string>;
-    const u = await resolveUser({ metadataUserId: md.userId, email });
-    if (!u) {
-      // Surface this — historically the most common silent failure. If Polar fires
-      // before the user finishes signup (rare with our flow), the customer will retry
-      // via the dashboard backfill or manual resync.
-      console.warn("[polar webhook] no local user matched", {
-        eventType: event.type, email, metadataUserId: md.userId, customerId: customer?.id,
-      });
-      return NextResponse.json({ ok: true, note: "user not yet signed up" });
-    }
+    if (!email) return NextResponse.json({ error: "no email on event" }, { status: 400 });
+    const u = await findUserByEmailCi(email);
+    if (!u) return NextResponse.json({ ok: true, note: "user not yet signed up" });
 
+    // active|trialing|past_due all keep the user on Pro until currentPeriodEnd;
+    // past_due covers Polar's renewal-retry window (~7 days) so a transient card
+    // failure doesn't immediately downgrade an active subscriber.
     const plan = isActiveSubscriptionStatus(event.data.status) ? "pro" : "free";
     const planExpiresAt = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
 
-    try {
-      await upsertProSubscription({
-        userId: u.id,
-        polarCustomerId: customer?.id ?? null,
-        plan,
-        planExpiresAt,
-      });
-    } catch (e) {
-      // Surface as 500 so Polar retries. A unique-constraint violation on
-      // polar_customer_id is the most likely failure (e.g. id already bound to
-      // another user from a stale test row).
-      console.error("[polar webhook] upsert failed", {
-        userId: u.id, customerId: customer?.id, error: e instanceof Error ? e.message : String(e),
-      });
-      return NextResponse.json({ error: "upsert_failed" }, { status: 500 });
-    }
+    await db.insert(userProfiles).values({
+      userId: u.id, polarCustomerId: customer.id,
+      plan, planExpiresAt,
+    }).onConflictDoUpdate({
+      target: userProfiles.userId,
+      set: { polarCustomerId: customer.id, plan, planExpiresAt },
+    });
   }
 
   if (event.type === "subscription.created") {
@@ -136,8 +101,7 @@ export async function POST(req: Request): Promise<Response> {
     // Previously we left plan=pro but only updated planExpiresAt; without an explicit plan write,
     // users who upgraded in the same cycle wouldn't reflect their final expiry. Make this explicit.
     const customer = event.data.customer;
-    const md = (event.data.metadata ?? {}) as Record<string, string>;
-    const u = await resolveUser({ metadataUserId: md.userId, email: customer?.email });
+    const u = await findUserByEmailCi(customer.email);
     if (u) {
       const periodEnd = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
       // subscription.revoked = immediate end (no grace). Otherwise honor grace until period end.

@@ -90,6 +90,19 @@ export interface RuleResult {
    * render a caveat in the message.
    */
   confidence?: Confidence;
+  /**
+   * v0.5+ change-driven monitoring. True when the finding was carried forward
+   * from a prior audit because the page was skipped under monitoring mode (no
+   * sitemap-lastmod change, within age floor, no other refetch trigger). The
+   * finding has not been re-verified this run.
+   */
+  carriedForward?: boolean;
+  /**
+   * v0.5+ change-driven monitoring. ISO timestamp of the last audit that
+   * actually re-fetched the page and confirmed this finding fires. Set on
+   * carried-forward findings so consumers can reason about staleness.
+   */
+  lastVerifiedAt?: string;
 }
 
 /** v0.4 four-category bucket keys. */
@@ -166,10 +179,31 @@ export interface CacheStats {
 export interface StateOptions {
   /** Path to state file. Default: `.pseolint/state.json`. */
   path?: string;
-  /** If true, audit only URLs with changed/new contentHash since prior state. */
+  /**
+   * v0.5+: alias for `mode: "monitoring"`. Kept for back-compat with users who
+   * passed `--since` explicitly. Auto-monitoring on prior state existence is
+   * the new default and does not require this flag.
+   */
   since?: boolean;
   /** If true, exit non-zero when a new rule ID fires on any URL vs prior state. */
   exitOnRegression?: boolean;
+  /**
+   * v0.5+: monitoring strategy.
+   *   "monitoring" — apply the pre-fetch decision matrix (default when prior
+   *     state exists). Skipped URLs are NOT fetched; their findings are
+   *     carried forward.
+   *   "fresh" — fetch every candidate URL even when prior state exists. Still
+   *     writes a fresh state file at end of run.
+   * When omitted, the auditor picks "monitoring" if prior state exists, else
+   * "fresh".
+   */
+  mode?: "monitoring" | "fresh";
+  /**
+   * v0.5+: minimum age (in days) since a URL's last fetch before the
+   * monitoring matrix forces a re-fetch regardless of other signals. Defends
+   * against silently-incorrect skips (e.g. lying sitemap lastmods). Default: 7.
+   */
+  ageFloorDays?: number;
 }
 
 /** Options for local-only telemetry JSONL output. */
@@ -242,10 +276,50 @@ export interface AuditSummary {
   cacheStats?: CacheStats;
   /** True when --exit-on-regression detected a new rule ID vs prior state. */
   hasRegression?: boolean;
-  /** URLs that were skipped because their contentHash matched prior state. */
+  /**
+   * v0.5+: URLs the change-driven monitoring matrix decided to skip pre-fetch
+   * (their findings were carried forward from prior state). Pre-v0.5 this
+   * field carried URLs whose contentHash matched prior state under `--since`;
+   * the new pre-fetch decision replaces that meaning.
+   */
   skippedUrls?: string[];
+  /**
+   * v0.5+: change-driven monitoring summary. Present whenever the auditor ran
+   * in monitoring mode (prior state existed and no `--mode=fresh` override).
+   * Absent on fresh runs and on filesystem-source audits.
+   */
+  scrapePlan?: ScrapePlanSummary;
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
+}
+
+/**
+ * v0.5+ change-driven monitoring summary surfaced on AuditSummary so dashboards
+ * and CI consumers can show "X/Y URLs re-scraped" without recomputing.
+ */
+export interface ScrapePlanSummary {
+  /**
+   * URLs whose bodies actually came back this run. May be lower than
+   * `intended` when downstream filters drop URLs (robots disallow, byte
+   * budget, content-type, 4xx).
+   */
+  fetched: number;
+  /**
+   * URLs the decision matrix marked for refetch. `intended - fetched` =
+   * URLs the matrix wanted to fetch but downstream filters dropped.
+   */
+  intended: number;
+  /** URLs whose findings were carried forward from prior state without re-fetching. */
+  carriedForward: number;
+  /**
+   * Counts per matrix reason (`new`, `age`, `ruleset`, `recheck`, `lastmod`,
+   * `gsc`, `no-signal`, `unchanged`). Sums to `intended + carriedForward`.
+   */
+  reasonCounts: Record<string, number>;
+  /** CORE_RULESET_VERSION active during this run. */
+  rulesetVersion: string;
+  /** ISO timestamp of the last full (non-monitoring) audit, or null if never. */
+  lastFullAuditAt: string | null;
 }
 
 export interface PageGroupConfig {

@@ -187,6 +187,11 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // dashboard / report card / portfolio strip can render the badge
       // without round-tripping to R2.
       siteClassification: summary.siteClassification ?? null,
+      // v0.5+ change-driven monitoring: mirror the scrapePlan summary onto
+      // the row so per-domain dashboards can show "X/Y URLs re-scraped, Z
+      // carried forward" without fetching the full R2 blob. Null on fresh
+      // and one-shot audits — only monitoring runs produce a scrapePlan.
+      scrapePlan: summary.scrapePlan ?? null,
       storageKey: jsonKey,
       completedAt,
     }).where(eq(audits.id, auditId));

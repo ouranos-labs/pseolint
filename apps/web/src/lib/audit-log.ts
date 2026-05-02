@@ -29,6 +29,8 @@ export type AuditLogEvent =
   | "monitor.alert_gate.email_failed"
   | "monitor.alert_gate.slack_failed"
   | "monitor.auto_verify.success"
+  | "monitor.state.download_failed"
+  | "monitor.state.upload_failed"
   | "settings.slack.updated"
   | "settings.slack.test_sent"
   | "settings.slack.test_failed"
@@ -42,7 +44,10 @@ export type AuditLogEvent =
   | "gsc.sync.ok"
   | "gsc.sync.failed"
   | "gsc.oauth.disconnected"
-  | "gsc.autobind";
+  | "gsc.autobind"
+  | "orchestrator.started"
+  | "orchestrator.completed"
+  | "orchestrator.failed";
 
 type Payload = Record<string, unknown>;
 

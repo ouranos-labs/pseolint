@@ -11,6 +11,10 @@ import { HistoryList } from "@/components/dashboard/history-list";
 import { AddDomainCard } from "@/components/dashboard/add-domain-card";
 import { PortfolioStrip } from "@/components/dashboard/portfolio-strip";
 import { CrossDomainFixQueue } from "@/components/dashboard/cross-domain-fix-queue";
+<<<<<<< HEAD
+=======
+import { StartOrchestratorButton } from "@/components/dashboard/start-orchestrator-button";
+>>>>>>> 30291fbceae686338c194a5bcbaf3b7df8a5e079
 
 export const runtime = "nodejs";
 
@@ -59,6 +63,13 @@ export default async function DashboardHome({
           </p>
           <AuditForm />
         </section>
+        <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
+          <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            An LLM drives 25 audit tools and produces concrete fix patches — H1 rewrites, JSON-LD blocks, robots.txt diffs. Owner-private manifest with copy-paste UI. Costs $1-3 per audit.
+          </p>
+          <StartOrchestratorButton />
+        </section>
         <HistoryList userId={session.user.id} />
       </div>
     );
@@ -86,6 +97,16 @@ export default async function DashboardHome({
         <AddDomainCard variant="compact" />
       </div>
       <PortfolioStrip domains={domains} userId={session.user.id} />
+<<<<<<< HEAD
+=======
+      <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
+        <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
+        <p className="mb-3 text-xs text-muted-foreground">
+          Generate a fix manifest with concrete copy-paste patches. Pro budget cap defaults to $3/session.
+        </p>
+        <StartOrchestratorButton />
+      </section>
+>>>>>>> 30291fbceae686338c194a5bcbaf3b7df8a5e079
       <CrossDomainFixQueue userId={session.user.id} />
     </div>
   );

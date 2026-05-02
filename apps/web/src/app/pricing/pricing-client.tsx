@@ -10,7 +10,7 @@ type Interval = "monthly" | "yearly";
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
   { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
   { feature: "Pages per audit (web UI)", free: "Up to 200", pro: "Up to 500 (manual re-audit)" },
-  { feature: "Background monitoring", free: "—", pro: "Per-domain, weekly full + daily diff" },
+  { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed)" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
   { feature: "BYO AI key", free: "CLI only", pro: "Anthropic / OpenAI, no markup" },
   { feature: "Data sources", free: "—", pro: "CSV/JSON upload + GSC integration" },
@@ -46,7 +46,7 @@ const FAQS: ReadonlyArray<FAQ> = [
   },
   {
     q: "Is there a self-hosted option?",
-    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.4.3, pseolint 0.4.3, and @pseolint/mcp 0.4.3. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same site-type-aware SpamBrain + AEO scoring that powers the hosted product.",
+    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.5.0, pseolint 0.5.0, and @pseolint/mcp 0.4.3. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same site-type-aware SpamBrain + AEO scoring that powers the hosted product. v0.5+ ships change-driven monitoring out of the box: a `--state` flag persists per-URL fetch metadata so subsequent runs only re-audit URLs that actually changed.",
   },
   {
     q: "What is the refund policy?",
@@ -71,7 +71,7 @@ function buildFaqJsonLd(faqs: ReadonlyArray<FAQ>) {
 }
 
 const PRO_FEATURES = [
-  { title: "Unlimited monitored domains", detail: "Daily diff-audits + weekly full re-audits, running in the background." },
+  { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run." },
   { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it." },
   { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype — your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
@@ -207,7 +207,7 @@ function PricingInner() {
         </h2>
         <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
           Both tiers run the same site-type-aware SpamBrain and AEO engine from{ " " }
-          <code className="font-mono text-xs">@pseolint/core 0.4.3</code>. The difference is what
+          <code className="font-mono text-xs">@pseolint/core 0.5.0</code>. The difference is what
           happens around the audit: monitoring, triage, integrations, retention, and overrides.
           The numbers below are the live limits enforced by the platform — quote them.
         </p>
@@ -266,8 +266,8 @@ function PricingInner() {
           <p>
             pseolint is OSS-first by design. The CLI, the rule engine, and the MCP server are
             MIT-licensed and free forever — published to npm as{ " " }
-            <code className="font-mono text-xs">@pseolint/core 0.4.3</code>,{ " " }
-            <code className="font-mono text-xs">pseolint 0.4.3</code>, and{ " " }
+            <code className="font-mono text-xs">@pseolint/core 0.5.0</code>,{ " " }
+            <code className="font-mono text-xs">pseolint 0.5.0</code>, and{ " " }
             <code className="font-mono text-xs">@pseolint/mcp 0.4.3</code>. Anyone can audit a site
             from a laptop, drop the GitHub Action into CI, or fork the rules. That part of the
             product never goes behind a paywall.

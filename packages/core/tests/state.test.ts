@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, readFile, writeFile } from "node:fs/promises";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -59,14 +60,18 @@ describe("readState / writeState", () => {
     const s: RunState = {
       version: STATE_SCHEMA_VERSION,
       lastRun: "2026-04-17T12:00:00Z",
+      lastFullAuditAt: "2026-04-17T12:00:00Z",
       source: "https://example.com",
       renderMode: "static",
+      rulesetVersion: "1",
       urls: {
         "https://example.com/a": {
           contentHash: "sha256:abc",
           fetchedAt: "2026-04-17T12:00:00Z",
           status: 200,
           findingIds: ["content/thin-content"],
+          findings: [],
+          rulesetVersion: "1",
         },
       },
       summary: { score: 42, totalFindings: 1, byCategory: { content: 1 } },
@@ -100,14 +105,18 @@ describe("readState / writeState", () => {
     const s: RunState = {
       version: STATE_SCHEMA_VERSION,
       lastRun: "2026-04-17T12:00:00Z",
+      lastFullAuditAt: "2026-04-17T12:00:00Z",
       source: "https://example.com",
       renderMode: "static",
+      rulesetVersion: "1",
       urls: {
         "https://example.com/clean": {
           contentHash: "sha256:abc",
           fetchedAt: "2026-04-17T12:00:00Z",
           status: 200,
           findingIds: [],
+          findings: [],
+          rulesetVersion: "1",
         },
       },
       summary: { score: 100, totalFindings: 0, byCategory: {} },
@@ -115,5 +124,58 @@ describe("readState / writeState", () => {
     await writeState(path, s);
     const back = await readState(path);
     expect(back?.urls["https://example.com/clean"].findingIds).toEqual([]);
+  });
+});
+
+describe("state schema v2", () => {
+  it("STATE_SCHEMA_VERSION is 2", () => {
+    expect(STATE_SCHEMA_VERSION).toBe(2);
+  });
+
+  it("readState rejects v1 state with version mismatch error", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "pseolint-state-"));
+    const path = join(dir, "state.json");
+    writeFileSync(path, JSON.stringify({
+      version: 1,
+      lastRun: "2026-01-01T00:00:00Z",
+      source: "https://example.com",
+      renderMode: "static",
+      urls: {},
+      summary: { score: 0, totalFindings: 0, byCategory: {} },
+    }));
+    await expect(readState(path)).rejects.toThrow(/unsupported state version 1/);
+  });
+
+  it("writeState round-trips v2 fields", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "pseolint-state-"));
+    const path = join(dir, "state.json");
+    const state: RunState = {
+      version: STATE_SCHEMA_VERSION,
+      lastRun: "2026-05-01T00:00:00Z",
+      lastFullAuditAt: "2026-05-01T00:00:00Z",
+      source: "https://example.com",
+      renderMode: "static",
+      rulesetVersion: "1",
+      urls: {
+        "https://example.com/a": {
+          contentHash: "sha256:abc",
+          fetchedAt: "2026-05-01T00:00:00Z",
+          status: 200,
+          findingIds: [],
+          findings: [],
+          rulesetVersion: "1",
+          lastModified: "Wed, 01 May 2026 00:00:00 GMT",
+          etag: "\"abc\"",
+        },
+      },
+      summary: { score: 100, totalFindings: 0, byCategory: {} },
+    };
+    await writeState(path, state);
+    const read = await readState(path);
+    expect(read?.urls["https://example.com/a"].lastModified).toBe("Wed, 01 May 2026 00:00:00 GMT");
+    expect(read?.urls["https://example.com/a"].etag).toBe("\"abc\"");
+    expect(read?.urls["https://example.com/a"].rulesetVersion).toBe("1");
+    expect(read?.lastFullAuditAt).toBe("2026-05-01T00:00:00Z");
+    expect(read?.rulesetVersion).toBe("1");
   });
 });

@@ -584,3 +584,23 @@ describe("clearCache", () => {
     expect(result.removed).toBe(0);
   });
 });
+
+describe("cachedFetch surfaces validators", () => {
+  it("includes last-modified and etag in headers when origin returns them", async () => {
+    const fetcher = async () => new Response("body", {
+      status: 200,
+      headers: {
+        "content-type": "text/html",
+        "last-modified": "Wed, 01 May 2026 00:00:00 GMT",
+        "etag": "\"v1\"",
+      },
+    });
+    const res = await cachedFetch("https://example.com/", {
+      timeoutMs: 5000,
+      cache: null,
+      fetcher,
+    });
+    expect(res.headers["last-modified"]).toBe("Wed, 01 May 2026 00:00:00 GMT");
+    expect(res.headers["etag"]).toBe("\"v1\"");
+  });
+});

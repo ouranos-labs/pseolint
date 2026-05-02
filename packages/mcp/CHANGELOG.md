@@ -1,5 +1,37 @@
 # @pseolint/mcp
 
+## 0.5.0
+
+### Minor Changes
+
+- v0.5.0 — AI orchestrator MCP tool + tracks `@pseolint/core` v0.5.0
+
+  New tool: **`orchestrate_audit`** — exposes the AI-orchestrated auditor
+  (added in `@pseolint/core` v0.5.0) to MCP hosts (Claude Desktop, Cursor,
+  Windsurf, Claude Code). Unlike `audit_site` which lists rule findings,
+  `orchestrate_audit` drives an LLM through 25 deterministic tools to
+  produce a **fix manifest** — concrete copy-paste patches (rewritten H1s,
+  JSON-LD blocks, robots.txt diffs, internal-link suggestions) validated
+  against deterministic schemas before the result is returned.
+
+  **Conservative defaults** for MCP-invoked sessions: $2 / 60 tool calls /
+  180 seconds wall (vs the CLI's $5 / 100 / 300). Can be raised by the
+  caller if the user explicitly asks for a deeper run.
+
+  **Two output modes**: `summary` (terse text suitable for chat UI with
+  verdict + categories + top-3 patches per bucket) and `json` (full
+  manifest + validation report + structured diff payload).
+
+  **Cost transparency**: each invocation reports actual USD spend
+  alongside the manifest summary. Patches that fail deterministic
+  validators are dropped and surfaced separately so the LLM-host
+  conversation stays grounded in what actually shipped vs what was
+  proposed.
+
+  Tracks `@pseolint/core` v0.5.0 — also pulls in change-driven monitoring
+  (audit_site monitoring runs are ~95% cheaper on sites with sitemap
+  `<lastmod>`).
+
 ## 0.4.3
 
 ### Patch Changes

@@ -16,6 +16,7 @@ type Item = {
 
 const PRO_ITEMS: Item[] = [
   { href: "/dashboard", label: "Portfolio" },
+  { href: "/dashboard/manifests", label: "Manifests" },
   { href: "/dashboard/integrations", label: "Integrations" },
   { href: "/dashboard/settings/costs", label: "Costs" },
   {
@@ -28,6 +29,7 @@ const PRO_ITEMS: Item[] = [
 
 const FREE_ITEMS: Item[] = [
   { href: "/dashboard", label: "History" },
+  { href: "/dashboard/manifests", label: "Manifests" },
   { href: "/dashboard/settings/ai-key", label: "AI key" },
   {
     href: "/dashboard/settings",

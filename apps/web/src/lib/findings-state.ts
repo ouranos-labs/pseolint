@@ -73,6 +73,11 @@ export async function mergeFindings(
   type Group = { ruleId: string; sig: string; severity: Severity; count: number; message: string; repUrl?: string };
   const groups = new Map<string, Group>();
   for (const f of findings) {
+    // v0.5+: carried-forward findings come from prior state — they were not
+    // re-verified this run. Excluding them keeps `lastSeenAt` honest as
+    // "last actually re-evaluated" so the per-URL view can render
+    // "verified N days ago" badges that mean what they say.
+    if (f.carriedForward) continue;
     const sig = templateSignatureFor(f);
     const key = `${f.ruleId}::${sig}`;
     const g = groups.get(key);
