@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
+import { syncUserSubscriptionFromPolar, userIsAlreadyPro } from "@/lib/polar";
 import { AuditForm } from "@/components/dashboard/audit-form";
 import { HistoryList } from "@/components/dashboard/history-list";
 import { AddDomainCard } from "@/components/dashboard/add-domain-card";
@@ -13,9 +14,29 @@ import { CrossDomainFixQueue } from "@/components/dashboard/cross-domain-fix-que
 
 export const runtime = "nodejs";
 
-export default async function DashboardHome() {
+export default async function DashboardHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?next=/dashboard");
+
+  // Self-heal: when arriving from a Polar checkout (?welcome=1), the webhook may
+  // not have landed yet (or may have failed silently). Pull the subscription from
+  // Polar's API to backfill before we render. userIsAlreadyPro short-circuits this
+  // on subsequent loads so we don't hammer the API on every reload.
+  const sp = await searchParams;
+  if (sp.welcome === "1" && !(await userIsAlreadyPro(session.user.id))) {
+    try {
+      await syncUserSubscriptionFromPolar({
+        userId: session.user.id,
+        email: session.user.email,
+      });
+    } catch (e) {
+      console.warn("[dashboard] welcome sync failed:", e instanceof Error ? e.message : e);
+    }
+  }
 
   const plan = await getPlan(session.user.id);
 

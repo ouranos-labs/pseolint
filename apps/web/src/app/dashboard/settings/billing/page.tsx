@@ -4,6 +4,7 @@ import { getPlan } from "@/lib/plan";
 import { db } from "@/db";
 import { userProfiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { ResyncSubscriptionButton } from "./resync-button";
 
 export default async function BillingSettings() {
   const session = await getOptionalSession();
@@ -26,7 +27,14 @@ export default async function BillingSettings() {
           )}
         </dl>
         {plan === "free" ? (
-          <a href="/pricing" className="mt-4 inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Upgrade to Pro →</a>
+          <div className="mt-4 flex flex-col gap-3">
+            <a href="/pricing" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Upgrade to Pro →</a>
+            <div className="rounded-[12px] border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              Just paid and still seeing free?{" "}
+              <ResyncSubscriptionButton />{" "}
+              We'll fetch your subscription directly from Polar.
+            </div>
+          </div>
         ) : (
           <form action="/api/billing/portal" method="POST" className="mt-4">
             <button type="submit" className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">
