@@ -14,3 +14,12 @@ docs/reports/*
 
 # pseolint runtime (cache, state, telemetry — can reach 1 GB+ on large pSEO sites)
 .pseolint/
+
+# Calibration runner output — point-in-time engine-validation data, not CI input.
+# The regression test at packages/core/tests/calibration/reputable-corpus.test.ts
+# auto-skips when this file is missing, so committing it would break CI on every
+# site at the verdict-ladder boundary (live HTTP audits are non-deterministic;
+# sites change content; the corpus is a moving target). Run
+# `bun run scripts/calibration-reputable-pseo.ts` locally to populate.
+scripts/calibration-results.json
+scripts/calibration-results.md
