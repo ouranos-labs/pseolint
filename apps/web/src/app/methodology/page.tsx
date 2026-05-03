@@ -108,59 +108,89 @@ export default function MethodologyPage(): React.ReactElement {
         not in the site.
       </p>
 
-      <div className="mt-6 rounded-[14px] border-l-2 border-warning/60 bg-warning/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
-        <p className="text-foreground">
-          <strong>This is engineering documentation, not a testimonial page.</strong>
+      <div className="mt-8">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          // documentation note
         </p>
-        <p className="mt-2">
-          The sites listed below are <em>public sites we audited without their
-          permission or endorsement</em>. They are NOT pseolint customers. They
-          appear here because they are demonstrably-winning pSEO operators
-          whose real-world ranking success makes them a useful ground-truth
-          target for engine calibration. None of them have endorsed pseolint,
-          and we don&apos;t imply they have.
-        </p>
-        <p className="mt-2">
-          The numbers on this page are point-in-time engine-validation data
-          for skeptical engineers. They are not customer-success metrics.
-          When pseolint has actual customer recovery stories, those will live
-          on a separate page with the customer&apos;s explicit consent and
-          attribution.
-        </p>
-        <p className="mt-2">
-          <strong className="text-foreground">A pass on this corpus does not
-          mean &quot;the engine works.&quot;</strong> It means the engine&apos;s
-          rules don&apos;t false-positive on shapes that high-authority sites
-          successfully ship. A fail on this corpus often means the engine
-          correctly identified a real issue (duplicate titles, redirect
-          chains, missing OG tags) that the site can absorb because of its
-          authority — not that the engine is wrong. See the &quot;How to read
-          our verdict&quot; section below.
-        </p>
+        <h3 className="mt-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
+          Read this as engineering reference. Not a testimonial page.
+        </h3>
+
+        <dl className="mt-5 divide-y divide-border/40 border-y border-border/40">
+          <div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr] sm:gap-6">
+            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              These sites
+            </dt>
+            <dd className="text-sm leading-relaxed text-foreground">
+              Public pSEO sites we audited without permission.{" "}
+              <span className="text-muted-foreground">
+                Not pseolint customers. Have not endorsed pseolint, and we
+                don&apos;t imply they have. Picked because they demonstrably
+                win in search — useful as a ground-truth calibration target.
+              </span>
+            </dd>
+          </div>
+
+          <div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr] sm:gap-6">
+            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              These numbers
+            </dt>
+            <dd className="text-sm leading-relaxed text-foreground">
+              Point-in-time engine-validation data for skeptical engineers.{" "}
+              <span className="text-muted-foreground">
+                Not customer-success metrics. When pseolint has actual
+                customer recovery stories, they will live elsewhere with
+                explicit consent and attribution.
+              </span>
+            </dd>
+          </div>
+
+          <div className="grid gap-1 py-4 sm:grid-cols-[180px_1fr] sm:gap-6">
+            <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+              A pass means
+            </dt>
+            <dd className="text-sm leading-relaxed text-foreground">
+              Our rules don&apos;t false-positive on shapes that high-authority
+              sites successfully ship.{" "}
+              <span className="text-muted-foreground">
+                A fail often means the engine correctly identified a real
+                issue (duplicate titles, redirect chains, missing OG tags)
+                that the site can absorb because of authority — not that the
+                engine is wrong. See &quot;How to read our verdict&quot;
+                below.
+              </span>
+            </dd>
+          </div>
+        </dl>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <div className="rounded-[14px] border border-border/60 bg-card/30 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Open source</p>
-          <p className="mt-1 font-mono text-xs text-foreground">MIT licensed</p>
-          <a href="https://github.com/ouranos-labs/pseolint" className="mt-2 inline-block text-[10px] text-primary underline decoration-dotted underline-offset-2">github →</a>
-        </div>
-        <div className="rounded-[14px] border border-border/60 bg-card/30 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reproducible</p>
-          <p className="mt-1 font-mono text-xs text-foreground">--sample-seed 1729</p>
-          <p className="mt-2 text-[10px] text-muted-foreground">Same input = same verdict</p>
-        </div>
-        <div className="rounded-[14px] border border-border/60 bg-card/30 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Re-runnable</p>
-          <p className="mt-1 font-mono text-xs text-foreground">bun run scripts/...</p>
-          <p className="mt-2 text-[10px] text-muted-foreground">Verify any claim yourself</p>
-        </div>
-        <div className="rounded-[14px] border border-border/60 bg-card/30 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Honest</p>
-          <p className="mt-1 font-mono text-xs text-foreground">Trade-offs documented</p>
-          <p className="mt-2 text-[10px] text-muted-foreground">Limits + roadmap below</p>
-        </div>
-      </div>
+      <dl className="mt-8 grid gap-y-3 border-y border-border/40 py-5 text-sm sm:grid-cols-[180px_1fr] sm:gap-x-6 sm:gap-y-4">
+        <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">License</dt>
+        <dd className="font-mono text-xs text-foreground">
+          MIT.{" "}
+          <a href="https://github.com/ouranos-labs/pseolint" className="text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground">
+            github.com/ouranos-labs/pseolint
+          </a>
+        </dd>
+
+        <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Reproducibility</dt>
+        <dd className="font-mono text-xs text-foreground">
+          <code>--sample-seed 1729</code>{" "}
+          <span className="text-muted-foreground">— same seed, same audit, same verdict</span>
+        </dd>
+
+        <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Verifiability</dt>
+        <dd className="font-mono text-xs text-foreground">
+          <code>bun run scripts/calibration-reputable-pseo.ts</code>{" "}
+          <span className="text-muted-foreground">— reruns against the same corpus</span>
+        </dd>
+
+        <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Limitations</dt>
+        <dd className="font-mono text-xs text-foreground">
+          Documented inline.{" "}
+          <span className="text-muted-foreground">Trade-offs and blind spots, with roadmap fixes, in the sections below.</span>
+        </dd>
+      </dl>
 
       <div className="mt-6 rounded-[18px] border border-border/60 bg-card/40 p-5 text-sm leading-relaxed">
         <p className="text-foreground">
@@ -323,42 +353,37 @@ export default function MethodologyPage(): React.ReactElement {
           Calibration is two-axis. We measured both.
         </p>
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[18px] border border-success/30 bg-success/5 p-5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-success">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-              What got better
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-foreground">
-              Reputable pSEO false-positive rate.
+        <div className="mt-5 grid gap-x-8 gap-y-4 border-y border-border/40 py-5 sm:grid-cols-2">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+              + reputable-pSEO axis
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Pass rate on the calibration corpus moved 33% → 78% across 9
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              False-positive rate on reputable pSEO went from{" "}
+              <span className="font-mono">33% → 78%</span> over 9 calibration
               rounds. Cluster collapse killed the 276-line doorway noise.
               Sample-seed made verdicts reproducible. Info findings can&apos;t
-              tank a verdict on their own anymore.
+              tank a verdict on their own.
             </p>
           </div>
 
-          <div className="rounded-[18px] border border-warning/30 bg-warning/5 p-5">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-warning">
-              <span className="inline-flex h-1.5 w-1.5 rounded-full bg-warning" />
-              What got more lenient
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-foreground">
-              Borderline-quality sites in the weak-pSEO dogfood.
+          <div className="sm:border-l sm:border-border/40 sm:pl-8">
+            <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/80">
+              − borderline-quality axis
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Two sites previously predicted <VerdictPill v="caution" /> now
-              score <VerdictPill v="ready" /> on the secondary{" "}
-              <a href="https://github.com/ouranos-labs/pseolint/blob/main/scripts/dogfood-v043.ts" className="underline decoration-dotted underline-offset-2">dogfood corpus</a>:
-              {" "}<code className="font-mono text-xs">wordpress.com</code>{" "}
+            <p className="mt-2 text-sm leading-relaxed text-foreground">
+              On the secondary{" "}
+              <a href="https://github.com/ouranos-labs/pseolint/blob/main/scripts/dogfood-v043.ts" className="underline decoration-dotted underline-offset-2">
+                weak-pSEO dogfood corpus
+              </a>, two sites previously predicted{" "}
+              <VerdictPill v="caution" /> now score <VerdictPill v="ready" />:{" "}
+              <code className="font-mono text-xs">wordpress.com</code>{" "}
               (defensible — polished marketing site) and{" "}
               <code className="font-mono text-xs">expatistan.com</code>{" "}
               (3-page sample artifact). One regression the other direction:{" "}
               <code className="font-mono text-xs">nextjs.org</code>{" "}
-              <VerdictPill v="ready" /> → <VerdictPill v="caution" /> on
-              real cross-domain canonical findings.
+              <VerdictPill v="ready" /> → <VerdictPill v="caution" /> on real
+              cross-domain canonical findings.
             </p>
           </div>
         </div>
