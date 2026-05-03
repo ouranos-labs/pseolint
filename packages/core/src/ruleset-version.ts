@@ -4,4 +4,4 @@
  * Pure refactor → don't bump. Used by change-driven monitoring to invalidate
  * skips when a new rule wouldn't otherwise run on prior-state-only URLs.
  */
-export const CORE_RULESET_VERSION = "14";
+export const CORE_RULESET_VERSION = "15";

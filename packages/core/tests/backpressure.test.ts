@@ -52,15 +52,31 @@ describe("BackpressureMonitor", () => {
   });
 
   it("trips when 5xx ratio exceeds threshold post-warmup", () => {
+    // 2026-05-03: comparison is strict `>` (was `>=`) so the test data must
+    // genuinely exceed the threshold, not land on it. 4 of 15 = 26.7% > 20%.
     const m = new BackpressureMonitor({ warmupSize: 5, absoluteP95Ms: 999_999, baselineMultiplier: 999, errorRatioThreshold: 0.2 });
     for (let i = 0; i < 5; i++) m.record(obs({ status: 200 }));
-    // 3 out of 10 are 5xx = 30% > 20% threshold.
+    for (let i = 0; i < 6; i++) m.record(obs({ status: 200 }));
+    m.record(obs({ status: 502 }));
+    m.record(obs({ status: 503 }));
+    m.record(obs({ status: 500 }));
+    const decision = m.record(obs({ status: 500 }));
+    expect(decision.shouldAbort).toBe(true);
+    expect(decision.reason).toMatch(/5xx|error/i);
+  });
+
+  it("does NOT trip when 5xx ratio equals threshold exactly (regression for prod bug)", () => {
+    // 2026-05-03 production fix: the old `>=` comparison aborted at the EXACT
+    // threshold. 3 of 15 = 0.2 exactly. With strict `>`, this should NOT trip
+    // — pseolint.dev was aborting every audit because the engine read
+    // "5xx rate 10% exceeds threshold 10%" while not actually exceeding.
+    const m = new BackpressureMonitor({ warmupSize: 5, absoluteP95Ms: 999_999, baselineMultiplier: 999, errorRatioThreshold: 0.2 });
+    for (let i = 0; i < 5; i++) m.record(obs({ status: 200 }));
     for (let i = 0; i < 7; i++) m.record(obs({ status: 200 }));
     m.record(obs({ status: 502 }));
     m.record(obs({ status: 503 }));
     const decision = m.record(obs({ status: 500 }));
-    expect(decision.shouldAbort).toBe(true);
-    expect(decision.reason).toMatch(/5xx|error/i);
+    expect(decision.shouldAbort).toBe(false);
   });
 
   it("ignores pure cache hits (they're not origin load)", () => {

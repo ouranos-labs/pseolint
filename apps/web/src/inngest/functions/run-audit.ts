@@ -138,6 +138,13 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       sampleSize,
       mode,
       state,
+      // 2026-05-03 production fix: hosted audits MUST run with
+      // safeMode: "saas" so user-submitted URLs are forced through the
+      // SSRF guard, robots.txt is honoured, and per-run caps
+      // (maxFetchBytes 10 MB, maxCrawlDiscovered 2000) apply. Without
+      // this, a malicious caller could point us at AWS metadata
+      // endpoints, RFC1918 networks, or arbitrarily-large tarballs.
+      safeMode: "saas",
       // Core's `render` is a config object; undefined = static fetch, any object = rendered.
       render: render ? {} : undefined,
       rules: ruleOverrides,

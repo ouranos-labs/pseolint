@@ -1824,7 +1824,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         warmupSize: 10,
         absoluteP95Ms: 8000,
         baselineMultiplier: 4,
-        errorRatioThreshold: 0.1,
+        // 2026-05-03 production fix: 0.1 (10%) was tripping pseolint.dev
+        // audits on real production sites that legitimately return ~10% 5xx
+        // (transient errors, async page renderers warming up, sites in
+        // canary). Combined with the `>=` comparison bug (also fixed),
+        // this aborted every web-app audit. 0.15 keeps the gate honest —
+        // a sustained 15%+ 5xx rate is a real problem, not noise — while
+        // letting transient errors not bring down the whole audit.
+        errorRatioThreshold: 0.15,
       })
     : null;
 

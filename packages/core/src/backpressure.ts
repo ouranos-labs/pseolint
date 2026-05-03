@@ -122,7 +122,14 @@ export class BackpressureMonitor {
       liveFetchCount: this.liveDurations.length,
     };
 
-    if (p95Ms >= this.opts.absoluteP95Ms) {
+    // 2026-05-03 production fix: all three abort conditions previously used
+    // `>=` ("greater than or equal"), which meant they fired at the EXACT
+    // threshold — e.g. 3-of-30 fetches returning 5xx is exactly 10%, so
+    // the abort message read "5xx rate 10% exceeds threshold 10%" while
+    // the rate had not actually exceeded anything. Changed to strict `>`
+    // so the gate matches the message: only abort when the metric is
+    // genuinely past the threshold, not when it lands on it.
+    if (p95Ms > this.opts.absoluteP95Ms) {
       return {
         shouldAbort: true,
         reason: `rolling p95 ${p95Ms}ms exceeds absolute cap ${this.opts.absoluteP95Ms}ms`,
@@ -131,7 +138,7 @@ export class BackpressureMonitor {
     }
     if (
       this.baselineP95Ms > 0 &&
-      p95Ms >= this.baselineP95Ms * this.opts.baselineMultiplier
+      p95Ms > this.baselineP95Ms * this.opts.baselineMultiplier
     ) {
       return {
         shouldAbort: true,
@@ -139,7 +146,7 @@ export class BackpressureMonitor {
         snapshot,
       };
     }
-    if (errorRatio >= this.opts.errorRatioThreshold) {
+    if (errorRatio > this.opts.errorRatioThreshold) {
       return {
         shouldAbort: true,
         reason: `rolling 5xx rate ${Math.round(errorRatio * 100)}% exceeds threshold ${Math.round(this.opts.errorRatioThreshold * 100)}%`,
