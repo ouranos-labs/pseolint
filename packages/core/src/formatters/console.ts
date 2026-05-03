@@ -352,8 +352,9 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     const list = demotions.length <= 3
       ? demotions.map((id) => `\`${id}\``).join(", ")
       : `${demotions.slice(0, 3).map((id) => `\`${id}\``).join(", ")}, +${demotions.length - 3} more`;
+    const profileType = summary.siteClassification?.type ?? "unclear";
     lines.push(
-      `${GREEN}✓${RESET} Demoted ${demotions.length} rule${demotions.length === 1 ? "" : "s"} (${list}) — ${fmtType(summary.siteClassification?.type ?? "unclear")} profile; pass --strict to disable`,
+      `${GREEN}✓${RESET} Demoted ${demotions.length} rule${demotions.length === 1 ? "" : "s"} (${list}) — ${profileType} profile; pass --strict to disable`,
     );
   }
 
