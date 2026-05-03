@@ -287,10 +287,16 @@ describe("formatMarkdown — v0.4 output", () => {
   });
 
   it("renders three issue buckets with docs links", () => {
+    // 2026-05-03 calibration credibility fix: informational findings now
+    // collapse behind a <details> block by default. Webflow's templates
+    // gallery had 118 info findings — rendered as 118 markdown bullets,
+    // they drowned the actionable signal. The summary line preserves the
+    // count for visibility.
     const out = formatMarkdown(mockSummary);
     expect(out).toContain("## Blockers (2)");
     expect(out).toContain("## Should fix (1)");
-    expect(out).toContain("## Informational (1)");
+    expect(out).toContain("Informational (1)");
+    expect(out).toContain("<details>");
     expect(out).toContain("[docs](https://pseolint.dev/rules/thin-content)");
   });
 

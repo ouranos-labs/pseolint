@@ -4,6 +4,16 @@
 
 The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets.
 
+## What's new in v0.5.2 — credibility layer
+
+- **4 new content-quality rules** addressing the blind-spot audit's tier-1 gaps: `content/title-uniqueness` (catches actually-duplicate titles — raw, not entity-masked, so catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""`), `tech/og-completeness` (the long-promised OG-tag rule that finally ships).
+- **`--authority-score N`** (0-100) — bring-your-own domain authority. `>= 80` shifts the verdict one tier lenient (established brand can absorb shapes a newer site can't). `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`--sample-seed N`** — deterministic stratified sampling. Same seed = same audit = same verdict, run after run. CI gates and calibration runs get reproducible results instead of bouncing across the verdict-ladder boundary.
+- **`spam/doorway-pattern` cluster collapse** — entity-swap-heavy catalogs no longer produce hundreds of per-pair findings; they collapse into one cluster line per template-tied group.
+- **Per-bucket info-severity cap** — info findings can't accumulate to tank a verdict on their own (capped at 50 per category bucket separately from the 100 cap on warning+).
+- **Console formatter** shows `Demoted N rules (X, Y, Z) — <site type> profile; pass --strict to disable` so the engine's reasoning is visible. Markdown formatter collapses info findings under `<details>` so PR comments stay actionable.
+- **Calibrated against reputable in-production pSEO sites.** The full 9-round iteration story (with trade-offs honestly documented) and the blind-spot audit (what we still don't detect) live at [pseolint.dev/methodology](https://pseolint.dev/methodology).
+
 ## What's new in v0.5
 
 **AI orchestrator (`pseolint orchestrate <domain>`).** Drives an LLM through 25 deterministic tools and produces a **fix manifest** with concrete copy-paste patches (rewritten H1s, JSON-LD blocks, robots.txt diffs, internal-link suggestions). Every patch passes a deterministic schema validator before reaching the manifest — the LLM can't ship a malformed JSON-LD block or unsafe HTML.

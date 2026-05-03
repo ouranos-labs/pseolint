@@ -594,7 +594,17 @@ describe("v0.4.3 classification-driven scoring", () => {
     expect(spam?.severity).toBe("error");
   });
 
-  test("applyScoringProfileOverrides applies docs profile only at ≥ 70% confidence", () => {
+  test("applyScoringProfileOverrides applies the docs profile only at ≥ 70% confidence (else falls through to unclear)", () => {
+    // 2026-05-03 calibration: previously this test expected lowConf to keep
+    // aeo/citable-facts at the original `error` severity, on the premise
+    // that the `unclear` fallback profile had no overrides. Calibration
+    // showed that fallback caused 4 of 5 reputable pSEO sites to fail —
+    // structurally-incompatible rules (AEO on non-prose pages) over-fired
+    // when the classifier hit confidence < 0.7. The `unclear` profile now
+    // demotes those rules conservatively too. To still demonstrate the
+    // confidence gate, we use `aeo/answer-first`, where the two profiles
+    // disagree: `docs` demotes to `warning`; `unclear` demotes further to
+    // `info`.
     const lowConf = {
       type: "docs" as const,
       confidence: 0.5,
@@ -609,14 +619,16 @@ describe("v0.4.3 classification-driven scoring", () => {
     };
     const findings: RuleResult[] = [
       {
-        ruleId: "aeo/citable-facts",
+        ruleId: "aeo/answer-first",
         severity: "error",
-        message: "only 2 facts on page",
+        message: "first paragraph lacks named entities",
         pageUrl: "https://example.com/",
       },
     ];
-    expect(applyScoringProfileOverrides(findings, lowConf)[0].severity).toBe("error");
-    expect(applyScoringProfileOverrides(findings, highConf)[0].severity).toBe("info");
+    // lowConf falls through to `unclear`, which demotes aeo/answer-first to info.
+    expect(applyScoringProfileOverrides(findings, lowConf)[0].severity).toBe("info");
+    // highConf applies the docs profile, which demotes aeo/answer-first to warning.
+    expect(applyScoringProfileOverrides(findings, highConf)[0].severity).toBe("warning");
   });
 
   test("end-to-end: docs-classified site auto-demotes AEO findings (lower verdict risk)", async () => {

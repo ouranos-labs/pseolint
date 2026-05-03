@@ -25,7 +25,18 @@ export function normalizeAuditUrl(url: string, options?: NormalizeUrlOptions): s
     return trimmed;
   }
   if (/^https?:\/\//i.test(trimmed)) {
-    return normalizeHttpUrl(trimmed, mergeNormalizeUrlOptions(options));
+    try {
+      return normalizeHttpUrl(trimmed, mergeNormalizeUrlOptions(options));
+    } catch {
+      // 2026-05-03 calibration round 2: malformed URLs scraped from page
+      // HTML (bare "https://", non-ASCII garbage, etc.) crashed `new URL()`
+      // and aborted entire audits. Multiple call sites feed user-controlled
+      // strings here (parser hrefs, canonical raw, hreflang href). Return
+      // the trimmed input on parse failure so the audit continues; the
+      // surrounding rule will surface its own "malformed URL" finding when
+      // it makes sense to.
+      return trimmed;
+    }
   }
   return normalize(trimmed);
 }

@@ -23,6 +23,9 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "content/meta-uniqueness": "corpus",
   "content/missing-author": "page",
   "content/eeat-signals": "page",
+  "content/title-uniqueness": "corpus",
+  "content/heading-structure": "page",
+  "content/image-alt-text": "page",
 
   // links
   "links/orphan-pages": "corpus",
@@ -30,6 +33,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "links/cluster-connectivity": "corpus",
   "links/link-depth": "corpus",
   "links/unreachable-from-root": "corpus",
+  "links/host-section-divergence": "corpus",
 
   // tech
   "tech/canonical-consistency": "corpus",
@@ -41,6 +45,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "tech/hreflang-consistency": "corpus",
   "tech/robots-compliance": "corpus",
   "tech/robots-sitemap-presence": "corpus",
+  "tech/og-completeness": "page",
 
   // schema
   "schema/json-ld-valid": "page",

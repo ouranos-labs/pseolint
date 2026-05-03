@@ -29,14 +29,38 @@ pseolint audits the graph. Run it before you publish, gate it in CI, ship pages 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 43 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 45 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server. Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
+- **Calibrated against reputable pSEO** (v0.5.2). Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
+- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `--authority-score N` (0-100) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
+- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
+
+## What's new in v0.5.2 — credibility layer
+
+- **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
+  - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
+  - `content/heading-structure` — `<h1>` presence, single-`<h1>` discipline, and `<h2>` sub-structure on long pages.
+  - `content/image-alt-text` — `<img>` tags missing `alt` (decorative images marked `role="presentation"` / `aria-hidden="true"` / explicit `alt=""` are skipped).
+  - `tech/og-completeness` — the long-promised OG-tag rule that finally ships.
+- **`AuditOptions.authorityScore`** (CLI: `--authority-score N`, 0-100) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **Calibration-driven scoring profile** — site-classifier-aware severity demotions for AEO + EEAT rules on catalog/template-driven sites. The `unclear` profile (low classifier confidence) now demotes structurally-incompatible rules conservatively rather than firing them at full strength. Result: reputable pSEO sites no longer false-positive into `concerning`.
+- **`spam/doorway-pattern` cluster collapse** — 276 per-pair findings on a heavy-template catalog now collapse to **one** cluster line in the report.
+- **`spam/doorway-pattern` content-quality gate** — requires thin-content OR identical-meta as the third signal; structural similarity alone (which all catalogs have) no longer constitutes a doorway finding.
+- **Sample-seed determinism** — `AuditOptions.sampleSeed` (mulberry32 PRNG) makes verdicts reproducible across runs for CI gates and calibration.
+- **Info-severity bucket cap** — cumulative info contribution caps at 50 per category bucket separately from warning+ at 100. A flood of info findings can no longer tank the verdict on its own.
+- **`tech/hreflang-consistency`** — sample-size-aware reciprocity check; defensive parsing.
+- **`normalizeAuditUrl` defensive at the source** — single malformed `<link>` no longer aborts an audit.
+- **`BackpressureMonitor` thresholds raised** — gate fits real production CDNs (`4×` baseline, `8000ms` p95) instead of tripping on normal load variance.
+- **`links/unreachable-from-root` skips on partial-sample audits** — sampling artifact, not real graph isolation.
+- **Markdown formatter collapses informational findings** behind `<details>` so PR comments don't drown actionable items in 100+ info bullets.
+
+The full per-round iteration story is in [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md), including a transparent **trade-offs** section documenting what got more lenient (borderline-quality sites that classify as `unclear` may now score one verdict-ladder rung lower than before — `caution → ready` on `wordpress.com` and `expatistan` in the dogfood corpus).
 
 ## What's new in v0.3.x
 
-- **AEO rule category (v0.3.0)** — 9 rules that detect AI Overview invisibility: `llms-txt`, `crawler-access` (blocks for GPTBot/ClaudeBot/PerplexityBot/etc.), `freshness-signals`, `faq-coverage`, `answer-first`, `citable-facts`, `non-replicable-value`, `content-modularity`, `summary-bait`. Scoring re-weighted; new `AEO: AI Overview Readiness` console section.
+- **AEO rule category (v0.3.0)** — 8 rules that detect AI Overview invisibility: `llms-txt`, `crawler-access` (blocks for GPTBot/ClaudeBot/PerplexityBot/etc.), `freshness-signals`, `faq-coverage`, `answer-first`, `citable-facts`, `content-modularity`, `summary-bait`. Scoring re-weighted; new `AEO: AI Overview Readiness` console section.
 - **Render-mode analytics blocking (v0.3.1)** — rendered audits previously fired every GA/Plausible/PostHog/Mixpanel/Hotjar/Sentry beacon on every page. Now blocks ~40 analytics hosts by default. `--analytics` / `--block-host` flags, `allow-first-party` option.
 - **SSRF guard + AbortSignal + robots honour (v0.3.2)** — DNS-validated private-range check on every fetched URL, integer/hex-IP bypass protection, redirect re-validation, honoured target `robots.txt` Disallow directives (with UA-specific parsing), clean `ctrl-C` / programmatic cancel via `AbortSignal`, new public API: `validateTargetHost`, `SSRFError`, `DnsResolutionError`.
 - **`safeMode` preset + `safeFetch` (v0.3.3)** — one-knob safety posture for hosts. `safeMode: "saas"` flips guardSsrf + tightens caps + keeps robots honour on; `safeMode: "cli"` keeps local-friendly defaults. `safeFetch(url)` is an SSRF-safe fetch for non-audit use cases. `maxCrawlDiscovered` ceiling caps link-discovery fan-out. `followRedirects: false` option.
@@ -76,7 +100,7 @@ npx pseolint ./out --threshold 40 --format json
 
 ## What It Checks
 
-**43 rules** across **8 categories** (7 scored + `data/*` unscored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
+**45 rules** across **8 categories** (7 scored + `data/*` unscored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
 
 ### SpamBrain Risk Detection
 
@@ -97,7 +121,9 @@ npx pseolint ./out --threshold 40 --format json
 |------|---------------|----------|
 | `content/unique-value` | Each page must have 100+ words not found on any other page | Error |
 | `content/meta-uniqueness` | Meta descriptions identical after entity masking | Error |
-| `content/heading-uniqueness` | H1/H2 tags identical after entity masking | Warning |
+| `content/title-uniqueness` | Empty/missing title, very short or excessively long title, or two pages sharing the exact title (raw, not entity-masked — catalog templates with per-record entity values pass) | Error / Warning / Info |
+| `content/heading-structure` | No `<h1>`, multiple `<h1>` elements, or long pages (>600 words) with no `<h2>` sub-headings | Error / Warning / Info |
+| `content/image-alt-text` | `<img>` tags missing `alt` attribute (decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""` are skipped) | Warning / Info |
 | `content/missing-author` | No author schema, meta, byline, or rel="author" | Warning |
 | `content/eeat-signals` | Missing E-E-A-T signals (author, dates, sources, about links) | Info |
 
@@ -106,9 +132,10 @@ npx pseolint ./out --threshold 40 --format json
 | Rule | What It Checks | Severity |
 |------|---------------|----------|
 | `links/orphan-pages` | Pages with zero inbound internal links | Error |
+| `links/host-section-divergence` | Sub-sections (e.g. `/coupons/`, `/deals/`) that diverge from the rest of the host on ≥2 of: cross-section inbound links, topic vocabulary, template signature, authorship coverage. Targets Google's May 2024 site-reputation-abuse policy. | Warning / Error |
 | `links/dead-ends` | Pages with zero outbound internal links | Warning |
 | `links/cluster-connectivity` | Isolated page clusters with no cross-linking | Warning |
-| `links/hub-pages` | Missing index/hub page for page clusters | Warning |
+| `links/unreachable-from-root` | Pages with no path from the start URL (graph-disconnected from the entry point) | Warning |
 | `links/link-depth` | Pages requiring >3 clicks from root | Info |
 
 ### Technical SEO
@@ -118,18 +145,20 @@ npx pseolint ./out --threshold 40 --format json
 | `tech/canonical-consistency` | Missing, invalid, or conflicting canonical URLs (HTML + HTTP header) | Error |
 | `tech/sitemap-completeness` | Pages missing from sitemap, phantom 404s, redirecting sitemap URLs | Error |
 | `tech/soft-404` | HTTP 200 pages that look like error pages | Error |
+| `tech/robots-compliance` | Sitemap URLs blocked by `robots.txt` (Disallow patterns matching listed pages) | Error |
 | `tech/robots-noindex-conflict` | Noindexed pages (meta or X-Robots-Tag) with inbound links | Warning |
 | `tech/canonical-noindex-conflict` | Noindex + canonical pointing elsewhere | Warning |
 | `tech/redirect-chain` | Redirect chains longer than 2 hops | Warning |
-| `tech/og-completeness` | Missing og:title, og:description, or og:image | Warning |
 | `tech/hreflang-consistency` | Hreflang reciprocity (A->B requires B->A) | Warning |
+| `tech/og-completeness` | Missing `og:title`, `og:description`, or `og:image` — affects social-share previews and AI Overview fallback summaries | Warning |
 | `tech/robots-sitemap-presence` | Missing or unreachable `/robots.txt` or `/sitemap.xml` at the origin | Warning |
 
 ### Data Consistency
 
 | Rule | What It Checks | Severity |
 |------|---------------|----------|
-| `data/data-binding` | When `--data-source` is set, flags fields from the source record that don't appear on the matching page (e.g. FAQ items, regulation clauses listed in the source JSON but missing from rendered HTML) | Warning |
+| `data/missing-binding` | When `--data-source` is set, flags fields from the source record that don't appear on the matching page (e.g. FAQ items, regulation clauses listed in the source JSON but missing from rendered HTML) | Warning |
+| `data/identical-across-pages` | Source-data fields that differ in the JSON but render identically across pages (suggests a missing binding loop or a hardcoded template value) | Warning |
 
 ### Structured Data
 
@@ -143,9 +172,9 @@ npx pseolint ./out --threshold 40 --format json
 
 | Rule | What It Checks | Severity |
 |------|---------------|----------|
-| `cannibal/title-overlap` | Page pairs with >80% title similarity after entity masking | Warning |
-| `cannibal/keyword-collision` | Pages sharing >6 of their top 10 TF-IDF keywords | Warning |
 | `cannibal/url-pattern` | URL structures with same tokens in different order | Info |
+
+> `cannibal/title-overlap` and `cannibal/keyword-collision` were dropped in v0.4 due to high false-positive rates on legitimately similar pages (e.g. localized variants, paginated archives). See the [v0.4 redesign spec §4.3](./docs/superpowers/specs/2026-04-29-pseolint-v0.4-engine-redesign.md).
 
 ### AEO — AI Overview Readiness (v0.3.x)
 
@@ -157,7 +186,6 @@ npx pseolint ./out --threshold 40 --format json
 | `aeo/faq-coverage` | FAQ-style content (question-phrased H2s) without `FAQPage` / `HowTo` JSON-LD | Info |
 | `aeo/answer-first` | First paragraph after H1 is boilerplate or lacks facts / named entities | Error |
 | `aeo/citable-facts` | <3 entity-specific citable facts per page after template-fact filtering | Error |
-| `aeo/non-replicable-value` | Pages with only text AI can fully summarize — no interactive / downloadable / gated content | Warning |
 | `aeo/content-modularity` | Sections that cross-reference each other or use vague headings — not independently extractable | Warning |
 | `aeo/summary-bait` | Composite: strong opener + no interactive value + facts packed in opener → guaranteed zero-click loss | Error |
 

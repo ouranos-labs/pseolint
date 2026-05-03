@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { inferUrlTemplate, stratifiedSample } from "../src/stratified-sample.js";
+import { inferUrlTemplate, stratifiedSample, mulberry32 } from "../src/stratified-sample.js";
 
 describe("inferUrlTemplate", () => {
   it("generalizes multi-hyphen slugs", () => {
@@ -83,5 +83,36 @@ describe("stratifiedSample", () => {
     expect(counts.small).toBeGreaterThanOrEqual(2);
     expect(counts.mid).toBeGreaterThanOrEqual(5);
     expect(counts.big).toBeLessThan(60);
+  });
+});
+
+describe("seeded sampling (mulberry32)", () => {
+  // 2026-05-03 calibration credibility fix: round-to-round verdict drift
+  // was partially driven by Math.random — same engine, same site,
+  // different sample, different verdict. With sampleSeed plumbed through
+  // stratifiedSample, repeated runs against the same URL set produce the
+  // same audit, so verdicts are reproducible for CI gates and calibration.
+
+  it("produces identical samples for the same seed", () => {
+    const urls = Array.from({ length: 200 }, (_, i) => `https://x.com/s/${i}`);
+    const a = stratifiedSample(urls, 25, mulberry32(1729));
+    const b = stratifiedSample(urls, 25, mulberry32(1729));
+    expect(a).toEqual(b);
+  });
+
+  it("produces different samples for different seeds", () => {
+    const urls = Array.from({ length: 200 }, (_, i) => `https://x.com/s/${i}`);
+    const a = stratifiedSample(urls, 25, mulberry32(1));
+    const b = stratifiedSample(urls, 25, mulberry32(2));
+    // Both contain the same number of items and are subsets of the input,
+    // but the chosen URLs should differ — they were drawn from a different
+    // PRNG state.
+    expect(a).not.toEqual(b);
+  });
+
+  it("default Math.random call still works (backward compatible)", () => {
+    const urls = Array.from({ length: 200 }, (_, i) => `https://x.com/s/${i}`);
+    const sample = stratifiedSample(urls, 25);
+    expect(sample).toHaveLength(25);
   });
 });

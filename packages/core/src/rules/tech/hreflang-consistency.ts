@@ -44,18 +44,37 @@ export function hreflangConsistencyRule(
         continue;
       }
 
-      if (!/^https?:\/\//i.test(entry.href)) {
+      if (!/^https?:\/\/[^\/]/i.test(entry.href)) {
+        // Tightened the prefix check to require at least one host character
+        // after `https://` — otherwise malformed hrefs like literal
+        // "https://" pass the regex but crash normalizeAuditUrl downstream
+        // (calibration round 2 surfaced this on webflow.com/templates).
         findings.push({
           ruleId: "tech/hreflang-consistency",
           severity: "warning",
-          message: `${page.url} has non-absolute hreflang href (${entry.href}) for ${entry.lang}.`,
+          message: `${page.url} has non-absolute or malformed hreflang href (${entry.href}) for ${entry.lang}.`,
           pageUrl: page.url,
-          fix: `Change the hreflang href for ${entry.lang} to an absolute URL (starting with https://).`
+          fix: `Change the hreflang href for ${entry.lang} to an absolute URL (starting with https:// and including a host).`
         });
         continue;
       }
 
-      const normalizedHref = normalizeAuditUrl(entry.href, normalizeOpts);
+      let normalizedHref: string;
+      try {
+        normalizedHref = normalizeAuditUrl(entry.href, normalizeOpts);
+      } catch {
+        // Defensive: any URL-parse failure here is unreachable given the
+        // tightened regex above, but emit an honest finding rather than
+        // letting an exception propagate and abort the entire audit.
+        findings.push({
+          ruleId: "tech/hreflang-consistency",
+          severity: "warning",
+          message: `${page.url} has unparseable hreflang href (${entry.href}) for ${entry.lang}.`,
+          pageUrl: page.url,
+          fix: `Fix the hreflang href for ${entry.lang}; it could not be parsed as a URL.`,
+        });
+        continue;
+      }
       const pageRefs = hreflangMap.get(page.url) ?? new Map<string, string>();
       pageRefs.set(lang, normalizedHref);
       hreflangMap.set(page.url, pageRefs);
@@ -84,6 +103,14 @@ export function hreflangConsistencyRule(
 
       const targetRefs = hreflangMap.get(targetUrl);
       if (!targetRefs) {
+        // 2026-05-03 calibration finding: on a sampled crawl we only audit a
+        // subset of pages. If the hreflang target isn't in our sample, we
+        // simply have no data on its annotations — flagging it as "no
+        // hreflang back" is a false positive that scales with sample size
+        // (~385 fires on a 25-page Wise sample). Only assert reciprocity on
+        // pages we actually parsed.
+        const wasParsed = pages.some((p) => p.url === targetUrl);
+        if (!wasParsed) continue;
         findings.push({
           ruleId: "tech/hreflang-consistency",
           severity: "warning",

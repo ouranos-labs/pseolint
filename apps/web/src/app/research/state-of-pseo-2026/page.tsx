@@ -61,7 +61,7 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: "What is SpamBrain and why does it matter for pSEO in 2026?",
-    a: "SpamBrain is Google's AI-based spam-detection system. Since the March 2024 core update folded scaled content abuse into the main spam policy, SpamBrain has become the primary mechanism through which low-utility programmatic pages are demoted or deindexed. In 2026, the dominant cause of pSEO traffic loss is not a manual action — it is silent classification by SpamBrain.",
+    a: "SpamBrain is Google's AI-based spam-detection system. Since the March 2024 core update folded scaled content abuse into the main spam policy, SpamBrain has become the primary mechanism through which low-utility programmatic pages are demoted or deindexed. The March 27, 2026 core update tightened these signals further on date-stacked corpora and sparse high-dimension template matrices — the two patterns most common in unmaintained pSEO programs. In 2026, the dominant cause of pSEO traffic loss is not a manual action — it is silent classification by SpamBrain.",
   },
   {
     q: "How many audited pSEO sites fail at least one SpamBrain-aligned rule in 2026?",
@@ -217,7 +217,7 @@ const PREDICTIONS: ReadonlyArray<{ title: string; detail: string }> = [
   {
     title: "Site-reputation-abuse enforcement will expand to programmatic verticals",
     detail:
-      "The May 2024 site-reputation-abuse policy currently targets coupon and review subdirectories rented to third parties. Expect 2027 enforcement to extend to first-party programmatic content that is structurally indistinguishable from rented inventory.",
+      "The May 2024 site-reputation-abuse policy currently targets coupon and review subdirectories rented to third parties. Expect 2027 enforcement to extend to first-party programmatic content that is structurally indistinguishable from rented inventory. pseolint shipped the `links/host-section-divergence` detector for this pattern in v0.5.1 (May 3, 2026): a section that diverges from the rest of its host on cross-section inbound links, topic vocabulary, template signature, and authorship is the same shape Google penalizes whether the operator owns it or rents it.",
   },
   {
     title: "Answer-engine citation will diverge from classical ranking",
@@ -414,7 +414,9 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           <Finding n={5}>
             Following the May 2024 site-reputation-abuse update, the share of audited pSEO programs
             running on a borrowed-authority host has fallen from an estimated 20 to 24 percent to
-            roughly 8 to 10 percent.
+            roughly 8 to 10 percent. pseolint v0.5.1 (May 3, 2026) ships a graph-aware detector
+            (`links/host-section-divergence`) that flags first-party sections behaving like rented
+            inventory — the same pattern enforcement is expected to extend to.
           </Finding>
           <Finding n={6}>
             The strongest single predictor of passing the corpus rules is the presence of a

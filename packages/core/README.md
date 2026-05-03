@@ -24,16 +24,29 @@ console.log(`Findings: ${summary.findings.length}`);
 
 ## What It Checks
 
-32 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
+45 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
 
-- **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern
-- **Technical SEO** (8) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, Open Graph, hreflang
-- **AEO / AI Overview citability** (9, v0.3.0–v0.3.1) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, non-replicable value, content modularity, **summary-bait** (pages optimized for summarization over retention)
-- **Content** (5) — unique value, heading / meta uniqueness, author attribution, E-E-A-T signals
-- **Internal linking** (5) — orphan pages, dead ends, cluster connectivity, hub pages, link depth
+- **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern (cluster-collapsed since v0.5.2)
+- **Technical SEO** (9) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2)
+- **AEO / AI Overview citability** (8, v0.3.0–v0.3.1) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, content modularity, **summary-bait** (pages optimized for summarization over retention)
+- **Content** (7) — unique value, meta uniqueness, author attribution, E-E-A-T signals, plus **title-uniqueness**, **heading-structure**, **image-alt-text** (all v0.5.2)
+- **Internal linking** (6) — orphan pages, dead ends, cluster connectivity, link depth, unreachable-from-root (sample-aware), **host-section-divergence** (v0.5.1, site-reputation-abuse detector)
 - **Structured data** (3) — JSON-LD validity, required fields, cross-page schema consistency
-- **Cannibalization** (3) — title overlap, keyword collision, URL pattern conflicts
+- **Cannibalization** (1) — URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 due to high false-positive rates)
 - **Data binding** (2) — verify rendered pages expose values from a source dataset (missing or identical-across-pages bindings)
+
+## What's new in v0.5.2 — credibility layer
+
+- **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps: `content/title-uniqueness` (raw, not entity-masked — catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips `role="presentation"` / `aria-hidden="true"` / explicit `alt=""`), `tech/og-completeness` (the README-promised rule that finally ships).
+- **`AuditOptions.authorityScore`** (0-100) — bring-your-own-DA. ≥80 shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't). ≤30 shifts one tier stricter (newer/lower-authority operator). Raw `risk` number unchanged so CI gates stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`AuditOptions.sampleSeed`** — deterministic `mulberry32` PRNG plumbed through the stratified sampler. Repeated audits with the same seed pick the same pages and produce reproducible verdicts.
+- **`spam/doorway-pattern` cluster collapse** — emits in the same `pageUrl` + `relatedUrls[0]` shape as `spam/near-duplicate` and is registered in `CLUSTERABLE_RULES`. C(N,2) per-pair findings on entity-swap-heavy catalogs collapse into one cluster finding per template-tied group.
+- **Per-bucket info-severity cap** — a flood of info findings can't fill a category bucket on its own (capped at 50 separately from the 100 cap on warning+ findings).
+- **`summary.appliedSeverityDemotions: string[]`** — engine emits the list of rule IDs whose severity was overridden by the active scoring profile so consumers (formatters, CI) can show *which* rules got demoted and *why*. Pass `--strict` to disable demotions entirely.
+- **Sample-aware rules** — `links/unreachable-from-root` skips on partial-sample audits (it can't distinguish real graph isolation from sample-shape).
+- **Markdown formatter** collapses informational findings under `<details>` so PR comments don't drown actionable items in 100+ info bullets.
+
+The full per-round iteration story (9 calibration rounds against a curated reputable-pSEO corpus) and the trade-offs we accepted are at [`docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md`](../../docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md). The honest blind-spot audit (what we still don't detect, including the domain-authority gap that motivated `--authority-score`) is at [`docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md`](../../docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md). The dated user-facing methodology summary is at [pseolint.dev/methodology](https://pseolint.dev/methodology).
 
 ## API
 

@@ -4,6 +4,15 @@
 
 An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
+### What's new in v0.5.2 — credibility layer
+
+- **4 new content-quality rules** in the underlying engine (consumed by `audit_site` and `orchestrate_audit`): `content/title-uniqueness`, `content/heading-structure`, `content/image-alt-text`, `tech/og-completeness`. Findings appear in tool output as standard rule findings.
+- **`audit_site.authorityScore`** parameter (0-100) — bring-your-own-DA. `>= 80` shifts the verdict one tier lenient on established brands; `<= 30` shifts one tier stricter on newer/lower-authority operators. Raw `risk` number unchanged.
+- **`audit_site.sampleSeed`** parameter — deterministic sampler. Same seed = same audit = same verdict, run after run. AI assistants asking the user to confirm a finding can re-audit reproducibly.
+- **`spam/doorway-pattern` cluster collapse** — a 276-pair finding on a catalog directory now arrives as one cluster line per group, not 276 line items eating the LLM's context window.
+- **Findings stay actionable**: info-severity findings are capped per category bucket so they can't accumulate to tank a verdict on their own; the LLM gets the actual signal, not noise.
+- **Calibrated** against reputable in-production pSEO sites; trade-offs and limitations documented at [pseolint.dev/methodology](https://pseolint.dev/methodology).
+
 ### What's new in v0.5
 
 **`orchestrate_audit` tool.** Drives an LLM through 25 deterministic audit tools and produces a fix manifest with concrete copy-paste patches (rewritten H1s, JSON-LD blocks, robots.txt diffs). Use when a user wants concrete fixes — not just a list of issues.

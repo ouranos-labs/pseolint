@@ -18,7 +18,12 @@ import { thinContentRule } from "./rules/spam/thin-content.js";
 import { deadEndsRule } from "./rules/links/dead-ends.js";
 import { linkDepthRule } from "./rules/links/link-depth.js";
 import { clusterConnectivityRule } from "./rules/links/cluster-connectivity.js";
+import { hostSectionDivergenceRule } from "./rules/links/host-section-divergence.js";
 import { orphanPagesRule } from "./rules/links/orphan-pages.js";
+import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
+import { titleUniquenessRule } from "./rules/content/title-uniqueness.js";
+import { headingStructureRule } from "./rules/content/heading-structure.js";
+import { imageAltTextRule } from "./rules/content/image-alt-text.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
@@ -80,7 +85,7 @@ import { SSRFError, validateTargetHost } from "./ssrf-guard.js";
 import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
 import { FetchObserver, computeReadiness, detectDevServer, type DetectedFramework, type FetchObservation } from "./fetch-observer.js";
 import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
-import { stratifiedSample } from "./stratified-sample.js";
+import { stratifiedSample, mulberry32 } from "./stratified-sample.js";
 import { classifySite, type SiteClassification, type SiteType } from "./site-classifier.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
@@ -94,6 +99,7 @@ const DEFAULTS = {
   entitySwapThreshold: 0.95,
   thinContentMinWords: 300,
   publicationVelocityMaxPerDay: 100,
+  publicationVelocityMaxPerDayCorpusFraction: 0.10,
   boilerplateMaxRatio: 0.7,
   templateDiversityMinUniqueRatio: 0.35,
   uniqueValueMinWords: 100,
@@ -154,16 +160,63 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
   "small-marketing": {
     categoryWeights: { integrity: 0.30, discoverability: 0.40, citation: 0.20, data: 0.05, audit: 0 },
     severityOverrides: {
-      "aeo/citable-facts":  "info",
-      "aeo/answer-first":   "info",
-      "aeo/summary-bait":   "warning",
-      "spam/thin-content":  "warning",
+      "aeo/citable-facts":      "info",
+      "aeo/answer-first":       "info",
+      "aeo/summary-bait":       "warning",
+      // 2026-05-03 calibration round 5: Segment integrations had 24 thin
+      // pages (200-300 words is correct for a catalog record). thin-content
+      // contributing capped 40 impact pushed integrity to its 100 cap → 30
+      // contribution at small-marketing weight, which alone tripped
+      // 'concerning'. Demoting to info keeps the signal visible without
+      // tanking the verdict on catalog-shape sites mis-classified as
+      // small-marketing. Real marketing sites (linear.app etc) don't
+      // normally have many sub-300-word pages so this won't hide quality
+      // issues there.
+      "spam/thin-content":      "info",
+      "aeo/freshness-signals":  "info",
+      "content/missing-author": "info",
+      // 2026-05-03 calibration round 3: Segment integrations classified as
+      // small-marketing@0.88 and tripped doorway-pattern 300× critical
+      // (catalog records are thin + entity-swap by design — not actually a
+      // doorway funnel). The classifier mistakes catalog directories as
+      // small-marketing; this demotion absorbs that mis-classification
+      // without weakening detection on actual small-marketing sites
+      // (linear.app, supabase.com — none of which produce entity-swap pairs).
+      "spam/doorway-pattern":   "warning",
+      // 2026-05-03 calibration round 4: spam/boilerplate-ratio fired ERROR
+      // on Segment's integration directory (24 pages, 60%+ shared template
+      // chrome). On a marketing-template site the rule is correct — repeated
+      // "About us" / "Pricing" copy across pages IS a quality issue. On a
+      // catalog mis-classified to small-marketing, the shared chrome IS the
+      // template — by design. Demote to warning here; real marketing sites
+      // (linear.app, supabase.com) won't trip it because their corpus is
+      // page-diverse, but catalog-shape pages classified as small-marketing
+      // (Segment, Wise) won't tank the verdict.
+      "spam/boilerplate-ratio": "warning",
+      // 2026-05-03 v0.5.2 round 10: og-completeness, heading-structure,
+      // image-alt-text were added as new rules and tipped Segment from
+      // concerning → critical because catalog/template-driven sites
+      // commonly have shared OG defaults, weird H1 patterns (multiple H1s
+      // for repeated nav cards), and unlabelled logo grids. These are
+      // real findings on isolated sites but typical for catalog shape;
+      // demote to info here so the signal stays visible without driving
+      // the verdict.
+      "tech/og-completeness":      "info",
+      "content/heading-structure": "info",
+      "content/image-alt-text":    "info",
     },
     confidenceOverrides: {
-      "aeo/citable-facts":  "low",
-      "aeo/answer-first":   "low",
-      "aeo/summary-bait":   "medium",
-      "spam/thin-content":  "medium",
+      "aeo/citable-facts":      "low",
+      "aeo/answer-first":       "low",
+      "aeo/summary-bait":       "medium",
+      "spam/thin-content":      "low",
+      "aeo/freshness-signals":  "low",
+      "content/missing-author": "low",
+      "spam/doorway-pattern":   "medium",
+      "spam/boilerplate-ratio": "medium",
+      "tech/og-completeness":      "low",
+      "content/heading-structure": "low",
+      "content/image-alt-text":    "low",
     },
   },
   "blog": {
@@ -176,8 +229,82 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
   },
   "programmatic-directory": {
     categoryWeights: { integrity: 0.55, discoverability: 0.15, citation: 0.20, data: 0.10, audit: 0 },
-    severityOverrides: {},
-    confidenceOverrides: {},
+    // Symmetry argument: every other profile has severity overrides for the
+    // rules that mis-fit its shape (`docs` demotes AEO + author rules,
+    // `ecommerce` demotes `aeo/citable-facts`, `small-marketing` demotes 4
+    // rules). `programmatic-directory` is the site type *most* structurally
+    // different from the "page = article" assumptions the AEO and EEAT rules
+    // are calibrated against — yet was the only profile with no overrides.
+    //
+    // Pre-calibration adjustment: demote (never escalate) the rules that
+    // first-principles analysis predicts will false-positive on catalog-
+    // shaped sites (Zapier integrations, G2 categories, Wise currency pairs,
+    // etc.). A reputable-pSEO calibration corpus + runner has been added
+    // (scripts/calibration-reputable-pseo.ts); these overrides will be
+    // tightened or loosened based on actual fire-rates measured against
+    // sites that demonstrably win in production. See
+    // docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.
+    severityOverrides: {
+      // Catalog pages are tables, not prose. AEO rules calibrated on
+      // editorial content over-fire here.
+      "aeo/citable-facts":      "info",
+      "aeo/answer-first":       "info",
+      "aeo/content-modularity": "info",
+      // 2026-05-03 calibration: freshness-signals fired on every page of
+      // every reputable pSEO site. Catalog freshness is expressed via the
+      // data (live currency rates, current job listings, current pricing),
+      // not via visible "last updated" stamps. Demote.
+      "aeo/freshness-signals":  "info",
+      // Authorship lives at the platform level (operator's about page),
+      // not on every catalog record. Following the rule's "add a byline"
+      // fix on a Zillow listing would actively make the page worse.
+      "content/missing-author": "info",
+      "content/eeat-signals":   "info",
+      // Template uniformity is correct for catalogs by design. Keep the
+      // signal but cap at warning — never error.
+      "spam/template-diversity": "warning",
+      // 2026-05-03 v0.5.2 round 10: same catalog logic as small-marketing.
+      "tech/og-completeness":      "info",
+      "content/heading-structure": "info",
+      "content/image-alt-text":    "info",
+      // 2026-05-03 calibration round 2: catalogs are near-duplicate by
+      // design. spam/near-duplicate fires CRITICAL on every catalog pair.
+      // Demote to warning — keeps the signal visible without dominating
+      // the score.
+      "spam/near-duplicate":    "warning",
+      // 2026-05-03 calibration round 5: catalog records are by-design
+      // shorter than the 300-word default. Demote to info on programmatic-
+      // directory; the data IS the content.
+      "spam/thin-content":      "info",
+      // 2026-05-03 calibration round 2: doorway-pattern fires CRITICAL on
+      // every (thin + entity-swap) pair. On Segment integrations, integration
+      // pages are thin (200-300 words is the right amount for a directory
+      // record) and entity-swap (slack/google-sheets, slack/airtable, …) by
+      // design. The composite signal is genuinely true but the *intent*
+      // (doorway funnel) doesn't match the reality (catalog record).
+      // Demoting to warning preserves the signal without tanking the score.
+      "spam/doorway-pattern":   "warning",
+      // 2026-05-03 calibration round 4: catalog pages share template chrome
+      // by design — same as `spam/template-diversity`, this signal is
+      // structurally true on programmatic-directories.
+      "spam/boilerplate-ratio": "warning",
+    },
+    confidenceOverrides: {
+      "aeo/citable-facts":      "low",
+      "aeo/answer-first":       "low",
+      "aeo/content-modularity": "low",
+      "aeo/freshness-signals":  "low",
+      "content/missing-author": "low",
+      "content/eeat-signals":   "low",
+      "spam/template-diversity": "medium",
+      "spam/near-duplicate":    "medium",
+      "spam/doorway-pattern":   "medium",
+      "spam/boilerplate-ratio": "medium",
+      "spam/thin-content":      "low",
+      "tech/og-completeness":      "low",
+      "content/heading-structure": "low",
+      "content/image-alt-text":    "low",
+    },
   },
   "ecommerce": {
     categoryWeights: { integrity: 0.20, discoverability: 0.40, citation: 0.15, data: 0.25, audit: 0 },
@@ -204,8 +331,75 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
   },
   "unclear": {
     categoryWeights: { integrity: 0.50, discoverability: 0.20, citation: 0.25, data: 0.05, audit: 0 },
-    severityOverrides: {},
-    confidenceOverrides: {},
+    // 2026-05-03 calibration round 2: the original "stay strict when unsure"
+    // intent meant that 4 of 5 reputable pSEO sites that classified as
+    // unclear (Zapier integrations, Typeform templates, Jasper templates,
+    // Numbeo cost-of-living) failed their verdict ceiling. The dominant
+    // driver was always `aeo/citable-facts` at full error severity — but
+    // catalog/template-gallery pages don't have prose, so the rule fires
+    // for a STRUCTURAL reason (page is a table, not a paragraph), not a
+    // QUALITY reason. Demoting the structurally-incompatible rules to
+    // info on `unclear` is conservative:
+    //   - if site is genuinely editorial and got mis-classified, signals
+    //     still surface (just info, not error) — author can act on them.
+    //   - if site is catalog and got mis-classified to unclear, verdict
+    //     no longer falsely tanks.
+    // Real spam signals (near-dup, doorway, thin) keep their severity.
+    severityOverrides: {
+      "aeo/citable-facts":      "info",
+      "aeo/answer-first":       "info",
+      "aeo/content-modularity": "info",
+      "aeo/freshness-signals":  "info",
+      "content/missing-author": "info",
+      "content/eeat-signals":   "info",
+      // 2026-05-03 calibration round 3: Airbyte classified as unclear@0.5
+      // and scored concerning despite all info-severity findings in the
+      // top 5. The 8 critical "blockers" came from spam/near-duplicate,
+      // spam/entity-swap, spam/doorway-pattern firing 1-2× each on its
+      // connectors directory — invisible per-rule but cumulatively pushing
+      // the score over 'caution'. On unclear sites we cannot tell whether
+      // these triple-fires represent a real doorway or a catalog; the
+      // calibration corpus shows reputable catalogs hitting them more
+      // often than real doorways do. Demote to warning — keeps the signal
+      // visible (it appears in shouldFix bucket, with full message) without
+      // tanking the verdict on a structurally-ambiguous site.
+      "spam/near-duplicate":    "warning",
+      "spam/entity-swap":       "warning",
+      "spam/doorway-pattern":   "warning",
+      // 2026-05-03 calibration round 4: same boilerplate logic on unclear —
+      // we can't tell whether the site is a marketing site (boilerplate IS
+      // a quality issue) or a catalog (it isn't), so demote conservatively.
+      "spam/boilerplate-ratio": "warning",
+      // 2026-05-03 calibration round 5: same thin-content logic on unclear.
+      // Catalog-shape sites that classify as unclear (Zapier, Typeform,
+      // Jasper) had thin-content firing at error on the 5-15% of pages
+      // shorter than the 300-word default. Demote to info — surfaces the
+      // signal without driving the verdict on a structurally-ambiguous site.
+      "spam/thin-content":      "info",
+      // 2026-05-03 v0.5.2 round 10: same demotions as programmatic-
+      // directory profile — these tipped Webflow/Zapier/Numbeo/Airbyte
+      // back into concerning territory because they classify as unclear
+      // and the new rules aren't yet calibrated for catalog shape.
+      "tech/og-completeness":      "info",
+      "content/heading-structure": "info",
+      "content/image-alt-text":    "info",
+    },
+    confidenceOverrides: {
+      "aeo/citable-facts":      "low",
+      "aeo/answer-first":       "low",
+      "aeo/content-modularity": "low",
+      "aeo/freshness-signals":  "low",
+      "content/missing-author": "low",
+      "content/eeat-signals":   "low",
+      "spam/near-duplicate":    "medium",
+      "spam/entity-swap":       "medium",
+      "spam/doorway-pattern":   "medium",
+      "spam/boilerplate-ratio": "medium",
+      "spam/thin-content":      "low",
+      "tech/og-completeness":      "low",
+      "content/heading-structure": "low",
+      "content/image-alt-text":    "low",
+    },
   },
 };
 
@@ -256,6 +450,10 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/meta-uniqueness":  { baseImpact: 8,  perInstance: 2,  maxImpact: 40 },
   "content/missing-author":   { baseImpact: 4,  perInstance: 1,  maxImpact: 20 },
   "content/eeat-signals":     { baseImpact: 4,  perInstance: 1,  maxImpact: 20 },
+  // 2026-05-03 v0.5.2 blind-spot fixes
+  "content/title-uniqueness": { baseImpact: 8,  perInstance: 2,  maxImpact: 25 }, // 2026-05-03 round 11: title is high-impact but the original 50-cap was disproportionate to other content rules and tipped Typeform into critical on a 6-finding cluster. Keep the rule at native error severity (duplicate titles ARE real bugs); just don't let one rule dominate the integrity bucket.
+  "content/heading-structure":{ baseImpact: 5,  perInstance: 1,  maxImpact: 20 },
+  "content/image-alt-text":   { baseImpact: 3,  perInstance: 1,  maxImpact: 20 },
 
   // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
   // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
@@ -273,6 +471,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // stripe.com from a single missing reciprocal pair — that should not be
   // treated as 350× the impact.
   "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
+  "tech/og-completeness":                { baseImpact: 4,  perInstance: 1, maxImpact: 20 },
 
   // Links
   "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
@@ -329,6 +528,37 @@ function verdictForRisk(risk: number): Verdict {
   if (risk <= 40) return "caution";
   if (risk <= 60) return "concerning";
   return "critical";
+}
+
+/**
+ * 2026-05-03 v0.5.2 — apply the bring-your-own-authority shift to the
+ * verdict ladder. The raw `risk` number is unchanged; only the user-
+ * facing verdict mapping shifts.
+ *
+ *   `authorityScore >= 80` (established brand)  → shift ONE TIER LENIENT
+ *   `authorityScore <= 30` (newer/lower)        → shift ONE TIER STRICT
+ *   31..79 or undefined                          → no shift
+ *
+ * "One tier lenient" means: critical → concerning, concerning → caution,
+ * caution → ready, ready → ready (clamped). "One tier strict" is the
+ * inverse direction: ready → caution, caution → concerning,
+ * concerning → critical, critical → critical.
+ */
+const VERDICT_LADDER: Verdict[] = ["ready", "caution", "concerning", "critical"];
+
+function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | undefined): Verdict {
+  if (authorityScore === undefined) return verdict;
+  if (!Number.isFinite(authorityScore)) return verdict;
+  if (authorityScore < 0 || authorityScore > 100) return verdict;
+  const idx = VERDICT_LADDER.indexOf(verdict);
+  if (idx < 0) return verdict;
+  if (authorityScore >= 80) {
+    return VERDICT_LADDER[Math.max(0, idx - 1)];
+  }
+  if (authorityScore <= 30) {
+    return VERDICT_LADDER[Math.min(VERDICT_LADDER.length - 1, idx + 1)];
+  }
+  return verdict;
 }
 
 function gradeForPenalty(penalty: number): Grade {
@@ -401,6 +631,7 @@ function runRulesOnPages(
     entitySwapThreshold: number;
     thinContentMinWords: number;
     publicationVelocityMaxPerDay: number;
+    publicationVelocityMaxPerDayCorpusFraction: number;
     boilerplateMaxRatio: number;
     templateDiversityMinUniqueRatio: number;
     uniqueValueMinWords: number;
@@ -425,7 +656,15 @@ function runRulesOnPages(
   source: string,
   entityPatterns: EntityMaskPattern[],
   overrides?: Record<string, Record<string, unknown>>,
-  mode: "full" | "diff" = "full"
+  mode: "full" | "diff" = "full",
+  /**
+   * 2026-05-03 calibration credibility fix: signals that the audit is
+   * running on a sampled subset of the discovered URLs. Rules whose
+   * outputs depend on a complete link graph (`links/unreachable-from-
+   * root`) skip their checks when this is true to avoid sampling-
+   * artifact false positives.
+   */
+  sampled = false,
 ): RuleResult[] {
   const findings: RuleResult[] = [];
   const modeOk = (ruleId: string) => mode !== "diff" || isRuleAllowedInDiff(ruleId);
@@ -462,7 +701,11 @@ function runRulesOnPages(
   }
 
   if (isEnabled("spam/publication-velocity") && modeOk("spam/publication-velocity")) {
-    findings.push(...tag(publicationVelocityRule(pages, resolvedRules.publicationVelocityMaxPerDay)));
+    findings.push(...tag(publicationVelocityRule(
+      pages,
+      resolvedRules.publicationVelocityMaxPerDay,
+      resolvedRules.publicationVelocityMaxPerDayCorpusFraction,
+    )));
   }
 
   if (isEnabled("spam/boilerplate-ratio") && modeOk("spam/boilerplate-ratio")) {
@@ -494,6 +737,18 @@ function runRulesOnPages(
     findings.push(...tag(eeatSignalsRule(pages)));
   }
 
+  // 2026-05-03 v0.5.2 blind-spot fixes — title uniqueness + heading
+  // structure + image alt-text were tier-1 gaps in the blind-spot audit.
+  if (isEnabled("content/title-uniqueness") && modeOk("content/title-uniqueness")) {
+    findings.push(...tag(titleUniquenessRule(pages)));
+  }
+  if (isEnabled("content/heading-structure") && modeOk("content/heading-structure")) {
+    findings.push(...tag(headingStructureRule(pages)));
+  }
+  if (isEnabled("content/image-alt-text") && modeOk("content/image-alt-text")) {
+    findings.push(...tag(imageAltTextRule(pages)));
+  }
+
   // Link rules — use the global link graph
   if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {
     findings.push(...tag(orphanPagesRule(pages, inbound, rootUrl)));
@@ -505,12 +760,16 @@ function runRulesOnPages(
 
   if (isEnabled("links/link-depth") && modeOk("links/link-depth")) {
     if (rootUrl) {
-      findings.push(...tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound)));
+      findings.push(...tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound, sampled)));
     }
   }
 
   if (isEnabled("links/cluster-connectivity") && modeOk("links/cluster-connectivity")) {
     findings.push(...tag(clusterConnectivityRule(pages, knownUrls)));
+  }
+
+  if (isEnabled("links/host-section-divergence") && modeOk("links/host-section-divergence")) {
+    findings.push(...tag(hostSectionDivergenceRule(pages, adjacency)));
   }
 
   // Tech rules
@@ -538,6 +797,12 @@ function runRulesOnPages(
     // hreflang declarations on noindex'd pages are still bugs when they're
     // inconsistent — see auditor.test.ts "emits technical SEO findings".
     findings.push(...tag(hreflangConsistencyRule(noindexAwarePages, normalizeUrlOptions)));
+  }
+
+  // 2026-05-03 v0.5.2 blind-spot fix: og-completeness was referenced in
+  // the v0.4.x README without ever shipping. Now it does.
+  if (isEnabled("tech/og-completeness") && modeOk("tech/og-completeness")) {
+    findings.push(...tag(ogCompletenessRule(pages)));
   }
 
   // Schema rules
@@ -649,6 +914,29 @@ export function applyScoringProfileOverrides(
 }
 
 /**
+ * 2026-05-03 credibility: list of rule IDs that ACTUALLY had their severity
+ * remapped on this audit. Distinct from `profile.severityOverrides` which is
+ * the static set of demotions defined per profile — this is the subset of
+ * those that actually fired. Surfaced via `summary.appliedSeverityDemotions`
+ * so formatters can show the user "engine demoted X rules because <site
+ * type> profile" rather than hiding the mechanism.
+ */
+function computeAppliedDemotions(
+  findings: RuleResult[],
+  classification: SiteClassification | undefined,
+): string[] {
+  const profile = profileFor(classification);
+  if (Object.keys(profile.severityOverrides).length === 0) return [];
+  const applied = new Set<string>();
+  for (const f of findings) {
+    if (profile.severityOverrides[f.ruleId] !== undefined) {
+      applied.add(f.ruleId);
+    }
+  }
+  return Array.from(applied).sort();
+}
+
+/**
  * v0.4.3 — confidence-and-count-aware scoring. Replaces the v0.4 model that
  * counted only severity. Each rule has a `baseImpact + (count - 1) *
  * perInstance` contribution capped by `maxImpact`. The result is multiplied
@@ -705,6 +993,25 @@ function scoreFromFindings(
     groups.set(finding.ruleId, arr);
   }
 
+  // 2026-05-03 calibration credibility fix: track info-severity vs
+  // non-info contributions to each bucket separately so a flood of info
+  // findings can't fill the bucket cap and tank the verdict on its own.
+  // Round 7 surfaced this on Airbyte and round 8 on Zapier — both had
+  // ALL info-severity findings in their top drivers yet scored
+  // `concerning` because cumulative info impact filled the citation
+  // bucket past its 100 cap. Now: info contribution per bucket caps at
+  // 50; warning+ contribution caps at 100; final bucket = sum, capped
+  // at 100. A site with no real warning/error findings can score at
+  // most ~12.5 risk from info accumulation at typical 0.25 citation
+  // weight — which keeps verdict aligned with the visible severity in
+  // the report.
+  const bucketInfoOnly: Record<CategoryKey, number> = {
+    integrity: 0, discoverability: 0, citation: 0, data: 0, audit: 0,
+  };
+  const bucketNonInfo: Record<CategoryKey, number> = {
+    integrity: 0, discoverability: 0, citation: 0, data: 0, audit: 0,
+  };
+
   for (const [ruleId, group] of groups) {
     const namespace = ruleId.split("/")[0];
     const bucket = CATEGORY_MAP[namespace];
@@ -728,7 +1035,23 @@ function scoreFromFindings(
     if (bestMultiplier === 0) bestMultiplier = CONFIDENCE_MULTIPLIER.high;
 
     const weighted = cappedImpact * bestMultiplier;
-    bucketRaw[bucket] = Math.min(100, bucketRaw[bucket] + weighted);
+
+    // Bucket the rule's contribution by the highest severity in the group.
+    // Mixed-severity groups (e.g. error + info) count toward non-info — once
+    // a rule has any non-info finding, its count contribution is treated as
+    // a real-issue signal, not info accumulation.
+    const isInfoOnly = group.every((f) => f.severity === "info");
+    if (isInfoOnly) {
+      bucketInfoOnly[bucket] += weighted;
+    } else {
+      bucketNonInfo[bucket] += weighted;
+    }
+  }
+
+  for (const key of ["integrity", "discoverability", "citation", "data"] as CategoryKey[]) {
+    const info = Math.min(50, bucketInfoOnly[key]);
+    const nonInfo = Math.min(100, bucketNonInfo[key]);
+    bucketRaw[key] = Math.min(100, info + nonInfo);
   }
 
   const cw = profile.categoryWeights;
@@ -1025,10 +1348,10 @@ function shouldIgnore(url: string, patterns: string[]): boolean {
   return false;
 }
 
-function fisherYatesSample<T>(items: T[], n: number): T[] {
+function fisherYatesSample<T>(items: T[], n: number, random: () => number = Math.random): T[] {
   const arr = [...items];
   for (let i = arr.length - 1; i > 0 && arr.length - i <= n; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.slice(arr.length - n);
@@ -1489,11 +1812,18 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const signal = composeSignals(externalSignal, backpressureAbort.signal);
 
   const observer = new FetchObserver();
+  // 2026-05-03 calibration: the prior (3s p95 cap, 2× baseline multiplier)
+  // gate aborted 4 of 12 reputable-pSEO audits on what was normal load
+  // variance — Zapier at p95=576ms (2.4× a 236ms baseline), Webflow at
+  // p95=1808ms (2.2× 833ms), Airbyte at p95=1288ms (3.4× 380ms). For real
+  // production CDNs these spikes are noise, not degradation. Raise the
+  // gate so it still catches truly broken origins (sustained 4× slowdown
+  // OR p95 above 8s) without tripping on normal audit-induced load.
   const monitor = backpressureEnabled
     ? new BackpressureMonitor({
         warmupSize: 10,
-        absoluteP95Ms: 3000,
-        baselineMultiplier: 2,
+        absoluteP95Ms: 8000,
+        baselineMultiplier: 4,
         errorRatioThreshold: 0.1,
       })
     : null;
@@ -1530,6 +1860,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     thinContentMinWords: options?.rules?.thinContentMinWords ?? DEFAULTS.thinContentMinWords,
     publicationVelocityMaxPerDay:
       options?.rules?.publicationVelocityMaxPerDay ?? DEFAULTS.publicationVelocityMaxPerDay,
+    publicationVelocityMaxPerDayCorpusFraction:
+      options?.rules?.publicationVelocityMaxPerDayCorpusFraction
+      ?? DEFAULTS.publicationVelocityMaxPerDayCorpusFraction,
     boilerplateMaxRatio: options?.rules?.boilerplateMaxRatio ?? DEFAULTS.boilerplateMaxRatio,
     templateDiversityMinUniqueRatio:
       options?.rules?.templateDiversityMinUniqueRatio ?? DEFAULTS.templateDiversityMinUniqueRatio,
@@ -1722,14 +2055,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     : deduped;
 
   const strategy = options?.samplingStrategy ?? "stratified";
-  const sampled = sampleSize > 0 && sampleSize < filtered.length
+  // 2026-05-03 calibration credibility fix: when sampleSeed is set, use a
+  // deterministic PRNG so repeated audits pick the same pages and the
+  // verdict is reproducible. Without a seed, fall back to Math.random
+  // (legacy behavior, kept for backward compatibility).
+  const samplingRandom = options?.sampleSeed !== undefined
+    ? mulberry32(options.sampleSeed)
+    : Math.random;
+  const isSampledAudit = sampleSize > 0 && sampleSize < filtered.length;
+  const sampled = isSampledAudit
     ? (strategy === "stratified"
         ? (() => {
             const urlsMap = new Map(filtered.map(p => [p.url, p]));
-            const sampledUrls = stratifiedSample(filtered.map(p => p.url), sampleSize);
+            const sampledUrls = stratifiedSample(filtered.map(p => p.url), sampleSize, samplingRandom);
             return sampledUrls.map(u => urlsMap.get(u)!);
           })()
-        : fisherYatesSample(filtered, sampleSize))
+        : fisherYatesSample(filtered, sampleSize, samplingRandom))
     : filtered;
 
   const parsedPagesAll = sampled.map((page) => {
@@ -1910,7 +2251,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       knownUrls, adjacency, inbound, rootUrl,
       normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
       groupConfig?.overrides,
-      options?.mode ?? "full"
+      options?.mode ?? "full",
+      isSampledAudit,
     );
 
     allFindings.push(...findings);
@@ -1983,7 +2325,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   const issues = bucketIssues(enriched.findings);
-  const verdict = verdictForRisk(risk);
+  const verdict = shiftVerdictForAuthority(verdictForRisk(risk), options?.authorityScore);
   const headline = buildHeadline(bucketCounts);
 
   // audit/* findings are diagnostic-only and never appear in summary.issues.
@@ -1998,6 +2340,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     skipped: skippedByContentType.length + skippedByRobots.length + skippedUrls.length,
   };
 
+  const appliedSeverityDemotions = computeAppliedDemotions(enriched.findings, siteClassification);
   const summary: AuditSummary = {
     schemaVersion: SCHEMA_VERSION,
     verdict,
@@ -2006,6 +2349,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     categories,
     issues,
     siteClassification,
+    appliedSeverityDemotions: appliedSeverityDemotions.length > 0 ? appliedSeverityDemotions : undefined,
     diagnostics: {
       originReadiness: readinessReport,
       crawlStats,

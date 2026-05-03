@@ -1,0 +1,667 @@
+{
+  "ranAt": "2026-05-03T20:22:56.116Z",
+  "rulesetVersion": "14",
+  "corpusVersion": "1",
+  "ruleAggregates": {
+    "aeo/citable-facts": {
+      "sitesFired": 6,
+      "sitesAudited": 8,
+      "firingRatio": 0.75,
+      "severityCounts": {
+        "info": 6
+      }
+    },
+    "content/missing-author": {
+      "sitesFired": 4,
+      "sitesAudited": 8,
+      "firingRatio": 0.5,
+      "severityCounts": {
+        "info": 4
+      }
+    },
+    "aeo/freshness-signals": {
+      "sitesFired": 7,
+      "sitesAudited": 8,
+      "firingRatio": 0.875,
+      "severityCounts": {
+        "info": 7
+      }
+    },
+    "tech/canonical-consistency": {
+      "sitesFired": 2,
+      "sitesAudited": 8,
+      "firingRatio": 0.25,
+      "severityCounts": {
+        "error": 1,
+        "info": 2
+      }
+    },
+    "schema/json-ld-valid": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "error": 1
+      }
+    },
+    "content/image-alt-text": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "info": 1
+      }
+    },
+    "content/title-uniqueness": {
+      "sitesFired": 4,
+      "sitesAudited": 8,
+      "firingRatio": 0.5,
+      "severityCounts": {
+        "info": 4,
+        "error": 2
+      }
+    },
+    "aeo/answer-first": {
+      "sitesFired": 4,
+      "sitesAudited": 8,
+      "firingRatio": 0.5,
+      "severityCounts": {
+        "info": 4
+      }
+    },
+    "content/eeat-signals": {
+      "sitesFired": 3,
+      "sitesAudited": 8,
+      "firingRatio": 0.375,
+      "severityCounts": {
+        "info": 3
+      }
+    },
+    "content/unique-value": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "error": 1
+      }
+    },
+    "links/orphan-pages": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "error": 1
+      }
+    },
+    "spam/boilerplate-ratio": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "warning": 1
+      }
+    },
+    "tech/redirect-chain": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "warning": 1
+      }
+    },
+    "spam/thin-content": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "info": 1
+      }
+    },
+    "tech/hreflang-consistency": {
+      "sitesFired": 2,
+      "sitesAudited": 8,
+      "firingRatio": 0.25,
+      "severityCounts": {
+        "info": 2
+      }
+    },
+    "content/heading-structure": {
+      "sitesFired": 1,
+      "sitesAudited": 8,
+      "firingRatio": 0.125,
+      "severityCounts": {
+        "info": 1
+      }
+    }
+  },
+  "results": [
+    {
+      "url": "https://zapier.com/apps/slack/integrations",
+      "vertical": "integration-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": {
+        "verdict": "concerning",
+        "risk": 55,
+        "pageCount": 25,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "blockers": 6,
+        "shouldFix": 5,
+        "informational": 92,
+        "durationMs": 12811,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 22,
+            "impact": 110,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 22,
+            "impact": 110,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "tech/canonical-consistency",
+            "count": 8,
+            "impact": 100,
+            "severities": [
+              "error",
+              "info"
+            ]
+          },
+          {
+            "ruleId": "schema/json-ld-valid",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      },
+      "failureReason": "Engine returned verdict='concerning' on a site whose ground-truth evidence supports verdict <= 'caution'. The engine is mis-calibrated, not the site."
+    },
+    {
+      "url": "https://www.g2.com/categories",
+      "vertical": "software-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": true,
+      "audit": {
+        "verdict": "ready",
+        "risk": 18,
+        "pageCount": 25,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.88,
+        "blockers": 0,
+        "shouldFix": 0,
+        "informational": 92,
+        "durationMs": 28395,
+        "topDrivers": [
+          {
+            "ruleId": "content/image-alt-text",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/title-uniqueness",
+            "count": 20,
+            "impact": 100,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 18,
+            "impact": 90,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 1,
+            "impact": 5,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://wise.com/us/currency-converter",
+      "vertical": "currency-pair",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": true,
+      "audit": {
+        "verdict": "caution",
+        "risk": 26,
+        "pageCount": 25,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.88,
+        "blockers": 4,
+        "shouldFix": 3,
+        "informational": 67,
+        "durationMs": 18718,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 21,
+            "impact": 105,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 13,
+            "impact": 65,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/title-uniqueness",
+            "count": 3,
+            "impact": 35,
+            "severities": [
+              "error",
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/unique-value",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.nerdwallet.com/best/credit-cards",
+      "vertical": "finance-comparison",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": null,
+      "error": "Failed to fetch source URL: https://www.nerdwallet.com/best/credit-cards — verify the URL is correct and returns a valid response."
+    },
+    {
+      "url": "https://webflow.com/templates",
+      "vertical": "template-gallery",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": true,
+      "audit": {
+        "verdict": "caution",
+        "risk": 38,
+        "pageCount": 24,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "blockers": 3,
+        "shouldFix": 2,
+        "informational": 113,
+        "durationMs": 12059,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 24,
+            "impact": 120,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 24,
+            "impact": 120,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 23,
+            "impact": 115,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 11,
+            "impact": 55,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "links/orphan-pages",
+            "count": 2,
+            "impact": 50,
+            "severities": [
+              "error"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.typeform.com/templates",
+      "vertical": "template-gallery",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": {
+        "verdict": "critical",
+        "risk": 61,
+        "pageCount": 25,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "blockers": 3,
+        "shouldFix": 8,
+        "informational": 129,
+        "durationMs": 16549,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 21,
+            "impact": 105,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 21,
+            "impact": 105,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/title-uniqueness",
+            "count": 6,
+            "impact": 50,
+            "severities": [
+              "error",
+              "info"
+            ]
+          }
+        ]
+      },
+      "failureReason": "Engine returned verdict='critical' on a site whose ground-truth evidence supports verdict <= 'caution'. The engine is mis-calibrated, not the site."
+    },
+    {
+      "url": "https://segment.com/integrations",
+      "vertical": "integration-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": {
+        "verdict": "critical",
+        "risk": 61,
+        "pageCount": 25,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.88,
+        "blockers": 5,
+        "shouldFix": 52,
+        "informational": 177,
+        "durationMs": 20252,
+        "topDrivers": [
+          {
+            "ruleId": "spam/boilerplate-ratio",
+            "count": 25,
+            "impact": 300,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "tech/redirect-chain",
+            "count": 25,
+            "impact": 300,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "spam/thin-content",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "tech/canonical-consistency",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      },
+      "failureReason": "Engine returned verdict='critical' on a site whose ground-truth evidence supports verdict <= 'caution'. The engine is mis-calibrated, not the site."
+    },
+    {
+      "url": "https://www.jasper.ai/templates",
+      "vertical": "template-gallery",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": true,
+      "audit": {
+        "verdict": "caution",
+        "risk": 37,
+        "pageCount": 25,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "blockers": 1,
+        "shouldFix": 2,
+        "informational": 95,
+        "durationMs": 8617,
+        "topDrivers": [
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 24,
+            "impact": 120,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 19,
+            "impact": 95,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 14,
+            "impact": 70,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/title-uniqueness",
+            "count": 6,
+            "impact": 30,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://ramp.com/spend-management",
+      "vertical": "category-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": true,
+      "audit": {
+        "verdict": "ready",
+        "risk": 19,
+        "pageCount": 23,
+        "classification": "programmatic-directory",
+        "classificationConfidence": 0.7,
+        "blockers": 1,
+        "shouldFix": 0,
+        "informational": 105,
+        "durationMs": 27431,
+        "topDrivers": [
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 25,
+            "impact": 125,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 23,
+            "impact": 115,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 20,
+            "impact": 100,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/heading-structure",
+            "count": 17,
+            "impact": 85,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/answer-first",
+            "count": 9,
+            "impact": 45,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.numbeo.com/cost-of-living",
+      "vertical": "city-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": null,
+      "error": "Origin looks degraded — aborting audit. rolling p95 30337ms exceeds absolute cap 8000ms. p95=30337ms, baseline=331ms, 5xx=0%, fetches=51."
+    },
+    {
+      "url": "https://airbyte.com/connectors",
+      "vertical": "integration-directory",
+      "expectedVerdictCeiling": "caution",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": null,
+      "error": "Origin looks degraded — aborting audit. rolling p95 1356ms is 7.4× the warmup baseline 184ms. p95=1356ms, baseline=184ms, 5xx=0%, fetches=46."
+    },
+    {
+      "url": "https://stripe.com/atlas/states",
+      "vertical": "state-guides",
+      "expectedVerdictCeiling": "ready",
+      "expectedSiteType": "programmatic-directory",
+      "pass": false,
+      "audit": null,
+      "error": "Failed to fetch source URL: https://stripe.com/atlas/states — verify the URL is correct and returns a valid response."
+    }
+  ],
+  "summary": {
+    "sitesAudited": 8,
+    "sitesPassed": 5,
+    "sitesFailed": 3,
+    "fetchErrors": 4
+  }
+}

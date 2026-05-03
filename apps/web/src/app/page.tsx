@@ -171,7 +171,7 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                Site-type-aware SpamBrain + AEO · v0.5
+                Site-type-aware SpamBrain + AEO · v0.5.2
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
@@ -461,7 +461,10 @@ export default function Home() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Site-type-aware SpamBrain + AEO scoring</span> — programmatic-directories, blogs, ecommerce, docs, and small-marketing sites are weighted differently because Google's quality systems treat them differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring (May 1, 2026 — core and CLI on npm).
+              <span className="text-foreground">Site-type-aware SpamBrain + AEO scoring</span> — programmatic-directories, blogs, ecommerce, docs, and small-marketing sites are weighted differently because Google&apos;s quality systems treat them differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code> for site-reputation-abuse detection; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules (<code className="font-mono text-xs">title-uniqueness</code>, <code className="font-mono text-xs">heading-structure</code>, <code className="font-mono text-xs">image-alt-text</code>, <code className="font-mono text-xs">og-completeness</code>) and <code className="font-mono text-xs">--authority-score</code> for operators at different domain-authority tiers.
+            </li>
+            <li>
+              <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster (one line per template-tied group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression test guard against engine drift on each release. Skeptical readers — including limitations and trade-offs — get the full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
             </li>
             <li>
               Free tier: 200 pages per audit, 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
@@ -470,7 +473,7 @@ export default function Home() {
               Pro tier: <span className="text-foreground">$19</span> per month for per-domain change-driven monitoring (re-fetches only URLs with evidence of change — sitemap lastmod, prior warnings, age-floor) with <span className="text-foreground">50 audits</span> per day and unlimited trend history.
             </li>
             <li>
-              Detection maps to current Google policy: SpamBrain was rebuilt in 2022, the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole.
+              Detection maps to current Google policy: SpamBrain was rebuilt in 2022, the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), and the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora.
             </li>
             <li>
               Crawler defaults: a hard 50 MB bandwidth cap per audit, 5 parallel fetches, full <code className="font-mono text-foreground">robots.txt</code> respect including <code className="font-mono text-foreground">Crawl-delay</code> capped at <span className="text-foreground">2 minutes</span>.

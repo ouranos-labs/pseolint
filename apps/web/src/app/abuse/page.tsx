@@ -45,7 +45,7 @@ export default function AbusePage() {
         </pre>
         <p className="mt-3 text-xs text-muted-foreground">
           The full UA string we send is{" "}
-          <code className="font-mono">Mozilla/5.0 (compatible; pseolint/0.5.0; +{SITE_URL}/bot)</code>.
+          <code className="font-mono">Mozilla/5.0 (compatible; pseolint/0.5.1; +{SITE_URL}/bot)</code>.
           You can also block at your CDN/WAF by matching that token.
         </p>
       </Section>

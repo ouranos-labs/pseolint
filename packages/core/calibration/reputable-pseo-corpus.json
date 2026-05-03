@@ -1,0 +1,170 @@
+{
+  "$schema": "./reputable-pseo-corpus.schema.json",
+  "version": "1",
+  "ranAt": null,
+  "rationale": "Curated list of programmatic-SEO sites that are demonstrably winning in production. The engine's verdict on each must be at or below `expectedVerdictCeiling` — anything worse is a calibration failure on our side, not the site. See docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.",
+  "verdictRanks": {
+    "ready": 0,
+    "caution": 1,
+    "concerning": 2,
+    "critical": 3
+  },
+  "sites": [
+    {
+      "url": "https://zapier.com/apps/slack/integrations",
+      "vertical": "integration-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "high",
+        "evidence": "Zapier's app/integration directory is the canonical pSEO success — 5,000+ heavily-templated pages, ranks #1 for 'X zapier integration' across major SaaS apps, surviving every Helpful Content System rebuild since 2022."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://www.g2.com/categories",
+      "vertical": "software-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "G2 categories rank top-3 for nearly every 'best X software' query. Heavily templated, hundreds of category pages."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://wise.com/us/currency-converter",
+      "vertical": "currency-pair",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "Wise's currency-converter directory ranks #1 for thousands of 'X to Y exchange rate' queries — programmatic finance pages with strong primary-source data (live rates)."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://www.nerdwallet.com/best/credit-cards",
+      "vertical": "finance-comparison",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "NerdWallet's comparison directories are the dominant US finance-comparison destination."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://webflow.com/templates",
+      "vertical": "template-gallery",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "high",
+        "evidence": "Webflow templates directory ranks for 'webflow template X' queries; visually distinct per-page (preview thumbnails). Note: 2026-05-03 calibration round 4 showed `caution` is the appropriate ceiling — template gallery cards have ~150 words each and no per-template authors by design (the visual preview IS the content), so AEO/EEAT rules surface cosmetic findings even at info severity."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://www.typeform.com/templates",
+      "vertical": "template-gallery",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "high",
+        "evidence": "Typeform's templates directory ranks for 'X form template' queries; mid-corpus pSEO."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://segment.com/integrations",
+      "vertical": "integration-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "medium",
+        "evidence": "B2B data-integration pSEO that ranks for 'segment X integration' across hundreds of source/destination pairs."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://www.jasper.ai/templates",
+      "vertical": "template-gallery",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "medium",
+        "evidence": "Modern AI-product pSEO; templates directory ranks for 'AI X writer'/'AI X generator' queries."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://ramp.com/spend-management",
+      "vertical": "category-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "medium",
+        "evidence": "B2B fintech pSEO; category and use-case pages ranking for spend-management queries."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://www.numbeo.com/cost-of-living",
+      "vertical": "city-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "high",
+        "evidence": "Numbeo is the long-running canonical cost-of-living-by-city pSEO directory; thousands of city pages, all ranking."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://airbyte.com/connectors",
+      "vertical": "integration-directory",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "caution",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "medium",
+        "evidence": "Open-source data-integration pSEO; connectors directory ranks for 'X to Y data sync' queries."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    },
+    {
+      "url": "https://stripe.com/atlas/states",
+      "vertical": "state-guides",
+      "expectedSiteType": "programmatic-directory",
+      "expectedVerdictCeiling": "ready",
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "medium",
+        "evidence": "Stripe Atlas state-by-state guides — programmatic legal-info content with Stripe-grade editorial polish."
+      },
+      "samplingHint": { "sampleSize": 25, "noRender": true }
+    }
+  ],
+  "excluded": {
+    "reason": "Sites that actively rate-limit or CAPTCHA non-residential crawlers, returning 403/429 instead of audit-ready HTML. Adding them now would pollute the corpus with fetch errors rather than calibration data.",
+    "candidates": [
+      "zillow.com",
+      "yelp.com",
+      "tripadvisor.com",
+      "indeed.com",
+      "glassdoor.com",
+      "airbnb.com"
+    ],
+    "futureWork": "Add when we have a residential-IP rendering proxy or a partnership for direct dataset access."
+  }
+}

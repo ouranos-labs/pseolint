@@ -99,6 +99,13 @@ const buildPriorState = (origin: string, urls: Record<string, UrlStateEntry>): R
   summary: { score: 0, totalFindings: 0, byCategory: {} },
 });
 
+/**
+ * ISO timestamp for `n` days before `Date.now()`. Use this for any "recent
+ * enough to dodge the 7-day age floor" prior fetchedAt, instead of a hard-
+ * coded date — hard-coded dates silently rot as the calendar advances.
+ */
+const daysAgo = (n: number): string => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
+
 describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
   let workDir: string;
   let server: TestServerHandle;
@@ -191,7 +198,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
       sitemapEntries: [{ path: "/a", lastmod: fixedOldDate }],
     });
 
-    const priorFetchedAt = "2026-04-25T12:00:00Z"; // recent enough to dodge the 7d age floor
+    const priorFetchedAt = daysAgo(3); // recent enough to dodge the 7d age floor
     const statePath = join(workDir, "state.json");
     await writeState(statePath, buildPriorState(server.origin, {
       [`${server.origin}/a`]: baseEntry({ fetchedAt: priorFetchedAt }),
@@ -228,7 +235,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
       ],
     });
 
-    const recentFetch = "2026-04-28T00:00:00Z";
+    const recentFetch = daysAgo(3);
     const statePath = join(workDir, "state.json");
     await writeState(statePath, buildPriorState(server.origin, {
       [`${server.origin}/info`]: baseEntry({
@@ -303,7 +310,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
       ],
     });
 
-    const recentFetch = "2026-04-28T00:00:00Z";
+    const recentFetch = daysAgo(3);
     const statePath = join(workDir, "state.json");
     await writeState(statePath, buildPriorState(server.origin, {
       [`${server.origin}/old`]: baseEntry({ fetchedAt: recentFetch }),

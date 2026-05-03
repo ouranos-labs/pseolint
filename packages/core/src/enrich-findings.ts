@@ -11,6 +11,12 @@ import type {
 const CLUSTERABLE_RULES = new Set([
   "spam/near-duplicate",
   "spam/entity-swap",
+  // 2026-05-03 calibration credibility fix: doorway-pattern fires per-pair,
+  // producing C(N,2) findings on entity-swap-heavy catalogs (Segment: 276
+  // findings on 41 pages). Now emits in the same pageUrl+relatedUrls[0]
+  // shape as the other clusterable rules; one cluster finding per
+  // structurally-related group.
+  "spam/doorway-pattern",
 ]);
 
 const GROUPABLE_RULES = new Set([
@@ -366,7 +372,15 @@ export function enrichFindings(
         similarityRange: [minSim, maxSim],
       };
 
-      const message = `${members.length} pages form a near-duplicate cluster (${formatPercent(minSim)}–${formatPercent(maxSim)}% similar).`;
+      // Cluster message — rule-specific wording so the report reads honestly.
+      // doorway-pattern came in via the calibration credibility pass; match
+      // its wording to the rule's intent (multi-signal stack, not just
+      // textual similarity).
+      const message = ruleId === "spam/doorway-pattern"
+        ? `${members.length} pages form a doorway-pattern cluster (multi-signal stack: near-duplicate + entity-swap + thin/identical-meta).`
+        : ruleId === "spam/entity-swap"
+          ? `${members.length} pages form an entity-swap cluster (templates that differ only in a swapped entity).`
+          : `${members.length} pages form a near-duplicate cluster (${formatPercent(minSim)}–${formatPercent(maxSim)}% similar).`;
 
       clustered.push({
         ruleId,

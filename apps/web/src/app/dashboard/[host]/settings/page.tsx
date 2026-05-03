@@ -159,8 +159,8 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
         <header>
           <h2 className="text-sm font-medium">Data source (pSEO data-binding)</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Upload the dataset that drives your pSEO pages. The <code className="font-mono">data/data-binding</code> rule
-            verifies each page surfaces its expected records.
+            Upload the dataset that drives your pSEO pages. The <code className="font-mono">data/missing-binding</code> and <code className="font-mono">data/identical-across-pages</code> rules
+            verify each page surfaces its expected records.
           </p>
         </header>
         {dataSource && (

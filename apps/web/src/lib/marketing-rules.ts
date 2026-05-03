@@ -92,7 +92,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "How does this interact with AI-generated content?",
-        a: "Word count is identical whether a human or an LLM wrote the prose. What differs is information density — LLM filler tends to be high token, low fact. The rule won't catch that distinction; the `aeo/grounding-density` and `aeo/citation-presence` rules will."
+        a: "Word count is identical whether a human or an LLM wrote the prose. What differs is information density — LLM filler tends to be high token, low fact. The rule won't catch that distinction; the `aeo/citable-facts` and `aeo/answer-first` rules will."
       },
       {
         q: "Can I exempt specific URLs from the check?",

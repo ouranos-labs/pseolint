@@ -101,12 +101,13 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.5.0</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.5.2</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
           <Link href="/tools" className={ navLinkClass }>Tools</Link>
           <Link href="/rules" className={ navLinkClass }>Rules</Link>
+          <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
           <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
           <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
           { !signedIn && (

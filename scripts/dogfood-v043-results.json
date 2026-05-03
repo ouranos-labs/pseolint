@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-04-30T18:35:05.762Z",
+  "capturedAt": "2026-05-03T18:29:17.083Z",
   "phase": "v0.4.3",
   "results": [
     {
@@ -9,17 +9,17 @@
       "humanGrade": "ready",
       "detectedFramework": "nextjs",
       "audit": {
-        "verdict": "ready",
-        "risk": 11,
+        "verdict": "caution",
+        "risk": 30,
         "pageCount": 3,
-        "blockers": 4,
+        "blockers": 9,
         "shouldFix": 6,
         "informational": 9,
         "classification": "docs",
         "classificationConfidence": 0.7,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 6793,
+        "durationMs": 12245,
         "topDrivers": [
           {
             "ruleId": "tech/canonical-consistency",
@@ -30,17 +30,17 @@
             ]
           },
           {
-            "ruleId": "aeo/freshness-signals",
-            "count": 3,
-            "impact": 36,
+            "ruleId": "content/unique-value",
+            "count": 2,
+            "impact": 50,
             "severities": [
-              "warning"
+              "error"
             ]
           },
           {
             "ruleId": "links/orphan-pages",
-            "count": 1,
-            "impact": 25,
+            "count": 2,
+            "impact": 50,
             "severities": [
               "error"
             ]
@@ -56,39 +56,39 @@
       "detectedFramework": "nextjs",
       "audit": {
         "verdict": "ready",
-        "risk": 8,
+        "risk": 4,
         "pageCount": 3,
-        "blockers": 3,
-        "shouldFix": 25,
-        "informational": 3,
+        "blockers": 0,
+        "shouldFix": 0,
+        "informational": 14,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 3481,
+        "durationMs": 4237,
         "topDrivers": [
-          {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 18,
-            "impact": 216,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "aeo/citable-facts",
-            "count": 3,
-            "impact": 75,
-            "severities": [
-              "error"
-            ]
-          },
           {
             "ruleId": "content/missing-author",
             "count": 3,
-            "impact": 36,
+            "impact": 15,
             "severities": [
-              "warning"
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
             ]
           }
         ]
@@ -100,39 +100,39 @@
       "humanGrade": "ready",
       "audit": {
         "verdict": "ready",
-        "risk": 15,
-        "pageCount": 2,
-        "blockers": 7,
-        "shouldFix": 2,
-        "informational": 3,
+        "risk": 13,
+        "pageCount": 3,
+        "blockers": 3,
+        "shouldFix": 3,
+        "informational": 8,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
-        "skippedUrls": 1,
-        "durationMs": 1316,
+        "skippedUrls": 0,
+        "durationMs": 3967,
         "topDrivers": [
           {
-            "ruleId": "spam/thin-content",
-            "count": 2,
-            "impact": 50,
+            "ruleId": "content/unique-value",
+            "count": 3,
+            "impact": 75,
             "severities": [
               "error"
             ]
           },
           {
             "ruleId": "aeo/citable-facts",
-            "count": 2,
-            "impact": 50,
+            "count": 3,
+            "impact": 15,
             "severities": [
-              "error"
+              "info"
             ]
           },
           {
-            "ruleId": "content/unique-value",
-            "count": 2,
-            "impact": 50,
+            "ruleId": "aeo/llms-txt",
+            "count": 1,
+            "impact": 12,
             "severities": [
-              "error"
+              "warning"
             ]
           }
         ]
@@ -144,207 +144,28 @@
       "humanGrade": "ready",
       "detectedFramework": "nextjs",
       "audit": {
-        "verdict": "caution",
-        "risk": 21,
+        "verdict": "ready",
+        "risk": 19,
         "pageCount": 3,
-        "blockers": 7,
-        "shouldFix": 221,
-        "informational": 6,
+        "blockers": 6,
+        "shouldFix": 2,
+        "informational": 8,
         "classification": "small-marketing",
         "classificationConfidence": 0.88,
-        "suppressedRules": 4,
+        "suppressedRules": 5,
         "skippedUrls": 0,
-        "durationMs": 6681,
+        "durationMs": 12306,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 216,
-            "impact": 2592,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
             "ruleId": "content/unique-value",
-            "count": 3,
-            "impact": 75,
+            "count": 2,
+            "impact": 50,
             "severities": [
               "error"
             ]
           },
           {
             "ruleId": "links/orphan-pages",
-            "count": 2,
-            "impact": 50,
-            "severities": [
-              "error"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "url": "https://linear.app",
-      "expectedType": "small-marketing",
-      "humanGrade": "ready",
-      "detectedFramework": "nextjs",
-      "audit": {
-        "verdict": "ready",
-        "risk": 4,
-        "pageCount": 1,
-        "blockers": 1,
-        "shouldFix": 2,
-        "informational": 1,
-        "classification": "unclear",
-        "classificationConfidence": 0.5,
-        "suppressedRules": 0,
-        "skippedUrls": 2,
-        "durationMs": 21697,
-        "topDrivers": [
-          {
-            "ruleId": "aeo/citable-facts",
-            "count": 1,
-            "impact": 25,
-            "severities": [
-              "error"
-            ]
-          },
-          {
-            "ruleId": "content/missing-author",
-            "count": 1,
-            "impact": 12,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "aeo/freshness-signals",
-            "count": 1,
-            "impact": 12,
-            "severities": [
-              "warning"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "url": "https://supabase.com",
-      "expectedType": "small-marketing",
-      "humanGrade": "ready",
-      "detectedFramework": "nextjs",
-      "audit": {
-        "verdict": "ready",
-        "risk": 9,
-        "pageCount": 2,
-        "blockers": 3,
-        "shouldFix": 6,
-        "informational": 2,
-        "classification": "unclear",
-        "classificationConfidence": 0.5,
-        "suppressedRules": 0,
-        "skippedUrls": 1,
-        "durationMs": 5810,
-        "topDrivers": [
-          {
-            "ruleId": "aeo/citable-facts",
-            "count": 2,
-            "impact": 50,
-            "severities": [
-              "error"
-            ]
-          },
-          {
-            "ruleId": "tech/canonical-consistency",
-            "count": 1,
-            "impact": 25,
-            "severities": [
-              "error"
-            ]
-          },
-          {
-            "ruleId": "content/missing-author",
-            "count": 2,
-            "impact": 24,
-            "severities": [
-              "warning"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "url": "https://posthog.com",
-      "expectedType": "small-marketing",
-      "humanGrade": "ready",
-      "detectedFramework": "nextjs",
-      "audit": {
-        "verdict": "ready",
-        "risk": 4,
-        "pageCount": 3,
-        "blockers": 0,
-        "shouldFix": 6,
-        "informational": 7,
-        "classification": "small-marketing",
-        "classificationConfidence": 0.85,
-        "suppressedRules": 4,
-        "skippedUrls": 0,
-        "durationMs": 6173,
-        "topDrivers": [
-          {
-            "ruleId": "content/missing-author",
-            "count": 3,
-            "impact": 36,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "aeo/freshness-signals",
-            "count": 3,
-            "impact": 36,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "content/eeat-signals",
-            "count": 3,
-            "impact": 15,
-            "severities": [
-              "info"
-            ]
-          }
-        ]
-      }
-    },
-    {
-      "url": "https://www.shopify.com",
-      "expectedType": "small-marketing",
-      "humanGrade": "ready",
-      "audit": {
-        "verdict": "ready",
-        "risk": 19,
-        "pageCount": 3,
-        "blockers": 4,
-        "shouldFix": 192,
-        "informational": 6,
-        "classification": "small-marketing",
-        "classificationConfidence": 0.88,
-        "suppressedRules": 4,
-        "skippedUrls": 0,
-        "durationMs": 5646,
-        "topDrivers": [
-          {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 186,
-            "impact": 2232,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "content/unique-value",
             "count": 2,
             "impact": 50,
             "severities": [
@@ -363,30 +184,209 @@
       }
     },
     {
+      "url": "https://linear.app",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 3,
+        "pageCount": 3,
+        "blockers": 1,
+        "shouldFix": 0,
+        "informational": 10,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 25711,
+        "topDrivers": [
+          {
+            "ruleId": "links/orphan-pages",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://supabase.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 5,
+        "pageCount": 3,
+        "blockers": 3,
+        "shouldFix": 0,
+        "informational": 13,
+        "classification": "unclear",
+        "classificationConfidence": 0.5,
+        "suppressedRules": 0,
+        "skippedUrls": 0,
+        "durationMs": 7627,
+        "topDrivers": [
+          {
+            "ruleId": "tech/canonical-consistency",
+            "count": 3,
+            "impact": 75,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://posthog.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "detectedFramework": "nextjs",
+      "audit": {
+        "verdict": "ready",
+        "risk": 5,
+        "pageCount": 2,
+        "blockers": 1,
+        "shouldFix": 1,
+        "informational": 7,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.85,
+        "suppressedRules": 5,
+        "skippedUrls": 1,
+        "durationMs": 7878,
+        "topDrivers": [
+          {
+            "ruleId": "links/orphan-pages",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
+            ]
+          },
+          {
+            "ruleId": "links/dead-ends",
+            "count": 1,
+            "impact": 12,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "content/missing-author",
+            "count": 2,
+            "impact": 10,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "url": "https://www.shopify.com",
+      "expectedType": "small-marketing",
+      "humanGrade": "ready",
+      "audit": {
+        "verdict": "ready",
+        "risk": 3,
+        "pageCount": 3,
+        "blockers": 0,
+        "shouldFix": 0,
+        "informational": 12,
+        "classification": "small-marketing",
+        "classificationConfidence": 0.88,
+        "suppressedRules": 5,
+        "skippedUrls": 0,
+        "durationMs": 20252,
+        "topDrivers": [
+          {
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "content/eeat-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/freshness-signals",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
+            ]
+          }
+        ]
+      }
+    },
+    {
       "url": "https://www.allbirds.com",
       "expectedType": "ecommerce",
       "expectedFramework": "shopify",
       "humanGrade": "ready",
       "detectedFramework": "shopify",
       "audit": {
-        "verdict": "caution",
-        "risk": 24,
+        "verdict": "ready",
+        "risk": 13,
         "pageCount": 3,
-        "blockers": 7,
-        "shouldFix": 262,
-        "informational": 3,
+        "blockers": 5,
+        "shouldFix": 1,
+        "informational": 14,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 24149,
+        "durationMs": 28830,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 252,
-            "impact": 3024,
+            "ruleId": "content/unique-value",
+            "count": 3,
+            "impact": 75,
             "severities": [
-              "warning"
+              "error"
             ]
           },
           {
@@ -398,11 +398,11 @@
             ]
           },
           {
-            "ruleId": "content/unique-value",
-            "count": 2,
-            "impact": 50,
+            "ruleId": "content/missing-author",
+            "count": 3,
+            "impact": 15,
             "severities": [
-              "error"
+              "info"
             ]
           }
         ]
@@ -416,39 +416,39 @@
       "detectedFramework": "nextjs",
       "audit": {
         "verdict": "ready",
-        "risk": 10,
+        "risk": 9,
         "pageCount": 3,
-        "blockers": 3,
-        "shouldFix": 49,
-        "informational": 3,
+        "blockers": 1,
+        "shouldFix": 1,
+        "informational": 11,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 26812,
+        "durationMs": 26690,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 42,
-            "impact": 504,
+            "ruleId": "content/unique-value",
+            "count": 1,
+            "impact": 25,
             "severities": [
-              "warning"
+              "error"
             ]
           },
           {
             "ruleId": "content/missing-author",
             "count": 3,
-            "impact": 36,
+            "impact": 15,
             "severities": [
-              "warning"
+              "info"
             ]
           },
           {
-            "ruleId": "aeo/freshness-signals",
+            "ruleId": "content/eeat-signals",
             "count": 3,
-            "impact": 36,
+            "impact": 15,
             "severities": [
-              "warning"
+              "info"
             ]
           }
         ]
@@ -462,39 +462,39 @@
       "detectedFramework": "wordpress",
       "audit": {
         "verdict": "ready",
-        "risk": 9,
+        "risk": 4,
         "pageCount": 3,
         "blockers": 0,
-        "shouldFix": 69,
-        "informational": 10,
+        "shouldFix": 0,
+        "informational": 13,
         "classification": "small-marketing",
         "classificationConfidence": 0.75,
-        "suppressedRules": 4,
+        "suppressedRules": 5,
         "skippedUrls": 0,
-        "durationMs": 16648,
+        "durationMs": 14924,
         "topDrivers": [
-          {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 61,
-            "impact": 732,
-            "severities": [
-              "warning"
-            ]
-          },
           {
             "ruleId": "content/missing-author",
             "count": 3,
-            "impact": 36,
+            "impact": 15,
             "severities": [
-              "warning"
+              "info"
             ]
           },
           {
-            "ruleId": "spam/thin-content",
-            "count": 2,
-            "impact": 24,
+            "ruleId": "content/eeat-signals",
+            "count": 3,
+            "impact": 15,
             "severities": [
-              "warning"
+              "info"
+            ]
+          },
+          {
+            "ruleId": "aeo/citable-facts",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
             ]
           }
         ]
@@ -507,40 +507,39 @@
       "detectedFramework": "astro",
       "audit": {
         "verdict": "ready",
-        "risk": 15,
+        "risk": 12,
         "pageCount": 3,
-        "blockers": 2,
-        "shouldFix": 43,
-        "informational": 6,
+        "blockers": 1,
+        "shouldFix": 4,
+        "informational": 11,
         "classification": "small-marketing",
         "classificationConfidence": 0.75,
-        "suppressedRules": 4,
+        "suppressedRules": 5,
         "skippedUrls": 0,
-        "durationMs": 18891,
+        "durationMs": 19110,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 38,
-            "impact": 442,
-            "severities": [
-              "info",
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "aeo/freshness-signals",
-            "count": 3,
-            "impact": 36,
-            "severities": [
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "content/unique-value",
+            "ruleId": "content/meta-uniqueness",
             "count": 1,
             "impact": 25,
             "severities": [
               "error"
+            ]
+          },
+          {
+            "ruleId": "links/dead-ends",
+            "count": 2,
+            "impact": 24,
+            "severities": [
+              "warning"
+            ]
+          },
+          {
+            "ruleId": "tech/hreflang-consistency",
+            "count": 3,
+            "impact": 15,
+            "severities": [
+              "info"
             ]
           }
         ]
@@ -550,45 +549,8 @@
       "url": "https://www.softschools.com",
       "expectedType": "programmatic-directory",
       "humanGrade": "concerning",
-      "audit": {
-        "verdict": "ready",
-        "risk": 19,
-        "pageCount": 3,
-        "blockers": 11,
-        "shouldFix": 7,
-        "informational": 3,
-        "classification": "unclear",
-        "classificationConfidence": 0.5,
-        "suppressedRules": 0,
-        "skippedUrls": 0,
-        "durationMs": 15938,
-        "topDrivers": [
-          {
-            "ruleId": "tech/canonical-consistency",
-            "count": 3,
-            "impact": 75,
-            "severities": [
-              "error"
-            ]
-          },
-          {
-            "ruleId": "aeo/citable-facts",
-            "count": 3,
-            "impact": 75,
-            "severities": [
-              "error"
-            ]
-          },
-          {
-            "ruleId": "content/unique-value",
-            "count": 2,
-            "impact": 50,
-            "severities": [
-              "error"
-            ]
-          }
-        ]
-      }
+      "audit": null,
+      "error": "audit failed: Failed to fetch source URL: https://www.softschools.com — verify the URL is correct and returns a valid response."
     },
     {
       "url": "https://www.expatistan.com",
@@ -596,41 +558,39 @@
       "humanGrade": "caution",
       "audit": {
         "verdict": "ready",
-        "risk": 12,
+        "risk": 16,
         "pageCount": 3,
-        "blockers": 2,
-        "shouldFix": 18,
-        "informational": 6,
+        "blockers": 4,
+        "shouldFix": 2,
+        "informational": 15,
         "classification": "unclear",
         "classificationConfidence": 0.5,
         "suppressedRules": 0,
         "skippedUrls": 0,
-        "durationMs": 22260,
+        "durationMs": 31838,
         "topDrivers": [
           {
-            "ruleId": "tech/hreflang-consistency",
-            "count": 9,
-            "impact": 87,
-            "severities": [
-              "info",
-              "warning"
-            ]
-          },
-          {
-            "ruleId": "aeo/answer-first",
+            "ruleId": "tech/canonical-consistency",
             "count": 2,
-            "impact": 37,
+            "impact": 50,
             "severities": [
-              "error",
-              "warning"
+              "error"
             ]
           },
           {
-            "ruleId": "content/missing-author",
-            "count": 3,
-            "impact": 36,
+            "ruleId": "content/unique-value",
+            "count": 1,
+            "impact": 25,
             "severities": [
-              "warning"
+              "error"
+            ]
+          },
+          {
+            "ruleId": "content/meta-uniqueness",
+            "count": 1,
+            "impact": 25,
+            "severities": [
+              "error"
             ]
           }
         ]

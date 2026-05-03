@@ -91,10 +91,21 @@ export default function ToolsIndexPage() {
         Free SEO tools
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Three free SEO tools backed by the open-source pseolint engine v0.4.3 —
+        Three free SEO tools backed by the open-source pseolint engine v0.5.2 —
         SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
         signup, runs in a 60-second median. Pick a tool below; methodology and
         comparison table follow.
+      </p>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        <span className="text-foreground">v0.5.2 credibility layer:</span> the
+        engine has been empirically calibrated against a curated corpus of
+        reputable, in-production pSEO sites. Verdicts are reproducible at a
+        fixed sample-seed; findings cluster instead of dumping per-pair noise;
+        the engine&apos;s severity demotions are auditable via{" "}
+        <code className="font-mono text-xs">summary.appliedSeverityDemotions</code>.
+        Dated snapshot results, the open-source corpus, and the trade-offs we
+        accepted are documented at{" "}
+        <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
       </p>
 
       <div className="mt-6 grid gap-4 rounded-[22px] border border-border/60 bg-card/40 p-5 sm:grid-cols-2">
@@ -105,8 +116,11 @@ export default function ToolsIndexPage() {
           <p className="mt-2 text-sm leading-relaxed text-foreground">
             Programmatic-SEO sites (template-driven content at scale) and AI Overview
             readiness — SpamBrain triggers from the March 5, 2024 scaled-content-abuse
-            update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns
-            that determine ChatGPT, Perplexity, and Google AI Overview citations.
+            update, the May 7, 2024 site-reputation-abuse policy (now detected by
+            <code className="font-mono">links/host-section-divergence</code>),
+            the March 27, 2026 core update that tightened scaled-content signals on
+            date-stacked corpora, plus the AEO patterns that determine ChatGPT,
+            Perplexity, and Google AI Overview citations.
           </p>
         </div>
         <div>
@@ -269,9 +283,16 @@ export default function ToolsIndexPage() {
           if you need backlink data, keyword volumes, or rank tracking. It is a
           replacement for the &quot;site audit&quot; module those suites bolt
           on, specifically for templated programmatic content. The engine
-          shipped its v0.4.0 redesign on April 29, 2026, runs as a Cloudflare R2
-          + Inngest pipeline on Vercel, and stays MIT-licensed end-to-end so
-          anything you see in the browser audit is reproducible from the CLI.
+          shipped its v0.4.0 redesign on April 29, 2026, added change-driven
+          monitoring in v0.5.0 (May 1, 2026), shipped the{" "}
+          <code className="font-mono">links/host-section-divergence</code>
+          {" "}site-reputation-abuse detector in v0.5.1 (May 3, 2026), and
+          delivered the v0.5.2 credibility layer (May 3, 2026) — the engine
+          is now empirically calibrated against reputable in-production pSEO
+          sites with reproducible verdicts and clustered findings. Runs as a
+          Cloudflare R2 + Inngest pipeline on Vercel, MIT-licensed end-to-end
+          so anything you see in the browser audit is reproducible from the
+          CLI.
         </p>
       </section>
 

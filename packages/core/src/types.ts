@@ -262,6 +262,17 @@ export interface AuditSummary {
    * rules to run anyway.
    */
   siteClassification: import("./site-classifier.js").SiteClassification;
+  /**
+   * 2026-05-03 calibration credibility: rule IDs whose severity was
+   * remapped by the active scoring profile (e.g. `aeo/citable-facts`
+   * demoted from `error` to `info` on a `programmatic-directory` site).
+   * Empty when no demotions applied. Surfaced to formatters so users can
+   * see the engine's reasoning rather than wondering whether the score
+   * was gamed. Distinct from `siteClassification.suppressedRules` which
+   * tracks `PSEO_ONLY_RULE_IDS` suppression — those rules don't run at
+   * all; demoted rules ran and emitted findings, just at lower severity.
+   */
+  appliedSeverityDemotions?: string[];
   /** Engine-internal diagnostics (origin readiness, crawl stats). Weight 0. */
   diagnostics: Diagnostics;
 
@@ -342,6 +353,13 @@ export interface AuditOptions {
     entitySwapThreshold?: number;
     thinContentMinWords?: number;
     publicationVelocityMaxPerDay?: number;
+    /**
+     * spam/publication-velocity: corpus-relative ceiling expressed as a fraction (0..1).
+     * Effective threshold = max(publicationVelocityMaxPerDay, ceil(corpusSize * fraction)).
+     * Lets large sites publish proportionally without tripping the rule, while small/medium
+     * sites stay governed by `publicationVelocityMaxPerDay`. Default: 0.10 (10%).
+     */
+    publicationVelocityMaxPerDayCorpusFraction?: number;
     boilerplateMaxRatio?: number;
     templateDiversityMinUniqueRatio?: number;
     uniqueValueMinWords?: number;
@@ -431,6 +449,37 @@ export interface AuditOptions {
   samplingStrategy?: SamplingStrategy;
   /** Max samples per inferred URL template cluster. Caps per-cluster allocation. */
   maxPerTemplate?: number;
+  /**
+   * Optional integer seed for the stratified-sampler PRNG. When set, repeated
+   * audits with the same `sampleSize` and `samplingStrategy` pick the same
+   * pages — letting callers (calibration runners, CI gates) get reproducible
+   * verdicts. When omitted, the sampler uses `Math.random` (the legacy
+   * non-deterministic behavior).
+   */
+  sampleSeed?: number;
+  /**
+   * 2026-05-03 v0.5.2 — bring-your-own domain authority score (0-100).
+   * pseolint does not measure backlinks/DA itself (deliberate non-feature
+   * to keep the engine offline-runnable), but the calibration corpus is
+   * biased toward high-authority sites. To prevent the engine's leniency
+   * from over-applying to low-authority operators copying high-DA shapes,
+   * callers can pass an authority hint:
+   *
+   *   - `score >= 80` (established brand): verdict shifts ONE TIER UP
+   *     (more lenient — acknowledges the site can absorb shapes that
+   *     would tank a newer domain)
+   *   - `score <= 30` (newer/lower-authority): verdict shifts ONE TIER DOWN
+   *     (less lenient — fixing flagged issues is a necessary condition,
+   *     not a sufficient one)
+   *   - 31..79: no shift (default behavior)
+   *
+   * The raw `risk` number is NEVER modified by this option — only the
+   * user-facing `verdict` mapping shifts. CI gates that key off `risk`
+   * stay stable.
+   *
+   * Omitted = no shift (back-compat).
+   */
+  authorityScore?: number;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
   /** AI triage options. When omitted or `enabled: false`, no AI is invoked. */

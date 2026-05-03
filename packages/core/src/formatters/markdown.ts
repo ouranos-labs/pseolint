@@ -226,10 +226,28 @@ export function formatMarkdown(
     lines.push("");
   }
 
-  // Issue buckets
+  // Issue buckets — blockers and should-fix render inline because they're
+  // the actionable items. Informational findings collapse behind a
+  // <details> on by default — they're often high-volume on catalog and
+  // template-driven sites (118 info findings on Webflow's templates
+  // gallery, 134 on Ramp's spend-management directory) where surfacing
+  // every entry as a fresh markdown bullet drowns the actionable signal.
+  // The user can expand the block to see all entries, or run with
+  // `--explain` (console) for the full dump.
   lines.push(...renderBucket("Blockers", summary.issues.blockers));
   lines.push(...renderBucket("Should fix", summary.issues.shouldFix));
-  lines.push(...renderBucket("Informational", summary.issues.informational));
+  if (summary.issues.informational.length > 0) {
+    const infoLines = renderBucket("Informational", summary.issues.informational);
+    lines.push(`<details>`);
+    lines.push(`<summary><strong>Informational (${summary.issues.informational.length})</strong> — low-confidence or context-dependent findings. Click to expand.</summary>`);
+    lines.push("");
+    // Strip the duplicate ## header that renderBucket added; the <summary>
+    // already labels the section.
+    lines.push(...infoLines.slice(2));
+    lines.push("");
+    lines.push(`</details>`);
+    lines.push("");
+  }
 
   // AI Triage (if present)
   if (summary.triage) {

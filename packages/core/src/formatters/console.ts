@@ -342,6 +342,21 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   // think we're auditing and which rules were suppressed (if any).
   lines.push(...classificationLines(summary.siteClassification));
 
+  // 2026-05-03 v0.5.2 credibility transparency: show what severity demotions
+  // the active scoring profile applied. Without this, a developer reading
+  // the report wonders whether the verdict was gamed by hidden mechanisms.
+  // With this, the engine's reasoning is auditable: "demoted X rules
+  // because <site type>; pass --strict to disable."
+  const demotions = summary.appliedSeverityDemotions;
+  if (demotions && demotions.length > 0) {
+    const list = demotions.length <= 3
+      ? demotions.map((id) => `\`${id}\``).join(", ")
+      : `${demotions.slice(0, 3).map((id) => `\`${id}\``).join(", ")}, +${demotions.length - 3} more`;
+    lines.push(
+      `${GREEN}✓${RESET} Demoted ${demotions.length} rule${demotions.length === 1 ? "" : "s"} (${list}) — ${fmtType(summary.siteClassification?.type ?? "unclear")} profile; pass --strict to disable`,
+    );
+  }
+
   lines.push("");
 
   // ── Verdict + grade strip ───────────────────────────────────────────

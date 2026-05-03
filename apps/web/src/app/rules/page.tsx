@@ -120,7 +120,7 @@ export default function RulesIndexPage() {
 
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-        Rule reference · 5 of 42 featured
+        Rule reference · 5 of 45 featured
       </div>
 
       <h1
@@ -131,17 +131,14 @@ export default function RulesIndexPage() {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-        pseolint v0.4.0 runs 32 rules across 4 categories — spam-pattern detection
-        (8 spam/* rules), AEO/answer-engine readiness (8 aeo/* rules, shipped April
-        21, 2026), technical SEO, and structural integrity. Severity weights are
-        critical=40, error=25, warning=12, info=5. Each audit completes in a
-        60-second free-tier budget (200-page ceiling) or a 90-day rolling
-        500-page Pro window. Five of the spam-pattern rules are written up below
-        in depth — they are the ones most likely to demote a programmatic-SEO
-        domain after the March 5, 2024 scaled-content-abuse update and the
-        May 7, 2024 site-reputation-abuse follow-up, and the ones whose
-        detection logic (SimHash fingerprinting, Jaccard fallback, BERT-style
-        entity grounding) is least well documented elsewhere.
+        pseolint v0.5.2 runs 45 rules across 8 categories — spam-pattern
+        detection (8 spam/*), AEO/answer-engine readiness (8 aeo/*), graph
+        integrity (6 links/* including host-section-divergence, the May 2024
+        site-reputation-abuse detector), technical SEO (9 tech/* including
+        og-completeness, new in v0.5.2), content quality (7 content/*
+        including title-uniqueness / heading-structure / image-alt-text, all
+        new in v0.5.2), structured data (3 schema/*), data-binding consistency
+        (2 data/*), and cannibalization (1 cannibal/*).
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
@@ -192,28 +189,34 @@ export default function RulesIndexPage() {
         </h2>
         <p>
           The rule set clusters around the major axes Google&apos;s SpamBrain
-          classifier scores against. Spam/* covers the patterns that triggered
-          the March 5, 2024 scaled-content-abuse update — thin content under
-          300 words, doorway clusters with shared boilerplate, near-duplicate
-          templates with &gt;85% lexical overlap, and templates that don&apos;t
-          vary their
-          structural skeleton across the corpus. Content/* (6 rules) checks
-          intent match, originality, and reading level. Aeo/* (8 rules,
-          shipped April 21, 2026) audits answer-engine readiness — citable
-          facts, atomic Q&amp;A blocks, schema-grounded entities, and the
-          things Perplexity, ChatGPT, and Google&apos;s AI Overviews actually
-          extract.
+          classifier scores against. Spam/* (8 rules) covers the patterns that
+          triggered the March 5, 2024 scaled-content-abuse update — thin
+          content under 300 words, doorway clusters with shared boilerplate,
+          near-duplicate templates with &gt;85% lexical overlap, templates
+          that don&apos;t vary their structural skeleton, and corpus-aware
+          publication-velocity (the threshold scales with corpus size in
+          v0.5.1, so a 50,000-page directory and a 50-page blog get
+          appropriate cutoffs). Content/* (4 rules) checks unique value,
+          meta-description uniqueness after entity masking, author signals,
+          and E-E-A-T markers. Aeo/* (8 rules, shipped April 21, 2026) audits
+          answer-engine readiness — citable facts, atomic Q&amp;A blocks,
+          freshness signals, AI-crawler access, and the things Perplexity,
+          ChatGPT, and Google&apos;s AI Overviews actually extract.
         </p>
         <p>
-          The remaining categories are links/* (4 rules — anchor concentration,
-          paid-link smell, internal link depth, orphan ratio), schema/* (5
-          rules — required JSON-LD types, entity grounding, schema-content
-          consistency), tech/* (5 rules — Core Web Vitals proxies, render
-          stability, robots/canonical hygiene), data/* (3 rules — data-source
-          provenance for pSEO, freshness, schema-agnostic recognizers for
-          common pSEO patterns like FAQs and regulations), and cannibal/* (3
-          rules — keyword cannibalization, intent overlap, and self-referential
-          internal-link loops).
+          The remaining categories are links/* (6 rules — orphan pages, dead
+          ends, cluster connectivity, link depth, unreachable-from-root, and
+          host-section-divergence — the last one detects sub-sections that
+          ride a host&apos;s reputation without integrating into it, which is
+          the May 2024 site-reputation-abuse policy target), tech/* (9 rules —
+          canonical consistency, sitemap completeness, soft-404, redirect
+          chains, hreflang, robots/noindex conflicts, and robots-compliance
+          for sitemap URLs blocked by Disallow), schema/* (3 rules — JSON-LD
+          validity, required-fields by type, and cross-page consistency),
+          data/* (2 rules — missing-binding and identical-across-pages, fired
+          when --data-source is set), and cannibal/* (1 rule — url-pattern;
+          title-overlap and keyword-collision were dropped in v0.4 due to
+          high false-positive rates).
         </p>
         <h2 className="pt-2 text-base font-semibold tracking-tight text-foreground">
           What makes a rule &quot;AEO-aligned&quot;

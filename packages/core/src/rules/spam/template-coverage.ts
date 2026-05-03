@@ -91,7 +91,7 @@ export function templateCoverageRule(
         severity: "info",
         message: `${clusterDir} has ${names.length} pages across ${dimensions.length} dimensions: ${dimDesc}. Coverage: ${names.length} of ${totalCombinations} combinations (${coveragePct}%).`,
         fix: totalCombinations > names.length * 5
-          ? "Low coverage suggests an overly broad template matrix. Consider narrowing dimensions to combinations you can differentiate with unique content."
+          ? "Low coverage suggests an overly broad template matrix. Consider narrowing dimensions to combinations you can differentiate with unique content. Sparse high-dimension matrices are exactly what the March 27, 2026 core update down-weighted on programmatic corpora."
           : "Coverage is reasonable. Ensure each combination provides genuinely unique content.",
         relatedUrls: group.map((p) => p.url).sort()
       });
