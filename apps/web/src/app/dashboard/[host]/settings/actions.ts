@@ -1,10 +1,12 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { monitoredDomains, domainDataSources, domainRuleOverrides } from "@/db/schema";
+import { monitoredDomains, domainDataSources, domainRuleOverrides, integrations } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { validateSlackWebhookUrl, sendSlackAlert } from "@/lib/slack-notify";
+import { listSites, pickBestGscProperty } from "@/lib/gsc";
 import { auditLog } from "@/lib/audit-log";
 import { env } from "@/lib/env";
 
@@ -38,6 +40,20 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     ? null
     : (/^(sc-domain:|https?:\/\/)/.test(gscSiteUrlRaw) ? gscSiteUrlRaw : null);
 
+  // Read the previous value so we can tell the redirect banner whether the
+  // GSC binding changed (and how) without showing "saved!" for a no-op
+  // submit. Same pattern as Polar's billing-portal redirects: feedback is
+  // proportional to what actually changed.
+  const [before] = await db
+    .select({ gscSiteUrl: monitoredDomains.gscSiteUrl })
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ))
+    .limit(1);
+
   await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl })
     .where(and(
       eq(monitoredDomains.host, host),
@@ -45,7 +61,82 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
       isNull(monitoredDomains.removedAt),
     ));
 
+  auditLog("settings.domain.updated", {
+    userId: session.user.id,
+    host,
+    gscChanged: (before?.gscSiteUrl ?? null) !== gscSiteUrl,
+  });
   revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+
+  // Redirect with a saved query so the page can render a transient banner
+  // describing what changed. Encodes the gsc state machine separately
+  // (bound/unbound/changed/unchanged) so the banner can show the bound
+  // siteUrl when relevant.
+  const prev = before?.gscSiteUrl ?? null;
+  let gscState: "bound" | "rebound" | "unbound" | "unchanged";
+  if (prev === gscSiteUrl) gscState = "unchanged";
+  else if (gscSiteUrl == null) gscState = "unbound";
+  else if (prev == null) gscState = "bound";
+  else gscState = "rebound";
+
+  const params = new URLSearchParams({ saved: "1", gsc: gscState });
+  if (gscSiteUrl) params.set("siteUrl", gscSiteUrl);
+  redirect(`/dashboard/${encodeURIComponent(host)}/settings?${params.toString()}`);
+}
+
+/**
+ * Manual re-run of GSC auto-bind for a single domain. Used by the "Auto-bind
+ * matching property" button on the per-domain settings page when a user
+ * connects GSC AFTER adding the domain (so the OAuth-callback auto-bind
+ * pass already happened without seeing this domain).
+ */
+export async function rebindGscPropertyAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
+
+  const [conn] = await db
+    .select({ id: integrations.id })
+    .from(integrations)
+    .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+    .limit(1);
+
+  if (!conn) {
+    auditLog("gsc.rebind.no_grant", { userId: session.user.id, host });
+    redirect(`/dashboard/${encodeURIComponent(host)}/settings?gsc=no_grant`);
+  }
+
+  let pick: string | null = null;
+  let err: string | null = null;
+  try {
+    const sites = await listSites(session.user.id);
+    pick = pickBestGscProperty(sites, host);
+  } catch (e) {
+    err = e instanceof Error ? e.message : String(e);
+  }
+
+  if (err) {
+    auditLog("gsc.rebind.failed", { userId: session.user.id, host, err });
+    redirect(`/dashboard/${encodeURIComponent(host)}/settings?gsc=failed`);
+  }
+
+  if (!pick) {
+    auditLog("gsc.rebind.no_match", { userId: session.user.id, host });
+    redirect(`/dashboard/${encodeURIComponent(host)}/settings?gsc=no_match`);
+  }
+
+  await db.update(monitoredDomains)
+    .set({ gscSiteUrl: pick })
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ));
+
+  auditLog("gsc.rebind.bound", { userId: session.user.id, host, siteUrl: pick });
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  const params = new URLSearchParams({ saved: "1", gsc: "bound", siteUrl: pick });
+  redirect(`/dashboard/${encodeURIComponent(host)}/settings?${params.toString()}`);
 }
 
 /** Accept a JSON blob of PageDataRecord[] and store it against the domain. */

@@ -5,23 +5,36 @@ import { db } from "@/db";
 import { monitoredDomains, integrations, domainDataSources, domainRuleOverrides } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
-import { listSites, type GscSite } from "@/lib/gsc";
+import { listSites, pickBestGscProperty, type GscSite } from "@/lib/gsc";
 import {
   updateDomainSettingsAction,
   removeDataSourceAction,
   updateRuleOverridesAction,
   updateSlackWebhookAction,
   testSlackWebhookAction,
+  rebindGscPropertyAction,
 } from "./actions";
 import { DataSourceForm } from "./data-source-form";
 
-export default async function DomainSettings({ params }: { params: Promise<{ host: string }> }) {
+type GscSavedState = "bound" | "rebound" | "unbound" | "unchanged" | "no_grant" | "no_match" | "failed";
+
+export default async function DomainSettings({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ host: string }>;
+  searchParams: Promise<{ saved?: string; gsc?: string; siteUrl?: string }>;
+}) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin");
   if ((await getPlan(session.user.id)) !== "pro") redirect("/pricing");
 
   const { host: rawHost } = await params;
   const host = decodeURIComponent(rawHost);
+  const sp = await searchParams;
+  const saved = sp.saved === "1";
+  const gscState = (sp.gsc ?? null) as GscSavedState | null;
+  const gscBoundSiteUrl = sp.siteUrl ?? null;
   const [domain] = await db.select().from(monitoredDomains)
     .where(and(
       eq(monitoredDomains.host, host),
@@ -52,6 +65,16 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
   const [dataSource] = await db.select().from(domainDataSources).where(eq(domainDataSources.domainId, domain.id)).limit(1);
   const [ruleOverride] = await db.select().from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domain.id)).limit(1);
 
+  // Suggested GSC match: when the domain is unbound but there is exactly
+  // one high-confidence GSC property for this host, surface it as a
+  // "Auto-bind" affordance + pre-select it in the dropdown so saving the
+  // form is a one-click bind. pickBestGscProperty returns null on tie or
+  // no match, so this is silent when ambiguous (the user picks manually).
+  const gscSuggestion =
+    gscConnected && !gscError && !domain.gscSiteUrl
+      ? pickBestGscProperty(gscSites, domain.host)
+      : null;
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <nav className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -62,6 +85,8 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
         <span className="text-foreground">Settings</span>
       </nav>
       <h1 className="text-xl font-medium">Settings — {domain.host}</h1>
+
+      <SaveFeedback saved={saved} gsc={gscState} siteUrl={gscBoundSiteUrl} />
 
       <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
         <input type="hidden" name="domainHost" value={domain.host} />
@@ -85,9 +110,23 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
           <input name="alertEmail" type="email" defaultValue={domain.alertEmail ?? ""} className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
         </label>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm font-medium">GSC property</span>
-          <span className="text-xs text-muted-foreground">Bind a Search Console property to weight findings by traffic-at-risk.</span>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <label htmlFor="gscSiteUrl" className="text-sm font-medium">GSC property</label>
+            {domain.gscSiteUrl ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-success">
+                <span className="inline-block h-1 w-1 rounded-full bg-success" />
+                Bound
+              </span>
+            ) : gscSuggestion ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary">
+                Match suggested
+              </span>
+            ) : null}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Bind a Search Console property to weight findings by traffic-at-risk.
+          </span>
           {!gscConnected ? (
             <p className="mt-1 text-xs">
               <Link href="/dashboard/integrations" className="text-primary hover:underline">Connect Search Console</Link>
@@ -98,23 +137,61 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
               Couldn&apos;t reach Google: {gscError}. <Link href="/dashboard/integrations" className="text-primary hover:underline">Re-connect</Link>?
             </p>
           ) : (
-            <select name="gscSiteUrl" defaultValue={domain.gscSiteUrl ?? ""}
-                    className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm">
-              <option value="">— unbound —</option>
-              {gscSites.map((s) => (
-                <option key={s.siteUrl} value={s.siteUrl}>{s.siteUrl}</option>
-              ))}
-            </select>
+            <>
+              <select
+                id="gscSiteUrl"
+                name="gscSiteUrl"
+                defaultValue={domain.gscSiteUrl ?? gscSuggestion ?? ""}
+                className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
+              >
+                <option value="">— unbound —</option>
+                {gscSites.map((s) => (
+                  <option key={s.siteUrl} value={s.siteUrl}>{s.siteUrl}</option>
+                ))}
+              </select>
+              {gscSuggestion && !domain.gscSiteUrl && (
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  Suggested: <code className="font-mono text-foreground">{gscSuggestion}</code>{" "}
+                  · save the form to bind, or pick a different property above.
+                </p>
+              )}
+            </>
           )}
           {gscConnected && !gscError && gscSites.length === 0 && (
             <p className="mt-1 text-xs text-muted-foreground">
               No verified properties found in this Google account.
             </p>
           )}
-        </label>
+        </div>
 
         <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>
       </form>
+
+      {/* Standalone "auto-bind" entry point for the case where GSC was
+          connected AFTER this domain was added (so the OAuth-callback
+          autobind pass already ran without seeing this row). Hidden when
+          there's nothing to do. */}
+      {gscConnected && !gscError && gscSites.length > 0 && (
+        <form
+          action={rebindGscPropertyAction}
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[14px] border border-border/60 bg-card/40 px-4 py-3"
+        >
+          <input type="hidden" name="domainHost" value={domain.host} />
+          <p className="text-xs text-muted-foreground">
+            {domain.gscSiteUrl
+              ? "Re-detect the matching property from your Search Console properties."
+              : gscSuggestion
+              ? "We found a matching property — bind it in one click."
+              : "Try matching this host against your Search Console properties."}
+          </p>
+          <button
+            type="submit"
+            className="inline-flex h-9 items-center rounded-[12px] border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary hover:bg-primary/15"
+          >
+            Auto-bind matching property
+          </button>
+        </form>
+      )}
 
       <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
         <header>
@@ -203,5 +280,107 @@ export default async function DomainSettings({ params }: { params: Promise<{ hos
         </form>
       </section>
     </div>
+  );
+}
+
+/**
+ * Transient banner that confirms what the previous server-action submit
+ * actually changed. Reads its state from the redirect query string so a
+ * page reload (without the params) silently dismisses it — same affordance
+ * as the GSC OAuth callback's `?gsc=connected&bound=…` banner.
+ */
+function SaveFeedback({
+  saved,
+  gsc,
+  siteUrl,
+}: {
+  saved: boolean;
+  gsc: GscSavedState | null;
+  siteUrl: string | null;
+}) {
+  if (!saved && !gsc) return null;
+
+  // Error / warning paths — these come from rebindGscPropertyAction and
+  // never carry saved=1 (the operation didn't change anything).
+  if (gsc === "no_grant") {
+    return (
+      <Banner tone="warning">
+        Search Console isn&apos;t connected yet —{" "}
+        <Link href="/dashboard/integrations" className="font-medium underline-offset-2 hover:underline">
+          connect it
+        </Link>{" "}
+        first, then re-run auto-bind.
+      </Banner>
+    );
+  }
+  if (gsc === "no_match") {
+    return (
+      <Banner tone="warning">
+        No verified Search Console property matches this host. Pick one
+        manually from the dropdown above, or re-verify the property in
+        Google Search Console.
+      </Banner>
+    );
+  }
+  if (gsc === "failed") {
+    return (
+      <Banner tone="destructive">
+        Couldn&apos;t reach Google to look up your properties. The grant may
+        have been revoked —{" "}
+        <Link href="/dashboard/integrations" className="font-medium underline-offset-2 hover:underline">
+          re-connect Search Console
+        </Link>
+        .
+      </Banner>
+    );
+  }
+
+  // Success paths — saved=1.
+  if (gsc === "bound" && siteUrl) {
+    return (
+      <Banner tone="success">
+        Settings saved · bound to <code className="font-mono text-xs">{siteUrl}</code>.
+        Findings will rank by traffic-at-risk on the next sync (~24h).
+      </Banner>
+    );
+  }
+  if (gsc === "rebound" && siteUrl) {
+    return (
+      <Banner tone="success">
+        Settings saved · re-bound to <code className="font-mono text-xs">{siteUrl}</code>.
+      </Banner>
+    );
+  }
+  if (gsc === "unbound") {
+    return (
+      <Banner tone="muted">
+        Settings saved · GSC property unbound. Findings rank by severity ×
+        pages until you bind a property again.
+      </Banner>
+    );
+  }
+  if (gsc === "unchanged" && saved) {
+    return <Banner tone="success">Settings saved.</Banner>;
+  }
+  return null;
+}
+
+function Banner({
+  tone,
+  children,
+}: {
+  tone: "success" | "warning" | "destructive" | "muted";
+  children: React.ReactNode;
+}) {
+  const cls =
+    tone === "success"
+      ? "border-success/30 bg-success/5 text-success"
+      : tone === "warning"
+      ? "border-warning/40 bg-warning/5 text-warning"
+      : tone === "destructive"
+      ? "border-destructive/40 bg-destructive/5 text-destructive"
+      : "border-border/60 bg-card/40 text-muted-foreground";
+  return (
+    <div className={`rounded-[14px] border px-4 py-3 text-sm ${cls}`}>{children}</div>
   );
 }

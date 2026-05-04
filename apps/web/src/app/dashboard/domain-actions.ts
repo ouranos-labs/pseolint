@@ -16,6 +16,8 @@ import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getPlan } from "@/lib/plan";
 import { auditLog } from "@/lib/audit-log";
 import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
+import { listSites, pickBestGscProperty } from "@/lib/gsc";
+import { integrations } from "@/db/schema";
 
 /**
  * Strip a leading "www." for case-insensitive host comparison. Watched URLs
@@ -101,11 +103,43 @@ export async function addDomainAction(
   // `force` is silently ignored — but watched pages can't exist yet on a
   // brand-new domain anyway. Forwarding for symmetry; harmless when empty.
   const [domRow] = await db
-    .select({ id: monitoredDomains.id })
+    .select({ id: monitoredDomains.id, gscSiteUrl: monitoredDomains.gscSiteUrl })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)))
     .limit(1);
   const watchedUrls = domRow ? await loadWatchedUrlsForDomain(domRow.id) : [];
+
+  // Auto-bind the matching GSC property if the user already granted us
+  // Search Console access. Best-effort: a failure (revoked perms,
+  // network) leaves the domain unbound and the per-host settings page
+  // surfaces a suggestion instead.
+  if (domRow && !domRow.gscSiteUrl) {
+    const [conn] = await db
+      .select({ id: integrations.id })
+      .from(integrations)
+      .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
+      .limit(1);
+    if (conn) {
+      try {
+        const sites = await listSites(session.user.id);
+        const pick = pickBestGscProperty(sites, host);
+        if (pick) {
+          await db.update(monitoredDomains)
+            .set({ gscSiteUrl: pick })
+            .where(eq(monitoredDomains.id, domRow.id));
+          auditLog("gsc.autobind.on_add", { userId: session.user.id, host, siteUrl: pick });
+        } else {
+          auditLog("gsc.autobind.on_add.no_match", { userId: session.user.id, host });
+        }
+      } catch (e) {
+        auditLog("gsc.autobind.on_add.failed", {
+          userId: session.user.id,
+          host,
+          err: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+  }
 
   await inngest.send({
     name: "audit/requested",
