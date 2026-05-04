@@ -26,6 +26,7 @@ import { headingStructureRule } from "./rules/content/heading-structure.js";
 import { imageAltTextRule } from "./rules/content/image-alt-text.js";
 import { translationNoOpRule } from "./rules/content/translation-no-op.js";
 import { regurgitatedContentRule } from "./rules/content/regurgitated-content.js";
+import { valueAddRule } from "./rules/content/value-add.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
@@ -473,6 +474,8 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/translation-no-op":{ baseImpact: 30, perInstance: 10, maxImpact: 60 },
   // v1 warning-severity heuristic; lower than translation-no-op since it's speculative
   "content/regurgitated-content": { baseImpact: 15, perInstance: 5, maxImpact: 35 },
+  // v0.5.8 composite per-page quality synthesis
+  "content/value-add":            { baseImpact: 25, perInstance: 8, maxImpact: 50 },
 
   // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
   // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
@@ -2334,6 +2337,20 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   }
 
   throwIfAborted();
+
+  // v0.5.8 — content/value-add composite: second-pass rule that reads from
+  // the full allFindings array to compute a per-page quality synthesis score.
+  // Must run AFTER all per-page rules so all source signals are present.
+  {
+    const isValueAddEnabled =
+      !suppressedRuleSet.has("content/value-add") &&
+      isRuleEnabled("content/value-add", undefined) &&
+      (auditMode === "full" || isRuleAllowedInDiff("content/value-add"));
+    if (isValueAddEnabled) {
+      const valueAddFindings = valueAddRule(parsedPages, allFindings);
+      allFindings.push(...valueAddFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    }
+  }
 
   // Enrich findings: cluster pairwise, detect templates, assign effort
   const enriched = enrichFindings(allFindings, parsedPages, {

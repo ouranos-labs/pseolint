@@ -1,0 +1,231 @@
+import { describe, expect, test } from "vitest";
+import { valueAddRule } from "../../../src/rules/content/value-add.js";
+import type { ParsedPage, RuleResult } from "../../../src/types.js";
+
+function page(url: string, overrides: Partial<ParsedPage> = {}): ParsedPage {
+  return {
+    url,
+    title: "",
+    metaDescription: "",
+    canonical: "",
+    robotsMeta: "",
+    og: { title: "", description: "", image: "" },
+    hreflangs: [],
+    headings: { h1: [], h2: [] },
+    resolvedHrefs: [],
+    structureSignature: "",
+    jsonLd: [],
+    authorSignals: { metaAuthor: "", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+    contentText: "",
+    html: "",
+    ...overrides,
+  };
+}
+
+function finding(ruleId: string, pageUrl: string, severity: RuleResult["severity"] = "error"): RuleResult {
+  return { ruleId, severity, message: "test", pageUrl };
+}
+
+describe("valueAddRule", () => {
+  test("all-good page (no rules fire) — score >= 0.5 — no finding", () => {
+    const p = page("https://example.com/good", {
+      authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+      resolvedHrefs: ["https://example.com/about"],
+      publishedDate: "2024-01-01",
+      html: "<p>Last updated: Jan 2024</p>",
+    });
+    const results = valueAddRule([p], []);
+    expect(results).toHaveLength(0);
+  });
+
+  test("empty findings array → all signals 1.0 → no finding", () => {
+    const p = page("https://example.com/empty");
+    const results = valueAddRule([p], []);
+    // No findings => originality=1, freshness=1, facts=1, eeat=0 (no signals), translation=1
+    // score = (1+1+1+0+1)/5 = 0.8 => no finding
+    expect(results).toHaveLength(0);
+  });
+
+  test("bestfirenze pattern — regurgitated-content + thin + no eeat — score < 0.5 — fires finding", () => {
+    const url = "https://bestfirenze.com/";
+    const p = page(url);
+    // o=0 (regurgitated), f=0.5 (freshness warning), c=0 (facts error), e=0 (no signals), t=1
+    // score = (0+0.5+0+0+1)/5 = 0.3 => error (not critical because 0.3 is not < 0.3)
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("aeo/freshness-signals", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("error");
+    expect(results[0].ruleId).toBe("content/value-add");
+    expect(results[0].pageUrl).toBe(url);
+    expect(results[0].confidence).toBe("medium");
+    expect(results[0].message).toContain("value-add score");
+    expect(results[0].message).toContain("SpamBrain");
+  });
+
+  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.3 — critical", () => {
+    const url = "https://bestfirenze.com/";
+    const p = page(url);
+    // o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1
+    // score = (0+0+0+0+1)/5 = 0.2 => critical
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("aeo/freshness-signals", url, "error"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("critical");
+    expect(results[0].message).toContain("SpamBrain");
+  });
+
+  test("mixed page (some signals good, some bad) — finding at error severity", () => {
+    const url = "https://example.com/mixed";
+    // originality=0 (regurgitated), freshness=1 (no finding), facts=1 (no finding),
+    // eeat=0 (no signals on page), translation=1 (no finding)
+    // score = (0+1+1+0+1)/5 = 0.6 → no finding
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+    ];
+    // With just regurgitated: o=0, f=1, c=1, e=0, t=1 => score=0.6 => no finding
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(0);
+  });
+
+  test("mixed page — regurgitated + no eeat + no freshness — score 0.3-0.5 — error finding", () => {
+    const url = "https://example.com/poor";
+    // originality=0, freshness=0 (error sev), facts=1, eeat=0, translation=1
+    // score = (0+0+1+0+1)/5 = 0.4 => error
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("error");
+  });
+
+  test("page with only translation-no-op firing — score 0.8 — no finding", () => {
+    const url = "https://example.com/en/page";
+    const p = page(url);
+    // translation-no-op: pageUrl is first URL, relatedUrls has others
+    const findings: RuleResult[] = [
+      {
+        ruleId: "content/translation-no-op",
+        severity: "error",
+        message: "test",
+        pageUrl: url,
+        relatedUrls: [],
+      },
+    ];
+    // originality=1, freshness=1, facts=1, eeat=0, translation=0
+    // score = (1+1+1+0+0)/5 = 0.6 => no finding
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(0);
+  });
+
+  test("translation-no-op matching via relatedUrls — translation=0", () => {
+    const primaryUrl = "https://example.com/page";
+    const relatedUrl = "https://example.com/fr/page";
+    const p = page(relatedUrl);
+    const findings: RuleResult[] = [
+      {
+        ruleId: "content/translation-no-op",
+        severity: "error",
+        message: "test",
+        pageUrl: primaryUrl,
+        relatedUrls: [relatedUrl],
+      },
+    ];
+    // The related page has translation=0; all others default to 1
+    // score = (1+1+1+0+0)/5 = 0.6 => no finding
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(0);
+  });
+
+  test("all signals bad — score 0 — critical finding with worst signal list", () => {
+    const url = "https://example.com/terrible";
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("aeo/citable-facts", url, "error"),
+      {
+        ruleId: "content/translation-no-op",
+        severity: "error",
+        message: "test",
+        pageUrl: url,
+        relatedUrls: [],
+      },
+    ];
+    // o=0, f=0, c=0, e=0, t=0 => score=0 => critical
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("critical");
+    expect(results[0].message).toContain("0%");
+  });
+
+  test("eeat fully present (4 categories) — eeat signal = 1.0", () => {
+    const url = "https://example.com/eeat-good";
+    const p = page(url, {
+      authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+      resolvedHrefs: ["https://example.com/about"],
+      publishedDate: "2024-01-01",
+      html: "<p>Last updated: Jan 2024</p>",
+    });
+    // No findings => o=1, f=1, c=1, e=1, t=1 => score=1.0 => no finding
+    const results = valueAddRule([p], []);
+    expect(results).toHaveLength(0);
+  });
+
+  test("eeat partially present (2-3 categories) — eeat signal = 0.5", () => {
+    const url = "https://example.com/partial-eeat";
+    const p = page(url, {
+      publishedDate: "2024-01-01",
+      authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+    });
+    // eeat=2 categories => 0.5; no findings => o=1,f=1,c=1,e=0.5,t=1 => mean=0.9 => no finding
+    const results = valueAddRule([p], []);
+    expect(results).toHaveLength(0);
+  });
+
+  test("freshness at info/warning severity — freshness = 0.5", () => {
+    const url = "https://example.com/stale";
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("aeo/freshness-signals", url, "warning"),
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/citable-facts", url, "error"),
+    ];
+    // o=0, f=0.5, c=0, e=0, t=1 => score=0.3 => error (0.3 is at boundary)
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    // score=0.3 → exactly at boundary → "error" (score < 0.5 but NOT < 0.3)
+    expect(results[0].severity).toBe("error");
+  });
+
+  test("finding only matches pageUrl of the page being scored, not other pages", () => {
+    const urlA = "https://example.com/a";
+    const urlB = "https://example.com/b";
+    const pA = page(urlA);
+    const pB = page(urlB);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", urlB, "warning"),
+      finding("aeo/citable-facts", urlB, "error"),
+      finding("aeo/freshness-signals", urlB, "error"),
+    ];
+    // urlA has no findings => o=1,f=1,c=1,e=0,t=1 => score=0.8 => no finding for A
+    const resultsA = valueAddRule([pA], findings);
+    expect(resultsA).toHaveLength(0);
+
+    // urlB has all bad signals => critical
+    const resultsB = valueAddRule([pB], findings);
+    expect(resultsB).toHaveLength(1);
+    expect(resultsB[0].severity).toBe("critical");
+  });
+});
