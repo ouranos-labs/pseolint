@@ -56,6 +56,44 @@ export type FindingContext =
       totalWordCount: number;
     };
 
+/** v0.6 — per-rule fire-rate variance within a template cluster. */
+export interface TemplateVariance {
+  /** Per-rule fire-rate within the template. e.g. {"spam/thin-content": 0.8} */
+  ruleFireRates: Record<string, number>;
+  /**
+   * Templates with high uniformity score have consistent quality across pages.
+   * Low uniformity = some pages pass, others fail (template is incomplete or
+   * data-quality-dependent). 0 to 1, higher = more uniform.
+   *
+   * Formula: 1 - mean(stdev(per-rule fire patterns across samples))
+   */
+  uniformityScore: number;
+  /** Worst-firing rule + its rate — surfaced in the template card UI. */
+  topDriver: { ruleId: string; fireRate: number } | null;
+}
+
+/** v0.6 — per-template audit breakdown. */
+export interface Template {
+  /** Stable identifier derived from URL pattern. e.g. "/listing/:slug" */
+  signature: string;
+  /** Cluster size in the discovered URL set (NOT the audit sample). */
+  totalUrls: number;
+  /** Total discovered URLs (denominator for coverage % calculation). */
+  totalDiscoveredUrls: number;
+  /** URLs actually audited for this template. */
+  auditedUrls: string[];
+  /** Per-template grade derived from per-URL findings within this template. */
+  verdict: Verdict;
+  /** Per-template risk score (0-100), independent of site-level risk. */
+  risk: number;
+  /** Per-template category grades. */
+  categories: CategoryGrades;
+  /** Variance metric — see spec §5. */
+  variance: TemplateVariance;
+  /** Finding IDs whose pageUrl is in auditedUrls. Reference, not duplication. */
+  findingIds: string[];
+}
+
 export interface RuleResult {
   ruleId: string;
   severity: Severity;
@@ -90,6 +128,12 @@ export interface RuleResult {
    * render a caveat in the message.
    */
   confidence?: Confidence;
+  /**
+   * v0.6 — which template the finding belongs to. Set for per-page rule
+   * firings; absent for site-level findings (cluster rules, cross-template
+   * rules, audit/* diagnostics).
+   */
+  template?: string;
   /**
    * v0.5+ change-driven monitoring. True when the finding was carried forward
    * from a prior audit because the page was skipped under monitoring mode (no
@@ -279,6 +323,13 @@ export interface AuditSummary {
   groupScores?: Record<string, number>;
   groupPageCounts?: Record<string, number>;
   pageCount: number;
+  /**
+   * v0.6 — per-template breakdown. Empty array on tiny sites where the
+   * classifier reports `unclear` or `small-marketing`; the per-URL
+   * findings list (below) carries everything.
+   * Additive: old code reading `findings` still works.
+   */
+  templates: Template[];
   /** True when the enrichment pipeline detects template-generated content. */
   templateDetected?: boolean;
   /** Pre-enrichment finding count, for backward compatibility with CI scripts. */

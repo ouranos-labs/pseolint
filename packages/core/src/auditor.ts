@@ -80,6 +80,7 @@ import type {
   ParsedPage,
   RuleResult,
   Severity,
+  Template,
   Verdict,
 } from "./types.js";
 import { SCHEMA_VERSION } from "./types.js";
@@ -96,6 +97,8 @@ import {
 } from "./state.js";
 import { CORE_RULESET_VERSION } from "./ruleset-version.js";
 import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
+import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring } from "./template-detection.js";
+import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -2404,6 +2407,30 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
+  // v0.6 — template detection + per-template scoring (opt-in, additive).
+  // Activation gating per spec §11.1 / §15.3:
+  //   - Site classification is NOT `unclear` AND NOT `small-marketing`
+  //   - detectTemplates returns ≥ 2 qualifying (non-longtail) templates
+  // Otherwise: legacy path, `templates` stays empty.
+  let siteTemplates: Template[] = [];
+  const canActivateV6 =
+    siteClassification.type !== "unclear" &&
+    siteClassification.type !== "small-marketing";
+
+  if (canActivateV6) {
+    const templateCandidates = detectTemplates(classifierUrls);
+    if (shouldActivateTemplateScoring(templateCandidates)) {
+      const urlToTemplate = buildUrlToTemplateMap(templateCandidates);
+      const totalDiscovered = classifierUrls.length;
+      siteTemplates = scoreTemplates(
+        enriched.findings,
+        templateCandidates,
+        urlToTemplate,
+        totalDiscovered,
+      );
+    }
+  }
+
   const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification, parsedPages.length);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
@@ -2438,6 +2465,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       crawlStats,
       auditFindings,
     },
+    templates: siteTemplates,
     groupScores: options?.pageGroups ? groupScores : undefined,
     groupPageCounts: options?.pageGroups ? groupPageCounts : undefined,
     pageCount: auditedPageCount || parsedPages.length,
