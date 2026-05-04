@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.4
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.4: new `content/translation-no-op` rule fires automatically on `pseolint scan` when locale-prefixed siblings share identical content. No CLI flag changes.
+
 ## 0.5.3
 
 ### Patch Changes

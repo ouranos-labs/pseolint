@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.4
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.4: new `content/translation-no-op` rule surfaces in the audit-tool output for sites with locale-prefixed sibling pages.
+
 ## 0.5.3
 
 ### Patch Changes

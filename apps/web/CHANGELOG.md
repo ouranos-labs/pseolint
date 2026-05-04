@@ -1,5 +1,11 @@
 # @pseolint/web
 
+## 0.0.8
+
+### Patch Changes
+
+- `/api/audits` POST handler: Pro branch now uses the shared `assertProAuditAllowed` helper from `lib/audit-gate.ts` (introduced in v0.5.3). Removes ~40 LOC of inline gate duplication. Anon and free branches stay inline (different gate combinations). Status codes and response bodies unchanged; one Pro in-flight 429 message no longer interpolates `(count/limit)` since the helper doesn't surface those values (no test asserts the exact body). Picks up `@pseolint/core` 0.5.4 with the new `content/translation-no-op` rule.
+
 ## 0.0.7
 
 ### Patch Changes

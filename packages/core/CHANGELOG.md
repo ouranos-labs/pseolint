@@ -1,5 +1,11 @@
 # @pseolint/core
 
+## 0.5.4
+
+### Patch Changes
+
+- New rule `content/translation-no-op` for cross-language identical-content detection. When sibling pages share locale-path differences (e.g. `/en` `/fr` `/it` `/de` `/es` of the same template) but body content is ≥95% similar, fire as `error` severity with category `content` (bucket `integrity`). Catches the bestfirenze.com pattern at the rule level, complementing the v0.5.3 classifier degeneration guard. RULE_IMPACTS: `baseImpact: 30, perInstance: 10, maxImpact: 60`. 8 new unit tests covering positive (5 identical locale variants → 1 finding), negative (translated content with similarity < 0.95 → no finding), edge cases (single variant, non-locale-prefixed siblings, root template collapse).
+
 ## 0.5.3
 
 ### Patch Changes
