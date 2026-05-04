@@ -1,3 +1,4 @@
+import "server-only";
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "@/lib/env";
 

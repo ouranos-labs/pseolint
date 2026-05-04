@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from "zod";
 
 /** Treat `KEY=` in .env as unset so `.optional()` and omitted keys behave correctly. */

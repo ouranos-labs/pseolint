@@ -1,3 +1,4 @@
+import "server-only";
 import { Inngest, EventSchemas } from "inngest";
 import { devFlags } from "@/lib/dev-flags";
 

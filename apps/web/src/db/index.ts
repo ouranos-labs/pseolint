@@ -1,3 +1,4 @@
+import "server-only";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool } from "@neondatabase/serverless";
 import { env } from "@/lib/env";

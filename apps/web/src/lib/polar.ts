@@ -1,3 +1,4 @@
+import "server-only";
 import { Polar } from "@polar-sh/sdk";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";

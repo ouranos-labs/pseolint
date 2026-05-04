@@ -1,3 +1,4 @@
+import "server-only";
 import { headers, cookies } from "next/headers";
 import { nanoid } from "nanoid";
 import { auth } from "@/lib/auth";
