@@ -189,19 +189,22 @@ export default function RulesIndexPage() {
         </h2>
         <p>
           The rule set clusters around the major axes Google&apos;s SpamBrain
-          classifier scores against. Spam/* (8 rules) covers the patterns that
-          triggered the March 5, 2024 scaled-content-abuse update — thin
-          content under 300 words, doorway clusters with shared boilerplate,
-          near-duplicate templates with &gt;85% lexical overlap, templates
-          that don&apos;t vary their structural skeleton, and corpus-aware
-          publication-velocity (the threshold scales with corpus size in
-          v0.5.1, so a 50,000-page directory and a 50-page blog get
-          appropriate cutoffs). Content/* (4 rules) checks unique value,
-          meta-description uniqueness after entity masking, author signals,
-          and E-E-A-T markers. Aeo/* (8 rules, shipped April 21, 2026) audits
-          answer-engine readiness — citable facts, atomic Q&amp;A blocks,
-          freshness signals, AI-crawler access, and the things Perplexity,
-          ChatGPT, and Google&apos;s AI Overviews actually extract.
+          classifier scores against. Spam/* (8 rules) covers the patterns the
+          March 27, 2026 core update demotes most aggressively — the most
+          recent classifier shift to hit pSEO, tightening scaled-content
+          signals on date-stacked corpora — building on the March 5, 2024
+          scaled-content-abuse update that first targeted thin content under
+          300 words, doorway clusters with shared boilerplate, near-duplicate
+          templates with &gt;85% lexical overlap, templates that don&apos;t
+          vary their structural skeleton, and corpus-aware publication-velocity
+          (the threshold scales with corpus size in v0.5.1, so a 50,000-page
+          directory and a 50-page blog get appropriate cutoffs). Content/*
+          (4 rules) checks unique value, meta-description uniqueness after
+          entity masking, author signals, and E-E-A-T markers. Aeo/* (8 rules,
+          shipped April 21, 2026) audits answer-engine readiness — citable
+          facts, atomic Q&amp;A blocks, freshness signals, AI-crawler access,
+          and the things Perplexity, ChatGPT, and Google&apos;s AI Overviews
+          actually extract.
         </p>
         <p>
           The remaining categories are links/* (6 rules — orphan pages, dead

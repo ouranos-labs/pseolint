@@ -115,12 +115,13 @@ export default function ToolsIndexPage() {
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">
             Programmatic-SEO sites (template-driven content at scale) and AI Overview
-            readiness — SpamBrain triggers from the March 5, 2024 scaled-content-abuse
-            update, the May 7, 2024 site-reputation-abuse policy (now detected by
-            <code className="font-mono">links/host-section-divergence</code>),
-            the March 27, 2026 core update that tightened scaled-content signals on
-            date-stacked corpora, plus the AEO patterns that determine ChatGPT,
-            Perplexity, and Google AI Overview citations.
+            readiness — SpamBrain triggers from the March 27, 2026 core update that
+            tightened scaled-content signals on date-stacked corpora (the most recent
+            classifier shift to demote pSEO sites), the May 7, 2024 site-reputation-abuse
+            policy (now detected by{" "}
+            <code className="font-mono">links/host-section-divergence</code>), the March
+            5, 2024 scaled-content-abuse update, plus the AEO patterns that determine
+            ChatGPT, Perplexity, and Google AI Overview citations.
           </p>
         </div>
         <div>
