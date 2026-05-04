@@ -79,7 +79,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const plan: "free" | "pro" | null = session ? await getPlan(session.user.id) : null;
   return (
     <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
-      <body className="relative flex min-h-screen flex-col bg-background pt-14 font-sans text-foreground antialiased">
+      <body className="relative flex min-h-screen flex-col bg-background font-sans text-foreground antialiased">
         <SiteNav signedIn={ !!session } email={ session?.user.email } plan={ plan } />
         <div className="relative flex-1">{ children }</div>
         <script
@@ -96,7 +96,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string; plan: "free" | "pro" | null }) {
   const navLinkClass = "hidden rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:inline-flex";
   return (
-    <nav className="fixed inset-x-0 top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
