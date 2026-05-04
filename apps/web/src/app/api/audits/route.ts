@@ -16,7 +16,8 @@ import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
 import { publicSlug } from "@/lib/slug";
 import { clientIp } from "@/lib/ip";
-import { reserveAnonAuditSlot, pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
+import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
+import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export const runtime = "nodejs";
