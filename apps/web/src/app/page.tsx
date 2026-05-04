@@ -313,9 +313,11 @@ export default function Home() {
               <p className="mt-3 text-sm leading-relaxed text-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
                 and AI Overview readiness. It catches the SpamBrain-classifier triggers from the
-                March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse
-                policy + the AEO patterns that determine whether ChatGPT, Perplexity, and Google
-                AI Overviews cite your pages.
+                March 27, 2026 core update — which tightened scaled-content signals on
+                date-stacked corpora and is the most recent classifier shift to demote pSEO sites
+                — plus the May 7, 2024 site-reputation-abuse policy, the March 5, 2024
+                scaled-content-abuse update, and the AEO patterns that determine whether ChatGPT,
+                Perplexity, and Google AI Overviews cite your pages.
               </p>
               <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Use it when
@@ -471,7 +473,7 @@ export default function Home() {
               Pro tier: <span className="text-foreground">$19</span> per month for per-domain change-driven monitoring (re-fetches only URLs with evidence of change — sitemap lastmod, prior warnings, age-floor) with <span className="text-foreground">50 audits</span> per day and unlimited trend history.
             </li>
             <li>
-              Detection maps to current Google policy: SpamBrain was rebuilt in 2022, the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), and the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora.
+              Detection maps to current Google policy, leading with what hit pSEO most recently: the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the 2022 SpamBrain rebuild that moved enforcement from manual review to silent classifier-time suppression.
             </li>
             <li>
               Crawler defaults: a hard 50 MB bandwidth cap per audit, 5 parallel fetches, full <code className="font-mono text-foreground">robots.txt</code> respect including <code className="font-mono text-foreground">Crawl-delay</code> capped at <span className="text-foreground">2 minutes</span>.
