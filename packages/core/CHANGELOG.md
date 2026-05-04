@@ -1,5 +1,13 @@
 # @pseolint/core
 
+## 0.5.7
+
+### Patch Changes
+
+- **Cheerio refactor for `content/regurgitated-content`** — replaced 4 fragile HTML-structure regexes (`IMG_SRC_RE`, `IFRAME_SRC_RE`, `REVIEW_BLOCK_RE`, `GOOGLE_MAPS_NOOPENER_RE`) with cheerio DOM selectors. Eliminates catastrophic-backtracking risk on adversarial HTML and fixes false-positives where the literal "Powered by Google" text appears inside an attribute value. Behavior on existing fixtures unchanged.
+- **Bestfirenze.com regression test** — new calibration test at `tests/calibration/bestfirenze-regression.test.ts` guarding the v0.5.3-v0.5.6 stack end-to-end on a known-degenerate site (6-page directory, 0 unique content per page across `/en` `/fr` `/it` `/de` `/es`). Asserts: classifier guard trips → `unclear`, no severity demotions, `spam/thin-content` fires at native error, `content/translation-no-op` correctly skips (30-word floor), `content/regurgitated-content` fires, risk floors at ≥60, verdict ≥ concerning. +10 assertions.
+- **Reputable-corpus sweep documentation** at `docs/superpowers/calibration/2026-05-04-v0.5.7-sweep.md` — zero verdict drift on currently-passing reputable sites (G2, Wise, Webflow, Jasper, Ramp); new translation-no-op + regurgitated-content rules don't fire on any reputable site (no false-positive exposure on current corpus); blocker density floor adds ≤1 point to Wise (0.16 ratio). Two threshold tweaks recommended for future review (not applied): `content/title-uniqueness` demotion in `unclear`/`programmatic-directory` profiles; per-profile severity for `content/translation-no-op` on `programmatic-directory` (multilingual catalogs).
+
 ## 0.5.6
 
 ### Patch Changes

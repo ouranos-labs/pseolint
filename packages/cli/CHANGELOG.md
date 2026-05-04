@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.7
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.7: `content/regurgitated-content` now uses cheerio for DOM traversal (no behavior change); bestfirenze.com regression test added to the calibration suite; reputable-corpus sweep doc shipped.
+
 ## 0.5.6
 
 ### Patch Changes

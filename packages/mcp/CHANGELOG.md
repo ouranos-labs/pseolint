@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.7
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.7: cheerio-based DOM traversal in `content/regurgitated-content` rule (security + correctness); bestfirenze regression test added.
+
 ## 0.5.6
 
 ### Patch Changes
