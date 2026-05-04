@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.8
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.8: new `content/value-add` composite rule shows up in audit-tool output for low-value-add pages.
+
 ## 0.5.7
 
 ### Patch Changes

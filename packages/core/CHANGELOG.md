@@ -1,5 +1,14 @@
 # @pseolint/core
 
+## 0.5.8
+
+### Patch Changes
+
+- **New rule `content/value-add`** — composite that aggregates 5 existing signals into a single 0-1 per-page quality score: originality (1.0 if `content/regurgitated-content` doesn't fire), freshness (`aeo/freshness-signals`), citable facts (`aeo/citable-facts`), E-E-A-T (`content/eeat-signals`), translation completeness (`content/translation-no-op`). Each signal weighted equally. Missing signals treated as 1.0 (best-case) — the rule only penalises *confirmed* problems, not absence of evidence.
+- **Severity bands**: score < 0.3 → critical, 0.3 ≤ score < 0.5 → error, ≥ 0.5 → no finding (no noise on already-clean pages).
+- **Architecture**: second-pass design — `valueAddRule(pages, allFindings)` runs after the per-rule loop assembles findings. Doesn't re-parse pages; reads existing finding tags. Same `suppressedRuleSet` / `isRuleEnabled` guards as other rules.
+- **Calibration**: bestfirenze regression test confirms the rule fires critical on its degenerate pages. Reputable corpus (G2, Wise, Webflow, Jasper, Ramp) — zero new findings; pre-existing 4 calibration failures unchanged. RULE_IMPACTS: `baseImpact: 25, perInstance: 8, maxImpact: 50`. 13 new tests.
+
 ## 0.5.7
 
 ### Patch Changes

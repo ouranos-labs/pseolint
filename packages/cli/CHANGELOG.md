@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.8
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.8: new `content/value-add` composite rule fires automatically on `pseolint scan` when the per-page quality score lands below 0.5.
+
 ## 0.5.7
 
 ### Patch Changes

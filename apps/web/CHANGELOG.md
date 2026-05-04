@@ -1,5 +1,13 @@
 # @pseolint/web
 
+## 0.0.9
+
+### Patch Changes
+
+- **GSC live integration completed.** The rich GSC card on the per-domain dashboard (monthly trend, top templates, weighted-avg position, CTR) now renders live data for all connected GSC integrations. The card was already wired to query `gsc_page_metrics` and the daily Inngest cron (`sync-gsc.ts`, schedule `0 2 * * *` UTC) was already populating the table — but the 4 computed values were dropped at the `GscStatusStrip` callsite; one prop-wiring fix activates the rich variant.
+- **On-demand GSC refresh.** New `POST /api/gsc/refresh/[host]` route fires a `gsc/sync-requested` Inngest event, handled by a new event-driven `sync-gsc-on-demand.ts` function. Rate-limited to 1/hour per user-host (effectively daily — bumpRateLimit's day-scoped key) to respect Google's 1200 QPD quota. Backed by a shared `lib/gsc-sync-core.ts` so cron and on-demand share the upsert path.
+- 5 new tests in `tests/integration/gsc-sync.test.ts` covering the full error surface of `syncOneDomain` (auth refresh failures, 429 backoff, empty response, partial chunk, total quota exhaustion).
+
 ## 0.0.8
 
 ### Patch Changes
