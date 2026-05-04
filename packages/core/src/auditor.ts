@@ -24,6 +24,7 @@ import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { titleUniquenessRule } from "./rules/content/title-uniqueness.js";
 import { headingStructureRule } from "./rules/content/heading-structure.js";
 import { imageAltTextRule } from "./rules/content/image-alt-text.js";
+import { translationNoOpRule } from "./rules/content/translation-no-op.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
@@ -468,6 +469,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/title-uniqueness": { baseImpact: 8,  perInstance: 2,  maxImpact: 25 }, // 2026-05-03 round 11: title is high-impact but the original 50-cap was disproportionate to other content rules and tipped Typeform into critical on a 6-finding cluster. Keep the rule at native error severity (duplicate titles ARE real bugs); just don't let one rule dominate the integrity bucket.
   "content/heading-structure":{ baseImpact: 5,  perInstance: 1,  maxImpact: 20 },
   "content/image-alt-text":   { baseImpact: 3,  perInstance: 1,  maxImpact: 20 },
+  "content/translation-no-op":{ baseImpact: 30, perInstance: 10, maxImpact: 60 },
 
   // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
   // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
@@ -761,6 +763,9 @@ function runRulesOnPages(
   }
   if (isEnabled("content/image-alt-text") && modeOk("content/image-alt-text")) {
     findings.push(...tag(imageAltTextRule(pages)));
+  }
+  if (isEnabled("content/translation-no-op") && modeOk("content/translation-no-op")) {
+    findings.push(...tag(translationNoOpRule(pages)));
   }
 
   // Link rules — use the global link graph
