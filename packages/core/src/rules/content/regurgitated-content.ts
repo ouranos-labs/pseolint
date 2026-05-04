@@ -1,4 +1,5 @@
-﻿import type { ParsedPage, RuleResult } from "../../types.js";
+import * as cheerio from "cheerio";
+import type { ParsedPage, RuleResult } from "../../types.js";
 
 const RULE_ID = "content/regurgitated-content";
 
@@ -11,8 +12,8 @@ const RULE_ID = "content/regurgitated-content";
  * External corpus checks (Wikipedia / Tripadvisor n-gram overlap) deferred to v0.6.
  */
 
+// Text-search regexes — kept as-is (no DOM-parsing fragility).
 const GOOGLE_ATTRIBUTION_RE = /powered by google/i;
-const GOOGLE_MAPS_NOOPENER_RE = /<a\b[^>]*href\s*=\s*["'][^"']*google\.com\/maps[^"']*["'][^>]*>/i;
 
 const GOOGLE_IMG_HOSTS = [
   "googleusercontent.com",
@@ -27,11 +28,8 @@ const MAPS_EMBED_SRC_RE = /(?:maps\.google\.com|google\.com\/maps)\/embed/i;
 const PLACES_API_JS_RE =
   /google\.maps\.places\.(?:Service|PlacesService|AutocompleteService)|places\.PlacesService\b/;
 
-const IMG_SRC_RE = /<img\b[^>]*src\s*=\s*["']([^"']*)["'][^>]*>/gi;
-const IFRAME_SRC_RE = /<iframe\b[^>]*src\s*=\s*["']([^"']*)["'][^>]*>/gi;
 // Star-rating patterns: Unicode stars (U+2605, U+2606, U+2729), HTML entities,
 // fraction-of-five numerics (4.5/5), or the literal word "stars".
-const REVIEW_BLOCK_RE = /<(?:div|li|article|section)\b[^>]*>(?:(?!<\/(?:div|li|article|section)>).)*?(?:&#9733;|&#9734;|★|☆|✩|\d+(?:\.\d+)?\/5|\d+\s*stars?)(?:(?!<\/(?:div|li|article|section)>).)*?<\/(?:div|li|article|section)>/gi;
 const STAR_RATING_RE = /&#9733;|&#9734;|★|☆|✩|\d+(?:\.\d+)?\/5|\d+\s*stars?/i;
 
 const MIN_IMAGES_FOR_RATIO_CHECK = 3;
@@ -43,47 +41,37 @@ interface SignalResult {
   label: string;
 }
 
-function checkGoogleAttribution(html: string): SignalResult {
+function checkGoogleAttribution($: cheerio.CheerioAPI): SignalResult {
   const label = "Google Places attribution";
-  if (GOOGLE_ATTRIBUTION_RE.test(html)) return { fired: true, label };
-  const m = html.match(GOOGLE_MAPS_NOOPENER_RE);
-  if (m && /rel\s*=\s*["'][^"']*noopener[^"']*["']/i.test(m[0])) {
-    return { fired: true, label };
-  }
-  return { fired: false, label };
-}
-
-function extractImgSrcs(html: string): string[] {
-  const srcs: string[] = [];
-  let m: RegExpExecArray | null;
-  const re = new RegExp(IMG_SRC_RE.source, "gi");
-  while ((m = re.exec(html)) !== null) {
-    if (m[1]) srcs.push(m[1]);
-  }
-  return srcs;
+  if (GOOGLE_ATTRIBUTION_RE.test($.text())) return { fired: true, label };
+  const hasAnchor = $('a[href*="google.com/maps"][rel*="noopener"]').length > 0;
+  return { fired: hasAnchor, label };
 }
 
 function isGoogleImgHost(src: string): boolean {
   return GOOGLE_IMG_HOSTS.some((host) => src.includes(host));
 }
 
-function checkGoogleImagesDominate(html: string): SignalResult {
+function checkGoogleImagesDominate($: cheerio.CheerioAPI): SignalResult {
   const label = "Google-hosted images dominate (>=60%)";
-  const srcs = extractImgSrcs(html);
+  const srcs = $("img[src]")
+    .map((_, el) => $(el).attr("src") ?? "")
+    .get()
+    .filter(Boolean);
   if (srcs.length < MIN_IMAGES_FOR_RATIO_CHECK) return { fired: false, label };
   const googleCount = srcs.filter(isGoogleImgHost).length;
   return { fired: googleCount / srcs.length >= GOOGLE_IMG_RATIO_THRESHOLD, label };
 }
 
-function checkStaticMapsEmbed(html: string): SignalResult {
+function checkStaticMapsEmbed($: cheerio.CheerioAPI, html: string): SignalResult {
   const label = "Google Static Maps or Maps embed";
   if (STATIC_MAP_SRC_RE.test(html)) return { fired: true, label };
-  let m: RegExpExecArray | null;
-  const re = new RegExp(IFRAME_SRC_RE.source, "gi");
-  while ((m = re.exec(html)) !== null) {
-    if (m[1] && MAPS_EMBED_SRC_RE.test(m[1])) return { fired: true, label };
-  }
-  return { fired: false, label };
+  const hasEmbedIframe =
+    $("iframe[src]")
+      .map((_, el) => $(el).attr("src") ?? "")
+      .get()
+      .some((src) => MAPS_EMBED_SRC_RE.test(src));
+  return { fired: hasEmbedIframe, label };
 }
 
 function checkPlacesApiJs(html: string): SignalResult {
@@ -99,19 +87,13 @@ function eeatSignalCount(page: ParsedPage): number {
   return n;
 }
 
-function checkAggregatorFootprint(html: string, eeat: number): SignalResult {
+function checkAggregatorFootprint($: cheerio.CheerioAPI, eeat: number): SignalResult {
   const label = "Aggregator footprint (5+ review blocks, no author signal)";
   if (eeat >= 2) return { fired: false, label };
-  let count = 0;
-  const re = new RegExp(REVIEW_BLOCK_RE.source, "gi");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html)) !== null) {
-    if (STAR_RATING_RE.test(m[0])) {
-      count += 1;
-      if (count >= MIN_REVIEW_BLOCKS) return { fired: true, label };
-    }
-  }
-  return { fired: false, label };
+  const count = $("div, li, article, section")
+    .filter((_, el) => STAR_RATING_RE.test($(el).text()))
+    .length;
+  return { fired: count >= MIN_REVIEW_BLOCKS, label };
 }
 
 export function regurgitatedContentRule(pages: ParsedPage[]): RuleResult[] {
@@ -120,13 +102,14 @@ export function regurgitatedContentRule(pages: ParsedPage[]): RuleResult[] {
     const html = page.html ?? "";
     if (!html) continue;
 
+    const $ = cheerio.load(html);
     const eeat = eeatSignalCount(page);
     const signals: SignalResult[] = [
-      checkGoogleAttribution(html),
-      checkGoogleImagesDominate(html),
-      checkStaticMapsEmbed(html),
+      checkGoogleAttribution($),
+      checkGoogleImagesDominate($),
+      checkStaticMapsEmbed($, html),
       checkPlacesApiJs(html),
-      checkAggregatorFootprint(html, eeat),
+      checkAggregatorFootprint($, eeat),
     ];
 
     const fired = signals.filter((s) => s.fired);
