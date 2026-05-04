@@ -44,19 +44,23 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   aiKey?: { provider: string; model: string | null; apiKey: string };
   dataRecords?: PageDataRecord[];
   ruleOverrides?: NonNullable<AuditOptions["rules"]>;
+  gentleAuditMode: boolean;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
     .from(audits)
     .where(eq(audits.id, auditId))
     .limit(1);
-  if (!audit || !audit.userId) return {};
+  if (!audit || !audit.userId) return { gentleAuditMode: false };
 
   let host: string;
-  try { host = new URL(audit.sourceUrl).host; } catch { return {}; }
+  try { host = new URL(audit.sourceUrl).host; } catch { return { gentleAuditMode: false }; }
 
   const [domainRow, keyRow] = await Promise.all([
-    db.select({ id: monitoredDomains.id })
+    db.select({
+      id: monitoredDomains.id,
+      gentleAuditMode: monitoredDomains.gentleAuditMode,
+    })
       .from(monitoredDomains)
       .where(and(
         eq(monitoredDomains.userId, audit.userId),
@@ -72,8 +76,10 @@ async function loadAuditEnrichments(auditId: string): Promise<{
 
   let dataRecords: PageDataRecord[] | undefined;
   let ruleOverrides: NonNullable<AuditOptions["rules"]> | undefined;
+  let gentleAuditMode = false;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
+    gentleAuditMode = domainRow[0].gentleAuditMode === true;
     const [ds, rover] = await Promise.all([
       db.select({ records: domainDataSources.records }).from(domainDataSources).where(eq(domainDataSources.domainId, domainId)).limit(1),
       db.select({ overrides: domainRuleOverrides.overrides }).from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domainId)).limit(1),
@@ -90,7 +96,28 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode };
+}
+
+/**
+ * Audit-time origin-degradation thresholds. Default mode mirrors the engine's
+ * built-in defaults (5 parallel fetches, no extra sample cap). Gentle mode
+ * halves concurrency and caps the sample so a small / un-CDN'd origin doesn't
+ * cascade into 5xx territory under our crawl. The engine's BackpressureMonitor
+ * still fires if the origin truly degrades, but is much less likely to trip
+ * because we're putting less load on it in the first place.
+ */
+const GENTLE_CONCURRENCY = 2;
+const GENTLE_SAMPLE_CAP = 200;
+function applyGentleProfile(args: {
+  gentle: boolean;
+  sampleSize: number;
+}): { sampleSize: number; concurrency: number | undefined } {
+  if (!args.gentle) return { sampleSize: args.sampleSize, concurrency: undefined };
+  return {
+    sampleSize: args.sampleSize > 0 ? Math.min(args.sampleSize, GENTLE_SAMPLE_CAP) : GENTLE_SAMPLE_CAP,
+    concurrency: GENTLE_CONCURRENCY,
+  };
 }
 
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
@@ -102,7 +129,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
 
@@ -115,6 +142,20 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       : plan === "pro"
         ? { enabled: true, maxCostUsd: MAX_COST_USD }
         : undefined;
+
+    // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
+    // sample to 200 — easier on small origins and less likely to trip the
+    // engine's BackpressureMonitor.
+    const gentleProfile = applyGentleProfile({ gentle: gentleAuditMode, sampleSize });
+    const effectiveSampleSize = gentleProfile.sampleSize;
+    const effectiveConcurrency = gentleProfile.concurrency;
+    if (gentleAuditMode) {
+      auditLog("audit.gentle_mode_applied", {
+        auditId,
+        sampleSize: effectiveSampleSize,
+        concurrency: effectiveConcurrency ?? null,
+      });
+    }
 
     // v0.4.2 — preflight framework detection so the audit can layer
     // framework-idiomatic ignore patterns on top of WEB_AUDIT_DEFAULT_IGNORE.
@@ -141,14 +182,13 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       }
     });
 
-    summary = await runStep("audit", async () => auditSource(url, {
-      sampleSize,
-      mode,
-      state,
-      // v0.5.3 watched pages — caller-supplied force-refetch URLs short-circuit
-      // diff-mode skip in monitoring runs. Engine ignores `force` in fresh
-      // audits without prior state (documented limitation, not a v0.5.3 blocker).
-      force,
+    const buildAuditCall = (opts: { sampleSize: number; concurrency: number | undefined }) => () =>
+      auditSource(url, {
+        sampleSize: opts.sampleSize,
+        ...(opts.concurrency != null && { concurrency: opts.concurrency }),
+        mode,
+        state,
+        force,
       // 2026-05-03 production fix: hosted audits MUST run with
       // safeMode: "saas" so user-submitted URLs are forced through the
       // SSRF guard, robots.txt is honoured, and per-run caps
@@ -175,7 +215,38 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       respectNoindex: true,
       skipDetectedAuth: true,
       ai,
-    }));
+    });
+
+    // First attempt: configured profile (gentle if domain is opted in,
+    // otherwise the audit's normal sample/concurrency).
+    try {
+      summary = await runStep("audit", buildAuditCall({
+        sampleSize: effectiveSampleSize,
+        concurrency: effectiveConcurrency,
+      }));
+    } catch (firstErr) {
+      // Auto-retry once on origin degradation. Theory: the warmup window
+      // primes whatever cache the origin had cold; halving concurrency
+      // and sampleSize drops the steady-state load enough that the second
+      // pass usually succeeds. We only retry the OriginDegradedError —
+      // every other error (SSRF, parse, network) is genuine and rethrown.
+      const isDegraded = firstErr instanceof Error && firstErr.name === "OriginDegradedError";
+      if (!isDegraded) throw firstErr;
+
+      const retrySample = Math.max(50, Math.floor(effectiveSampleSize > 0 ? effectiveSampleSize / 2 : GENTLE_SAMPLE_CAP / 2));
+      const retryConcurrency = Math.max(1, Math.floor((effectiveConcurrency ?? 5) / 2));
+      auditLog("audit.degraded.retrying", {
+        auditId,
+        firstErr: firstErr.message,
+        retrySampleSize: retrySample,
+        retryConcurrency,
+      });
+      summary = await runStep("audit-retry", buildAuditCall({
+        sampleSize: retrySample,
+        concurrency: retryConcurrency,
+      }));
+      auditLog("audit.degraded.retry_succeeded", { auditId });
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "audit failed";
     await db.update(audits).set({

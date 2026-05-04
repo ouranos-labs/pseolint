@@ -58,7 +58,10 @@ export type AuditLogEvent =
   | "watched_page.added"
   | "watched_page.removed"
   | "watched_page.cap_reached"
-  | "settings.domain.updated";
+  | "settings.domain.updated"
+  | "audit.gentle_mode_applied"
+  | "audit.degraded.retrying"
+  | "audit.degraded.retry_succeeded";
 
 type Payload = Record<string, unknown>;
 

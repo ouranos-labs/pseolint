@@ -129,32 +129,156 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
           })}
         </ul>
 
-        {err && (
-          <div className="m-6 mt-0 flex flex-col gap-4 rounded-[18px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
-            <p className="text-destructive">{err}</p>
-            <p className="text-xs text-muted-foreground">
-              Common causes: the site blocked our crawler, the URL isn&apos;t reachable, or it
-              served no indexable pages. Try a different URL or the root domain.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href={sourceUrl ? `/?prefill=${encodeURIComponent(sourceUrl)}` : "/"}
-                className="inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-              >
-                Try again
-              </Link>
-              <Link
-                href="/"
-                className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-              >
-                Back to home
-              </Link>
-            </div>
-          </div>
-        )}
+        {err && <AuditErrorBlock err={err} sourceUrl={sourceUrl} />}
       </div>
     </main>
   );
+}
+
+/**
+ * Renders the audit's failure state. Detects OriginDegradedError specifically
+ * and replaces the engine's technical message with a structured explanation
+ * plus three concrete next steps the user can act on. All other failures fall
+ * through to the generic "common causes" block.
+ */
+function AuditErrorBlock({ err, sourceUrl }: { err: string; sourceUrl: string | null }) {
+  const isDegraded = /Origin looks degraded|OriginDegradedError/i.test(err);
+
+  // Pull the diagnostic numbers if the engine produced its formatted message.
+  // Format is: "...p95=NNNms, baseline=NNNms, 5xx=NN%, fetches=NN."
+  const diag = isDegraded ? parseDegradationDiagnostics(err) : null;
+  const tryAgainHref = sourceUrl ? `/?prefill=${encodeURIComponent(sourceUrl)}` : "/";
+  const settingsHref = sourceUrl
+    ? (() => {
+        try {
+          const host = new URL(sourceUrl).host;
+          return `/dashboard/${encodeURIComponent(host)}/settings`;
+        } catch { return null; }
+      })()
+    : null;
+
+  if (isDegraded) {
+    return (
+      <div className="m-6 mt-0 flex flex-col gap-4 rounded-[18px] border border-warning/40 bg-warning/5 p-5 text-sm">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-warning">
+            audit aborted · origin protection
+          </p>
+          <p className="mt-1.5 text-foreground">
+            We stopped the crawl because your origin slowed down significantly while we
+            were auditing — typically a sign the cache went cold or the site started
+            rate-limiting us. The audit is paused, not penalised; nothing was charged.
+          </p>
+        </div>
+        {diag && (
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-[12px] border border-warning/25 bg-background/40 px-3 py-2.5 text-xs sm:grid-cols-4">
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">Baseline p95</dt>
+              <dd className="mt-0.5 font-mono tabular-nums text-foreground">{diag.baseline}ms</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">Rolling p95</dt>
+              <dd className="mt-0.5 font-mono tabular-nums text-warning">{diag.p95}ms</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">5xx rate</dt>
+              <dd className="mt-0.5 font-mono tabular-nums text-foreground">{diag.errorPct}%</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wider text-muted-foreground">Fetches</dt>
+              <dd className="mt-0.5 font-mono tabular-nums text-foreground">{diag.fetches}</dd>
+            </div>
+          </dl>
+        )}
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            What to do next
+          </p>
+          <ul className="mt-1.5 flex flex-col gap-1.5 text-xs text-foreground/90">
+            <li className="flex gap-2">
+              <span className="mt-[3px] inline-block h-1 w-1 shrink-0 rounded-full bg-warning/70" />
+              <span>
+                <span className="font-medium">Warm the cache.</span>{" "}
+                Visit a few pages once so your CDN / origin caches them, then re-run the audit.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-[3px] inline-block h-1 w-1 shrink-0 rounded-full bg-warning/70" />
+              <span>
+                <span className="font-medium">Enable Gentle audit mode.</span>{" "}
+                Caps audits to 2 parallel fetches and 200 pages so a small origin
+                isn&apos;t overwhelmed. Toggle it in domain settings.
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-[3px] inline-block h-1 w-1 shrink-0 rounded-full bg-warning/70" />
+              <span>
+                <span className="font-medium">Check rate-limiting.</span>{" "}
+                If your origin throttles repeated requests from one IP, allow-list
+                <code className="mx-1 font-mono text-[11px]">user-agent: pseolint</code>
+                or audit again later when traffic is quieter.
+              </span>
+            </li>
+          </ul>
+        </div>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Link
+            href={tryAgainHref}
+            className="inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try again
+          </Link>
+          {settingsHref && (
+            <Link
+              href={settingsHref}
+              className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Domain settings →
+            </Link>
+          )}
+          <details className="ml-auto self-center text-xs text-muted-foreground">
+            <summary className="cursor-pointer">Engine output</summary>
+            <p className="mt-1.5 max-w-2xl font-mono text-[11px] text-muted-foreground/80">{err}</p>
+          </details>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="m-6 mt-0 flex flex-col gap-4 rounded-[18px] border border-destructive/40 bg-destructive/5 p-4 text-sm">
+      <p className="text-destructive">{err}</p>
+      <p className="text-xs text-muted-foreground">
+        Common causes: the site blocked our crawler, the URL isn&apos;t reachable, or it
+        served no indexable pages. Try a different URL or the root domain.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href={tryAgainHref}
+          className="inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          Try again
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        >
+          Back to home
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function parseDegradationDiagnostics(err: string): {
+  p95: string;
+  baseline: string;
+  errorPct: string;
+  fetches: string;
+} | null {
+  const m = err.match(/p95=(\d+)ms,\s*baseline=(\d+)ms,\s*5xx=(\d+)%,\s*fetches=(\d+)/);
+  if (!m) return null;
+  return { p95: m[1], baseline: m[2], errorPct: m[3], fetches: m[4] };
 }
 
 function StatusGlyph({ state }: { state: "done" | "active" | "idle" | "failed" }) {

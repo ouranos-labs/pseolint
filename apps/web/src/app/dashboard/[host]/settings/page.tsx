@@ -110,6 +110,24 @@ export default async function DomainSettings({
           <input name="alertEmail" type="email" defaultValue={domain.alertEmail ?? ""} className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
         </label>
 
+        <label className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            name="gentleAuditMode"
+            defaultChecked={domain.gentleAuditMode === true}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+          />
+          <span className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Gentle audit mode</span>
+            <span className="text-xs text-muted-foreground">
+              Cap audits to 2 parallel fetches and 200 pages. Use when audits
+              keep tripping the &quot;origin looks degraded&quot; safety guard
+              (small / un-CDN&apos;d origins, sites that throttle aggressive
+              crawlers). Trades thoroughness for politeness.
+            </span>
+          </span>
+        </label>
+
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-3">
             <label htmlFor="gscSiteUrl" className="text-sm font-medium">GSC property</label>

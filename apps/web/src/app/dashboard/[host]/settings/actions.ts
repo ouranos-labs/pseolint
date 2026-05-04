@@ -32,6 +32,12 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   const alertEmailRaw = String(formData.get("alertEmail") ?? "").trim();
   const alertEmail = alertEmailRaw.length ? alertEmailRaw : null;
 
+  // Gentle audit mode — when set, audits run with concurrency=2 + sample
+  // capped to 200 so a fragile origin doesn't trip the engine's
+  // BackpressureMonitor mid-crawl. HTML form checkboxes only submit when
+  // checked, so a missing field means "off".
+  const gentleAuditMode = String(formData.get("gentleAuditMode") ?? "") === "on";
+
   // GSC property URL: empty string means "unbind". Light shape check —
   // real validation is the next sync run, which will fail loudly if the
   // URL isn't one of the user's GSC properties or perms were revoked.
@@ -54,7 +60,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     ))
     .limit(1);
 
-  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl })
+  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode })
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
@@ -65,6 +71,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     userId: session.user.id,
     host,
     gscChanged: (before?.gscSiteUrl ?? null) !== gscSiteUrl,
+    gentleAuditMode,
   });
   revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
 

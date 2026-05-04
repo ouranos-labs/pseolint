@@ -133,6 +133,15 @@ export const monitoredDomains = pgTable("monitored_domain", {
   gscSiteUrl: text("gsc_site_url"),
   /** Optional Slack incoming webhook URL. Presence enables Slack alerts; null = disabled. */
   slackWebhookUrl: text("slack_webhook_url"),
+  /**
+   * "Gentle audit mode" — caps concurrency to 2 and sample size to 200 for any
+   * audit run against this domain (manual re-audit + monitoring crons). Set
+   * by users whose origin is small / un-CDN'd / hits a rate limit when the
+   * default 5-parallel / 500-page Pro audit fans out. The engine's existing
+   * backpressure guard is what reveals the need for this; the toggle lets the
+   * user trade thoroughness for politeness without us second-guessing.
+   */
+  gentleAuditMode: boolean("gentle_audit_mode").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),

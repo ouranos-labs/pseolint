@@ -99,6 +99,13 @@
       "when": 1777848459563,
       "tag": "0013_narrow_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1778258494000,
+      "tag": "0014_gentle_audit_mode",
+      "breakpoints": true
     }
   ]
 }
