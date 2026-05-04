@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.3
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.3: pulls in the engine grading rethink (classifier degeneration guard, blocker density floor) and the new `force.urls` audit option used by hosted monitoring. No CLI surface changes — the new options are caller-controlled and not exposed as flags yet (see v0.5.4 for `--upload-to` and `--watch`).
+
 ## 0.5.0
 
 ### Minor Changes

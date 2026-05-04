@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.3
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.3: engine grading rethink (classifier degeneration guard + blocker density floor + verdict/grade alignment). MCP tool surface unchanged.
+
 ## 0.5.0
 
 ### Minor Changes

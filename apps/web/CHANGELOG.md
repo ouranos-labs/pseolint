@@ -4,6 +4,8 @@
 
 ### Patch Changes
 
+- **Grade band labels aligned with engine verdict ladder.** `lib/grade.ts` band labels now match `verdictForRisk` vocabulary: B reads "caution" (was "good"), D reads "critical" (was "severe"), tones shifted to warning so a "B 37 / caution" visual mismatch is impossible. The bestfirenze.com self-audit revealed the misalignment.
+- **Vitest server-only stub** (`tests/server-only-stub.ts` + `vitest.config.ts` alias). Lets server-side modules (`db/index.ts`, `lib/env.ts`, `lib/r2.ts`, etc.) load under vitest without throwing the Next.js client-component guard. Also re-pointed a stale `reserveAnonAuditSlot` import in `audit-rate-limit.test.ts` at `lib/anon-rate-limit.ts` (split out in 8499ad9).
 - **Watched pages (Pro).** Pin up to 20 URLs per monitored domain; pinned URLs
   are force-refetched on every monitoring run regardless of diff-mode skip.
   New `watched_page` table (migration `0013_narrow_king_bedlam.sql`), server

@@ -6,6 +6,16 @@
 
 - Add `force.urls` audit option (and `forceRefetchUrls` on `planScrapeStrategy`) — caller-curated "watched pages" list that always refetches, short-circuiting the monitoring matrix with a new `RefetchReason` of `"watched"`. Watched URLs absent from the sitemap are still audited.
 
+- Grading rethink: classifier degeneration guard, blocker density floor, verdict/grade alignment.
+
+  Self-audit on bestfirenze.com (a 6-page tourism directory with 0 unique content per page across `/en` `/fr` `/it` `/de` `/es` locale variants) returned grade B / risk 37 / verdict "caution" — verdict and grade disagreeing because the classifier labelled the corpus as `small-marketing`, which then demoted `spam/thin-content`, `aeo/citable-facts`, `spam/doorway-pattern` to `info`. Three calibration fixes:
+
+  - **Classifier degeneration guard** (`site-classifier.ts`): new `applyDegenerationGuard` + `corpusStatsFromPages` exports. After `classifySite` returns `small-marketing` or `blog`, the guard inspects parsed-page stats — if median word count < 50 OR ≥50% of pages share an identical title (with ≥4 pages), the classification is downgraded to `unclear` with a `degeneration-guard-tripped` signal. `profileFor()` recognises the signal and returns a no-overrides scoring profile so natural rule severities fire.
+  - **Blocker density floor** (`scoreFromFindings`): now takes `pageCount` and floors risk by `blockers / pageCount` density. Bands at ≥0.15 / ≥0.3 / ≥0.5 floor at 25 / 45 / 60. Reputable directories sit at <0.05 and are unaffected; bestfirenze (5/6 = 0.83) floors at 60.
+  - **Verdict/grade alignment** in dashboard layer (`@pseolint/web` 0.0.7): band labels now align with the engine's verdict ladder so a "B / caution" visual mismatch is impossible.
+
+  Net effect on bestfirenze.com: classification `small-marketing` → `unclear`, severity demotions removed, blocker count climbs, density floor applies — risk lands ≥60 (D / critical) with verdict and grade reading the same vocabulary.
+
 ## 0.5.0
 
 ### Minor Changes
