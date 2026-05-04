@@ -25,6 +25,7 @@ import { titleUniquenessRule } from "./rules/content/title-uniqueness.js";
 import { headingStructureRule } from "./rules/content/heading-structure.js";
 import { imageAltTextRule } from "./rules/content/image-alt-text.js";
 import { translationNoOpRule } from "./rules/content/translation-no-op.js";
+import { regurgitatedContentRule } from "./rules/content/regurgitated-content.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
@@ -470,6 +471,8 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/heading-structure":{ baseImpact: 5,  perInstance: 1,  maxImpact: 20 },
   "content/image-alt-text":   { baseImpact: 3,  perInstance: 1,  maxImpact: 20 },
   "content/translation-no-op":{ baseImpact: 30, perInstance: 10, maxImpact: 60 },
+  // v1 warning-severity heuristic; lower than translation-no-op since it's speculative
+  "content/regurgitated-content": { baseImpact: 15, perInstance: 5, maxImpact: 35 },
 
   // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
   // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
@@ -766,6 +769,9 @@ function runRulesOnPages(
   }
   if (isEnabled("content/translation-no-op") && modeOk("content/translation-no-op")) {
     findings.push(...tag(translationNoOpRule(pages)));
+  }
+  if (isEnabled("content/regurgitated-content") && modeOk("content/regurgitated-content")) {
+    findings.push(...tag(regurgitatedContentRule(pages)));
   }
 
   // Link rules — use the global link graph
