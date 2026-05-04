@@ -249,6 +249,225 @@ describe("planScrapeStrategy", () => {
     expect(plan.skip.get("https://example.com/a")).toBe("unchanged");
   });
 
+  // v0.5.4 — template-stratified URL sampling.
+  describe("sampleSize / stratified sampling", () => {
+    /** Build N URLs under a given path template, e.g. "/listing/slug-NNN". */
+    function makeUrls(prefix: string, count: number, start = 0): string[] {
+      return Array.from({ length: count }, (_, i) =>
+        `https://example.com${prefix}-${start + i}`,
+      );
+    }
+
+    it("no stratification when candidateUrls <= sampleSize (takes all)", () => {
+      const urls = makeUrls("/listing/slug", 50);
+      const plan = planScrapeStrategy({
+        candidateUrls: urls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+      expect(plan.refetch.size).toBe(50);
+    });
+
+    it("no stratification when candidateUrls <= sampleSize * 1.5 (sequential prefix slice)", () => {
+      const urls = makeUrls("/listing/slug", 140);
+      const plan = planScrapeStrategy({
+        candidateUrls: urls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+      // 140 <= 100*1.5=150, so take first 100 (slice fallback)
+      expect(plan.refetch.size).toBe(100);
+    });
+
+    it("3-cluster corpus 80/15/5 — tiny cluster still gets ≥1 URL", () => {
+      // 1000 URLs: 800 /listing/:slug, 150 /category/:slug, 50 /help/:slug
+      const listing = makeUrls("/listing/slug", 800);
+      const category = makeUrls("/category/slug", 150);
+      const help = makeUrls("/help/slug", 50);
+      const allUrls = [...listing, ...category, ...help];
+
+      const plan = planScrapeStrategy({
+        candidateUrls: allUrls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+
+      const fetchedUrls = Array.from(plan.refetch.keys());
+      // Total should be ≤ 100
+      expect(fetchedUrls.length).toBeLessThanOrEqual(100);
+
+      // The tiny cluster (5%) must contribute ≥1 URL
+      const helpFetched = fetchedUrls.filter((u) => u.includes("/help/slug"));
+      expect(helpFetched.length).toBeGreaterThanOrEqual(1);
+
+      // The small cluster (15%) must contribute ≥1 URL
+      const categoryFetched = fetchedUrls.filter((u) => u.includes("/category/slug"));
+      expect(categoryFetched.length).toBeGreaterThanOrEqual(1);
+
+      // The large cluster (80%) should have more slots than the tiny one
+      const listingFetched = fetchedUrls.filter((u) => u.includes("/listing/slug"));
+      expect(listingFetched.length).toBeGreaterThan(helpFetched.length);
+    });
+
+    it("dominant cluster >80% of URLs falls back to sequential slice (no stratification)", () => {
+      // 950 listing / 50 help — top ratio = 0.95 > 0.8 threshold
+      const listing = makeUrls("/listing/slug", 950);
+      const help = makeUrls("/help/slug", 50);
+      const allUrls = [...listing, ...help];
+
+      const plan = planScrapeStrategy({
+        candidateUrls: allUrls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+
+      const fetchedUrls = Array.from(plan.refetch.keys());
+      expect(fetchedUrls.length).toBeLessThanOrEqual(100);
+      // Fallback: sequential slice → all from the front (listing)
+      const helpFetched = fetchedUrls.filter((u) => u.includes("/help/slug"));
+      const listingFetched = fetchedUrls.filter((u) => u.includes("/listing/slug"));
+      expect(listingFetched.length).toBe(100);
+      expect(helpFetched.length).toBe(0);
+    });
+
+    it("unclustered corpus (single template) falls through to sequential slice", () => {
+      // All URLs collapse to same template — only 1 cluster, no stratification
+      const urls = makeUrls("/listing/slug", 300);
+      const plan = planScrapeStrategy({
+        candidateUrls: urls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+      expect(plan.refetch.size).toBe(100);
+      // All should be from front of the list (sequential slice)
+      const keys = Array.from(plan.refetch.keys());
+      expect(keys[0]).toBe(urls[0]);
+      expect(keys[99]).toBe(urls[99]);
+    });
+
+    it("budget < cluster count degrades sensibly — each cluster gets ≥1 if possible", () => {
+      // 3 clusters, budget = 3 — each must get exactly 1
+      const listing = makeUrls("/listing/slug", 800);
+      const category = makeUrls("/category/slug", 150);
+      const help = makeUrls("/help/slug", 50);
+      const allUrls = [...listing, ...category, ...help];
+
+      const plan = planScrapeStrategy({
+        candidateUrls: allUrls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 3,
+      });
+
+      const fetchedUrls = Array.from(plan.refetch.keys());
+      // Total ≤ budget (floor-of-1 guarantees 3 slots, one per cluster)
+      expect(fetchedUrls.length).toBeLessThanOrEqual(5);
+      // Each cluster should be represented
+      expect(fetchedUrls.some((u) => u.includes("/listing/slug"))).toBe(true);
+      expect(fetchedUrls.some((u) => u.includes("/category/slug"))).toBe(true);
+      expect(fetchedUrls.some((u) => u.includes("/help/slug"))).toBe(true);
+    });
+
+    it("long-tail URLs (singleton-template pages) get a small fixed allocation", () => {
+      // 600 listing (60%), 300 category (30%), plus 100 singleton-template pages.
+      // Uppercase paths won't match the slug normalizer so each becomes a unique
+      // literal template (count=1) → they collect into the long-tail bucket.
+      const listing = makeUrls("/listing/slug", 600);
+      const category = makeUrls("/category/slug", 300);
+      const singletons = Array.from({ length: 100 }, (_, i) =>
+        `https://example.com/StaticPage${i}`,
+      );
+      const allUrls = [...listing, ...category, ...singletons];
+
+      const plan = planScrapeStrategy({
+        candidateUrls: allUrls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+      });
+
+      const fetchedUrls = Array.from(plan.refetch.keys());
+      expect(fetchedUrls.length).toBeLessThanOrEqual(100);
+      // Long-tail singletons should appear (allocation = min(20, 10% of 100) = 10)
+      const longTailFetched = fetchedUrls.filter((u) => u.includes("/StaticPage"));
+      expect(longTailFetched.length).toBeGreaterThan(0);
+      expect(longTailFetched.length).toBeLessThanOrEqual(20);
+    });
+
+    it("watched URLs bypass the sample budget and are always included", () => {
+      const listing = makeUrls("/listing/slug", 800);
+      const category = makeUrls("/category/slug", 200);
+      const watched = ["https://example.com/watched-page"];
+
+      const plan = planScrapeStrategy({
+        candidateUrls: [...listing, ...category],
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 100,
+        forceRefetchUrls: watched,
+      });
+
+      expect(plan.refetch.get("https://example.com/watched-page")).toBe("watched");
+      // The rest of the plan should still be within budget
+      const nonWatched = Array.from(plan.refetch.keys()).filter(
+        (u) => !watched.includes(u),
+      );
+      expect(nonWatched.length).toBeLessThanOrEqual(100);
+    });
+
+    it("undefined sampleSize leaves behaviour unchanged (full backwards-compat)", () => {
+      const urls = makeUrls("/listing/slug", 5);
+      const withoutSize = planScrapeStrategy({
+        candidateUrls: urls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+      });
+      const withZero = planScrapeStrategy({
+        candidateUrls: urls,
+        priorState: null,
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        sampleSize: 0,
+      });
+      expect(withoutSize.refetch.size).toBe(5);
+      expect(withZero.refetch.size).toBe(5);
+    });
+  });
+
   // v0.5.3 — caller-supplied "watched pages" force-include list.
   describe("forceRefetchUrls (watched pages)", () => {
     it("forces refetch with reason 'watched' on a URL that would otherwise skip", () => {
