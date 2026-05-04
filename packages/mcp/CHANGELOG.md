@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.9
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.9: v0.6 phase 1 — `templates` field now appears in audit-tool output when the site has ≥2 detected templates. Additive; existing consumers unaffected.
+
 ## 0.5.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.9
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.9: v0.6 phase 1 lands in the engine (additive `templates` field on audit JSON output for multi-template sites). CLI surface unchanged — phase 3 (v0.5.11) wires `--per-template` and `--legacy-flat` flags.
+
 ## 0.5.8
 
 ### Patch Changes

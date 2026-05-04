@@ -1,5 +1,14 @@
 # @pseolint/core
 
+## 0.5.9
+
+### Patch Changes
+
+- **v0.6 reframe phase 1 — template detection + per-template scoring (opt-in).** Audit result gains an additive `templates: Template[]` field populated when site classification is `programmatic-directory` / `ecommerce` / `docs` AND `detectTemplates(urls)` returns ≥2 surviving clusters (≥1% URL coverage, ≥5 URLs each). Each `Template` carries its signature, total URLs, audited URLs, per-template `verdict` / `risk` / `categories`, and a `variance` block with per-rule fire-rates, uniformity score (`1 − mean(stdev(per-rule binary fire pattern across samples))`), and top-driver rule. `findings` flat list is unchanged — phase 1 is purely additive. `RuleResult` gains optional `template?: string` tagging for findings whose `pageUrl` belongs to a detected cluster.
+- **`siteVerdictFromTemplates(templates)`** helper exported but NOT yet wired to override the headline verdict — that cutover lands in v0.6.0 per the rollout in `docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md` §16. Filters to templates with ≥5% coverage, picks the worst verdict.
+- **Activation gating**: degenerate sites (`unclear` / `small-marketing` / `blog`) bypass v0.6 detection — the legacy single-template path runs and the v0.5.3-v0.5.8 signal stack catches them. Bestfirenze regression confirms this — its 6 URLs collapse to one template signature, gating fails, legacy path holds.
+- **31 new tests** — `template-detection.test.ts` (17) covers cluster filter math, ≥2-template threshold, URL→template lookup, long-tail bucket; `per-template-scoring.test.ts` (14) covers per-template verdict/risk computation, variance metric uniformity, top-driver, site verdict §15.1 logic. Total: 967 passing, 4 pre-existing baseline failures unchanged.
+
 ## 0.5.8
 
 ### Patch Changes
