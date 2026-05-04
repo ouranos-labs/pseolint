@@ -108,6 +108,12 @@ interface CliOptions {
   telemetryPrompt?: boolean;
   telemetryPath?: string;
   triageFeedback?: string;
+  /** v0.5.6 — POST the JSON summary to a pseolint endpoint after the audit completes. */
+  uploadTo?: string;
+  /** v0.5.6 — API token for --upload-to (or PSEOLINT_TOKEN env). */
+  uploadToken?: string;
+  /** v0.5.6 — Domain ID for --upload-to (or PSEOLINT_DOMAIN_ID env). */
+  uploadDomainId?: string;
 }
 
 export async function runCli(
@@ -194,6 +200,9 @@ export async function runCli(
     .option("--telemetry-path <file>", "Override telemetry JSONL path")
     .option("--triage-feedback <rating>", "Non-interactive feedback: helpful|unhelpful|y|n")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)")
+    .option("--upload-to <endpoint>", "v0.5.6 — POST the JSON summary to this pseolint endpoint after scan completes (or PSEOLINT_ENDPOINT env var)")
+    .option("--upload-token <token>", "v0.5.6 — API token for --upload-to (or PSEOLINT_TOKEN env var)")
+    .option("--upload-domain-id <id>", "v0.5.6 — Domain ID to associate the upload with (or PSEOLINT_DOMAIN_ID env var)")
     .action(async (source: string | undefined, opts: CliOptions) => {
       exitCode = await runAudit(source, opts);
     });
@@ -725,6 +734,27 @@ async function runAudit(
     console.log(`Report written to ${opts.output}`);
   } else {
     console.log(output);
+  }
+
+  // v0.5.6 — inline upload after scan. Avoids the round-trip of writing a file
+  // and then running `pseolint upload`. The summary object is uploaded directly
+  // (not the formatted output) so the endpoint always receives canonical JSON
+  // even when the CLI is rendering markdown / html / console output.
+  if (opts.uploadTo || process.env.PSEOLINT_ENDPOINT) {
+    const endpoint = opts.uploadTo ?? process.env.PSEOLINT_ENDPOINT;
+    const token = opts.uploadToken ?? process.env.PSEOLINT_TOKEN;
+    const domainId = opts.uploadDomainId ?? process.env.PSEOLINT_DOMAIN_ID;
+    if (opts.uploadTo && (!token || !domainId)) {
+      console.error("--upload-to set but missing --upload-token / --upload-domain-id (or PSEOLINT_TOKEN / PSEOLINT_DOMAIN_ID)");
+    } else if (token && domainId) {
+      try {
+        const { uploadSummary } = await import("./commands/upload.js");
+        const r = await uploadSummary({ summary, token, domainId, endpoint });
+        console.log(`uploaded: ${r.ingested} findings → ${domainId}`);
+      } catch (err) {
+        console.error(`Upload failed: ${(err as Error).message}`);
+      }
+    }
   }
 
   // Exit code based on verdict severity (v0.4) + regression.

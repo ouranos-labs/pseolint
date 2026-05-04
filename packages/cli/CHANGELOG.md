@@ -1,5 +1,12 @@
 # pseolint
 
+## 0.5.6
+
+### Patch Changes
+
+- **Inline upload after scan.** New `--upload-to <endpoint>`, `--upload-token <token>`, `--upload-domain-id <id>` flags on the main scan command. After the audit completes, the JSON summary is POSTed to `<endpoint>/api/audits/upload` with the bearer token. Replaces the two-step flow (`pseolint scan -o report.json` then `pseolint upload report.json`) with a single command. Token + domain ID can also come from `PSEOLINT_TOKEN` / `PSEOLINT_DOMAIN_ID` / `PSEOLINT_ENDPOINT` env vars. The summary uploaded is always canonical JSON regardless of `--format`. Token issuance lives in the dashboard at `/dashboard/settings/tokens`.
+- New shared `uploadSummary({ summary, token, domainId, endpoint })` helper in `commands/upload.ts`. The standalone `pseolint upload <report>` command now delegates to it after reading the report file.
+
 ## 0.5.5
 
 ### Patch Changes

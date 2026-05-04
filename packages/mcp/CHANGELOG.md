@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.6
+
+### Patch Changes
+
+- Version bump to align with CLI 0.5.6 (CLI inline upload). MCP surface unchanged.
+
 ## 0.5.5
 
 ### Patch Changes
