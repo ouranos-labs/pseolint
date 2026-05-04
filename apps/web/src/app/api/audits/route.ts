@@ -188,8 +188,16 @@ export async function POST(req: Request): Promise<Response> {
   let anonSessionId: string | null = null;
   let expiresAt: Date;
 
-  // Per-host global rate limit — protects target sites during viral-post amplification.
-  if (!devFlags.rateLimitDisabled) {
+  // Per-host global rate limit — protects target sites during viral-post
+  // amplification. v0.5.6 refinement: Pro requests get the per-host check
+  // exclusively from `assertProAuditAllowed`. Doing it here too would
+  // double-bump the counter and silently halve the documented 30/hr limit
+  // for Pro callers. Anon and free still bump here.
+  let isProSession = false;
+  if (session && session.user.emailVerified) {
+    isProSession = (await getPlan(session.user.id)) === "pro";
+  }
+  if (!devFlags.rateLimitDisabled && !isProSession) {
     const { allowed } = await bumpRateLimit(`audit-host:${host}:${currentHourKey()}`, PER_HOST_HOURLY_LIMIT);
     if (!allowed) {
       auditLog("audit.request.rate_limited", { reason: "per_host", host });
@@ -209,8 +217,8 @@ export async function POST(req: Request): Promise<Response> {
       );
     }
     userId = session.user.id;
-    // getPlan encapsulates the expiry check + dev-bypass — single source of truth.
-    plan = await getPlan(userId);
+    // getPlan was already called above to decide isProSession; reuse that.
+    plan = isProSession ? "pro" : "free";
     // "Never expires" for Pro — far-future sentinel Postgres can serialize.
     // JS max date (year 275760) round-trips as `+275760-09-13T...` which Postgres's
     // timestamptz parser rejects.

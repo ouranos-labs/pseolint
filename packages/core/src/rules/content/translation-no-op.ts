@@ -3,6 +3,15 @@ import type { ParsedPage, RuleResult } from "../../types.js";
 
 const LOCALE_PREFIX_RE = /^\/([a-z]{2}(-[a-z]{2})?)(\/|$)/i;
 const SIMILARITY_THRESHOLD = 0.95;
+/**
+ * Minimum body word count before translation-no-op evaluates a page. Below
+ * this floor the issue is "no content at all" — better surfaced by
+ * `spam/thin-content` — and pairwise simhash similarity collapses to ~1.0
+ * for any two empty/near-empty pages, producing a confusingly-redundant
+ * "you didn't translate" finding when really there's nothing to translate.
+ * v0.5.6 refinement.
+ */
+const MIN_WORDS_FOR_TRANSLATION_CHECK = 30;
 
 /**
  * Strips a leading locale segment from a URL path.
@@ -53,6 +62,15 @@ export function translationNoOpRule(pages: ParsedPage[]): RuleResult[] {
 
   for (const [basePath, members] of groups) {
     if (members.length < 2) continue;
+
+    // Skip the cluster when every variant is below the min-content floor —
+    // the real issue is thin-content, not a translation no-op. (Mixed-case
+    // clusters where some variants are full-content still evaluate, since a
+    // single thin variant against a full one IS a translation issue.)
+    const allBelowMin = members.every(
+      (m) => m.page.contentText.split(/\s+/).filter(Boolean).length < MIN_WORDS_FOR_TRANSLATION_CHECK,
+    );
+    if (allBelowMin) continue;
 
     const hashes = members.map((m) => simHashFromText(m.page.contentText));
     let minSim = 1;

@@ -45,12 +45,20 @@ export type AuditLogEvent =
   | "gsc.sync.failed"
   | "gsc.oauth.disconnected"
   | "gsc.autobind"
+  | "gsc.autobind.on_add"
+  | "gsc.autobind.on_add.no_match"
+  | "gsc.autobind.on_add.failed"
+  | "gsc.rebind.bound"
+  | "gsc.rebind.no_match"
+  | "gsc.rebind.no_grant"
+  | "gsc.rebind.failed"
   | "orchestrator.started"
   | "orchestrator.completed"
   | "orchestrator.failed"
   | "watched_page.added"
   | "watched_page.removed"
-  | "watched_page.cap_reached";
+  | "watched_page.cap_reached"
+  | "settings.domain.updated";
 
 type Payload = Record<string, unknown>;
 

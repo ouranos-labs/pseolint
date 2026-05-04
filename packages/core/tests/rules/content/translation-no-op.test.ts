@@ -129,4 +129,20 @@ describe("translationNoOpRule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].relatedUrls).toHaveLength(2);
   });
+
+  test("v0.5.6 refinement: skip clusters where all variants are below MIN_WORDS_FOR_TRANSLATION_CHECK", () => {
+    // 5 locale variants, all empty content. Pre-refinement this fired with
+    // "100% similar" — but the real issue is they're empty (covered by
+    // spam/thin-content). Co-firing was confusing on bestfirenze.com.
+    const pages = [
+      page("https://example.com/en", ""),
+      page("https://example.com/fr", ""),
+      page("https://example.com/it", ""),
+      page("https://example.com/de", ""),
+      page("https://example.com/es", ""),
+    ];
+    const findings = translationNoOpRule(pages);
+    expect(findings).toHaveLength(0);
+  });
+
 });
