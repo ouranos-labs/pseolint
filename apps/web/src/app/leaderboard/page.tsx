@@ -235,14 +235,14 @@ export default async function Leaderboard() {
           // CSS-columns masonry: cleanest cross-browser path; no JS reflow, no
           // chart-of-life library. Each card is `break-inside-avoid` so it
           // never splits across columns.
-          <div className="mt-4 columns-1 gap-4 sm:columns-2 lg:columns-3">
+          <div className="mt-4 flex flex-col gap-4 sm:block sm:columns-2 lg:columns-3">
             { deduped.map((r, i) => {
               const og = ogFor(r);
               const host = hostOf(r.sourceUrl);
               return (
                 <article
                   key={ r.id }
-                  className="relative mb-4 break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5  backdrop-blur-sm transition-colors hover:border-primary/40 shadow-sm"
+                  className="relative break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5  backdrop-blur-sm transition-colors hover:border-primary/40 shadow-sm sm:mb-4"
                 >
                   <span className="absolute right-3 top-3 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-[8px] bg-secondary/80 px-1.5 shadow-sm font-mono text-[11px] tabular-nums text-muted-foreground">
                     { i + 1 }

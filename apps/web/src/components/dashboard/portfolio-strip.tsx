@@ -133,7 +133,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
   }
 
   return (
-    <div className="columns-1 gap-4 md:columns-2 xl:columns-3">
+    <div className="flex flex-col gap-4 md:block md:columns-2 xl:columns-3">
       {domains.map((d) => {
         const unverified = !d.verifiedAt;
         const noRunsYet = !d.lastRunAt;
@@ -151,7 +151,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
         return (
           <article
             key={d.id}
-            className="relative mb-4 break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/40"
+            className="relative break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5 shadow-sm backdrop-blur-sm transition-colors hover:border-primary/40 md:mb-4"
           >
             {unverified ? (
               <Link
