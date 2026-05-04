@@ -1,9 +1,12 @@
 import { describe, expect, test } from "vitest";
 import {
+  applyDegenerationGuard,
   classifySite,
   clusterUrlTemplates,
+  corpusStatsFromPages,
   normalizePathToTemplate,
   PSEO_ONLY_RULE_IDS,
+  type SiteClassification,
 } from "../src/site-classifier.js";
 
 describe("normalizePathToTemplate", () => {
@@ -322,5 +325,127 @@ describe("classifySite", () => {
     for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/docs/page-${i}`);
     const c = classifySite({ urls });
     expect(c.type).toBe("ecommerce");
+  });
+});
+
+describe("v0.5.3 — corpusStatsFromPages", () => {
+  test("returns zero stats for empty corpus", () => {
+    expect(corpusStatsFromPages([])).toEqual({
+      medianWordCount: 0,
+      identicalTitleRatio: 0,
+      pageCount: 0,
+    });
+  });
+
+  test("computes median word count + max-cluster identical-title ratio", () => {
+    const pages = [
+      { title: "Hello", contentText: "one two three" },          // 3 words
+      { title: "Hello", contentText: "one two three four five" }, // 5 words
+      { title: "World", contentText: "" },                         // 0 words
+    ];
+    const stats = corpusStatsFromPages(pages);
+    expect(stats.pageCount).toBe(3);
+    // sorted: 0, 3, 5 → median index floor(3/2)=1 → 3
+    expect(stats.medianWordCount).toBe(3);
+    // 2/3 share "Hello" → ratio 2/3
+    expect(stats.identicalTitleRatio).toBeCloseTo(2 / 3, 5);
+  });
+
+  test("title comparison is case-insensitive and trimmed", () => {
+    const pages = [
+      { title: "Best of Florence", contentText: "" },
+      { title: "BEST OF FLORENCE  ", contentText: "" },
+      { title: "best of florence", contentText: "" },
+    ];
+    expect(corpusStatsFromPages(pages).identicalTitleRatio).toBe(1);
+  });
+});
+
+describe("v0.5.3 — applyDegenerationGuard", () => {
+  const baseSmallMarketing: SiteClassification = {
+    type: "small-marketing",
+    confidence: 0.95,
+    signals: [{ kind: "sitemap-url-count", value: 6 }],
+    suppressedRules: [...PSEO_ONLY_RULE_IDS],
+  };
+
+  test("downgrades small-marketing to unclear when median word count is < 50", () => {
+    const guarded = applyDegenerationGuard(baseSmallMarketing, {
+      medianWordCount: 0,
+      identicalTitleRatio: 0,
+      pageCount: 6,
+    });
+    expect(guarded.type).toBe("unclear");
+    expect(guarded.confidence).toBe(0);
+    expect(guarded.suppressedRules).toEqual([]);
+    expect(guarded.signals.find((s) => s.kind === "degeneration-guard-tripped")).toMatchObject({
+      reason: "median-thin",
+      value: 0,
+    });
+  });
+
+  test("downgrades small-marketing to unclear when ≥50% of pages share a title (≥4 pages)", () => {
+    const guarded = applyDegenerationGuard(baseSmallMarketing, {
+      medianWordCount: 200,
+      identicalTitleRatio: 0.6,
+      pageCount: 6,
+    });
+    expect(guarded.type).toBe("unclear");
+    expect(guarded.signals.find((s) => s.kind === "degeneration-guard-tripped")).toMatchObject({
+      reason: "title-duplicate-heavy",
+    });
+  });
+
+  test("does not trigger title-duplicate-heavy on tiny corpora (<4 pages)", () => {
+    const guarded = applyDegenerationGuard(baseSmallMarketing, {
+      medianWordCount: 200,
+      identicalTitleRatio: 0.67,
+      pageCount: 3,
+    });
+    expect(guarded.type).toBe("small-marketing");
+    expect(guarded.suppressedRules.length).toBeGreaterThan(0);
+  });
+
+  test("leaves healthy small-marketing alone (median ≥ 50, distinct titles)", () => {
+    const guarded = applyDegenerationGuard(baseSmallMarketing, {
+      medianWordCount: 250,
+      identicalTitleRatio: 0.2,
+      pageCount: 6,
+    });
+    expect(guarded).toEqual(baseSmallMarketing);
+  });
+
+  test("does not touch programmatic-directory / ecommerce / docs / unclear", () => {
+    const types = ["programmatic-directory", "ecommerce", "docs", "unclear"] as const;
+    for (const type of types) {
+      const c: SiteClassification = {
+        type,
+        confidence: 0.9,
+        signals: [],
+        suppressedRules: [],
+      };
+      const guarded = applyDegenerationGuard(c, {
+        medianWordCount: 0,
+        identicalTitleRatio: 1,
+        pageCount: 6,
+      });
+      expect(guarded).toEqual(c);
+    }
+  });
+
+  test("bestfirenze.com pattern: 6 identical-title 0-word locale variants → unclear", () => {
+    // Reproduce bestfirenze.com: 6 pages, all 0 words, all same title.
+    const pages = [
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+      { title: "Best of Florence - Discover Authentic Florence | BestFirenze.com", contentText: "" },
+    ];
+    const stats = corpusStatsFromPages(pages);
+    const guarded = applyDegenerationGuard(baseSmallMarketing, stats);
+    expect(guarded.type).toBe("unclear");
+    expect(guarded.suppressedRules).toEqual([]);
   });
 });

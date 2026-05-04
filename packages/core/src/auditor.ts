@@ -86,7 +86,7 @@ import { SAFE_MODE_PRESETS, resolveSafeModeKey } from "./safe-mode-preset.js";
 import { FetchObserver, computeReadiness, detectDevServer, type DetectedFramework, type FetchObservation } from "./fetch-observer.js";
 import { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 import { stratifiedSample, mulberry32 } from "./stratified-sample.js";
-import { classifySite, type SiteClassification, type SiteType } from "./site-classifier.js";
+import { classifySite, applyDegenerationGuard, corpusStatsFromPages, type SiteClassification, type SiteType } from "./site-classifier.js";
 import {
   readState, writeState, computeContentHash, STATE_SCHEMA_VERSION,
   type RunState, type RenderMode, type UrlStateEntry,
@@ -406,8 +406,22 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
 /**
  * Pick the scoring profile for a classification. Falls back to `unclear`
  * (the conservative default) when classifier confidence is below 70%.
+ *
+ * v0.5.3 — when `applyDegenerationGuard` has tripped, we return a synthetic
+ * profile that reuses `unclear` category weights but applies NO severity /
+ * confidence overrides. The whole point of the guard is to expose the
+ * natural rule severities on degenerate corpora; the demotion table on
+ * `unclear` would re-mask `spam/thin-content` and `aeo/citable-facts` if we
+ * just used SCORING_PROFILES.unclear here.
  */
 function profileFor(classification: SiteClassification | undefined): ScoringProfile {
+  if (classification && classification.signals.some((s) => s.kind === "degeneration-guard-tripped")) {
+    return {
+      categoryWeights: SCORING_PROFILES.unclear.categoryWeights,
+      severityOverrides: {},
+      confidenceOverrides: {},
+    };
+  }
   if (!classification || classification.confidence < 0.7) return SCORING_PROFILES.unclear;
   return SCORING_PROFILES[classification.type] ?? SCORING_PROFILES.unclear;
 }
@@ -951,6 +965,7 @@ function computeAppliedDemotions(
 function scoreFromFindings(
   findings: RuleResult[],
   classification: SiteClassification | undefined,
+  pageCount = 0,
 ): ScoreOutput {
   const profile = profileFor(classification);
 
@@ -1061,7 +1076,23 @@ function scoreFromFindings(
     bucketRaw.citation * cw.citation +
     bucketRaw.data * cw.data;
 
-  const risk = Math.round(Math.min(100, weighted));
+  // v0.5.3 — blocker DENSITY floor. Category weights (e.g. small-marketing's
+  // citation:0.20) can dilute hard-failed sites to A/B even when most pages
+  // hit critical findings. Floor risk based on blockers-per-page so that:
+  //   - small structurally-broken sites (bestfirenze: 5 blockers / 6 pages
+  //     = 0.83) get pushed to D/critical regardless of category-weight dilution
+  //   - large reputable directories (Zapier integrations: 5 blockers / 500
+  //     pages = 0.01) are unaffected — their per-page error rate is tiny
+  //     so the dilution is honest, not a scoring artifact
+  // Density bands chosen to land bestfirenze at ≥60 (D) without disturbing
+  // calibration corpus reputable sites at ratio < 0.05.
+  const blockerRatio = pageCount > 0 ? blockers / pageCount : 0;
+  const blockerFloor =
+    blockerRatio >= 0.5 ? 60 :
+    blockerRatio >= 0.3 ? 45 :
+    blockerRatio >= 0.15 ? 25 :
+    0;
+  const risk = Math.round(Math.min(100, Math.max(weighted, blockerFloor)));
 
   const categories: CategoryGrades = {
     integrity:       { grade: gradeForPenalty(bucketRaw.integrity),       issues: bucketIssues.integrity },
@@ -2182,11 +2213,19 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     urls: classifierUrls,
     framework: classifierFramework,
   });
+  // v0.5.3 — degeneration guard. If the classifier landed on small-marketing
+  // or blog but the corpus is degenerate (mostly thin / mostly identical
+  // titles), downgrade to `unclear` so the small-marketing severity-demotion
+  // table doesn't mask hard failures (the bestfirenze.com case).
+  const guardedClassification = applyDegenerationGuard(
+    computedClassification,
+    corpusStatsFromPages(parsedPages),
+  );
   // `--strict` (or AuditOptions.strict) keeps the classification but forces
   // every rule to run regardless of detected site type.
   const siteClassification: SiteClassification = options?.strict
-    ? { ...computedClassification, suppressedRules: [] }
-    : computedClassification;
+    ? { ...guardedClassification, suppressedRules: [] }
+    : guardedClassification;
   const suppressedRuleSet = new Set<string>(siteClassification.suppressedRules);
 
   // Classify pages into groups and run only enabled rules per group
@@ -2278,6 +2317,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const { risk: groupRisk } = scoreFromFindings(
       applyScoringProfileOverrides(findings, siteClassification),
       siteClassification,
+      groupPages.length,
     );
     groupScores[groupName] = groupRisk;
   }
@@ -2336,7 +2376,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification);
+  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification, parsedPages.length);
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   const issues = bucketIssues(enriched.findings);

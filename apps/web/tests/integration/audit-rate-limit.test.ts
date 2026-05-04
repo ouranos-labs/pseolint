@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { db } from "@/db";
 import { rateLimits } from "@/db/schema";
-import { reserveAnonAuditSlot, ANON_DAILY_CAP } from "@/lib/audit-limits";
+import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
+import { ANON_DAILY_CAP } from "@/lib/audit-limits";
 import { hashIp } from "@/lib/ip";
 import { like } from "drizzle-orm";
 import { RUN_DB_INTEGRATION } from "../util/db-integration";

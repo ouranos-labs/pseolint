@@ -36,7 +36,15 @@ export type ClassificationSignal =
       pages: number;
       ratio: number;
     }
-  | { kind: "framework-detected"; value: "nextjs" | "vite" | "astro" | "unknown" };
+  | { kind: "framework-detected"; value: "nextjs" | "vite" | "astro" | "unknown" }
+  /**
+   * v0.5.3 — emitted when `applyDegenerationGuard` downgrades a
+   * `small-marketing` or `blog` classification to `unclear` because the
+   * corpus is degenerate (mostly thin / mostly identical titles). Surfacing
+   * this in `signals` lets the UI explain why severity demotions didn't
+   * apply.
+   */
+  | { kind: "degeneration-guard-tripped"; reason: "median-thin" | "title-duplicate-heavy"; value: number };
 
 export interface SiteClassification {
   type: SiteType;
@@ -465,4 +473,85 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
     type === "small-marketing" || type === "blog" ? [...PSEO_ONLY_RULE_IDS] : [];
 
   return { type, confidence, signals, suppressedRules };
+}
+
+/**
+ * v0.5.3 — corpus-quality guard against "small-marketing" / "blog"
+ * classification masking degenerate sites. The `small-marketing` profile
+ * demotes `spam/thin-content`, `aeo/citable-facts`, `aeo/freshness-signals`,
+ * `spam/doorway-pattern` etc. to `info` to avoid false-positives on legit
+ * 6-page marketing sites (linear.app etc). But a 6-page site with 0 unique
+ * content per page (e.g. an un-translated language switcher pretending to be
+ * a directory) trips the same shape and inherits the demotions, escaping
+ * with grade B.
+ *
+ * This guard runs AFTER classification, with parsed-page stats. If the
+ * corpus is degenerate (median word count < 50 OR ≥50% of pages share an
+ * identical title), the classification is downgraded to `unclear` so the
+ * demotion table doesn't apply — the natural rule severities then fire.
+ *
+ * Only `small-marketing` and `blog` are guarded. The other types either
+ * already run all rules (`unclear`, `programmatic-directory`, `ecommerce`,
+ * `docs`) or aren't reached by the small-corpus path.
+ */
+export function applyDegenerationGuard(
+  classification: SiteClassification,
+  corpusStats: { medianWordCount: number; identicalTitleRatio: number; pageCount: number },
+): SiteClassification {
+  if (classification.type !== "small-marketing" && classification.type !== "blog") {
+    return classification;
+  }
+  if (corpusStats.pageCount === 0) return classification;
+
+  const isThin = corpusStats.medianWordCount < 50;
+  // Require ≥4 pages so a 2-page marketing site with two same-titled drafts
+  // doesn't false-positive. Tunable; bestfirenze.com has 6 pages, all with
+  // the same homepage content.
+  const isTitleDuplicateHeavy =
+    corpusStats.identicalTitleRatio >= 0.5 && corpusStats.pageCount >= 4;
+
+  if (!isThin && !isTitleDuplicateHeavy) return classification;
+
+  const reason: "median-thin" | "title-duplicate-heavy" = isThin
+    ? "median-thin"
+    : "title-duplicate-heavy";
+  const value = isThin ? corpusStats.medianWordCount : corpusStats.identicalTitleRatio;
+
+  return {
+    type: "unclear",
+    confidence: 0,
+    signals: [...classification.signals, { kind: "degeneration-guard-tripped", reason, value }],
+    suppressedRules: [],
+  };
+}
+
+/**
+ * Compute the corpus stats `applyDegenerationGuard` consumes. Pulled out so
+ * tests can pass a fixture stat block directly without constructing
+ * `ParsedPage` instances.
+ */
+export function corpusStatsFromPages(pages: ReadonlyArray<{ title: string; contentText: string }>): {
+  medianWordCount: number;
+  identicalTitleRatio: number;
+  pageCount: number;
+} {
+  if (pages.length === 0) {
+    return { medianWordCount: 0, identicalTitleRatio: 0, pageCount: 0 };
+  }
+  const wordCounts = pages
+    .map((p) => p.contentText.split(/\s+/).filter(Boolean).length)
+    .sort((a, b) => a - b);
+  const medianWordCount = wordCounts[Math.floor(wordCounts.length / 2)];
+
+  const titles = pages.map((p) => p.title.toLowerCase().trim()).filter(Boolean);
+  let identicalTitleRatio = 0;
+  if (titles.length > 0) {
+    // Find the largest cluster of identical titles, divided by page count.
+    const counts = new Map<string, number>();
+    for (const t of titles) counts.set(t, (counts.get(t) ?? 0) + 1);
+    const maxClusterSize = Math.max(...counts.values());
+    identicalTitleRatio = maxClusterSize / pages.length;
+  }
+
+  return { medianWordCount, identicalTitleRatio, pageCount: pages.length };
 }
