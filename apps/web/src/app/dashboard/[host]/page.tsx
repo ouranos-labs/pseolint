@@ -48,7 +48,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   if (!domain) notFound();
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows, coverage, watchedRows] = await Promise.all([
+  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows, gscTrend, coverage, watchedRows] = await Promise.all([
     db.select({
       slug: audits.slug,
       risk: audits.risk,
@@ -85,15 +85,30 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     // Per-domain GSC traffic for the current month bucket. Aggregated below to
     // template signature so each rendered finding can show "this template
     // gets X impressions" — the visible justification for ranking by traffic.
+    // Also pulls positionAvg + ctrAvg per URL so the GSC card can show a
+    // weighted average position and CTR (impressions-weighted, not row-mean).
     db.select({
       url: gscPageMetrics.url,
       impressions: gscPageMetrics.impressions,
       clicks: gscPageMetrics.clicks,
+      positionAvg: gscPageMetrics.positionAvg,
+      ctrAvg: gscPageMetrics.ctrAvg,
     }).from(gscPageMetrics)
       .where(and(
         eq(gscPageMetrics.domainId, domain.id),
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
       )),
+    // Last 6 month buckets (incl. current) aggregated for the GSC trend
+    // sparkline. Group-by-bucket so we sum across URLs once at the DB.
+    db.select({
+      monthBucket: gscPageMetrics.monthBucket,
+      impressions: sql<number>`coalesce(sum(${gscPageMetrics.impressions}), 0)::int`,
+      clicks: sql<number>`coalesce(sum(${gscPageMetrics.clicks}), 0)::int`,
+    }).from(gscPageMetrics)
+      .where(eq(gscPageMetrics.domainId, domain.id))
+      .groupBy(gscPageMetrics.monthBucket)
+      .orderBy(desc(gscPageMetrics.monthBucket))
+      .limit(6),
     // v0.5.3 cumulative coverage — sum of URLs audited across this domain's
     // completed history. Cheap aggregate over the audit row, no R2 round-trip.
     getCumulativeCoverage({
@@ -215,6 +230,12 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const trafficBySig = new Map<string, { impressions: number; clicks: number }>();
   let totalImpressions = 0;
   let totalClicks = 0;
+  // Impressions-weighted average position. A naive mean across URLs would
+  // overcount low-traffic outliers — e.g. a 0-impression page at avg position
+  // 80 would drag the headline number into territory that doesn't reflect
+  // where the operator's actual traffic is ranking.
+  let positionWeightedSum = 0;
+  let positionWeightDenom = 0;
   for (const r of gscRows) {
     let sig: string;
     try { sig = inferUrlTemplate(r.url); } catch { sig = r.url; }
@@ -224,7 +245,33 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     trafficBySig.set(sig, cur);
     totalImpressions += r.impressions;
     totalClicks += r.clicks;
+    if (r.positionAvg != null && r.impressions > 0) {
+      positionWeightedSum += Number(r.positionAvg) * r.impressions;
+      positionWeightDenom += r.impressions;
+    }
   }
+  const weightedAvgPosition = positionWeightDenom > 0
+    ? positionWeightedSum / positionWeightDenom
+    : null;
+  // CTR = total clicks / total impressions; matches what GSC reports as the
+  // domain-level CTR rather than the unweighted mean of per-URL ctrAvg.
+  const ctr = totalImpressions > 0 ? totalClicks / totalImpressions : null;
+  // Top 3 templates by current-month impressions. The rest of the
+  // distribution lives in the findings panel where each row shows its own
+  // template's traffic chip.
+  const topTemplates = Array.from(trafficBySig.entries())
+    .map(([signature, t]) => ({ signature, impressions: t.impressions, clicks: t.clicks }))
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 3);
+  // Trend points oldest → newest so the sparkline reads left-to-right.
+  // gscTrend is desc(monthBucket) limit 6, so reverse before passing through.
+  const monthlyTrend = [...gscTrend]
+    .reverse()
+    .map((row) => ({
+      monthBucket: row.monthBucket,
+      impressions: Number(row.impressions),
+      clicks: Number(row.clicks),
+    }));
 
   const gscConnected = gscIntegration != null;
   const gscBound = gscConnected && Boolean(domain.gscSiteUrl);
