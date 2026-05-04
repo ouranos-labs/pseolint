@@ -7,6 +7,7 @@ import { weeklyDigest } from "@/inngest/functions/weekly-digest";
 import { monitorDomains } from "@/inngest/functions/monitor-domains";
 import { autoVerifyDomains } from "@/inngest/functions/auto-verify-domains";
 import { syncGsc } from "@/inngest/functions/sync-gsc";
+import { syncGscOnDemand } from "@/inngest/functions/sync-gsc-on-demand";
 import { runOrchestratorSession } from "@/inngest/functions/run-orchestrator";
 import { expireOrchestratorSessions } from "@/inngest/functions/expire-orchestrator-sessions";
 
@@ -15,5 +16,5 @@ export const maxDuration = 300;
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, runOrchestratorSession, expireOrchestratorSessions],
+  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, syncGscOnDemand, runOrchestratorSession, expireOrchestratorSessions],
 });

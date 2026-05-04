@@ -28,6 +28,11 @@ type Events = {
    * billing after a user clicks Cancel.
    */
   "orchestrator/cancel-requested": { data: { sessionId: string } };
+  /**
+   * On-demand GSC sync for a single domain. Triggered by POST /api/gsc/refresh/[host].
+   * The sync-gsc function checks this event and runs immediately for the target domain.
+   */
+  "gsc/sync-requested": { data: { userId: string; domainId: string } };
 };
 
 const useLocalInngest = devFlags.inngestLocal;

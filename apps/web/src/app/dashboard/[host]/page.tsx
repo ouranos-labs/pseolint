@@ -306,6 +306,10 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         totalImpressions={totalImpressions}
         totalClicks={totalClicks}
         lastSyncAt={gscIntegration?.lastSyncAt ?? null}
+        monthlyTrend={monthlyTrend}
+        topTemplates={topTemplates}
+        weightedAvgPosition={weightedAvgPosition}
+        ctr={ctr}
       />
 
       {/* v0.5.3 — cumulative coverage. Reframes "200 URLs/week" as the
