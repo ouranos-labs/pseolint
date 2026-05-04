@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, like, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits, watchedPages } from "@/db/schema";
 import { publicSlug } from "@/lib/slug";
@@ -144,6 +144,17 @@ export async function getCumulativeCoverage(args: {
   sourceUrl: string;
 }): Promise<{ urlsAuditedTotal: number; urlsAuditedLast30d: number }> {
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
+  // Canonicalize to `${protocol}//${host}` and match audits whose sourceUrl is
+  // either the bare origin, the origin + "/", or any path under it. Without
+  // this, trailing-slash drift between the monitoring path (origin only) and
+  // /api/audits path (full normalized URL) caused legitimate audit history to
+  // miss this domain in the cumulative count.
+  const origin = canonicalOrigin(args.sourceUrl);
+  const matchOrigin = or(
+    eq(audits.sourceUrl, origin),
+    eq(audits.sourceUrl, `${origin}/`),
+    like(audits.sourceUrl, `${origin}/%`),
+  );
   const [row] = await db
     .select({
       urlsAuditedTotal: sql<number>`coalesce(sum(${audits.pageCount}), 0)::int`,
@@ -152,12 +163,29 @@ export async function getCumulativeCoverage(args: {
     .from(audits)
     .where(and(
       eq(audits.userId, args.userId),
-      eq(audits.sourceUrl, args.sourceUrl),
+      matchOrigin,
       eq(audits.status, "completed"),
     ));
   return {
     urlsAuditedTotal: row?.urlsAuditedTotal ?? 0,
     urlsAuditedLast30d: row?.urlsAuditedLast30d ?? 0,
   };
+}
+
+/**
+ * Reduce a stored `sourceUrl` to `${protocol}//${host}` (lowercased). Both
+ * `monitored_domain.source_url` and `audits.source_url` are server-set, so the
+ * only hostnames that flow through here come from validated URL parsing —
+ * they never legally contain `%` / `_` / `\` (LIKE wildcards). Returns "" on
+ * parse failure so a single corrupt DB row can't bleed wildcard characters
+ * into the LIKE pattern downstream and inflate the match set.
+ */
+function canonicalOrigin(url: string): string {
+  try {
+    const u = new URL(url);
+    return `${u.protocol}//${u.host}`.toLowerCase();
+  } catch {
+    return "";
+  }
 }
 

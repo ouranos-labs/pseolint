@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits, watchedPages } from "@/db/schema";
 import { requireSession } from "@/lib/session";
@@ -8,28 +8,14 @@ import { publicSlug } from "@/lib/slug";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
 import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
-import { PRO_REAUDIT_SAMPLE_SIZE, WATCHED_PAGES_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
+import { PRO_REAUDIT_SAMPLE_SIZE, WATCHED_PAGES_CAP } from "@/lib/audit-limits";
+import { assertProAuditAllowed } from "@/lib/audit-gate";
 import { generateVerificationToken, verifyDomainToken } from "@/lib/domain-verify";
 import { devFlags } from "@/lib/dev-flags";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getPlan } from "@/lib/plan";
 import { auditLog } from "@/lib/audit-log";
 import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
-import { bumpRateLimit } from "@/lib/rate-limit";
-import { todayDateString } from "@/lib/ids";
-import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
-
-/**
- * Rate-limit constants the public POST `/api/audits` enforces. Duplicated here
- * (rather than importing from the route file) because the route is a Next.js
- * handler and pulling its module surface into a server action would drag in
- * request/response types we don't need. v0.5.4 will extract these into a
- * shared `assertAuditAllowed()` helper alongside the route.
- */
-const PER_HOST_HOURLY_LIMIT = 30;
-const PER_USER_HOST_DAILY_PRO = 15;
-const IN_FLIGHT_LIMIT_PRO = 5;
-function currentHourKey(): string { return new Date().toISOString().slice(0, 13); }
 
 /**
  * Strip a leading "www." for case-insensitive host comparison. Watched URLs
@@ -295,13 +281,21 @@ export async function addWatchedPage(
     return { ok: false, error: e instanceof Error ? e.message : "URL failed safety check." };
   }
 
-  // Atomic cap-enforcement: count + insert in a transaction. 20 is small enough
-  // that the count is cheap; locking the domain's rows for the duration is
-  // unnecessary at this volume. The unique index on (monitoredDomainId, url)
-  // makes duplicate detection deterministic without a SELECT-then-INSERT race.
+  // Atomic cap-enforcement: SELECT FOR UPDATE on the parent monitored_domain
+  // row serializes concurrent adds for the same domain. Without the lock, two
+  // simultaneous calls could both observe count=19 and both insert, landing at
+  // 21 rows. The unique index on (monitoredDomainId, url) handles duplicate
+  // detection inside the lock; the lock handles the count+insert race.
   const cap = WATCHED_PAGES_CAP.pro;
   try {
     const inserted = await db.transaction(async (tx) => {
+      // Acquire row lock; result discarded — we only need the side effect.
+      await tx
+        .select({ id: monitoredDomains.id })
+        .from(monitoredDomains)
+        .where(eq(monitoredDomains.id, dom.id))
+        .for("update");
+
       const [{ count }] = await tx
         .select({ count: sql<number>`count(*)::int` })
         .from(watchedPages)
@@ -345,7 +339,7 @@ export async function addWatchedPage(
     // and worker-pool burst budget. When any gate trips, the watched row
     // stays pinned (it's just a list entry; no cost) and the URL is audited
     // on the next monitoring tick instead.
-    const immediateAuditDeferReason = await shouldDeferImmediateAudit({
+    const immediateAuditDeferReason = await assertProAuditAllowed({
       userId: session.user.id,
       host: dom.host,
     });
@@ -415,48 +409,3 @@ export async function removeWatchedPage(
   return { ok: true };
 }
 
-/**
- * Mirrors the gate suite in `apps/web/src/app/api/audits/route.ts`:
- *   - daily Pro audit cap (50/day)
- *   - per-host hourly cap (30/hr)
- *   - per-user-per-host daily cap (15/day)
- *   - in-flight cap (5 queued/running)
- *   - host + user blocklist
- * Returns null if the immediate audit should fire, otherwise a short reason
- * string for telemetry. The watched-page row is committed regardless — only
- * the convenience "audit on add" fire is skipped.
- */
-async function shouldDeferImmediateAudit(args: {
-  userId: string;
-  host: string;
-}): Promise<string | null> {
-  if (devFlags.rateLimitDisabled) return null;
-  const today = todayDateString();
-  const hour = currentHourKey();
-
-  const blocked = await checkBlocklist([hostBlockKey(args.host), userBlockKey(args.userId)]);
-  if (blocked) return "blocklisted";
-
-  const dailyKey = `pro:${args.userId}:${today}`;
-  const dailyRes = await bumpRateLimit(dailyKey, DAILY_AUDIT_CAP.pro);
-  if (!dailyRes.allowed) return "per_user";
-
-  const hostKey = `audit-host:${args.host}:${hour}`;
-  const hostRes = await bumpRateLimit(hostKey, PER_HOST_HOURLY_LIMIT);
-  if (!hostRes.allowed) return "per_host";
-
-  const userHostKey = `user-host:${args.userId}:${args.host}:${today}`;
-  const userHostRes = await bumpRateLimit(userHostKey, PER_USER_HOST_DAILY_PRO);
-  if (!userHostRes.allowed) return "per_user_host";
-
-  const [{ count } = { count: 0 }] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(audits)
-    .where(and(
-      eq(audits.userId, args.userId),
-      inArray(audits.status, ["queued", "running"]),
-    ));
-  if (count >= IN_FLIGHT_LIMIT_PRO) return "in_flight";
-
-  return null;
-}

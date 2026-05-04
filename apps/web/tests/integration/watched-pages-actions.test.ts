@@ -156,8 +156,8 @@ vi.mock("@/db", async () => {
         };
 
         // where() returns a thenable: directly awaitable for queries without
-        // .limit (count case) and chainable into .limit / .orderBy for the
-        // domain-row lookup case.
+        // .limit (count case) and chainable into .limit / .orderBy / .for for
+        // the domain-row lookup + FOR UPDATE row-lock case.
         const whereResult = {
           then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
             resolve().then(onFulfilled, onRejected),
@@ -167,6 +167,8 @@ vi.mock("@/db", async () => {
             then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
               resolve().then(onFulfilled, onRejected),
           }),
+          // FOR UPDATE row lock — mock just resolves; no real locking semantics.
+          for: async (_mode: string) => resolve(),
         };
 
         return {
@@ -412,6 +414,29 @@ describe("addWatchedPage", () => {
     expect(data.plan).toBe("pro");
     expect(data.mode).toBe("full");
     expect(data.force?.urls).toEqual(["https://example.com/launch"]);
+  });
+
+  it("commits the watched row but skips the audit fire when rate-limited", async () => {
+    STATE.session = { user: { id: "user-A", email: "a@x" } };
+    const d = seedDomain();
+    // Match by key prefix instead of relying on gate call order — keeps the
+    // test robust if the gate suite is reordered. The Pro daily-cap key is
+    // `pro:<userId>:<date>`; deny that one specifically and let everything
+    // else allow. Result: shouldDeferImmediateAudit returns "per_user" and
+    // the watched row commits without an audit fire.
+    const { bumpRateLimit } = await import("@/lib/rate-limit");
+    vi.mocked(bumpRateLimit).mockImplementation(async (key: string) => {
+      if (key.startsWith("pro:")) return { allowed: false, count: 999 };
+      return { allowed: true, count: 1 };
+    });
+
+    const r = await callAddWatched(d.id, "https://example.com/launch");
+    expect(r.ok).toBe(true);
+    expect(STATE.watched.find((w) => w.url === "https://example.com/launch")).toBeDefined();
+    expect(STATE.inngestSent.find((e) => e.name === "audit/requested")).toBeUndefined();
+
+    // Restore default behaviour for any subsequent tests in this block.
+    vi.mocked(bumpRateLimit).mockImplementation(async () => ({ allowed: true, count: 1 }));
   });
 });
 
