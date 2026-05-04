@@ -98,7 +98,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string; plan: "free" | "pro" | null }) {
   const navLinkClass = "hidden rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:inline-flex";
   return (
-    <nav className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
+    <nav className="relative z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />

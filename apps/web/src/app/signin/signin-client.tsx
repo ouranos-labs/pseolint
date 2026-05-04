@@ -12,7 +12,7 @@ export default function SigninClient() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-56px)] max-w-md items-center px-5 py-16">
+    <main className="mx-auto flex min-h-full max-w-md items-center px-5 py-16">
       <div className="w-full">
         <div className="mb-8">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Sign in</h1>
