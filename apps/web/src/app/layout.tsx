@@ -79,15 +79,17 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const plan: "free" | "pro" | null = session ? await getPlan(session.user.id) : null;
   return (
     <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
-      <body className="relative flex min-h-screen flex-col bg-background font-sans text-foreground antialiased">
+      <body className="relative flex h-screen flex-col overflow-hidden bg-background font-sans text-foreground antialiased">
         <SiteNav signedIn={ !!session } email={ session?.user.email } plan={ plan } />
-        <div className="relative flex-1">{ children }</div>
+        <main className="relative flex-1 overflow-y-auto">
+          <div className="relative">{ children }</div>
+          <SiteFooter lastUpdated={ SITE_LAST_UPDATED } />
+        </main>
         <script
           type="application/ld+json"
           // Pre-sanitized: JSON.stringify + escape `</` per HTML spec
           dangerouslySetInnerHTML={ { __html: safeJsonLd(ORGANIZATION_JSON_LD) } }
         />
-        <SiteFooter lastUpdated={ SITE_LAST_UPDATED } />
       </body>
     </html>
   );

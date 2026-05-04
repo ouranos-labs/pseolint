@@ -53,7 +53,7 @@ export function DashboardSidebar({ plan }: { plan: "free" | "pro" }) {
   const pathname = usePathname();
   const items = plan === "pro" ? PRO_ITEMS : FREE_ITEMS;
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem-1px)] w-56 shrink-0 self-start flex-col overflow-y-auto border-r border-border/60 px-4 py-6 md:flex">
+    <aside className="sticky top-0 hidden h-[calc(100vh-3.5rem-1px)] w-56 shrink-0 self-start flex-col overflow-y-auto border-r border-border/60 px-4 py-6 md:flex">
       <ul className="flex flex-col gap-1">
         {items.map((it) => {
           const active = isActive(pathname, it);
@@ -98,7 +98,7 @@ export function DashboardTabs({ plan }: { plan: "free" | "pro" }) {
   const pathname = usePathname();
   const items = plan === "pro" ? PRO_ITEMS : FREE_ITEMS;
   return (
-    <nav className="sticky top-14 z-20 -mx-5 mb-4 border-b border-border/60 bg-background/90 px-5 py-2 backdrop-blur md:hidden">
+    <nav className="sticky top-0 z-20 -mx-5 mb-4 border-b border-border/60 bg-background/90 px-5 py-2 backdrop-blur md:hidden">
       <ul className="flex gap-1 overflow-x-auto">
         {items.map((it) => {
           const active = isActive(pathname, it);
