@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.5
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.5: large pSEO sites now get stratified URL coverage across templates (matters when sample budget < total candidate URLs), and `content/regurgitated-content` flags Google Places API regurgitation patterns. No CLI flag changes — both fire automatically.
+
 ## 0.5.4
 
 ### Patch Changes

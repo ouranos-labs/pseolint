@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.5
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.5: stratified URL sampling + `content/regurgitated-content` Google Places regurgitation detection. MCP audit-tool output reflects both automatically.
+
 ## 0.5.4
 
 ### Patch Changes

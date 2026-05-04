@@ -1,5 +1,12 @@
 # @pseolint/core
 
+## 0.5.5
+
+### Patch Changes
+
+- **Stratified URL sampling across templates** in `planScrapeStrategy`. When the candidate URL list exceeds budget by 1.5× AND clustering produces ≥2 templates with no single template dominating >80%, sample slots are allocated proportionally across template clusters (with a `min(20, 10% × budget)` long-tail bucket so singleton paths like `/about` aren't starved). Watched URLs (force-refetch) bypass the budget entirely. On a 100k-URL site with one giant `/listing/:slug` cluster (90k pages) and smaller `/category/:slug` (8k) and `/help/:slug` (2k) clusters, the audit now covers all three rather than 200 slots from the dominant cluster. 9 new unit tests in `tests/scrape-strategy.test.ts`.
+- **New rule `content/regurgitated-content`** detecting Google Places API regurgitation patterns (the bestfirenze.com value-add gap). Heuristic-only, fires at `warning` severity when ≥2 of 5 signals are present per page: (1) "Powered by Google" attribution, (2) ≥60% Google-hosted images (`googleusercontent.com`, `lh3.googleusercontent.com`, `maps.googleapis.com/maps/api/place/photo`, `streetviewpixels-pa.googleapis.com`), (3) Google Static Maps embeds or Maps iframes, (4) Places API JS markers (`PlacesService`, `AutocompleteService`), (5) ≥5 review-style blocks with star ratings + paragraphs but no E-E-A-T author signal. RULE_IMPACTS: `baseImpact: 15, perInstance: 5, maxImpact: 35`. 9 new tests. v0.6 will add Wikipedia/Tripadvisor n-gram overlap with external corpus checks.
+
 ## 0.5.4
 
 ### Patch Changes
