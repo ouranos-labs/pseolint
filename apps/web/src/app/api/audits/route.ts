@@ -19,6 +19,7 @@ import { clientIp } from "@/lib/ip";
 import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
 import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,6 @@ const BodySchema = z.object({
 
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 const URL_COOLDOWN_MS = 5 * 60 * 1000;
-const PER_HOST_HOURLY_LIMIT = 30;
 // Public-form sample-size ceiling. Pro users requesting an audit via the
 // homepage form / API hit this cap (300 pages); the larger 500-page budget
 // advertised on /limits applies only to dashboard "Re-audit now" and
@@ -51,12 +51,10 @@ const PER_HOST_HOURLY_LIMIT = 30;
 // the rate-limited dashboard path.
 const SAMPLE_SIZE_CEILING = 300;
 const IN_FLIGHT_LIMIT_FREE = 1;
-const IN_FLIGHT_LIMIT_PRO = 5;
 const IN_FLIGHT_LIMIT_ANON = 1;
 // Anti-harassment: one user can only audit a given host N times per day. Caps
 // the realistic damage one attacker can do to a third-party site, even if they
 // max out their daily quota across many different targets.
-const PER_USER_HOST_DAILY_PRO = 15;
 const PER_USER_HOST_DAILY_FREE = 3;
 const PER_ANON_HOST_DAILY = 1;
 const PER_ANON_IP_HOST_DAILY = 1;
@@ -219,23 +217,59 @@ export async function POST(req: Request): Promise<Response> {
     expiresAt = plan === "pro" ? new Date("9999-12-31T23:59:59.999Z") : addDays(30);
 
     if (!devFlags.rateLimitDisabled) {
-      const key = plan === "pro" ? `pro:${userId}:${today}` : `free:${userId}:${today}`;
-      const limit = DAILY_AUDIT_CAP[plan];
-      const { allowed } = await bumpRateLimit(key, limit);
-      if (!allowed) {
-        auditLog("audit.request.rate_limited", { reason: "per_user", userId, plan });
-        return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
-      }
-      // Per-user-per-host daily cap — anti-harassment for third-party targets.
-      const hostKey = `user-host:${userId}:${host}:${today}`;
-      const hostLimit = plan === "pro" ? PER_USER_HOST_DAILY_PRO : PER_USER_HOST_DAILY_FREE;
-      const hostRes = await bumpRateLimit(hostKey, hostLimit);
-      if (!hostRes.allowed) {
-        auditLog("audit.request.rate_limited", { reason: "per_user_host", userId, plan, host });
-        return NextResponse.json(
-          { error: `You've reached today's limit for ${host} (${hostLimit}/day). Try a different site or come back tomorrow.` },
-          { status: 429 },
-        );
+      if (plan === "pro") {
+        // Pro gates are consolidated in the shared helper (daily cap + per-host
+        // hourly + per-user-host daily + in-flight). Redundant with the
+        // route-level per-host-hourly check above, but acceptable until v0.5.5.
+        const gateReason = await assertProAuditAllowed({ userId: userId!, host });
+        if (gateReason) {
+          auditLog("audit.request.rate_limited", { reason: gateReason, userId, plan });
+          if (gateReason === "blocklisted") {
+            return NextResponse.json(
+              { error: "This audit cannot be run. Contact support if you believe this is in error." },
+              { status: 403 },
+            );
+          }
+          if (gateReason === "per_host") {
+            return NextResponse.json(
+              { error: `Too many audits for ${host} this hour. Try again later.` },
+              { status: 429 },
+            );
+          }
+          if (gateReason === "per_user_host") {
+            return NextResponse.json(
+              { error: `You've reached today's limit for ${host} (${PER_USER_HOST_DAILY_PRO}/day). Try a different site or come back tomorrow.` },
+              { status: 429 },
+            );
+          }
+          if (gateReason === "in_flight") {
+            return NextResponse.json(
+              { error: `Too many audits in flight. Wait for one to finish.` },
+              { status: 429 },
+            );
+          }
+          // gateReason === "per_user"
+          return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
+        }
+      } else {
+        // Free user inline gates.
+        const key = `free:${userId}:${today}`;
+        const limit = DAILY_AUDIT_CAP[plan];
+        const { allowed } = await bumpRateLimit(key, limit);
+        if (!allowed) {
+          auditLog("audit.request.rate_limited", { reason: "per_user", userId, plan });
+          return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
+        }
+        // Per-user-per-host daily cap — anti-harassment for third-party targets.
+        const hostKey = `user-host:${userId}:${host}:${today}`;
+        const hostRes = await bumpRateLimit(hostKey, PER_USER_HOST_DAILY_FREE);
+        if (!hostRes.allowed) {
+          auditLog("audit.request.rate_limited", { reason: "per_user_host", userId, plan, host });
+          return NextResponse.json(
+            { error: `You've reached today's limit for ${host} (${PER_USER_HOST_DAILY_FREE}/day). Try a different site or come back tomorrow.` },
+            { status: 429 },
+          );
+        }
       }
     }
   } else {
@@ -287,14 +321,11 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  // In-flight cap: prevents a single caller from queueing many audits in parallel
-  // (the daily cap rejects #N+1 but doesn't space out the burst). Bounds Inngest
-  // queue depth and target-site burst per origin.
-  if (!devFlags.rateLimitDisabled) {
-    const inFlightLimit =
-      tier === "pro" ? IN_FLIGHT_LIMIT_PRO :
-      tier === "free" ? IN_FLIGHT_LIMIT_FREE :
-      IN_FLIGHT_LIMIT_ANON;
+  // In-flight cap for free and anon tiers — prevents a single caller from
+  // queueing many audits in parallel. Pro in-flight is handled by
+  // assertProAuditAllowed above (same DB query, same limit constant).
+  if (tier !== "pro" && !devFlags.rateLimitDisabled) {
+    const inFlightLimit = tier === "free" ? IN_FLIGHT_LIMIT_FREE : IN_FLIGHT_LIMIT_ANON;
     const ownerFilter = userId
       ? eq(audits.userId, userId)
       : eq(audits.anonSessionId, anonSessionId!);
