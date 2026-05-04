@@ -53,7 +53,7 @@ export function DashboardSidebar({ plan }: { plan: "free" | "pro" }) {
   const pathname = usePathname();
   const items = plan === "pro" ? PRO_ITEMS : FREE_ITEMS;
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border/60 px-4 py-6 md:flex">
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem-1px)] w-56 shrink-0 self-start flex-col overflow-y-auto border-r border-border/60 px-4 py-6 md:flex">
       <ul className="flex flex-col gap-1">
         {items.map((it) => {
           const active = isActive(pathname, it);

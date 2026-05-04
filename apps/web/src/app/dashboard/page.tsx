@@ -89,7 +89,7 @@ export default async function DashboardHome({
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-medium text-foreground">Portfolio</h1>
         <AddDomainCard variant="compact" />
       </div>

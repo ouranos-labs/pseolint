@@ -123,8 +123,8 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
 
       <ul className="divide-y divide-border/60">
         {rows.map((r) => (
-          <li key={r.slug} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
-            <div className="min-w-0 flex-1">
+          <li key={r.slug} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3 text-sm">
+            <div className="min-w-0 flex-1 basis-full sm:basis-0">
               <div className="truncate text-foreground/80">{r.sourceUrl}</div>
               <div className="font-mono text-[11px] text-muted-foreground">
                 {r.status === "completed" && r.completedAt
@@ -132,9 +132,9 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
                   : r.status}
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <span className="font-mono tabular-nums text-foreground">{r.risk ?? "—"}</span>
-              <span className="text-xs text-muted-foreground">{r.findingCount ?? 0} findings</span>
+              <span className="hidden text-xs text-muted-foreground sm:inline">{r.findingCount ?? 0} findings</span>
               <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">
                 View
               </Link>

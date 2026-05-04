@@ -506,8 +506,8 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           structurally different ways, which is itself a finding: there is no universal pSEO
           template that passes everywhere.
         </p>
-        <div className="mt-5 overflow-hidden rounded-[22px] border border-border/70">
-          <table className="w-full text-sm">
+        <div className="mt-5 overflow-x-auto rounded-[22px] border border-border/70">
+          <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-border bg-card/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="py-3 pl-5 pr-4 font-medium">Vertical</th>

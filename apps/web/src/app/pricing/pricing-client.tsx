@@ -211,8 +211,8 @@ function PricingInner() {
           happens around the audit: monitoring, triage, integrations, retention, and overrides.
           The numbers below are the live limits enforced by the platform — quote them.
         </p>
-        <div className="overflow-hidden rounded-[22px] border border-border/70 bg-card/40">
-          <table className="w-full border-collapse text-sm">
+        <div className="overflow-x-auto rounded-[22px] border border-border/70 bg-card/40">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border/60 bg-card/60 text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Feature</th>
@@ -377,8 +377,8 @@ function PlanCard({
 
       <div className="flex items-baseline gap-1.5">
         <span
-          className={ `leading-[0.9] tabular-nums ${highlight ? "text-primary" : "text-foreground"}` }
-          style={ { fontSize: "72px", fontFamily: "var(--font-display)", fontStyle: "italic" } }
+          className={ `text-[56px] leading-[0.9] tabular-nums sm:text-[64px] md:text-[72px] ${highlight ? "text-primary" : "text-foreground"}` }
+          style={ { fontFamily: "var(--font-display)", fontStyle: "italic" } }
         >
           ${ price }
         </span>

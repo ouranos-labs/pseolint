@@ -293,10 +293,10 @@ export function LiveDemo({ className }: { className?: string }) {
         <div className="flex flex-col gap-1">
           <span
             className={ cn(
-              "font-display leading-none tabular-nums tracking-tight transition-colors",
+              "font-display text-[64px] leading-none tabular-nums tracking-tight transition-colors sm:text-[72px] md:text-[88px]",
               scoreTone,
             ) }
-            style={ { fontSize: "88px", fontFamily: "var(--font-display)" } }
+            style={ { fontFamily: "var(--font-display)" } }
           >
             { scoreRounded }
           </span>

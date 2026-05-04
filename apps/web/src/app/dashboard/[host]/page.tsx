@@ -338,8 +338,8 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             <div className="flex flex-col items-start">
               <div className="flex items-baseline gap-3">
                 <span
-                  className={`leading-[0.9] tabular-nums ${scoreTone(latestAudit.risk ?? 0)}`}
-                  style={{ fontSize: "96px", fontFamily: "var(--font-display)" }}
+                  className={`text-[64px] leading-[0.9] tabular-nums sm:text-[80px] md:text-[96px] ${scoreTone(latestAudit.risk ?? 0)}`}
+                  style={{ fontFamily: "var(--font-display)" }}
                 >
                   {latestAudit.risk ?? 0}
                 </span>

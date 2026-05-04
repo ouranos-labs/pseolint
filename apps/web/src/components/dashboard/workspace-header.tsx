@@ -52,8 +52,8 @@ export function WorkspaceHeader({ domain }: {
           ↗ {domain.sourceUrl}
         </a>
       </div>
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex items-center gap-2">
+      <div className="flex w-full flex-col gap-1 sm:w-auto sm:items-end">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <Button onClick={reaudit} disabled={pending}>{pending ? "Starting…" : "Re-audit now"}</Button>
           <Link href={`/dashboard/${encodeURIComponent(domain.host)}/settings`} className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm hover:bg-secondary">Settings</Link>
           <button

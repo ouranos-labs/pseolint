@@ -551,8 +551,8 @@ function LegacyHero({
     <div className="mt-6 grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
       <div className="flex flex-col items-start">
         <span
-          className={ `leading-[0.9] tabular-nums ${tone}` }
-          style={ { fontSize: "128px", fontFamily: "var(--font-display)" } }
+          className={ `text-[80px] leading-[0.9] tabular-nums sm:text-[104px] md:text-[128px] ${tone}` }
+          style={ { fontFamily: "var(--font-display)" } }
         >
           { score }
         </span>

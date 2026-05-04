@@ -397,9 +397,8 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col items-start sm:items-end">
                     <span
-                      className={ `leading-[0.9] tabular-nums ${scoreToneClass(r.score)}` }
+                      className={ `text-[64px] leading-[0.9] tabular-nums sm:text-[72px] md:text-[88px] ${scoreToneClass(r.score)}` }
                       style={ {
-                        fontSize: "88px",
                         fontFamily: "var(--font-display)",
                       } }
                     >
@@ -416,12 +415,11 @@ export default function Home() {
                   <div>
                     <p className="font-mono text-xs text-muted-foreground">{ r.host }</p>
                     <h3
-                      className="mt-2 tracking-tight"
+                      className="mt-2 text-2xl tracking-tight sm:text-[28px]"
                       style={ {
                         fontFamily: "var(--font-display)",
                         fontStyle: "italic",
                         fontWeight: 400,
-                        fontSize: "28px",
                         lineHeight: 1.1,
                       } }
                     >
