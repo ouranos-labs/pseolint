@@ -1,5 +1,11 @@
 # @pseolint/core
 
+## 0.5.3
+
+### Patch Changes
+
+- Add `force.urls` audit option (and `forceRefetchUrls` on `planScrapeStrategy`) — caller-curated "watched pages" list that always refetches, short-circuiting the monitoring matrix with a new `RefetchReason` of `"watched"`. Watched URLs absent from the sitemap are still audited.
+
 ## 0.5.0
 
 ### Minor Changes

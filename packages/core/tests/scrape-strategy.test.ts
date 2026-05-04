@@ -248,4 +248,98 @@ describe("planScrapeStrategy", () => {
     });
     expect(plan.skip.get("https://example.com/a")).toBe("unchanged");
   });
+
+  // v0.5.3 — caller-supplied "watched pages" force-include list.
+  describe("forceRefetchUrls (watched pages)", () => {
+    it("forces refetch with reason 'watched' on a URL that would otherwise skip", () => {
+      // Fresh prior, ruleset matches, no findings, no lastmod change → would skip "unchanged"
+      // (well, "no-signal" on this fixture, since lastmod is older). Either way, watched wins.
+      const plan = planScrapeStrategy({
+        candidateUrls: ["https://example.com/a"],
+        priorState: baseState({
+          "https://example.com/a": baseEntry({ fetchedAt: "2026-05-07T00:00:00Z" }),
+        }),
+        sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
+        currentRulesetVersion: "1",
+        ageFloorDays: 30,
+        now: NOW,
+        forceRefetchUrls: ["https://example.com/a"],
+      });
+      expect(plan.refetch.get("https://example.com/a")).toBe("watched");
+      expect(plan.skip.size).toBe(0);
+    });
+
+    it("'watched' takes precedence over 'new' on a URL absent from prior state", () => {
+      const plan = planScrapeStrategy({
+        candidateUrls: ["https://example.com/a"],
+        priorState: baseState({}),
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 7,
+        now: NOW,
+        forceRefetchUrls: ["https://example.com/a"],
+      });
+      expect(plan.refetch.get("https://example.com/a")).toBe("watched");
+    });
+
+    it("URLs not in forceRefetchUrls follow the existing matrix exactly (no regression)", () => {
+      const plan = planScrapeStrategy({
+        candidateUrls: ["https://example.com/a", "https://example.com/b"],
+        priorState: baseState({
+          "https://example.com/a": baseEntry({ fetchedAt: "2026-05-07T00:00:00Z" }),
+          "https://example.com/b": baseEntry({ fetchedAt: "2026-05-07T00:00:00Z" }),
+        }),
+        sitemapLastmodByUrl: new Map([
+          ["https://example.com/a", "2026-04-01T00:00:00Z"],
+          ["https://example.com/b", "2026-04-01T00:00:00Z"],
+        ]),
+        currentRulesetVersion: "1",
+        ageFloorDays: 30,
+        now: NOW,
+        forceRefetchUrls: ["https://example.com/a"],
+      });
+      expect(plan.refetch.get("https://example.com/a")).toBe("watched");
+      // /b had no signal change AND lastmod is older than fetchedAt, so it should skip "unchanged".
+      expect(plan.skip.get("https://example.com/b")).toBe("unchanged");
+      expect(plan.refetch.has("https://example.com/b")).toBe(false);
+    });
+
+    it("undefined forceRefetchUrls leaves behavior unchanged (full backwards-compat)", () => {
+      const baseInputs = {
+        candidateUrls: ["https://example.com/a"],
+        priorState: baseState({
+          "https://example.com/a": baseEntry({ fetchedAt: "2026-05-07T00:00:00Z" }),
+        }),
+        sitemapLastmodByUrl: new Map([["https://example.com/a", "2026-04-01T00:00:00Z"]]),
+        currentRulesetVersion: "1",
+        ageFloorDays: 30,
+        now: NOW,
+      };
+      const without = planScrapeStrategy(baseInputs);
+      const withEmpty = planScrapeStrategy({ ...baseInputs, forceRefetchUrls: [] });
+      expect(without.skip.get("https://example.com/a")).toBe("unchanged");
+      expect(withEmpty.skip.get("https://example.com/a")).toBe("unchanged");
+      expect(without.refetch.size).toBe(0);
+      expect(withEmpty.refetch.size).toBe(0);
+    });
+
+    it("watched URL absent from candidateUrls is still added to the audit set", () => {
+      // Common case: user watched a page that has since been removed from the
+      // sitemap. We should still fetch it so the user finds out it's gone.
+      const plan = planScrapeStrategy({
+        candidateUrls: ["https://example.com/a"],
+        priorState: baseState({
+          "https://example.com/a": baseEntry({ fetchedAt: "2026-05-07T00:00:00Z" }),
+        }),
+        sitemapLastmodByUrl: new Map(),
+        currentRulesetVersion: "1",
+        ageFloorDays: 30,
+        now: NOW,
+        forceRefetchUrls: ["https://example.com/removed-from-sitemap"],
+      });
+      expect(plan.refetch.get("https://example.com/removed-from-sitemap")).toBe("watched");
+      // /a was a no-signal URL, original behavior preserved.
+      expect(plan.refetch.get("https://example.com/a")).toBe("no-signal");
+    });
+  });
 });

@@ -14,10 +14,12 @@ import { bumpRateLimit } from "@/lib/rate-limit";
 import { todayDateString } from "@/lib/ids";
 import { auditMode } from "@/lib/audit-mode";
 import { auditLog } from "@/lib/audit-log";
+import { PRO_MONITOR_SAMPLE_SIZE, DOWNGRADED_MONITOR_SAMPLE_SIZE } from "@/lib/audit-limits";
 import { mergeFindings } from "@/lib/findings-state";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 import { publicSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
+import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -118,6 +120,7 @@ async function runOneMonitor(monitoredDomainId: string) {
     .returning({ id: audits.id, slug: audits.slug });
 
   const SAMPLE_SIZE_CEILING = 300;
+  const monitorSampleSize = plan === "pro" ? PRO_MONITOR_SAMPLE_SIZE : DOWNGRADED_MONITOR_SAMPLE_SIZE;
 
   // v0.5+ change-driven monitoring: persist per-domain state across Inngest
   // invocations via R2 (the worker filesystem is ephemeral on Vercel).
@@ -143,15 +146,23 @@ async function runOneMonitor(monitoredDomainId: string) {
     stateTmpPath = null;
   }
 
+  // v0.5.3 — load the domain's watched-pages list so the engine force-refetches
+  // those URLs even when diff-mode would otherwise skip them. Empty list = no
+  // force header sent (clean payload). Engine-side note: in fresh mode without
+  // prior state, `force` is silently ignored — fine here because the very
+  // first run for a new domain has no watched pages yet.
+  const watchedUrls = await loadWatchedUrlsForDomain(d.id);
+
   const result = await executeAuditInProcess({
     auditId: audit.id,
     url: d.sourceUrl,
     plan: plan === "pro" ? "pro" : "free",
-    sampleSize: Math.min(plan === "pro" ? 200 : 50, SAMPLE_SIZE_CEILING),
+    sampleSize: Math.min(monitorSampleSize, SAMPLE_SIZE_CEILING),
     mode,
     ...(stateTmpPath
       ? { state: { path: stateTmpPath, mode: isFullRun ? "fresh" : undefined } }
       : {}),
+    ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
   });
 
   // Upload the post-audit state file back to R2 so the next monitoring tick

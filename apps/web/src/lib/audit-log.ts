@@ -47,7 +47,10 @@ export type AuditLogEvent =
   | "gsc.autobind"
   | "orchestrator.started"
   | "orchestrator.completed"
-  | "orchestrator.failed";
+  | "orchestrator.failed"
+  | "watched_page.added"
+  | "watched_page.removed"
+  | "watched_page.cap_reached";
 
 type Payload = Record<string, unknown>;
 

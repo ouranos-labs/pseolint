@@ -2,7 +2,22 @@ import { Inngest, EventSchemas } from "inngest";
 import { devFlags } from "@/lib/dev-flags";
 
 type Events = {
-  "audit/requested": { data: { auditId: string; url: string; plan: "free" | "pro"; sampleSize: number; render?: boolean; mode?: "full" | "diff" } };
+  "audit/requested": {
+    data: {
+      auditId: string;
+      url: string;
+      plan: "free" | "pro";
+      sampleSize: number;
+      render?: boolean;
+      mode?: "full" | "diff";
+      /**
+       * v0.5.3 watched-pages: URLs the engine must always re-fetch this run,
+       * regardless of monitoring's diff-mode skip matrix. Threaded through to
+       * `auditSource(..., { force: { urls } })` in run-audit.ts.
+       */
+      force?: { urls?: string[] };
+    };
+  };
   "audit/completed-for-monitoring": { data: { monitoredDomainId: string; auditId: string } };
   "orchestrator/requested": { data: { sessionId: string } };
   /**

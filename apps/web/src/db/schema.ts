@@ -298,6 +298,36 @@ export const domainRuleOverrides = pgTable("domain_rule_override", {
 });
 
 /**
+ * v0.5.3 — Pro "watched pages" list. Each row pins a single URL on a
+ * monitored domain; the engine forces a refetch on every monitoring run for
+ * URLs in this list (RefetchReason="watched"), guaranteeing diff-mode never
+ * skips them. Free users see an upgrade CTA — no rows are created for them.
+ *
+ * Hard cap of 20 per domain enforced atomically in the add server action.
+ * URL is stored verbatim after the same `normalizeUserUrl` pass used by the
+ * add-domain flow; uniqueness is on (monitoredDomainId, normalized url).
+ * Cascade delete tied to the domain so soft-removing a domain wipes its
+ * watched list — domain row removal is soft (sets `removedAt`), so the
+ * explicit cleanup happens in `removeDomainAction`; the FK cascade only
+ * fires on hard deletes.
+ */
+export const watchedPages = pgTable("watched_page", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  monitoredDomainId: uuid("monitored_domain_id")
+    .notNull()
+    .references(() => monitoredDomains.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  addedByUserId: text("added_by_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  /** Stamped by the audit pipeline after the URL was last included as forced-refetch.
+   *  Null = never audited (the on-add Inngest event hasn't completed). */
+  lastAuditedAt: timestamp("last_audited_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  domainIdx: index("watched_page_domain_idx").on(t.monitoredDomainId),
+  domainUrlUniq: uniqueIndex("watched_page_domain_url_uniq").on(t.monitoredDomainId, t.url),
+}));
+
+/**
  * AI-orchestrator session row. One per `orchestrate()` invocation. Tracks
  * budget consumption, terminal status, and pointers into R2 for the durable
  * NDJSON event log. The actual fix manifest (when produced) lives in

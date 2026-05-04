@@ -92,6 +92,13 @@
       "when": 1777648741909,
       "tag": "0012_lush_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777848459563,
+      "tag": "0013_narrow_king_bedlam",
+      "breakpoints": true
     }
   ]
 }

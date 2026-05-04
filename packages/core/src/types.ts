@@ -482,6 +482,23 @@ export interface AuditOptions {
   authorityScore?: number;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
+  /**
+   * v0.5.3 — caller-supplied refetch overrides. Any URL listed in `force.urls`
+   * is always re-fetched and short-circuits the monitoring decision matrix
+   * (reason: `"watched"`). Owned by the caller (e.g. the web app's per-domain
+   * "watched pages" list); the engine treats it as a transient input and never
+   * persists it. Watched URLs absent from the discovered sitemap are still
+   * audited so the caller learns when a watched page has been removed.
+   *
+   * **Limitation:** `force.urls` is only honored when the audit runs in
+   * monitoring mode against an HTTP source with prior state present. It is
+   * silently ignored on filesystem sources and on fresh-mode runs (no prior
+   * state file). On a fresh first-ever monitoring run, force-only URLs not
+   * present in the sitemap will not be audited — the audit runs against the
+   * sitemap-discovered set as usual. Callers who need fresh-mode
+   * force-include must crawl the URL via single-page audit instead.
+   */
+  force?: { urls?: ReadonlyArray<string> };
   /** AI triage options. When omitted or `enabled: false`, no AI is invoked. */
   ai?: AiOptions;
   /** Local-only telemetry (JSONL) options. When omitted or `enabled: false`, no records are written. */

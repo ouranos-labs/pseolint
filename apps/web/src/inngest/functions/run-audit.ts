@@ -1,7 +1,8 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { audits, monitoredDomains, domainDataSources, domainRuleOverrides, userAiKeys } from "@/db/schema";
+import { audits, monitoredDomains, domainDataSources, domainRuleOverrides, userAiKeys, watchedPages } from "@/db/schema";
+import { inArray } from "drizzle-orm";
 import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { auditSource, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
@@ -27,6 +28,12 @@ export type RunAuditInput = {
   state?: StateOptions;
   /** Opt-in Playwright rendered mode (JS-heavy sites). Default: false (static fetch). */
   render?: boolean;
+  /**
+   * v0.5.3 watched-pages: URLs the engine must always re-fetch this run,
+   * regardless of monitoring's diff-mode skip matrix. Forwarded as
+   * `auditSource(..., { force })`.
+   */
+  force?: { urls?: string[] };
 };
 
 /**
@@ -87,7 +94,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
 }
 
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
-  const { auditId, url, plan, sampleSize, mode, state, render } = input;
+  const { auditId, url, plan, sampleSize, mode, state, render, force } = input;
   const startedAt = Date.now();
   auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full", render: render ?? false });
 
@@ -138,6 +145,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       sampleSize,
       mode,
       state,
+      // v0.5.3 watched pages — caller-supplied force-refetch URLs short-circuit
+      // diff-mode skip in monitoring runs. Engine ignores `force` in fresh
+      // audits without prior state (documented limitation, not a v0.5.3 blocker).
+      force,
       // 2026-05-03 production fix: hosted audits MUST run with
       // safeMode: "saas" so user-submitted URLs are forced through the
       // SSRF guard, robots.txt is honoured, and per-run caps
@@ -209,6 +220,45 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   // Without this, `Re-audit now` and the initial add-domain audit silently
   // diverge from `/r/[slug]` (which reads `audits.risk` directly).
   await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, completedAt));
+
+  // v0.5.3 — stamp lastAuditedAt on watched pages that were force-refetched
+  // this run. Scoped to *this audit's* monitored_domain so we don't update
+  // another tenant's watched_pages row when two users happen to watch the
+  // same URL (common case: `https://example.com/`). Best-effort: the audit
+  // itself already succeeded; failure here just leaves stale timestamps
+  // until the next run.
+  if (force?.urls && force.urls.length > 0) {
+    await runStep("stamp-watched-pages", async () => {
+      try {
+        const [auditRow] = await db
+          .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
+          .from(audits)
+          .where(eq(audits.id, auditId))
+          .limit(1);
+        if (!auditRow?.userId) return;
+        let host: string;
+        try { host = new URL(auditRow.sourceUrl).host; } catch { return; }
+        const [domRow] = await db
+          .select({ id: monitoredDomains.id })
+          .from(monitoredDomains)
+          .where(and(
+            eq(monitoredDomains.userId, auditRow.userId),
+            eq(monitoredDomains.host, host),
+            isNull(monitoredDomains.removedAt),
+          ))
+          .limit(1);
+        if (!domRow) return;
+        await db.update(watchedPages)
+          .set({ lastAuditedAt: completedAt })
+          .where(and(
+            eq(watchedPages.monitoredDomainId, domRow.id),
+            inArray(watchedPages.url, force.urls!),
+          ));
+      } catch {
+        /* non-fatal */
+      }
+    });
+  }
 
   auditLog("audit.completed", {
     auditId,

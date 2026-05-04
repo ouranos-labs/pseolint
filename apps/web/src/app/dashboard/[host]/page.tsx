@@ -4,12 +4,14 @@ import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
-import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics } from "@/db/schema";
+import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { monthBucketUtc } from "@/lib/gsc";
+import { getCumulativeCoverage } from "@/lib/monitoring";
 import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
+import { CumulativeCoverageCard } from "@/components/dashboard/cumulative-coverage-card";
 import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
 import { VerifyBanner } from "@/components/dashboard/verify-banner";
@@ -27,6 +29,7 @@ import { TileLegend } from "@/components/audit/tile-legend";
 import { gradeOf, scoreTone } from "@/lib/grade";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
+import { WatchedPagesCard } from "./watched-pages-card";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -45,7 +48,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   if (!domain) notFound();
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows] = await Promise.all([
+  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows, coverage, watchedRows] = await Promise.all([
     db.select({
       slug: audits.slug,
       risk: audits.risk,
@@ -91,6 +94,23 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         eq(gscPageMetrics.domainId, domain.id),
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
       )),
+    // v0.5.3 cumulative coverage — sum of URLs audited across this domain's
+    // completed history. Cheap aggregate over the audit row, no R2 round-trip.
+    getCumulativeCoverage({
+      monitoredDomainId: domain.id,
+      userId: session.user.id,
+      sourceUrl: domain.sourceUrl,
+    }),
+    // v0.5.3 watched pages — pinned URLs the engine forces on every run.
+    db.select({
+      id: watchedPages.id,
+      url: watchedPages.url,
+      createdAt: watchedPages.createdAt,
+      lastAuditedAt: watchedPages.lastAuditedAt,
+    })
+      .from(watchedPages)
+      .where(eq(watchedPages.monitoredDomainId, domain.id))
+      .orderBy(desc(watchedPages.createdAt)),
   ]);
 
   let summary: AuditSummary | null = null;
@@ -240,6 +260,17 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         totalClicks={totalClicks}
         lastSyncAt={gscIntegration?.lastSyncAt ?? null}
       />
+
+      {/* v0.5.3 — cumulative coverage. Reframes "200 URLs/week" as the
+          running total this domain has accumulated. Hidden silently for
+          brand-new domains with no completed audit history; an empty
+          state here would just be noise. */}
+      {coverage.urlsAuditedTotal > 0 && (
+        <CumulativeCoverageCard
+          urlsAuditedTotal={coverage.urlsAuditedTotal}
+          urlsAuditedLast30d={coverage.urlsAuditedLast30d}
+        />
+      )}
 
       {/* 3. WHERE I AM — the headline (latest risk + tile grid). */}
       {latestAudit && summary && (
@@ -394,6 +425,16 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         runs={timelineRuns}
         currentThreshold={domain.alertThreshold}
         host={domain.host}
+      />
+
+      {/* 6.5 WATCHED PAGES (v0.5.3) — Pro-only pinning. URLs in this list are
+          force-refetched on every monitoring run regardless of diff-mode skip.
+          Free users never reach this page (plan gate redirects to /pricing),
+          so no upgrade CTA needed inline. */}
+      <WatchedPagesCard
+        monitoredDomainId={domain.id}
+        host={domain.host}
+        initialRows={watchedRows}
       />
 
       {/* 7. AUDIT INTERNALS — origin readiness + category breakdown. Pulled

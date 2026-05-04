@@ -16,7 +16,7 @@ import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
 import { publicSlug } from "@/lib/slug";
 import { clientIp } from "@/lib/ip";
-import { reserveAnonAuditSlot, pageCapFor, ANON_DAILY_CAP } from "@/lib/audit-limits";
+import { reserveAnonAuditSlot, pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 
 export const runtime = "nodejs";
@@ -41,6 +41,13 @@ const BodySchema = z.object({
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
 const URL_COOLDOWN_MS = 5 * 60 * 1000;
 const PER_HOST_HOURLY_LIMIT = 30;
+// Public-form sample-size ceiling. Pro users requesting an audit via the
+// homepage form / API hit this cap (300 pages); the larger 500-page budget
+// advertised on /limits applies only to dashboard "Re-audit now" and
+// monitoring kickoff (see PRO_REAUDIT_SAMPLE_SIZE in lib/audit-limits.ts).
+// The split is intentional cost control on the unauthenticated POST surface
+// — public submissions can't burn the full Pro budget without going through
+// the rate-limited dashboard path.
 const SAMPLE_SIZE_CEILING = 300;
 const IN_FLIGHT_LIMIT_FREE = 1;
 const IN_FLIGHT_LIMIT_PRO = 5;
@@ -212,7 +219,7 @@ export async function POST(req: Request): Promise<Response> {
 
     if (!devFlags.rateLimitDisabled) {
       const key = plan === "pro" ? `pro:${userId}:${today}` : `free:${userId}:${today}`;
-      const limit = plan === "pro" ? 50 : 5;
+      const limit = DAILY_AUDIT_CAP[plan];
       const { allowed } = await bumpRateLimit(key, limit);
       if (!allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_user", userId, plan });
@@ -235,7 +242,7 @@ export async function POST(req: Request): Promise<Response> {
     expiresAt = addDays(1);
     if (!devFlags.rateLimitDisabled) {
       const anonKey = `anon:${anonSessionId}:${today}`;
-      const { allowed } = await bumpRateLimit(anonKey, 3);
+      const { allowed } = await bumpRateLimit(anonKey, ANON_DAILY_CAP);
       if (!allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_anon", anonSessionId });
         return NextResponse.json({ error: "Session limit reached — sign in for more" }, { status: 429 });

@@ -1454,6 +1454,12 @@ interface MonitoringContext {
   currentRulesetVersion: string;
   ageFloorDays: number;
   now: Date;
+  /**
+   * v0.5.3 — caller-supplied "watched pages" override. Any URL here is always
+   * refetched (reason `"watched"`), regardless of age / ruleset / lastmod.
+   * URLs absent from the sitemap are still added to the fetch set.
+   */
+  forceRefetchUrls?: ReadonlyArray<string>;
 }
 
 async function loadPagesFromSource(
@@ -1553,6 +1559,7 @@ async function loadPagesFromSource(
           currentRulesetVersion: monitoringContext.currentRulesetVersion,
           ageFloorDays: monitoringContext.ageFloorDays,
           now: monitoringContext.now,
+          forceRefetchUrls: monitoringContext.forceRefetchUrls,
         });
         urlsToFetch = Array.from(scrapePlan.refetch.keys());
       } else {
@@ -1971,6 +1978,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
           currentRulesetVersion: CORE_RULESET_VERSION,
           ageFloorDays: options?.state?.ageFloorDays ?? DEFAULT_AGE_FLOOR_DAYS,
           now: new Date(),
+          forceRefetchUrls: options?.force?.urls,
         }
       : null;
 

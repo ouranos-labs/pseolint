@@ -1,5 +1,46 @@
 # @pseolint/web
 
+## 0.0.7
+
+### Patch Changes
+
+- **Watched pages (Pro).** Pin up to 20 URLs per monitored domain; pinned URLs
+  are force-refetched on every monitoring run regardless of diff-mode skip.
+  New `watched_page` table (migration `0013_narrow_king_bedlam.sql`), server
+  actions `addWatchedPage` / `removeWatchedPage` in
+  `src/app/dashboard/domain-actions.ts` with full validation (SSRF guard,
+  host-match against the monitored domain, www-equivalence, atomic 20-page
+  cap, duplicate rejection). Adding a URL fires an immediate `audit/requested`
+  with `force: { urls: [...] }` — gated by the same `DAILY_AUDIT_CAP` the
+  public POST `/api/audits` route enforces, so the audit-on-add path can't
+  bypass cost protection. When the daily cap is hit the watched row stays
+  pinned and the URL audits on the next monitoring tick.
+- **Engine force-include wiring.** `audit/requested` Inngest event payload
+  now carries optional `force?: { urls?: string[] }`, threaded into
+  `auditSource(...)` (consumes `@pseolint/core@0.5.3`). All four entry points
+  pass watched URLs through: `monitor-domains.ts` cron, `lib/monitoring.ts`
+  kickoff/re-activation, `domain-actions.ts` initial-add, and
+  `domain-actions.ts` manual re-audit.
+- **Cumulative coverage card.** Per-domain dashboard now surfaces total
+  URLs audited across the full audit history (Postgres aggregate of
+  `audits.pageCount`), with a 30-day-window sub-line. Hidden silently when
+  a domain has no completed audit history. New `getCumulativeCoverage()` in
+  `lib/monitoring.ts`; new component at
+  `components/dashboard/cumulative-coverage-card.tsx`. `/limits` page copy
+  updated to explain the cumulative-coverage framing for Pro monitoring.
+- **Consolidated plan limits.** Daily caps (5/50), anon cap (3), Pro re-audit
+  sample size (500), Pro monitoring sample size (200), and downgraded
+  monitoring sample size (50) are now named constants
+  (`DAILY_AUDIT_CAP`, `PRO_REAUDIT_SAMPLE_SIZE`, `PRO_MONITOR_SAMPLE_SIZE`,
+  `DOWNGRADED_MONITOR_SAMPLE_SIZE`, `WATCHED_PAGES_CAP`) in
+  `lib/audit-limits.ts`. Magic numbers eliminated from `audits/route.ts`,
+  `monitoring.ts`, `domain-actions.ts`, `monitor-domains.ts`. The public-form
+  300-cap vs dashboard-re-audit 500-cap split is now documented in code.
+- New `auditLog` events: `watched_page.added`, `watched_page.removed`,
+  `watched_page.cap_reached`.
+- Updated dependencies
+  - @pseolint/core@0.5.3
+
 ## 0.0.6
 
 ### Patch Changes

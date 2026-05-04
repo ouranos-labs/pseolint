@@ -1,15 +1,44 @@
 "use server";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { monitoredDomains, audits } from "@/db/schema";
+import { monitoredDomains, audits, watchedPages } from "@/db/schema";
 import { requireSession } from "@/lib/session";
 import { publicSlug } from "@/lib/slug";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { inngest } from "@/lib/inngest";
 import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
+import { PRO_REAUDIT_SAMPLE_SIZE, WATCHED_PAGES_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
 import { generateVerificationToken, verifyDomainToken } from "@/lib/domain-verify";
 import { devFlags } from "@/lib/dev-flags";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { getPlan } from "@/lib/plan";
+import { auditLog } from "@/lib/audit-log";
+import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
+import { bumpRateLimit } from "@/lib/rate-limit";
+import { todayDateString } from "@/lib/ids";
+import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
+
+/**
+ * Rate-limit constants the public POST `/api/audits` enforces. Duplicated here
+ * (rather than importing from the route file) because the route is a Next.js
+ * handler and pulling its module surface into a server action would drag in
+ * request/response types we don't need. v0.5.4 will extract these into a
+ * shared `assertAuditAllowed()` helper alongside the route.
+ */
+const PER_HOST_HOURLY_LIMIT = 30;
+const PER_USER_HOST_DAILY_PRO = 15;
+const IN_FLIGHT_LIMIT_PRO = 5;
+function currentHourKey(): string { return new Date().toISOString().slice(0, 13); }
+
+/**
+ * Strip a leading "www." for case-insensitive host comparison. Watched URLs
+ * must belong to the monitored domain — but `www.example.com` and
+ * `example.com` are routinely the same site, so we treat them as equivalent.
+ */
+function canonicalHost(host: string): string {
+  return host.toLowerCase().replace(/^www\./, "");
+}
 
 function originOf(rawUrl: string): { host: string; origin: string } {
   const u = new URL(rawUrl);
@@ -82,9 +111,22 @@ export async function addDomainAction(
     status: "queued", expiresAt, isPublic: false,
   }).returning({ id: audits.id });
 
+  // First-add audits run with no prior monitoring state so the engine's
+  // `force` is silently ignored — but watched pages can't exist yet on a
+  // brand-new domain anyway. Forwarding for symmetry; harmless when empty.
+  const [domRow] = await db
+    .select({ id: monitoredDomains.id })
+    .from(monitoredDomains)
+    .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)))
+    .limit(1);
+  const watchedUrls = domRow ? await loadWatchedUrlsForDomain(domRow.id) : [];
+
   await inngest.send({
     name: "audit/requested",
-    data: { auditId: audit.id, url: origin, plan: "pro", sampleSize: 500, mode: "full" },
+    data: {
+      auditId: audit.id, url: origin, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full",
+      ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
+    },
   });
 
   return { ok: true, host, auditId: audit.id };
@@ -106,6 +148,12 @@ export async function removeDomainAction(
     .returning({ id: monitoredDomains.id });
 
   if (!res.length) return { ok: false, error: "not found" };
+
+  // v0.5.3 — domain removal is soft (sets removedAt), so the FK cascade on
+  // watched_page never fires. Drop the watched list explicitly so a future
+  // re-add doesn't resurrect stale URLs.
+  await db.delete(watchedPages).where(eq(watchedPages.monitoredDomainId, res[0].id));
+
   return { ok: true };
 }
 
@@ -136,9 +184,16 @@ export async function reAuditNowAction(
     status: "queued", expiresAt, isPublic: false,
   }).returning({ id: audits.id });
 
+  // v0.5.3 — thread per-domain watched URLs into the audit so manual re-audits
+  // always re-fetch them, not just weekly cron runs.
+  const watchedUrls = await loadWatchedUrlsForDomain(dom.id);
+
   await inngest.send({
     name: "audit/requested",
-    data: { auditId: audit.id, url: dom.sourceUrl, plan: "pro", sampleSize: 500, mode: "full" },
+    data: {
+      auditId: audit.id, url: dom.sourceUrl, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full",
+      ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
+    },
   });
 
   return { ok: true, auditId: audit.id };
@@ -187,4 +242,221 @@ export async function verifyDomainAction(
     .where(eq(monitoredDomains.id, dom.id));
 
   return { ok: true };
+}
+
+/**
+ * v0.5.3 — pin a URL to a domain's watched-pages list. Pro-only; cap of 20
+ * per domain. Validates that the URL parses, passes the SSRF guard, and
+ * matches the monitored domain's host (www-equivalent). On insert, fires an
+ * `audit/requested` Inngest event for the domain's source URL with
+ * `force: { urls: [<watchedUrl>] }` so the page is audited immediately rather
+ * than waiting for the next monitoring tick.
+ */
+export async function addWatchedPage(
+  monitoredDomainId: string,
+  rawUrl: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  let session;
+  try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
+
+  // Pro gate.
+  const plan = await getPlan(session.user.id);
+  if (plan !== "pro") return { ok: false, error: "Watched pages are a Pro feature." };
+
+  // Ownership + active-row check.
+  const [dom] = await db.select({
+    id: monitoredDomains.id,
+    host: monitoredDomains.host,
+    sourceUrl: monitoredDomains.sourceUrl,
+  })
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.id, monitoredDomainId),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ))
+    .limit(1);
+  if (!dom) return { ok: false, error: "not found" };
+
+  // Normalise + validate.
+  const normalized = normalizeUserUrl(rawUrl);
+  if (!normalized) return { ok: false, error: "Enter a valid URL." };
+
+  let parsed: URL;
+  try { parsed = new URL(normalized); } catch { return { ok: false, error: "Enter a valid URL." }; }
+
+  if (canonicalHost(parsed.host) !== canonicalHost(dom.host)) {
+    return { ok: false, error: `URL must belong to ${dom.host}.` };
+  }
+
+  try {
+    await assertSafeUrl(normalized);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "URL failed safety check." };
+  }
+
+  // Atomic cap-enforcement: count + insert in a transaction. 20 is small enough
+  // that the count is cheap; locking the domain's rows for the duration is
+  // unnecessary at this volume. The unique index on (monitoredDomainId, url)
+  // makes duplicate detection deterministic without a SELECT-then-INSERT race.
+  const cap = WATCHED_PAGES_CAP.pro;
+  try {
+    const inserted = await db.transaction(async (tx) => {
+      const [{ count }] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(watchedPages)
+        .where(eq(watchedPages.monitoredDomainId, dom.id));
+      if (count >= cap) {
+        return { kind: "cap" as const };
+      }
+      const [row] = await tx
+        .insert(watchedPages)
+        .values({
+          monitoredDomainId: dom.id,
+          url: normalized,
+          addedByUserId: session!.user.id,
+        })
+        .onConflictDoNothing({ target: [watchedPages.monitoredDomainId, watchedPages.url] })
+        .returning({ id: watchedPages.id });
+      if (!row) return { kind: "duplicate" as const };
+      return { kind: "ok" as const, id: row.id };
+    });
+
+    if (inserted.kind === "cap") {
+      auditLog("watched_page.cap_reached", { userId: session.user.id, monitoredDomainId: dom.id, host: dom.host });
+      return { ok: false, error: `Pro is capped at ${cap} watched pages per domain. Remove one or contact support for a higher limit.` };
+    }
+    if (inserted.kind === "duplicate") {
+      return { ok: false, error: "That URL is already being watched." };
+    }
+
+    auditLog("watched_page.added", {
+      userId: session.user.id, monitoredDomainId: dom.id, host: dom.host, url: normalized,
+    });
+
+    // "Audit on add" — fire an immediate audit run forced to refetch this URL.
+    // Reuses the existing audit/requested pipeline; isPublic=false matches the
+    // Pro private-by-default convention, expiresAt mirrors lib/monitoring.ts.
+    //
+    // Rate-limit gate: this path bypasses /api/audits, so apply the same
+    // suite of gates that route enforces. Without all of them a Pro user
+    // spam-clicking add can fire 20 audits × 500 pages = 10,000 fetched
+    // URLs against one host in seconds — past the 30/hr per-host throttle
+    // and worker-pool burst budget. When any gate trips, the watched row
+    // stays pinned (it's just a list entry; no cost) and the URL is audited
+    // on the next monitoring tick instead.
+    const immediateAuditDeferReason = await shouldDeferImmediateAudit({
+      userId: session.user.id,
+      host: dom.host,
+    });
+    if (immediateAuditDeferReason) {
+      auditLog("audit.request.rate_limited", { reason: immediateAuditDeferReason, userId: session.user.id, plan: "pro" });
+    } else {
+      const auditSlug = publicSlug();
+      const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+      const [audit] = await db.insert(audits).values({
+        slug: auditSlug, userId: session.user.id, sourceUrl: dom.sourceUrl,
+        status: "queued", expiresAt, isPublic: false,
+      }).returning({ id: audits.id });
+
+      await inngest.send({
+        name: "audit/requested",
+        data: {
+          auditId: audit.id,
+          url: dom.sourceUrl,
+          plan: "pro",
+          sampleSize: PRO_REAUDIT_SAMPLE_SIZE,
+          mode: "full",
+          force: { urls: [normalized] },
+        },
+      });
+    }
+
+    revalidatePath(`/dashboard/${encodeURIComponent(dom.host)}`);
+    return { ok: true, id: inserted.id };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to add watched page." };
+  }
+}
+
+/**
+ * Remove a watched page. Authorisation goes through the parent monitored
+ * domain's user_id — no cross-tenant deletes possible because the SELECT
+ * filters on the session user before issuing the delete.
+ */
+export async function removeWatchedPage(
+  watchedPageId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let session;
+  try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
+
+  const [row] = await db
+    .select({
+      id: watchedPages.id,
+      url: watchedPages.url,
+      monitoredDomainId: watchedPages.monitoredDomainId,
+      host: monitoredDomains.host,
+    })
+    .from(watchedPages)
+    .innerJoin(monitoredDomains, eq(monitoredDomains.id, watchedPages.monitoredDomainId))
+    .where(and(
+      eq(watchedPages.id, watchedPageId),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ))
+    .limit(1);
+  if (!row) return { ok: false, error: "not found" };
+
+  await db.delete(watchedPages).where(eq(watchedPages.id, row.id));
+  auditLog("watched_page.removed", {
+    userId: session.user.id, monitoredDomainId: row.monitoredDomainId, host: row.host, url: row.url,
+  });
+  revalidatePath(`/dashboard/${encodeURIComponent(row.host)}`);
+  return { ok: true };
+}
+
+/**
+ * Mirrors the gate suite in `apps/web/src/app/api/audits/route.ts`:
+ *   - daily Pro audit cap (50/day)
+ *   - per-host hourly cap (30/hr)
+ *   - per-user-per-host daily cap (15/day)
+ *   - in-flight cap (5 queued/running)
+ *   - host + user blocklist
+ * Returns null if the immediate audit should fire, otherwise a short reason
+ * string for telemetry. The watched-page row is committed regardless — only
+ * the convenience "audit on add" fire is skipped.
+ */
+async function shouldDeferImmediateAudit(args: {
+  userId: string;
+  host: string;
+}): Promise<string | null> {
+  if (devFlags.rateLimitDisabled) return null;
+  const today = todayDateString();
+  const hour = currentHourKey();
+
+  const blocked = await checkBlocklist([hostBlockKey(args.host), userBlockKey(args.userId)]);
+  if (blocked) return "blocklisted";
+
+  const dailyKey = `pro:${args.userId}:${today}`;
+  const dailyRes = await bumpRateLimit(dailyKey, DAILY_AUDIT_CAP.pro);
+  if (!dailyRes.allowed) return "per_user";
+
+  const hostKey = `audit-host:${args.host}:${hour}`;
+  const hostRes = await bumpRateLimit(hostKey, PER_HOST_HOURLY_LIMIT);
+  if (!hostRes.allowed) return "per_host";
+
+  const userHostKey = `user-host:${args.userId}:${args.host}:${today}`;
+  const userHostRes = await bumpRateLimit(userHostKey, PER_USER_HOST_DAILY_PRO);
+  if (!userHostRes.allowed) return "per_user_host";
+
+  const [{ count } = { count: 0 }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(audits)
+    .where(and(
+      eq(audits.userId, args.userId),
+      inArray(audits.status, ["queued", "running"]),
+    ));
+  if (count >= IN_FLIGHT_LIMIT_PRO) return "in_flight";
+
+  return null;
 }

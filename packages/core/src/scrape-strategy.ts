@@ -21,7 +21,8 @@ export type RefetchReason =
   | "recheck"
   | "lastmod"
   | "gsc"
-  | "no-signal";
+  | "no-signal"
+  | "watched";
 
 export type SkipReason = "unchanged";
 
@@ -49,6 +50,19 @@ export interface ScrapeStrategyInputs {
   currentRulesetVersion: string;
   ageFloorDays: number;
   now: Date;
+  /**
+   * v0.5.3 — caller-supplied "watched pages" list. Any URL appearing here is
+   * marked refetch with reason `"watched"` and short-circuits the rest of the
+   * matrix (age, ruleset, lastmod, etc.). Watched URLs that aren't already in
+   * `candidateUrls` are still added to the audit set — the caller may
+   * legitimately watch a page that has been removed from the sitemap and we
+   * should still audit it so they find out it's gone.
+   *
+   * Owned by the caller (e.g. the web app's per-domain DB-backed list); the
+   * engine treats it as a transient input override and never persists it on
+   * `RunState`.
+   */
+  forceRefetchUrls?: ReadonlyArray<string>;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -78,7 +92,38 @@ export function planScrapeStrategy(inputs: ScrapeStrategyInputs): ScrapePlan {
   const refetch = new Map<string, RefetchReason>();
   const skip = new Map<string, SkipReason>();
 
+  // v0.5.3: caller-curated watched pages. A watched URL is always refetched
+  // and short-circuits the rest of the matrix so the dashboard can attribute
+  // the refetch to the user's explicit request rather than to "new"/"age"/etc.
+  // Watched URLs absent from `candidateUrls` (e.g. removed from the sitemap)
+  // are also included so the user finds out the page is gone.
+  const watchedSet = inputs.forceRefetchUrls && inputs.forceRefetchUrls.length > 0
+    ? new Set(inputs.forceRefetchUrls)
+    : null;
+
+  const visited = new Set<string>();
+  const evalOrder: string[] = [];
+  if (watchedSet) {
+    for (const url of watchedSet) {
+      if (!visited.has(url)) {
+        visited.add(url);
+        evalOrder.push(url);
+      }
+    }
+  }
   for (const url of inputs.candidateUrls) {
+    if (!visited.has(url)) {
+      visited.add(url);
+      evalOrder.push(url);
+    }
+  }
+
+  for (const url of evalOrder) {
+    if (watchedSet && watchedSet.has(url)) {
+      refetch.set(url, "watched");
+      continue;
+    }
+
     const prior = inputs.priorState?.urls[url];
 
     if (!prior) {

@@ -88,6 +88,7 @@ export default function LimitsPage() {
         <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml" />
         <Item k="Pages per Pro audit (manual re-audit)" v="Up to 500" />
         <Item k="Pages per Pro scheduled monitoring run" v="Up to 200 — bumped to 500 only on manual re-audits and the initial monitoring kickoff" />
+        <Item k="Cumulative coverage (Pro monitoring)" v="200 URLs per weekly cron tick, audited diff-aware: unchanged URLs carry forward their findings without a re-fetch. Over time, the cumulative URLs-audited count grows — a stable site monitored for 12 weeks typically accumulates 2,000+ URLs in its audit history. The per-domain dashboard shows the running total." />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
         <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample — respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />
@@ -104,7 +105,7 @@ export default function LimitsPage() {
 
       <Section title="Rate limits & cooldowns">
         <Item k="Anonymous audits" v="3 per day per browser session" />
-        <Item k="Free account audits" v="5 per day (3 remaining rolls over — no)" />
+        <Item k="Free account audits" v="5 per day (does not roll over)" />
         <Item k="Pro account audits" v="50 per day" />
         <Item k="Cache between users" v="If anyone audited the same URL in the last 60 minutes, you get that result instantly (no new crawl fired). Free users cannot force a re-crawl." />
         <Item k="Re-audit cooldown" v="Authenticated accounts can force a fresh audit. Minimum 5 minutes between forced re-audits of the same URL, regardless of plan — target sites pay for our crawls in bandwidth." />
