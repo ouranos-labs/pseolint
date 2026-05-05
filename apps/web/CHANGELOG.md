@@ -1,5 +1,16 @@
 # @pseolint/web
 
+## 0.0.10
+
+### Patch Changes
+
+- **v0.6 phase 2 — per-template cards on the dashboard.** The per-domain dashboard now renders a responsive 1/2/3-column grid of `TemplateCard`s above the per-URL findings list when the audit's `summary.templates.length >= 2`. Each card shows: signature (mono title), grade chip (via `gradeOf(risk)`), top-driver one-line summary (`"8/10 samples fail spam/thin-content"`), URL coverage stat (`234 / 8200 URLs (2.9%)`), and a uniformity bar with red/yellow/green tints at 0.4/0.7 thresholds.
+- **Drill-down via URL hash** (`#template=/listing/:slug`) — clicking a card filters the per-URL findings list to that template's `auditedUrls` and survives reload + back/forward navigation. Clicking the active card or a "Clear filter" pill clears the selection.
+- **Fallback unchanged.** Single-template sites, `unclear`/`small-marketing` classifications, and all pre-v0.5.9 audits keep the legacy per-URL-only view (the `>= 2 templates` gate from spec §15.3).
+- **Persistence**: confirmed templates ride through R2 (the full `AuditSummary` JSON is serialized verbatim via `uploadSummary` + `fetchSummaryJson`). No DB migration. Old audits have `templates: []` and fall through cleanly.
+- **`AuditLogEvent`** union extended with `template_degraded` event name; firing logic ships in v0.5.11.
+- 14 new tests across `template-card.test.ts` + `dashboard-templates.test.ts`. Full suite: 97 pass (+14).
+
 ## 0.0.9
 
 ### Patch Changes
