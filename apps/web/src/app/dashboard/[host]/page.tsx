@@ -30,6 +30,7 @@ import { gradeOf, scoreTone } from "@/lib/grade";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { WatchedPagesCard } from "./watched-pages-card";
+import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -487,6 +488,17 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         host={domain.host}
         initialRows={watchedRows}
       />
+
+      {/* 6.6 TEMPLATE BREAKDOWN (v0.5.10) — rendered when the engine detected ≥2
+          templates. Cards live above the per-URL findings list so the operator
+          sees the template-level picture first, then drills down. Falls back
+          silently for legacy / single-template audits. */}
+      {summary && (summary.templates?.length ?? 0) >= 2 && (
+        <TemplateGridClient
+          templates={summary.templates}
+          totalDiscoveredUrls={summary.pageCount}
+        />
+      )}
 
       {/* 7. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
           *below* the trend so they don't break the state→change→trend flow. */}

@@ -61,7 +61,9 @@ export type AuditLogEvent =
   | "settings.domain.updated"
   | "audit.gentle_mode_applied"
   | "audit.degraded.retrying"
-  | "audit.degraded.retry_succeeded";
+  | "audit.degraded.retry_succeeded"
+  /** v0.5.10 — per-template-degraded alert gate event. Firing logic ships in v0.5.11+. */
+  | "template_degraded";
 
 type Payload = Record<string, unknown>;
 
