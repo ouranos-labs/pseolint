@@ -1831,6 +1831,32 @@ async function loadPagesFromSource(
   }
 
   if (sourceStat.isDirectory()) {
+    // v0.5.15: if the directory contains _manifest.json, restore original URLs
+    // from the fixture manifest. Without a manifest (or unparseable JSON), the
+    // engine falls back to file-path URLs (existing behaviour for arbitrary
+    // HTML directories). Missing files listed in a valid manifest are
+    // propagated as errors — a stale manifest is a programmer error, not
+    // a soft condition.
+    const manifestPath = join(resolved, "_manifest.json");
+    let hasManifest = false;
+    let manifest: Record<string, string> | null = null;
+    try {
+      const raw = await readFile(manifestPath, "utf-8");
+      manifest = JSON.parse(raw) as Record<string, string>;
+      hasManifest = true;
+    } catch {
+      // No manifest file or invalid JSON — fall through to path-based loading
+    }
+    if (hasManifest && manifest !== null) {
+      // Propagate missing-file errors (fail-loud: stale manifests must be noticed)
+      const pages = await Promise.all(
+        Object.entries(manifest).map(async ([originalUrl, relPath]) => ({
+          url: originalUrl,
+          html: await readFile(join(resolved, relPath), "utf-8"),
+        }))
+      );
+      return { pages };
+    }
     const htmlFiles = await collectHtmlFiles(resolved);
     const pages = await Promise.all(
       htmlFiles.map(async (filePath) => ({

@@ -1,0 +1,114 @@
+Sitemap: https://www.g2.com/sitemaps/sitemap_index.xml.gz
+Sitemap: https://www.g2.com/sitemaps/sitemap_index_compare.xml.gz
+
+
+
+User-agent: *
+
+Disallow: /*?focus_review*
+Disallow: /*&focus_review*
+Disallow: /*?format=pdf*
+Disallow: /*&format=pdf*
+Disallow: /assets/animations/*
+Disallow: /ahoy/
+Disallow: /batch
+Disallow: /no_contact_leads/*
+Disallow: /leads/recommendations/*
+Disallow: /sellers/*/filter_reviews
+Disallow: /contributor
+Disallow: /contributor/*
+Disallow: /contributor*
+Disallow: /admin
+Disallow: /sellers/*/filter_products
+Disallow: /sellers/*/*?survey_responses_page=
+Disallow: /comparisons/*
+Disallow: /users/*/reference_requests
+Disallow: /g2gives/
+Disallow: /gated_content/tokens/*
+Disallow: /grid_report/documents/*
+Disallow: /invites/*
+Disallow: /no_contact_leads/new
+Disallow: /offers/*
+Disallow: /offer_requests/new
+Disallow: /logout
+Disallow: /products/*/used
+Disallow: /products/*/follow
+Disallow: /products/*/free_trial/edit*
+Disallow: */linkedin_shares/{{url}}*
+Disallow: /search/*
+Disallow: /static/buyer_research_inquiries
+Disallow: /compared_products
+Disallow: /better/*
+Disallow: /quick-stack/*
+Disallow: /chat
+Disallow: /used-products
+Disallow: /assistant$
+Disallow: /offers/*
+Disallow: /*?locale
+Disallow: /*/*/votes*
+Disallow: /categories/*/grids*
+Disallow: /tags/*
+Disallow: /my-list
+Disallow: /deals/*/offers/*/claim
+Disallow: /deals/offers/*/claim
+Disallow: /deals/offers/*/form
+Disallow: /products/*/claim_requests/*
+Disallow: /*.rss
+Disallow: /*scriptPath*
+Disallow: /cdn-cgi/
+
+
+User-agent: Diffbot
+
+Disallow: /products/*/reviews/*
+
+
+User-agent: GPTBot
+
+Disallow: /products/*/reviews/*
+
+
+User-agent: ClaudeBot
+
+Disallow: /products/*/reviews/*
+
+
+User-agent: Amazonbot
+
+Disallow: /products/*/reviews/*
+
+
+User-agent: AhrefsBot
+Crawl-Delay: 1
+Disallow: /compare/*/linkedin_shares/*
+
+
+User-agent: bingbot
+
+Disallow: /compare/*-vs-*-vs-*
+Disallow: /better/*
+Disallow: /survey_responses/*
+Disallow: */linkedin_shares/{{url}}*
+Disallow: /products/*/leads*
+Disallow: /ahoy/
+Disallow: /batch
+
+
+User-agent: bingpreview
+
+Disallow: /compare/*-vs-*-vs-*
+Disallow: /better/*
+Disallow: /survey_responses/*
+Disallow: */linkedin_shares/{{url}}*
+Disallow: /products/*/leads*
+
+
+User-agent: SemrushBot
+
+Disallow: /better/*
+
+
+
+User-agent: *
+
+

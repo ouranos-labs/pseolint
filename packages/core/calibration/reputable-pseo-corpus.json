@@ -66,7 +66,8 @@
         "https://www.g2.com/it/categories/project-management",
         "https://www.g2.com/it/categories/relational-databases",
         "https://www.g2.com/it/categories/video-conferencing"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_g2_com/"
     },
     {
       "url": "https://wise.com/us/currency-converter",
@@ -108,7 +109,8 @@
         "https://wise.com/us",
         "https://wise.com/us/business",
         "https://wise.com/vn/currency-converter"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/wise_com/"
     },
     {
       "url": "https://www.nerdwallet.com/best/credit-cards",
@@ -182,7 +184,8 @@
         "https://www.typeform.com/video",
         "https://www.typeform.com/webinars",
         "https://www.typeform.com/whats-new"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_typeform_com/"
     },
     {
       "url": "https://segment.com/integrations",
@@ -224,7 +227,8 @@
         "https://segment.com/es-mx/products/connections",
         "https://segment.com/ja-jp/products/connections",
         "https://segment.com/pt-br/products/connections"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/segment_com/"
     },
     {
       "url": "https://www.jasper.ai/templates",
@@ -266,7 +270,8 @@
         "https://www.jasper.ai/solutions/by-role/product-marketers",
         "https://www.jasper.ai/style-guide",
         "https://www.jasper.ai/trust"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_jasper_ai/"
     },
     {
       "url": "https://ramp.com/spend-management",
@@ -308,7 +313,8 @@
         "https://ramp.com/small-business",
         "https://ramp.com/startups",
         "https://ramp.com/travel"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/ramp_com/"
     },
     {
       "url": "https://www.numbeo.com/cost-of-living",
@@ -350,7 +356,8 @@
         "https://www.numbeo.com/quality-of-life/rankings_current.jsp",
         "https://www.numbeo.com/salary-calculator",
         "https://www.numbeo.com/traffic"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_numbeo_com/"
     },
     {
       "url": "https://airbyte.com/connectors",
@@ -391,7 +398,8 @@
         "https://airbyte.com/product/connector-development-kit",
         "https://airbyte.com/product/powered-by-airbyte",
         "https://airbyte.com/success-stories"
-      ]
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/airbyte_com/"
     },
     {
       "url": "https://stripe.com/atlas/states",

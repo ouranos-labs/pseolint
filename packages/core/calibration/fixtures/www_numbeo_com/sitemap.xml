@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Numbeo.com General Error Message</title>
+            <script defer src="https://www.numbeo.com/common/numbeo_standard.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.3/themes/redmond/jquery-ui.min.css" rel="Stylesheet" />
+    <link rel="shortcut icon" type="image/x-icon" href="https://www.numbeo.com/favicon.ico" />
+    <script  defer  src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <script  defer  src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+   <script src='https://www.gstatic.com/charts/loader.js'></script>
+<link rel="apple-touch-icon" href="https://www.numbeo.com/images/apple-touch-icon.png">
+  <script>
+  if (typeof whenDocReady === "function") {
+    // already declared, do nothing
+  } else {
+    function whenDocReady(fn) {
+      // see if DOM is already available
+      if (document.readyState === "complete" || document.readyState === "interactive") {
+        // call on next available tick
+        setTimeout(fn, 1);
+      } else {
+        document.addEventListener("DOMContentLoaded", fn);
+      }
+    }
+  }
+</script>
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-HXEZG0C6Q2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+gtag('config', 'G-HXEZG0C6Q2');
+gtag('set', 'user_properties', { ab: '1'});
+</script>
+    <link rel="stylesheet" href="https://www.numbeo.com/common/style_desktop_b.css" />
+
+</head>
+<body style="margin: 6px">
+<a href="https://www.numbeo.com/cost-of-living/" style="border: 0; text-decoration:none;"><img style="border: 0; text-decoration: none; height: 60px;" src="https://www.numbeo.com/images/numbeo.png" alt="Numbeo"/></a>
+<p>Uuuops. There was an error when trying to process your request. </p>
+
+<p>Please accept our apologies for this inconvenience.</p>
+
+<p>If you think this is a problem which needs to be fixed, please <a href="mailto:contact@numbeo.com?subject=bug_report">email us a bug report</a>. </p>
+
+<p>
+
+In the bug report, please provide us at least the following information:
+
+<pre>
+<code>
+Status code: 404
+Message: The requested resource [/sitemap.xml] is not available
+Server name:www.numbeo.com
+URL: /sitemap.xml
+Timestamp: 07-May-2026 00:49:01
+</code>
+</pre>
+</p>
+
+<p>
+
+<a href="https://www.numbeo.com/">Continue to main page</a>
+<p>Or visit our other sections: 
+<a href="https://www.numbeo.com/cost-of-living/">Cost of Living</a>
+ | 
+<a href="https://www.numbeo.com/crime/">Crime</a>
+ | 
+<a href="https://www.numbeo.com/climate/">Climate</a>
+ | 
+<a href="https://www.numbeo.com/food-prices/">Food Prices</a>
+ | 
+<a href="https://www.numbeo.com/gas-prices/">Gas Prices</a>
+ | 
+<a href="https://www.numbeo.com/health-care/">Health Care</a>
+ | 
+<a href="https://www.numbeo.com/pollution/">Pollution</a>
+ | 
+<a href="https://www.numbeo.com/property-investment/">Property Prices</a>
+ | 
+<a href="https://www.numbeo.com/quality-of-life/">Quality of Life</a>
+ | 
+<a href="https://www.numbeo.com/taxi-fare/">Taxi Fare</a>
+ | 
+<a href="https://www.numbeo.com/traffic/">Traffic</a>
+<div class="footer_content">
+<a href="https://www.numbeo.com/common/about.jsp">About</a><span class="footer_separator"></span>
+<a href="https://www.numbeo.com/common/in_the_news.jsp">Numbeo in the News</a><span class="footer_separator"></span>
+<a href="https://www.numbeo.com/common/join_community.jsp">Newsletter</a><span class="footer_separator"></span>
+<a href="https://www.numbeo.com/premium/advertise">Advertise</a><span class="footer_separator"></span>
+<a href="https://www.numbeo.com/premium/index">Premium</a><span class="footer_separator"></span>
+<a href="https://www.numbeo.com/common/api.jsp" rel="nofollow">API</a><p>
+<span style="font-style: italic">
+Copyright &copy; 2009-2026 Numbeo. Your use of this service is subject to our 
+<a href="https://www.numbeo.com/common/terms_of_use.jsp">Terms of Use</a> and 
+<a href="https://www.numbeo.com/common/privacy.jsp">Privacy Policy</a>
+</span></p>
+</div>
+
+</body>
+</html>

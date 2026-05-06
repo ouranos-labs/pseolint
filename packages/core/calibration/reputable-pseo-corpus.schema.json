@@ -58,6 +58,10 @@
           "type": "array",
           "items": { "type": "string", "format": "uri" },
           "description": "v0.5.12 — pinned page URLs for stable calibration. When non-empty, the calibration runner passes these directly to auditSource as pinnedUrls, bypassing sitemap discovery and random sampling. Populated by --repin mode. Empty array means legacy random sampling."
+        },
+        "localFixtureDir": {
+          "type": "string",
+          "description": "v0.5.15 — relative path to the fixture directory containing pre-captured HTML for this site (e.g. 'packages/core/calibration/fixtures/wise_com/'). When set and the directory exists, the calibration runner audits from disk instead of making HTTP requests. Populated by --snapshot mode. Absent means live HTTP fetch."
         }
       }
     }

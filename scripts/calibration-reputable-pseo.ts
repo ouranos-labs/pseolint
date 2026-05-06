@@ -25,11 +25,13 @@
  * matrix used to convert calibration results into scoring-profile changes.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { resolve, dirname, relative, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { auditSource } from "../packages/core/src/index.js";
+import { auditSource, cachedFetch } from "../packages/core/src/index.js";
+import type { CachedFetchOptions } from "../packages/core/src/index.js";
 import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 
@@ -45,10 +47,19 @@ const repinFilter: string | undefined =
     ? args[repinFlagIdx + 1]
     : undefined;
 
+// v0.5.15: --snapshot mode captures HTML fixtures for all pinned sites
+const snapshotFlagIdx = args.indexOf("--snapshot");
+const isSnapshotMode = snapshotFlagIdx !== -1;
+const snapshotFilter: string | undefined =
+  isSnapshotMode && args[snapshotFlagIdx + 1] && !args[snapshotFlagIdx + 1].startsWith("--")
+    ? args[snapshotFlagIdx + 1]
+    : undefined;
+
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CORPUS_PATH = resolve(__dirname, "../packages/core/calibration/reputable-pseo-corpus.json");
+const FIXTURES_BASE = resolve(__dirname, "../packages/core/calibration/fixtures");
 const RESULTS_JSON = resolve(__dirname, "calibration-results.json");
 const RESULTS_MD = resolve(__dirname, "calibration-results.md");
 
@@ -80,6 +91,8 @@ interface CorpusSite {
   };
   /** v0.5.12 — pinned URLs for stable calibration. Empty = legacy random sampling. */
   pinnedUrls?: string[];
+  /** v0.5.15 — relative path to pre-captured fixture directory. When set and directory exists, audit reads from disk. */
+  localFixtureDir?: string;
 }
 
 interface Corpus {
@@ -170,6 +183,63 @@ const ansi = {
   gray: "\x1b[90m",
 };
 
+// ----- fixture helpers ---------------------------------------------------
+
+/**
+ * Strip <script> and <style> block contents from HTML to reduce fixture size.
+ * The engine's rules only inspect DOM structure, text, meta tags, and JSON-LD
+ * embedded in <script type="application/ld+json"> blocks. Regular JS/CSS is not
+ * read by any rule and can be dropped without affecting audit results.
+ *
+ * JSON-LD blocks are preserved because schema/* rules depend on them.
+ */
+function stripScriptsAndStyles(html: string): string {
+  // Remove <style>...</style> blocks entirely
+  let out = html.replace(/<style(\s[^>]*)?>[\s\S]*?<\/style>/gi, "");
+  // Remove <script> blocks EXCEPT JSON-LD (which schema rules read)
+  out = out.replace(/<script(\s[^>]*)?>[\s\S]*?<\/script>/gi, (match, attrs = "") => {
+    if (/type\s*=\s*["']application\/ld\+json["']/i.test(attrs)) {
+      return match; // preserve JSON-LD
+    }
+    return ""; // strip everything else
+  });
+  return out;
+}
+
+/**
+ * Derive the fixture directory name for a site URL.
+ * e.g. https://wise.com/us/currency-converter → wise_com
+ */
+function fixtureHostDir(siteUrl: string): string {
+  try {
+    const host = new URL(siteUrl).host;
+    return host.replace(/[^a-zA-Z0-9]/g, "_");
+  } catch {
+    return siteUrl.replace(/[^a-zA-Z0-9]/g, "_");
+  }
+}
+
+/**
+ * Sanitize a full URL to a safe filename.
+ * https://wise.com/us/usd-to-eur → us_usd-to-eur.html
+ * Preserves readability; replaces /,?,#,: etc. with _
+ */
+function urlToFilename(url: string): string {
+  try {
+    const u = new URL(url);
+    // Use path + query, drop host (already in the directory name)
+    const raw = (u.pathname + (u.search ? u.search : ""))
+      .replace(/^\//, "")  // strip leading slash
+      .replace(/[/?#&=:]/g, "_")  // replace separators
+      .replace(/_+/g, "_")  // collapse multiple underscores
+      .replace(/^_|_$/, "");  // trim edge underscores
+    const base = raw || "index";
+    return base.endsWith(".html") ? base : `${base}.html`;
+  } catch {
+    return `page_${Buffer.from(url).toString("hex").slice(0, 16)}.html`;
+  }
+}
+
 // ----- single-target audit -----------------------------------------------
 
 async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<SiteResult & { _auditedUrls?: string[] }> {
@@ -185,24 +255,38 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
   // v0.5.12: use pinned URLs when available (non-empty) — bypasses random sampling
   const hasPinned = (target.pinnedUrls?.length ?? 0) > 0;
 
+  // v0.5.15: use fixture directory when set and exists — zero network dependency
+  const fixtureAbsDir = target.localFixtureDir
+    ? resolve(dirname(fileURLToPath(import.meta.url)), "..", target.localFixtureDir)
+    : null;
+  const useFixtures = fixtureAbsDir !== null && existsSync(fixtureAbsDir);
+
   const t0 = Date.now();
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), hardTimeoutMs);
     try {
-      const summary = await auditSource(target.url, {
-        signal: ctrl.signal,
-        safeMode: "saas",
-        ...(hasPinned
-          ? { pinnedUrls: target.pinnedUrls }
-          : {
-              sampleSize: target.samplingHint?.sampleSize ?? 25,
-              samplingStrategy: "stratified",
-              // Deterministic sampling so calibration verdicts are reproducible
-              // across rounds. Fixed seed = same pages each run.
-              sampleSeed: 1729,
-            }),
-      });
+      // Fixture mode: pass the fixture directory as source. The engine's
+      // _manifest.json-aware directory loader restores original URLs.
+      // HTTP mode: use pinned URLs or random sampling as before.
+      const summary = useFixtures
+        ? await auditSource(fixtureAbsDir!, {
+            signal: ctrl.signal,
+            safeMode: "saas",
+          })
+        : await auditSource(target.url, {
+            signal: ctrl.signal,
+            safeMode: "saas",
+            ...(hasPinned
+              ? { pinnedUrls: target.pinnedUrls }
+              : {
+                  sampleSize: target.samplingHint?.sampleSize ?? 25,
+                  samplingStrategy: "stratified",
+                  // Deterministic sampling so calibration verdicts are reproducible
+                  // across rounds. Fixed seed = same pages each run.
+                  sampleSeed: 1729,
+                }),
+          });
       result._auditedUrls = summary.auditedUrls;
       const drivers = topDrivers({
         blockers: summary.issues.blockers,
@@ -384,10 +468,16 @@ async function mainNormal(): Promise<void> {
   let i = 0;
   for (const site of corpus.sites) {
     i += 1;
-    const pinnedLabel = (site.pinnedUrls?.length ?? 0) > 0
-      ? ` ${ansi.dim}[pinned:${site.pinnedUrls!.length}]${ansi.reset}`
-      : "";
-    process.stdout.write(`${ansi.dim}[${i}/${totalSites}]${ansi.reset}${pinnedLabel} ${site.url} ... `);
+    const fixtureAbsDir = site.localFixtureDir
+      ? resolve(dirname(fileURLToPath(import.meta.url)), "..", site.localFixtureDir)
+      : null;
+    const usingFixtures = fixtureAbsDir !== null && existsSync(fixtureAbsDir);
+    const modeLabel = usingFixtures
+      ? ` ${ansi.cyan}[fixture]${ansi.reset}`
+      : (site.pinnedUrls?.length ?? 0) > 0
+        ? ` ${ansi.dim}[pinned:${site.pinnedUrls!.length}]${ansi.reset}`
+        : "";
+    process.stdout.write(`${ansi.dim}[${i}/${totalSites}]${ansi.reset}${modeLabel} ${site.url} ... `);
     const r = await auditOne(site);
     if (r.error) {
       console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset}`);
@@ -436,10 +526,133 @@ async function mainNormal(): Promise<void> {
   }
 }
 
+// ----- snapshot mode -----------------------------------------------------
+
+/**
+ * Fetch and save HTML fixtures for all sites that have pinnedUrls.
+ * Sets localFixtureDir on each snapshotted site and writes back corpus.json.
+ */
+async function mainSnapshot(): Promise<void> {
+  const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
+  const sitesToSnap = (snapshotFilter
+    ? corpus.sites.filter((s) => s.url.includes(snapshotFilter))
+    : corpus.sites
+  ).filter((s) => (s.pinnedUrls?.length ?? 0) > 0);
+
+  if (sitesToSnap.length === 0) {
+    console.log(`${ansi.yellow}No sites with pinnedUrls matched${snapshotFilter ? ` filter "${snapshotFilter}"` : ""}. Nothing to snapshot.${ansi.reset}`);
+    return;
+  }
+
+  console.log(`${ansi.bold}Reputable-pSEO calibration — SNAPSHOT mode${ansi.reset}`);
+  if (snapshotFilter) {
+    console.log(`${ansi.dim}Filter: "${snapshotFilter}" → ${sitesToSnap.length} site(s)${ansi.reset}\n`);
+  } else {
+    console.log(`${ansi.dim}Snapshotting ${sitesToSnap.length} sites with pinnedUrls${ansi.reset}\n`);
+  }
+
+  let totalSites = 0;
+  let totalFiles = 0;
+  let totalBytes = 0;
+
+  for (const site of sitesToSnap) {
+    const hostDir = fixtureHostDir(site.url);
+    const fixtureDir = join(FIXTURES_BASE, hostDir);
+    process.stdout.write(`Snapshotting ${site.url} → ${hostDir}/ ... `);
+
+    await mkdir(fixtureDir, { recursive: true });
+
+    const manifest: Record<string, string> = {};
+    let siteFiles = 0;
+    let siteBytes = 0;
+    let siteErrors = 0;
+
+    for (const url of site.pinnedUrls!) {
+      const filename = urlToFilename(url);
+      // Ensure filenames are unique within the directory (handle collisions)
+      let finalFilename = filename;
+      let collision = 1;
+      while (Object.values(manifest).includes(finalFilename)) {
+        const ext = ".html";
+        const base = filename.slice(0, -ext.length);
+        finalFilename = `${base}_${collision}${ext}`;
+        collision++;
+      }
+
+      try {
+        const fetchOpts: CachedFetchOptions = { timeoutMs: 30_000, cache: null };
+        const result = await cachedFetch(url, fetchOpts);
+        const rawHtml = result.body ?? "";
+        if (!rawHtml) {
+          siteErrors++;
+          continue;
+        }
+        // Strip JS/CSS to keep fixture files small; JSON-LD is preserved for schema rules
+        const html = stripScriptsAndStyles(rawHtml);
+        await writeFile(join(fixtureDir, finalFilename), html, "utf-8");
+        manifest[url] = finalFilename;
+        siteFiles++;
+        siteBytes += Buffer.byteLength(html, "utf-8");
+      } catch (err) {
+        siteErrors++;
+        console.error(`\n  ${ansi.yellow}WARN${ansi.reset} ${url}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+
+    // Capture sitemap.xml and robots.txt for the site origin
+    try {
+      const origin = new URL(site.url).origin;
+      for (const path of ["/sitemap.xml", "/robots.txt"]) {
+        try {
+          const res = await cachedFetch(`${origin}${path}`, { timeoutMs: 15_000, cache: null });
+          const text = res.body ?? "";
+          if (text) {
+            const fname = path.slice(1); // "sitemap.xml" or "robots.txt"
+            await writeFile(join(fixtureDir, fname), text, "utf-8");
+            siteFiles++;
+            siteBytes += Buffer.byteLength(text, "utf-8");
+          }
+        } catch { /* ignore missing sitemap/robots */ }
+      }
+    } catch { /* ignore invalid URL */ }
+
+    // Write manifest
+    await writeFile(join(fixtureDir, "_manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf-8");
+
+    // Update corpus with relative path (forward slashes for cross-platform)
+    const relDir = relative(resolve(__dirname, ".."), fixtureDir).replace(/\\/g, "/") + "/";
+    const corpusSite = corpus.sites.find((s) => s.url === site.url);
+    if (corpusSite) {
+      corpusSite.localFixtureDir = relDir;
+    }
+
+    totalSites++;
+    totalFiles += siteFiles;
+    totalBytes += siteBytes;
+
+    console.log(
+      `${ansi.green}OK${ansi.reset} ${siteFiles} HTML files` +
+      (siteErrors > 0 ? ` ${ansi.yellow}(${siteErrors} errors)${ansi.reset}` : "")
+    );
+  }
+
+  // Write updated corpus
+  writeFileSync(CORPUS_PATH, JSON.stringify(corpus, null, 2) + "\n", "utf-8");
+
+  const totalKB = Math.round(totalBytes / 1024);
+  console.log("");
+  console.log(`${ansi.bold}Snapshot complete${ansi.reset}`);
+  console.log(`  Snapshotted ${totalSites} sites with ${totalFiles} total files (${totalKB} KB total).`);
+  console.log(`  Run normally now (without --snapshot) to verify deterministic mode.`);
+  console.log(`  Wrote ${ansi.cyan}${CORPUS_PATH}${ansi.reset}`);
+}
+
 // ----- main --------------------------------------------------------------
 
 async function main(): Promise<void> {
-  if (isRepinMode) {
+  if (isSnapshotMode) {
+    await mainSnapshot();
+  } else if (isRepinMode) {
     await mainRepin();
   } else {
     await mainNormal();

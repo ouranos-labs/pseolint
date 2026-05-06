@@ -1,0 +1,13 @@
+User-agent: CCBot
+Disallow: /credits-rate-card
+
+User-agent: GPTBot
+Disallow: /credits-rate-card
+
+User-agent: Google-Extended
+Disallow: /credits-rate-card
+
+User-agent: anthropic-ai
+Disallow: /credits-rate-card
+
+Sitemap: https://www.jasper.ai/sitemap.xml
