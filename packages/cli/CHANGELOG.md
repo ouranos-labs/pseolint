@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.15
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.15: filesystem-mode in `loadPagesFromSource` now reads `_manifest.json` to present fixture HTML with original URLs. Calibration corpus is now fully deterministic via the fixture system. CLI surface unchanged.
+
 ## 0.5.14
 
 ### Patch Changes

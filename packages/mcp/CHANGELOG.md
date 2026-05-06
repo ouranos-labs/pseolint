@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.15
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.15: filesystem-mode `_manifest.json` support enables deterministic fixture-based calibration. MCP surface unchanged.
+
 ## 0.5.14
 
 ### Patch Changes

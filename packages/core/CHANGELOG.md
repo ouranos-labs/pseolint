@@ -1,5 +1,17 @@
 # @pseolint/core
 
+## 0.5.15
+
+### Patch Changes
+
+- **Fixed HTML fixture corpus + audit-from-disk** for fully deterministic calibration. New `localFixtureDir?: string` field on corpus site entries. New `--snapshot [<filter>]` mode in `scripts/calibration-reputable-pseo.ts` captures HTML for each pinned URL to `packages/core/calibration/fixtures/<host>/`, with `_manifest.json` mapping original URLs to filenames + `sitemap.xml` + `robots.txt`. The engine's existing filesystem-mode in `loadPagesFromSource` extended (~20 LOC) to read `_manifest.json` and present fixture pages with original HTTP URLs restored.
+- 8 sites snapshotted: G2, Wise, Typeform, Segment, Jasper, Ramp, Numbeo, Airbyte. 215 HTML files, 61 MB total committed to the repo. Strips `<script>`/`<style>` blocks before save (preserves JSON-LD for schema rules; ~80% size reduction). Fixtures NOT bundled in the npm package — `files` array stays `["dist", "data/wikipedia-trigrams.bin"]`. Repo-only artifact.
+- **Byte-identical verification**: two consecutive fixture-mode runs across all 8 sites produce identical verdicts + risks: G2 ready/20, Wise concerning/45, Typeform caution/24, Segment critical/74, Jasper caution/27, Ramp caution/25, Numbeo concerning/60, Airbyte caution/25. Calibration is now fully deterministic — no network, no content drift, no random sampling.
+- **Newly-visible Numbeo verdict**: was previously origin-erroring (30s p95). Fixtures reveal it stably scores `concerning/60` against current ceiling `caution`. Pre-existing calibration miss now made visible. Ceiling NOT updated in this release (per spec constraint); a follow-up calibration patch may raise it once the rule fire pattern is reviewed.
+- **Stale-fixture failure mode**: missing files referenced in a valid `_manifest.json` propagate as errors (fail-loud — programmer error). Directory without manifest falls through to existing path-based behavior.
+- 5 new tests in `tests/integration/audit-fixture-manifest.test.ts`. Pre-existing failures unchanged at 2.
+- **Refresh workflow**: `bun run scripts/calibration-reputable-pseo.ts --snapshot` re-captures all sites; `--snapshot wise` re-captures one. Quarterly cadence recommended; per-site refresh on suspected staleness.
+
 ## 0.5.14
 
 ### Patch Changes
