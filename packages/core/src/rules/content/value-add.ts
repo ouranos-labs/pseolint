@@ -27,6 +27,7 @@ interface Signals {
   eeat: number;
   translation: number;
   clicheReuse: number;
+  wikipediaParaphrase: number;
 }
 
 function computeSignals(page: ParsedPage, allFindings: RuleResult[]): Signals {
@@ -80,11 +81,29 @@ function computeSignals(page: ParsedPage, allFindings: RuleResult[]): Signals {
   const hasClicheReuse = pageFindings.some((f) => f.ruleId === "content/common-phrase-reuse");
   const clicheReuse = hasClicheReuse ? 0.0 : 1.0;
 
-  return { originality, freshness, facts, eeat, translation, clicheReuse };
+  // Wikipedia paraphrase (signal 7, v0.5.14): 1.0 if wikipedia-paraphrase doesn't
+  // fire on this page, 0.0 if it does. The rule fires at warning/low when
+  // page text overlaps ≥40% with the bundled trigram corpus — a real signal
+  // for "content lifted from Wikipedia," orthogonal to the other 6 originality
+  // proxies. Adding it shifts each signal's weight from 1/6 (16.7%) to 1/7
+  // (14.3%) — boundary cases at score=0.30 and score=0.50 may shift by
+  // ±0.024 per signal, which is below the granularity of severity bands.
+  const hasWikipediaParaphrase = pageFindings.some((f) => f.ruleId === "content/wikipedia-paraphrase");
+  const wikipediaParaphrase = hasWikipediaParaphrase ? 0.0 : 1.0;
+
+  return { originality, freshness, facts, eeat, translation, clicheReuse, wikipediaParaphrase };
 }
 
 function meanScore(signals: Signals): number {
-  const values = [signals.originality, signals.freshness, signals.facts, signals.eeat, signals.translation, signals.clicheReuse];
+  const values = [
+    signals.originality,
+    signals.freshness,
+    signals.facts,
+    signals.eeat,
+    signals.translation,
+    signals.clicheReuse,
+    signals.wikipediaParaphrase,
+  ];
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
@@ -105,7 +124,7 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
     `${page.url}: value-add score ${pct(score)} — composite of ` +
     `[originality: ${pct(signals.originality)}, freshness: ${pct(signals.freshness)}, ` +
     `facts: ${pct(signals.facts)}, E-E-A-T: ${pct(signals.eeat)}, translation: ${pct(signals.translation)}, ` +
-    `cliché-reuse: ${pct(signals.clicheReuse)}]. ` +
+    `cliché-reuse: ${pct(signals.clicheReuse)}, wikipedia-paraphrase: ${pct(signals.wikipediaParaphrase)}]. ` +
     `The page lacks ${worstLabel}; pages without proprietary value-add are demoted by SpamBrain.`
   );
 }
@@ -114,9 +133,9 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
  * content/value-add — second-pass composite rule.
  *
  * Reads from existing findings instead of parsing pages directly.
- * Aggregates 6 per-page signal scores (originality, freshness, facts,
- * E-E-A-T, translation, cliché-reuse) into a single 0-1 quality score.
- * Each signal weighted equally at 1/6 ≈ 16.7%.
+ * Aggregates 7 per-page signal scores (originality, freshness, facts,
+ * E-E-A-T, translation, cliché-reuse, wikipedia-paraphrase) into a
+ * single 0-1 quality score. Each signal weighted equally at 1/7 ≈ 14.3%.
  * Fires ONE critical/error finding per page when score < 0.5
  * (critical < 0.3, error otherwise).
  */

@@ -49,12 +49,15 @@ describe("valueAddRule", () => {
   test("bestfirenze pattern — regurgitated-content + thin + no eeat — score < 0.5 — fires finding", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
-    // o=0 (regurgitated), f=0.5 (freshness warning), c=0 (facts error), e=0 (no signals), t=1
-    // score = (0+0.5+0+0+1)/5 = 0.3 => error (not critical because 0.3 is not < 0.3)
+    // v0.5.14 (7-signal math): o=0 (regurgitated), f=0.5 (freshness warning),
+    // c=0 (facts error), e=0 (no signals), t=1, cr=1, wp=0 (added). Without
+    // the wikipedia-paraphrase signal firing, score = 3.5/7 = 0.5 (boundary,
+    // no fire). With it firing, score = 2.5/7 ≈ 0.357 → error.
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
       finding("aeo/freshness-signals", url, "warning"),
+      finding("content/wikipedia-paraphrase", url, "warning"),
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
@@ -216,11 +219,12 @@ describe("valueAddRule", () => {
       finding("aeo/freshness-signals", url, "warning"),
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
+      finding("content/wikipedia-paraphrase", url, "warning"),
     ];
-    // o=0, f=0.5, c=0, e=0, t=1 => score=0.3 => error (0.3 is at boundary)
+    // v0.5.14 (7-signal): o=0, f=0.5, c=0, e=0, t=1, cr=1, wp=0
+    // score = (0+0.5+0+0+1+1+0)/7 ≈ 0.357 → error (0.3 ≤ score < 0.5)
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    // score=0.3 → exactly at boundary → "error" (score < 0.5 but NOT < 0.3)
     expect(results[0].severity).toBe("error");
   });
 

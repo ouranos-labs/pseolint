@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.14
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.14: value-add composite now 7 signals.
+
 ## 0.5.13
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @pseolint/core
 
+## 0.5.14
+
+### Patch Changes
+
+- **Value-add composite extended to 7 signals.** `content/wikipedia-paraphrase` (shipped standalone in v0.5.13) now contributes to the composite as the 7th signal. Each signal now weighted at 1/7 ≈ 14.3% (was 1/6 ≈ 16.7%). Boundary cases at score=0.30 / score=0.50 may shift by ≤2.4 percentage points per signal — below severity-band granularity for most pages.
+- **Test math updates**: two existing value-add tests reshaped to reflect the new 7-signal denominator. The "bestfirenze pattern" test now includes a wikipedia-paraphrase finding among its inputs (without it, the pattern lands at exactly score=0.5 boundary and no longer fires); the "freshness=0.5" test adds the same. New behavior documented in test comments.
+- The composite continues to fire ONE finding per page when score < 0.5, severity critical < 0.3, otherwise error.
+
 ## 0.5.13
 
 ### Patch Changes

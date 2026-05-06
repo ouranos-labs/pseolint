@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.14
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.14: value-add composite now aggregates 7 signals (added wikipedia-paraphrase). Each signal weighted at 1/7. CLI surface unchanged.
+
 ## 0.5.13
 
 ### Patch Changes
