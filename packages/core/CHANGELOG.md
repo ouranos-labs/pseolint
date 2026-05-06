@@ -1,5 +1,14 @@
 # @pseolint/core
 
+## 0.5.10
+
+### Patch Changes
+
+- **v0.6 phase 3 — formatters render per-template cards.** New shared module `formatters/template-cards.ts` exports `renderTemplateCardsConsole`, `renderTemplateCardsMarkdown`, `renderTemplateCardsHtml`, plus `shouldRenderTemplateCards` and `TEMPLATE_CARDS_CSS`. Each format-specific formatter (`console.ts`, `markdown.ts`, `html.ts`) calls the helper when `summary.templates.length >= 2 && !options.legacyFlat`. JSON formatter unchanged — `templates` rides through automatically.
+- Each card renders: signature (mono/code), grade chip via `gradeOf(risk)`, top-driver one-liner ("8/10 samples fail spam/thin-content"), URL coverage stat, uniformity bar with red/yellow/green tints at 0.4/0.7 thresholds.
+- Falls back gracefully on legacy audits: `shouldRenderTemplateCards` returns false when `templates` is `undefined`, `null`, or has fewer than 2 entries — so pre-v0.5.9 audit JSON files re-rendered through these formatters produce the flat list without error or warning.
+- 38 new formatter tests: `formatters/template-cards.test.ts` (24) covers per-format rendering edge cases; `formatters/legacy-flat.test.ts` (14) verifies the flag bypass path.
+
 ## 0.5.9
 
 ### Patch Changes

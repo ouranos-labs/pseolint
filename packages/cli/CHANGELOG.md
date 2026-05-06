@@ -1,5 +1,15 @@
 # pseolint
 
+## 0.5.10
+
+### Patch Changes
+
+- **v0.6 phase 3 — per-template flags on `pseolint scan`.**
+  - `--per-template` (default ON) — render per-template cards above the per-URL findings list when ≥2 templates are detected. Use `--no-per-template` to disable.
+  - `--template <signature>` — filter findings to one template's `auditedUrls` (e.g. `--template /listing/:slug`). Silently ignored when the signature doesn't match any detected template (CI configs may go stale across runs; soft-fail beats hard-fail).
+  - `--legacy-flat` — opt-out flag that takes priority over `--per-template` when both are set. Renders the legacy per-URL-only view for users who have built tooling against the flat list.
+- 11 new CLI test cases covering flag parsing, defaults, and mutual-exclusivity resolution.
+
 ## 0.5.9
 
 ### Patch Changes
