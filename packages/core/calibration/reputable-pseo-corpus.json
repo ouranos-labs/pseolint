@@ -40,7 +40,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://www.g2.com/it/categories",
+        "https://www.g2.com/it/categories/accounting",
+        "https://www.g2.com/it/categories/ai-chatbots",
+        "https://www.g2.com/it/categories/ap-automation",
+        "https://www.g2.com/it/categories/asset-tracking",
+        "https://www.g2.com/it/categories/continuous-delivery-tools",
+        "https://www.g2.com/it/categories/conversation-intelligence",
+        "https://www.g2.com/it/categories/creative-management-platforms",
+        "https://www.g2.com/it/categories/crm",
+        "https://www.g2.com/it/categories/digital-adoption-platform",
+        "https://www.g2.com/it/categories/discrete-erp",
+        "https://www.g2.com/it/categories/email",
+        "https://www.g2.com/it/categories/erp-systems",
+        "https://www.g2.com/it/categories/expense-management",
+        "https://www.g2.com/it/categories/hr",
+        "https://www.g2.com/it/categories/legal-workflow-automation",
+        "https://www.g2.com/it/categories/local-seo",
+        "https://www.g2.com/it/categories/marketing-automation",
+        "https://www.g2.com/it/categories/ocr",
+        "https://www.g2.com/it/categories/online-backup",
+        "https://www.g2.com/it/categories/pricing",
+        "https://www.g2.com/it/categories/product-analytics",
+        "https://www.g2.com/it/categories/project-management",
+        "https://www.g2.com/it/categories/relational-databases",
+        "https://www.g2.com/it/categories/video-conferencing"
+      ]
     },
     {
       "url": "https://wise.com/us/currency-converter",
@@ -56,7 +82,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://wise.com/",
+        "https://wise.com/au/currency-converter",
+        "https://wise.com/bg/currency-converter",
+        "https://wise.com/br/currency-converter",
+        "https://wise.com/ch/currency-converter",
+        "https://wise.com/cz/currency-converter",
+        "https://wise.com/de/currency-converter",
+        "https://wise.com/dk/currency-converter",
+        "https://wise.com/es/currency-converter",
+        "https://wise.com/fi/currency-converter",
+        "https://wise.com/hr/currency-converter",
+        "https://wise.com/hu/currency-converter",
+        "https://wise.com/id/currency-converter",
+        "https://wise.com/in/currency-converter",
+        "https://wise.com/jp/currency-converter",
+        "https://wise.com/mx/currency-converter",
+        "https://wise.com/my/currency-converter",
+        "https://wise.com/nl/currency-converter",
+        "https://wise.com/no/currency-converter",
+        "https://wise.com/ru/currency-converter",
+        "https://wise.com/sk/currency-converter",
+        "https://wise.com/th/currency-converter",
+        "https://wise.com/us",
+        "https://wise.com/us/business",
+        "https://wise.com/vn/currency-converter"
+      ]
     },
     {
       "url": "https://www.nerdwallet.com/best/credit-cards",
@@ -104,7 +156,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://www.typeform.com/",
+        "https://www.typeform.com/admin-security",
+        "https://www.typeform.com/ai",
+        "https://www.typeform.com/blog",
+        "https://www.typeform.com/enterprise",
+        "https://www.typeform.com/feature-glossary",
+        "https://www.typeform.com/forms",
+        "https://www.typeform.com/growth",
+        "https://www.typeform.com/platform-overview",
+        "https://www.typeform.com/pricing",
+        "https://www.typeform.com/reporting",
+        "https://www.typeform.com/roles/b2b-marketing",
+        "https://www.typeform.com/templates-category/conduct-research",
+        "https://www.typeform.com/templates-category/customer-success",
+        "https://www.typeform.com/templates-category/generate-leads",
+        "https://www.typeform.com/templates-category/marketing",
+        "https://www.typeform.com/templates-category/recruit-talent",
+        "https://www.typeform.com/templates-category/sales",
+        "https://www.typeform.com/test-maker",
+        "https://www.typeform.com/use-case-gallery",
+        "https://www.typeform.com/use-case/customer-feedback",
+        "https://www.typeform.com/use-case/employee-onboarding",
+        "https://www.typeform.com/video",
+        "https://www.typeform.com/webinars",
+        "https://www.typeform.com/whats-new"
+      ]
     },
     {
       "url": "https://segment.com/integrations",
@@ -120,7 +198,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://segment.com/content/twilio-com/global/en-us/products/conversational-ai.html",
+        "https://segment.com/de-de/products/connections",
+        "https://segment.com/en-us/cpaas",
+        "https://segment.com/en-us/customer-data-platform",
+        "https://segment.com/en-us/flex",
+        "https://segment.com/en-us/messaging/channels/rcs",
+        "https://segment.com/en-us/messaging/channels/sms",
+        "https://segment.com/en-us/messaging/channels/sms/short-codes",
+        "https://segment.com/en-us/phone-numbers",
+        "https://segment.com/en-us/phone-numbers/toll-free",
+        "https://segment.com/en-us/products/connections",
+        "https://segment.com/en-us/products/conversational-ai",
+        "https://segment.com/en-us/products/conversational-ai/conversation-memory",
+        "https://segment.com/en-us/products/conversational-ai/conversationrelay",
+        "https://segment.com/en-us/products/email-api/smtp-service",
+        "https://segment.com/en-us/products/engage",
+        "https://segment.com/en-us/products/engage/audiences",
+        "https://segment.com/en-us/products/unify",
+        "https://segment.com/en-us/sip-trunking",
+        "https://segment.com/en-us/user-authentication-identity",
+        "https://segment.com/en-us/user-authentication-identity/verify",
+        "https://segment.com/en-us/video",
+        "https://segment.com/es-mx/products/connections",
+        "https://segment.com/ja-jp/products/connections",
+        "https://segment.com/pt-br/products/connections"
+      ]
     },
     {
       "url": "https://www.jasper.ai/templates",
@@ -136,7 +240,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://www.jasper.ai/agents/optimization",
+        "https://www.jasper.ai/agents/personalization",
+        "https://www.jasper.ai/agents/research",
+        "https://www.jasper.ai/api",
+        "https://www.jasper.ai/brand-iq",
+        "https://www.jasper.ai/brand-voice",
+        "https://www.jasper.ai/careers",
+        "https://www.jasper.ai/company",
+        "https://www.jasper.ai/governance",
+        "https://www.jasper.ai/jasper-iq",
+        "https://www.jasper.ai/platform",
+        "https://www.jasper.ai/press",
+        "https://www.jasper.ai/pricing",
+        "https://www.jasper.ai/resources",
+        "https://www.jasper.ai/solutions",
+        "https://www.jasper.ai/solutions/by-industry/media-and-entertainment",
+        "https://www.jasper.ai/solutions/by-industry/professional-services",
+        "https://www.jasper.ai/solutions/by-industry/retail-and-consumer-goods",
+        "https://www.jasper.ai/solutions/by-industry/tech",
+        "https://www.jasper.ai/solutions/by-role/brand-marketers",
+        "https://www.jasper.ai/solutions/by-role/content-marketers",
+        "https://www.jasper.ai/solutions/by-role/performance-marketers",
+        "https://www.jasper.ai/solutions/by-role/product-marketers",
+        "https://www.jasper.ai/style-guide",
+        "https://www.jasper.ai/trust"
+      ]
     },
     {
       "url": "https://ramp.com/spend-management",
@@ -152,7 +282,33 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://ramp.com/about-us",
+        "https://ramp.com/accounting-automation-software",
+        "https://ramp.com/accounting-partnerships",
+        "https://ramp.com/accounts-payable",
+        "https://ramp.com/corporate-cards",
+        "https://ramp.com/customers/eventbrite",
+        "https://ramp.com/customers/university-of-tennessee-athletics-foundation",
+        "https://ramp.com/emerging-talent",
+        "https://ramp.com/enterprise",
+        "https://ramp.com/expense-management",
+        "https://ramp.com/global",
+        "https://ramp.com/intelligence",
+        "https://ramp.com/mid-market",
+        "https://ramp.com/mission-statement-generator",
+        "https://ramp.com/mobile-app",
+        "https://ramp.com/partnerships",
+        "https://ramp.com/pe-partnerships",
+        "https://ramp.com/pricing",
+        "https://ramp.com/product-releases",
+        "https://ramp.com/products",
+        "https://ramp.com/reimbursements",
+        "https://ramp.com/security",
+        "https://ramp.com/small-business",
+        "https://ramp.com/startups",
+        "https://ramp.com/travel"
+      ]
     },
     {
       "url": "https://www.numbeo.com/cost-of-living",
@@ -210,7 +366,32 @@
         "sampleSize": 25,
         "noRender": true
       },
-      "pinnedUrls": []
+      "pinnedUrls": [
+        "https://airbyte.com/",
+        "https://airbyte.com/blog",
+        "https://airbyte.com/blog/agent-mcp",
+        "https://airbyte.com/blog/agent-sdk",
+        "https://airbyte.com/blog/i-built-an-agent-to-cover-my-pto",
+        "https://airbyte.com/company/about-us",
+        "https://airbyte.com/company/talk-to-sales",
+        "https://airbyte.com/connectors/airtable-agent",
+        "https://airbyte.com/connectors/asana-agent",
+        "https://airbyte.com/connectors/clickup-api-agent",
+        "https://airbyte.com/connectors/confluence-agent",
+        "https://airbyte.com/connectors/freshdesk-agent",
+        "https://airbyte.com/connectors/github-agent",
+        "https://airbyte.com/connectors/gitlab-agent",
+        "https://airbyte.com/connectors/google-analytics-data-api-808-agent",
+        "https://airbyte.com/connectors/granola-agent",
+        "https://airbyte.com/connectors/greenhouse-agent",
+        "https://airbyte.com/connectors/harvest-agent",
+        "https://airbyte.com/connectors/hubspot-agent",
+        "https://airbyte.com/data-engineering-resources",
+        "https://airbyte.com/data-replication",
+        "https://airbyte.com/product/connector-development-kit",
+        "https://airbyte.com/product/powered-by-airbyte",
+        "https://airbyte.com/success-stories"
+      ]
     },
     {
       "url": "https://stripe.com/atlas/states",
