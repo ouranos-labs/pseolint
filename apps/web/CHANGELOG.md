@@ -1,5 +1,14 @@
 # @pseolint/web
 
+## 0.6.0
+
+### Minor Changes
+
+- **Version-aligned with `@pseolint/core` 0.6.0** — the audit-as-template architectural cutover. Web app now ships at 0.6.0 to match the engine's "v0.6 stable" milestone. Functionally cumulative of all v0.0.x work since 0.0.10, plus the v0.6 cutover changes:
+  - `<FindingsPanel>` now wrapped in a collapsed `<details>` element when the audit has ≥2 detected templates (template cards become primary surface, per-URL findings drill-down only). Legacy / single-template audits unchanged.
+  - Tracks engine 0.5.11 → 0.6.0 cumulative changes that landed in apps/web through normal commits: GSC hotfix LIMIT 500, GSC origin-degradation autobind, template card grid (v0.5.10 phase 2), gentle-mode + auto-retry origin-degradation handling, AuditLogEvent additions (gsc.autobind.*, gsc.rebind.*, settings.domain.updated, audit.gentle_mode_applied).
+- Web app remains private (not published to npm). Version bump is internal-coherence only — engine + dashboard are now versioned together.
+
 ## 0.0.10
 
 ### Patch Changes
