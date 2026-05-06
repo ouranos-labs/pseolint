@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.12
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.12 (calibration stability via pinned URL sampling). CLI surface unchanged — pinned URLs are an internal calibration concern. The new `AuditOptions.pinnedUrls` is available to programmatic callers if needed.
+
 ## 0.5.11
 
 ### Patch Changes

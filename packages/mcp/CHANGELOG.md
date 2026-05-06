@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.12
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.12 (calibration stability via pinned URL sampling). MCP surface unchanged.
+
 ## 0.5.11
 
 ### Patch Changes

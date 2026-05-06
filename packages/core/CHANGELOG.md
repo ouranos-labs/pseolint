@@ -1,5 +1,16 @@
 # @pseolint/core
 
+## 0.5.12
+
+### Patch Changes
+
+- **Pinned URL sampling for stable calibration runs.** New `AuditOptions.pinnedUrls?: ReadonlyArray<string>` — when provided non-empty, the auditor SKIPS sitemap discovery + random sampling and audits ONLY these specific URLs. Distinct from the existing `force.urls` (which supplements the sample); pinnedUrls REPLACES it. Same-origin validation throws on cross-origin URLs (HTTP sources only). Filesystem sources interpret pinnedUrls as relative paths.
+- **AuditSummary.auditedUrls** added — sorted list of URLs the engine actually audited. Surfaced for the `--repin` capture flow but useful for any caller that needs to know what got audited (vs what was discovered).
+- **Why this matters**: a verification pass on 2026-05-06 found that consecutive calibration runs against the same engine code produced 4/7 different site verdicts. Random page sampling within each site was the dominant variance source. With pinned URLs, two consecutive runs of Numbeo produced **identical verdicts (concerning, 12 pages each)** — proves the methodology fix works.
+- **Calibration script** (`scripts/calibration-reputable-pseo.ts`) gets `--repin [<filter>]` mode that runs each site once and writes the discovered sample URLs back to the corpus JSON's new `pinnedUrls` field. Default invocation reads pinnedUrls and audits those exact URLs. Backward compat: sites with empty pinnedUrls fall back to current random sampling.
+- **Subtle decision**: pinned URL 404s fail-soft (page is dropped from the audit set, run continues). Same as existing sitemap-discovered 404 behavior. Fail-loud would let one stale URL block the entire run.
+- 7 new tests in `tests/integration/audit-pinned-urls.test.ts` covering pinned-mode behavior, same-origin validation, sample-size override, and `force.urls` interaction.
+
 ## 0.5.11
 
 ### Patch Changes
