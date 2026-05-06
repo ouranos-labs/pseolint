@@ -1,0 +1,15 @@
+Photosynthesis is a biological process used by many living organisms to convert light energy, normally from the Sun, into chemical energy that can be later released to fuel the organism's activities via cellular respiration. This process sustains virtually all life on Earth, directly or indirectly. Some organisms, called photoautotrophs, use light energy to synthesize organic compounds from carbon dioxide. Photosynthesis in plants uses the green pigment chlorophyll to capture light energy and convert it into chemical energy stored in glucose.
+
+The word photosynthesis comes from the Greek words for light and synthesis. The process of photosynthesis takes place in the chloroplasts, which are organelles found in plant cells and other photosynthetic organisms. Chloroplasts contain the pigment chlorophyll, which absorbs sunlight. The light energy is used to convert carbon dioxide and water into glucose and oxygen.
+
+The overall chemical reaction for photosynthesis is: 6CO2 + 6H2O + light energy yields C6H12O6 + 6O2. This equation shows that carbon dioxide and water are converted into glucose and oxygen using light energy. The glucose is used by the plant for energy and as a building block for other organic compounds.
+
+Photosynthesis is generally divided into two stages: the light-dependent reactions and the light-independent reactions, also known as the Calvin cycle. The light-dependent reactions take place in the thylakoid membranes of the chloroplast and require direct sunlight. In these reactions, light energy is absorbed by chlorophyll and other pigments and is used to produce ATP and NADPH. These energy-carrying molecules are then used in the Calvin cycle to produce glucose.
+
+The Calvin cycle takes place in the stroma of the chloroplast and does not require direct light energy, but does use the ATP and NADPH produced in the light-dependent reactions. In the Calvin cycle, carbon dioxide is fixed into organic compounds, ultimately producing glucose. This process was first described by Melvin Calvin, Andrew Benson, and James Bassham in the 1950s, for which Calvin received the Nobel Prize in Chemistry in 1961.
+
+Photosynthesis is the most important biological process on Earth. It is the primary source of energy for almost all life on Earth, and it is responsible for the production of the oxygen in Earth's atmosphere. Without photosynthesis, the oxygen content of the atmosphere would rapidly decline, and most life on Earth would be unable to survive.
+
+The rate of photosynthesis is influenced by several factors, including the intensity of light, the concentration of carbon dioxide, and the temperature. In general, higher light intensity, higher carbon dioxide concentration, and higher temperature increase the rate of photosynthesis, up to a certain maximum.
+
+Photosynthesis is also important for the carbon cycle. Plants and other photosynthetic organisms absorb carbon dioxide from the atmosphere and convert it into organic compounds. When these organisms die and decompose, or when they are eaten by animals, the carbon is eventually returned to the atmosphere as carbon dioxide.

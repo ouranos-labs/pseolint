@@ -788,6 +788,9 @@ function runRulesOnPages(
   if (isEnabled("content/common-phrase-reuse") && modeOk("content/common-phrase-reuse")) {
     findings.push(...tag(commonPhraseReuseRule(pages)));
   }
+  if (isEnabled("content/wikipedia-paraphrase") && modeOk("content/wikipedia-paraphrase")) {
+    findings.push(...tag(wikipediaParaphraseRule(pages)));
+  }
 
   // Link rules — use the global link graph
   if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {

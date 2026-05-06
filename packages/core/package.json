@@ -31,10 +31,12 @@
     "node": ">=18"
   },
   "files": [
-    "dist"
+    "dist",
+    "data/wikipedia-trigrams.bin"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "build-wikipedia-bloom": "bun run scripts/build-wikipedia-bloom.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run --passWithNoTests tests/**/*.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
