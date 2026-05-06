@@ -26,6 +26,7 @@ interface Signals {
   facts: number;
   eeat: number;
   translation: number;
+  clicheReuse: number;
 }
 
 function computeSignals(page: ParsedPage, allFindings: RuleResult[]): Signals {
@@ -75,11 +76,15 @@ function computeSignals(page: ParsedPage, allFindings: RuleResult[]): Signals {
   );
   const translation = hasTranslationNoOp ? 0.0 : 1.0;
 
-  return { originality, freshness, facts, eeat, translation };
+  // Cliché reuse (signal 6): 1.0 if common-phrase-reuse doesn't fire, 0.0 if it does
+  const hasClicheReuse = pageFindings.some((f) => f.ruleId === "content/common-phrase-reuse");
+  const clicheReuse = hasClicheReuse ? 0.0 : 1.0;
+
+  return { originality, freshness, facts, eeat, translation, clicheReuse };
 }
 
 function meanScore(signals: Signals): number {
-  const values = [signals.originality, signals.freshness, signals.facts, signals.eeat, signals.translation];
+  const values = [signals.originality, signals.freshness, signals.facts, signals.eeat, signals.translation, signals.clicheReuse];
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
 
@@ -99,7 +104,8 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
   return (
     `${page.url}: value-add score ${pct(score)} — composite of ` +
     `[originality: ${pct(signals.originality)}, freshness: ${pct(signals.freshness)}, ` +
-    `facts: ${pct(signals.facts)}, E-E-A-T: ${pct(signals.eeat)}, translation: ${pct(signals.translation)}]. ` +
+    `facts: ${pct(signals.facts)}, E-E-A-T: ${pct(signals.eeat)}, translation: ${pct(signals.translation)}, ` +
+    `cliché-reuse: ${pct(signals.clicheReuse)}]. ` +
     `The page lacks ${worstLabel}; pages without proprietary value-add are demoted by SpamBrain.`
   );
 }

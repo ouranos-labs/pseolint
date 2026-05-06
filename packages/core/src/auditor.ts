@@ -26,6 +26,7 @@ import { headingStructureRule } from "./rules/content/heading-structure.js";
 import { imageAltTextRule } from "./rules/content/image-alt-text.js";
 import { translationNoOpRule } from "./rules/content/translation-no-op.js";
 import { regurgitatedContentRule } from "./rules/content/regurgitated-content.js";
+import { commonPhraseReuseRule } from "./rules/content/common-phrase-reuse.js";
 import { valueAddRule } from "./rules/content/value-add.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
@@ -477,6 +478,8 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/translation-no-op":{ baseImpact: 30, perInstance: 10, maxImpact: 60 },
   // v1 warning-severity heuristic; lower than translation-no-op since it's speculative
   "content/regurgitated-content": { baseImpact: 15, perInstance: 5, maxImpact: 35 },
+  // v0.5.11 warning/low-confidence cliché density detector; lower than regurgitated-content
+  "content/common-phrase-reuse":  { baseImpact: 12, perInstance: 4, maxImpact: 30 },
   // v0.5.8 composite per-page quality synthesis
   "content/value-add":            { baseImpact: 25, perInstance: 8, maxImpact: 50 },
 
@@ -778,6 +781,9 @@ function runRulesOnPages(
   }
   if (isEnabled("content/regurgitated-content") && modeOk("content/regurgitated-content")) {
     findings.push(...tag(regurgitatedContentRule(pages)));
+  }
+  if (isEnabled("content/common-phrase-reuse") && modeOk("content/common-phrase-reuse")) {
+    findings.push(...tag(commonPhraseReuseRule(pages)));
   }
 
   // Link rules — use the global link graph

@@ -66,11 +66,11 @@ describe("valueAddRule", () => {
     expect(results[0].message).toContain("SpamBrain");
   });
 
-  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.3 — critical", () => {
+  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.5 — error", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
-    // o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1
-    // score = (0+0+0+0+1)/5 = 0.2 => critical
+    // 6-signal math: o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1, cr=1
+    // score = (0+0+0+0+1+1)/6 = 0.333 => error (0.3 ≤ score < 0.5)
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
@@ -78,7 +78,7 @@ describe("valueAddRule", () => {
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("critical");
+    expect(results[0].severity).toBe("error");
     expect(results[0].message).toContain("SpamBrain");
   });
 
@@ -96,14 +96,27 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("mixed page — regurgitated + no eeat + no freshness — score 0.3-0.5 — error finding", () => {
+  test("mixed page — regurgitated + no eeat + no freshness — 6-signal score exactly 0.5 — no finding", () => {
     const url = "https://example.com/poor";
-    // originality=0, freshness=0 (error sev), facts=1, eeat=0, translation=1
-    // score = (0+0+1+0+1)/5 = 0.4 => error
+    // 6-signal math: o=0, f=0 (error), c=1, e=0, t=1, cr=1 => (0+0+1+0+1+1)/6 = 0.5
+    // score = 0.5 => exactly at threshold => NO finding (threshold is score < 0.5)
     const p = page(url);
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/freshness-signals", url, "error"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(0);
+  });
+
+  test("mixed page — regurgitated + no eeat + no freshness + cliche-reuse — score < 0.5 — error finding", () => {
+    const url = "https://example.com/poor-cliche";
+    // 6-signal math: o=0, f=0 (error), c=1, e=0, t=1, cr=0 => (0+0+1+0+1+0)/6 = 0.333 => error
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("content/common-phrase-reuse", url, "warning"),
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
@@ -162,8 +175,10 @@ describe("valueAddRule", () => {
         pageUrl: url,
         relatedUrls: [],
       },
+      // 6th signal: cliché-reuse fires => cr=0
+      finding("content/common-phrase-reuse", url, "warning"),
     ];
-    // o=0, f=0, c=0, e=0, t=0 => score=0 => critical
+    // 6-signal: o=0, f=0, c=0, e=0, t=0, cr=0 => score=0 => critical
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
     expect(results[0].severity).toBe("critical");
@@ -219,13 +234,53 @@ describe("valueAddRule", () => {
       finding("aeo/citable-facts", urlB, "error"),
       finding("aeo/freshness-signals", urlB, "error"),
     ];
-    // urlA has no findings => o=1,f=1,c=1,e=0,t=1 => score=0.8 => no finding for A
+    // urlA has no findings => 6-signal: o=1,f=1,c=1,e=0,t=1,cr=1 => score=5/6≈0.833 => no finding
     const resultsA = valueAddRule([pA], findings);
     expect(resultsA).toHaveLength(0);
 
-    // urlB has all bad signals => critical
+    // urlB: o=0, f=0, c=0, e=0, t=1, cr=1 => score=2/6=0.333 => error (not critical, since ≥0.3)
     const resultsB = valueAddRule([pB], findings);
     expect(resultsB).toHaveLength(1);
-    expect(resultsB[0].severity).toBe("critical");
+    expect(resultsB[0].severity).toBe("error");
+  });
+
+  // -------------------------------------------------------------------------
+  // 6-signal composite tests (v0.5.11 — common-phrase-reuse as signal 6)
+  // -------------------------------------------------------------------------
+
+  test("6-signal: all-good (no common-phrase-reuse finding) — score 5/6 — no finding", () => {
+    const url = "https://example.com/6signal-good";
+    // No findings => o=1,f=1,c=1,e=0,t=1,cr=1 => score=5/6≈0.833 => no finding
+    const p = page(url);
+    const results = valueAddRule([p], []);
+    expect(results).toHaveLength(0);
+  });
+
+  test("6-signal: only common-phrase-reuse fires — composite drops by 1/6 — no finding", () => {
+    const url = "https://example.com/6signal-cliche-only";
+    const p = page(url);
+    // cr=0, all others=1 except eeat=0 (no signals) => o=1,f=1,c=1,e=0,t=1,cr=0 => 4/6≈0.667 => no finding
+    const findings: RuleResult[] = [
+      finding("content/common-phrase-reuse", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    // 0.667 >= 0.5 => no finding
+    expect(results).toHaveLength(0);
+  });
+
+  test("6-signal: common-phrase-reuse + 2 other signals fire — composite reflects 6-signal denominator", () => {
+    const url = "https://example.com/6signal-three-bad";
+    const p = page(url);
+    // o=0 (regurgitated), f=1, c=0 (facts error), e=0, t=1, cr=0 (cliche) => 2/6=0.333 => error
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("content/common-phrase-reuse", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("error");
+    // Message should include cliché-reuse in the composite breakdown
+    expect(results[0].message).toContain("cliché-reuse");
   });
 });
