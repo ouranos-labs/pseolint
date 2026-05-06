@@ -10,10 +10,21 @@ import type {
 } from "../types.js";
 import type { ReadinessReport } from "../fetch-observer.js";
 import type { SiteClassification } from "../site-classifier.js";
+import {
+  renderTemplateCardsHtml,
+  shouldRenderTemplateCards,
+  TEMPLATE_CARDS_CSS,
+} from "./template-cards.js";
 
 export interface HtmlFormatOptions {
   /** No-op for HTML — every finding is rendered regardless. Accepted for option-signature parity. */
   verbose?: boolean;
+  /** v0.5.11 — when true (default), render per-template cards when ≥2 templates were detected. */
+  perTemplate?: boolean;
+  /** v0.5.11 — filter per-URL findings to this template signature. */
+  filterTemplate?: string;
+  /** v0.5.11 — skip per-template view; render flat per-URL list. */
+  legacyFlat?: boolean;
 }
 
 const VERDICT_LABEL: Record<Verdict, string> = {
@@ -244,16 +255,41 @@ function renderTriageHtml(triage: NonNullable<AuditSummary["triage"]>): string {
 </section>`;
 }
 
-export function formatHtml(summary: AuditSummary, _options?: HtmlFormatOptions): string {
+export function formatHtml(summary: AuditSummary, options?: HtmlFormatOptions): string {
   const verdict = summary.verdict;
   const verdictTone = VERDICT_TONE[verdict];
-  const issues = summary.issues;
+  const perTemplate = options?.perTemplate !== false; // default ON
+  const legacyFlat = options?.legacyFlat ?? false;
+  const filterTemplate = options?.filterTemplate;
   const crawl = summary.diagnostics?.crawlStats;
   const readiness = summary.diagnostics?.originReadiness;
+
+  // Resolve findings, filtered when --template is active.
+  const templates = summary.templates;
+  let filteredBlockers = summary.issues.blockers;
+  let filteredShouldFix = summary.issues.shouldFix;
+  let filteredInfo = summary.issues.informational;
+  if (filterTemplate && Array.isArray(templates)) {
+    const matchedTemplate = templates.find((t) => t.signature === filterTemplate);
+    if (matchedTemplate) {
+      const urlSet = new Set(matchedTemplate.auditedUrls);
+      const keep = (f: RuleResult): boolean => !f.pageUrl || urlSet.has(f.pageUrl);
+      filteredBlockers = summary.issues.blockers.filter(keep);
+      filteredShouldFix = summary.issues.shouldFix.filter(keep);
+      filteredInfo = summary.issues.informational.filter(keep);
+    }
+  }
+
+  const cardOpts = { legacyFlat: legacyFlat || !perTemplate, filterTemplate };
+  const templateCardsHtml = shouldRenderTemplateCards(templates, cardOpts)
+    ? renderTemplateCardsHtml(templates, cardOpts)
+    : "";
 
   const crawlMeta = crawl
     ? `${crawl.fetched} fetched · ${crawl.discovered} discovered · ${crawl.skipped} skipped`
     : `${summary.pageCount} pages`;
+
+  const issues = { blockers: filteredBlockers, shouldFix: filteredShouldFix, informational: filteredInfo };
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -411,6 +447,7 @@ export function formatHtml(summary: AuditSummary, _options?: HtmlFormatOptions):
   .footer-note{margin-top:56px;padding:20px 22px;border:1px solid var(--border);border-radius:var(--r-lg);
                background:color-mix(in oklab,var(--card) 60%,transparent);color:var(--muted);font-size:12px;line-height:1.6}
   .footer-note strong{color:var(--fg);font-weight:600}
+${TEMPLATE_CARDS_CSS}
 </style>
 </head>
 <body>
@@ -436,6 +473,8 @@ export function formatHtml(summary: AuditSummary, _options?: HtmlFormatOptions):
   ${summary.templateDetected ? `<div class="template-banner"><strong>Template-generated content detected.</strong> Fix suggestions are tailored for template authors — one change can fix hundreds of pages.</div>` : ""}
 
   ${renderOriginReadinessCard(readiness)}
+
+  ${templateCardsHtml}
 
   ${renderBucketSection("Blockers", issues.blockers, "destructive")}
   ${renderBucketSection("Should fix", issues.shouldFix, "warning")}

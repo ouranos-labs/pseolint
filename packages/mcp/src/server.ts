@@ -128,6 +128,19 @@ function buildExplanation(summary: AuditSummary, threshold: number): string {
     }
   }
 
+  // v0.5.11 — surface per-template breakdown when present
+  if (summary.templates && summary.templates.length >= 2) {
+    lines.push("");
+    lines.push("Per-template breakdown:");
+    for (const t of summary.templates) {
+      const td = t.variance.topDriver;
+      const driverPart = td
+        ? ` (${Math.round(td.fireRate * t.auditedUrls.length)}/${t.auditedUrls.length} fail ${td.ruleId})`
+        : "";
+      lines.push(`  ${t.signature}: ${t.verdict} — risk ${t.risk}${driverPart}`);
+    }
+  }
+
   if (summary.risk >= threshold) {
     lines.push("");
     lines.push(`Risk ${summary.risk} exceeds threshold ${threshold}. Focus on quick fixes first to bring risk down, then tackle structural issues.`);
@@ -166,7 +179,7 @@ export function createServer(): McpServer {
     "audit_site",
     {
       title: "Audit Site for SpamBrain Risk",
-      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 32 rules across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless --strict is passed.",
+      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 32 rules across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless --strict is passed. v0.5.11: when the audited site has ≥2 detected URL templates, the JSON response includes a `templates` array with per-template verdicts, risk scores, category grades, variance metrics (uniformityScore, topDriver), and the list of audited URLs for each template. Additive — `findings` flat list remains present.",
       inputSchema: inputShape({
         source: z.string().describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
         threshold: z.number().optional().default(40).describe("Risk threshold — audit fails if risk >= this value (default: 40, semantically equivalent to 'caution' verdict)"),

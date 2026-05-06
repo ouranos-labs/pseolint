@@ -114,6 +114,23 @@ interface CliOptions {
   uploadToken?: string;
   /** v0.5.6 — Domain ID for --upload-to (or PSEOLINT_DOMAIN_ID env). */
   uploadDomainId?: string;
+  /**
+   * v0.5.11 — when true (default ON), formatters render per-template cards
+   * above the per-URL findings list when ≥2 templates are detected.
+   * Commander populates this as true/false via the --per-template / --no-per-template pair.
+   */
+  perTemplate: boolean;
+  /**
+   * v0.5.11 — filter per-URL findings to this template signature only.
+   * When combined with --per-template, the matching card is highlighted.
+   * Silently ignored when no template matches.
+   */
+  template?: string;
+  /**
+   * v0.5.11 — skip per-template view entirely; render the flat per-URL list.
+   * Takes priority over --per-template when both are set.
+   */
+  legacyFlat: boolean;
 }
 
 export async function runCli(
@@ -203,6 +220,10 @@ export async function runCli(
     .option("--upload-to <endpoint>", "v0.5.6 — POST the JSON summary to this pseolint endpoint after scan completes (or PSEOLINT_ENDPOINT env var)")
     .option("--upload-token <token>", "v0.5.6 — API token for --upload-to (or PSEOLINT_TOKEN env var)")
     .option("--upload-domain-id <id>", "v0.5.6 — Domain ID to associate the upload with (or PSEOLINT_DOMAIN_ID env var)")
+    .option("--per-template", "v0.5.11 — render per-template cards above the per-URL findings list when ≥2 templates detected (default: ON)", true)
+    .option("--no-per-template", "v0.5.11 — disable the per-template cards view (equivalent to --legacy-flat)")
+    .option("--template <signature>", "v0.5.11 — filter per-URL findings to this template signature only (e.g. /listing/:slug)")
+    .option("--legacy-flat", "v0.5.11 — opt-out: skip per-template view and render the flat per-URL findings list (wins over --per-template)")
     .action(async (source: string | undefined, opts: CliOptions) => {
       exitCode = await runAudit(source, opts);
     });
@@ -721,9 +742,17 @@ async function runAudit(
   // Format output. The console formatter accepts noColor + verbose; non-console
   // formatters accept verbose. The formatter-rewrite agent owns these signatures.
   const verbose = Boolean(opts.explain);
+
+  // v0.5.11 per-template options — --legacy-flat wins over --per-template.
+  const legacyFlat = opts.legacyFlat === true;
+  const perTemplate = legacyFlat ? false : opts.perTemplate !== false;
+  const filterTemplate = opts.template;
+
+  const templateOpts = { perTemplate, legacyFlat, filterTemplate };
+
   const output = format === "console"
-    ? (formatConsole as unknown as FormatFn)(summary, { noColor: !opts.color, verbose })
-    : formatters[format](summary, { verbose });
+    ? (formatConsole as unknown as FormatFn)(summary, { noColor: !opts.color, verbose, ...templateOpts })
+    : formatters[format](summary, { verbose, ...templateOpts });
 
   // Write or print
   if (opts.output) {

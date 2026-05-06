@@ -11,6 +11,10 @@ import type {
 } from "../types.js";
 import type { SiteClassification, SiteType } from "../site-classifier.js";
 import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
+import {
+  renderTemplateCardsConsole,
+  shouldRenderTemplateCards,
+} from "./template-cards.js";
 
 /**
  * Total rule count surfaced in the "pass --strict to run all N" hint.
@@ -118,6 +122,22 @@ export interface ConsoleFormatOptions {
   noColor?: boolean;
   /** When true, list every finding bucketed by severity instead of just top fixes. */
   verbose?: boolean;
+  /**
+   * v0.5.11 — when true (default), render per-template cards above the
+   * per-URL findings list when ≥2 templates were detected.
+   */
+  perTemplate?: boolean;
+  /**
+   * v0.5.11 — when set, filter the per-URL findings list to only findings
+   * whose pageUrl is in the matching template's auditedUrls.
+   * Silently ignored when no template matches.
+   */
+  filterTemplate?: string;
+  /**
+   * v0.5.11 — when true, skip the per-template view entirely and render the
+   * flat per-URL findings list (opt-out for CI tooling built against the old layout).
+   */
+  legacyFlat?: boolean;
 }
 
 /** Effort-prefix glyph used by `[quick]`, `[moderate]`, `[structural]` rule lines. */
@@ -322,6 +342,9 @@ function categoryLine(categories: CategoryGrades): string {
 export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOptions): string {
   const strip = options?.noColor ?? false;
   const verbose = options?.verbose ?? false;
+  const perTemplate = options?.perTemplate !== false; // default ON
+  const legacyFlat = options?.legacyFlat ?? false;
+  const filterTemplate = options?.filterTemplate;
   const lines: string[] = [];
 
   // ── Crawl line ──────────────────────────────────────────────────────
@@ -383,25 +406,51 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
 
   lines.push("");
 
+  // ── Per-template cards (v0.5.11) ────────────────────────────────────
+  const templates = summary.templates;
+  const cardOpts = { legacyFlat: legacyFlat || !perTemplate, filterTemplate };
+  if (shouldRenderTemplateCards(templates, cardOpts)) {
+    const cardsBlock = renderTemplateCardsConsole(templates, cardOpts, strip);
+    if (cardsBlock) {
+      lines.push(cardsBlock);
+    }
+  }
+
   // ── Headline + top fixes ───────────────────────────────────────────
   const issues = summary.issues;
-  const blockerCount = issues.blockers.length;
-  const shouldFixCount = issues.shouldFix.length;
 
-  if (blockerCount === 0 && shouldFixCount === 0 && issues.informational.length === 0) {
+  // When --template filter is active, restrict to findings in that template's URLs.
+  let filteredBlockers = issues.blockers;
+  let filteredShouldFix = issues.shouldFix;
+  let filteredInfo = issues.informational;
+  if (filterTemplate && Array.isArray(templates)) {
+    const matchedTemplate = templates.find((t) => t.signature === filterTemplate);
+    if (matchedTemplate) {
+      const urlSet = new Set(matchedTemplate.auditedUrls);
+      const keep = (f: RuleResult): boolean => !f.pageUrl || urlSet.has(f.pageUrl);
+      filteredBlockers = issues.blockers.filter(keep);
+      filteredShouldFix = issues.shouldFix.filter(keep);
+      filteredInfo = issues.informational.filter(keep);
+    }
+  }
+
+  const blockerCount = filteredBlockers.length;
+  const shouldFixCount = filteredShouldFix.length;
+
+  if (blockerCount === 0 && shouldFixCount === 0 && filteredInfo.length === 0) {
     lines.push(`${GREEN}No issues detected.${RESET}`);
   } else {
     lines.push(`${summary.headline} — top fixes by impact:`);
-    const top = renderTopFixes(issues.blockers, issues.shouldFix);
+    const top = renderTopFixes(filteredBlockers, filteredShouldFix);
     lines.push(...top);
   }
 
   // ── Verbose bucket dump ─────────────────────────────────────────────
   if (verbose) {
     lines.push("");
-    lines.push(...renderBucketVerbose("BLOCKERS", issues.blockers));
-    lines.push(...renderBucketVerbose("SHOULD-FIX", issues.shouldFix));
-    lines.push(...renderBucketVerbose("INFORMATIONAL", issues.informational));
+    lines.push(...renderBucketVerbose("BLOCKERS", filteredBlockers));
+    lines.push(...renderBucketVerbose("SHOULD-FIX", filteredShouldFix));
+    lines.push(...renderBucketVerbose("INFORMATIONAL", filteredInfo));
   } else if (blockerCount + shouldFixCount > 0) {
     lines.push("");
     lines.push(`${DIM}Run \`pseolint --explain\` for the full list.${RESET}`);

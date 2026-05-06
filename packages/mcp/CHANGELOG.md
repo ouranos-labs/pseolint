@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.11
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.11 (v0.6 phase 3 — CLI + MCP). The `audit_site` tool description now documents the `templates` array that appears in the JSON output when ≥2 URL templates are detected: each entry carries `signature`, `verdict`, `risk`, `categories`, `auditedUrls`, `variance.uniformityScore`, and `variance.topDriver`. The `explain_score` tool's text output now includes a "Per-template breakdown" section when templates are present. Both are additive — existing consumers reading `findings` are unaffected.
+
 ## 0.5.9
 
 ### Patch Changes

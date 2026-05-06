@@ -10,10 +10,23 @@ import type {
 } from "../types.js";
 import type { SiteClassification } from "../site-classifier.js";
 import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
+import {
+  renderTemplateCardsMarkdown,
+  shouldRenderTemplateCards,
+} from "./template-cards.js";
 
 export interface MarkdownFormatOptions {
   /** When true, list every finding bucketed by severity (kept for parity with other formatters; markdown always lists everything). */
   verbose?: boolean;
+  /**
+   * v0.5.11 — when true (default), render per-template cards above the
+   * per-URL findings list when ≥2 templates were detected.
+   */
+  perTemplate?: boolean;
+  /** v0.5.11 — filter per-URL findings to this template signature. Silently ignored on no match. */
+  filterTemplate?: string;
+  /** v0.5.11 — skip per-template view; render flat per-URL list. */
+  legacyFlat?: boolean;
 }
 
 const VERDICT_GLYPH: Record<Verdict, string> = {
@@ -184,8 +197,11 @@ function categoryRows(categories: CategoryGrades): string[] {
 
 export function formatMarkdown(
   summary: AuditSummary,
-  _options?: MarkdownFormatOptions,
+  options?: MarkdownFormatOptions,
 ): string {
+  const perTemplate = options?.perTemplate !== false; // default ON
+  const legacyFlat = options?.legacyFlat ?? false;
+  const filterTemplate = options?.filterTemplate;
   const lines: string[] = [];
 
   lines.push(`# pseolint report`);
@@ -226,6 +242,31 @@ export function formatMarkdown(
     lines.push("");
   }
 
+  // ── Per-template cards (v0.5.11) ────────────────────────────────────
+  const templates = summary.templates;
+  const cardOpts = { legacyFlat: legacyFlat || !perTemplate, filterTemplate };
+  if (shouldRenderTemplateCards(templates, cardOpts)) {
+    const cardsBlock = renderTemplateCardsMarkdown(templates, cardOpts);
+    if (cardsBlock) {
+      lines.push(cardsBlock);
+    }
+  }
+
+  // Resolve findings, filtered when --template is active.
+  let filteredBlockers = summary.issues.blockers;
+  let filteredShouldFix = summary.issues.shouldFix;
+  let filteredInfo = summary.issues.informational;
+  if (filterTemplate && Array.isArray(templates)) {
+    const matchedTemplate = templates.find((t) => t.signature === filterTemplate);
+    if (matchedTemplate) {
+      const urlSet = new Set(matchedTemplate.auditedUrls);
+      const keep = (f: RuleResult): boolean => !f.pageUrl || urlSet.has(f.pageUrl);
+      filteredBlockers = summary.issues.blockers.filter(keep);
+      filteredShouldFix = summary.issues.shouldFix.filter(keep);
+      filteredInfo = summary.issues.informational.filter(keep);
+    }
+  }
+
   // Issue buckets — blockers and should-fix render inline because they're
   // the actionable items. Informational findings collapse behind a
   // <details> on by default — they're often high-volume on catalog and
@@ -234,12 +275,12 @@ export function formatMarkdown(
   // every entry as a fresh markdown bullet drowns the actionable signal.
   // The user can expand the block to see all entries, or run with
   // `--explain` (console) for the full dump.
-  lines.push(...renderBucket("Blockers", summary.issues.blockers));
-  lines.push(...renderBucket("Should fix", summary.issues.shouldFix));
-  if (summary.issues.informational.length > 0) {
-    const infoLines = renderBucket("Informational", summary.issues.informational);
+  lines.push(...renderBucket("Blockers", filteredBlockers));
+  lines.push(...renderBucket("Should fix", filteredShouldFix));
+  if (filteredInfo.length > 0) {
+    const infoLines = renderBucket("Informational", filteredInfo);
     lines.push(`<details>`);
-    lines.push(`<summary><strong>Informational (${summary.issues.informational.length})</strong> — low-confidence or context-dependent findings. Click to expand.</summary>`);
+    lines.push(`<summary><strong>Informational (${filteredInfo.length})</strong> — low-confidence or context-dependent findings. Click to expand.</summary>`);
     lines.push("");
     // Strip the duplicate ## header that renderBucket added; the <summary>
     // already labels the section.
