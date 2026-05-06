@@ -339,6 +339,13 @@ export interface AuditSummary {
   /** True when --exit-on-regression detected a new rule ID vs prior state. */
   hasRegression?: boolean;
   /**
+   * v0.5.12 — URLs actually audited this run (after sampling, dedup, and
+   * policy filtering). Used by the calibration --repin mode to snapshot
+   * which pages the engine fetched so they can be pinned for future runs.
+   * Always sorted for deterministic diffs. Absent when no pages were audited.
+   */
+  auditedUrls?: string[];
+  /**
    * v0.5+: URLs the change-driven monitoring matrix decided to skip pre-fetch
    * (their findings were carried forward from prior state). Pre-v0.5 this
    * field carried URLs whose contentHash matched prior state under `--since`;
@@ -670,6 +677,22 @@ export interface AuditOptions {
    * Default: false.
    */
   strict?: boolean;
+  /**
+   * v0.5.12 — pinned URL list for stable calibration. When provided and
+   * non-empty, the auditor SKIPS sitemap discovery + random sampling
+   * entirely and audits ONLY these URLs. Used by the reputable-pSEO
+   * calibration corpus to remove run-to-run variance from page selection.
+   *
+   * Distinct from `force.urls` (line 552): force.urls SUPPLEMENTS the
+   * sample with caller-curated URLs; pinnedUrls REPLACES the sample.
+   *
+   * Filesystem sources: pinnedUrls are interpreted as relative paths;
+   * URL sources: pinnedUrls must be absolute and same-origin as the
+   * source URL (validated; throws if any URL is cross-origin).
+   *
+   * When pinnedUrls is set, `sampleSize` is ignored (the cap IS the array).
+   */
+  pinnedUrls?: ReadonlyArray<string>;
 }
 
 export type SafeMode = "saas" | "cli" | "dev";

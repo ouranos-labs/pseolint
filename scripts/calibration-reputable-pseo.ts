@@ -33,6 +33,18 @@ import { auditSource } from "../packages/core/src/index.js";
 import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 
+// ----- CLI flags ----------------------------------------------------------
+
+const args = process.argv.slice(2);
+const repinFlagIdx = args.indexOf("--repin");
+const isRepinMode = repinFlagIdx !== -1;
+// Optional substring filter: `--repin numbeo` repins only sites whose URL
+// contains "numbeo". If absent, all sites are repinned.
+const repinFilter: string | undefined =
+  isRepinMode && args[repinFlagIdx + 1] && !args[repinFlagIdx + 1].startsWith("--")
+    ? args[repinFlagIdx + 1]
+    : undefined;
+
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -66,6 +78,8 @@ interface CorpusSite {
     sampleSize?: number;
     noRender?: boolean;
   };
+  /** v0.5.12 — pinned URLs for stable calibration. Empty = legacy random sampling. */
+  pinnedUrls?: string[];
 }
 
 interface Corpus {
@@ -158,8 +172,8 @@ const ansi = {
 
 // ----- single-target audit -----------------------------------------------
 
-async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<SiteResult> {
-  const result: SiteResult = {
+async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<SiteResult & { _auditedUrls?: string[] }> {
+  const result: SiteResult & { _auditedUrls?: string[] } = {
     url: target.url,
     vertical: target.vertical,
     expectedVerdictCeiling: target.expectedVerdictCeiling,
@@ -167,6 +181,9 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
     pass: false,
     audit: null,
   };
+
+  // v0.5.12: use pinned URLs when available (non-empty) — bypasses random sampling
+  const hasPinned = (target.pinnedUrls?.length ?? 0) > 0;
 
   const t0 = Date.now();
   try {
@@ -176,14 +193,17 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
       const summary = await auditSource(target.url, {
         signal: ctrl.signal,
         safeMode: "saas",
-        sampleSize: target.samplingHint?.sampleSize ?? 25,
-        samplingStrategy: "stratified",
-        // Deterministic sampling so calibration verdicts are reproducible
-        // across rounds. Round-to-round verdict drift in rounds 1-6 was
-        // partially driven by stratified-sampling picking different pages
-        // each run. Fixed seed = same pages each run.
-        sampleSeed: 1729,
+        ...(hasPinned
+          ? { pinnedUrls: target.pinnedUrls }
+          : {
+              sampleSize: target.samplingHint?.sampleSize ?? 25,
+              samplingStrategy: "stratified",
+              // Deterministic sampling so calibration verdicts are reproducible
+              // across rounds. Fixed seed = same pages each run.
+              sampleSeed: 1729,
+            }),
       });
+      result._auditedUrls = summary.auditedUrls;
       const drivers = topDrivers({
         blockers: summary.issues.blockers,
         shouldFix: summary.issues.shouldFix,
@@ -296,9 +316,64 @@ function renderMarkdown(out: CalibrationResults): string {
   return lines.join("\n");
 }
 
-// ----- main --------------------------------------------------------------
+// ----- repin mode --------------------------------------------------------
 
-async function main(): Promise<void> {
+async function mainRepin(): Promise<void> {
+  const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
+  const sitesToRepin = repinFilter
+    ? corpus.sites.filter((s) => s.url.includes(repinFilter))
+    : corpus.sites;
+
+  if (sitesToRepin.length === 0) {
+    console.log(`${ansi.yellow}No sites matched filter "${repinFilter}". Nothing to repin.${ansi.reset}`);
+    return;
+  }
+
+  console.log(`${ansi.bold}Reputable-pSEO calibration — REPIN mode${ansi.reset}`);
+  if (repinFilter) {
+    console.log(`${ansi.dim}Filter: "${repinFilter}" → ${sitesToRepin.length} site(s)${ansi.reset}\n`);
+  } else {
+    console.log(`${ansi.dim}Repinning all ${sitesToRepin.length} sites${ansi.reset}\n`);
+  }
+
+  let totalPinned = 0;
+  let totalSitesRepinned = 0;
+
+  for (const site of sitesToRepin) {
+    process.stdout.write(`Repinning ${site.url} ... `);
+    // Always use random sampling for repin (ignoring existing pinnedUrls)
+    const tempSite: CorpusSite = { ...site, pinnedUrls: [] };
+    const r = await auditOne(tempSite);
+    if (r.error) {
+      console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset} (skipped — no URLs to pin)`);
+      continue;
+    }
+    const fetchedUrls = r._auditedUrls ?? [];
+    // Sort + dedupe for deterministic diffs
+    const pinned = [...new Set(fetchedUrls)].sort();
+    // Write back to corpus
+    const corpusSite = corpus.sites.find((s) => s.url === site.url);
+    if (corpusSite) {
+      corpusSite.pinnedUrls = pinned;
+    }
+    totalPinned += pinned.length;
+    totalSitesRepinned += 1;
+    console.log(`${ansi.green}OK${ansi.reset} pinned ${pinned.length} URLs`);
+  }
+
+  // Write updated corpus (pretty-printed, 2-space indent)
+  writeFileSync(CORPUS_PATH, JSON.stringify(corpus, null, 2) + "\n", "utf-8");
+
+  console.log("");
+  console.log(`${ansi.bold}Repin complete${ansi.reset}`);
+  console.log(`  Repinned ${totalSitesRepinned} sites with ${totalPinned} URLs total`);
+  console.log(`  Run normally now (without --repin) to verify stability.`);
+  console.log(`  Wrote ${ansi.cyan}${CORPUS_PATH}${ansi.reset}`);
+}
+
+// ----- normal run --------------------------------------------------------
+
+async function mainNormal(): Promise<void> {
   const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
   const totalSites = corpus.sites.length;
 
@@ -309,7 +384,10 @@ async function main(): Promise<void> {
   let i = 0;
   for (const site of corpus.sites) {
     i += 1;
-    process.stdout.write(`${ansi.dim}[${i}/${totalSites}]${ansi.reset} ${site.url} ... `);
+    const pinnedLabel = (site.pinnedUrls?.length ?? 0) > 0
+      ? ` ${ansi.dim}[pinned:${site.pinnedUrls!.length}]${ansi.reset}`
+      : "";
+    process.stdout.write(`${ansi.dim}[${i}/${totalSites}]${ansi.reset}${pinnedLabel} ${site.url} ... `);
     const r = await auditOne(site);
     if (r.error) {
       console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset}`);
@@ -355,6 +433,16 @@ async function main(): Promise<void> {
     console.log(`${ansi.yellow}One or more reputable pSEO sites scored worse than their ceiling.${ansi.reset}`);
     console.log(`${ansi.yellow}Review calibration-results.md → adjust SCORING_PROFILES['programmatic-directory'].${ansi.reset}`);
     process.exitCode = 1;
+  }
+}
+
+// ----- main --------------------------------------------------------------
+
+async function main(): Promise<void> {
+  if (isRepinMode) {
+    await mainRepin();
+  } else {
+    await mainNormal();
   }
 }
 

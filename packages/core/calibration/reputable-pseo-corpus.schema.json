@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ReputablePseoCorpus",
+  "description": "Schema for the reputable-pSEO calibration corpus used by scripts/calibration-reputable-pseo.ts",
+  "type": "object",
+  "required": ["version", "sites"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "string" },
+    "ranAt": { "type": ["string", "null"] },
+    "rationale": { "type": "string" },
+    "verdictRanks": {
+      "type": "object",
+      "additionalProperties": { "type": "number" }
+    },
+    "sites": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/CorpusSite" }
+    },
+    "excluded": {
+      "type": "object",
+      "properties": {
+        "reason": { "type": "string" },
+        "candidates": { "type": "array", "items": { "type": "string" } },
+        "futureWork": { "type": "string" }
+      }
+    }
+  },
+  "definitions": {
+    "CorpusSite": {
+      "type": "object",
+      "required": ["url", "vertical", "expectedSiteType", "expectedVerdictCeiling", "groundTruth"],
+      "properties": {
+        "url": { "type": "string", "format": "uri" },
+        "vertical": { "type": "string" },
+        "expectedSiteType": { "type": "string" },
+        "expectedVerdictCeiling": {
+          "type": "string",
+          "enum": ["ready", "caution", "concerning", "critical"]
+        },
+        "groundTruth": {
+          "type": "object",
+          "required": ["status", "trafficClass", "evidence"],
+          "properties": {
+            "status": { "type": "string", "enum": ["winning", "stable", "declining"] },
+            "trafficClass": { "type": "string", "enum": ["very-high", "high", "medium", "low"] },
+            "evidence": { "type": "string" }
+          }
+        },
+        "samplingHint": {
+          "type": "object",
+          "properties": {
+            "sampleSize": { "type": "number" },
+            "noRender": { "type": "boolean" }
+          }
+        },
+        "pinnedUrls": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" },
+          "description": "v0.5.12 — pinned page URLs for stable calibration. When non-empty, the calibration runner passes these directly to auditSource as pinnedUrls, bypassing sitemap discovery and random sampling. Populated by --repin mode. Empty array means legacy random sampling."
+        }
+      }
+    }
+  }
+}

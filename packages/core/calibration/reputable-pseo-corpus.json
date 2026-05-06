@@ -20,7 +20,11 @@
         "trafficClass": "high",
         "evidence": "Zapier's app/integration directory is the canonical pSEO success — 5,000+ heavily-templated pages, ranks #1 for 'X zapier integration' across major SaaS apps, surviving every Helpful Content System rebuild since 2022."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://www.g2.com/categories",
@@ -32,7 +36,11 @@
         "trafficClass": "very-high",
         "evidence": "G2 categories rank top-3 for nearly every 'best X software' query. Heavily templated, hundreds of category pages."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://wise.com/us/currency-converter",
@@ -44,7 +52,11 @@
         "trafficClass": "very-high",
         "evidence": "Wise's currency-converter directory ranks #1 for thousands of 'X to Y exchange rate' queries — programmatic finance pages with strong primary-source data (live rates)."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://www.nerdwallet.com/best/credit-cards",
@@ -56,7 +68,11 @@
         "trafficClass": "very-high",
         "evidence": "NerdWallet's comparison directories are the dominant US finance-comparison destination."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://webflow.com/templates",
@@ -68,7 +84,11 @@
         "trafficClass": "high",
         "evidence": "Webflow templates directory ranks for 'webflow template X' queries; visually distinct per-page (preview thumbnails). Note: 2026-05-03 calibration round 4 showed `caution` is the appropriate ceiling — template gallery cards have ~150 words each and no per-template authors by design (the visual preview IS the content), so AEO/EEAT rules surface cosmetic findings even at info severity."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://www.typeform.com/templates",
@@ -80,7 +100,11 @@
         "trafficClass": "high",
         "evidence": "Typeform's templates directory ranks for 'X form template' queries; mid-corpus pSEO."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://segment.com/integrations",
@@ -92,7 +116,11 @@
         "trafficClass": "medium",
         "evidence": "B2B data-integration pSEO that ranks for 'segment X integration' across hundreds of source/destination pairs."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://www.jasper.ai/templates",
@@ -104,7 +132,11 @@
         "trafficClass": "medium",
         "evidence": "Modern AI-product pSEO; templates directory ranks for 'AI X writer'/'AI X generator' queries."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://ramp.com/spend-management",
@@ -116,7 +148,11 @@
         "trafficClass": "medium",
         "evidence": "B2B fintech pSEO; category and use-case pages ranking for spend-management queries."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://www.numbeo.com/cost-of-living",
@@ -128,7 +164,37 @@
         "trafficClass": "high",
         "evidence": "Numbeo is the long-running canonical cost-of-living-by-city pSEO directory; thousands of city pages, all ranking."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": [
+        "https://www.numbeo.com/common/motivation_and_methodology.jsp",
+        "https://www.numbeo.com/cost-of-living/comparison.jsp",
+        "https://www.numbeo.com/cost-of-living/contribute.jsp",
+        "https://www.numbeo.com/cost-of-living/historical-data-analysis",
+        "https://www.numbeo.com/cost-of-living/prices_by_country.jsp",
+        "https://www.numbeo.com/cost-of-living/rankings_by_country.jsp",
+        "https://www.numbeo.com/cost-of-living/rankings_current.jsp",
+        "https://www.numbeo.com/crime/rankings.jsp",
+        "https://www.numbeo.com/crime/rankings_current.jsp",
+        "https://www.numbeo.com/food-prices",
+        "https://www.numbeo.com/gas-prices",
+        "https://www.numbeo.com/health-care",
+        "https://www.numbeo.com/health-care/rankings_by_country.jsp",
+        "https://www.numbeo.com/pollution",
+        "https://www.numbeo.com/pollution/rankings.jsp",
+        "https://www.numbeo.com/pollution/rankings_current.jsp",
+        "https://www.numbeo.com/premium/download-data",
+        "https://www.numbeo.com/premium/index",
+        "https://www.numbeo.com/property-investment/rankings_by_country.jsp",
+        "https://www.numbeo.com/property-investment/rankings_current.jsp",
+        "https://www.numbeo.com/quality-of-life/comparison.jsp",
+        "https://www.numbeo.com/quality-of-life/rankings_by_country.jsp",
+        "https://www.numbeo.com/quality-of-life/rankings_current.jsp",
+        "https://www.numbeo.com/salary-calculator",
+        "https://www.numbeo.com/traffic"
+      ]
     },
     {
       "url": "https://airbyte.com/connectors",
@@ -140,7 +206,11 @@
         "trafficClass": "medium",
         "evidence": "Open-source data-integration pSEO; connectors directory ranks for 'X to Y data sync' queries."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     },
     {
       "url": "https://stripe.com/atlas/states",
@@ -152,7 +222,11 @@
         "trafficClass": "medium",
         "evidence": "Stripe Atlas state-by-state guides — programmatic legal-info content with Stripe-grade editorial polish."
       },
-      "samplingHint": { "sampleSize": 25, "noRender": true }
+      "samplingHint": {
+        "sampleSize": 25,
+        "noRender": true
+      },
+      "pinnedUrls": []
     }
   ],
   "excluded": {

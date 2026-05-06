@@ -1856,7 +1856,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const skipBoilerplate = options?.skipBoilerplate ?? false;
   const skipSearchPages = options?.skipSearchPages ?? false;
   const skipEmptyBody = options?.skipEmptyBody ?? false;
-  const sampleSize = options?.sampleSize ?? preset.sampleSize ?? 0;
+  // v0.5.12: when pinnedUrls is non-empty, sampleSize is irrelevant — the
+  // pinned list IS the sample. Force to 0 so the post-fetch sampling step
+  // is a no-op and all pinned pages pass through untruncated.
+  const hasPinnedUrlsEarly = Array.isArray(options?.pinnedUrls) && (options.pinnedUrls as ReadonlyArray<string>).length > 0;
+  const sampleSize = hasPinnedUrlsEarly ? 0 : (options?.sampleSize ?? preset.sampleSize ?? 0);
   const externalSignal = options?.signal;
   const guardSsrf = options?.guardSsrf ?? preset.guardSsrf ?? false;
   const respectRobotsTxt = options?.respectRobotsTxt ?? preset.respectRobotsTxt ?? true;
@@ -2040,7 +2044,78 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     console.error("no prior state found — performing full baseline audit");
   }
 
-  const { pages: loadedPagesRaw, sitemapUrls: sitemapUrlSet, sitemapLastmodByUrl, discoveredUrlCount, scrapePlan } = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered, monitoringContext);
+  // v0.5.12 — pinnedUrls fast path: bypass sitemap discovery + random sampling
+  // entirely. Only fetch the caller-specified URLs. Validated same-origin for
+  // HTTP sources. Filesystem sources treat pinnedUrls as absolute paths.
+  let loadedPagesRaw: LoadedPage[];
+  let sitemapUrlSet: Set<string> | undefined;
+  let sitemapLastmodByUrl: Map<string, string> | undefined;
+  let discoveredUrlCount: number | undefined;
+  let scrapePlan: ScrapePlan | undefined;
+
+  if (hasPinnedUrlsEarly) {
+    const pinned = options!.pinnedUrls as ReadonlyArray<string>;
+    // Validate same-origin for HTTP sources
+    if (/^https?:\/\//i.test(source)) {
+      let sourceOriginStr: string;
+      try {
+        sourceOriginStr = new URL(source).origin;
+      } catch {
+        throw new Error(`pinnedUrls: source URL is not a valid URL: ${source}`);
+      }
+      for (const u of pinned) {
+        let pinnedOrigin: string;
+        try {
+          pinnedOrigin = new URL(u).origin;
+        } catch {
+          throw new Error(`pinnedUrls: "${u}" is not a valid absolute URL`);
+        }
+        if (pinnedOrigin !== sourceOriginStr) {
+          throw new Error(
+            `pinnedUrls: cross-origin URL rejected. Source origin is "${sourceOriginStr}" but pinned URL "${u}" has origin "${pinnedOrigin}". All pinnedUrls must be same-origin as the source.`
+          );
+        }
+      }
+    }
+    // Fetch pinned URLs directly — no sitemap fetch, no sampling
+    const ssrfCache = new Map<string, Promise<void>>();
+    const validateHopPinned: ((u: string) => Promise<void>) | undefined = guardSsrf
+      ? async (u: string) => {
+          let host: string;
+          try { host = new URL(u).hostname; } catch { throw new Error(`Refusing to fetch invalid URL: ${u}`); }
+          let pending = ssrfCache.get(host);
+          if (!pending) {
+            pending = validateTargetHost(host).catch((err) => {
+              if (err instanceof SSRFError) throw new Error(`Refusing to fetch ${u}: ${err.reason}`);
+              throw err;
+            });
+            ssrfCache.set(host, pending);
+          }
+          await pending;
+        }
+      : undefined;
+    const pinnedPages: typeof loadedPagesRaw = [];
+    await runWithConcurrency(Array.from(pinned), concurrency, async (url) => {
+      const result = await fetchPageWithMeta(url, timeoutMs, cacheConfig, cacheStats, signal, validateHopPinned, followRedirects);
+      if (result) {
+        fetchByteBudget.used += result.html.length;
+        pinnedPages.push(result);
+      }
+    });
+    loadedPagesRaw = pinnedPages;
+    // No sitemap context in pinned mode
+    sitemapUrlSet = undefined;
+    sitemapLastmodByUrl = undefined;
+    discoveredUrlCount = undefined;
+    scrapePlan = undefined;
+  } else {
+    const loaded = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered, monitoringContext);
+    loadedPagesRaw = loaded.pages;
+    sitemapUrlSet = loaded.sitemapUrls;
+    sitemapLastmodByUrl = loaded.sitemapLastmodByUrl;
+    discoveredUrlCount = loaded.discoveredUrlCount;
+    scrapePlan = loaded.scrapePlan;
+  }
   // The scrapePlan tells us which URLs were skipped pre-fetch under monitoring
   // mode. Surface them in skippedUrls so they show up under summary.skippedUrls
   // (kept for back-compat with --since consumers); T7 will carry their prior
@@ -2477,6 +2552,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     pageCount: auditedPageCount || parsedPages.length,
     templateDetected: enriched.templateDetected,
     rawFindingCount: enriched.rawFindingCount,
+    // v0.5.12 — sorted list of audited page URLs for --repin capture
+    auditedUrls: parsedPages.length > 0
+      ? [...parsedPages.map((p) => p.url)].sort()
+      : undefined,
   };
 
   if (cacheConfig) {
