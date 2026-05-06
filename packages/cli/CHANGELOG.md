@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.13
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.13: Wise calibration drift fixed (engine bug in `links/unreachable-from-root` for pinned-URL audits + corpus annotation update); new `content/wikipedia-paraphrase` rule fires automatically on `pseolint scan` when page text overlaps ≥40% with the bundled Wikipedia trigram corpus.
+
 ## 0.5.12
 
 ### Patch Changes

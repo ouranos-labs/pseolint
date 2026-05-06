@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.13
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.13: Wise calibration fix + new `content/wikipedia-paraphrase` standalone signal in audit-tool output.
+
 ## 0.5.12
 
 ### Patch Changes
