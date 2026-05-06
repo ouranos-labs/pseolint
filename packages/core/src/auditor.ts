@@ -2555,7 +2555,16 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   const issues = bucketIssues(enriched.findings);
-  const verdict = shiftVerdictForAuthority(verdictForRisk(risk), options?.authorityScore);
+
+  // v0.6.0 — spec §15.1: site verdict comes from siteVerdictFromTemplates when
+  // ≥1 template has ≥5% coverage. Falls back to the legacy risk-ladder verdict
+  // when no template meets the threshold (single-template sites, `unclear`/
+  // `small-marketing` classifications, or the long-tail-only case).
+  // The `risk` score is intentionally unchanged — §15.1 governs verdict only.
+  const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), options?.authorityScore);
+  const templateVerdict = siteVerdictFromTemplates(siteTemplates);
+  const verdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
+
   const headline = buildHeadline(bucketCounts);
 
   // audit/* findings are diagnostic-only and never appear in summary.issues.

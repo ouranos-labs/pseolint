@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.6.0
+
+### Minor Changes
+
+- Track `@pseolint/core` 0.6.0: `siteVerdictFromTemplates` wired as default verdict source. MCP `audit` tool output now reflects the template-aware verdict for multi-template sites. `templates` field on `AuditResult` is stable public API. MCP surface otherwise unchanged.
+
 ## 0.5.15
 
 ### Patch Changes

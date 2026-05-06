@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.6.0
+
+### Minor Changes
+
+- Track `@pseolint/core` 0.6.0: `siteVerdictFromTemplates` wired as default verdict source (spec §15.1). Verdict for sites with qualifying templates now comes from the worst-template-≥5%-coverage rule. Legacy single-template and `unclear`/`small-marketing` sites unaffected. CLI surface unchanged.
+
 ## 0.5.15
 
 ### Patch Changes

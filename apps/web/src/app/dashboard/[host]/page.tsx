@@ -531,29 +531,64 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       <TimelineStrip runs={timelineRuns} />
 
       {/* 9. WHAT'S WRONG — the work surface. Each row carries traffic chips,
-          rank-source annotation, and (when documented) inline remediation. */}
-      <FindingsPanel
-        findings={openFindings.map((f) => {
-          const traffic = trafficBySig.get(f.templateSignature);
-          const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
-          return {
-            id: f.id,
-            ruleId: f.ruleId,
-            severityLatest: f.severityLatest,
-            affectedPageCount: f.affectedPageCount,
-            rankScore: String(f.rankScore),
-            ruleMessageLatest: f.ruleMessageLatest,
-            representativeUrl: f.representativeUrl,
-            status: f.status,
-            traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
-            help: rule
-              ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
-              : null,
-          };
-        })}
-        gscBound={gscBound}
-        host={domain.host}
-      />
+          rank-source annotation, and (when documented) inline remediation.
+          v0.6.0: when ≥2 templates are detected the per-URL list is demoted
+          to a drill-down collapsed by default (template cards above are the
+          primary surface). Falls through to expanded list on single-template
+          / legacy audits per spec §8.4. */}
+      {(summary?.templates?.length ?? 0) >= 2 ? (
+        <details className="group">
+          <summary className="cursor-pointer select-none list-none py-2 text-sm text-muted-foreground hover:text-foreground">
+            <span className="group-open:hidden">Show all {openFindings.length} per-URL findings</span>
+            <span className="hidden group-open:inline">Hide per-URL findings</span>
+          </summary>
+          <FindingsPanel
+            findings={openFindings.map((f) => {
+              const traffic = trafficBySig.get(f.templateSignature);
+              const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
+              return {
+                id: f.id,
+                ruleId: f.ruleId,
+                severityLatest: f.severityLatest,
+                affectedPageCount: f.affectedPageCount,
+                rankScore: String(f.rankScore),
+                ruleMessageLatest: f.ruleMessageLatest,
+                representativeUrl: f.representativeUrl,
+                status: f.status,
+                traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
+                help: rule
+                  ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
+                  : null,
+              };
+            })}
+            gscBound={gscBound}
+            host={domain.host}
+          />
+        </details>
+      ) : (
+        <FindingsPanel
+          findings={openFindings.map((f) => {
+            const traffic = trafficBySig.get(f.templateSignature);
+            const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
+            return {
+              id: f.id,
+              ruleId: f.ruleId,
+              severityLatest: f.severityLatest,
+              affectedPageCount: f.affectedPageCount,
+              rankScore: String(f.rankScore),
+              ruleMessageLatest: f.ruleMessageLatest,
+              representativeUrl: f.representativeUrl,
+              status: f.status,
+              traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
+              help: rule
+                ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
+                : null,
+            };
+          })}
+          gscBound={gscBound}
+          host={domain.host}
+        />
+      )}
     </div>
   );
 }

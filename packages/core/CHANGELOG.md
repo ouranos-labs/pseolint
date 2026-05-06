@@ -1,5 +1,14 @@
 # @pseolint/core
 
+## 0.6.0
+
+### Minor Changes
+
+- **Audit-as-template cutover (spec §16 v0.6.0 row).** `siteVerdictFromTemplates` is now the default site verdict source when ≥1 template has ≥5% coverage of total discovered URLs (spec §15.1). When no template meets the threshold the engine falls through to the legacy risk-ladder verdict — bit-identical behaviour for single-template sites and `unclear`/`small-marketing` classifications. The `risk` score is unchanged; only the verdict derivation switches.
+- **JSON output schema documented as v0.6 stable.** The `templates: Template[]` field on `AuditResult` is now part of the stable public API. The `findings: RuleResult[]` flat list remains for backwards compatibility through v0.6.x; sunset decision deferred to v0.7 per spec §15.4.
+- **Web dashboard per-URL findings list demoted to drill-down.** When ≥2 templates are detected, the per-URL `FindingsPanel` is wrapped in a `<details>` element collapsed by default ("Show all N per-URL findings"). Template cards remain the primary surface. Legacy / single-template audits render the expanded findings list unchanged.
+- Calibration verified: all 9 fixture-mode sites produce identical verdicts post-cutover because they classify as `unclear` or `small-marketing` and the template activation gate correctly bypasses the new path. Pre-existing 2 failures (segment, numbeo) unchanged.
+
 ## 0.5.15
 
 ### Patch Changes
