@@ -114,8 +114,11 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
  * content/value-add — second-pass composite rule.
  *
  * Reads from existing findings instead of parsing pages directly.
- * Aggregates 5 per-page signal scores into a single 0-1 quality score.
- * Fires ONE critical/error finding per page when score < 0.5.
+ * Aggregates 6 per-page signal scores (originality, freshness, facts,
+ * E-E-A-T, translation, cliché-reuse) into a single 0-1 quality score.
+ * Each signal weighted equally at 1/6 ≈ 16.7%.
+ * Fires ONE critical/error finding per page when score < 0.5
+ * (critical < 0.3, error otherwise).
  */
 export function valueAddRule(pages: ParsedPage[], findings: RuleResult[]): RuleResult[] {
   const results: RuleResult[] = [];
