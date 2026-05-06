@@ -83,11 +83,19 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
       .limit(1)
       .then((rows) => rows[0] ?? null),
-    // Per-domain GSC traffic for the current month bucket. Aggregated below to
-    // template signature so each rendered finding can show "this template
-    // gets X impressions" — the visible justification for ranking by traffic.
-    // Also pulls positionAvg + ctrAvg per URL so the GSC card can show a
-    // weighted average position and CTR (impressions-weighted, not row-mean).
+    // Per-domain GSC traffic for the current month bucket — TOP 500 by
+    // impressions only. Aggregated below to template signature so each
+    // rendered finding can show "this template gets X impressions" — the
+    // visible justification for ranking by traffic. Also pulls positionAvg
+    // + ctrAvg per URL so the GSC card can show a weighted average position
+    // and CTR (impressions-weighted, not row-mean).
+    //
+    // 2026-05-06 hotfix: capped at 500 rows after a paperforge.dev render
+    // exhausted the Neon free-tier monthly transfer allowance — sites with
+    // 25k indexed pages were dumping every row on every dashboard render.
+    // Top-500 by impressions covers >95% of total traffic-weighted volume on
+    // typical sites; the impression-weighted card metrics are unchanged at
+    // visible precision.
     db.select({
       url: gscPageMetrics.url,
       impressions: gscPageMetrics.impressions,
@@ -98,7 +106,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .where(and(
         eq(gscPageMetrics.domainId, domain.id),
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
-      )),
+      ))
+      .orderBy(desc(gscPageMetrics.impressions))
+      .limit(500),
     // Last 6 month buckets (incl. current) aggregated for the GSC trend
     // sparkline. Group-by-bucket so we sum across URLs once at the DB.
     db.select({

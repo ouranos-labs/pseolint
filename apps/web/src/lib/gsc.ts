@@ -217,9 +217,14 @@ export type GscPageRow = { url: string; clicks: number; impressions: number; ctr
 
 /**
  * Query Search Analytics for a property, dimensioned by `page`. Returns one
- * row per URL in the date range. Caps at 25 000 rows (GSC API hard limit per
- * call); larger sites would need pagination via `startRow` — out of scope for
- * v1.1, since a 25 k cap covers ~99% of the customers we expect.
+ * row per URL in the date range. 2026-05-06: rowLimit lowered from 25 000 to
+ * 5 000 as part of the Neon-transfer hotfix. The cron upserts every returned
+ * row into `gsc_page_metrics`, and the dashboard later reads the top-500 by
+ * impressions; rows beyond the top 5 000 contribute negligibly to either the
+ * upsert cost or the visible card. Sites with deeper long-tails would need
+ * pagination via `startRow` (deferred — typical pSEO traffic is heavy-headed
+ * and the impression-weighted card metrics are unchanged at visible
+ * precision below 5 000 rows).
  */
 export async function querySearchAnalyticsByPage(
   userId: string,
@@ -241,7 +246,7 @@ export async function querySearchAnalyticsByPage(
         startDate,
         endDate,
         dimensions: ["page"],
-        rowLimit: 25000,
+        rowLimit: 5000,
       }),
     },
   );
