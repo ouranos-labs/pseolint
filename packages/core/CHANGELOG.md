@@ -1,5 +1,14 @@
 # @pseolint/core
 
+## 0.5.11
+
+### Patch Changes
+
+- **New rule `content/common-phrase-reuse`** detecting overuse of pSEO marketing clichés. 42 phrases inline in 5 categories: location clichés ("in the heart of", "gateway to"), generic pSEO marketing ("discover the best", "trusted by thousands"), aggregator/listing ("top rated", "best of the best"), fake authority ("experts agree", "industry leaders"), filler hedges ("varies depending on", "wide variety of"). Case-insensitive substring match. Fires ONE finding per page when ≥3 distinct phrases match. Severity `warning`, confidence `low`. RULE_IMPACTS: `baseImpact: 12, perInstance: 4, maxImpact: 30`.
+- **Value-add composite extended to 6 signals.** `content/value-add` now aggregates: originality (regurgitated-content), freshness, citable facts, E-E-A-T, translation completeness, AND common-phrase reuse. Each signal weighted equally at 1/6 ≈ 16.7% (was 1/5 = 20%). Severity boundaries unchanged (<0.3 critical, <0.5 error, ≥0.5 no finding). Side effect: bestfirenze "severe" pattern shifts critical → error because the 1/6 denominator changes its score from 0.20 to 0.333 — boundary documented in updated tests.
+- **Calibration on reputable corpus**: zero new findings. The ≥3 threshold protects legitimate marketing copy that uses 1-2 of these phrases legitimately. No phrases were removed during calibration.
+- 13 new tests (10 for the new rule, 3 for the 6-signal composite math). Total: 1024 passing (was 1010), 4 pre-existing baseline failures unchanged.
+
 ## 0.5.10
 
 ### Patch Changes

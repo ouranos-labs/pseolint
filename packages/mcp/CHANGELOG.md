@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.5.11
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.11: new `content/common-phrase-reuse` rule surfaces in audit-tool output for pages with ≥3 pSEO clichés; value-add composite now aggregates 6 signals.
+
 ## 0.5.10
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.5.11
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.5.11: new `content/common-phrase-reuse` rule fires automatically on `pseolint scan` when ≥3 pSEO marketing clichés are present per page; value-add composite now aggregates 6 signals (added common-phrase reuse).
+
 ## 0.5.10
 
 ### Patch Changes
