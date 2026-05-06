@@ -27,6 +27,7 @@ import { imageAltTextRule } from "./rules/content/image-alt-text.js";
 import { translationNoOpRule } from "./rules/content/translation-no-op.js";
 import { regurgitatedContentRule } from "./rules/content/regurgitated-content.js";
 import { commonPhraseReuseRule } from "./rules/content/common-phrase-reuse.js";
+import { wikipediaParaphraseRule } from "./rules/content/wikipedia-paraphrase.js";
 import { valueAddRule } from "./rules/content/value-add.js";
 import { canonicalConsistencyRule } from "./rules/tech/canonical-consistency.js";
 import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-conflict.js";
@@ -480,6 +481,8 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/regurgitated-content": { baseImpact: 15, perInstance: 5, maxImpact: 35 },
   // v0.5.11 warning/low-confidence cliché density detector; lower than regurgitated-content
   "content/common-phrase-reuse":  { baseImpact: 12, perInstance: 4, maxImpact: 30 },
+  // v0.5.14 speculative/warning Wikipedia trigram overlap; lower than common-phrase-reuse
+  "content/wikipedia-paraphrase": { baseImpact: 10, perInstance: 3, maxImpact: 25 },
   // v0.5.8 composite per-page quality synthesis
   "content/value-add":            { baseImpact: 25, perInstance: 8, maxImpact: 50 },
 
@@ -2404,7 +2407,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
       groupConfig?.overrides,
       options?.mode ?? "full",
-      isSampledAudit,
+      // 2026-05-06 calibration fix: pinnedUrls mode fetches a hand-picked subset
+      // of the full site — the link graph across those pages is structurally
+      // incomplete, just like a random-sampled crawl. Pass `true` so
+      // links/unreachable-from-root skips its check rather than emitting
+      // sampling-artifact false positives (22/25 Wise pages flagged "unreachable"
+      // because the nav paths between locale-specific currency-converter URLs
+      // were not in the pinned set).
+      isSampledAudit || hasPinnedUrlsEarly,
     );
 
     allFindings.push(...findings);

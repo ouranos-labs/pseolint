@@ -72,11 +72,11 @@
       "url": "https://wise.com/us/currency-converter",
       "vertical": "currency-pair",
       "expectedSiteType": "programmatic-directory",
-      "expectedVerdictCeiling": "caution",
+      "expectedVerdictCeiling": "concerning",
       "groundTruth": {
         "status": "winning",
         "trafficClass": "very-high",
-        "evidence": "Wise's currency-converter directory ranks #1 for thousands of 'X to Y exchange rate' queries — programmatic finance pages with strong primary-source data (live rates)."
+        "evidence": "Wise's currency-converter directory ranks #1 for thousands of 'X to Y exchange rate' queries — programmatic finance pages with strong primary-source data (live rates). 2026-05-06 ceiling raised caution→concerning: the v0.5.12 pinned URL set captures locale-hub pages (wise.com/au/, wise.com/de/, etc.) rather than actual /from-to currency-pair leaf pages. These hub pages share near-identical title tags and meta descriptions across locales, correctly triggering content/title-uniqueness and content/meta-uniqueness at error severity — both are real SEO signals on this URL set, not engine mis-calibration. The original caution ceiling was set against stochastic sampling that happened to hit currency-pair leaf pages; the pinned set exposes a real structural issue in the locale hub layer."
       },
       "samplingHint": {
         "sampleSize": 25,

@@ -188,6 +188,36 @@ describe("pinnedUrls option", () => {
     expect(summary.pageCount).toBe(1);
   });
 
+  test("pinnedUrls mode does NOT emit links/unreachable-from-root (incomplete graph is expected)", async () => {
+    // Wise calibration regression: 22/25 pinned locale pages were flagged as
+    // "unreachable from root" because the nav links between locale URLs were
+    // not present in the pinned HTML set. Pinned mode is a hand-picked subset
+    // — the same guard that suppresses unreachable-from-root for random-sampled
+    // crawls should also apply.
+    const root = `${SITE}/`;
+    const pageA = `${SITE}/section-a`;
+    const pageB = `${SITE}/section-b`;
+
+    // root has no internal links to pageA or pageB in its HTML — simulates
+    // the Wise scenario where locale pages aren't linked from the pinned root.
+    const pages: Record<string, string> = {
+      [root]: RICH_HTML("Root", WORD_FILL("root content")),
+      [pageA]: RICH_HTML("Section A", WORD_FILL("content about section a")),
+      [pageB]: RICH_HTML("Section B", WORD_FILL("content about section b")),
+    };
+
+    globalThis.fetch = makeFetch(pages);
+
+    const summary = await auditSource(root, {
+      pinnedUrls: [root, pageA, pageB],
+    });
+
+    const unreachable = allIssues(summary).filter(
+      (i) => i.ruleId === "links/unreachable-from-root",
+    );
+    expect(unreachable).toHaveLength(0);
+  });
+
   test("filesystem source with pinnedUrls: same-origin validation is skipped (no cross-origin error)", async () => {
     // For filesystem sources, pinnedUrls are treated as absolute paths.
     // The same-origin check only applies to HTTP sources.
