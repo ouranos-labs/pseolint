@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.6.1
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.6.1: validates v0.6 cutover code path against real programmatic-directory sites in the calibration corpus. MCP audit-tool output now reflects template-aware verdicts on Jasper-shaped + Airbyte-shaped sites correctly. MCP surface unchanged.
+
 ## 0.6.0
 
 ### Minor Changes

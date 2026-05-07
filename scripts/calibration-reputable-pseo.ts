@@ -55,6 +55,9 @@ const snapshotFilter: string | undefined =
     ? args[snapshotFlagIdx + 1]
     : undefined;
 
+// v0.6.1: --seed-classifier-urls fetches live sitemaps and writes classifierUrls to corpus
+const isSeedClassifierUrlsMode = args.includes("--seed-classifier-urls");
+
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -93,6 +96,8 @@ interface CorpusSite {
   pinnedUrls?: string[];
   /** v0.5.15 — relative path to pre-captured fixture directory. When set and directory exists, audit reads from disk. */
   localFixtureDir?: string;
+  /** v0.6.1 — full sitemap URL list for classification + template detection. Populated by --seed-classifier-urls. */
+  classifierUrls?: string[];
 }
 
 interface Corpus {
@@ -123,6 +128,10 @@ interface SiteResult {
     durationMs: number;
     /** Top-5 driver rules ordered by total severity-weighted impact. */
     topDrivers: Array<{ ruleId: string; count: number; impact: number; severities: string[] }>;
+    /** v0.6.1 — template count for v0.6 path verification. */
+    templateCount: number;
+    /** v0.6.1 — whether v0.6 siteVerdictFromTemplates fired (templateCount >= 2). */
+    v6PathExecuted: boolean;
   };
   error?: string;
 }
@@ -269,14 +278,21 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
       // Fixture mode: pass the fixture directory as source. The engine's
       // _manifest.json-aware directory loader restores original URLs.
       // HTTP mode: use pinned URLs or random sampling as before.
+      // v0.6.1: pass classifierUrls from corpus when available so the
+      // classifier sees the site's true scale even in fixture/pinned mode.
+      const classifierUrlsOverride = (target.classifierUrls?.length ?? 0) > 0
+        ? target.classifierUrls
+        : undefined;
       const summary = useFixtures
         ? await auditSource(fixtureAbsDir!, {
             signal: ctrl.signal,
             safeMode: "saas",
+            ...(classifierUrlsOverride ? { classifierUrls: classifierUrlsOverride } : {}),
           })
         : await auditSource(target.url, {
             signal: ctrl.signal,
             safeMode: "saas",
+            ...(classifierUrlsOverride ? { classifierUrls: classifierUrlsOverride } : {}),
             ...(hasPinned
               ? { pinnedUrls: target.pinnedUrls }
               : {
@@ -293,6 +309,7 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
         shouldFix: summary.issues.shouldFix,
         informational: summary.issues.informational,
       });
+      const templateCount = summary.templates?.length ?? 0;
       result.audit = {
         verdict: summary.verdict,
         risk: summary.risk ?? 0,
@@ -304,6 +321,8 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
         informational: summary.issues.informational.length,
         durationMs: Date.now() - t0,
         topDrivers: drivers,
+        templateCount,
+        v6PathExecuted: templateCount >= 2,
       };
       const actualRank = VERDICT_RANK[summary.verdict];
       const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling];
@@ -647,10 +666,100 @@ async function mainSnapshot(): Promise<void> {
   console.log(`  Wrote ${ansi.cyan}${CORPUS_PATH}${ansi.reset}`);
 }
 
+// ----- seed-classifier-urls mode -----------------------------------------
+
+/**
+ * v0.6.1 — Fetch each corpus site's live sitemap.xml, parse all URLs
+ * (recursively resolving sitemap-index entries), cap at 5000 per site,
+ * and write them into corpus.json classifierUrls for each site.
+ *
+ * Invocation: bun run scripts/calibration-reputable-pseo.ts --seed-classifier-urls
+ */
+async function mainSeedClassifierUrls(): Promise<void> {
+  const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
+
+  console.log(`${ansi.bold}Reputable-pSEO calibration — SEED-CLASSIFIER-URLS mode${ansi.reset}`);
+  console.log(`${ansi.dim}Fetching live sitemaps for ${corpus.sites.length} corpus sites${ansi.reset}\n`);
+
+  const MAX_CLASSIFIER_URLS = 5000;
+
+  for (const site of corpus.sites) {
+    process.stdout.write(`${site.url} ... `);
+    try {
+      const origin = new URL(site.url).origin;
+      const sitemapUrl = `${origin}/sitemap.xml`;
+      const urls = await fetchSitemapUrls(sitemapUrl, MAX_CLASSIFIER_URLS);
+      const corpusSite = corpus.sites.find((s) => s.url === site.url);
+      if (corpusSite) {
+        corpusSite.classifierUrls = urls;
+      }
+      console.log(`${ansi.green}OK${ansi.reset} ${urls.length} URLs`);
+    } catch (err) {
+      console.log(`${ansi.yellow}SKIP${ansi.reset} ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  writeFileSync(CORPUS_PATH, JSON.stringify(corpus, null, 2) + "\n", "utf-8");
+  console.log("");
+  console.log(`${ansi.bold}Seed complete.${ansi.reset} Run normal calibration to apply classifierUrls.`);
+  console.log(`Wrote ${ansi.cyan}${CORPUS_PATH}${ansi.reset}`);
+}
+
+/**
+ * Fetch a sitemap URL and collect all loc entries, recursively expanding
+ * sitemap-index entries. Caps at maxUrls total URLs.
+ */
+async function fetchSitemapUrls(sitemapUrl: string, maxUrls: number): Promise<string[]> {
+  const visited = new Set<string>();
+  const collected: string[] = [];
+
+  async function fetchOne(url: string): Promise<void> {
+    if (visited.has(url) || collected.length >= maxUrls) return;
+    visited.add(url);
+    const res = await cachedFetch(url, { timeoutMs: 20_000, cache: null });
+    const body = res.body ?? "";
+    if (!body.trim().startsWith("<")) return;
+
+    const isSitemapIndex = /<sitemapindex/i.test(body);
+    if (isSitemapIndex) {
+      const childLocs = extractSitemapLocs(body);
+      for (const childUrl of childLocs) {
+        if (collected.length >= maxUrls) break;
+        await fetchOne(childUrl);
+      }
+    } else {
+      const pageLocs = extractSitemapLocs(body);
+      for (const loc of pageLocs) {
+        if (collected.length >= maxUrls) break;
+        if (!visited.has(loc)) {
+          collected.push(loc);
+        }
+      }
+    }
+  }
+
+  await fetchOne(sitemapUrl);
+  return collected.slice(0, maxUrls);
+}
+
+/** Extract all loc text values from a sitemap XML string. */
+function extractSitemapLocs(xml: string): string[] {
+  const locs: string[] = [];
+  const re = /<loc>([^<]+)<\/loc>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const loc = m[1].trim();
+    if (loc) locs.push(loc);
+  }
+  return locs;
+}
+
 // ----- main --------------------------------------------------------------
 
 async function main(): Promise<void> {
-  if (isSnapshotMode) {
+  if (isSeedClassifierUrlsMode) {
+    await mainSeedClassifierUrls();
+  } else if (isSnapshotMode) {
     await mainSnapshot();
   } else if (isRepinMode) {
     await mainRepin();

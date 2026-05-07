@@ -2332,6 +2332,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // matters: a sampled crawl of a 5000-page directory must still classify
   // as `programmatic-directory`, not `unclear`.
   const classifierUrls: string[] = (() => {
+    // v0.6.1 — explicit caller override takes priority. Lets calibration
+    // fixtures audit a small sample but classify against full sitemap.
+    if (options?.classifierUrls && options.classifierUrls.length > 0) {
+      return [...options.classifierUrls];
+    }
     if (sitemapUrlSet && sitemapUrlSet.size > 0) {
       return Array.from(sitemapUrlSet);
     }

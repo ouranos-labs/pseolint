@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.6.1
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.6.1: new `AuditOptions.classifierUrls` lets callers feed the full URL set to the classifier while auditing a subset. Closes the v0.6.0 calibration validation gap. CLI surface unchanged.
+
 ## 0.6.0
 
 ### Minor Changes

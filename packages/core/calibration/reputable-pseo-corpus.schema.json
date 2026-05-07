@@ -62,6 +62,11 @@
         "localFixtureDir": {
           "type": "string",
           "description": "v0.5.15 — relative path to the fixture directory containing pre-captured HTML for this site (e.g. 'packages/core/calibration/fixtures/wise_com/'). When set and the directory exists, the calibration runner audits from disk instead of making HTTP requests. Populated by --snapshot mode. Absent means live HTTP fetch."
+        },
+        "classifierUrls": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "v0.6.1 — full sitemap URL list used for site classification and template detection. Allows fixture-mode calibration (25 pinned audit URLs) to still see the site's true scale and template shape. Populated by --seed-classifier-urls mode. Absent means the classifier uses the audit URL set (the old behaviour)."
         }
       }
     }

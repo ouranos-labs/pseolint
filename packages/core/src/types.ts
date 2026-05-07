@@ -693,6 +693,22 @@ export interface AuditOptions {
    * When pinnedUrls is set, `sampleSize` is ignored (the cap IS the array).
    */
   pinnedUrls?: ReadonlyArray<string>;
+  /**
+   * v0.6.1 — caller-supplied URL list for site classification + template
+   * detection. When provided, the classifier and `detectTemplates` use THIS
+   * list instead of the sitemap-discovered or pinned-URL set. Audit phase
+   * still runs against `pinnedUrls` (or sitemap-sampled URLs).
+   *
+   * Use case: calibration fixtures. Pinned URLs limit the audit to 25 per
+   * site for cost, but the classifier needs to see the site's TRUE scale
+   * to land on `programmatic-directory` and trigger v0.6 template-aware
+   * verdicts. Pass the full sitemap URL list here without auditing every
+   * one of them.
+   *
+   * Distinct from `pinnedUrls` (which dictates the audit set) and
+   * `force.urls` (which supplements the audit set in monitoring mode).
+   */
+  classifierUrls?: ReadonlyArray<string>;
 }
 
 export type SafeMode = "saas" | "cli" | "dev";

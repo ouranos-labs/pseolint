@@ -1,5 +1,18 @@
 # @pseolint/core
 
+## 0.6.1
+
+### Patch Changes
+
+- **Closes the v0.6.0 calibration validation gap.** The cutover code path (`siteVerdictFromTemplates` as default verdict source) was unmeasured at v0.6.0 release because all calibration corpus sites classified as `unclear` / `small-marketing` due to the pinned-URL methodology giving the classifier only 25 URLs per site. v0.6.1 fixes this with a caller-supplied URL override.
+- **New `AuditOptions.classifierUrls?: ReadonlyArray<string>`**. When provided, the classifier and `detectTemplates` use this list instead of the sitemap-discovered or pinned-URL set. Audit phase still runs against `pinnedUrls` (cost-bounded). Distinct from `pinnedUrls` (audit set) and `force.urls` (monitoring supplement). Use case: calibration fixtures audit a small sample but classify against full sitemap.
+- **Engine wire-through** at `auditor.ts:2334`: explicit caller override takes priority over sitemap-derived URLs.
+- **Calibration script `--seed-classifier-urls` mode** fetches each corpus site's live sitemap.xml (recursively expanding sitemap-index entries; cap 5000 URLs per site), writes URL list back to corpus JSON's `classifierUrls` field per site.
+- **Verification result**: 2 fixture sites now exercise the v0.6 path with real validation:
+  - **Jasper** classifies `programmatic-directory@0.78` (was small-marketing), 9 templates detected, v0.6 path executes — verdict shifts caution → **ready** (improvement)
+  - **Airbyte** classifies `programmatic-directory@0.9` (was small-marketing), 6 templates detected, v0.6 path executes — verdict shifts caution → **ready** (improvement)
+- v0.6 cutover validated: `siteVerdictFromTemplates` produces sensible (and in these cases better-than-legacy) verdicts on real programmatic-directory shapes. Closes task #99 + the validation gap doc at `docs/superpowers/calibration/2026-05-07-v0.6.0-validation-gap.md`.
+
 ## 0.6.0
 
 ### Minor Changes
