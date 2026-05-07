@@ -1,5 +1,11 @@
 # @pseolint/mcp
 
+## 0.6.2
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.6.2: Wikipedia bloom filter inlined as base64 (production hotfix for Vercel serverless ENOENT errors).
+
 ## 0.6.1
 
 ### Patch Changes

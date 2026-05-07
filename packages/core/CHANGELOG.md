@@ -1,5 +1,12 @@
 # @pseolint/core
 
+## 0.6.2
+
+### Patch Changes
+
+- **HOTFIX: Wikipedia bloom filter inlined as base64.** Production deployments on Vercel serverless were failing with `ENOENT: no such file or directory, open '/var/task/packages/core/data/wikipedia-trigrams.bin'`. The Vercel bundler doesn't auto-include data files referenced via runtime path resolution. Inlined the 8 KB binary as a base64 string in `algorithms/wikipedia-paraphrase.ts` (10,924 chars in source). Removes filesystem dependency entirely; works in any runtime (Node, Bun, Cloudflare Workers, Vercel serverless, edge). `data/wikipedia-trigrams.bin` removed from npm `files` array. Build script `bun run build-wikipedia-bloom` is preserved — operators regenerating the corpus must also re-inline the base64 string (one-line node command in the file's docstring).
+- No behavioral change: same bloom filter, same hash functions, same ~5% FP rate. Tests verify decoded `Uint8Array` matches the original binary.
+
 ## 0.6.1
 
 ### Patch Changes

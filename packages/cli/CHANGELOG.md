@@ -1,5 +1,11 @@
 # pseolint
 
+## 0.6.2
+
+### Patch Changes
+
+- Track `@pseolint/core` 0.6.2: Wikipedia bloom filter now inlined as base64 — fixes ENOENT errors on Vercel serverless deployments. CLI surface unchanged.
+
 ## 0.6.1
 
 ### Patch Changes
