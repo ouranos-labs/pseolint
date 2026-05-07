@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@pseolint/core": "workspace:*",
+    "@pseolint/core": "^0.6.0",
     "zod": "^4.3.6"
   }
 }

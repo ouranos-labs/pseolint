@@ -23,3 +23,5 @@ docs/reports/*
 # `bun run scripts/calibration-reputable-pseo.ts` locally to populate.
 scripts/calibration-results.json
 scripts/calibration-results.md
+
+.npmrc
