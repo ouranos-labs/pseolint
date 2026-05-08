@@ -7,7 +7,7 @@ const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 const PAGE_TITLE = "SpamBrain symptoms — diagnose your site";
 const PAGE_DESCRIPTION =
-  "A triage list for programmatic-SEO sites that have been hit. Match the symptom you're seeing in Search Console, then run a v0.6 template-aware audit to find which template is causing it.";
+  "A triage list for programmatic-SEO sites that have been hit. Match the symptom in Search Console, then run a v0.6 template-aware audit to confirm.";
 const CANONICAL = `${SITE_URL}/symptoms`;
 
 export const metadata: Metadata = {

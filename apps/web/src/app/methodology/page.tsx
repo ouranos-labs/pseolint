@@ -7,7 +7,7 @@ const NEXT_REFRESH_TARGET = "2026-08-03"; // quarterly cadence
 const PAGE_PATH = "/methodology";
 const PAGE_TITLE = "Calibration methodology";
 const PAGE_DESCRIPTION =
-  "How pseolint's verdicts are calibrated against in-production pSEO sites that demonstrably win in search. Open-source corpus, runner, regression tests, and the trade-offs we accepted documented transparently.";
+  "How pseolint calibrates verdicts against in-production pSEO sites that win in search. Open-source corpus, runner, regression tests.";
 
 function absoluteUrl(path: string): string {
   const base = env().BETTER_AUTH_URL.replace(/\/$/, "");

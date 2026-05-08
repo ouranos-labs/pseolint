@@ -26,7 +26,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How does pseolint treat the site it's auditing?",
-    a: "The crawler identifies as Mozilla/5.0 (compatible; pseolint/0.4.0; +https://pseolint.dev/bot), fully honours robots.txt (both Disallow paths and Crawl-delay pacing capped at 60 seconds per request), respects Retry-After once per URL up to 30 seconds, holds at most 5 parallel fetches (dropping to 1 if Crawl-delay is declared), and stops at 50 MB of fetched bytes per audit. SSRF protection rejects localhost, private networks, and non-http(s) schemes.",
+    a: "The crawler identifies as Mozilla/5.0 (compatible; pseolint/0.6.3; +https://pseolint.dev/bot), fully honours robots.txt (both Disallow paths and Crawl-delay pacing capped at 60 seconds per request), respects Retry-After once per URL up to 30 seconds, holds at most 5 parallel fetches (dropping to 1 if Crawl-delay is declared), and stops at 50 MB of fetched bytes per audit. SSRF protection rejects localhost, private networks, and non-http(s) schemes.",
   },
 ];
 
@@ -74,16 +74,6 @@ export default function LimitsPage() {
         <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a>{" "}
         and we&apos;ll fix it.
       </p>
-      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Why publish concrete limits at all? Because every undocumented quota becomes a support
-        ticket waiting to happen, and because the operators whose sites we crawl deserve to know in
-        advance how aggressive our fetcher is allowed to be. The numbers below describe the
-        runtime envelope that the hosted scheduler enforces today: bandwidth ceilings, concurrency
-        caps, the per-host throttle, retry-after honouring, and the cooldown between forced
-        re-audits. They are tuned to be polite to small origins on shared hosting, not optimised
-        for the absolute fastest crawl we could perform against a content delivery network.
-      </p>
-
       <Section title="Scope — what we actually audit">
         <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. v0.6 audits by template — one verdict per template cluster, site verdict = worst template with ≥5% coverage. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
         <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml (templates detected, K=10 per template up to budget)" />
@@ -135,7 +125,8 @@ export default function LimitsPage() {
       </Section>
 
       <Section title="How we treat the site we&apos;re auditing">
-        <Item k="User-Agent" v={<code className="font-mono text-foreground">Mozilla/5.0 (compatible; pseolint/0.2.2; +https://pseolint.dev/bot)</code>} />
+        {/* UA string matches packages/core/src/cache.ts PSEOLINT_USER_AGENT — built dynamically from package.json version */}
+        <Item k="User-Agent" v={<code className="font-mono text-foreground">Mozilla/5.0 (compatible; pseolint/0.6.3; +https://pseolint.dev/bot)</code>} />
         <Item k="robots.txt" v="Fully honored — both Disallow paths and Crawl-delay pacing (capped at 60 seconds per request)." />
         <Item k="Retry-After" v="Honored once per URL, capped at 30 seconds. We don&apos;t hammer sites that ask us to back off." />
         <Item k="Concurrency" v="At most 5 parallel fetches, dropping to 1 if Crawl-delay is declared." />

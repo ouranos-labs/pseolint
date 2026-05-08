@@ -5,8 +5,11 @@ import { env } from "@/lib/env";
 const PUBLISHED_DATE = "2026-04-29";
 const REPORT_PATH = "/research/state-of-pseo-2026";
 const REPORT_TITLE = "State of pSEO 2026: SpamBrain Risk Across Programmatic SEO";
+// Title tag is assembled as `${REPORT_TITLE} · pseolint research` (78 chars).
+// Trimmed title tag uses a shorter form to stay ≤60 chars for SERP display.
+const REPORT_TITLE_TAG = "State of pSEO 2026 — SpamBrain risk · pseolint";
 const REPORT_DESCRIPTION =
-  "Original research on programmatic SEO health in 2026: failure rates across 8 SpamBrain-aligned rules, vertical and tech-stack breakdowns, post-update behavioral shifts, and what passing sites do differently. Based on a corpus of audits run via pseolint.";
+  "Modeled estimates of programmatic-SEO health in 2026: failure rates across 8 SpamBrain rules, vertical and tech-stack breakdowns. CC BY 4.0.";
 const SAMPLE_WINDOW = "January 1, 2026 to April 20, 2026";
 const SAMPLE_SIZE_TEXT = "the public-audit corpus available at the time of writing";
 const PAGES_SAMPLED_TEXT = "the sampled pages within that corpus";
@@ -23,7 +26,7 @@ function safeJsonLd(data: unknown): string {
 export function generateMetadata(): Metadata {
   const url = absoluteUrl(REPORT_PATH);
   return {
-    title: `${REPORT_TITLE} · pseolint research`,
+    title: REPORT_TITLE_TAG,
     description: REPORT_DESCRIPTION,
     alternates: { canonical: url },
     openGraph: {

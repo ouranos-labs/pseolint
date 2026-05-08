@@ -6,9 +6,9 @@ import { env } from "@/lib/env";
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 export const metadata: Metadata = {
-  title: "Free SEO tools — SpamBrain, thin content, doorway page checkers · pseolint",
+  title: "Free SEO tools for programmatic SEO · pseolint",
   description:
-    "Three free SEO tools backed by the open-source pseolint v0.6 engine: SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware — rules aggregate to per-template verdicts. No signup, runs in 60 seconds.",
+    "Three free SEO tools backed by the open-source pseolint v0.6 engine: SpamBrain checker, thin-content scanner, doorway-page detector. No signup.",
   alternates: { canonical: `${SITE_URL}/tools` },
   openGraph: {
     title: "Free SEO tools for programmatic SEO sites",
@@ -237,18 +237,6 @@ export default function ToolsIndexPage() {
           scaled-content density, and link-spam detectors. The aeo rules cover
           answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.
         </p>
-        <h2 className="pt-2 text-base font-semibold tracking-tight text-foreground">
-          Why three tools and not one
-        </h2>
-        <p>
-          A single &quot;run-the-full-audit&quot; CTA scares people who already
-          suspect what&apos;s wrong. The SpamBrain checker is for operators who
-          watched a ranking drop and want a numerical risk score. The
-          thin-content scanner is for editors triaging a content library. The
-          doorway-page detector is for paid-acquisition teams worried their
-          landing pages will get reclassified under site-reputation-abuse policy.
-          Same engine under the hood, three different framings of the report.
-        </p>
         <p>
           The whole engine is{" "}
           <a
@@ -361,14 +349,6 @@ export default function ToolsIndexPage() {
           severity-graded finding enrichment. The MIT-licensed CLI mirrors the
           same pipeline locally — pipe its JSON output into your CI gate or your
           editor&apos;s diagnostics panel via the Model Context Protocol adapter.
-        </p>
-        <p className="mt-3 text-xs italic text-muted-foreground/80">
-          Implementation footnote: the entity-swap detector applies a Jaccard
-          coefficient over noun-trigram shingles per template cohort, then
-          dampens recall via Levenshtein-bounded cluster merging — orthogonal
-          to the SimHash fingerprint described above. Both signals feed the
-          consolidated cannibalization-versus-doorway disambiguation classifier
-          documented under the spam/* taxonomy.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link

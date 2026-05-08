@@ -1,15 +1,5 @@
-import type { Metadata } from "next";
-import { env } from "@/lib/env";
-
-const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
-
-export const metadata: Metadata = {
-  title: "Pricing · pseolint",
-  description:
-    "pseolint pricing. Free unlimited one-shot audits up to 200 pages. Pro: monitored domains, daily diff-audits, fix queue, integrations.",
-  alternates: { canonical: `${SITE_URL}/pricing` },
-};
-
+// Metadata is owned by pricing/page.tsx (page-level wins in Next.js).
+// The layout-level export was removed in v0.6.4 to eliminate the maintenance trap.
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
   return children;
 }

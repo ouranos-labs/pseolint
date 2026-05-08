@@ -10,7 +10,7 @@ const PAGE_URL = `${SITE_URL.replace(/\/$/, "")}/rules`;
 export const metadata: Metadata = {
   title: "SpamBrain rules — what pseolint detects · pseolint",
   description:
-    "Reference for the SpamBrain + AEO rule set pseolint v0.6 runs against programmatic-SEO sites. Each rule aggregates to a per-template verdict. Five flagship rules written up in depth — thin content, doorway pattern, near-duplicate, boilerplate ratio, template diversity.",
+    "32 SpamBrain + AEO rules across 8 categories. Each rule aggregates to a per-template verdict in v0.6. Five flagship rules written up in depth.",
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "SpamBrain rules — what pseolint detects",
