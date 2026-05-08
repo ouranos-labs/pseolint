@@ -9,8 +9,9 @@ type Interval = "monthly" | "yearly";
 
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
   { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
-  { feature: "Pages per audit (web UI)", free: "Up to 200", pro: "Up to 500 (manual re-audit)" },
-  { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed)" },
+  { feature: "Sampling model (web UI)", free: "K=10 per template, up to 200 pages", pro: "K=20 per template on re-audit (up to 500); K=10 per template on monitoring runs" },
+  { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed); fires template_degraded alerts on regression" },
+  { feature: "Per-template verdict", free: "Included (up to free-tier budget)", pro: "Included — shows which template is dragging your score down" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
   { feature: "BYO AI key", free: "CLI only", pro: "Anthropic / OpenAI, no markup" },
   { feature: "Data sources", free: "—", pro: "CSV/JSON upload + GSC integration" },
@@ -26,7 +27,7 @@ type FAQ = { q: string; a: string };
 const FAQS: ReadonlyArray<FAQ> = [
   {
     q: "Is the free tier really unlimited?",
-    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages from the web UI; the open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
+    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages (K=10 per template) from the web UI — it detects your URL templates, samples 10 URLs per template, and produces a per-template verdict. The open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
   },
   {
     q: "What happens if I cancel Pro?",
@@ -46,7 +47,7 @@ const FAQS: ReadonlyArray<FAQ> = [
   },
   {
     q: "Is there a self-hosted option?",
-    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.5.0, pseolint 0.5.0, and @pseolint/mcp 0.4.3. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same site-type-aware SpamBrain + AEO scoring that powers the hosted product. v0.5+ ships change-driven monitoring out of the box: a `--state` flag persists per-URL fetch metadata so subsequent runs only re-audit URLs that actually changed.",
+    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.6.0, pseolint 0.4.3, and @pseolint/mcp 0.4.3. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same template-aware SpamBrain + AEO scoring that powers the hosted product, including per-template verdicts and siteVerdictFromTemplates. A --state flag persists per-URL fetch metadata so subsequent runs only re-audit URLs that actually changed.",
   },
   {
     q: "What is the refund policy?",
@@ -71,12 +72,13 @@ function buildFaqJsonLd(faqs: ReadonlyArray<FAQ>) {
 }
 
 const PRO_FEATURES = [
-  { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run." },
-  { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it." },
+  { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run. Every monitoring run detects templates, scores per template, and fires template_degraded alerts on regression." },
+  { title: "Per-template verdict — which template is broken", detail: "Every Pro audit tells you which template is dragging your site score down. K=20 per template on manual re-audits gives tighter variance estimates; K=10 per template on monitoring runs (typically 8 templates × 10 = 80 fetches)." },
+  { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it. Per-template breakdowns so you know which template to fix first." },
   { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype — your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
   { title: "Integrations", detail: "GitHub Action upload · Search Console (v1.1) · Webflow (v1.1) · WordPress plugin (v1.2)." },
-  { title: "Dashboard + history", detail: "Portfolio strip, per-domain timelines, suppressions that persist across runs." },
+  { title: "Dashboard + history", detail: "Portfolio strip, per-domain timelines with template trend lines, suppressions that persist across runs." },
   { title: "Private hosted reports + PDF export", detail: "Shareable links. Branded PDF output for stakeholder handoff." },
 ] as const;
 
@@ -206,9 +208,13 @@ function PricingInner() {
           Free vs Pro · feature by feature
         </h2>
         <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
-          Both tiers run the same site-type-aware SpamBrain and AEO engine from{ " " }
-          <code className="font-mono text-xs">@pseolint/core 0.5.0</code>. The difference is what
-          happens around the audit: monitoring, triage, integrations, retention, and overrides.
+          Both tiers run the same template-aware SpamBrain and AEO engine from{ " " }
+          <code className="font-mono text-xs">@pseolint/core 0.6.0</code> — v0.6
+          audits by template (T templates × K samples), produces one verdict per
+          template cluster, and determines the site verdict from the worst template
+          with ≥5% URL coverage. The difference between Free and Pro is what
+          happens around the audit: K=10 vs K=20 sample depth, monitoring,
+          template_degraded alerts, triage, integrations, retention, and overrides.
           The numbers below are the live limits enforced by the platform — quote them.
         </p>
         <div className="overflow-x-auto rounded-[22px] border border-border/70 bg-card/40">
@@ -266,11 +272,13 @@ function PricingInner() {
           <p>
             pseolint is OSS-first by design. The CLI, the rule engine, and the MCP server are
             MIT-licensed and free forever — published to npm as{ " " }
-            <code className="font-mono text-xs">@pseolint/core 0.5.0</code>,{ " " }
-            <code className="font-mono text-xs">pseolint 0.5.0</code>, and{ " " }
+            <code className="font-mono text-xs">@pseolint/core 0.6.0</code>,{ " " }
+            <code className="font-mono text-xs">pseolint 0.4.3</code>, and{ " " }
             <code className="font-mono text-xs">@pseolint/mcp 0.4.3</code>. Anyone can audit a site
-            from a laptop, drop the GitHub Action into CI, or fork the rules. That part of the
-            product never goes behind a paywall.
+            from a laptop, drop the GitHub Action into CI, or fork the rules. The v0.6
+            template-aware engine — including per-template verdicts, uniformity scores, and
+            <code className="font-mono text-xs"> siteVerdictFromTemplates</code> — is in the
+            open-source core. That part of the product never goes behind a paywall.
           </p>
           <p>
             Pro funds the surface area you cannot easily self-host: a queue worker that wakes up

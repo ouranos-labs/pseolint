@@ -1,5 +1,17 @@
 # @pseolint/web
 
+## 0.6.4
+
+### Patch Changes
+
+- **Stream A — secondary marketing refresh (tools / rules / symptoms / pricing).**
+  - **Tools page (`tools/page.tsx`):** new "How rules feed into per-template verdicts" section near the top — four bullet points explaining per-page→uniformity-score aggregation (`spam/thin-content`), corpus-wide non-template-scoped detection (`spam/near-duplicate`), per-page→template-level signal (`aeo/citable-facts` at 80% fire rate = one template finding), and site verdict via `siteVerdictFromTemplates` spec §15.1. Version reference updated to v0.6 throughout; comparison table "Audit limit" cell updated to K=10-per-template framing; SpamBrainaware column updated to "template-aware v0.6 engine; per-template verdicts". Version history paragraph updated to mention v0.6 template architecture.
+  - **Rules page (`rules/page.tsx`):** new "Per-template aggregation — how rules feed verdicts" section before "How the rules map to SpamBrain" — describes Phase 1/Phase 2 pipeline, uniformity score, top driver concept, and the three aggregation patterns. Rule count updated to 32. Subtitle badge updated to "5 of 32 featured". Metadata description and footer CTA updated with per-template verdict language. FAQ answer updated to describe v0.6 per-template aggregation.
+  - **Symptoms page (`symptoms/page.tsx`):** new "Template-level symptoms — the v0.6 failure modes" section above the existing triage section — three named symptom types: "Thin pages on a template" (uniformity score ≥0.8), "Cross-template duplication" (`spam/near-duplicate` corpus-wide), "One bad template among many" (worst-template ≥5% coverage = critical site verdict). Intro paragraph updated with K=10 per template framing and note that v0.6 identifies the responsible template. Triage section updated to say "which template and which rules" rather than "which URLs". FAQ answer updated to mention template identification.
+  - **Pricing client (`pricing/pricing-client.tsx`):** `COMPARISON_ROWS` — "Pages per audit" row replaced with "Sampling model" showing K=10 vs K=20 distinction; new "Per-template verdict" row added; "Background monitoring" row updated to mention `template_degraded` alerts. `PRO_FEATURES` — "Unlimited monitored domains" detail updated with template_degraded mention; new "Per-template verdict — which template is broken" feature entry added (K=20/K=10 distinction, 8×10=80 fetches typical). "Free vs Pro" intro paragraph updated to reference `@pseolint/core 0.6.0` and T×K sampling model. "Why we chose this pricing" paragraph updated with v0.6 template engine mention and `siteVerdictFromTemplates`. Self-hosted FAQ updated to reference core 0.6.0. Free tier FAQ updated with K=10-per-template framing. Pricing metadata updated.
+  - **`package.json`:** version 0.6.3 → 0.6.4.
+  - **Regulatory groundings preserved across all pages:** SpamBrain, March 27 2026 core update, May 7 2024 site-reputation-abuse, March 5 2024 scaled-content-abuse — none stripped.
+
 ## 0.6.3
 
 ### Patch Changes

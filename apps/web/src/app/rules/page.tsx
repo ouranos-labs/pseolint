@@ -10,12 +10,12 @@ const PAGE_URL = `${SITE_URL.replace(/\/$/, "")}/rules`;
 export const metadata: Metadata = {
   title: "SpamBrain rules — what pseolint detects · pseolint",
   description:
-    "Reference for the SpamBrain + AEO rule set pseolint runs against programmatic-SEO sites. Five flagship rules are written up here in depth — thin content, doorway pattern, near-duplicate, boilerplate ratio, template diversity.",
+    "Reference for the SpamBrain + AEO rule set pseolint v0.6 runs against programmatic-SEO sites. Each rule aggregates to a per-template verdict. Five flagship rules written up in depth — thin content, doorway pattern, near-duplicate, boilerplate ratio, template diversity.",
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "SpamBrain rules — what pseolint detects",
     description:
-      "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity. The rest of the SpamBrain + AEO rule set is documented in pseolint itself.",
+      "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity. v0.6 — rules aggregate to per-template verdicts, not per-URL lists.",
     type: "website",
     url: PAGE_URL,
     siteName: "pseolint"
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SpamBrain rules — what pseolint detects",
     description:
-      "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity."
+      "Five flagship rule explainers — thin content, doorway patterns, near-duplicates, boilerplate ratio, template diversity. v0.6: per-template aggregation."
   }
 };
 
@@ -40,7 +40,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do the pseolint rules map to Google's SpamBrain classifier?",
-    a: "The rule set clusters around the major axes SpamBrain scores against. spam/* covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. content/* checks intent match, originality, and reading level. aeo/* audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews. v0.4.3 added site-type-aware weights so a programmatic-directory is scored differently from a small-marketing site.",
+    a: "The rule set clusters around the major axes SpamBrain scores against. spam/* covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. In v0.6, each rule fires per sampled page and the results aggregate to a per-template verdict: a rule that fires on 8/10 sampled pages of the same template becomes a template-level finding, not 8 separate URL findings. content/* checks intent match, originality, and reading level. aeo/* audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews. Site-type-aware weights mean a programmatic-directory is scored differently from a small-marketing site.",
   },
   {
     q: "What makes a rule 'AEO-aligned'?",
@@ -120,7 +120,7 @@ export default function RulesIndexPage() {
 
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-        Rule reference · 5 of 45 featured
+        Rule reference · 5 of 32 featured
       </div>
 
       <h1
@@ -131,14 +131,14 @@ export default function RulesIndexPage() {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-        pseolint v0.5.2 runs 45 rules across 8 categories — spam-pattern
+        pseolint v0.6 runs 32 rules across 8 categories — spam-pattern
         detection (8 spam/*), AEO/answer-engine readiness (8 aeo/*), graph
         integrity (6 links/* including host-section-divergence, the May 2024
-        site-reputation-abuse detector), technical SEO (9 tech/* including
-        og-completeness, new in v0.5.2), content quality (7 content/*
-        including title-uniqueness / heading-structure / image-alt-text, all
-        new in v0.5.2), structured data (3 schema/*), data-binding consistency
-        (2 data/*), and cannibalization (1 cannibal/*).
+        site-reputation-abuse detector), technical SEO (4 tech/*), content
+        quality (4 content/*), structured data (3 schema/*), data-binding
+        consistency (2 data/*), and cannibalization (1 cannibal/*). In v0.6,
+        every rule fires per sampled page and aggregates into a per-template
+        verdict — not a per-URL list.
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
@@ -153,8 +153,8 @@ export default function RulesIndexPage() {
       </p>
 
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Featured deep-dive explainers below; full taxonomy and SpamBrain
-        mapping further down.
+        Featured deep-dive explainers below; full taxonomy, per-template aggregation
+        model, and SpamBrain mapping further down.
       </p>
 
       <ul className="mt-8 grid gap-4 sm:grid-cols-2">
@@ -185,6 +185,42 @@ export default function RulesIndexPage() {
 
       <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
+          Per-template aggregation — how rules feed verdicts
+        </h2>
+        <p>
+          In v0.6, the engine audits by template rather than by URL. Phase 1
+          detects URL templates (filter ≥1% of URLs, ≥5 URLs, ≥2 survivors
+          after deduplication). Phase 2 samples K=10 URLs per template and
+          runs all 32 rules. Each rule&apos;s output per template is
+          summarised as a{" "}
+          <span className="font-medium text-foreground">uniformity score</span>{" "}
+          (0–1) and a{" "}
+          <span className="font-medium text-foreground">top driver</span>{" "}
+          — the single rule responsible for the most findings on that template.
+          The site verdict is determined by{" "}
+          <code className="font-mono text-xs">siteVerdictFromTemplates</code>:
+          the worst template that covers ≥5% of the site&apos;s URLs (spec
+          §15.1). Three aggregation patterns apply:
+        </p>
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <span className="font-medium text-foreground">Per-page → template uniformity score</span>{" "}
+            (most spam/* and content/* rules). The rule fires on each sampled
+            page; the fire rate becomes the template&apos;s score for that rule.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Corpus-wide</span>{" "}
+            (<code className="font-mono text-xs">spam/near-duplicate</code>).
+            Computed across all sampled pages regardless of template — it
+            surfaces cross-template duplication, not just within a single template.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Per-page → template-level signal</span>{" "}
+            (aeo/* rules). A rule that fires on 8/10 pages of a template
+            reports one template-level finding, not 8 individual URL findings.
+          </li>
+        </ul>
+        <h2 className="pt-2 text-base font-semibold tracking-tight text-foreground">
           How the rules map to SpamBrain
         </h2>
         <p>
@@ -197,8 +233,8 @@ export default function RulesIndexPage() {
           300 words, doorway clusters with shared boilerplate, near-duplicate
           templates with &gt;85% lexical overlap, templates that don&apos;t
           vary their structural skeleton, and corpus-aware publication-velocity
-          (the threshold scales with corpus size in v0.5.1, so a 50,000-page
-          directory and a 50-page blog get appropriate cutoffs). Content/*
+          (the threshold scales with corpus size, so a 50,000-page directory
+          and a 50-page blog get appropriate cutoffs). Content/*
           (4 rules) checks unique value, meta-description uniqueness after
           entity masking, author signals, and E-E-A-T markers. Aeo/* (8 rules,
           shipped April 21, 2026) audits answer-engine readiness — citable
@@ -211,13 +247,12 @@ export default function RulesIndexPage() {
           ends, cluster connectivity, link depth, unreachable-from-root, and
           host-section-divergence — the last one detects sub-sections that
           ride a host&apos;s reputation without integrating into it, which is
-          the May 2024 site-reputation-abuse policy target), tech/* (9 rules —
-          canonical consistency, sitemap completeness, soft-404, redirect
-          chains, hreflang, robots/noindex conflicts, and robots-compliance
-          for sitemap URLs blocked by Disallow), schema/* (3 rules — JSON-LD
-          validity, required-fields by type, and cross-page consistency),
-          data/* (2 rules — missing-binding and identical-across-pages, fired
-          when --data-source is set), and cannibal/* (1 rule — url-pattern;
+          the May 2024 site-reputation-abuse policy target), tech/* (4 rules —
+          canonical consistency, sitemap completeness, soft-404, and redirect
+          chains), schema/* (3 rules — JSON-LD validity, required-fields by
+          type, and cross-page consistency), data/* (2 rules —
+          missing-binding and identical-across-pages, fired when
+          --data-source is set), and cannibal/* (1 rule — url-pattern;
           title-overlap and keyword-collision were dropped in v0.4 due to
           high false-positive rates).
         </p>
@@ -263,8 +298,9 @@ export default function RulesIndexPage() {
         </h2>
         <p className="mt-3 max-w-2xl text-sm text-foreground">
           The rules above are the ones most likely to fire on a templated site. The
-          fastest way to see which ones actually fire on yours is to run a free audit —
-          no account required, results in under sixty seconds.
+          fastest way to see which ones actually fire on yours — and which template
+          they&apos;re dragging down — is to run a free audit. No account required,
+          results in under sixty seconds, per-template verdict included.
         </p>
         <p className="mt-3 max-w-2xl text-xs text-muted-foreground">
           Each rule ships as an independent ESM module with deterministic

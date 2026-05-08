@@ -7,7 +7,7 @@ const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 const PAGE_TITLE = "SpamBrain symptoms — diagnose your site";
 const PAGE_DESCRIPTION =
-  "A triage list for programmatic-SEO sites that have been hit. Match the symptom you're seeing in Search Console, then run a real audit to find the cause.";
+  "A triage list for programmatic-SEO sites that have been hit. Match the symptom you're seeing in Search Console, then run a v0.6 template-aware audit to find which template is causing it.";
 const CANONICAL = `${SITE_URL}/symptoms`;
 
 export const metadata: Metadata = {
@@ -58,7 +58,7 @@ function jsonLdSafe(data: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I triage a SpamBrain hit on a programmatic-SEO site?",
-    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the audit to confirm which rules actually fire on which URLs.",
+    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the v0.6 audit to confirm which template and which rules are actually firing. v0.6 identifies the specific template responsible — you don't need to triage hundreds of URLs to find the problem.",
   },
   {
     q: "How long does recovery take after fixing the rule violations?",
@@ -125,11 +125,13 @@ export default function SymptomsIndexPage() {
         If your traffic chart looks wrong and you don&apos;t yet know why, start here. Each
         page below covers one specific failure mode we see on programmatic-SEO sites — what
         it looks like in Google Search Console, the few things that actually cause it, and
-        the order to investigate. The free pseolint audit covers up to 200 pages with
-        30-day retention at $0; comparable tools like Screaming Frog ($259/year),
-        Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for the same
-        triage surface. When you&apos;ve matched the symptom, run a real audit on your
-        domain to confirm.
+        the order to investigate. In v0.6, the audit tells you{" "}
+        <span className="font-medium text-foreground">which template</span> is responsible
+        — not just which URLs. The free pseolint audit covers up to 200 pages (K=10 per
+        template) with 30-day retention at $0; comparable tools like Screaming Frog
+        ($259/year), Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for
+        the same triage surface and do not produce per-template verdicts. When you&apos;ve
+        matched the symptom, run a real audit on your domain to confirm.
       </p>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
         These symptoms cover programmatic-SEO patterns + AI Overview readiness — not a
@@ -167,6 +169,41 @@ export default function SymptomsIndexPage() {
 
       <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
+          Template-level symptoms — the v0.6 failure modes
+        </h2>
+        <p>
+          v0.6 introduces three template-scoped symptom patterns that flat-URL
+          audits cannot surface:
+        </p>
+        <ul className="ml-4 list-disc space-y-2">
+          <li>
+            <span className="font-medium text-foreground">Thin pages on a template.</span>{" "}
+            When the uniformity score for a template exceeds 0.8, ≥8 of 10
+            sampled pages are thin or boilerplate-heavy. The template verdict
+            is critical even if the rest of the site is healthy. This is the
+            most common reason a pSEO directory loses ranking for its
+            high-volume template while smaller niche templates stay indexed.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">Cross-template duplication.</span>{" "}
+            <code className="font-mono text-xs">spam/near-duplicate</code> is
+            corpus-wide — it compares pages across all templates. A site where
+            the <code className="font-mono text-xs">/category/:slug</code> and{" "}
+            <code className="font-mono text-xs">/listing/:slug</code> templates
+            produce near-identical pages (different slug, same body) will fire
+            this rule even when each template in isolation looks fine.
+          </li>
+          <li>
+            <span className="font-medium text-foreground">One bad template among many.</span>{" "}
+            This is the v0.6-specific failure mode: a site with 8 healthy
+            templates and 1 broken one gets a critical site verdict if the
+            broken template covers ≥5% of URLs. The broken template is the
+            &quot;top driver&quot; shown on the site summary. Flat-URL audits
+            miss this because the broken URLs get diluted by the volume of
+            healthy ones.
+          </li>
+        </ul>
+        <h2 className="pt-2 text-base font-semibold tracking-tight text-foreground">
           How to triage a SpamBrain hit
         </h2>
         <p>
@@ -180,7 +217,7 @@ export default function SymptomsIndexPage() {
           pattern, links/* for the May 7, 2024 site-reputation-abuse pattern,
           tech/* for the slow CWV decay, content/* for thin-intent drift), and
           then <span className="font-medium text-foreground">run the audit</span>{" "}
-          to confirm which specific rules are actually firing on which URLs.
+          to confirm which specific template and rules are actually firing.
           Skipping the triage step is the most common reason teams burn weeks
           on the wrong fix.
         </p>
