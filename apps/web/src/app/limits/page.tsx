@@ -61,10 +61,12 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Free tier: $0, 200 pages per audit (50 without an account), 24-hour anonymous
-        retention (30-day window for signed-in accounts), 3 audits per day per browser
-        session. Pro tier: $19/month ($180/year with 14-day refund), up to 500 pages on
-        manual re-audits, 200 pages on the recurring weekly cron, 50 audits per day,
+        Free tier: $0, up to 200 pages per audit (50 without an account) — v0.6 samples
+        K=10 URLs per detected template up to the page budget, 24-hour anonymous retention
+        (30-day window for signed-in accounts), 3 audits per day per browser session.
+        Pro tier: $19/month ($180/year with 14-day refund), K=20 per template on manual
+        re-audits (up to 500 total), K=10 per template on the recurring weekly monitoring
+        run (typically 80 fetches for a standard pSEO directory), 50 audits per day,
         unlimited retention. Comparable hosted crawlers like Screaming Frog ($259/year),
         Sitebulb ($35/month), and Ahrefs Site Audit ($129/month) charge for the same
         surface area. Written plainly. No dark patterns, no asterisks hiding behind
@@ -83,16 +85,36 @@ export default function LimitsPage() {
       </p>
 
       <Section title="Scope — what we actually audit">
-        <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
-        <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml" />
-        <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml" />
-        <Item k="Pages per Pro audit (manual re-audit)" v="Up to 500" />
-        <Item k="Pages per Pro scheduled monitoring run" v="Up to 200 — bumped to 500 only on manual re-audits and the initial monitoring kickoff" />
-        <Item k="Cumulative coverage (Pro monitoring)" v="200 URLs per weekly cron tick, audited diff-aware: unchanged URLs carry forward their findings without a re-fetch. Over time, the cumulative URLs-audited count grows — coverage growth depends on the size and overlap of each weekly sample, so cumulative totals will be higher for sites with churn or large URL spaces and lower for small/stable sites. The per-domain dashboard shows the running total." />
+        <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. v0.6 audits by template — one verdict per template cluster, site verdict = worst template with ≥5% coverage. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
+        <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml (templates detected, K=10 per template up to budget)" />
+        <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml (templates detected, K=10 per template up to budget)" />
+        <Item k="Pages per Pro audit (manual re-audit)" v="K=20 per template — up to 500 total across all templates. Re-audits use the larger sample for tighter variance estimates." />
+        <Item k="Pages per Pro scheduled monitoring run" v="K=10 per template, every monitoring run. Typical pSEO directory: 8 templates × 10 samples = 80 fetches per run. More efficient than the v0.5 flat 200-page model and covers all templates instead of one dominant cluster." />
+        <Item k="Cumulative coverage (Pro monitoring)" v="10 URLs sampled per template every monitoring run — across all templates. A 12-week monitored site with 8 templates builds 8 × 10 × 12 = 960+ unique URLs in audit history (before deduplication). Coverage grows faster on sites with URL churn; stable sites converge quickly. The per-domain dashboard shows the running total across all templates." />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
         <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample — respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />
       </Section>
+
+      <div className="mt-8 rounded-[18px] border border-primary/25 bg-primary/5 px-6 py-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-primary/80">
+          Why per-template sampling?
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          v0.5 took a flat random sample of 200 URLs across the whole site. On a 100k-URL directory,
+          that&apos;s 0.2% coverage — dominated by the largest template cluster, leaving smaller
+          templates unsampled. A broken <code className="font-mono text-[11px]">/listing/*</code>{" "}
+          template covering 90k pages would average out with clean category pages and score{" "}
+          <strong className="text-foreground">caution</strong> instead of{" "}
+          <strong className="text-foreground">concerning</strong>.
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          v0.6 allocates K=10 samples per template: <strong className="text-foreground">T templates × K samples</strong>.
+          A typical pSEO directory (T=8, K=10) = <strong className="text-foreground">80 fetches</strong> — fewer
+          than the old 200, with full template coverage. The site verdict reflects the worst
+          template, not the average URL. Fix the broken template: fix N pages in one shot.
+        </p>
+      </div>
 
       <Section title="What pseolint doesn&apos;t audit">
         <Item k="Core Web Vitals / page speed" v={<span>Out of scope. Use <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a> (free) or the Chrome DevTools Lighthouse panel.</span>} />

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { LiveDemo } from "@/components/landing/live-demo";
 import { TileGrid, type TileState } from "@/components/landing/tile-grid";
 import { CliMarquee } from "@/components/landing/cli-marquee";
+import { TemplateBreakdownHero } from "@/components/landing/template-breakdown-hero";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { scoreTone } from "@/lib/grade";
 
@@ -171,19 +172,19 @@ export default function Home() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                Site-type-aware SpamBrain + AEO · v0.5.2
+                Template-aware SpamBrain + AEO · v0.6.3
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
-                Most programmatic SEO is doorway-page gardening. SpamBrain agrees.
+                Most programmatic SEO is doorway-page gardening. v0.6 audits your templates, not just URLs.
               </h1>
 
               <p className="text-base leading-relaxed text-muted-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
-                and AI Overview readiness. Paste your site. In 60 seconds, see how close to the line
-                it is — site-type-aware scoring across SpamBrain classifier triggers and Answer Engine
-                Optimization (how citable your pages are to ChatGPT, Perplexity, and Google AI Overviews).
-                Not a general SEO audit — see scope below.
+                and AI Overview readiness. Paste your site. In 60 seconds, see which templates are
+                broken and which are clean — site-type-aware scoring across SpamBrain classifier
+                triggers and Answer Engine Optimization (how citable your pages are to ChatGPT,
+                Perplexity, and Google AI Overviews). Not a general SEO audit — see scope below.
               </p>
 
               <form onSubmit={ submit } className="flex flex-col gap-3">
@@ -292,6 +293,8 @@ export default function Home() {
         </div>
       </section>
 
+      <TemplateBreakdownHero />
+
       <section className="border-t border-border/60 bg-card/30">
         <div className="mx-auto max-w-5xl px-5 py-14 sm:py-16">
           <div className="mb-8 max-w-2xl">
@@ -312,21 +315,22 @@ export default function Home() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
-                and AI Overview readiness. It catches the SpamBrain-classifier triggers from the
-                March 27, 2026 core update — which tightened scaled-content signals on
-                date-stacked corpora and is the most recent classifier shift to demote pSEO sites
-                — plus the May 7, 2024 site-reputation-abuse policy, the March 5, 2024
-                scaled-content-abuse update, and the AEO patterns that determine whether ChatGPT,
-                Perplexity, and Google AI Overviews cite your pages.
+                and AI Overview readiness. v0.6 audits by template — K=10 URLs sampled per
+                template, one verdict per template, site verdict = worst template above 5% coverage.
+                Catches SpamBrain-classifier triggers from the March 27, 2026 core update, the
+                May 7, 2024 site-reputation-abuse policy, the March 5, 2024 scaled-content-abuse
+                update, and the AEO patterns that determine whether ChatGPT, Perplexity, and Google
+                AI Overviews cite your pages.
               </p>
               <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Use it when
               </p>
               <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
                 <li>— You run a programmatic SEO site (city × service grids, state × LLC fees, app × integration matrices)</li>
+                <li>— You want to know which template is dragging your site score down</li>
                 <li>— You&apos;re worried about a Helpful Content System / scaled-content-abuse hit</li>
                 <li>— You want your pages cited in AI Overviews / Perplexity / ChatGPT search</li>
-                <li>— You want a CI gate that fails the build when scaled-content patterns regress</li>
+                <li>— You want a CI gate that fails the build when a template degrades</li>
               </ul>
             </div>
 
@@ -381,7 +385,7 @@ export default function Home() {
               </span>
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Names redacted. Each grid is 200 sampled pages. Lower score = safer.
+              Names redacted. Each grid shows the dominant template&apos;s sample. Lower score = safer.
             </p>
           </div>
 
@@ -461,16 +465,16 @@ export default function Home() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Site-type-aware SpamBrain + AEO scoring</span> — programmatic-directories, blogs, ecommerce, docs, and small-marketing sites are weighted differently because Google&apos;s quality systems treat them differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code> for site-reputation-abuse detection; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules (<code className="font-mono text-xs">title-uniqueness</code>, <code className="font-mono text-xs">heading-structure</code>, <code className="font-mono text-xs">image-alt-text</code>, <code className="font-mono text-xs">og-completeness</code>) and <code className="font-mono text-xs">--authority-score</code> for operators at different domain-authority tiers.
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across all 32 rules.
             </li>
             <li>
-              <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster (one line per template-tied group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression test guard against engine drift on each release. Skeptical readers — including limitations and trade-offs — get the full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
+              <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
             </li>
             <li>
-              Free tier: 200 pages per audit, 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
+              Free tier: up to 200 pages per audit (templates detected, K=10 per template), 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
             </li>
             <li>
-              Pro tier: <span className="text-foreground">$19</span> per month for per-domain change-driven monitoring (re-fetches only URLs with evidence of change — sitemap lastmod, prior warnings, age-floor) with <span className="text-foreground">50 audits</span> per day and unlimited trend history.
+              Pro tier: <span className="text-foreground">$19</span> per month for per-domain template-aware monitoring — K=10 per template every monitoring run, cumulative coverage across all templates grows over time, <span className="text-foreground">50 audits</span> per day and unlimited trend history.
             </li>
             <li>
               Detection maps to current Google policy, leading with what hit pSEO most recently: the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the 2022 SpamBrain rebuild that moved enforcement from manual review to silent classifier-time suppression.
@@ -503,7 +507,7 @@ export default function Home() {
                   fontWeight: 400,
                 } }
               >
-                A verdict you can ship.
+                A per-template verdict you can ship.
               </span>
             </h2>
             <div className="flex flex-wrap items-center gap-3">
@@ -632,7 +636,7 @@ function buildTiles({
 
 const STATS = [
   { label: "Median audit time", value: "1 minute" },
-  { label: "Free-tier pages", value: "100 / audit" },
+  { label: "K per template (Pro)", value: "10 URLs" },
   { label: "Pro plan", value: "$19 / month" },
   { label: "Anon retention", value: "24 hours" },
 ] as const;

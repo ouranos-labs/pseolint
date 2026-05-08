@@ -1,5 +1,16 @@
 # @pseolint/web
 
+## 0.6.3
+
+### Patch Changes
+
+- **Stream C — marketing-surface refresh + TemplateBreakdownHero visual.**
+  - **New component:** `src/components/landing/template-breakdown-hero.tsx` — v0.6 visual centerpiece. Renders a 3-card `<TemplateCard>` grid with realistic mock data (`/listing/:slug` 8201 URLs risk 60, `/category/:slug` 142 URLs risk 30, `/article/:slug` 89 URLs risk 12), an annotation callout explaining `siteVerdictFromTemplates` spec §15.1 (≥5% coverage rule), and a side-by-side v0.5 flat-sample vs v0.6 per-template comparison footer with colour-coded mini bar charts.
+  - **Landing page (`page.tsx`):** hero badge updated to "Template-aware SpamBrain + AEO · v0.6.3"; H1 reframed around template auditing; hero description emphasises "which templates are broken"; `TemplateBreakdownHero` injected between the hero grid and the Scope section; "What pseolint is" bullet list updated with v0.6 template-audit framing + CI gate copy updated to "fails when a template degrades"; "By the numbers" bullets updated to mention templates explicitly (T × K sampling model, Pro monitoring description); STATS chip changed from "Free-tier pages" to "K per template (Pro) = 10 URLs"; bottom CTA updated to "per-template verdict".
+  - **Methodology page (`methodology/page.tsx`):** new "How v0.6 audits work" section near the top — Phase 1 (template detection, filter ≥1%, ≥5 URLs, ≥2 survivors), Phase 2 (K=10/20 per template, 32 rules), aggregation (worst template ≥5% coverage), variance metric (uniformity score formula); ASCII two-phase pipeline diagram; version badge updated to v0.6.3.
+  - **Limits page (`limits/page.tsx`):** Scope section updated — "K=10 per template" sampling model replaces flat-page counts; Pro monitoring run description now shows the T × K = 80 fetches typical figure; cumulative coverage copy updated "across all templates"; new "Why per-template?" callout box explains the v0.5→v0.6 cost-vs-coverage tradeoff; intro paragraph updated to reflect per-template language.
+  - **`package.json`:** version at 0.6.3 (was 0.6.0).
+
 ## 0.6.0
 
 ### Minor Changes

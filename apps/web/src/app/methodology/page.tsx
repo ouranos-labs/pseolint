@@ -89,7 +89,7 @@ export default function MethodologyPage(): React.ReactElement {
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-        Methodology · v0.5.2 · for skeptical engineers
+        Methodology · v0.6.3 · for skeptical engineers
       </div>
 
       <h1
@@ -107,6 +107,100 @@ export default function MethodologyPage(): React.ReactElement {
         and the site&apos;s real-world ranking success as a bug in our engine,
         not in the site.
       </p>
+
+      {/* v0.6 audit pipeline overview — positioned near the top so engineers
+          understand the sampling model before reading the calibration data */}
+      <section className="mt-10 rounded-[22px] border border-border/60 bg-card/40 p-6">
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
+          // v0.6 pipeline
+        </p>
+        <h2 className="mt-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
+          How v0.6 audits work — two-phase template pipeline
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          v0.6 pivots the unit of analysis from URL to template. A 100k-URL directory
+          no longer averages findings across a flat 200-URL sample — instead, each
+          template cluster is audited independently and produces its own verdict.
+        </p>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
+              Phase 1 — Template detection
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Cluster sitemap URLs by signature (e.g.{" "}
+              <code className="font-mono text-[10px]">/listing/:slug</code>). Filter
+              to clusters with <strong className="text-foreground">≥1% coverage</strong>{" "}
+              of total discovered URLs and <strong className="text-foreground">≥5 URLs</strong>.
+              Require <strong className="text-foreground">≥2 surviving templates</strong>{" "}
+              to activate the v0.6 path — single-template sites fall through to the
+              legacy per-URL view (spec §15.3). Cost: ~T HTTP fetches (T = template count,
+              typically 5–20). Cheap.
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
+              Phase 2 — Per-template deep audit
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Stratified-sample{" "}
+              <strong className="text-foreground">K=10 URLs per template</strong> (monitoring
+              runs) or K=20 (manual re-audits). Run all 32 rules on each sample set. Compute
+              per-template risk, verdict, and variance metric. Total fetches: T × K — typical
+              T=8, K=10 = <strong className="text-foreground">80 fetches</strong> (vs 200
+              in v0.5 flat sampling) with full template coverage.
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
+              Aggregation — site verdict
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              Site verdict = worst template verdict,{" "}
+              <strong className="text-foreground">filtered to templates with ≥5% URL
+              coverage</strong> (spec §15.1). A tiny <code className="font-mono text-[10px]">/about</code>{" "}
+              page at critical doesn&apos;t tank the site. A{" "}
+              <code className="font-mono text-[10px]">/listing/*</code> template covering
+              97% of the site does. Templates below 5% still appear in the dashboard
+              drill-down — they just don&apos;t drive the headline.
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
+              Variance metric — uniformity score
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              For each template:{" "}
+              <code className="font-mono text-[10px]">uniformity = 1 - mean(stdev(per-rule fire-rates))</code>.
+              High uniformity (≥0.7) = every sample has the same problems — template is broken
+              uniformly, one structural fix helps all N pages. Low uniformity = problem is
+              data-quality-dependent, not template-structural. Surfaces in the template card
+              as a colour-coded bar (green / yellow / red at 0.7 / 0.4 thresholds).
+            </p>
+          </div>
+        </div>
+
+        {/* ASCII pipeline diagram */}
+        <pre className="mt-5 overflow-x-auto rounded-[12px] border border-border/60 bg-muted/10 p-4 font-mono text-[10px] leading-relaxed text-muted-foreground">
+{`sitemap URLs (100k)
+        │
+        ▼ Phase 1 — Template detection (~T fetches)
+  clusterUrlTemplates()
+        │  filter: ratio ≥ 1%, count ≥ 5, ≥ 2 survivors
+        ▼
+  Template[] { signature, totalUrls }
+        │
+        ▼ Phase 2 — Per-template deep audit (T × K fetches)
+  for each template:
+    sample K=10 URLs  →  fetch + parse  →  run 32 rules
+    compute: risk, verdict, uniformityScore, topDriver
+        │
+        ▼ Aggregation
+  siteVerdict = worst(templates where coverage ≥ 5%)
+  AuditResult { templates[], findings[], verdict, risk }`}
+        </pre>
+      </section>
 
       <div className="mt-8">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
@@ -200,7 +294,7 @@ export default function MethodologyPage(): React.ReactElement {
               year: "numeric", month: "long", day: "numeric",
             })}
           </time>
-          {" "}· Engine: <code className="font-mono text-xs">v0.5.2</code>
+          {" "}· Engine: <code className="font-mono text-xs">v0.6.3</code>
           {" "}· Ruleset version <code className="font-mono text-xs">12</code>
           {" "}· Sample seed <code className="font-mono text-xs">1729</code>
         </p>
