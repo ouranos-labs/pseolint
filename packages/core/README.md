@@ -1,8 +1,8 @@
 # @pseolint/core
 
-> Programmatic SEO audit engine for SpamBrain-risk detection across large template-generated sites.
+> Programmatic SEO audit engine — 45 rules, surfaced per-template, on every monitored release.
 
-The core engine behind [pseolint](https://www.npmjs.com/package/pseolint). Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
+The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.6.2. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
 
 ## Install
 
@@ -15,9 +15,19 @@ npm install @pseolint/core
 ```ts
 import { auditSource } from "@pseolint/core";
 
-const summary = await auditSource("./out");
-console.log(`Score: ${summary.score}/100`);
-console.log(`Findings: ${summary.findings.length}`);
+const result = await auditSource("https://example.com");
+console.log(`Verdict: ${result.verdict}`);
+console.log(`Findings: ${result.findings.length}`);
+
+// v0.6: per-template breakdown
+for (const t of result.templates) {
+  console.log(`${t.signature}  ${t.verdict}  risk=${t.risk}`);
+  if (t.variance.topDriver) {
+    const { ruleId, fireRate } = t.variance.topDriver;
+    const n = Math.round(fireRate * t.auditedUrls.length);
+    console.log(`  ${n}/${t.auditedUrls.length} samples fail ${ruleId}`);
+  }
+}
 ```
 
 `auditSource` accepts a local directory, a single HTML file, a page URL, or a sitemap URL.
@@ -34,6 +44,70 @@ console.log(`Findings: ${summary.findings.length}`);
 - **Structured data** (3) — JSON-LD validity, required fields, cross-page schema consistency
 - **Cannibalization** (1) — URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 due to high false-positive rates)
 - **Data binding** (2) — verify rendered pages expose values from a source dataset (missing or identical-across-pages bindings)
+
+## What's new in v0.6 — audit-as-template
+
+The unit of analysis is now the **template**, not the URL. When ≥2 template clusters are detected (each with ≥1% URL coverage and ≥5 pages), the engine runs a two-phase pipeline:
+
+1. **Template detection** — clusters the sitemap via `clusterUrlTemplates`, canonicality-verifies one sample per cluster. Cost: ~T HTTP fetches.
+2. **Per-template deep audit** — stratified-samples K pages per template (K=10 monitoring, K=20 re-audit), runs all per-page rules, tags each `RuleResult` with its `template` field, computes per-template verdict + variance.
+
+`AuditResult.templates` is additive — old code reading `findings` continues to work.
+
+### `Template` type
+
+```ts
+import type { Template, TemplateVariance, AuditResult } from "@pseolint/core";
+
+// Each entry in result.templates:
+// {
+//   signature: string;          e.g. "/listing/:slug"
+//   totalUrls: number;          cluster size in the sitemap
+//   auditedUrls: string[];      pages actually fetched in phase 2
+//   verdict: Verdict;
+//   risk: number;               0-100, independent of site-level risk
+//   categories: CategoryGrades;
+//   variance: {
+//     ruleFireRates: Record<string, number>;  per-rule fraction of samples that fired
+//     uniformityScore: number;                0-1; high = same problems on every page
+//     topDriver: { ruleId: string; fireRate: number } | null;
+//   };
+//   findingIds: string[];       references into result.findings
+// }
+```
+
+### `siteVerdictFromTemplates` helper
+
+```ts
+import { siteVerdictFromTemplates } from "@pseolint/core";
+
+// Returns the worst verdict among templates with ≥5% URL coverage.
+// Falls back to "ready" when no template clears the 5% floor.
+const verdict = siteVerdictFromTemplates(result.templates);
+```
+
+### Full example — audit a site, log per-template verdicts
+
+```ts
+import { auditSource } from "@pseolint/core";
+
+const result = await auditSource("https://example.com", {
+  samplingStrategy: "stratified",
+  cache: { dir: ".pseolint/cache" },
+});
+
+console.log(`Site verdict: ${result.verdict}  risk: ${result.risk}`);
+
+for (const t of result.templates) {
+  const td = t.variance.topDriver;
+  const driverLine = td
+    ? `  top driver: ${td.ruleId} (${Math.round(td.fireRate * 100)}% of samples)`
+    : "";
+  console.log(`  ${t.signature}  ${t.verdict}  uniformity ${Math.round(t.variance.uniformityScore * 100)}%${driverLine}`);
+}
+```
+
+Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md`](../../docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
 ## What's new in v0.5.2 — credibility layer
 
@@ -52,7 +126,7 @@ The full per-round iteration story (9 calibration rounds against a curated reput
 
 ### `auditSource(source, options?)`
 
-Returns an `AuditSummary` with composite score, category scores, enriched findings, and optional cache / state / AI-triage metadata.
+Returns an `AuditResult` with verdict, risk score, category grades, enriched findings, and — since v0.6 — a `templates: Template[]` array with per-template verdicts and variance metrics. Also carries optional cache / state / AI-triage metadata.
 
 Selected options (see `AuditOptions` in `types.ts` for the full surface):
 

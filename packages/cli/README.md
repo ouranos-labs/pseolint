@@ -1,8 +1,20 @@
 # pseolint
 
-> SpamBrain-proof your pSEO before you publish.
+> Find the broken template before SpamBrain does.
 
-The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages. Detects the exact patterns Google's SpamBrain targets.
+The CLI for **programmatic SEO auditing** — v0.6.2. Detects SpamBrain-risk patterns across large template-generated sites, now surfaced per-template instead of as a flat findings list.
+
+## What's new in v0.6 — audit-as-template
+
+- **Per-template verdict aggregation** — the worst template with ≥5% URL coverage drives the site headline. One broken `/listing/:slug` can't hide behind a clean `/category/:slug`.
+- **Per-template variance metric** — uniformity score + top-driver rule per template. "8/10 samples fail `spam/thin-content`" is printed directly on the template card.
+- **Two-phase pipeline** — phase 1 clusters the sitemap (~T fetches); phase 2 deep-audits K pages per template. Typical budget: ~80 fetches on a 100k-URL site vs. 200 in v0.5.
+- **`--per-template`** (default ON) — renders template cards above the findings list.
+- **`--template <signature>`** — drill into one template's findings, useful in CI.
+- **`--legacy-flat`** — opt out; get the v0.5-style flat list.
+- **Backwards compatible** — `--format json` still includes `findings`; `templates` is additive.
+
+Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md`](../../docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
 ## What's new in v0.5.2 — credibility layer
 
@@ -55,13 +67,19 @@ npm install -g pseolint
 # Audit your local dev server (recommended)
 npx pseolint http://localhost:3000
 
-# Audit a live site
+# Audit a live site — per-template output is the default in v0.6
 npx pseolint https://yoursite.com
 
 # Audit a build directory
 npx pseolint ./out --ci-threshold concerning
 
-# Show every finding (default view shows verdict + grades + top 3 fixes)
+# Filter output to a single template (useful in CI)
+npx pseolint https://yoursite.com --template "/listing/:slug"
+
+# Suppress template cards; get the v0.5-style flat findings list
+npx pseolint https://yoursite.com --legacy-flat
+
+# Show every finding (default view shows verdict + grades + template cards + top 3 fixes)
 npx pseolint http://localhost:3000 --explain
 
 # Diff two audit runs (verdict, grades, fixed/regressed/new findings)
@@ -71,19 +89,32 @@ npx pseolint diff baseline.json current.json
 npx pseolint http://localhost:3000 --format html --output report.html
 ```
 
-A typical first-run console looks like:
+A typical v0.6 console output looks like:
 
 ```
-Verdict: CAUTION
-Integrity A · Discoverability C · Citation F · Data A
+Verdict: CONCERNING
+Integrity C · Discoverability B · Citation C · Data A
+
+Per-template breakdown (3 templates):
+
+  /listing/:slug  CONCERNING  C
+  10/8201 URLs (0.1%)  uniformity 85%
+  8/10 samples fail `spam/thin-content`
+
+  /category/:slug  READY  A
+  10/312 URLs (3.2%)  uniformity 94%
+
+  /help/:slug  CAUTION  B
+  10/47 URLs (21.3%)  uniformity 78%
+  3/10 samples fail `content/missing-author`
 
 3 blockers, 16 warnings — top fixes by impact:
-  1. /tools/* missing og:image (13 pages)        → add to layout.tsx
+  1. /listing/* thin content (8/10 pages)        → add 200+ unique words per page
+     pseolint.dev/rules/thin-content
+  2. /help/* missing author attribution (3 pages) → add author schema or byline
+     pseolint.dev/rules/missing-author
+  3. /listing/* missing og:image (10 pages)      → add to listing layout
      pseolint.dev/rules/og-completeness
-  2. Symptom Article schema author (5 errors)    → add author + datePublished
-     pseolint.dev/rules/schema-required-fields
-  3. /tools index thin unique words (1 error)    → add 36 distinctive words
-     pseolint.dev/rules/unique-value
 
 Run `pseolint --explain` for the full list.
 ```
@@ -96,14 +127,9 @@ Run `pseolint --explain` for the full list.
                           concerning | critical (default: concerning).
                           Exit non-zero if the audit's verdict is at or worse
                           than the threshold.
--t, --threshold <n>       [DEPRECATED — removed in v0.5] Numeric risk threshold.
-                          Use --ci-threshold instead. When set, exits non-zero
-                          if summary.risk >= n (low risk = good).
 --explain                 Print every finding, bucketed by severity (blockers /
                           should-fix / informational). Default view is the
-                          compact verdict + grades + top-3-fixes view.
---watch                   [planned, v0.4.1] Re-audit on source changes. Logs
-                          a "not yet implemented" notice and exits in v0.4.0.
+                          compact verdict + grades + template cards + top-3-fixes.
 -o, --output <file>       Write report to file
 --no-color                Disable colored output
 --concurrency <n>         Max parallel HTTP fetches (default: 5)
@@ -113,6 +139,14 @@ Run `pseolint --explain` for the full list.
 --render                  Render pages in a browser before auditing
 --browser-ws <url>        CDP WebSocket endpoint for rendering
 --no-crawl                Disable crawl-based page discovery
+
+Template output (v0.6)
+--per-template            Render per-template cards (default: ON when ≥2 templates
+                          detected; suppress with --legacy-flat)
+--template <signature>    Filter output to a single template, e.g. /listing/:slug.
+                          CI use case: fail only when that template degrades.
+--legacy-flat             Suppress template cards; print the v0.5-style flat
+                          findings list.
 
 Safety (v0.3.2+)
 --safe-mode <saas|cli>    Preset: "saas" flips guardSsrf + tightens caps;

@@ -1,8 +1,38 @@
 # @pseolint/mcp
 
-> MCP server for pseolint — audit programmatic SEO sites from AI coding assistants.
+> MCP server for pseolint — audit pSEO sites by template from AI coding assistants.
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.6.2 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+
+### What's new in v0.6 — per-template output in tool responses
+
+`audit_site` now returns a `templates` array alongside the existing `findings` list. AI clients get the per-template view automatically — no parameter changes needed.
+
+```json
+{
+  "verdict": "concerning",
+  "risk": 60,
+  "templates": [
+    {
+      "signature": "/listing/:slug",
+      "totalUrls": 8201,
+      "auditedUrls": ["https://example.com/listing/foo", "..."],
+      "verdict": "concerning",
+      "risk": 60,
+      "variance": {
+        "uniformityScore": 0.85,
+        "topDriver": { "ruleId": "spam/thin-content", "fireRate": 0.8 }
+      }
+    },
+    { "signature": "/category/:slug", "verdict": "ready", "risk": 12 }
+  ],
+  "findings": [...]
+}
+```
+
+When iterating `templates`, the `topDriver` rule + `fireRate` is the most actionable signal: "8/10 samples fail `spam/thin-content`" tells the LLM which template is broken and what to fix. The `findings` flat list remains available for per-URL drill-down.
+
+Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md`](../../docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
 ### What's new in v0.5.2 — credibility layer
 
@@ -52,15 +82,19 @@ Drive an LLM through 25 audit tools and produce a fix manifest with concrete pat
 
 ### `audit_site`
 
-Run a full pseolint audit on a URL or directory path. Returns the SpamBrain Risk Score (0-100) and all findings with actionable fix suggestions.
+Run a full pseolint audit on a URL or directory path. Returns the site-level verdict + risk score, a `templates` array (per-template verdicts + variance metrics), and all per-URL findings with actionable fix suggestions.
 
 **Parameters:**
 - `source` (required) — URL or directory path to audit
 - `threshold` — Score threshold for pass/fail (default: 40)
 - `sampleSize` — Audit a random subset of N pages (0 = all)
 - `format` — Output format: `console` or `json` (default: console)
+- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter.
+- `sampleSeed` — Integer seed for deterministic stratified sampling. Same seed = same audit = same verdict.
 
-**Example prompt:** "Audit my site at http://localhost:3000 for SpamBrain risk"
+**Returns (v0.6 shape):** `verdict`, `risk`, `categories`, `templates: Template[]`, `findings: RuleResult[]`. AI clients should iterate `templates` first — `topDriver.ruleId + fireRate` is the most actionable per-template signal. Use `findings` for per-URL drill-down.
+
+**Example prompt:** "Audit my site at http://localhost:3000 — show me the per-template breakdown"
 
 ### `explain_score`
 

@@ -1,6 +1,6 @@
 # pSEO Lint
 
-> ESLint for programmatic SEO.
+> Audit your pSEO site by template, not by URL.
 
 [![npm](https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm)](https://www.npmjs.com/package/pseolint)
 [![Downloads](https://img.shields.io/npm/dm/pseolint?color=cb3837)](https://www.npmjs.com/package/pseolint)
@@ -12,7 +12,7 @@
   <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
 </p>
 
-The only tool purpose-built for **programmatic SEO compliance**. Audits page *relationships*, not just pages — detects the exact patterns Google's SpamBrain targets: near-duplicates, entity-swap doorway pages, thin content clusters, and missing internal linking. Every finding includes an actionable fix backed by a Google documentation reference.
+The only tool purpose-built for **programmatic SEO compliance**. v0.6.2 shifts the unit of analysis from URL to template: when you run an audit on a 10,000-URL pSEO directory, pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. Fix one template, fix N pages.
 
 ```bash
 npx pseolint http://localhost:3000
@@ -24,7 +24,16 @@ Programmatic SEO works — when it works. The gap between "1,000 indexed pages" 
 
 Existing SEO tools (Screaming Frog, Sitebulb, Ahrefs Site Audit) were built for editorially-curated sites. They check pages one at a time. But the SpamBrain risks of pSEO are *between* pages: doorway clusters, near-duplicates, entity-swap templates, thin-content propagation. You can't catch them with per-page rules.
 
-pseolint audits the graph. Run it before you publish, gate it in CI, ship pages that survive.
+pseolint audits the graph — and since v0.6, it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
+
+## What's new in v0.6 — audit-as-template
+
+- **Per-template verdict aggregation.** The worst template with ≥5% URL coverage drives the site-level headline. One broken `/listing/:slug` template can no longer hide behind a clean `/category/:slug` template.
+- **Per-template variance metric.** Each template reports a `uniformityScore` (how consistently the same problems appear across sampled pages) and a `topDriver` (the rule that fires most across samples). "8/10 samples fail `spam/thin-content`" is a first-class signal, not a buried detail.
+- **Two-phase pipeline.** Phase 1 clusters the sitemap into templates (cheap: ~T fetches). Phase 2 runs a deep audit on K pages per template. Typical budget: ~80 fetches on a 100k-URL site vs. 200 in v0.5 — and the 80 cover every template.
+- **Backwards compatible.** Per-URL `findings` flat list preserved. `templates` is additive on `AuditResult`.
+
+Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md](./docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
 ## How pseolint differs
 
@@ -37,7 +46,7 @@ pseolint audits the graph. Run it before you publish, gate it in CI, ship pages 
 - **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `--authority-score N` (0-100) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
 - **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
-## What's new in v0.5.2 — credibility layer
+## What's new in v0.5.2 — credibility layer (v0.6.2 is current)
 
 - **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
   - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
@@ -81,12 +90,58 @@ Automatically discovers all pages by following internal links. No sitemap, no co
 # Save a visual report
 npx pseolint http://localhost:3000 --format html --output report.html
 
-# Audit a live site
+# Audit a live site (per-template output is the default)
 npx pseolint https://yoursite.com
 
 # CI gate on build output
-npx pseolint ./out --threshold 40 --format json
+npx pseolint ./out --ci-threshold concerning --format json
 ```
+
+### Per-template output (v0.6 default)
+
+```
+Verdict: CONCERNING
+Integrity C · Discoverability B · Citation C · Data A
+
+Per-template breakdown (3 templates):
+
+  /listing/:slug  CONCERNING  C
+  10/8201 URLs (0.1%)  uniformity 85%
+  8/10 samples fail `spam/thin-content`
+
+  /category/:slug  READY  A
+  10/312 URLs (3.2%)  uniformity 94%
+
+  /help/:slug  CAUTION  B
+  10/47 URLs (21.3%)  uniformity 78%
+  3/10 samples fail `content/missing-author`
+```
+
+`--format json` includes the `templates` array alongside the existing `findings` list:
+
+```json
+{
+  "verdict": "concerning",
+  "risk": 60,
+  "templates": [
+    {
+      "signature": "/listing/:slug",
+      "totalUrls": 8201,
+      "auditedUrls": ["https://example.com/listing/foo", "..."],
+      "verdict": "concerning",
+      "risk": 60,
+      "variance": {
+        "uniformityScore": 0.85,
+        "topDriver": { "ruleId": "spam/thin-content", "fireRate": 0.8 }
+      }
+    },
+    { "signature": "/category/:slug", "verdict": "ready", "risk": 12 }
+  ],
+  "findings": [...]
+}
+```
+
+Use `--legacy-flat` to suppress the template cards and get the v0.5-style flat findings list.
 
 ## Audit Modes
 
@@ -287,6 +342,11 @@ Sampling
   --strategy <random|stratified> Sampling strategy (default: stratified)
   --max-per-template <n>         Cap samples per URL template cluster (default: 0)
 
+Template output (v0.6)
+  --per-template                 Render per-template cards above the findings list (default: ON)
+  --template <signature>         Filter output to a single template, e.g. /listing/:slug
+  --legacy-flat                  Suppress template cards; print the v0.5-style flat findings list
+
 Cache & monitoring
   --cache [dir]                  Enable HTTP cache (default: .pseolint/cache)
   --cache-ttl <duration>         TTL for entries without validators, e.g. 7d, 1h, 30m (default: 7d)
@@ -447,13 +507,13 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 
 ## Monorepo
 
-| Package | npm | License |
-|---------|-----|---------|
-| `packages/core` | `@pseolint/core` | MIT |
-| `packages/cli` | `pseolint` | MIT |
-| `packages/mcp` | `@pseolint/mcp` | MIT |
-| `packages/action` | GitHub Action (`ouranos-labs/pseolint@action-v1`) | MIT |
-| `apps/web` | pseolint.dev | AGPL-3.0 |
+| Package | npm | Version | License |
+|---------|-----|---------|---------|
+| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.6.2 | MIT |
+| `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.6.2 | MIT |
+| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.6.2 | MIT |
+| `packages/action` | GitHub Action (`ouranos-labs/pseolint@action-v1`) | — | MIT |
+| `apps/web` | pseolint.dev | — | AGPL-3.0 |
 
 ## Development
 
