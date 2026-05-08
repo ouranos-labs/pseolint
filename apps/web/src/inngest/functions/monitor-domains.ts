@@ -20,6 +20,7 @@ import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 import { publicSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
 import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
+import { detectDegradedTemplates, fireDegradedEvents } from "@/lib/template-degraded";
 
 const MAX_DOMAINS_PER_TICK = 20;
 
@@ -232,6 +233,23 @@ async function runOneMonitor(monitoredDomainId: string) {
       await mergeFindings(d.id, summaryFindings(currSummary));
     } catch {
       // Non-fatal: findings_state is best-effort; don't fail the whole run.
+    }
+  }
+
+  // v0.6.3 — per-template verdict comparison: fire template_degraded events when a
+  // template's verdict worsens between this run and the previous run. Requires a
+  // prior audit (d.lastAuditId) so the very first run produces no events.
+  if (d.lastAuditId && currSummaryRaw) {
+    try {
+      const currSummary = JSON.parse(currSummaryRaw) as AuditSummary;
+      const prevSummary = await loadSummary(d.lastAuditId);
+      const degraded = detectDegradedTemplates(
+        prevSummary?.templates ?? [],
+        currSummary.templates ?? [],
+      );
+      fireDegradedEvents(d.id, degraded);
+    } catch {
+      // Non-fatal: template degradation events are observability-only.
     }
   }
 
