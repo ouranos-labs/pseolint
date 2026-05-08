@@ -34,6 +34,7 @@ import { auditSource, cachedFetch } from "../packages/core/src/index.js";
 import type { CachedFetchOptions } from "../packages/core/src/index.js";
 import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
+import { parseSitemapDirectives } from "../packages/core/src/rules/tech/robots-sitemap-presence.js";
 
 // ----- CLI flags ----------------------------------------------------------
 
@@ -669,9 +670,32 @@ async function mainSnapshot(): Promise<void> {
 // ----- seed-classifier-urls mode -----------------------------------------
 
 /**
- * v0.6.1 — Fetch each corpus site's live sitemap.xml, parse all URLs
- * (recursively resolving sitemap-index entries), cap at 5000 per site,
- * and write them into corpus.json classifierUrls for each site.
+ * v0.6.3 — Parse `Sitemap:` directives from a site's robots.txt.
+ *
+ * Fetches `<originUrl>/robots.txt` via `cachedFetch` (20 s timeout) and
+ * returns every URL declared with a `Sitemap:` directive (case-insensitive,
+ * multiple occurrences allowed per the Sitemaps protocol spec). Returns `[]`
+ * on any fetch failure or non-2xx response — never throws.
+ */
+export async function discoverSitemapsFromRobotsTxt(originUrl: string): Promise<string[]> {
+  const robotsUrl = `${new URL(originUrl).origin}/robots.txt`;
+  let body: string;
+  try {
+    const res = await cachedFetch(robotsUrl, { timeoutMs: 20_000, cache: null });
+    if (res.status < 200 || res.status >= 300) return [];
+    body = res.body ?? "";
+  } catch {
+    return [];
+  }
+
+  return parseSitemapDirectives(body);
+}
+
+/**
+ * v0.6.3 — Fetch each corpus site's live sitemaps, trying robots.txt first
+ * before falling back to `/sitemap.xml`. Parses all URLs (recursively
+ * resolving sitemap-index entries), dedupes, caps at 5000 per site, and
+ * writes them into corpus.json classifierUrls for each site.
  *
  * Invocation: bun run scripts/calibration-reputable-pseo.ts --seed-classifier-urls
  */
@@ -687,13 +711,39 @@ async function mainSeedClassifierUrls(): Promise<void> {
     process.stdout.write(`${site.url} ... `);
     try {
       const origin = new URL(site.url).origin;
-      const sitemapUrl = `${origin}/sitemap.xml`;
-      const urls = await fetchSitemapUrls(sitemapUrl, MAX_CLASSIFIER_URLS);
+
+      // v0.6.3: try robots.txt first; fall back to /sitemap.xml
+      const robotsSitemaps = await discoverSitemapsFromRobotsTxt(origin);
+      let startingUrls: string[];
+      let discoveryNote: string;
+
+      if (robotsSitemaps.length > 0) {
+        startingUrls = robotsSitemaps;
+        discoveryNote = `robots.txt: ${robotsSitemaps.length} sitemap${robotsSitemaps.length === 1 ? "" : "s"}`;
+      } else {
+        startingUrls = [`${origin}/sitemap.xml`];
+        discoveryNote = "fallback to /sitemap.xml";
+      }
+
+      // Collect URLs from all starting sitemaps, deduped
+      const seen = new Set<string>();
+      const allUrls: string[] = [];
+      for (const sitemapUrl of startingUrls) {
+        if (allUrls.length >= MAX_CLASSIFIER_URLS) break;
+        const partial = await fetchSitemapUrls(sitemapUrl, MAX_CLASSIFIER_URLS - allUrls.length);
+        for (const u of partial) {
+          if (!seen.has(u) && allUrls.length < MAX_CLASSIFIER_URLS) {
+            seen.add(u);
+            allUrls.push(u);
+          }
+        }
+      }
+
       const corpusSite = corpus.sites.find((s) => s.url === site.url);
       if (corpusSite) {
-        corpusSite.classifierUrls = urls;
+        corpusSite.classifierUrls = allUrls;
       }
-      console.log(`${ansi.green}OK${ansi.reset} ${urls.length} URLs`);
+      console.log(`${ansi.green}OK${ansi.reset} ${discoveryNote} → ${allUrls.length} URLs`);
     } catch (err) {
       console.log(`${ansi.yellow}SKIP${ansi.reset} ${err instanceof Error ? err.message : String(err)}`);
     }

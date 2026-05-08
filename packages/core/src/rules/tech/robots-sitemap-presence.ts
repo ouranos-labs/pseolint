@@ -68,6 +68,29 @@ export async function robotsSitemapPresenceRule(source: string): Promise<RuleRes
 }
 
 /**
+ * Parse all `Sitemap:` directive URLs from a robots.txt string.
+ *
+ * Case-insensitive per the Sitemaps protocol spec. Multiple occurrences are
+ * allowed and all are returned. Comment lines and blank lines are skipped.
+ * Leading/trailing whitespace around the URL value is stripped.
+ *
+ * Returns `[]` when no `Sitemap:` directives are present.
+ */
+export function parseSitemapDirectives(robotsTxt: string): string[] {
+  const sitemaps: string[] = [];
+  for (const rawLine of robotsTxt.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const m = /^sitemap\s*:\s*(.+)/i.exec(line);
+    if (m) {
+      const url = m[1].trim();
+      if (url) sitemaps.push(url);
+    }
+  }
+  return sitemaps;
+}
+
+/**
  * Parses Disallow directives from the `User-agent: *` block of a robots.txt string.
  * Returns an array of raw pattern strings (e.g. "/secret", "/templates/", "/*.json").
  */
