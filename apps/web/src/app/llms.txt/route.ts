@@ -32,7 +32,7 @@ export function GET(): Response {
 ## Source
 
 - GitHub: https://github.com/ouranos-labs/pseolint
-- npm: pseolint v0.5.2 (CLI), @pseolint/core v0.5.2, @pseolint/mcp v0.5.2
+- npm: pseolint v0.6.3 (CLI), @pseolint/core v0.6.3, @pseolint/mcp v0.6.3
 - v0.5 added change-driven monitoring (May 1, 2026): per-URL state persists across runs and only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor) get re-fetched.
 - v0.5.1 added \`links/host-section-divergence\` (May 3, 2026): graph-aware detector for sub-sections that ride a host's reputation without integrating into it — the May 2024 site-reputation-abuse policy target. Also made \`spam/publication-velocity\` corpus-aware so large directories aren't tripped on percentages that are small relative to corpus size.
 - v0.5.2 (May 3, 2026) — **credibility layer.** Empirically calibrated against a curated corpus of reputable in-production pSEO sites over 9 iteration rounds. Cluster-collapse on \`spam/doorway-pattern\` (per-pair findings collapse into one cluster line). Sample-seed determinism (\`mulberry32\` PRNG) makes verdicts reproducible across runs. Info-severity bucket contribution capped at 50/bucket. Severity demotions auditable via \`summary.appliedSeverityDemotions\`. Markdown reports collapse informational findings under \`<details>\`. Dated snapshot results, the corpus, the runner, and the trade-offs we accepted are documented at /methodology and in docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md. Specific numerical claims (pass rates, per-site verdicts) live on /methodology with a \`<time>\` stamp because they drift as sites redesign.
