@@ -117,6 +117,24 @@ export const seedStats = pgTable("seed_stats", {
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Verified ownership claims for leaderboard hosts. One row per host = claimed.
+ * Absence = unclaimed. Only VERIFIED claims live here (DNS or GSC); pending DNS
+ * challenges are stateless (deterministic token, see lib/leaderboard-claims.ts).
+ */
+export const leaderboardClaims = pgTable("leaderboard_claim", {
+  host: text("host").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }).notNull().defaultNow(),
+  method: text("method").$type<"dns" | "gsc">().notNull(),
+  ogTitleOverride: text("og_title_override"),
+  ogDescriptionOverride: text("og_description_override"),
+  pinnedAuditId: uuid("pinned_audit_id"),
+  isHidden: boolean("is_hidden").notNull().default(false),
+}, (t) => ({
+  userIdx: index("leaderboard_claim_user_idx").on(t.userId),
+}));
+
 export const monitoredDomains = pgTable("monitored_domain", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
