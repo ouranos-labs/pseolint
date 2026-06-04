@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, desc } from "drizzle-orm";
+import { and, eq, isNotNull, gt, desc } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
 import { audits, seedStats } from "@/db/schema";
@@ -68,6 +68,9 @@ export const seedLeaderboard = inngest.createFunction(
           and(
             eq(audits.source, "seed"),
             eq(audits.status, "completed"),
+            // Exclude superseded/expired seed rows so the aggregate matches what
+            // the leaderboard actually displays (mirrors the page query's expiry gate).
+            gt(audits.expiresAt, new Date()),
             isNotNull(audits.host),
             isNotNull(audits.risk),
           ),
