@@ -101,7 +101,12 @@ export default async function Leaderboard() {
         eq(audits.status, "completed"),
         isNotNull(audits.risk),
         lt(audits.risk, LEADERBOARD_RISK_MAX),
+        // Mirror isLeaderboardEligible() in @/lib/leaderboard (the canonical
+        // predicate): non-null AND non-empty host. Keeps this SQL gate in lockstep
+        // with the report page's reportRobots() so a row can't be listed-but-noindexed
+        // (matters once source="seed" rows arrive, which may carry empty hosts).
         isNotNull(audits.host),
+        sql`length(${audits.host}) > 0`,
         gt(audits.expiresAt, new Date()),
         sql`${audits.pageCount} >= ${LEADERBOARD_MIN_PAGES}`,
       ),
