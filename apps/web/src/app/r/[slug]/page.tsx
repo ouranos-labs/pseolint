@@ -23,6 +23,8 @@ import { TileLegend } from "@/components/audit/tile-legend";
 import { gradeOf } from "@/lib/grade";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
+import { getClaim } from "@/lib/leaderboard-claims";
+import { ClaimCta } from "@/components/report/claim-cta";
 
 export const runtime = "nodejs";
 
@@ -100,6 +102,9 @@ export default async function Page({
   // Eligible = this report is permanent + publicly listed (see lib/leaderboard).
   // Drives the retention copy below: eligible reports never auto-delete.
   const eligible = isLeaderboardEligible(row);
+
+  const claim = row.host ? await getClaim(row.host) : null;
+  const claimedByViewer = !!(claim && session?.user.id && claim.userId === session.user.id);
 
   const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
   // R2 holds a mix of v0.3 and v0.4 blobs — shape-detect at the renderer.
@@ -213,6 +218,9 @@ export default async function Page({
       <div className="mb-6">
         <ReportCtaStrip { ...ctx } />
       </div>
+      { eligible ? (
+        <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
+      ) : null }
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
         Audit complete · { completedAgo }
@@ -228,7 +236,7 @@ export default async function Page({
         <a
           href={ row.sourceUrl }
           target="_blank"
-          rel="noreferrer noopener"
+          rel={ claim ? "noreferrer noopener" : "nofollow noreferrer noopener" }
           className="font-mono text-xs text-muted-foreground hover:text-foreground"
         >
           ↗ { shortPath(row.sourceUrl) }
