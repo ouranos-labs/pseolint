@@ -97,6 +97,10 @@ export default async function Page({
   if (isExpired(row)) return <ExpiredState row={ row } />;
   if (!isReady(row)) notFound();
 
+  // Eligible = this report is permanent + publicly listed (see lib/leaderboard).
+  // Drives the retention copy below: eligible reports never auto-delete.
+  const eligible = isLeaderboardEligible(row);
+
   const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
   // R2 holds a mix of v0.3 and v0.4 blobs — shape-detect at the renderer.
   // `isV04Summary` discriminates on `schemaVersion` presence, so we can fan
@@ -258,22 +262,41 @@ export default async function Page({
       <CoverageCallout pageCount={ row.pageCount ?? 0 } />
 
       { !session && ownedByAnon ? (
-        <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-primary/25 bg-primary/5 p-5 sm:flex-nowrap sm:items-center">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">
-              This report auto-deletes in { hoursUntil(row.expiresAt) }h.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Sign in (free) to keep it permanently, run more audits, and unlock private reports.
-            </p>
+        eligible ? (
+          <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-success/25 bg-success/5 p-5 sm:flex-nowrap sm:items-center">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                This site made the public leaderboard.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Its report is kept permanently. Sign in (free) to run more audits and unlock private reports.
+              </p>
+            </div>
+            <Link
+              href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
+              className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Sign in
+            </Link>
           </div>
-          <Link
-            href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
-            className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Save this report
-          </Link>
-        </div>
+        ) : (
+          <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-primary/25 bg-primary/5 p-5 sm:flex-nowrap sm:items-center">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                This report auto-deletes in { hoursUntil(row.expiresAt) }h.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sign in (free) to keep it permanently, run more audits, and unlock private reports.
+              </p>
+            </div>
+            <Link
+              href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
+              className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Save this report
+            </Link>
+          </div>
+        )
       ) : null }
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -345,13 +368,15 @@ export default async function Page({
       <section className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-xs text-muted-foreground">
         <p className="text-sm font-medium text-foreground">About this audit</p>
         <p className="mt-2 leading-relaxed">
-          Report auto-deletes{ " " }
-          { ownedByAnon
-            ? "in 24 hours"
-            : ownedByUser
-              ? "after 30 days"
-              : "within its retention window" }
-          . Retention, rate limits, and crawl behaviour are documented in full at{ " " }
+          { eligible
+            ? "This report is kept permanently because the site is on the public leaderboard."
+            : (
+              <>
+                Report auto-deletes{ " " }
+                { ownedByAnon ? "in 24 hours" : ownedByUser ? "after 30 days" : "within its retention window" }
+                .
+              </>
+            ) } Retention, rate limits, and crawl behaviour are documented in full at{ " " }
           <Link href="/limits" className="text-primary hover:underline">
             pseolint.dev/limits
           </Link>
