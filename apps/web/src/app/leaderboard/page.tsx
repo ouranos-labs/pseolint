@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/db";
-import { audits } from "@/db/schema";
+import { audits, seedStats } from "@/db/schema";
 import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
 import { LEADERBOARD_RISK_MAX, LEADERBOARD_MIN_PAGES } from "@/lib/leaderboard";
 import { env } from "@/lib/env";
@@ -121,6 +121,8 @@ export default async function Leaderboard() {
   // Re-sort by risk ascending for leaderboard display order.
   type Row = (typeof rows)[number];
   const deduped = rows.sort((a: Row, b: Row) => (a.risk ?? 100) - (b.risk ?? 100) || a.createdAt.getTime() - b.createdAt.getTime());
+
+  const [stats] = await db.select().from(seedStats).limit(1);
 
   const baseUrl = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const collectionJsonLd = {
@@ -258,6 +260,15 @@ export default async function Leaderboard() {
         below the bar, it drops off the board. The board first shipped on March 15, 2026 alongside the
         v0.4.0 engine cut, and the scoring weights were last rebalanced on April 21, 2026 when the AEO
         category landed.
+          { stats && stats.auditedCount > 0 ? (
+            <>
+              { " " }To bootstrap the board we also audited{ " " }
+              <span className="text-foreground">{ stats.auditedCount }</span> well-known
+              programmatic-SEO sites; <span className="text-foreground">{ stats.passedCount }</span>{ " " }
+              landed in the A/B band{ stats.medianRisk !== null ? <> (median score { stats.medianRisk })</> : null }.
+              Only the clean ones are named here.
+            </>
+          ) : null }
       </p>
 
       <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground">
