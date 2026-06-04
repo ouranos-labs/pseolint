@@ -25,3 +25,15 @@ scripts/calibration-results.json
 scripts/calibration-results.md
 
 .npmrc
+
+# Internal go-to-market material — not for the public repo.
+marketing/
+
+# Ad-hoc local debug/inspection scripts — these tend to hardcode local DB URLs,
+# OAuth secrets, and tokens. Keep them out of the repo entirely.
+apps/web/scripts/check-*
+apps/web/scripts/inspect-*
+
+# Office/LibreOffice temp + lock files.
+*.~lock.*#
+~$*
