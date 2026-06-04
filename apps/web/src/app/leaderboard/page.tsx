@@ -238,14 +238,15 @@ export default async function Leaderboard() {
 
       <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
         Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
-        completed public audits, deduplicated by hostname so a domain occupies exactly one slot,
-        and sorted ascending by composite score with createdAt as the tiebreaker. Audits below the
-        5-page floor are excluded because too-small samples produce volatile rankings. Pages
-        marked private by their owner never appear, regardless of score. Listings inherit the
-        retention window of the underlying audit, so anonymous entries fall off after 24 hours
-        and free-tier entries after 30 days unless the operator upgrades and pins them. The board
-        first shipped on March 15, 2026 alongside the v0.4.0 engine cut, and the scoring weights
-        were last rebalanced on April 21, 2026 when the AEO category landed.
+        completed public audits, deduplicated by hostname so a domain occupies exactly one slot —
+        the most recent audit per domain wins, so a re-audit supersedes the prior score. Only sites
+        scoring in the A or B band (risk below 40) are listed; audits below the 5-page floor are
+        excluded because too-small samples produce volatile rankings. Pages marked private by their
+        owner never appear, regardless of score. A clean public audit — including an anonymous one —
+        is kept permanently and shown with the date it was scored; if a site is re-audited and slips
+        below the bar, it drops off the board. The board first shipped on March 15, 2026 alongside the
+        v0.4.0 engine cut, and the scoring weights were last rebalanced on April 21, 2026 when the AEO
+        category landed.
       </p>
 
       <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground">
@@ -297,19 +298,19 @@ export default async function Leaderboard() {
         </h2>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Any audit a user runs with{ " " }
-          <span className="font-mono text-foreground">isPublic = true</span> shows up here once
-          it completes and crosses the 5-page minimum. Free-tier audits cost $0 and default to
-          public — that&rsquo;s the trade for unlimited one-shot acquisition runs, capped at 3
-          audits per browser per 24-hour window. Pro plans start at $19/mo, default to private,
-          and stay private unless an operator explicitly flips the visibility toggle on the
-          audit detail page.
+          <span className="font-mono text-foreground">isPublic = true</span> is listed once it
+          completes, crosses the 5-page minimum, and scores in the A or B band (risk below 40).
+          Free-tier audits cost $0 and default to public — that&rsquo;s the trade for unlimited
+          one-shot acquisition runs, capped at 3 audits per browser per 24-hour window. Audits that
+          score below the bar still produce a full report at their own URL; they just aren&rsquo;t
+          listed publicly. Pro plans start at $19/mo, default to private, and stay private unless an
+          operator flips the visibility toggle.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Listings are deduplicated by hostname; only the most recent audit per domain
-          appears, and rankings refresh every ten minutes. Audits expire after their retention
-          window, at which point they fall off the board automatically. If you ran a public
-          audit you didn&rsquo;t mean to share, you can mark it private from your dashboard
-          and it disappears from the next revalidation.
+          Listings are deduplicated by hostname — the most recent audit per domain shows, and
+          rankings refresh every ten minutes. A clean public listing is kept permanently; re-auditing
+          a site supersedes its previous entry. If you ran a public audit you didn&rsquo;t mean to
+          share, mark it private from your dashboard and it disappears at the next revalidation.
         </p>
       </section>
 
