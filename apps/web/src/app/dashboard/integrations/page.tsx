@@ -1,10 +1,10 @@
-// apps/web/src/app/dashboard/integrations/page.tsx
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { integrations } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getOptionalSession } from "@/lib/session";
+import { getPlan } from "@/lib/plan";
 
 export const runtime = "nodejs";
 
@@ -51,6 +51,7 @@ export default async function IntegrationsPage({
 }: { searchParams: Promise<{ gsc?: string; bound?: string; ambiguous?: string; unmatched?: string }> }) {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/integrations");
+  const plan = await getPlan(session.user.id);
   const { gsc: gscStatus, bound: boundParam, ambiguous: ambiguousParam, unmatched: unmatchedParam } = await searchParams;
 
   const [gscRow] = await db.select({ id: integrations.id, lastSyncAt: integrations.lastSyncAt, createdAt: integrations.createdAt })
@@ -121,6 +122,50 @@ export default async function IntegrationsPage({
                 Read-only scope (<code className="font-mono">webmasters.readonly</code>). Tokens encrypted at rest.
                 You can disconnect any time.
               </p>
+            </div>
+          )}
+        </Card>
+
+        <Card title="Google Indexing API" status={gscConnected ? "connected" : "disconnected"}
+              blurb="Request instant crawl for high-quality audited pages via Google's URL Indexing API. Gated by pseolint quality requirements.">
+          {plan === "pro" ? (
+            gscConnected ? (
+              <div className="mt-2 text-sm text-muted-foreground flex flex-col gap-2">
+                <span className="text-xs text-success">
+                  Connected via Google Search Console integration.
+                </span>
+                <p>
+                  You are ready to push high-quality pages to the Google Indexing API. 
+                  Select a domain from your dashboard to start pushing URLs.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-col gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Connect your Google Search Console account above to enable programmatic indexing.
+                </p>
+              </div>
+            )
+
+          ) : (
+            <div className="relative mt-2 overflow-hidden rounded-[14px] border border-primary/20 bg-primary/5 p-4">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex w-fit items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary">
+                    Pro Feature
+                  </span>
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Programmatic Google Indexing</h3>
+                <p className="text-xs text-muted-foreground">
+                  Get your new and updated pages indexed by Google in minutes rather than weeks. Set up automated GSC pushes.
+                </p>
+                <a
+                  href="/pricing"
+                  className="mt-2 inline-flex w-fit h-9 items-center rounded-[12px] bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  Upgrade to Pro →
+                </a>
+              </div>
             </div>
           )}
         </Card>

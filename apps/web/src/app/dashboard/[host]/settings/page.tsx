@@ -15,6 +15,7 @@ import {
   rebindGscPropertyAction,
 } from "./actions";
 import { DataSourceForm } from "./data-source-form";
+import { IndexNowDomainForm } from "@/components/dashboard/indexnow-domain-form";
 
 type GscSavedState = "bound" | "rebound" | "unbound" | "unchanged" | "no_grant" | "no_match" | "failed";
 
@@ -272,6 +273,21 @@ export default async function DomainSettings({
             </button>
           </form>
         )}
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
+        <header>
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-sm font-medium">IndexNow Protocol</h2>
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              {domain.indexNowKey ? "connected" : "disconnected"}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Instantly notify Bing, Yandex, Seznam, and other search engines about page changes in real-time.
+          </p>
+        </header>
+        <IndexNowDomainForm domainHost={domain.host} initialKey={domain.indexNowKey ?? ""} />
       </section>
 
       <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">

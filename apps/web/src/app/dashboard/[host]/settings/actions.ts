@@ -281,3 +281,22 @@ export async function testSlackWebhookAction(formData: FormData): Promise<void> 
 
   revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
 }
+
+export async function updateIndexNowKeyAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
+
+  const rawKey = String(formData.get("indexNowKey") ?? "").trim();
+  const indexNowKey = rawKey.length > 0 ? rawKey : null;
+
+  await db.update(monitoredDomains).set({ indexNowKey })
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ));
+
+  auditLog("settings.indexnow.updated", { userId: session.user.id, host, configured: indexNowKey !== null });
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+}
