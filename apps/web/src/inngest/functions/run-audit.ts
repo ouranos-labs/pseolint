@@ -12,6 +12,8 @@ import {
   resolveAuditIgnorePatterns,
   detectFrameworkFromUrl,
 } from "@/lib/audit-defaults";
+import { fetchOgMeta } from "@/lib/og-fetch";
+import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 
 const MAX_COST_USD = 0.50;
 
@@ -259,17 +261,66 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   const jsonKey = summaryKey(auditId);
   await runStep("upload-summary", async () => uploadSummary(jsonKey, JSON.stringify(summary)));
 
+  const host = (() => {
+    try {
+      return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    } catch {
+      return "unknown";
+    }
+  })();
+
+  // Pre-fetch OG metadata for public audits to avoid blocking lazy-loading latency on page views.
+  // Set to empty string on failure to prevent infinite retries.
+  const og = await runStep("fetch-og-meta", async () => {
+    const [row] = await db.select({ isPublic: audits.isPublic }).from(audits).where(eq(audits.id, auditId)).limit(1);
+    if (row?.isPublic) {
+      try {
+        const meta = await fetchOgMeta(url);
+        return {
+          title: meta.title?.slice(0, 200) ?? "",
+          description: meta.description?.slice(0, 500) ?? "",
+          image: meta.image?.slice(0, 1000) ?? "",
+        };
+      } catch {
+        return { title: "", description: "", image: "" };
+      }
+    }
+    return { title: null, description: null, image: null };
+  });
+
   const completedAt = new Date();
   const findingCount =
     summary.issues.blockers.length +
     summary.issues.shouldFix.length +
     summary.issues.informational.length;
+
+  // Read current visibility so we can decide permanence. Clean public audits —
+  // including anonymous ones — get their expiry extended to the far-future
+  // sentinel so the listing + /r/[slug] page persist as an SEO corpus entry.
+  // Non-eligible audits keep the tier expiry set at creation (anon 1d / free 30d).
+  const [vis] = await db
+    .select({ isPublic: audits.isPublic })
+    .from(audits)
+    .where(eq(audits.id, auditId))
+    .limit(1);
+  const eligible = isLeaderboardEligible({
+    isPublic: vis?.isPublic ?? false,
+    status: "completed",
+    host,
+    pageCount: summary.pageCount,
+    risk: summary.risk,
+  });
+
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
       status: "completed",
       risk: summary.risk,
       pageCount: summary.pageCount,
       findingCount,
+      host,
+      ogTitle: og.title,
+      ogDescription: og.description,
+      ogImageUrl: og.image,
       triageRootCauseCount: summary.triage?.rootCauses.length ?? null,
       triageCostUsd: summary.triage?.estimatedCostUsd != null ? String(summary.triage.estimatedCostUsd) : null,
       // v0.4 §4.11 — surface site classification on the audit row so the
@@ -283,6 +334,9 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       scrapePlan: summary.scrapePlan ?? null,
       storageKey: jsonKey,
       completedAt,
+      // Permanence for eligible audits only; omit the key otherwise so the
+      // creation-time tier expiry is preserved.
+      ...(eligible ? { expiresAt: new Date(PERMANENT_EXPIRES_AT) } : {}),
     }).where(eq(audits.id, auditId));
   });
 
