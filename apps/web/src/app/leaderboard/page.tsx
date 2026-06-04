@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
+import { LEADERBOARD_RISK_MAX, LEADERBOARD_MIN_PAGES } from "@/lib/leaderboard";
 import { env } from "@/lib/env";
-import { fetchOgMeta } from "@/lib/og-fetch";
-import { gradeOf } from "@/lib/grade";
 import { GradeChip } from "@/components/audit/grade-chip";
 import { SiteThumbnail } from "@/components/audit/site-thumbnail";
 
@@ -77,17 +76,17 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
   },
 ];
 
-/** Cap how many missing-OG rows we backfill per render so a slow homepage
- *  can't extend the leaderboard render past a few seconds. Other rows get
- *  picked up on subsequent revalidations. */
-const OG_BACKFILL_PER_RENDER = 12;
-
 export default async function Leaderboard() {
+  // Database-level deduplication: DISTINCT ON (host) returns the best (lowest
+  // risk) completed public audit per domain in a single query. No JS-level
+  // starvation possible. Requires host-first ordering for DISTINCT ON syntax;
+  // we re-sort by risk in JS afterwards for display.
   const rows = await db
-    .select({
+    .selectDistinctOn([audits.host], {
       id: audits.id,
       slug: audits.slug,
       sourceUrl: audits.sourceUrl,
+      host: audits.host,
       risk: audits.risk,
       pageCount: audits.pageCount,
       createdAt: audits.createdAt,
@@ -100,66 +99,22 @@ export default async function Leaderboard() {
       and(
         eq(audits.isPublic, true),
         eq(audits.status, "completed"),
+        isNotNull(audits.risk),
+        lt(audits.risk, LEADERBOARD_RISK_MAX),
+        isNotNull(audits.host),
         gt(audits.expiresAt, new Date()),
-        sql`${audits.pageCount} >= 5`,
+        sql`${audits.pageCount} >= ${LEADERBOARD_MIN_PAGES}`,
       ),
     )
-    .orderBy(sql`COALESCE(${audits.risk}, 100) ASC`, audits.createdAt)
+    // Most-recent audit per host wins (DISTINCT ON needs host-first ordering).
+    // This supersedes older scores: a re-audit replaces the prior entry, and a
+    // site that degrades below the bar drops off. Re-sorted by risk for display.
+    .orderBy(audits.host, sql`${audits.createdAt} DESC`)
     .limit(100);
 
-  const seen = new Set<string>();
-  const deduped = rows.filter((r) => {
-    try {
-      const h = new URL(r.sourceUrl).hostname.toLowerCase();
-      if (seen.has(h)) return false;
-      seen.add(h);
-      return true;
-    } catch {
-      return false;
-    }
-  });
-
-  // Lazy OG backfill: for rows missing all OG fields, fetch + persist a few
-  // per render. Bounded by OG_BACKFILL_PER_RENDER and 5s per fetch (see
-  // og-fetch.ts), so worst-case added latency is ~5s on a render that hits
-  // many slow homepages. Subsequent revalidations finish the backfill.
-  const missing = deduped
-    .filter((r) => !r.ogImageUrl && !r.ogTitle && !r.ogDescription)
-    .slice(0, OG_BACKFILL_PER_RENDER);
-  const ogByRowId = new Map<string, { title: string | null; description: string | null; image: string | null }>();
-  if (missing.length > 0) {
-    const results = await Promise.allSettled(
-      missing.map(async (r) => {
-        const og = await fetchOgMeta(r.sourceUrl);
-        return { id: r.id, og };
-      }),
-    );
-    const updates: Promise<unknown>[] = [];
-    for (const result of results) {
-      if (result.status !== "fulfilled") continue;
-      const { id, og } = result.value;
-      if (!og.title && !og.description && !og.image) continue;
-      ogByRowId.set(id, og);
-      updates.push(
-        db
-          .update(audits)
-          .set({
-            ogTitle: og.title?.slice(0, 200) ?? null,
-            ogDescription: og.description?.slice(0, 500) ?? null,
-            ogImageUrl: og.image?.slice(0, 1000) ?? null,
-          })
-          .where(eq(audits.id, id)),
-      );
-    }
-    // Persist in parallel; failures don't block render — next revalidation retries.
-    await Promise.allSettled(updates);
-  }
-
-  function ogFor(r: (typeof deduped)[number]): { title: string | null; description: string | null; image: string | null } {
-    const fresh = ogByRowId.get(r.id);
-    if (fresh) return fresh;
-    return { title: r.ogTitle, description: r.ogDescription, image: r.ogImageUrl };
-  }
+  // Re-sort by risk ascending for leaderboard display order.
+  type Row = (typeof rows)[number];
+  const deduped = rows.sort((a: Row, b: Row) => (a.risk ?? 100) - (b.risk ?? 100) || a.createdAt.getTime() - b.createdAt.getTime());
 
   const baseUrl = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const collectionJsonLd = {
@@ -182,11 +137,11 @@ export default async function Leaderboard() {
       "@type": "ItemList",
       numberOfItems: deduped.length,
       itemListOrder: "https://schema.org/ItemListOrderAscending",
-      itemListElement: deduped.slice(0, 25).map((r, i) => ({
+      itemListElement: deduped.slice(0, 25).map((r: Row, i: number) => ({
         "@type": "ListItem",
         position: i + 1,
         url: `${baseUrl}/r/${r.slug}`,
-        name: hostOf(r.sourceUrl),
+        name: r.host,
       })),
     },
   };
@@ -236,9 +191,8 @@ export default async function Leaderboard() {
           // chart-of-life library. Each card is `break-inside-avoid` so it
           // never splits across columns.
           <div className="mt-4 flex flex-col gap-4 sm:block sm:columns-2 lg:columns-3">
-            { deduped.map((r, i) => {
-              const og = ogFor(r);
-              const host = hostOf(r.sourceUrl);
+            { deduped.map((r: Row, i: number) => {
+              const host = r.host!;
               return (
                 <article
                   key={ r.id }
@@ -248,7 +202,7 @@ export default async function Leaderboard() {
                     { i + 1 }
                   </span>
 
-                  <SiteThumbnail host={ host } imageUrl={ og.image } />
+                  <SiteThumbnail host={ host } imageUrl={ r.ogImageUrl } />
 
                   <h3 className="mt-1 mx-1 text-base font-semibold tracking-tight">
                     <Link
@@ -259,11 +213,11 @@ export default async function Leaderboard() {
                     </Link>
                   </h3>
                   <p className="mt-0.5 mx-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                    { og.description ?? `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
+                    { r.ogDescription || `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
                   </p>
 
                   <div className="mt-4 mr-2 flex items-center justify-end">
-                    <GradeChip risk={r.risk} />
+                    <GradeChip risk={ r.risk } />
                   </div>
                 </article>
               );
@@ -421,10 +375,4 @@ function timeAgo(d: Date): string {
   return `${Math.floor(months / 12)}y`;
 }
 
-function hostOf(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return "unknown";
-  }
-}
+
