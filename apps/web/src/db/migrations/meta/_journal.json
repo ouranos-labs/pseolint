@@ -120,6 +120,13 @@
       "when": 1780593464481,
       "tag": "0016_jittery_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780609771839,
+      "tag": "0017_many_maginty",
+      "breakpoints": true
     }
   ]
 }

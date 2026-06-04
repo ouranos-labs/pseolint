@@ -104,6 +104,19 @@ export const audits = pgTable("audit", {
   slugIdx: uniqueIndex("audit_slug_uniq").on(t.slug),
 }));
 
+/**
+ * Singleton row holding the seed-audit aggregate stat shown on the leaderboard
+ * ("We audited N well-known pSEO sites; M passed; median X"). Recomputed by the
+ * seed-leaderboard Inngest function. `id` is always the literal "singleton".
+ */
+export const seedStats = pgTable("seed_stats", {
+  id: text("id").primaryKey().default("singleton"),
+  auditedCount: integer("audited_count").notNull().default(0),
+  passedCount: integer("passed_count").notNull().default(0),
+  medianRisk: integer("median_risk"),
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const monitoredDomains = pgTable("monitored_domain", {
   id: uuid("id").primaryKey().defaultRandom(),
   slug: text("slug").notNull().unique(),
