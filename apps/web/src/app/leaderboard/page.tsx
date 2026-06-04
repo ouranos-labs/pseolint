@@ -262,10 +262,10 @@ export default async function Leaderboard() {
         category landed.
           { stats && stats.auditedCount > 0 ? (
             <>
-              { " " }To bootstrap the board we also audited{ " " }
+              { " " }To bootstrap the board we also track{ " " }
               <span className="text-foreground">{ stats.auditedCount }</span> well-known
               programmatic-SEO sites; <span className="text-foreground">{ stats.passedCount }</span>{ " " }
-              landed in the A/B band{ stats.medianRisk !== null ? <> (median score { stats.medianRisk })</> : null }.
+              currently land in the A/B band{ stats.medianRisk !== null ? <> (median score { stats.medianRisk })</> : null }.
               Only the clean ones are named here.
             </>
           ) : null }
