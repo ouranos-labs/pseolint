@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const revalidate = 600;
 
 /** Minimal SVG badge: "pseolint · Grade A". Verdict/grade only — never a numeric risk. */
-function badgeSvg(host: string, grade: string): string {
+function badgeSvg(grade: string): string {
   const label = "pseolint";
   const value = `Grade ${grade}`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="148" height="20" role="img" aria-label="${label}: ${value}">
@@ -48,7 +48,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ host: stri
   }
 
   const grade = gradeOf(row.risk).letter;
-  return new Response(badgeSvg(decoded, grade), {
+  return new Response(badgeSvg(grade), {
     headers: {
       "Content-Type": "image/svg+xml",
       "Cache-Control": "public, max-age=600, s-maxage=600",
