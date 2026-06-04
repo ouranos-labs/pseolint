@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/db";
-import { audits, seedStats } from "@/db/schema";
-import { and, eq, gt, lt, isNotNull, sql } from "drizzle-orm";
+import { audits, seedStats, leaderboardClaims } from "@/db/schema";
+import { and, eq, gt, lt, isNotNull, sql, inArray } from "drizzle-orm";
 import { LEADERBOARD_RISK_MAX, LEADERBOARD_MIN_PAGES } from "@/lib/leaderboard";
 import { env } from "@/lib/env";
 import { GradeChip } from "@/components/audit/grade-chip";
@@ -124,6 +124,24 @@ export default async function Leaderboard() {
 
   const [stats] = await db.select().from(seedStats).limit(1);
 
+  const claimHosts = deduped.map((r: Row) => r.host).filter((h): h is string => !!h);
+  const claimRows = claimHosts.length
+    ? await db.select().from(leaderboardClaims).where(inArray(leaderboardClaims.host, claimHosts))
+    : [];
+  const claimByHost = new Map(claimRows.map((c) => [c.host, c]));
+  // Drop owner-hidden listings; apply OG overrides; flag verified.
+  const visible = deduped
+    .filter((r: Row) => !claimByHost.get(r.host ?? "")?.isHidden)
+    .map((r: Row) => {
+      const c = claimByHost.get(r.host ?? "");
+      return {
+        ...r,
+        ogTitle: c?.ogTitleOverride ?? r.ogTitle,
+        ogDescription: c?.ogDescriptionOverride ?? r.ogDescription,
+        verified: !!c,
+      };
+    });
+
   const baseUrl = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const collectionJsonLd = {
     "@context": "https://schema.org",
@@ -143,9 +161,9 @@ export default async function Leaderboard() {
     },
     mainEntity: {
       "@type": "ItemList",
-      numberOfItems: deduped.length,
+      numberOfItems: visible.length,
       itemListOrder: "https://schema.org/ItemListOrderAscending",
-      itemListElement: deduped.slice(0, 25).map((r: Row, i: number) => ({
+      itemListElement: visible.slice(0, 25).map((r, i: number) => ({
         "@type": "ListItem",
         position: i + 1,
         url: `${baseUrl}/r/${r.slug}`,
@@ -178,9 +196,9 @@ export default async function Leaderboard() {
 
       <section className="mt-8">
         <h2 className="text-lg font-semibold tracking-tight text-foreground">
-          { deduped.length === 0 ? "Be the first on the board" : "Current rankings" }
+          { visible.length === 0 ? "Be the first on the board" : "Current rankings" }
         </h2>
-        { deduped.length === 0 ? (
+        { visible.length === 0 ? (
           <div className="mt-4 rounded-[28px] border border-dashed border-border bg-card/30 p-10 text-center">
             <p className="text-sm text-muted-foreground">
               No public audits have completed yet. The leaderboard populates automatically as
@@ -199,7 +217,7 @@ export default async function Leaderboard() {
           // chart-of-life library. Each card is `break-inside-avoid` so it
           // never splits across columns.
           <div className="mt-4 flex flex-col gap-4 sm:block sm:columns-2 lg:columns-3">
-            { deduped.map((r: Row, i: number) => {
+            { visible.map((r, i: number) => {
               const host = r.host!;
               return (
                 <article
@@ -212,6 +230,11 @@ export default async function Leaderboard() {
                   { r.source === "seed" && (
                     <span className="absolute left-3 top-3 z-10 inline-flex items-center rounded-[8px] bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-primary shadow-sm">
                       Notable
+                    </span>
+                  ) }
+                  { r.verified && (
+                    <span className="absolute left-3 bottom-3 z-10 inline-flex items-center gap-0.5 rounded-[8px] bg-success/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-success shadow-sm">
+                      ✓ verified
                     </span>
                   ) }
 
