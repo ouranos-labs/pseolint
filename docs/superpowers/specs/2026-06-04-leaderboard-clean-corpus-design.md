@@ -38,6 +38,18 @@ Turn the leaderboard into a large, persistent, high-quality public directory tha
 
 ## Architecture
 
+### 0. Indexability flip (the core SEO enabler) — REQUIRED
+
+This is the load-bearing change the rest of the SEO goal depends on, and it reverses a deliberate existing decision.
+
+Today **every** `/r/[slug]` report page is `robots: { index: false, follow: false }` (`apps/web/src/app/r/[slug]/page.tsx:50–52`), with the explicit rationale "Reports describe third-party sites; we never want them indexed by search engines." With clean-only listings that blanket rule is no longer appropriate — but it must be relaxed *surgically*, not removed:
+
+> A `/r/[slug]` page is set `index: true, follow: true` **only when it is leaderboard-eligible** (clean ∧ public ∧ listed ∧ not hidden ∧ not an expired/failing seed). Every other report — private, failing, thin, expired, owner-only, anon-ephemeral — keeps `index: false, follow: false`.
+
+The clean-only gate is exactly what makes this defensible: we only ask Google to index pages that say a named site is *clean*. `generateMetadata` already loads the row; it computes eligibility and chooses the robots directive. Listing without this flip yields an internal directory of `noindex` pages — i.e. no organic SEO surface at all, which is the whole point.
+
+Public-surface copy on these pages stays **verdict/grade-based, never numeric** (consistent with the existing v0.4 "no 84/100 in public/screenshot surfaces" rule).
+
 ### 1. Eligibility (explicit rule)
 
 > An audit is **leaderboard-eligible** when:
@@ -89,7 +101,7 @@ On success, insert/update the `leaderboardClaims` row.
 
 ### 6. Conversion hooks (all map onto the claim)
 
-1. **Verified badge + embed** — claimed hosts get an embeddable snippet linking back to their `/r/[slug]` ("Audited clean · pseolint score X"). Every embed is a *followed* backlink → compounding SEO. Unclaimed sites see a "claim to get your badge" teaser.
+1. **Verified badge + embed** — claimed hosts get an embeddable snippet linking back to their `/r/[slug]`. Badge copy is **grade/verdict-based, not numeric** ("Audited clean · Grade A" / "Ready"), to honour the existing rule that no numeric `risk` appears on public/screenshot surfaces. Every embed is a *followed* backlink → compounding SEO. Unclaimed sites see a "claim to get your badge" teaser.
 2. **Monitoring upsell** — CTA "Track this score, get alerted if it drops" routes into the existing `monitoredDomains` / Pro flow.
 3. **Claim to customize/pin** — claimed owner sets `ogTitleOverride` / `ogDescriptionOverride` (card copy), `pinnedAuditId` (which audit displays), and `isHidden` (instant takedown).
 4. **Re-audit / improve CTA** — sites *near* the bar (risk 40–55, just off the board) see "Fix N findings and re-audit to make the board" on their result page → pulls re-runs and signups.
@@ -115,6 +127,9 @@ On success, insert/update the `leaderboardClaims` row.
 - Leaderboard query: add `risk < 40`, switch to most-recent-per-host, left-join `leaderboardClaims` to render "verified ✓" / "Notable" chips, apply OG overrides and `pinnedAuditId`, and exclude `isHidden`.
 - Empty-state retained but will rarely render post-seed.
 - Methodology prose (`leaderboard/page.tsx` ~234–308) rewritten: it currently states "anonymous entries fall off after 24 hours" and "most recent audit per domain" inconsistently. New copy describes clean-only permanence, supersede, seeding + the aggregate stat, and the claim flow.
+- **`/r/[slug]` retention copy must be reconciled** — several strings assume the old fixed windows and become false for clean-anon-permanent audits:
+  - The anon "This report auto-deletes in Nh · Save this report" CTA (`r/[slug]/page.tsx:256–273`): for an *eligible* (clean) anon audit, it no longer auto-deletes, so the pitch flips to a leaderboard/claim framing ("This site is on the public leaderboard — sign in to claim it, get your badge, and monitor it"). For *non-eligible* anon audits the 24h "save it" pitch stays.
+  - The "About this audit" auto-delete blurb (`:343–349`) and `ExpiredState` copy (`:908–925`) must branch on eligibility rather than hard-coding "24 hours / 30 days".
 
 ## Out of scope (YAGNI)
 
@@ -126,7 +141,7 @@ Public user profiles, historical score charts on the board, paid placement, cate
 - `apps/web/src/app/api/audits/route.ts` — (no retention change at creation; permanence is applied post-completion)
 - `apps/web/src/inngest/functions/run-audit.ts` — extend `expiresAt` when eligible
 - `apps/web/src/db/schema.ts` + new migration — `audits.source`, `leaderboardClaims`
-- `apps/web/src/app/r/[slug]/page.tsx` — claim CTA, badge teaser, re-audit CTA, nofollow logic
+- `apps/web/src/app/r/[slug]/page.tsx` — **eligibility-gated `index`/`follow` in `generateMetadata`** (the SEO enabler), claim CTA, badge teaser, re-audit CTA, nofollow logic, and reconciled retention copy (anon CTA / About blurb / ExpiredState)
 - new: claim verification action(s) (DNS TXT + GSC fast-path), badge embed endpoint, seed list + seeding Inngest function, takedown form
 
 ## Open questions / defaults chosen
