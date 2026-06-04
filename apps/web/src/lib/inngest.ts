@@ -33,6 +33,12 @@ type Events = {
    * The sync-gsc function checks this event and runs immediately for the target domain.
    */
   "gsc/sync-requested": { data: { userId: string; domainId: string } };
+  /**
+   * Manual trigger for leaderboard seeding. Dispatched by scripts/seed-leaderboard.ts.
+   * The seed-leaderboard function runs real audits on the curated SEED_SITES list and
+   * recomputes the seed_stats singleton.
+   */
+  "seed/leaderboard.requested": { data: Record<string, never> };
 };
 
 const useLocalInngest = devFlags.inngestLocal;

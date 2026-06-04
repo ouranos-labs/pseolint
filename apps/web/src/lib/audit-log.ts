@@ -34,6 +34,7 @@ export type AuditLogEvent =
   | "settings.slack.updated"
   | "settings.slack.test_sent"
   | "settings.slack.test_failed"
+  | "settings.indexnow.updated"
   | "gsc.oauth.user_denied"
   | "gsc.oauth.state_invalid"
   | "gsc.oauth.state_mismatch"
@@ -63,7 +64,8 @@ export type AuditLogEvent =
   | "audit.degraded.retrying"
   | "audit.degraded.retry_succeeded"
   /** v0.5.10 — per-template-degraded alert gate event. Firing logic ships in v0.5.11+. */
-  | "template_degraded";
+  | "template_degraded"
+  | "seed.stats.recomputed";
 
 type Payload = Record<string, unknown>;
 
