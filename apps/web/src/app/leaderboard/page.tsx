@@ -77,10 +77,10 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
 ];
 
 export default async function Leaderboard() {
-  // Database-level deduplication: DISTINCT ON (host) returns the best (lowest
-  // risk) completed public audit per domain in a single query. No JS-level
-  // starvation possible. Requires host-first ordering for DISTINCT ON syntax;
-  // we re-sort by risk in JS afterwards for display.
+  // Database-level deduplication: DISTINCT ON (host) returns the MOST RECENT
+  // completed public audit per domain in a single query (a re-audit supersedes
+  // the prior entry). No JS-level starvation possible. DISTINCT ON requires
+  // host-first ordering; we re-sort by risk in JS afterwards for display.
   const rows = await db
     .selectDistinctOn([audits.host], {
       id: audits.id,
