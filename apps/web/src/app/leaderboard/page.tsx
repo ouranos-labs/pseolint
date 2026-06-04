@@ -87,6 +87,7 @@ export default async function Leaderboard() {
       slug: audits.slug,
       sourceUrl: audits.sourceUrl,
       host: audits.host,
+      source: audits.source,
       risk: audits.risk,
       pageCount: audits.pageCount,
       createdAt: audits.createdAt,
@@ -206,6 +207,11 @@ export default async function Leaderboard() {
                   <span className="absolute right-3 top-3 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-[8px] bg-secondary/80 px-1.5 shadow-sm font-mono text-[11px] tabular-nums text-muted-foreground">
                     { i + 1 }
                   </span>
+                  { r.source === "seed" && (
+                    <span className="absolute left-3 top-3 z-10 inline-flex items-center rounded-[8px] bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-primary shadow-sm">
+                      Notable
+                    </span>
+                  ) }
 
                   <SiteThumbnail host={ host } imageUrl={ r.ogImageUrl } />
 
