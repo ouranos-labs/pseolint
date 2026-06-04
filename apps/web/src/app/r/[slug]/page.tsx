@@ -8,7 +8,7 @@ import { db } from "@/db";
 import { audits, monitoredDomains } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { env } from "@/lib/env";
-import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
+import { getOptionalSession, getAnonSessionId } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { TileGrid } from "@/components/landing/tile-grid";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
@@ -22,6 +22,7 @@ import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount,
 import { TileLegend } from "@/components/audit/tile-legend";
 import { gradeOf } from "@/lib/grade";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
+import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
 
 export const runtime = "nodejs";
 
@@ -47,10 +48,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const row = await findAudit(slug);
-  // Reports describe third-party sites; we never want them indexed by search
-  // engines or aggregated into Slack/Twitter previews with a verdict baked in.
-  const robots: Metadata["robots"] = { index: false, follow: false };
-  if (!row || !isReady(row)) return { title: "Audit not found · pseolint", robots };
+  // Only leaderboard-eligible reports (clean + public + over the page floor)
+  // are indexable — they assert a NAMED site is clean, which is defensible.
+  // Every other report (private, failing, thin, not-ready) stays noindex.
+  if (!row || !isReady(row)) {
+    return { title: "Audit not found · pseolint", robots: { index: false, follow: false } };
+  }
+  const robots: Metadata["robots"] = reportRobots(row);
   const host = hostOf(row.sourceUrl);
   // Title and description are deliberately verdict-free — the score lives on
   // the page itself with hedging context. Card surfaces strip context, so we
@@ -81,9 +85,9 @@ export default async function Page({
   if (!row) notFound();
 
   const session = await getOptionalSession();
-  const anon = await getOrCreateAnonSessionId();
+  const anon = await getAnonSessionId(); // read-only — no cookie write during RSC render
   const ownedByUser = !!(session?.user.id && row.userId === session.user.id);
-  const ownedByAnon = !session && row.anonSessionId === anon;
+  const ownedByAnon = !session && row.anonSessionId !== null && row.anonSessionId === anon;
   // Equalize "exists but private" with "doesn't exist" — a /signin redirect on
   // foreign-private slugs leaks slug existence to anons.
   if (!row.isPublic && !ownedByUser && !ownedByAnon) notFound();
