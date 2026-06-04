@@ -53,3 +53,14 @@ export function reportRobots(a: EligibilityInput): { index: boolean; follow: boo
   const ok = isLeaderboardEligible(a);
   return { index: ok, follow: ok };
 }
+
+/**
+ * Median of a list of numbers. Returns null for an empty list. Used for the
+ * seed-stats aggregate ("median score X"). Pure; does not mutate the input.
+ */
+export function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+}

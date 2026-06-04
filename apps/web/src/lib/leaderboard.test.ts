@@ -5,6 +5,7 @@ import {
   PERMANENT_EXPIRES_AT,
   isLeaderboardEligible,
   reportRobots,
+  median,
 } from "./leaderboard";
 
 const base = {
@@ -59,5 +60,26 @@ describe("PERMANENT_EXPIRES_AT", () => {
   it("is the far-future sentinel Postgres can serialize", () => {
     expect(PERMANENT_EXPIRES_AT).toBe("9999-12-31T23:59:59.999Z");
     expect(Number.isNaN(new Date(PERMANENT_EXPIRES_AT).getTime())).toBe(false);
+  });
+});
+
+describe("median", () => {
+  it("returns null for an empty list", () => {
+    expect(median([])).toBeNull();
+  });
+  it("returns the single value", () => {
+    expect(median([42])).toBe(42);
+  });
+  it("averages the two middle values for an even count", () => {
+    expect(median([10, 20])).toBe(15);
+    expect(median([10, 20, 30, 40])).toBe(25);
+  });
+  it("returns the middle value for an odd count", () => {
+    expect(median([30, 10, 20])).toBe(20);
+  });
+  it("does not mutate the input array", () => {
+    const input = [3, 1, 2];
+    median(input);
+    expect(input).toEqual([3, 1, 2]);
   });
 });
