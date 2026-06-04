@@ -10,9 +10,9 @@ import {
 const base = {
   isPublic: true,
   status: "completed" as const,
-  host: "example.com" as string | null,
-  pageCount: 10 as number | null,
-  risk: 20 as number | null,
+  host: "example.com",
+  pageCount: 10,
+  risk: 20,
 };
 
 describe("isLeaderboardEligible", () => {
@@ -34,6 +34,9 @@ describe("isLeaderboardEligible", () => {
   });
   it("rejects missing host", () => {
     expect(isLeaderboardEligible({ ...base, host: null })).toBe(false);
+  });
+  it("rejects empty-string host", () => {
+    expect(isLeaderboardEligible({ ...base, host: "" })).toBe(false);
   });
   it("enforces the page floor (boundary: 5 in, 4 out)", () => {
     expect(isLeaderboardEligible({ ...base, pageCount: LEADERBOARD_MIN_PAGES })).toBe(true);
