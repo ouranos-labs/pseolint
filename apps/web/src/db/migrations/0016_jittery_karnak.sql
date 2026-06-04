@@ -1,0 +1,1 @@
+ALTER TABLE "audit" ADD COLUMN "source" text DEFAULT 'user' NOT NULL;

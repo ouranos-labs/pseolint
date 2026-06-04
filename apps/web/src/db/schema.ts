@@ -64,6 +64,7 @@ export const audits = pgTable("audit", {
   sourceUrl: text("source_url").notNull(),
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "expired">().notNull().default("queued"),
   isPublic: boolean("is_public").notNull().default(true),
+  source: text("source").$type<"user" | "seed">().notNull().default("user"),
   risk: integer("risk"),
   pageCount: integer("page_count"),
   findingCount: integer("finding_count"),
@@ -91,13 +92,14 @@ export const audits = pgTable("audit", {
   ogTitle: text("og_title"),
   ogDescription: text("og_description"),
   ogImageUrl: text("og_image_url"),
+  host: text("host"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
 }, (t) => ({
   userIdx: index("audit_user_idx").on(t.userId),
   anonIdx: index("audit_anon_idx").on(t.anonSessionId),
-  leaderboardIdx: index("audit_leaderboard_idx").on(t.isPublic, t.status, t.risk),
+  leaderboardIdx: index("audit_leaderboard_idx").on(t.isPublic, t.status, t.host, t.risk),
   expiresIdx: index("audit_expires_idx").on(t.expiresAt),
   slugIdx: uniqueIndex("audit_slug_uniq").on(t.slug),
 }));
@@ -142,6 +144,8 @@ export const monitoredDomains = pgTable("monitored_domain", {
    * user trade thoroughness for politeness without us second-guessing.
    */
   gentleAuditMode: boolean("gentle_audit_mode").notNull().default(false),
+  /** Per-domain IndexNow API key (must be served at /[key].txt on the origin). */
+  indexNowKey: text("indexnow_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),
@@ -203,7 +207,7 @@ export const findingsState = pgTable("findings_state", {
 export const integrations = pgTable("integration", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  kind: text("kind").$type<"gsc" | "github" | "webflow" | "wordpress">().notNull(),
+  kind: text("kind").$type<"gsc" | "github" | "webflow" | "wordpress" | "google-indexing" | "indexnow">().notNull(),
   encryptedTokens: text("encrypted_tokens"),
   scope: text("scope"),
   lastSyncAt: timestamp("last_sync_at", { withTimezone: true }),
@@ -211,6 +215,22 @@ export const integrations = pgTable("integration", {
 }, (t) => ({
   userKindUniq: uniqueIndex("integration_user_kind_uniq").on(t.userId, t.kind),
 }));
+
+export const indexingRequests = pgTable("indexing_request", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  domainId: uuid("domain_id").notNull().references(() => monitoredDomains.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  provider: text("provider").$type<"google" | "indexnow">().notNull(),
+  status: text("status").$type<"pending" | "completed" | "failed">().notNull().default("pending"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+}, (t) => ({
+  domainUrlIdx: index("indexing_request_domain_url_idx").on(t.domainId, t.url),
+  userIdx: index("indexing_request_user_idx").on(t.userId),
+}));
+
 
 export const gscPageMetrics = pgTable("gsc_page_metrics", {
   id: uuid("id").primaryKey().defaultRandom(),
