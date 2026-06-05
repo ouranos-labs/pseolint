@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { hostSectionDivergenceRule } from "../../../src/rules/links/host-section-divergence.js";
+import { categoryForRule } from "../../../src/auditor.js";
 import type { ParsedPage } from "../../../src/types.js";
 
 interface PageOpts {
@@ -188,5 +189,21 @@ describe("hostSectionDivergenceRule", () => {
     for (const url of findings[0].relatedUrls!) {
       expect(url).toContain("/coupons/");
     }
+  });
+});
+
+describe("host-section-divergence scoring category", () => {
+  // Site-reputation-abuse is a spam-policy (INTEGRITY) signal even though the
+  // rule lives in the links namespace because it reads the link graph. It must
+  // score in the integrity bucket, not discoverability — otherwise a confirmed
+  // parasite section barely moves the risk score on a programmatic-directory
+  // (discoverability weight 0.15 vs integrity 0.55). See RULE_CATEGORY_OVERRIDES.
+  test("routes to the integrity bucket, not discoverability", () => {
+    expect(categoryForRule("links/host-section-divergence")).toBe("integrity");
+  });
+
+  test("sibling links rules stay in discoverability", () => {
+    expect(categoryForRule("links/orphan-pages")).toBe("discoverability");
+    expect(categoryForRule("links/dead-ends")).toBe("discoverability");
   });
 });

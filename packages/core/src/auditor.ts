@@ -140,6 +140,26 @@ const CATEGORY_MAP: Record<string, CategoryKey> = {
 };
 
 /**
+ * Per-rule category overrides — take precedence over the namespace-level
+ * CATEGORY_MAP. A rule lands here when its namespace (chosen for code
+ * organisation) doesn't match the scoring bucket its *signal* belongs to.
+ *
+ * `links/host-section-divergence` lives in the links namespace because it reads
+ * the internal-link graph, but semantically it detects a spam-policy violation
+ * (Google's May 2024 site-reputation-abuse) — an INTEGRITY signal, not a
+ * discoverability one. Without this override it scored in the discoverability
+ * bucket (0.15 weight on programmatic-directory), so a confirmed parasite
+ * section moved the risk score by ~2pts despite registering as a blocker.
+ */
+const RULE_CATEGORY_OVERRIDES: Record<string, CategoryKey> = {
+  "links/host-section-divergence": "integrity",
+};
+
+export function categoryForRule(ruleId: string): CategoryKey | undefined {
+  return RULE_CATEGORY_OVERRIDES[ruleId] ?? CATEGORY_MAP[ruleId.split("/")[0]];
+}
+
+/**
  * v0.4.3 — site-type-aware scoring profile. Each profile defines:
  *   - `categoryWeights`: how much each category contributes to the verdict.
  *     Must sum to 1.0 (audit always 0).
@@ -509,6 +529,13 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "links/dead-ends":           { baseImpact: 3, perInstance: 1, maxImpact: 20 },
   "links/cluster-connectivity":{ baseImpact: 5, perInstance: 1, maxImpact: 25 },
   "links/link-depth":          { baseImpact: 3, perInstance: 1, maxImpact: 20 },
+  // host-section-divergence is a reputation/integrity-grade signal that happens
+  // to live in the links namespace (it reads the link graph). It escalates to
+  // `error` and maps to manual-action risk, so it gets an explicit weight rather
+  // than inheriting DEFAULT_RULE_IMPACT (5/25), and is routed to the `integrity`
+  // bucket via RULE_CATEGORY_OVERRIDES so the score reflects the spam-policy
+  // severity rather than diluting into discoverability (0.15 weight).
+  "links/host-section-divergence": { baseImpact: 15, perInstance: 5, maxImpact: 45 },
 
   // AEO — much lower baselines than spam (AEO is opt-in optimization)
   "aeo/citable-facts":        { baseImpact: 2,  perInstance: 1,  maxImpact: 25 },
@@ -1022,8 +1049,7 @@ function scoreFromFindings(
   // Each group's weighted impact lands in its category bucket.
   const groups = new Map<string, RuleResult[]>();
   for (const finding of findings) {
-    const namespace = finding.ruleId.split("/")[0];
-    const bucket = CATEGORY_MAP[namespace];
+    const bucket = categoryForRule(finding.ruleId);
     if (!bucket) continue;
     if (bucket !== "audit") bucketIssues[bucket] += 1;
     if (bucket === "audit") continue;
@@ -1057,8 +1083,7 @@ function scoreFromFindings(
   };
 
   for (const [ruleId, group] of groups) {
-    const namespace = ruleId.split("/")[0];
-    const bucket = CATEGORY_MAP[namespace];
+    const bucket = categoryForRule(ruleId);
     if (!bucket || bucket === "audit") continue;
 
     const impactSpec = RULE_IMPACTS[ruleId] ?? DEFAULT_RULE_IMPACT;

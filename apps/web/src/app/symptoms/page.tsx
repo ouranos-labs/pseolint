@@ -70,7 +70,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What is the May 7, 2024 site-reputation-abuse policy?",
-    a: "It drove a wave of manual actions against domains hosting third-party parasite-SEO content under their authority — coupon subdomains, sponsored-content networks, affiliate landing pages under a high-DR root. SpamBrain treats parasite content as a domain-level signal, not a URL-level one, so it's worth running the doorway-page detector and reading the doorway-pattern symptom page before assuming the cause is something else.",
+    a: "It drove a wave of manual actions against domains hosting third-party parasite-SEO content under their authority — coupon subdomains, sponsored-content networks, affiliate landing pages under a high-DR root. Enforcement is characteristically subfolder-scoped: the offending section loses ranking while the rest of the domain is left intact. pseolint's links/host-section-divergence rule is built for exactly this pattern — it flags a URL section that diverges from the rest of the host on inbound links, topic, template, and authorship — so run that and read the site-reputation-abuse-penalty symptom page before assuming the cause is something else.",
   },
 ];
 
