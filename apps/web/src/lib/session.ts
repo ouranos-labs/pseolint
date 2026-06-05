@@ -22,6 +22,21 @@ export async function getRequiredSession() {
 
 const ANON_COOKIE = "pseolint_anon";
 
+/**
+ * READ-ONLY: Returns the existing anon session ID from the cookie store,
+ * or null if none exists. Safe to call from RSC render passes (no cookie write).
+ */
+export async function getAnonSessionId(): Promise<string | null> {
+  const store = await cookies();
+  const existing = store.get(ANON_COOKIE)?.value;
+  return existing && /^[a-zA-Z0-9_-]{21}$/.test(existing) ? existing : null;
+}
+
+/**
+ * READ-WRITE: Returns the existing anon session ID, creating and persisting
+ * a new one if none exists. MUST only be called from a Server Action or
+ * Route Handler — calling this during an RSC render pass will throw in Next.js 15+.
+ */
 export async function getOrCreateAnonSessionId(): Promise<string> {
   const store = await cookies();
   const existing = store.get(ANON_COOKIE)?.value;
