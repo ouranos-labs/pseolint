@@ -107,11 +107,13 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
       ))
       .orderBy(desc(gscPageMetrics.impressions))
-      // Cap 500: bounds dashboard render work. Originally a Neon free-tier transfer
-      // guard (paperforge.dev, 2026-05-06 — a 25k-page site dumped every row per
-      // render); now on paid Neon the binding reason is render perf, not transfer.
-      // Top-500 by impressions covers >95% of traffic-weighted volume.
-      .limit(500),
+      // Cap 2000 (raised from 500 now that we're on a paid Neon plan — monthly
+      // transfer is no longer the binding constraint; the original 500 was a
+      // free-tier transfer guard after paperforge.dev, 2026-05-06, dumped every
+      // row per render). Still bounded for dashboard render perf. Top-500 by
+      // impressions already covers >95% of traffic-weighted volume; the extra
+      // rows improve long-tail template attribution on very large (25k+ page) sites.
+      .limit(2000),
     db.select({
       monthBucket: gscPageMetrics.monthBucket,
       impressions: sql<number>`coalesce(sum(${gscPageMetrics.impressions}), 0)::int`,
