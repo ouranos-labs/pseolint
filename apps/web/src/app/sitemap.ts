@@ -34,6 +34,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/rules", changeFrequency: "monthly", priority: 0.8 },
     { path: "/symptoms", changeFrequency: "monthly", priority: 0.8 },
     { path: "/research", changeFrequency: "monthly", priority: 0.7 },
+    // Credibility hub (calibration methodology). Was missing from the sitemap —
+    // a high-trust, link-worthy page that should be crawled.
+    { path: "/methodology", changeFrequency: "monthly", priority: 0.7 },
   ];
 
   // Tools resist AI Overviews (interactive) — high priority for crawl + cite signals.
