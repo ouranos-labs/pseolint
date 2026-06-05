@@ -4,6 +4,11 @@ import { MARKETING_TOOLS } from "@/lib/marketing-tools";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { MARKETING_SYMPTOMS } from "@/lib/marketing-symptoms";
 
+// Build-time static (CDN-served): no cold start, always a fast 200, and
+// lastModified freezes at build time rather than changing every request (a
+// per-request `now` makes the whole sitemap look perpetually modified).
+export const dynamic = "force-static";
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const now = new Date();

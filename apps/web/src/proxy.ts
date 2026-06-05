@@ -19,6 +19,36 @@ const CSP_DEV_DYNAMIC_CODE = "'unsafe-" + "eval'";
 const NOINDEX_PREFIXES = ["/r/", "/a/", "/api/", "/dashboard/", "/signin"];
 
 export function proxy(req: NextRequest) {
+  // Canonical-host redirect (apex vs www consolidation). The target host is
+  // derived from BETTER_AUTH_URL — the same source robots.ts, sitemap.ts, and
+  // every `<link rel="canonical">` use — so it can never disagree with the
+  // canonical tags. Skips localhost, *.vercel.app previews, and /api (OAuth
+  // callbacks must stay on the host they were issued for). 301 so crawl budget
+  // and ranking signals consolidate on one host. GSC crawl stats showed apex +
+  // www both crawled, with www reporting "Problems last week".
+  if (!req.nextUrl.pathname.startsWith("/api")) {
+    let canonicalHost = "";
+    try {
+      canonicalHost = new URL(process.env.BETTER_AUTH_URL ?? "").host;
+    } catch {
+      /* malformed/unset env — skip the redirect */
+    }
+    const reqHost = req.headers.get("host") ?? "";
+    if (
+      canonicalHost &&
+      reqHost &&
+      reqHost !== canonicalHost &&
+      !reqHost.startsWith("localhost") &&
+      !reqHost.endsWith(".vercel.app")
+    ) {
+      const url = req.nextUrl.clone();
+      url.host = canonicalHost;
+      url.protocol = "https";
+      url.port = "";
+      return NextResponse.redirect(url, 301);
+    }
+  }
+
   const res = NextResponse.next();
   res.headers.set("X-Frame-Options", "DENY");
   res.headers.set("X-Content-Type-Options", "nosniff");
