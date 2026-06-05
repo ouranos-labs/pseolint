@@ -16,7 +16,7 @@ import { integrations, monitoredDomains } from "@/db/schema";
 import { env } from "@/lib/env";
 import { sealSecret, openSecret } from "@/lib/secret-box";
 
-export const GSC_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
+export const GSC_SCOPE = "https://www.googleapis.com/auth/webmasters.readonly https://www.googleapis.com/auth/indexing";
 const AUTHORIZE_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const API_BASE = "https://searchconsole.googleapis.com/webmasters/v3";

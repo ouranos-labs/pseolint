@@ -17,7 +17,7 @@ const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: strin
   { feature: "Data sources", free: "—", pro: "CSV/JSON upload + GSC integration" },
   { feature: "Rule overrides", free: "Defaults only", pro: "Per-rule severity + thresholds" },
   { feature: "Audit retention", free: "30 days", pro: "Unlimited history" },
-  { feature: "Integrations", free: "GitHub Action", pro: "GitHub Action + GSC + Webflow + WP" },
+  { feature: "Integrations", free: "GitHub Action", pro: "GitHub Action + Google & IndexNow Instant Indexing + GSC + Webflow + WP" },
   { feature: "Domain ownership verification", free: "—", pro: "DNS / meta-tag verified" },
   { feature: "GDPR export + audit log", free: "—", pro: "Included" },
   { feature: "Support", free: "Community + GitHub issues", pro: "Email, 1 business day" },
@@ -77,7 +77,7 @@ const PRO_FEATURES = [
   { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it. Per-template breakdowns so you know which template to fix first." },
   { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype — your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
-  { title: "Integrations", detail: "GitHub Action upload · Search Console (v1.1) · Webflow (v1.1) · WordPress plugin (v1.2)." },
+  { title: "Integrations & Instant Indexing", detail: "GitHub Action upload · Google & IndexNow Instant Indexing · Search Console · Webflow (v1.1) · WordPress (v1.2)." },
   { title: "Dashboard + history", detail: "Portfolio strip, per-domain timelines with template trend lines, suppressions that persist across runs." },
   { title: "Private hosted reports + PDF export", detail: "Shareable links. Branded PDF output for stakeholder handoff." },
 ] as const;
