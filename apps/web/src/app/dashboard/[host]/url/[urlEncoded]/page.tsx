@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
+import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
-import { monitoredDomains, findingsState } from "@/db/schema";
+import { monitoredDomains, findingsState, audits } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { sevDot, sevBorderBg, sevText, type Severity } from "@/lib/severity-style";
 import { FindingRowActions } from "@/components/dashboard/finding-row-actions";
+import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 
 const SEV_RANK: Record<Severity, number> = { critical: 0, error: 1, warning: 2, info: 3 };
 const SEV_ORDER: Severity[] = ["critical", "error", "warning", "info"];
@@ -50,6 +52,62 @@ export default async function UrlDeepDive({
     )
     .limit(1);
   if (!domain) notFound();
+
+  const [latestAudit] = await db
+    .select()
+    .from(audits)
+    .where(
+      and(
+        eq(audits.userId, session.user.id),
+        eq(audits.sourceUrl, domain.sourceUrl),
+        eq(audits.status, "completed"),
+      ),
+    )
+    .orderBy(desc(audits.completedAt))
+    .limit(1);
+
+  let summary: AuditSummary | null = null;
+  if (latestAudit?.storageKey) {
+    const raw = await fetchSummaryJson(summaryKey(latestAudit.id));
+    if (raw) {
+      try { summary = JSON.parse(raw) as AuditSummary; } catch { summary = null; }
+    }
+  }
+
+  const latestFindingsMap = new Map<
+    string,
+    {
+      confidence?: "high" | "medium" | "low" | "speculative";
+      carriedForward?: boolean;
+      lastVerifiedAt?: string | null;
+      effort?: "quick" | "moderate" | "structural";
+    }
+  >();
+
+  if (summary) {
+    const allRuleResults = [
+      ...(summary.issues?.blockers ?? []),
+      ...(summary.issues?.shouldFix ?? []),
+      ...(summary.issues?.informational ?? []),
+    ];
+    for (const r of allRuleResults) {
+      let sig = "__global__";
+      if (r.pageUrl) {
+        try {
+          sig = inferUrlTemplate(r.pageUrl);
+        } catch {
+          sig = r.pageUrl;
+        }
+      }
+      const key = `${r.ruleId}::${sig}`;
+      latestFindingsMap.set(key, {
+        confidence: r.confidence,
+        carriedForward: r.carriedForward,
+        lastVerifiedAt: r.lastVerifiedAt,
+        effort: r.effort,
+      });
+    }
+  }
 
   let templateSig: string;
   try {
@@ -196,9 +254,13 @@ export default async function UrlDeepDive({
                   // it carried forward without re-verification. The 6-hour
                   // grace window absorbs cron jitter (hourly tick + ±30min).
                   const STALE_GRACE_MS = 6 * 60 * 60 * 1000;
-                  const carriedForward = domain.lastRunAt
-                    ? domain.lastRunAt.getTime() - lastSeenAt.getTime() > STALE_GRACE_MS
-                    : false;
+                  const key = `${r.ruleId}::${r.templateSignature}`;
+                  const enriched = latestFindingsMap.get(key);
+                  const carriedForward = enriched?.carriedForward !== undefined
+                    ? enriched.carriedForward
+                    : (domain.lastRunAt
+                        ? domain.lastRunAt.getTime() - lastSeenAt.getTime() > STALE_GRACE_MS
+                        : false);
                   return (
                     <li key={r.id}>
                       <article
@@ -225,6 +287,16 @@ export default async function UrlDeepDive({
                             <code className="rounded-md border border-border/60 bg-card/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground">
                               {r.ruleId}
                             </code>
+                            {enriched?.effort && (
+                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${effortTone(enriched.effort)}`}>
+                                {enriched.effort} effort
+                              </span>
+                            )}
+                            {enriched?.confidence && enriched.confidence !== "high" && (
+                              <span className="inline-flex items-center rounded-full border border-warning/30 bg-warning/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-warning" title="Downweighted false-positive risk for this site type">
+                                ⚠️ {enriched.confidence} confidence
+                              </span>
+                            )}
                             {isSuppressed && (
                               <span className="inline-flex items-center rounded-full border border-border/50 bg-card/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                                 {r.status === "snoozed" ? "Snoozed" : "Dismissed"}
@@ -292,5 +364,12 @@ function relTime(d: Date): string {
   if (h < 24) return h + "h ago";
   const days = Math.round(h / 24);
   return days + "d ago";
+}
+
+function effortTone(effort: "quick" | "moderate" | "structural"): string {
+  if (effort === "quick") return "border-success/40 text-success bg-success/5";
+  if (effort === "moderate") return "border-warning/40 text-warning bg-warning/5";
+  if (effort === "structural") return "border-destructive/40 text-destructive bg-destructive/5";
+  return "border-border/40 text-muted-foreground bg-card/5";
 }
 
