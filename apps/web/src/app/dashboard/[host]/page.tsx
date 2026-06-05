@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
-import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages } from "@/db/schema";
+import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages, indexingRequests } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
@@ -30,6 +30,7 @@ import { gradeOf, scoreTone } from "@/lib/grade";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { WatchedPagesCard } from "./watched-pages-card";
+import { QuickIndexerCard } from "@/components/dashboard/quick-indexer-card";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
@@ -49,7 +50,18 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   if (!domain) notFound();
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
-  const [timelineRuns, openFindings, latestAudit, gscIntegration, gscRows, gscTrend, coverage, watchedRows] = await Promise.all([
+  const [
+    timelineRuns,
+    openFindings,
+    latestAudit,
+    gscIntegration,
+    gscRows,
+    gscTrend,
+    coverage,
+    watchedRows,
+    indexingIntegrations,
+    recentIndexingRequests
+  ] = await Promise.all([
     db.select({
       slug: audits.slug,
       risk: audits.risk,
@@ -83,19 +95,6 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
       .limit(1)
       .then((rows) => rows[0] ?? null),
-    // Per-domain GSC traffic for the current month bucket — TOP 500 by
-    // impressions only. Aggregated below to template signature so each
-    // rendered finding can show "this template gets X impressions" — the
-    // visible justification for ranking by traffic. Also pulls positionAvg
-    // + ctrAvg per URL so the GSC card can show a weighted average position
-    // and CTR (impressions-weighted, not row-mean).
-    //
-    // 2026-05-06 hotfix: capped at 500 rows after a paperforge.dev render
-    // exhausted the Neon free-tier monthly transfer allowance — sites with
-    // 25k indexed pages were dumping every row on every dashboard render.
-    // Top-500 by impressions covers >95% of total traffic-weighted volume on
-    // typical sites; the impression-weighted card metrics are unchanged at
-    // visible precision.
     db.select({
       url: gscPageMetrics.url,
       impressions: gscPageMetrics.impressions,
@@ -108,9 +107,11 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
       ))
       .orderBy(desc(gscPageMetrics.impressions))
+      // Cap 500: bounds dashboard render work. Originally a Neon free-tier transfer
+      // guard (paperforge.dev, 2026-05-06 — a 25k-page site dumped every row per
+      // render); now on paid Neon the binding reason is render perf, not transfer.
+      // Top-500 by impressions covers >95% of traffic-weighted volume.
       .limit(500),
-    // Last 6 month buckets (incl. current) aggregated for the GSC trend
-    // sparkline. Group-by-bucket so we sum across URLs once at the DB.
     db.select({
       monthBucket: gscPageMetrics.monthBucket,
       impressions: sql<number>`coalesce(sum(${gscPageMetrics.impressions}), 0)::int`,
@@ -120,14 +121,11 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .groupBy(gscPageMetrics.monthBucket)
       .orderBy(desc(gscPageMetrics.monthBucket))
       .limit(6),
-    // v0.5.3 cumulative coverage — sum of URLs audited across this domain's
-    // completed history. Cheap aggregate over the audit row, no R2 round-trip.
     getCumulativeCoverage({
       monitoredDomainId: domain.id,
       userId: session.user.id,
       sourceUrl: domain.sourceUrl,
     }),
-    // v0.5.3 watched pages — pinned URLs the engine forces on every run.
     db.select({
       id: watchedPages.id,
       url: watchedPages.url,
@@ -137,7 +135,57 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .from(watchedPages)
       .where(eq(watchedPages.monitoredDomainId, domain.id))
       .orderBy(desc(watchedPages.createdAt)),
+    db.select({ kind: integrations.kind })
+      .from(integrations)
+      .where(and(
+        eq(integrations.userId, session.user.id),
+        sql`${integrations.kind} in ('google-indexing', 'indexnow')`
+      )),
+    db.select({
+      url: indexingRequests.url,
+      provider: indexingRequests.provider,
+      status: indexingRequests.status,
+      error: indexingRequests.error,
+      createdAt: indexingRequests.createdAt,
+    })
+      .from(indexingRequests)
+      .where(eq(indexingRequests.domainId, domain.id))
+      .orderBy(desc(indexingRequests.createdAt)),
   ]);
+
+  const indexedUrlsRows = await db
+    .select({ url: gscPageMetrics.url })
+    .from(gscPageMetrics)
+    .where(and(
+      eq(gscPageMetrics.domainId, domain.id),
+      gte(gscPageMetrics.impressions, 1)
+    ));
+  const indexedUrls = indexedUrlsRows.map((r) => r.url);
+  const indexedUrlSet = new Set(indexedUrls);
+
+  // Derive clean candidate URLs: pages observed by the engine that currently
+  // have zero open findings — i.e. every finding ever recorded has been
+  // resolved (snoozed or dismissed). Subtract already-indexed URLs so we
+  // only surface pages that genuinely need a crawl request.
+  const dirtyRepresentativeUrls = openFindings
+    .map((f) => f.representativeUrl)
+    .filter((u): u is string => u !== null && u !== undefined);
+
+  const allRepresentativeUrlRows = await db
+    .selectDistinct({ url: findingsState.representativeUrl })
+    .from(findingsState)
+    .where(and(
+      eq(findingsState.domainId, domain.id),
+      isNotNull(findingsState.representativeUrl)
+    ));
+
+  const cleanCandidateUrls = allRepresentativeUrlRows
+    .map((r) => r.url)
+    .filter((u): u is string => u !== null && u !== undefined)
+    .filter((u) => !dirtyRepresentativeUrls.includes(u))
+    .filter((u) => !indexedUrlSet.has(u))
+    .slice(0, 100); // cap at 100 to keep the UI manageable
+
 
   let summary: AuditSummary | null = null;
   if (latestAudit?.storageKey) {
@@ -147,13 +195,48 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     }
   }
 
+  const latestFindingsMap = new Map<
+    string,
+    {
+      confidence?: "high" | "medium" | "low" | "speculative";
+      carriedForward?: boolean;
+      lastVerifiedAt?: string | null;
+      effort?: "quick" | "moderate" | "structural";
+    }
+  >();
+
+  if (summary) {
+    const allRuleResults = [
+      ...(summary.issues?.blockers ?? []),
+      ...(summary.issues?.shouldFix ?? []),
+      ...(summary.issues?.informational ?? []),
+    ];
+    for (const r of allRuleResults) {
+      let sig = "__global__";
+      if (r.pageUrl) {
+        try {
+          sig = inferUrlTemplate(r.pageUrl);
+        } catch {
+          sig = r.pageUrl;
+        }
+      }
+      const key = `${r.ruleId}::${sig}`;
+      latestFindingsMap.set(key, {
+        confidence: r.confidence,
+        carriedForward: r.carriedForward,
+        lastVerifiedAt: r.lastVerifiedAt,
+        effort: r.effort,
+      });
+    }
+  }
+
   const tileStates = summary ? summaryToTileStates(summary) : [];
   const tileMeta = summary ? summaryToTileMeta(summary, domain.host) : [];
   const counts = summary ? severityCounts(summary) : null;
   const cleanPages = summary ? cleanPageCount(summary) : null;
 
   // Risk delta vs. the previous completed run, used to annotate the big number.
-  const completedRuns = timelineRuns.filter((r) => r.status === "completed" && r.risk != null);
+  const completedRuns = timelineRuns.filter((r: { status: string; risk: number | null; }) => r.status === "completed" && r.risk != null);
   const previousRisk = completedRuns[1]?.risk ?? null;
   const riskDelta =
     latestAudit?.risk != null && previousRisk != null ? latestAudit.risk - previousRisk : null;
@@ -290,59 +373,59 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const gscVariant = !gscConnected
     ? "not-connected" as const
     : !domain.gscSiteUrl
-    ? "connected-not-bound" as const
-    : !gscHasData
-    ? "bound-no-data" as const
-    : "bound-with-data" as const;
+      ? "connected-not-bound" as const
+      : !gscHasData
+        ? "bound-no-data" as const
+        : "bound-with-data" as const;
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. WHERE AM I — header + verify banner if blocking. */}
-      <WorkspaceHeader domain={{ host: domain.host, sourceUrl: domain.sourceUrl }} />
-      {!domain.verifiedAt && (
+      {/* 1. WHERE AM I — header + verify banner if blocking. */ }
+      <WorkspaceHeader domain={ { host: domain.host, sourceUrl: domain.sourceUrl } } />
+      { !domain.verifiedAt && (
         <VerifyBanner
-          host={domain.host}
-          token={domain.verificationToken}
-          provider={await detectDnsProvider(domain.host)}
+          host={ domain.host }
+          token={ domain.verificationToken }
+          provider={ await detectDnsProvider(domain.host) }
         />
-      )}
+      ) }
 
       {/* 2. INTEGRATION HEALTH — only loud when actionable; the bound-with-data
           variant renders as a single compact pill so the happy path doesn't
           dominate the hero. */}
       <GscStatusStrip
-        variant={gscVariant}
-        host={domain.host}
-        siteUrl={domain.gscSiteUrl}
-        totalImpressions={totalImpressions}
-        totalClicks={totalClicks}
-        lastSyncAt={gscIntegration?.lastSyncAt ?? null}
-        monthlyTrend={monthlyTrend}
-        topTemplates={topTemplates}
-        weightedAvgPosition={weightedAvgPosition}
-        ctr={ctr}
+        variant={ gscVariant }
+        host={ domain.host }
+        siteUrl={ domain.gscSiteUrl }
+        totalImpressions={ totalImpressions }
+        totalClicks={ totalClicks }
+        lastSyncAt={ gscIntegration?.lastSyncAt ?? null }
+        monthlyTrend={ monthlyTrend }
+        topTemplates={ topTemplates }
+        weightedAvgPosition={ weightedAvgPosition }
+        ctr={ ctr }
       />
 
       {/* v0.5.3 — cumulative coverage. Reframes "200 URLs/week" as the
           running total this domain has accumulated. Hidden silently for
           brand-new domains with no completed audit history; an empty
           state here would just be noise. */}
-      {coverage.urlsAuditedTotal > 0 && (
+      { coverage.urlsAuditedTotal > 0 && (
         <CumulativeCoverageCard
-          urlsAuditedTotal={coverage.urlsAuditedTotal}
-          urlsAuditedLast30d={coverage.urlsAuditedLast30d}
+          urlsAuditedTotal={ coverage.urlsAuditedTotal }
+          urlsAuditedLast30d={ coverage.urlsAuditedLast30d }
         />
-      )}
+      ) }
 
-      {/* 3. WHERE I AM — the headline (latest risk + tile grid). */}
-      {latestAudit && summary && (
+      {/* 3. WHERE I AM — the headline (latest risk + tile grid). */ }
+      { latestAudit && summary && (
         <section className="flex flex-col gap-6">
           <div className="flex items-baseline justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Latest audit · {latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleString() : "—"}
+              Latest audit · { latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleString() : "—" }
             </h2>
             <Link
-              href={`/r/${latestAudit.slug}`}
+              href={ `/r/${latestAudit.slug}` }
               className="text-xs text-primary hover:underline"
             >
               Open full report →
@@ -352,23 +435,23 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           {/* v0.4 §4.11 site-classification badge — surfaces what type of site the
               engine inferred and how many pSEO-only rules were suppressed. Only
               rendered for v0.4+ reports (legacy v0.3 summaries lack the field). */}
-          {summary.siteClassification && (
+          { summary.siteClassification && (
             <div className="-mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1">
                 <span className="text-muted-foreground/70">Site type:</span>
-                <span className="font-mono text-foreground">{summary.siteClassification.type}</span>
+                <span className="font-mono text-foreground">{ summary.siteClassification.type }</span>
                 <span aria-hidden="true">·</span>
-                <span className="tabular-nums">{Math.round(summary.siteClassification.confidence * 100)}% confidence</span>
+                <span className="tabular-nums">{ Math.round(summary.siteClassification.confidence * 100) }% confidence</span>
               </span>
-              {summary.siteClassification.suppressedRules.length > 0 && (
+              { summary.siteClassification.suppressedRules.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1"
-                  title={summary.siteClassification.suppressedRules.join(", ")}
+                  title={ summary.siteClassification.suppressedRules.join(", ") }
                 >
-                  <span className="tabular-nums">{summary.siteClassification.suppressedRules.length}</span>
-                  <span>pSEO-only rule{summary.siteClassification.suppressedRules.length === 1 ? "" : "s"} suppressed</span>
+                  <span className="tabular-nums">{ summary.siteClassification.suppressedRules.length }</span>
+                  <span>pSEO-only rule{ summary.siteClassification.suppressedRules.length === 1 ? "" : "s" } suppressed</span>
                 </span>
-              )}
-              {summary.scrapePlan && (() => {
+              ) }
+              { summary.scrapePlan && (() => {
                 const sp = summary.scrapePlan;
                 const total = sp.intended + sp.carriedForward;
                 const refetchReasons = Object.entries(sp.reasonCounts)
@@ -382,50 +465,49 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                 return (
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1"
-                    title={`Reasons: ${refetchReasons || "none"} · Ruleset v${sp.rulesetVersion}`}
+                    title={ `Reasons: ${refetchReasons || "none"} · Ruleset v${sp.rulesetVersion}` }
                   >
                     <span className="text-muted-foreground/70">Monitoring:</span>
-                    <span className="tabular-nums text-foreground">{fetchedDisplay}/{total}</span>
+                    <span className="tabular-nums text-foreground">{ fetchedDisplay }/{ total }</span>
                     <span>re-scraped</span>
                     <span aria-hidden="true">·</span>
-                    <span className="tabular-nums">{sp.carriedForward}</span>
+                    <span className="tabular-nums">{ sp.carriedForward }</span>
                     <span>carried forward</span>
                   </span>
                 );
-              })()}
+              })() }
             </div>
-          )}
+          ) }
 
           <div className="grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
             <div className="flex flex-col items-start">
               <div className="flex items-baseline gap-3">
                 <span
-                  className={`text-[64px] leading-[0.9] tabular-nums sm:text-[80px] md:text-[96px] ${scoreTone(latestAudit.risk ?? 0)}`}
-                  style={{ fontFamily: "var(--font-display)" }}
+                  className={ `text-[64px] leading-[0.9] tabular-nums sm:text-[80px] md:text-[96px] ${scoreTone(latestAudit.risk ?? 0)}` }
+                  style={ { fontFamily: "var(--font-display)" } }
                 >
-                  {latestAudit.risk ?? 0}
+                  { latestAudit.risk ?? 0 }
                 </span>
-                {(() => {
+                { (() => {
                   const g = gradeOf(latestAudit.risk ?? 0);
                   return (
                     <span
-                      className={`inline-flex h-10 w-10 items-center justify-center rounded-md font-mono text-lg font-bold ${g.bg} ${g.text}`}
-                      title={`Grade ${g.letter} · ${g.band}`}
+                      className={ `inline-flex h-10 w-10 items-center justify-center rounded-md font-mono text-lg font-bold ${g.bg} ${g.text}` }
+                      title={ `Grade ${g.letter} · ${g.band}` }
                     >
-                      {g.letter}
+                      { g.letter }
                     </span>
                   );
-                })()}
-                {riskDelta != null && riskDelta !== 0 && (
+                })() }
+                { riskDelta != null && riskDelta !== 0 && (
                   <span
-                    className={`font-mono text-sm tabular-nums ${
-                      riskDelta < 0 ? "text-success" : "text-destructive"
-                    }`}
-                    title={`vs. previous run (${previousRisk})`}
+                    className={ `font-mono text-sm tabular-nums ${riskDelta < 0 ? "text-success" : "text-destructive"
+                      }` }
+                    title={ `vs. previous run (${previousRisk})` }
                   >
-                    {riskDelta > 0 ? "+" : ""}{riskDelta}
+                    { riskDelta > 0 ? "+" : "" }{ riskDelta }
                   </span>
-                )}
+                ) }
               </div>
               <span className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
                 Risk score · lower is safer
@@ -433,60 +515,60 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </div>
 
             <div className="flex flex-col gap-3">
-              {tileStates.length > 0 ? (
+              { tileStates.length > 0 ? (
                 <>
                   <TileGrid
-                    states={tileStates}
-                    meta={tileMeta}
-                    title={`${domain.host} — worst rule per page across ${tileStates.length} tiles. Click a tile to see its history.`}
+                    states={ tileStates }
+                    meta={ tileMeta }
+                    title={ `${domain.host} — worst rule per page across ${tileStates.length} tiles. Click a tile to see its history.` }
                   />
                   <TileLegend
-                    {...pagesByWorstSeverity(summary)}
-                    total={tileStates.length}
+                    { ...pagesByWorstSeverity(summary) }
+                    total={ tileStates.length }
                   />
                 </>
               ) : (
                 <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
                   Tile map unavailable for this audit.
                 </div>
-              )}
+              ) }
               <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
-                <Stat label="Pages" sub="scanned" value={latestAudit.pageCount ?? 0} tone="text-foreground" />
-                <Stat label="Errors" sub="findings" value={counts?.errors ?? 0} tone="text-destructive" />
-                <Stat label="Warnings" sub="findings" value={counts?.warnings ?? 0} tone="text-warning" />
-                <Stat label="Clean" sub="pages" value={cleanPages ?? 0} tone="text-success" />
+                <Stat label="Pages" sub="scanned" value={ latestAudit.pageCount ?? 0 } tone="text-foreground" />
+                <Stat label="Errors" sub="findings" value={ counts?.errors ?? 0 } tone="text-destructive" />
+                <Stat label="Warnings" sub="findings" value={ counts?.warnings ?? 0 } tone="text-warning" />
+                <Stat label="Clean" sub="pages" value={ cleanPages ?? 0 } tone="text-success" />
               </dl>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <CopyLinkButton url={`/r/${latestAudit.slug}`} />
-            <ExportMenu auditId={latestAudit.id} auditSlug={latestAudit.slug} isPro={true} />
+            <CopyLinkButton url={ `/r/${latestAudit.slug}` } />
+            <ExportMenu auditId={ latestAudit.id } auditSlug={ latestAudit.slug } isPro={ true } />
           </div>
         </section>
-      )}
+      ) }
 
       {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads
           state-then-delta. Stronger Pro-justification per pixel than any
           other strip. */}
-      {latestAudit?.completedAt && (
+      { latestAudit?.completedAt && (
         <RunDiffStrip
-          newFindings={runDiff.newFindings}
-          recoveredCount={runDiff.recoveredCount}
-          recoveredFindings={runDiff.recoveredFindings}
-          latestAt={latestAudit.completedAt}
-          previousAt={runDiff.previousAt}
+          newFindings={ runDiff.newFindings }
+          recoveredCount={ runDiff.recoveredCount }
+          recoveredFindings={ runDiff.recoveredFindings }
+          latestAt={ latestAudit.completedAt }
+          previousAt={ runDiff.previousAt }
         />
-      )}
+      ) }
 
-      {/* 5. HOW AM I TRENDING — the visual narrative of monitoring. */}
-      <RiskTrendChart runs={timelineRuns} alertThreshold={domain.alertThreshold} />
+      {/* 5. HOW AM I TRENDING — the visual narrative of monitoring. */ }
+      <RiskTrendChart runs={ timelineRuns } alertThreshold={ domain.alertThreshold } />
 
-      {/* 6. ALERT THRESHOLD — interactive replay so the user sees what their threshold buys */}
+      {/* 6. ALERT THRESHOLD — interactive replay so the user sees what their threshold buys */ }
       <AlertThresholdSimulator
-        runs={timelineRuns}
-        currentThreshold={domain.alertThreshold}
-        host={domain.host}
+        runs={ timelineRuns }
+        currentThreshold={ domain.alertThreshold }
+        host={ domain.host }
       />
 
       {/* 6.5 WATCHED PAGES (v0.5.3) — Pro-only pinning. URLs in this list are
@@ -494,41 +576,57 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           Free users never reach this page (plan gate redirects to /pricing),
           so no upgrade CTA needed inline. */}
       <WatchedPagesCard
-        monitoredDomainId={domain.id}
-        host={domain.host}
-        initialRows={watchedRows}
+        monitoredDomainId={ domain.id }
+        host={ domain.host }
+        initialRows={ watchedRows }
       />
+
+      {/* 6.55 INSTANT INDEXING ENGINE (v0.6) — free-form URL push for pages
+          that are clean but not yet surfaced in the findings list. Respects
+          the same Domain-Level Quality Gate, Hostname Guard, and Impression
+          Proxy Correlation as the per-finding IndexingButton. */}
+      { indexingIntegrations.length > 0 && (
+        <QuickIndexerCard
+          domainId={ domain.id }
+          host={ domain.host }
+          latestAuditRisk={ latestAudit?.risk ?? null }
+          indexingIntegrations={ indexingIntegrations.map((i) => i.kind).filter((k): k is "google-indexing" | "indexnow" => k === "google-indexing" || k === "indexnow") }
+          recentIndexingRequests={ recentIndexingRequests }
+          indexedUrls={ indexedUrls }
+          cleanCandidateUrls={ cleanCandidateUrls }
+        />
+      ) }
 
       {/* 6.6 TEMPLATE BREAKDOWN (v0.5.10) — rendered when the engine detected ≥2
           templates. Cards live above the per-URL findings list so the operator
           sees the template-level picture first, then drills down. Falls back
           silently for legacy / single-template audits. */}
-      {summary && (summary.templates?.length ?? 0) >= 2 && (
+      { summary && (summary.templates?.length ?? 0) >= 2 && (
         <TemplateGridClient
-          templates={summary.templates}
-          totalDiscoveredUrls={summary.pageCount}
+          templates={ summary.templates }
+          totalDiscoveredUrls={ summary.pageCount }
         />
-      )}
+      ) }
 
       {/* 7. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
           *below* the trend so they don't break the state→change→trend flow. */}
-      {latestAudit && summary && (
+      { latestAudit && summary && (
         <>
-          <OriginReadinessCard summary={summary} />
+          <OriginReadinessCard summary={ summary } />
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               Category scores
             </h3>
-            <CategoryBreakdown summary={summary} />
+            <CategoryBreakdown summary={ summary } />
           </div>
         </>
-      )}
+      ) }
 
       {/* 8. PICK A SPECIFIC RUN — clickable bar grid for drill-down into a
           past report. Lives above the findings panel because that's where the
           user goes if they want to compare a finding to a specific historical
           state. */}
-      <TimelineStrip runs={timelineRuns} />
+      <TimelineStrip runs={ timelineRuns } />
 
       {/* 9. WHAT'S WRONG — the work surface. Each row carries traffic chips,
           rank-source annotation, and (when documented) inline remediation.
@@ -536,40 +634,60 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           to a drill-down collapsed by default (template cards above are the
           primary surface). Falls through to expanded list on single-template
           / legacy audits per spec §8.4. */}
-      {(summary?.templates?.length ?? 0) >= 2 ? (
-        <details className="group">
-          <summary className="cursor-pointer select-none list-none py-2 text-sm text-muted-foreground hover:text-foreground">
-            <span className="group-open:hidden">Show all {openFindings.length} per-URL findings</span>
-            <span className="hidden group-open:inline">Hide per-URL findings</span>
+      { (summary?.templates?.length ?? 0) >= 2 ? (
+        <details className="group border border-border/80 bg-card/30 rounded-[18px] transition-colors hover:border-border overflow-hidden">
+          <summary className="flex cursor-pointer select-none items-center justify-between px-5 py-4 text-sm font-medium text-foreground hover:bg-card/40">
+            <span className="flex items-center gap-2">
+              <span className="font-semibold">Per-URL Findings</span>
+              <span className="rounded-full bg-muted/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground">{openFindings.length} open</span>
+            </span>
+            <span className="font-mono text-muted-foreground transition-transform group-open:rotate-90">
+              ›
+            </span>
           </summary>
-          <FindingsPanel
-            findings={openFindings.map((f) => {
-              const traffic = trafficBySig.get(f.templateSignature);
-              const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
-              return {
-                id: f.id,
-                ruleId: f.ruleId,
-                severityLatest: f.severityLatest,
-                affectedPageCount: f.affectedPageCount,
-                rankScore: String(f.rankScore),
-                ruleMessageLatest: f.ruleMessageLatest,
-                representativeUrl: f.representativeUrl,
-                status: f.status,
-                traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
-                help: rule
-                  ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
-                  : null,
-              };
-            })}
-            gscBound={gscBound}
-            host={domain.host}
-          />
+          <div className="border-t border-border/60 bg-card/10 p-5">
+            <FindingsPanel
+              findings={ openFindings.map((f) => {
+                const traffic = trafficBySig.get(f.templateSignature);
+                const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
+                const key = `${f.ruleId}::${f.templateSignature}`;
+                const enriched = latestFindingsMap.get(key);
+                return {
+                  id: f.id,
+                  ruleId: f.ruleId,
+                  severityLatest: f.severityLatest,
+                  affectedPageCount: f.affectedPageCount,
+                  rankScore: String(f.rankScore),
+                  ruleMessageLatest: f.ruleMessageLatest,
+                  representativeUrl: f.representativeUrl,
+                  status: f.status,
+                  traffic: traffic && (traffic.impressions > 0 || traffic.clicks > 0) ? traffic : null,
+                  help: rule
+                    ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
+                    : null,
+                  confidence: enriched?.confidence,
+                  carriedForward: enriched?.carriedForward,
+                  lastVerifiedAt: enriched?.lastVerifiedAt,
+                  effort: enriched?.effort,
+                };
+              }) }
+              gscBound={ gscBound }
+              host={ domain.host }
+              domainId={ domain.id }
+              indexingIntegrations={ indexingIntegrations.map((i) => i.kind).filter((k): k is "google-indexing" | "indexnow" => k === "google-indexing" || k === "indexnow") }
+              latestAuditRisk={ latestAudit?.risk ?? null }
+              recentIndexingRequests={ recentIndexingRequests }
+              indexedUrls={ indexedUrls }
+            />
+          </div>
         </details>
       ) : (
         <FindingsPanel
-          findings={openFindings.map((f) => {
+          findings={ openFindings.map((f) => {
             const traffic = trafficBySig.get(f.templateSignature);
             const rule = MARKETING_RULES.find((r) => r.ruleId === f.ruleId);
+            const key = `${f.ruleId}::${f.templateSignature}`;
+            const enriched = latestFindingsMap.get(key);
             return {
               id: f.id,
               ruleId: f.ruleId,
@@ -583,12 +701,21 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
               help: rule
                 ? { slug: rule.slug, oneLiner: rule.oneLiner, howToFix: rule.howToFix }
                 : null,
+              confidence: enriched?.confidence,
+              carriedForward: enriched?.carriedForward,
+              lastVerifiedAt: enriched?.lastVerifiedAt,
+              effort: enriched?.effort,
             };
-          })}
-          gscBound={gscBound}
-          host={domain.host}
+          }) }
+          gscBound={ gscBound }
+          host={ domain.host }
+          domainId={ domain.id }
+          indexingIntegrations={ indexingIntegrations.map((i) => i.kind).filter((k): k is "google-indexing" | "indexnow" => k === "google-indexing" || k === "indexnow") }
+          latestAuditRisk={ latestAudit?.risk ?? null }
+          recentIndexingRequests={ recentIndexingRequests }
+          indexedUrls={ indexedUrls }
         />
-      )}
+      ) }
     </div>
   );
 }
@@ -596,9 +723,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 function Stat({ label, sub, value, tone }: { label: string; sub?: string; value: number; tone: string }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wider text-muted-foreground">{label}</dt>
-      <dd className={`mt-1 font-mono tabular-nums text-2xl ${tone}`}>{value}</dd>
-      {sub && <span className="font-mono text-[10px] text-muted-foreground/70">{sub}</span>}
+      <dt className="text-xs uppercase tracking-wider text-muted-foreground">{ label }</dt>
+      <dd className={ `mt-1 font-mono tabular-nums text-2xl ${tone}` }>{ value }</dd>
+      { sub && <span className="font-mono text-[10px] text-muted-foreground/70">{ sub }</span> }
     </div>
   );
 }

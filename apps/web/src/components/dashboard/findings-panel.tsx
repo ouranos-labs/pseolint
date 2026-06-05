@@ -9,6 +9,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { IndexingButton } from "@/components/dashboard/indexing-button";
+import { requestBatchIndexingAction } from "@/app/dashboard/indexing-actions";
+import { toast } from "sonner";
+
 
 const SNOOZE_OPTIONS: { days: number; label: string }[] = [
   { days: 7, label: "1 week" },
@@ -33,6 +37,10 @@ type Finding = {
     oneLiner: string;
     howToFix: string[];
   } | null;
+  confidence?: "high" | "medium" | "low" | "speculative";
+  carriedForward?: boolean;
+  lastVerifiedAt?: string | null;
+  effort?: "quick" | "moderate" | "structural";
 };
 
 interface FindingsPanelProps {
@@ -41,6 +49,17 @@ interface FindingsPanelProps {
   gscBound?: boolean;
   /** Domain host — used to build per-URL deep-dive links. */
   host: string;
+  /** v0.6 Indexing orchestration props */
+  domainId: string;
+  indexingIntegrations: ("google-indexing" | "indexnow")[];
+  latestAuditRisk: number | null;
+  recentIndexingRequests?: {
+    url: string;
+    provider: "google" | "indexnow";
+    status: "pending" | "completed" | "failed";
+    error: string | null;
+  }[];
+  indexedUrls?: string[];
 }
 
 const SEV_ORDER = ["critical", "error", "warning", "info"] as const;
@@ -55,9 +74,61 @@ const SEV_LABEL: Record<Severity, string> = {
 
 const PAGE_SIZE = 50;
 
-export function FindingsPanel({ findings, gscBound = false, host }: FindingsPanelProps) {
+export function FindingsPanel({ 
+  findings, 
+  gscBound = false, 
+  host,
+  domainId,
+  indexingIntegrations,
+  latestAuditRisk,
+  recentIndexingRequests = [],
+  indexedUrls = []
+}: FindingsPanelProps) {
   const [showSuppressed, setShowSuppressed] = useState(false);
   const [pages, setPages] = useState(1);
+  const [batchPending, startBatch] = useTransition();
+
+  const openUrls = Array.from(new Set(
+    findings
+      .filter((f) => f.status === "open" && f.representativeUrl)
+      .map((f) => f.representativeUrl as string)
+  ));
+
+  const handleBatchPush = (provider: "google" | "indexnow") => {
+    if (latestAuditRisk !== null && latestAuditRisk > 40) {
+      toast.error("Quality Gate: Audit risk is too high. Fix findings before requesting indexation.");
+      return;
+    }
+
+    if (openUrls.length === 0) {
+      toast.error("No open pages to index.");
+      return;
+    }
+
+    if (provider === "google" && openUrls.length > 50) {
+      toast.error("Google Indexing API only allows a max of 50 URLs in a single batch. Pushing the first 50 URLs.");
+    }
+
+    const urlsToPush = provider === "google" ? openUrls.slice(0, 50) : openUrls;
+
+    if (!confirm(`Are you sure you want to push ${urlsToPush.length} URL(s) to ${provider === "google" ? "Google" : "IndexNow"}?`)) {
+      return;
+    }
+
+    startBatch(async () => {
+      const res = await requestBatchIndexingAction({
+        domainId,
+        urls: urlsToPush,
+        provider,
+      });
+
+      if (res.success) {
+        toast.success(`Successfully queued ${urlsToPush.length} URL(s) for indexing via ${provider === "google" ? "Google" : "IndexNow"}`);
+      } else {
+        toast.error(res.error || "Batch indexing failed");
+      }
+    });
+  };
   const visible = findings.filter((f) => showSuppressed || f.status === "open");
 
   // Sort once globally by severity → rank, then slice. This preserves the
@@ -131,12 +202,66 @@ export function FindingsPanel({ findings, gscBound = false, host }: FindingsPane
         </div>
       )}
 
+      {/* Batch Indexing Affordances (v0.6) */}
+      {openUrls.length > 0 && (indexingIntegrations.includes("google-indexing") || indexingIntegrations.includes("indexnow")) && (
+        <div className="flex flex-col gap-3 rounded-[18px] border border-primary/20 bg-primary/[0.02] p-4 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="font-semibold text-foreground">Programmatic Indexing (Batch Action)</p>
+              <p className="mt-0.5 text-muted-foreground">
+                Push all <span className="font-mono font-medium text-foreground">{openUrls.length}</span> open affected pages directly to search engines.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {indexingIntegrations.includes("google-indexing") && (
+                <button
+                  type="button"
+                  disabled={batchPending}
+                  onClick={() => handleBatchPush("google")}
+                  className="inline-flex h-8 items-center rounded-[12px] border border-border-strong bg-card px-3 text-xs font-mono text-foreground hover:bg-secondary disabled:opacity-50"
+                  title="Limit 50 per batch. Gated by Google daily quota."
+                >
+                  {batchPending ? "Pushing..." : "Push all to Google"}
+                </button>
+              )}
+              {indexingIntegrations.includes("indexnow") && (
+                <button
+                  type="button"
+                  disabled={batchPending}
+                  onClick={() => handleBatchPush("indexnow")}
+                  className="inline-flex h-8 items-center rounded-[12px] border border-border-strong bg-card px-3 text-xs font-mono text-foreground hover:bg-secondary disabled:opacity-50"
+                >
+                  {batchPending ? "Pushing..." : "Push all to IndexNow"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {indexingIntegrations.includes("google-indexing") && (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-2.5 text-[11px] text-warning">
+              <span className="font-semibold">⚠️ Google Indexing API Daily Quota:</span> Google restricts indexing to <strong>200 requests/day</strong>. Pushing large batches will consume your daily quota quickly. Prefer IndexNow for large batch runs.
+            </div>
+          )}
+        </div>
+      )}
+
       {visible.length === 0 ? (
         <CleanState hasSuppressed={suppressedCount > 0} onShow={() => setShowSuppressed(true)} />
       ) : (
         <div className="flex flex-col gap-6">
           {groups.map((g) => (
-            <SeverityGroup key={g.sev} sev={g.sev} rows={g.rows} gscBound={gscBound} host={host} />
+            <SeverityGroup 
+              key={g.sev} 
+              sev={g.sev} 
+              rows={g.rows} 
+              gscBound={gscBound} 
+              host={host} 
+              domainId={domainId}
+              indexingIntegrations={indexingIntegrations}
+              latestAuditRisk={latestAuditRisk}
+              recentIndexingRequests={recentIndexingRequests}
+              indexedUrls={indexedUrls}
+            />
           ))}
           {remaining > 0 && (
             <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-card/40 px-4 py-3 text-xs">
@@ -181,7 +306,32 @@ function CleanState({ hasSuppressed, onShow }: { hasSuppressed: boolean; onShow:
   );
 }
 
-function SeverityGroup({ sev, rows, gscBound, host }: { sev: Severity; rows: Finding[]; gscBound: boolean; host: string }) {
+function SeverityGroup({ 
+  sev, 
+  rows, 
+  gscBound, 
+  host,
+  domainId,
+  indexingIntegrations,
+  latestAuditRisk,
+  recentIndexingRequests,
+  indexedUrls
+}: { 
+  sev: Severity; 
+  rows: Finding[]; 
+  gscBound: boolean; 
+  host: string;
+  domainId: string;
+  indexingIntegrations: ("google-indexing" | "indexnow")[];
+  latestAuditRisk: number | null;
+  recentIndexingRequests: {
+    url: string;
+    provider: "google" | "indexnow";
+    status: "pending" | "completed" | "failed";
+    error: string | null;
+  }[];
+  indexedUrls: string[];
+}) {
   return (
     <div>
       <h3 className={`mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${sevText(sev)}`}>
@@ -190,16 +340,54 @@ function SeverityGroup({ sev, rows, gscBound, host }: { sev: Severity; rows: Fin
         <span className="font-mono text-[11px] font-normal text-muted-foreground">· {rows.length}</span>
       </h3>
       <ul className="flex flex-col gap-2">
-        {rows.map((f) => <FindingRow key={f.id} f={f} gscBound={gscBound} host={host} />)}
+        {rows.map((f) => (
+          <FindingRow 
+            key={f.id} 
+            f={f} 
+            gscBound={gscBound} 
+            host={host} 
+            domainId={domainId}
+            indexingIntegrations={indexingIntegrations}
+            latestAuditRisk={latestAuditRisk}
+            recentIndexingRequests={recentIndexingRequests}
+            indexedUrls={indexedUrls}
+          />
+        ))}
       </ul>
     </div>
   );
 }
 
-function FindingRow({ f, gscBound, host }: { f: Finding; gscBound: boolean; host: string }) {
+function FindingRow({ 
+  f, 
+  gscBound, 
+  host,
+  domainId,
+  indexingIntegrations,
+  latestAuditRisk,
+  recentIndexingRequests,
+  indexedUrls
+}: { 
+  f: Finding; 
+  gscBound: boolean; 
+  host: string;
+  domainId: string;
+  indexingIntegrations: ("google-indexing" | "indexnow")[];
+  latestAuditRisk: number | null;
+  recentIndexingRequests: {
+    url: string;
+    provider: "google" | "indexnow";
+    status: "pending" | "completed" | "failed";
+    error: string | null;
+  }[];
+  indexedUrls: string[];
+}) {
   const [pending, start] = useTransition();
   const isSuppressed = f.status !== "open";
   const hasTraffic = Boolean(f.traffic && (f.traffic.impressions > 0 || f.traffic.clicks > 0));
+  const hasGoogleIndexing = indexingIntegrations.includes("google-indexing");
+  const hasIndexNow = indexingIntegrations.includes("indexnow");
+  const isIndexed = f.representativeUrl ? indexedUrls.includes(f.representativeUrl) : false;
 
   return (
     <li>
@@ -216,6 +404,24 @@ function FindingRow({ f, gscBound, host }: { f: Finding; gscBound: boolean; host
             <code className="rounded-md border border-border/60 bg-card/60 px-1.5 py-0.5 font-mono text-[11px] text-foreground">
               {f.ruleId}
             </code>
+            {f.effort && (
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${effortTone(f.effort)}`}>
+                {f.effort} effort
+              </span>
+            )}
+            {f.confidence && f.confidence !== "high" && (
+              <span className="inline-flex items-center rounded-full border border-warning/30 bg-warning/5 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-warning" title="Downweighted false-positive risk for this site type">
+                ⚠️ {f.confidence} confidence
+              </span>
+            )}
+            {f.carriedForward && (
+              <span
+                className="inline-flex items-center rounded-full border border-border/50 bg-card/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                title={f.lastVerifiedAt ? `This finding was carried forward from a prior monitoring run — last actually re-verified at ${new Date(f.lastVerifiedAt).toLocaleString()}` : "Carried forward from a prior monitoring run"}
+              >
+                Carried forward {f.lastVerifiedAt && `· verified ${relTime(new Date(f.lastVerifiedAt))}`}
+              </span>
+            )}
             {isSuppressed && <StatusBadge status={f.status as "snoozed" | "dismissed"} />}
             <span className="ml-auto flex items-baseline gap-3 font-mono text-[11px] text-muted-foreground">
               <span title="Pages affected">
@@ -265,43 +471,76 @@ function FindingRow({ f, gscBound, host }: { f: Finding; gscBound: boolean; host
 
           {f.help && <RemediationDetails help={f.help} />}
 
-          {!isSuppressed && (
-            <div className="flex items-center gap-1.5 pt-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {!isSuppressed && (
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    disabled={pending}
+                    className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground disabled:opacity-50"
+                  >
+                    Snooze ▾
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="min-w-[8rem]">
+                    {SNOOZE_OPTIONS.map((opt) => (
+                      <DropdownMenuItem
+                        key={opt.days}
+                        onSelect={() => start(() => snoozeFinding(f.id, opt.days))}
+                      >
+                        <span className="font-mono text-xs">{opt.label}</span>
+                        <span className="ml-auto font-mono text-[10px] text-muted-foreground">
+                          until {new Date(Date.now() + opt.days * 86_400_000).toLocaleDateString()}
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <button
                   disabled={pending}
-                  className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-border hover:bg-card hover:text-foreground disabled:opacity-50"
+                  onClick={() => start(() => dismissFinding(f.id))}
+                  className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
                 >
-                  Snooze ▾
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-[8rem]">
-                  {SNOOZE_OPTIONS.map((opt) => (
-                    <DropdownMenuItem
-                      key={opt.days}
-                      onSelect={() => start(() => snoozeFinding(f.id, opt.days))}
-                    >
-                      <span className="font-mono text-xs">{opt.label}</span>
-                      <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                        until {new Date(Date.now() + opt.days * 86_400_000).toLocaleDateString()}
-                      </span>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <button
-                disabled={pending}
-                onClick={() => start(() => dismissFinding(f.id))}
-                className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
-              >
-                Dismiss
-              </button>
-            </div>
-          )}
+                  Dismiss
+                </button>
+              </>
+            )}
+            
+            {/* Indexing Affordances (v0.6) */}
+            {f.representativeUrl && (hasGoogleIndexing || hasIndexNow) && (
+              <div className="flex items-center gap-1.5 border-l border-border/40 ml-1.5 pl-3">
+                {hasGoogleIndexing && (
+                  <IndexingButton 
+                    domainId={domainId} 
+                    url={f.representativeUrl} 
+                    provider="google" 
+                    latestAuditRisk={latestAuditRisk}
+                    disabled={pending}
+                    recentStatus={recentIndexingRequests.find(r => r.url === f.representativeUrl && r.provider === "google")?.status}
+                    recentError={recentIndexingRequests.find(r => r.url === f.representativeUrl && r.provider === "google")?.error}
+                    alreadyIndexed={isIndexed}
+                  />
+                )}
+                {hasIndexNow && (
+                  <IndexingButton 
+                    domainId={domainId} 
+                    url={f.representativeUrl} 
+                    provider="indexnow" 
+                    latestAuditRisk={latestAuditRisk}
+                    disabled={pending}
+                    recentStatus={recentIndexingRequests.find(r => r.url === f.representativeUrl && r.provider === "indexnow")?.status}
+                    recentError={recentIndexingRequests.find(r => r.url === f.representativeUrl && r.provider === "indexnow")?.error}
+                    alreadyIndexed={isIndexed}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </article>
     </li>
   );
 }
+
 
 /**
  * Rank chip with provenance indicator:
@@ -415,4 +654,20 @@ function fmt(n: number): string {
   if (n < 1000) return String(n);
   if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0)}k`;
   return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0)}M`;
+}
+
+function effortTone(effort: "quick" | "moderate" | "structural"): string {
+  if (effort === "quick") return "border-success/40 text-success bg-success/5";
+  if (effort === "moderate") return "border-warning/40 text-warning bg-warning/5";
+  if (effort === "structural") return "border-destructive/40 text-destructive bg-destructive/5";
+  return "border-border/40 text-muted-foreground bg-card/5";
+}
+
+function relTime(d: Date): string {
+  const ms = Date.now() - d.getTime();
+  const h = Math.round(ms / 3_600_000);
+  if (h < 1) return "just now";
+  if (h < 24) return h + "h ago";
+  const days = Math.round(h / 24);
+  return days + "d ago";
 }
