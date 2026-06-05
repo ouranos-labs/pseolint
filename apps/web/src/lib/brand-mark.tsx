@@ -49,20 +49,30 @@ export function BrandMark({
       {Array.from({ length: TOTAL }, (_, i) => {
         const fired = FIRED.has(i);
         const angleDeg = (i / TOTAL) * 360;
+        const angleRad = (angleDeg * Math.PI) / 180;
+        
+        const cx = size / 2;
+        const cy = size / 2;
+        const r = (innerR + outerR) / 2;
+        const H = outerR - innerR;
+        const W = strokeW;
+        
+        const spokeCx = cx + r * Math.sin(angleRad);
+        const spokeCy = cy - r * Math.cos(angleRad);
+
         return (
           <div
             key={i}
             style={{
               position: "absolute",
               display: "flex",
-              left: size / 2 - strokeW / 2,
-              top: size / 2 - outerR,
-              width: strokeW,
-              height: outerR - innerR,
+              left: spokeCx - W / 2,
+              top: spokeCy - H / 2,
+              width: W,
+              height: H,
               background: fired ? PRIMARY : MUTED,
               opacity: fired ? 1 : 0.35,
-              borderRadius: strokeW / 2,
-              transformOrigin: `${strokeW / 2}px ${outerR}px`,
+              borderRadius: W / 2,
               transform: `rotate(${angleDeg}deg)`,
             }}
           />
