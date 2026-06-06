@@ -215,6 +215,15 @@ export async function listSites(userId: string): Promise<GscSite[]> {
 
 export type GscPageRow = { url: string; clicks: number; impressions: number; ctr: number; position: number };
 
+export type GscPageQueryRow = {
+  url: string;
+  query: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+};
+
 /**
  * Query Search Analytics for a property, dimensioned by `page`. Returns one
  * row per URL in the date range. 2026-05-06: rowLimit lowered from 25 000 to
@@ -263,9 +272,69 @@ export async function querySearchAnalyticsByPage(
   }));
 }
 
+/**
+ * Query Search Analytics for a property dimensioned by `page` AND `query`.
+ * Used by the growth self-measurement sync (our own property) — distinct from
+ * the page-only Pro sync. Returns one row per (url, query) in the date range.
+ */
+export async function querySearchAnalyticsByPageQuery(
+  userId: string,
+  siteUrl: string,
+  startDate: string,
+  endDate: string,
+): Promise<GscPageQueryRow[]> {
+  const tokens = await loadGscTokens(userId);
+  if (!tokens) throw new Error("GSC not connected");
+  const res = await fetch(
+    `${API_BASE}/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${tokens.accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        startDate,
+        endDate,
+        dimensions: ["page", "query"],
+        rowLimit: 5000,
+      }),
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`GSC searchAnalytics.query (page,query) failed: ${res.status} ${await res.text()}`);
+  }
+  const json = (await res.json()) as {
+    rows?: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }[];
+  };
+  return (json.rows ?? []).map((r) => ({
+    url: r.keys[0],
+    query: r.keys[1],
+    clicks: r.clicks,
+    impressions: r.impressions,
+    ctr: r.ctr,
+    position: r.position,
+  }));
+}
+
 /** "YYYY-MM" for the current month in UTC — used as the `monthBucket` key. */
 export function monthBucketUtc(d: Date = new Date()): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** ISO-8601 week key "YYYY-Www" in UTC (e.g. "2026-W02"). The week-year can
+ * differ from the calendar year around Jan 1 / Dec 31 — ISO weeks belong to
+ * the year containing their Thursday. */
+export function weekBucketUtc(d: Date = new Date()): string {
+  // Copy to a UTC date at midnight.
+  const date = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  // ISO weekday: Mon=1..Sun=7. Shift to the Thursday of this week.
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const weekYear = date.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(weekYear, 0, 1));
+  const week = Math.ceil(((date.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+  return `${weekYear}-W${String(week).padStart(2, "0")}`;
 }
 
 /** Date range for the last `days` days, formatted as YYYY-MM-DD in UTC. */
