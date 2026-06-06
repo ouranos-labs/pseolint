@@ -4,7 +4,6 @@ import { growthSearchMetrics, users } from "@/db/schema";
 import { env } from "@/lib/env";
 import {
   loadGscTokens,
-  markGscSynced,
   querySearchAnalyticsByPageQuery,
   rollingDateRange,
   weekBucketUtc,
@@ -70,7 +69,6 @@ export async function growthSyncOnce(): Promise<GrowthSyncResult> {
     const all = [...pageRows, ...pageQueryRows];
 
     if (all.length === 0) {
-      await markGscSynced(owner.id);
       auditLog("growth.sync.empty", { siteUrl: e.GROWTH_GSC_SITE_URL });
       return { status: "empty", rowCount: 0 };
     }
@@ -89,7 +87,6 @@ export async function growthSyncOnce(): Promise<GrowthSyncResult> {
       });
     }
 
-    await markGscSynced(owner.id);
     auditLog("growth.sync.ok", { siteUrl: e.GROWTH_GSC_SITE_URL, rowCount: all.length });
     return { status: "ok", rowCount: all.length };
   } catch (err) {

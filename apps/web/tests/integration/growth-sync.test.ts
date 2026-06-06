@@ -58,11 +58,10 @@ describe("growthSyncOnce", () => {
     expect(r.status).toBe("no-grant");
   });
 
-  it("returns empty and marks synced when GSC returns no rows", async () => {
+  it("returns empty when GSC returns no rows", async () => {
     queryByPageQueryMock.mockResolvedValue([]);
     const r = await growthSyncOnce();
     expect(r.status).toBe("empty");
-    expect(markGscSyncedMock).toHaveBeenCalledWith("owner-id");
     expect(dbInsertMock).not.toHaveBeenCalled();
   });
 
@@ -76,7 +75,6 @@ describe("growthSyncOnce", () => {
     // 1 page-level + 1 page+query row for the single in-prefix URL = 2 rows; /pricing dropped.
     expect(r.rowCount).toBe(2);
     expect(dbInsertMock).toHaveBeenCalledTimes(1);
-    expect(markGscSyncedMock).toHaveBeenCalledWith("owner-id");
     expect(auditLogMock).toHaveBeenCalledWith("growth.sync.ok", expect.objectContaining({ rowCount: 2 }));
   });
 

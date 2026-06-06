@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { growthSearchMetrics } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { isOwnerEmail } from "@/lib/owner";
-import { growthIndexationSummary, publishedGrowthUrls, type GrowthMetricRow } from "@/lib/growth-metrics";
+import { displayPath, growthIndexationSummary, publishedGrowthUrls, type GrowthMetricRow } from "@/lib/growth-metrics";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -64,7 +64,7 @@ export default async function GrowthDashboard() {
         <tbody>
           {pageRows.map((r) => (
             <tr key={r.url} style={{ borderBottom: "1px solid #eee" }}>
-              <td>{new URL(r.url).pathname}</td>
+              <td>{displayPath(r.url)}</td>
               <td>{r.impressions}</td>
               <td>{r.clicks}</td>
               <td>{r.positionAvg == null ? "—" : r.positionAvg.toFixed(1)}</td>
