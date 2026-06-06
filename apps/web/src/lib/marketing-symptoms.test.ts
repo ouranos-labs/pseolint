@@ -47,3 +47,29 @@ describe("MARKETING_SYMPTOMS depth contract", () => {
     },
   );
 });
+
+import { MARKETING_RULES } from "@/lib/marketing-rules";
+
+describe("MARKETING_SYMPTOMS integrity contract", () => {
+  const ruleSlugs = new Set(MARKETING_RULES.map((r) => r.slug));
+
+  it("has unique slugs", () => {
+    const slugs = MARKETING_SYMPTOMS.map((s) => s.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+  });
+
+  it.each(MARKETING_SYMPTOMS.map((s) => [s.slug] as const))(
+    "%s is kebab-case",
+    (slug) => {
+      expect(slug).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+    },
+  );
+
+  it("every relatedRules entry resolves to a real marketing rule", () => {
+    for (const s of MARKETING_SYMPTOMS) {
+      for (const r of s.relatedRules) {
+        expect(ruleSlugs, `symptom ${s.slug} → rule ${r}`).toContain(r);
+      }
+    }
+  });
+});
