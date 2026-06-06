@@ -549,6 +549,71 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "This is the symptom least likely to fully 'recover' in the old sense, because the cause is a permanent change in SERP layout rather than a temporary suppression you can reverse. Expect the informational clicks lost to AI Overviews to stay lost; the realistic win is reallocating effort to queries where clicks remain available, which pays off over one to two quarters as rebuilt transactional pages climb. Title, meta, and structured-data fixes are the exception — they can recover CTR on affected pages within a single recrawl cycle of one to three weeks. Track CTR per query cohort (informational vs transactional) rather than total clicks, so you can see the healthy cohort growing even while the AI-absorbed cohort stays flat.",
   },
+  {
+    slug: "new-pages-not-getting-indexed",
+    title: "New programmatic pages won't get indexed — diagnose the crawl gap",
+    metaDescription:
+      "You published thousands of pages and Google won't index them. Diagnose 'Discovered/Crawled — currently not indexed' and fix the crawl and quality signals.",
+    primaryKeyword: "pages not getting indexed",
+    oneLiner:
+      "Newly published programmatic pages stall in Search Console's 'Discovered — currently not indexed' or 'Crawled — currently not indexed' buckets instead of entering the index.",
+    whatYouSee:
+      "After shipping a large batch of programmatic pages, Search Console's Page indexing report shows the declared URLs piling up under 'Discovered — currently not indexed' (Google saw the URL in your sitemap but has not crawled it) or 'Crawled — currently not indexed' (Google fetched it and chose not to keep it). The indexed count barely moves no matter how many URLs you submit. Manual 'Request indexing' may push a single page in, but the batch as a whole stays out. There is no penalty notification because this is not a penalty — it is Google declining to spend crawl budget and index slots on pages it does not yet judge worth keeping. The Discovered bucket usually grows first; the Crawled-not-indexed bucket grows as Google samples a few and is unimpressed.",
+    likelyCauses: [
+      {
+        cause: "Per-page quality below the threshold Google will spend an index slot on",
+        explanation:
+          "'Crawled — currently not indexed' is most often a soft quality signal: Google fetched the page, compared it to what is already indexed, and decided it adds nothing. Templated pages that differ only by a swapped entity, or that are thin relative to competing results, get sampled and dropped. Submitting more of them does not help, because the model's objection is to the template, not the discovery path.",
+      },
+      {
+        cause: "Crawl budget exhausted by low-value or duplicate URLs",
+        explanation:
+          "If your site exposes large numbers of parameter permutations, faceted-navigation combinations, or near-duplicate URLs, Googlebot spends its budget crawling noise and never reaches the pages you care about. This shows up as 'Discovered — currently not indexed' at scale: the URLs are known but uncrawled because the crawl scheduler keeps deprioritizing them behind the noise.",
+      },
+      {
+        cause: "Weak internal linking — orphaned pages reachable only via the sitemap",
+        explanation:
+          "A sitemap declares a URL exists; it does not signal that the URL matters. Pages reachable only through the sitemap, or buried behind deep pagination, receive almost no internal PageRank and read as unimportant. Google routinely leaves such pages in Discovered indefinitely. Pages need contextual internal links from already-indexed, authoritative pages to be prioritized for crawling.",
+      },
+      {
+        cause: "New or low-authority domain with little crawl trust",
+        explanation:
+          "Crawl rate scales with site authority and history. A young domain that suddenly publishes tens of thousands of URLs is asking for crawl budget it has not yet earned, so Google indexes a trickle and waits to see whether the new content earns engagement. This is the single hardest cause to fix quickly, because it resolves with time and earned signals rather than a configuration change.",
+      },
+    ],
+    diagnosticSteps: [
+      "In Search Console's Page indexing report, separate the two buckets: 'Discovered — currently not indexed' (a crawl-priority problem) versus 'Crawled — currently not indexed' (a quality problem). The dominant bucket tells you which branch to work.",
+      "Use the URL Inspection tool on five stalled pages to confirm Google can fetch and render them — rule out a robots.txt block, noindex tag, or canonical pointing elsewhere before assuming a quality or budget cause.",
+      "Audit your crawl surface for noise: count parameter permutations, faceted combinations, and duplicate URLs, and check the server log or Crawl Stats report for how much of Googlebot's budget they consume.",
+      "Run pseolint on a sample of the stalled template and read thin-content and near-duplicate findings — if the template trips those rules, the Crawled-not-indexed bucket is a quality verdict you must fix at the template level.",
+      "Map internal links into the stalled template: confirm each page is linked from at least one already-indexed, topically-relevant page, not only from the sitemap or a footer mega-menu.",
+      "Trim the crawl surface (noindex or canonicalize the noise, block junk parameters) so Googlebot's budget reaches the pages that matter, then improve per-page value on the template itself.",
+      "Resubmit the cleaned sitemap segment and let Google rediscover at its own pace; do not mass-click Request Indexing, which does not scale and is not the signal Google rewards for large batches.",
+    ],
+    relatedRules: ["thin-content", "near-duplicate", "template-diversity", "boilerplate-ratio"],
+    caseStudy:
+      "A real-estate listings startup published 60,000 '{neighborhood} homes for sale' pages on an eight-month-old domain and watched 52,000 of them sit in 'Discovered — currently not indexed' for weeks. Crawl Stats showed Googlebot burning most of its budget on sort-and-filter parameter URLs. The team canonicalized the parameter noise, added neighborhood pages as contextual links from indexed city hub pages, and enriched the template with per-neighborhood price trends and school data instead of a swapped place-name. Indexation climbed from 13% to 61% of declared URLs over ten weeks as crawl budget was freed and the template cleared the quality bar.",
+    faqs: [
+      {
+        q: "What's the difference between 'Discovered' and 'Crawled — currently not indexed'?",
+        a: "'Discovered — currently not indexed' means Google knows the URL exists (usually from your sitemap) but has not crawled it yet, which is a crawl-priority and budget problem. 'Crawled — currently not indexed' means Google fetched the page and decided not to index it, which is usually a soft quality verdict. The two require different fixes: budget and internal linking for the first, per-page value for the second.",
+      },
+      {
+        q: "Will requesting indexing in Search Console fix this at scale?",
+        a: "No. Request Indexing is a manual, per-URL tool with daily limits — useful for a handful of priority pages, useless for thousands. For large batches, the durable levers are improving page quality, trimming crawl-budget waste, and adding internal links so Google chooses to crawl and keep the pages on its own. Relying on manual submission is a sign the underlying signals still need work.",
+      },
+      {
+        q: "How long should I wait before treating non-indexation as a problem?",
+        a: "For an established domain, give a new batch two to four weeks before concluding the pages are stalled rather than merely queued. For a young or low-authority domain, indexation can legitimately take longer and arrive in waves. The signal that it is a real problem rather than normal lag is a flat indexed count while the Discovered or Crawled-not-indexed buckets keep growing.",
+      },
+      {
+        q: "Could publishing so many pages at once have hurt me?",
+        a: "Publishing a very large batch on a domain that has not earned proportional crawl trust often results in slow, partial indexing rather than a penalty — Google simply meters how much it takes. If the pages are also thin or near-duplicate, the large batch amplifies the quality signal and can spill into 'Crawled — currently not indexed' at scale. Shipping in smaller, higher-quality waves with strong internal links indexes more reliably than one massive drop.",
+      },
+    ],
+    recoveryTimeline:
+      "Indexation recovery is gradual and compounding rather than a single step change. Once you trim crawl waste and strengthen internal links, freed budget reaches stalled pages within two to four weeks and the Discovered bucket starts draining. Quality-driven 'Crawled — currently not indexed' cases take longer — Google must recrawl, re-evaluate the improved template, and decide it now merits a slot, typically over four to ten weeks. On young domains, expect indexation to climb in waves tied to earned engagement rather than on a fixed schedule. Track the ratio of indexed to declared URLs per template week over week; a steadily rising ratio means the fixes are working, while a flat ratio past ten weeks means the template still is not clearing the quality bar.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
