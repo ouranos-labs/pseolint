@@ -484,6 +484,71 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "Recovery has two clocks. The first is the reconsideration cycle: one to three weeks per submission, with rejections resetting the queue — so realistic clearance is two to six weeks if your first filing is thorough, longer if you iterate. The second is the ranking clock: once the action lifts, the surviving pages must re-earn position on merit, which lands over the following 30 to 90 days as Google recrawls and rescores. Do not expect a snap-back to pre-action traffic; the spam pages that produced most of that traffic are gone by design. Track the Manual Actions report for the 'no issues detected' state, then watch the per-template Performance report for the recrawl-driven climb.",
   },
+  {
+    slug: "traffic-dropped-rankings-unchanged",
+    title: "Traffic dropped but rankings unchanged — diagnose the click loss",
+    metaDescription:
+      "Positions look fine but clicks collapsed? Diagnose AI Overviews, SERP features, and intent shifts draining CTR from your programmatic pages.",
+    primaryKeyword: "traffic dropped but rankings the same",
+    oneLiner:
+      "Average position in Search Console holds steady while clicks and CTR fall, meaning the rankings survived but the SERP changed shape around them.",
+    whatYouSee:
+      "In Search Console, the Performance report shows average position flat or even improving while clicks decline and impressions often stay level or rise. The CTR line is the tell: it drops steadily across queries that used to convert impressions into clicks. Third-party rank trackers agree you are still ranking, which is why this feels like a paradox. The loss concentrates on informational, top-of-funnel queries — 'what is', 'how to', 'best X for Y' — where an AI Overview or a featured snippet now answers the question above your result, while transactional and branded queries hold their click-through. The drop is gradual rather than a cliff, because SERP features roll out per-query over weeks rather than landing in a single update.",
+    likelyCauses: [
+      {
+        cause: "AI Overviews answering the query before the user reaches your link",
+        explanation:
+          "On informational queries, an AI Overview synthesizes an answer from several sources at the top of the page. Users who get their answer never scroll to the organic results, so your position is unchanged but its click-through collapses. Programmatic informational templates — definitions, explainers, generic how-tos — are the most exposed, because their content is exactly what the overview can summarize in a sentence.",
+      },
+      {
+        cause: "New SERP features pushing organic results below the fold",
+        explanation:
+          "Featured snippets, People-Also-Ask blocks, video carousels, and shopping units all consume vertical space above the classic blue links. When Google adds one of these to a query you rank for, your position number stays the same but its real estate moves down the page, and CTR falls accordingly. This is a layout change, not a quality penalty.",
+      },
+      {
+        cause: "Intent shift: Google reinterpreted the query and your page no longer matches",
+        explanation:
+          "When the dominant intent for a query shifts — say from informational to transactional — Google reshapes the SERP toward the new intent. A page that still ranks on legacy signals can sit in a SERP whose users now want something it does not offer, so impressions persist but clicks dry up. The fix is matching the page to the current intent, not adding content.",
+      },
+      {
+        cause: "Title and meta no longer competitive against richer results",
+        explanation:
+          "As neighbors adopt richer titles, structured data, and sitelinks, an older plain result loses relative appeal even at the same position. CTR is partly a beauty contest within the visible set, so a stale title or missing schema can bleed clicks slowly without any change to ranking. This is the most directly fixable cause on this list.",
+      },
+    ],
+    diagnosticSteps: [
+      "In Search Console, compare two equal date ranges before and after the decline and add the CTR and Position columns — confirm position is flat or improving while CTR falls, which separates this symptom from a true ranking drop.",
+      "Sort affected queries by lost clicks and classify each as informational, transactional, or branded — a concentration of loss on informational queries points squarely at AI Overviews or snippets.",
+      "Hand-check the live SERPs for your top five losing queries and record what now sits above the organic results (AI Overview, featured snippet, PAA, carousel, shopping unit).",
+      "For queries where you ARE the snippet or overview source, accept the displayed-but-not-clicked tradeoff and pivot the page toward a follow-on action; for queries where a competitor is the source, evaluate whether you can win that feature instead.",
+      "Run pseolint on the affected templates to confirm the pages are not also tripping quality rules — rule out a coincident algorithmic issue before attributing the entire loss to SERP features.",
+      "Rewrite titles and meta descriptions on high-impression, low-CTR pages and add or repair structured data (FAQ, HowTo, Product) so your result competes harder within the visible set.",
+      "Shift measurement and content strategy toward queries with commercial intent and lower AI-Overview coverage, where a click is still both available and valuable.",
+    ],
+    relatedRules: ["thin-content", "template-diversity"],
+    caseStudy:
+      "A SaaS comparison site saw organic clicks fall 34% over two months while average position improved from 4.1 to 3.6. CTR analysis showed the loss was almost entirely on 'what is {category}' and 'how does {feature} work' templates, where AI Overviews had appeared on 80% of tracked queries. Rather than chase the lost informational clicks, the team consolidated forty thin explainer pages into ten substantive guides, rebuilt their '{tool} vs {tool}' transactional templates with original benchmark data, and added FAQ schema. Informational traffic stayed depressed, but transactional clicks rose 22% and trial signups — the metric that actually mattered — increased 15% over the next quarter.",
+    faqs: [
+      {
+        q: "Is this a Google penalty?",
+        a: "No. A penalty or algorithmic suppression shows up as falling positions, often a cliff. Flat positions with falling CTR is a SERP-shape change — AI Overviews, snippets, or other features capturing the click above you. It is not a quality signal against your site, which is why the diagnostic and the fix are completely different from a core-update recovery.",
+      },
+      {
+        q: "Can I opt out of AI Overviews to get my clicks back?",
+        a: "There is no reliable opt-in/opt-out that preserves rankings; the nosnippet and max-snippet directives can limit how your content is used but tend to reduce visibility overall, which usually costs more clicks than it saves. The durable response is to shift effort toward queries where a click is still available — commercial-intent and branded terms — rather than fighting for informational clicks the overview now absorbs.",
+      },
+      {
+        q: "Should I delete the informational pages that lost traffic?",
+        a: "Not reflexively. Pages that still earn impressions are building topical authority and may feed your transactional pages through internal links, even if their direct clicks fell. Consolidate genuinely thin explainers into stronger guides, but keep substantive informational content that supports the rest of the site. Delete only pages that were thin to begin with.",
+      },
+      {
+        q: "How do I know if it's AI Overviews specifically versus a featured snippet?",
+        a: "Check the live SERP for the affected query. An AI Overview is a generated multi-sentence answer block, often citing several sources; a featured snippet is a single extracted passage from one ranking page. Both depress organic CTR, but if you are the snippet source you still own the box, whereas an overview can answer without sending the click to anyone. The remedy differs, so confirm which one you are facing.",
+      },
+    ],
+    recoveryTimeline:
+      "This is the symptom least likely to fully 'recover' in the old sense, because the cause is a permanent change in SERP layout rather than a temporary suppression you can reverse. Expect the informational clicks lost to AI Overviews to stay lost; the realistic win is reallocating effort to queries where clicks remain available, which pays off over one to two quarters as rebuilt transactional pages climb. Title, meta, and structured-data fixes are the exception — they can recover CTR on affected pages within a single recrawl cycle of one to three weeks. Track CTR per query cohort (informational vs transactional) rather than total clicks, so you can see the healthy cohort growing even while the AI-absorbed cohort stays flat.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
