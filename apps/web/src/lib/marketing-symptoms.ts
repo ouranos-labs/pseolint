@@ -614,6 +614,80 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "Indexation recovery is gradual and compounding rather than a single step change. Once you trim crawl waste and strengthen internal links, freed budget reaches stalled pages within two to four weeks and the Discovered bucket starts draining. Quality-driven 'Crawled — currently not indexed' cases take longer — Google must recrawl, re-evaluate the improved template, and decide it now merits a slot, typically over four to ten weeks. On young domains, expect indexation to climb in waves tied to earned engagement rather than on a fixed schedule. Track the ratio of indexed to declared URLs per template week over week; a steadily rising ratio means the fixes are working, while a flat ratio past ten weeks means the template still is not clearing the quality bar.",
   },
+  {
+    slug: "scaled-content-abuse-penalty",
+    title: "Scaled content abuse penalty — diagnose mass-produced pages and recover",
+    metaDescription:
+      "Scaled content abuse makes page volume itself a ranking risk. Diagnose which mass-produced templates Google demoted and why pruning beats one-by-one rewrites.",
+    primaryKeyword: "scaled content abuse",
+    oneLiner:
+      "Demotion or deindexing of a large page set Google judged to be produced at volume primarily to win rankings rather than to help users, regardless of whether a human, a template, or an AI wrote it.",
+    whatYouSee:
+      "The defining tell is that scale itself became the liability. On March 5, 2024 Google renamed the old \"automatically generated content\" rule to \"scaled content abuse\" and widened it to cover any high-volume production — human, templated, AI, or a hybrid — created mainly to manipulate rankings with little added value. What you see in Search Console depends on the enforcement mode. Algorithmic demotion arrives quietly: a template family loses 40-90% of clicks across the whole URL set at once, impressions follow within days, and there is no notification. A manual action arrives under Security & Manual Actions as \"Scaled content abuse\" or \"Pure spam\" with a reconsideration path attached. The cruelest variant is full deindexing, where thousands of URLs migrate from Indexed to \"Crawled — currently not indexed\" in a single crawl cycle. The pattern that distinguishes this from an ordinary thin-content hit is breadth: it is not one weak page or one weak template slot, it is the entire mass-produced corpus losing value simultaneously because the volume-to-value ratio is what tripped the classifier.",
+    likelyCauses: [
+      {
+        cause: "High publishing velocity with a flat value-per-page curve",
+        explanation:
+          "The policy targets the ratio of pages produced to value added, not any single page in isolation. A site that shipped ten thousand URLs in a quarter where each page carries the same marginal usefulness as the last reads as production-for-rankings. Google's classifier weighs the slope: if value stays flat as volume climbs, the whole corpus gets re-scored downward together.",
+      },
+      {
+        cause: "AI-generated content used to manufacture volume rather than add value",
+        explanation:
+          "Google's position is explicit that AI authorship is not the violation — abuse is producing many pages with little added value no matter how they are created. The failure mode is using a model to fill a template at scale so cheaply that no human ever sources a fact, verifies a claim, or adds a perspective the model couldn't generate. The pages are fluent, on-topic, and indistinguishable from each other in substance, which is exactly the signal.",
+      },
+      {
+        cause: "Programmatic templates where uniqueness is cosmetic, not substantive",
+        explanation:
+          "When the only thing that changes between URLs is an entity noun and a few stitched data fields, the template scales the boilerplate, not the value. Pseolint's template-diversity and boilerplate-ratio rules quantify this directly: a high shared-token ratio across a large URL set is the structural fingerprint of scaled content abuse, because volume amplifies a thinness that one or two pages would have survived.",
+      },
+      {
+        cause: "Mass-imported or syndicated content republished without first-party work",
+        explanation:
+          "Pulling a feed, a dataset export, or a content license and publishing it across thousands of URLs with a thin wrapper is scaled abuse even when each record is technically unique. The near-duplicate rule catches the web-wide overlap. The policy reads redistribution-at-scale as adding volume to the index without adding a reason for the index to keep it, which is the core thing the March 2024 update was written to stop.",
+      },
+    ],
+    diagnosticSteps: [
+      "Determine the enforcement mode first: check Search Console → Security & Manual Actions for a \"Scaled content abuse\" or \"Pure spam\" notice. A manual action gives you a deadline and reconsideration path; silence means it is algorithmic and recovers only when the corpus changes.",
+      "Overlay the click drop on Google's Search Status Dashboard — if it aligns with the March 5, 2024 scaled-content-abuse rollout or a later spam update, the volume-without-value dimension is your working hypothesis, not ordinary single-template thinness.",
+      "Segment affected URLs by template and by publish-date cohort, then plot value-per-page against volume — the cohort where you scaled fastest with the least incremental editorial work is almost always the corpus Google re-scored.",
+      "Run pseolint across the full sitemap and read the template-diversity and boilerplate-ratio findings together — a high shared-token ratio spread across a large URL count is the scaled-abuse signature, distinct from a single thin slot.",
+      "Cross-reference the near-duplicate findings against the thin-content findings on the same templates — pages that are simultaneously near-duplicate of each other and below the unique-word floor are the corpus deindexing first and should anchor your prune list.",
+      "Separate the survivors from the casualties: pull the URLs that kept rankings and audit what they carry that the rest don't — first-hand experience, named author credentials, original data, or research the model couldn't have produced — because that gap is your rebuild specification.",
+      "Decide per-cohort at corpus scale rather than per-URL: consolidate redundant pages into fewer genuinely-useful ones, prune the volume that exists only to exist, and reserve substantive rewrites for the slice with demonstrable demand and a real value angle.",
+    ],
+    relatedRules: [
+      "thin-content",
+      "near-duplicate",
+      "template-diversity",
+      "boilerplate-ratio",
+    ],
+    caseStudy:
+      "A travel-deals site published 38,000 \"cheap flights from {origin} to {destination}\" pages over five months, each assembled by an AI prompt that paraphrased the same fare-finder boilerplate. The September 2024 spam update demoted the entire template — organic clicks fell from 410,000 to 47,000 monthly, an 89% loss, with no manual action. The team tried rewriting the top 500 pages one at a time and saw nothing move, because the corpus-level volume-to-value ratio was unchanged. They reversed course: consolidated to 600 origin-hub pages carrying real historical fare data, seasonal price analysis, and a named travel-analyst byline, and 410'd the other 37,400 URLs. By the March 2025 update clicks recovered to 158,000 monthly — 38% of the pre-drop peak but on a fraction of the pages and at far higher conversion.",
+    faqs: [
+      {
+        q: "Is AI-generated content banned under the scaled content abuse policy?",
+        a: "No. Google has stated plainly that how content is produced — human, AI, or hybrid — is not the issue; the issue is producing many pages with little added value primarily to manipulate rankings. AI content that carries first-hand insight, original data, or genuine expertise is fine. The violation is using AI as a volume machine that fills templates faster than anyone adds value.",
+      },
+      {
+        q: "Why didn't rewriting my pages one by one bring traffic back?",
+        a: "Because scaled content abuse is scored at the corpus level, not the page level. Improving a few hundred pages out of tens of thousands barely moves the volume-to-value ratio that tripped the classifier. The corpus still reads as mass-produced. Recovery usually requires consolidating and pruning the bulk of the volume so the median page Google evaluates is genuinely useful, not patching individual URLs.",
+      },
+      {
+        q: "What separates pages that survived this update from the ones that got demoted?",
+        a: "Survivors carry signals that are expensive to fake at scale: first-hand experience, a named author with verifiable credentials, original research or proprietary data, and a point of view a template can't mass-produce. The demoted pages were interchangeable — swap the entity noun and any one reads like any other. Genuine E-E-A-T is the moat precisely because it doesn't scale cheaply.",
+      },
+      {
+        q: "How long does recovery from scaled content abuse take?",
+        a: "It depends on the enforcement mode. A manual action lifts on a bounded reconsideration cycle, typically 14 to 28 days after Google's reviewer agrees the practice has ended. An algorithmic demotion has no human in the loop and reverses only when Google re-crawls and re-scores the changed corpus, which is gated to the roughly 75-day core-update cadence. Plan in months, not weeks, for the algorithmic case.",
+      },
+      {
+        q: "If I fix this, will my traffic come back to where it was?",
+        a: "Be honest with yourself: recovery is to what your genuinely-useful pages can earn, not a snap-back to the inflated peak. The old number was partly a function of volume the policy now suppresses. A well-executed consolidation usually lands at a lower click total but on far fewer pages, with better engagement and conversion. Forecast the recovered level off your survivor pages' real demand, not the pre-drop high.",
+      },
+    ],
+    recoveryTimeline:
+      "Set expectations by enforcement mode and then by the corpus you rebuild. A manual action follows a bounded reconsideration clock — 14 to 28 days from submission to verdict — but only after you have actually pruned and consolidated, because reviewers check that the scaled pattern is gone rather than disguised. An algorithmic demotion ignores reconsideration entirely; it lifts when Google's next crawl confirms the mass-produced volume is genuinely reduced and the remaining pages clear the value bar, which tracks the roughly 75-day core-update cadence. Expect a partial bounce within 30 to 45 days as the pruned URLs fall out of active scoring and raise the host's median quality, then a larger step at the next update if the survivors are real. The number you recover to is set by what your genuinely-useful pages can earn on actual demand — not the inflated peak the volume once bought you — so forecast against the survivor cohort and treat any overshoot as a bonus, not the baseline.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
