@@ -415,6 +415,75 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "Manual-action recovery is bounded by the reconsideration cycle: typically 14 to 28 days from submission to verdict. Algorithmic recovery from thin-content signals is slower because the signal is host-level and updates as Google re-evaluates your overall indexed set. Expect partial recovery within 30 days of shipping fixes — Google will re-crawl and re-classify the rewritten pages, and the noindexed pages will fall out of active scoring within 45 days. Full recovery usually lands at the next core update (Google's typical 75-day cadence), when host-level quality models re-score domains. Track the indexed-URL trend in Sitebulb or Screaming Frog crawl diffs week over week: when the rewritten template's indexed-to-declared ratio crosses 70%, you're recovering. When it stays below 40% past 90 days, the rewrites haven't worked and the pages need substantive — not cosmetic — additional value.",
   },
+  {
+    slug: "manual-action-pure-spam",
+    title: "Manual action for pure spam — diagnose and recover",
+    metaDescription:
+      "Got a 'Pure Spam' manual action in Search Console? Diagnose which programmatic templates triggered it and file a reconsideration that gets approved.",
+    primaryKeyword: "pure spam manual action",
+    oneLiner:
+      "A 'Pure Spam' or 'Thin content with little or no added value' manual action appears in Search Console's Manual Actions report, suppressing some or all of your programmatic templates.",
+    whatYouSee:
+      "Search Console's Manual Actions report shows a 'Pure Spam' or 'Thin content' entry with either a site-wide or partial-match scope. Partial matches name affected URL patterns; site-wide matches do not. Within a day or two of the action landing, the affected templates fall out of the top 100 entirely — this is suppression, not a ranking adjustment, so positions go to null rather than dropping a few places. Branded queries usually survive; everything non-branded on the flagged templates evaporates. Unlike an algorithmic hit, you get an explicit notification and a reconsideration channel, which means recovery is gated by a human reviewer rather than the next core update.",
+    likelyCauses: [
+      {
+        cause: "Programmatic pages with no information a human would value",
+        explanation:
+          "Pure Spam actions land on templates where the generated pages exist only to capture a keyword permutation — entity-swap pages, auto-generated location or category pages with no unique data, or scraped-then-spun content. The reviewer's test is whether the page would exist if search engines did not. If the honest answer is no, the action stands until those pages are gone or genuinely rebuilt.",
+      },
+      {
+        cause: "Scaled content abuse: thousands of near-identical pages shipped fast",
+        explanation:
+          "The March 2024 scaled-content-abuse policy made volume itself a signal. A site that adds 20,000 templated pages in a quarter, each sharing >70% boilerplate, reads as an abuse pattern even if any single page looks borderline acceptable. Reviewers see the aggregate, not the individual URL, so a fix that touches only a handful of sample pages will not clear the action.",
+      },
+      {
+        cause: "Sneaky redirects, cloaking, or doorway sets feeding a money page",
+        explanation:
+          "Doorway pages — large sets of similar pages that all funnel the user to the same destination — are an explicit Pure Spam trigger. If your programmatic pages exist mainly to rank and then push the visitor to a single conversion page, the reviewer will classify the whole set as doorways regardless of how polished each page looks.",
+      },
+      {
+        cause: "Expired-domain or subfolder abuse inherited from a prior owner",
+        explanation:
+          "If the domain or a subfolder was previously used for spam, the manual action can attach to history you did not create. This is common after acquisitions. The fix is the same — remove or rebuild the offending content — but the reconsideration request must explicitly document the ownership change and what was removed.",
+      },
+    ],
+    diagnosticSteps: [
+      "Open Search Console → Security & Manual Actions → Manual Actions. Record the exact label ('Pure Spam' vs 'Thin content') and whether the scope is site-wide or partial — partial actions list the affected URL patterns you must focus on.",
+      "Map the named patterns (or, for site-wide, your largest templates) to path prefixes and parameter shapes so you know precisely which page sets the reviewer is judging.",
+      "Run pseolint against the affected templates and read the spam-cluster findings first — doorway-pattern, near-duplicate, thin-content, and boilerplate-ratio are the rules that correspond to Pure Spam reasoning.",
+      "Sample 25 random URLs per affected template and apply the human test to each: would this page exist if search did not? Tally the pass rate — below ~70% means the template needs rebuilding, not editing.",
+      "Decide per template: rebuild with genuine per-page data, consolidate many thin pages into fewer substantive ones, or remove and 410. Do not noindex-and-leave; reviewers want the spam gone, not merely hidden.",
+      "Ship the fixes site-wide before filing — a reconsideration filed while spam still exists on unflagged templates is the most common rejection reason.",
+      "File the reconsideration request with a specific, honest writeup: what was wrong, the scope of pages changed, links to before/after examples, and how you will prevent recurrence. Vague requests are rejected and reset the queue.",
+    ],
+    relatedRules: ["doorway-pattern", "thin-content", "near-duplicate", "boilerplate-ratio"],
+    caseStudy:
+      "A travel-deals site received a site-wide Pure Spam action covering ~40,000 auto-generated '{city} cheap flights' pages that each wrapped an affiliate widget in spun boilerplate. The team deleted 38,000 of them with 410s, rebuilt 2,000 top-demand routes with real fare-history data, median prices, and editorial route notes, and removed two doorway funnel pages. Their first reconsideration was rejected for residual thin pages on a forgotten subdomain; the second, filed 18 days later after cleaning the subdomain, was approved. Non-branded organic recovered to 58% of pre-action levels over the following 90 days as the rebuilt pages re-earned rankings on merit.",
+    faqs: [
+      {
+        q: "How long does a Pure Spam reconsideration take?",
+        a: "Reviews typically take one to three weeks per submission, and there is no partial credit — a request is approved or rejected as a whole. A rejection sends you to the back of the queue, so the dominant strategy is to over-fix before the first filing rather than iterate. Manual actions are reviewed by people, so a clear, specific request with concrete examples is reviewed faster than a vague one.",
+      },
+      {
+        q: "Can I just noindex the spam pages instead of deleting them?",
+        a: "Noindex hides pages from the index but does not remove the spam pattern the reviewer is judging, and reviewers can still see noindexed URLs. For Pure Spam, the reliable path is to remove the pages (410) or rebuild them into something with genuine added value. Noindex is acceptable only as a temporary step while substantive rebuilds ship.",
+      },
+      {
+        q: "Will fixing the manual action restore my old rankings?",
+        a: "Lifting the action removes the suppression, but it does not restore rankings the pages no longer deserve. If you deleted or consolidated the spam, the surviving pages re-rank on their own merit, which is usually a fraction of the pre-action footprint. Plan for recovery to the level your genuinely-useful pages can earn, not to the inflated pre-action numbers.",
+      },
+      {
+        q: "I bought this domain with the action already on it — what do I do?",
+        a: "Treat inherited actions the same way operationally: find and remove the offending content. The difference is in the reconsideration request, where you should document the ownership transfer date, state that you did not create the content, and detail exactly what you removed. Google does penalize sites for inherited spam, but a documented cleanup plus ownership change is a well-recognized, recoverable case.",
+      },
+      {
+        q: "Should I disavow links after a Pure Spam action?",
+        a: "Pure Spam is about your own content, not your backlink profile, so disavowal is usually irrelevant and can do harm if applied carelessly. Only consider a disavow file if the action is specifically 'Unnatural links to your site.' For Pure Spam, spend your effort on removing or rebuilding the thin and doorway pages that triggered it.",
+      },
+    ],
+    recoveryTimeline:
+      "Recovery has two clocks. The first is the reconsideration cycle: one to three weeks per submission, with rejections resetting the queue — so realistic clearance is two to six weeks if your first filing is thorough, longer if you iterate. The second is the ranking clock: once the action lifts, the surviving pages must re-earn position on merit, which lands over the following 30 to 90 days as Google recrawls and rescores. Do not expect a snap-back to pre-action traffic; the spam pages that produced most of that traffic are gone by design. Track the Manual Actions report for the 'no issues detected' state, then watch the per-template Performance report for the recrawl-driven climb.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
