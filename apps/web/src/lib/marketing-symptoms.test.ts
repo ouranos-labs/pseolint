@@ -4,6 +4,7 @@ import {
   symptomBodyWordCount,
   type MarketingSymptom,
 } from "@/lib/marketing-symptoms";
+import { MARKETING_RULES } from "@/lib/marketing-rules";
 
 /**
  * The dogfood contract: every indexable /symptoms page must clear a minimum
@@ -47,8 +48,6 @@ describe("MARKETING_SYMPTOMS depth contract", () => {
     },
   );
 });
-
-import { MARKETING_RULES } from "@/lib/marketing-rules";
 
 describe("MARKETING_SYMPTOMS integrity contract", () => {
   const ruleSlugs = new Set(MARKETING_RULES.map((r) => r.slug));
