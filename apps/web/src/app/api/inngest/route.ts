@@ -8,6 +8,7 @@ import { monitorDomains } from "@/inngest/functions/monitor-domains";
 import { autoVerifyDomains } from "@/inngest/functions/auto-verify-domains";
 import { syncGsc } from "@/inngest/functions/sync-gsc";
 import { syncGscOnDemand } from "@/inngest/functions/sync-gsc-on-demand";
+import { syncGrowthMetrics } from "@/inngest/functions/sync-growth-metrics";
 import { runOrchestratorSession } from "@/inngest/functions/run-orchestrator";
 import { expireOrchestratorSessions } from "@/inngest/functions/expire-orchestrator-sessions";
 import { seedLeaderboard } from "@/inngest/functions/seed-leaderboard";
@@ -17,7 +18,7 @@ export const maxDuration = 300;
 
 const handler = serve({
   client: inngest,
-  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, syncGscOnDemand, runOrchestratorSession, expireOrchestratorSessions, seedLeaderboard],
+  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, syncGscOnDemand, runOrchestratorSession, expireOrchestratorSessions, seedLeaderboard, syncGrowthMetrics],
 });
 
 import { NextRequest } from "next/server";
