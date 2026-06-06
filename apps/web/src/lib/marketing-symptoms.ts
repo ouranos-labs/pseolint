@@ -424,3 +424,24 @@ export function findSymptom(slug: string): MarketingSymptom | undefined {
 export function allSymptomSlugs(): string[] {
   return MARKETING_SYMPTOMS.map((s) => s.slug);
 }
+
+/**
+ * Approximate prose word count for a symptom entry — the body fields a reader
+ * actually consumes (nav chrome and slugs excluded). Used by the content-quality
+ * guardrail to keep every /symptoms page above pseolint's own thin-content bar.
+ */
+export function symptomBodyWordCount(entry: MarketingSymptom): number {
+  const parts: string[] = [
+    entry.oneLiner,
+    entry.whatYouSee,
+    ...entry.likelyCauses.map((c) => `${c.cause} ${c.explanation}`),
+    ...entry.diagnosticSteps,
+    entry.caseStudy,
+    ...entry.faqs.map((f) => `${f.q} ${f.a}`),
+    entry.recoveryTimeline,
+  ];
+  return parts
+    .join(" ")
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
