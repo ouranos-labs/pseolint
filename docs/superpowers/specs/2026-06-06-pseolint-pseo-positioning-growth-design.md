@@ -210,3 +210,21 @@ This avoids both the "build 200 pages and pray" failure and the
 4. One throttled free tool wedge.
 5. Aggregate-data content (after consent gate).
 6. Measure → kill or scale.
+
+## Strategic refinement — 2026-06-06 (post slice-1/1b)
+
+Question raised: "pSEO means volume — are we on the most intelligible path given Google's behavior?" Decision (owner deferred to assistant):
+
+**The "volume vs. not" axis is wrong. The real axis is data-moat × template, safe to dogfood.**
+
+- What slice 1/1b shipped (11 symptom pages) is **topical-authority editorial SEO on a programmatic shell — not programmatic SEO.** Name it honestly. Stop equating "pSEO potential" with page count.
+- **Volume is the wrong goal for this site**, for three compounding reasons: (1) it fails pseolint's own audit (scaled-content-abuse / dogfood); (2) post-March-2024 Google leaves volume-without-a-data-moat in "Crawled/Discovered — not indexed"; (3) **young, low-authority domain** → volume simply won't index until trust is earned. Reason (3) makes depth-first the mandatory phase 1 regardless of endgame.
+- **Genuine pSEO is bounded, not infinite.** The only dataset that is simultaneously proprietary + demand-relevant + safe-to-template is **aggregate/anonymized audit statistics** (e.g. boilerplate-ratio / template-diversity benchmarks by industry or pattern). That is the real phase-2 engine. The large per-domain dataset stays rejected (unsafe). pseolint will never be a millions-of-pages firehose — by design.
+
+**Refined sequence (supersedes the count-oriented reading of slice 1):**
+1. **GSC-live** (measurement) — load-bearing; build before scaling content further.
+2. **Deepen, don't widen** — interlink the existing 11 symptom↔rule cluster, optimize for conversion, not new slugs. Add a symptom page only when GSC shows a specific validated gap.
+3. **Phase-2 data-moat engine** — aggregate/anonymized stats × template, gated on (a) earned authority and (b) GSC-proven editorial conversion + ToS/consent.
+4. Throttled free-tool wedge remains a parallel option once measurement exists.
+
+**Do NOT** keep cranking symptom pages for volume's sake — that is cargo-culting the very pattern pseolint audits against.
