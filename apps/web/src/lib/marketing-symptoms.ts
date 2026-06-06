@@ -688,6 +688,80 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "Set expectations by enforcement mode and then by the corpus you rebuild. A manual action follows a bounded reconsideration clock — 14 to 28 days from submission to verdict — but only after you have actually pruned and consolidated, because reviewers check that the scaled pattern is gone rather than disguised. An algorithmic demotion ignores reconsideration entirely; it lifts when Google's next crawl confirms the mass-produced volume is genuinely reduced and the remaining pages clear the value bar, which tracks the roughly 75-day core-update cadence. Expect a partial bounce within 30 to 45 days as the pruned URLs fall out of active scoring and raise the host's median quality, then a larger step at the next update if the survivors are real. The number you recover to is set by what your genuinely-useful pages can earn on actual demand — not the inflated peak the volume once bought you — so forecast against the survivor cohort and treat any overshoot as a bonus, not the baseline.",
   },
+  {
+    slug: "doorway-pages-penalty",
+    title: "Doorway pages penalty — diagnose and fix gateway-page clusters",
+    metaDescription:
+      "Doorway pages funnel visitors from near-identical query and location URLs to one destination. Diagnose the pattern, consolidate the cluster, clear the penalty.",
+    primaryKeyword: "doorway pages penalty",
+    oneLiner:
+      "A demotion or manual action against a large set of near-identical gateway pages — built for query, location, or keyword permutations — that all funnel visitors to the same underlying destination.",
+    whatYouSee:
+      "You have built dozens, hundreds, or tens of thousands of pages that each target a slight variation of the same intent — \"{service} in {city}\", \"cheap {service} {city}\", \"{service} near {city}\" — and every one of them hands the visitor off to the same booking form, the same contact page, or the same generic offer. The pages rarely differ beyond a swapped place name in the title and an introductory sentence. On the SERP side the giveaway is that these URLs barely surface for anything except the exact permutation in their title, and even then they sit on page two with a fragile grip. When enforcement lands it lands across the whole permutation set at once: the cluster loses impressions in a single step, not page by page. If a manual action attaches, Google Search Console shows \"Doorways\" under Security & Manual Actions, pointing at the spam policy at https://developers.google.com/search/docs/essentials/spam-policies. Algorithmically there is no notice — the orphaned permutation pages simply stop being indexed, the Discovered-not-indexed bucket swells, and the few that survive cannibalize each other. Internally the tell is a navigation that no human would design: a footer or sitemap dump of thousands of city links pointing into pages that exist only to catch a search and pass the user along.",
+    likelyCauses: [
+      {
+        cause: "Location or query permutation sets that all resolve to one destination",
+        explanation:
+          "The defining doorway shape: a single offer wrapped in a generated page for every city, ZIP, or phrasing variant, each one routing the visitor to the same form or landing page. Google treats the whole set as one door multiplied, because the genuine destination is identical and the permutation pages add no standalone value of their own.",
+      },
+      {
+        cause: "Orphan pages reachable only by search, not by site navigation",
+        explanation:
+          "Doorways are frequently built to be found by Google and ignored by humans — they sit outside the real navigation, linked only from a mass footer block or an XML sitemap. When a page exists solely to intercept a query and pass the user onward, that orphan status is itself a structural signal that the page was made for engines rather than people.",
+      },
+      {
+        cause: "Near-identical body copy with only the entity noun swapped",
+        explanation:
+          "When the only thing that changes between two URLs is the city or keyword token while the surrounding paragraphs, headings, and calls to action are byte-for-byte the same, the cluster reads as a templated funnel. The pages are not differentiated by genuinely different information, so each one duplicates the intent of every sibling rather than serving a distinct need.",
+      },
+      {
+        cause: "Scaling for keyword coverage instead of for distinct user needs",
+        explanation:
+          "The pages were created to occupy a matrix of keyword cells — every service crossed with every location — rather than because each cell represents a question a real user has that no other page answers. Coverage-driven generation is precisely the intent Google's doorway policy describes, and it is the root cause that consolidation has to undo rather than disguise.",
+      },
+    ],
+    diagnosticSteps: [
+      "Check Search Console → Security & Manual Actions for an explicit \"Doorways\" notice — if it is there you have a defined reconsideration path and should read its wording before changing anything.",
+      "Run pseolint across your full sitemap and open the doorway-pattern findings first — that rule is built to flag permutation sets that share intent and a destination, which is the exact shape you are diagnosing.",
+      "Read the near-duplicate findings alongside it to quantify how much body copy is shared across the cluster; two URLs that differ only by a swapped noun are a doorway pair, not two pages.",
+      "Read the thin-content findings to confirm the permutation pages carry little standalone value beyond the entity swap and the funnel link out to the shared destination.",
+      "Read the template-diversity findings to measure how mechanically uniform the cluster is — low diversity across thousands of URLs is the structural fingerprint of a generated doorway set.",
+      "Trace internal linking: if the affected URLs are reachable only from a footer dump or the sitemap and never from real editorial navigation, mark them as orphan permutation pages destined for consolidation or removal.",
+      "Apply the test to every surviving URL — \"would this page exist if search engines did not?\" — and sort the cluster into keep-and-strengthen, merge, or remove based on the honest answer.",
+    ],
+    relatedRules: [
+      "doorway-pattern",
+      "thin-content",
+      "template-diversity",
+      "near-duplicate",
+    ],
+    caseStudy:
+      "A home-services franchise ran 9,400 programmatic pages of the form \"{trade} in {city}\" across four trades and roughly 2,350 towns, every one of them ending in the same national booking widget. Organic impressions to the set were already thin when a manual action for doorways landed on February 12, 2025, wiping the cluster's residual traffic overnight. The team consolidated to 4 substantive trade hub pages plus 180 genuine service-area pages for towns where the franchise had a physical branch, real local pricing, and named technicians; the surviving pages each linked into the relevant hub and out to a town-specific (not national) contact path. The remaining 9,216 orphan permutation URLs were 410'd in a single batch. Reconsideration was filed February 27, 2025 and the manual action was lifted 21 days later. The consolidated hubs, which had previously been buried under the permutation noise, climbed into the top five for the head trade terms and recovered an estimated $58,000 of monthly booked-job revenue within four months — more than the doorway set had ever produced.",
+    faqs: [
+      {
+        q: "What is the difference between doorway pages and legitimate local landing pages?",
+        a: "A legitimate local page exists because the business genuinely operates in that location and the page carries information unique to it — a real address, local staff, local pricing, area-specific content a visitor cannot get elsewhere on the site. A doorway exists to catch a location query and funnel the visitor to a single shared destination, with nothing on the page that the location actually warrants. The honest test is whether you would build the page if search did not exist.",
+      },
+      {
+        q: "How does Google identify a doorway cluster?",
+        a: "Google looks for the combination of signals rather than any single one: a large set of pages with near-identical intent, thin unique value per URL, a shared destination they all funnel toward, and a permutation structure that maps to a keyword matrix rather than to distinct user needs. When those line up across many URLs at once, the whole set is classified together, which is why enforcement hits the cluster in one step instead of page by page.",
+      },
+      {
+        q: "Should I noindex the doorway pages or delete them?",
+        a: "For orphan permutation pages with no inbound links and no remaining traffic, 410 (Gone) is cleaner than a lingering noindex because it tells Google the URLs are intentionally retired and it is processed faster than a 404. Reserve consolidation via 301 redirect for the minority of pages that hold genuine links or traffic, pointing them at the substantive hub that now absorbs their intent. Noindex is a reasonable interim step while you decide, but it is not the end state.",
+      },
+      {
+        q: "If a manual action attached, what does reconsideration require?",
+        a: "The reviewer needs to see that the doorway pattern is genuinely gone, not merely hidden. That means the permutation set has been consolidated into fewer pages that each carry standalone value, the orphan URLs are removed or redirected, and internal linking now reflects a structure a human would design. In the reconsideration request, describe what the pages were, why they qualified as doorways, exactly what you consolidated or removed, and how the survivors now serve distinct needs — concrete before-and-after detail, not a promise to do better.",
+      },
+      {
+        q: "Will consolidating my pages cost me the rankings they currently hold?",
+        a: "Doorway pages rarely hold rankings worth protecting — they sit fragile on page two for their exact permutation and little else, which is part of why they are doorways. Consolidating concentrates the intent, internal links, and any earned signals onto a smaller set of stronger pages that can actually compete for the head terms. In practice the hub that replaces a permutation cluster usually outranks anything the cluster achieved, because Google can finally identify one authoritative page for the topic instead of choosing among hundreds of near-duplicates.",
+      },
+    ],
+    recoveryTimeline:
+      "If a manual action is attached, the clock is bounded by reconsideration: requests are typically reviewed within 14 to 28 days, and the action lifts as soon as the reviewer agrees the doorway pattern is genuinely gone rather than disguised — so the gating factor is the honesty of your consolidation, not Google's queue. For an algorithmic demotion there is no human in the loop; the cluster's suppression eases only as Google re-crawls and confirms the permutation pages are removed or merged, which means planning for 30 days from fix to the first movement and 60 to 90 days to a stable new equilibrium. The orphan URLs you 410 fall out of active scoring within about 45 days, and as they leave the host's median quality rises, which can lift the surviving hubs independent of the doorway fix itself. Do not expect the freed traffic to land back on the old URLs — it consolidates onto the substantive pages, so track the hubs' impressions and head-term positions as your recovery signal rather than watching the retired permutation set.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
