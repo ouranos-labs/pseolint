@@ -44,14 +44,14 @@ Separate from `gscPageMetrics`. Columns (follow existing table conventions — u
 ```
 id          uuid pk
 url         text not null
-query       text            -- nullable: page-only aggregate rows store NULL
-weekBucket  text not null   -- ISO week key "YYYY-Www" (UTC)
+query       text not null default ''  -- '' (empty) = the page-level aggregate row; non-empty = a page+query row
+weekBucket  text not null             -- ISO week key "YYYY-Www" (UTC)
 impressions integer not null default 0
 clicks      integer not null default 0
 positionAvg numeric(6,2)
 ctrAvg      numeric(6,4)
 fetchedAt   timestamptz not null defaultNow()
-unique (url, query, weekBucket)   -- NULL query = the page-level row
+unique (url, query, weekBucket)   -- empty-string sentinel (not NULL) so page-level rows upsert correctly; Postgres treats NULLs as distinct, which would break dedupe
 index  (weekBucket)
 ```
 A Drizzle migration is generated for this table.
@@ -64,7 +64,7 @@ Add two pure-ish helpers alongside the existing ones:
 ### 4. Aggregation (pure function, unit-tested) — `@/lib/growth-metrics.ts`
 - `aggregateGrowthRows(rows, { growthPrefixes }): { pageRows, pageQueryRows }`:
   - filters to URLs whose path starts with a growth prefix (`/symptoms`, `/rules`, `/tools`);
-  - emits **page-level** rows (query = null, summed clicks/impressions, impression-weighted avg position, derived ctr) and the **top-N page+query** rows per page (N≈10, to bound table growth);
+  - emits **page-level** rows (query = `""`, summed clicks/impressions, impression-weighted avg position, derived ctr) and the **top-N page+query** rows per page (N≈10, to bound table growth);
   - pure: rows in → rows out, no I/O. This is the core tested unit.
 - `growthIndexationSummary(publishedUrls, metricRows)`: returns `{ published, withImpressions, indexationRatePct }` — "withImpressions" is our proxy for "indexed and surfacing". Published growth URLs are enumerated from the same data the routes render: `allSymptomSlugs()` → `/symptoms/<slug>`, `MARKETING_RULES` slugs → `/rules/<slug>`, `MARKETING_TOOLS` slugs → `/tools/<slug>` (all three are confirmed dynamic page-sets over those arrays).
 
