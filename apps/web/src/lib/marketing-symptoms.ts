@@ -762,6 +762,80 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "If a manual action is attached, the clock is bounded by reconsideration: requests are typically reviewed within 14 to 28 days, and the action lifts as soon as the reviewer agrees the doorway pattern is genuinely gone rather than disguised — so the gating factor is the honesty of your consolidation, not Google's queue. For an algorithmic demotion there is no human in the loop; the cluster's suppression eases only as Google re-crawls and confirms the permutation pages are removed or merged, which means planning for 30 days from fix to the first movement and 60 to 90 days to a stable new equilibrium. The orphan URLs you 410 fall out of active scoring within about 45 days, and as they leave the host's median quality rises, which can lift the surviving hubs independent of the doorway fix itself. Do not expect the freed traffic to land back on the old URLs — it consolidates onto the substantive pages, so track the hubs' impressions and head-term positions as your recovery signal rather than watching the retired permutation set.",
   },
+  {
+    slug: "duplicate-google-chose-different-canonical",
+    title:
+      "\"Duplicate, Google chose a different canonical\" — diagnose programmatic near-duplicates",
+    metaDescription:
+      "GSC says \"Duplicate, Google chose a different canonical than user.\" Not a penalty — but a near-duplicate signal at scale. Diagnose which template collapsed.",
+    primaryKeyword: "google chose a different canonical than user",
+    oneLiner:
+      "Search Console ignored your rel=canonical and folded the URL into a near-duplicate cluster. Not a penalty — but on a programmatic site it is a reliable sign your template lacks per-page uniqueness and you are spending crawl budget on pages Google treats as interchangeable.",
+    whatYouSee:
+      "In Search Console's Page indexing report, a chunk of one template lands in the \"Duplicate, Google chose a different canonical than user\" bucket — sometimes a few hundred URLs, sometimes most of a template family. Run URL Inspection on an affected page and the \"User-declared canonical\" and \"Google-selected canonical\" fields disagree: you pointed the page at itself, Google points it at a sibling that shares ~90% of its content. Critically, the page is usually still indexed — just under the sibling's URL, not yours — so traffic does not always fall off a cliff. What you lose is control: the page you optimized, linked to, and submitted in your sitemap is not the one ranking, and impressions quietly consolidate onto whichever sibling Google picked. The pattern is strongest on entity-swap templates where only a city, product, or persona noun changes between URLs, and it grows each crawl cycle as Google discovers more cluster members. First-time operators read it as a bug in their canonical tags; it is almost always a content-differentiation problem the tag cannot fix.",
+    likelyCauses: [
+      {
+        cause: "Entity-swap templates that produce near-identical bodies",
+        explanation:
+          "When two URLs differ only by a swapped {city}, {product}, or {role} noun and share the same sentence frames, headings, intro, and CTA, Google's deduplication treats them as one page wearing different labels. Your self-referential canonical is only a hint; the near-duplicate body is the stronger signal, so Google picks one representative URL for the cluster and discards the rest. The fix lives in the content, not the tag.",
+      },
+      {
+        cause: "Canonical tags are hints, overridden by ~40 site-wide signals",
+        explanation:
+          "Google does not treat rel=canonical as a command. It weighs roughly forty signals — internal-link distribution, sitemap inclusion, redirect targets, hreflang clusters, HTTPS, URL tidiness, and content similarity among them — to choose a canonical. If your internal links, sitemap, or hreflang point at a different member of the cluster than your canonical tag does, you have sent conflicting instructions and Google resolves the conflict by trusting the aggregate, not your tag.",
+      },
+      {
+        cause: "Inconsistent canonical signals across the same cluster",
+        explanation:
+          "A page can self-canonicalize while its breadcrumb, related-links module, pagination, and parameterized variants all link to a slightly different URL of the same content. Faceted filters, trailing-slash and uppercase variants, and tracking parameters multiply the cluster. When the signals disagree about which URL is the real one, Google makes the call for you — and it rarely picks the one you intended, because your intended URL is the least-linked of the bunch.",
+      },
+      {
+        cause: "Thin per-page differentiation below Google's uniqueness floor",
+        explanation:
+          "Templates where the unique slot is a short data table or a two-sentence blurb wrapped in heavy shared boilerplate fall below the differentiation threshold Google uses to keep pages distinct. The pages may each contain unique facts, but the proportion of unique-to-boilerplate text is too low to register as separate documents. The cluster collapses to its most-linked or most-complete member, and the rest become \"duplicates\" of it.",
+      },
+    ],
+    diagnosticSteps: [
+      "Open Search Console → Page indexing → \"Duplicate, Google chose a different canonical\" and export the URL list. Segment by URL prefix to confirm whether one template is the source or the issue is scattered across the site.",
+      "Run URL Inspection on five affected URLs and record both the \"User-declared canonical\" and \"Google-selected canonical\" for each — the Google-selected URL is the representative of the near-duplicate cluster you are competing against.",
+      "Run pseolint against your sitemap and read the near-duplicate findings first: they identify which URLs share enough body content to be clustered, and which sibling each one collapses into, so you can map clusters before touching anything.",
+      "Read the boilerplate-ratio finding for the affected template — a high shared-boilerplate-to-unique-content ratio is the mechanical cause of the clustering, and it tells you how much genuinely unique content each page is missing.",
+      "Check the template-diversity finding to see whether your headings, intros, and section structure are identical across the cluster; identical structure plus a swapped noun is the exact fingerprint that defeats a self-referential canonical.",
+      "Audit signal consistency for one cluster end to end: confirm the canonical tag, the internal links pointing at the page, the sitemap entry, and any hreflang all reference the same URL — any disagreement is a vote you are casting against your own intended canonical.",
+      "Decide per cluster whether to differentiate (make each page genuinely unique) or to consolidate on purpose (pick one canonical, 301 or canonicalize the rest, and stop fighting to index pages that should not exist separately).",
+    ],
+    relatedRules: [
+      "near-duplicate",
+      "boilerplate-ratio",
+      "template-diversity",
+    ],
+    caseStudy:
+      "A home-services marketplace published 9,400 \"{service} in {city}\" pages from one template — same 1,100-word boilerplate, a swapped city name, and a three-row local price table per page. Within two crawl cycles, 6,700 landed in \"Duplicate, Google chose a different canonical than user\"; URL Inspection showed Google had folded each city page into the largest-metro version of the same service. Nothing was penalized — the service hub pages still ranked — but the long-tail city traffic the template was built for never materialized. The team split the work: for the top 400 cities by demand they replaced the boilerplate with genuinely local content (named providers, city-specific permit rules, real per-city price ranges from booking data), and for the remaining 6,300 they deliberately consolidated to service-level pages and canonicalized the thin variants away. Indexed-as-declared URLs on the rewritten set rose from 12% to 71% within about six weeks.",
+    faqs: [
+      {
+        q: "Is \"Duplicate, Google chose a different canonical\" a penalty?",
+        a: "No. Google's own guidance (Martin Splitt, 2025) is explicit that this status is not a manual action or a ranking penalty — the affected URLs are usually still indexed as part of a near-duplicate or language cluster, just under a different URL than you declared. It matters because on a publish-at-scale site it signals thin per-page differentiation, wastes crawl budget on interchangeable pages, and means the page you optimized is not the one Google ranks. Treat it as an efficiency and quality signal, not an enforcement event.",
+      },
+      {
+        q: "Why is Google ignoring my rel=canonical tag?",
+        a: "Because rel=canonical is a hint, not a directive. Google combines it with roughly forty other signals — internal links, sitemap inclusion, redirect targets, hreflang, content similarity, and URL cleanliness among them — to pick the canonical it trusts. When your near-duplicate bodies and your internal-link distribution disagree with your tag, Google sides with the aggregate signal. The tag is not broken; it is being outvoted by stronger evidence that two pages are the same document.",
+      },
+      {
+        q: "Will fixing my canonical tags make Google use my chosen URL?",
+        a: "Usually not on its own. If the pages are genuine near-duplicates, making every canonical signal perfectly consistent still leaves Google looking at two pages it considers the same and choosing one. Consistent signals are necessary — align canonical, internal links, sitemap, and hreflang — but the durable fix is making each page actually different: real per-page data and structure, not a swapped entity noun. Tag hygiene plus genuine differentiation is what changes Google's selection.",
+      },
+      {
+        q: "Should I try to index all the near-duplicates or consolidate them?",
+        a: "Decide per cluster. If each page can carry genuinely unique, demand-backed content — a city page with real local data, a product page with distinct specs and reviews — invest in differentiation and keep them separate. If the pages exist only because the template could generate them and they will never be meaningfully different, the right move is to consolidate on purpose: pick one canonical, 301 or canonicalize the rest, and stop spending crawl budget asking Google to index interchangeable pages. Fighting to index near-duplicates Google has already merged is usually wasted effort.",
+      },
+      {
+        q: "How is this different from \"Crawled — currently not indexed\"?",
+        a: "They are adjacent but distinct. \"Duplicate, Google chose a different canonical\" means Google did index the content, just under a sibling URL it judged to be the same page. \"Crawled — currently not indexed\" means Google fetched the page and decided it was not worth keeping at all. The first is a deduplication outcome; the second is a quality-rejection outcome. The split matters: deduplication needs differentiation or consolidation, while not-indexed needs added value before Google will reconsider the URL.",
+      },
+    ],
+    recoveryTimeline:
+      "There is no manual-action clock here because there is no manual action — recovery is gated entirely by Google re-crawling and re-clustering your pages, which moves at crawl-budget pace. For pages you genuinely differentiate, expect Google to re-evaluate over the next one to three crawl cycles (roughly two to six weeks for a healthy host) and to start honoring your declared canonical once the bodies are distinct enough to read as separate documents; the indexed-as-declared ratio in Search Console is your leading indicator. For pages you consolidate on purpose, cleanup is faster and more predictable: once 301s or aligned canonicals are in place, the duplicate cluster shrinks within a crawl cycle or two and the surviving URL absorbs the impressions. Do not expect the \"Duplicate\" bucket to empty overnight — it drains URL by URL — and resist re-requesting indexing on individual pages, since the pace at which Google re-includes your differentiated pages is itself the quality verdict you are waiting on.",
+  },
 ] as const;
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
