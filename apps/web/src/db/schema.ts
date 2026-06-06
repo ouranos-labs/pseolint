@@ -278,6 +278,24 @@ export const gscPageMetrics = pgTable("gsc_page_metrics", {
   domainIdx: index("gsc_metrics_domain_idx").on(t.domainId),
 }));
 
+export const growthSearchMetrics = pgTable("growth_search_metrics", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  url: text("url").notNull(),
+  // '' (empty) = page-level aggregate row; non-empty = a page+query row.
+  // Empty-string sentinel (not NULL) so the unique index dedupes page-level
+  // rows across weekly runs — Postgres treats NULLs as distinct.
+  query: text("query").notNull().default(""),
+  weekBucket: text("week_bucket").notNull(), // ISO week "YYYY-Www" (UTC)
+  impressions: integer("impressions").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
+  positionAvg: numeric("position_avg", { precision: 6, scale: 2 }),
+  ctrAvg: numeric("ctr_avg", { precision: 6, scale: 4 }),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  key: uniqueIndex("growth_metrics_key_uniq").on(t.url, t.query, t.weekBucket),
+  weekIdx: index("growth_metrics_week_idx").on(t.weekBucket),
+}));
+
 export const uploadTokens = pgTable("upload_token", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
