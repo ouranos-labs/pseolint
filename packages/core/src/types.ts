@@ -152,6 +152,15 @@ export interface RuleResult {
 /** v0.4 four-category bucket keys. */
 export type CategoryKey = "integrity" | "discoverability" | "citation" | "data" | "audit";
 
+/**
+ * The categories that contribute to the verdict — every `CategoryKey` except
+ * the weight-0 `audit` diagnostics bucket (every scoring profile sets
+ * `audit: 0`). Canonical source of truth for consumers (CLI, MCP, web) that
+ * surface "the scored categories" so they don't each hardcode the list.
+ * The `satisfies` clause keeps it in sync if a key is ever renamed.
+ */
+export const SCORED_CATEGORY_KEYS = ["integrity", "discoverability", "citation", "data"] as const satisfies readonly CategoryKey[];
+
 /** Per-category grade + raw issue count. Audit category exists for completeness but is never weighted. */
 export interface CategoryGrade {
   grade: Grade;

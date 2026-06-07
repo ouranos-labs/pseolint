@@ -1,13 +1,14 @@
 {
   "name": "@pseolint/mcp",
-  "version": "0.6.3",
+  "version": "0.6.4",
+  "mcpName": "io.github.ouranos-labs/pseolint",
   "description": "MCP server for pseolint — audit programmatic SEO sites from AI coding assistants. v0.5 adds the AI-orchestrated audit tool that produces a fix manifest with concrete patches.",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
   "homepage": "https://pseolint.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ouranos-labs/pseolint.git",
+    "url": "git+https://github.com/ouranos-labs/pseolint.git",
     "directory": "packages/mcp"
   },
   "keywords": [
@@ -39,11 +40,12 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json"
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@pseolint/core": "^0.6.3",
+    "@pseolint/core": "^0.6.4",
     "zod": "^4.3.6"
   }
 }

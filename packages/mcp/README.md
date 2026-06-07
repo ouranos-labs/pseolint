@@ -2,7 +2,9 @@
 
 > MCP server for pseolint — audit pSEO sites by template from AI coding assistants.
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.6.2 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.6.3 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+
+All tools are namespaced with a `pseolint_` prefix (`pseolint_audit_site`, `pseolint_explain_score`, `pseolint_check_page_technical`, `pseolint_orchestrate_audit`) so they don't collide with other MCP servers, and each returns both human-readable text and machine-readable `structuredContent`.
 
 ### What's new in v0.6 — per-template output in tool responses
 
@@ -49,7 +51,7 @@ Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-tem
 
 **Conservative MCP defaults**: $2 / 60 tool calls / 180 seconds wall (vs CLI's $5 / 100 / 300). Two output modes: `summary` (terse text for chat UI) and `json` (full manifest + validation + diff). Each invocation reports actual USD spend. Patches that fail deterministic validators are dropped from the manifest and surfaced separately.
 
-**Example prompt**: "Use the orchestrate_audit tool to run an AI-native audit of https://example.com with concrete fix proposals."
+**Example prompt**: "Use the pseolint_orchestrate_audit tool to run an AI-native audit of https://example.com with concrete fix proposals."
 
 ### Safety defaults (v0.3.3+)
 
@@ -65,7 +67,7 @@ or RFC1918 networks via a malicious URL argument. Specifically:
 
 ## Tools
 
-### `orchestrate_audit` (v0.5)
+### `pseolint_orchestrate_audit` (v0.5)
 
 Drive an LLM through 25 audit tools and produce a fix manifest with concrete patches. Use when a user wants paste-able fixes (not just a list of issues). Costs ~$1-3 per audit on managed Anthropic.
 
@@ -78,9 +80,9 @@ Drive an LLM through 25 audit tools and produce a fix manifest with concrete pat
 
 **Returns**: text summary with verdict + categories + top-3 patches per bucket (or full JSON when `format: "json"`). Validation failures listed separately so the LLM-host conversation stays grounded in what actually shipped.
 
-**Example prompt:** "Use orchestrate_audit on https://example.com with format=summary"
+**Example prompt:** "Use pseolint_orchestrate_audit on https://example.com with format=summary"
 
-### `audit_site`
+### `pseolint_audit_site`
 
 Run a full pseolint audit on a URL or directory path. Returns the site-level verdict + risk score, a `templates` array (per-template verdicts + variance metrics), and all per-URL findings with actionable fix suggestions.
 
@@ -96,14 +98,26 @@ Run a full pseolint audit on a URL or directory path. Returns the site-level ver
 
 **Example prompt:** "Audit my site at http://localhost:3000 — show me the per-template breakdown"
 
-### `explain_score`
+### `pseolint_explain_score`
 
 Run an audit and get a human-readable explanation of what's driving the SpamBrain Risk Score, including category breakdowns, top issues, and prioritized fix suggestions.
 
 **Parameters:**
 - `source` (required) — URL or directory path to audit
+- `threshold` — Risk threshold for the pass/fail verdict (default: 40)
+- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter.
+- `sampleSeed` — Integer seed for deterministic stratified sampling.
 
 **Example prompt:** "Explain why my site's SpamBrain score is high"
+
+### `pseolint_check_page_technical`
+
+Check a single page URL for per-page technical SEO issues (canonical, Open Graph, JSON-LD, robots, meta, thin content, author signals). Does not run cross-page rules — use `pseolint_audit_site` for those.
+
+**Parameters:**
+- `url` (required) — Full URL of the page to check
+
+**Example prompt:** "Check https://yoursite.com/templates/california-llc for technical SEO issues"
 
 ## Installation
 
@@ -175,7 +189,7 @@ Add to `.vscode/mcp.json`:
 
 ## What It Checks
 
-34 rules across 6 categories:
+40+ rules, grouped by theme (scored across 4 categories: integrity, discoverability, citation, data):
 
 - **SpamBrain Risk** — near-duplicate detection, entity-swap doorway pages, thin content, boilerplate ratio
 - **Content Quality** — unique value per page, heading/meta uniqueness, E-E-A-T signals

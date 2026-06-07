@@ -1,5 +1,16 @@
 # @pseolint/core
 
+## 0.6.4
+
+### Patch Changes
+
+- Export `SCORED_CATEGORY_KEYS` — the canonical list of verdict-contributing
+  category keys (every `CategoryKey` except the weight-0 `audit` diagnostics
+  bucket). Gives downstream consumers (MCP, CLI, web) a single source of truth for
+  "the scored categories" instead of each hardcoding `["integrity",
+"discoverability", "citation", "data"]`. A `satisfies readonly CategoryKey[]`
+  clause keeps it in sync if a key is renamed.
+
 ## 0.6.2
 
 ### Patch Changes
@@ -56,11 +67,13 @@
 Combined release: Wise calibration drift fix + Wikipedia n-gram bloom filter (standalone). Both shipped same session post-v0.5.12 stability work.
 
 **Wise calibration drift resolution** (commit `a4b83c1`):
+
 - **Engine bug fix** in `links/unreachable-from-root` rule: previously ran its full unreachable-from-root BFS on pinned-URL audits because `isSampledAudit` was `false` in pinned mode. Pinned URLs ARE structurally a sample (same as random-sampled crawls). Fixed by changing the dispatcher guard to `isSampledAudit || hasPinnedUrlsEarly`. The rule now correctly suppresses on the pinned-URL path, eliminating 22 false-positive findings on Wise's locale-hub URLs.
 - **Corpus annotation update**: even after the false positives cleared, Wise stably scored `concerning` (risk=45) due to 8 real blockers — 5 `content/title-uniqueness` errors + 3 `content/meta-uniqueness` errors on locale-hub pages that legitimately share titles. The `blockerFloor` mechanism kicks in at density 0.32 → floor 45. These ARE real signals; raised Wise's `expectedVerdictCeiling` from `caution` → `concerning` with full annotation in the corpus JSON.
 - Net: Wise now passes the corpus test at `concerning`. No other site's verdict changed. Test count: pre-existing failures dropped 4 → 2 (Typeform also resolved as side-effect of the BFS fix).
 
 **Wikipedia n-gram standalone signal** (commit `4aedde9`):
+
 - New rule `content/wikipedia-paraphrase` detects Wikipedia-paraphrased content via trigram bloom filter. Fires `warning`/`low` when ≥40% of page trigrams hit the reference corpus.
 - Bloom filter: 8 KB binary at `packages/core/data/wikipedia-trigrams.bin`. Parameters: m=65536 bits, k=3 FNV-1a-32 hashes, ~5,032 unique trigrams indexed from a curated 12-article public-domain Wikipedia sample (CC BY-SA 4.0 attributions in `scripts/wikipedia-samples/NOTICE.md`).
 - Calibration evidence: verbatim Marie Curie paragraph → rate 0.72 (fires); original pSEO/commercial copy → rate <0.15 (no fire); random commercial English → rate <0.30 (FP rate within spec). Zero new fires across the 8 auditable reputable-pSEO corpus sites.
@@ -112,7 +125,7 @@ Combined release: Wise calibration drift fix + Wikipedia n-gram bloom filter (st
 
 ### Patch Changes
 
-- **New rule `content/value-add`** — composite that aggregates 5 existing signals into a single 0-1 per-page quality score: originality (1.0 if `content/regurgitated-content` doesn't fire), freshness (`aeo/freshness-signals`), citable facts (`aeo/citable-facts`), E-E-A-T (`content/eeat-signals`), translation completeness (`content/translation-no-op`). Each signal weighted equally. Missing signals treated as 1.0 (best-case) — the rule only penalises *confirmed* problems, not absence of evidence.
+- **New rule `content/value-add`** — composite that aggregates 5 existing signals into a single 0-1 per-page quality score: originality (1.0 if `content/regurgitated-content` doesn't fire), freshness (`aeo/freshness-signals`), citable facts (`aeo/citable-facts`), E-E-A-T (`content/eeat-signals`), translation completeness (`content/translation-no-op`). Each signal weighted equally. Missing signals treated as 1.0 (best-case) — the rule only penalises _confirmed_ problems, not absence of evidence.
 - **Severity bands**: score < 0.3 → critical, 0.3 ≤ score < 0.5 → error, ≥ 0.5 → no finding (no noise on already-clean pages).
 - **Architecture**: second-pass design — `valueAddRule(pages, allFindings)` runs after the per-rule loop assembles findings. Doesn't re-parse pages; reads existing finding tags. Same `suppressedRuleSet` / `isRuleEnabled` guards as other rules.
 - **Calibration**: bestfirenze regression test confirms the rule fires critical on its degenerate pages. Reputable corpus (G2, Wise, Webflow, Jasper, Ramp) — zero new findings; pre-existing 4 calibration failures unchanged. RULE_IMPACTS: `baseImpact: 25, perInstance: 8, maxImpact: 50`. 13 new tests.
@@ -232,6 +245,7 @@ Combined release: Wise calibration drift fix + Wikipedia n-gram bloom filter (st
   `lastVerifiedAt` markers.
 
   Expected savings depend strongly on sitemap hygiene:
+
   - **Sites with `<lastmod>` in sitemap.xml** (Next.js, WordPress/Yoast,
     Astro): up to ~95% fetch reduction on steady-state monitoring runs
     once the prior state has aged past the recheck-trigger findings.

@@ -1,5 +1,68 @@
 # @pseolint/mcp
 
+## 0.6.4
+
+### Patch Changes
+
+- Add MCP Registry support: a schema-valid `server.json` (namespace
+  `io.github.ouranos-labs/pseolint`) plus the `mcpName` ownership field in
+  `package.json`, so the server can be published to
+  `registry.modelcontextprotocol.io` for client discovery.
+
+- Align the MCP server with 2026 MCP guidelines.
+
+  **Breaking:** all tools are now namespaced with a `pseolint_` prefix to avoid
+  collisions with other MCP servers loaded alongside this one:
+
+  - `audit_site` → `pseolint_audit_site`
+  - `explain_score` → `pseolint_explain_score`
+  - `check_page_technical` → `pseolint_check_page_technical`
+  - `orchestrate_audit` → `pseolint_orchestrate_audit`
+
+  Update any saved prompts or client configs that reference the old names.
+
+  **Non-breaking improvements:**
+
+  - Every tool now declares an `outputSchema` and returns `structuredContent`
+    (modern SDK pattern), so clients get validated structured data alongside the
+    human-readable text. `pseolint_audit_site` embeds up to 100 severity-ordered
+    findings, with `findingCount` for the true total and `findingsTruncated` when
+    the array was shortened; structured `categories` are the four scored buckets
+    only (sourced from core's `SCORED_CATEGORY_KEYS`, excluding the weight-0
+    `audit` diagnostics bucket).
+  - `isError` is now reserved for genuine execution failures. A site exceeding the
+    risk threshold (or an orchestrate run that stops early) is a _successful_ call:
+    read `passed` / `verdict` / `reason` / `completed` instead of `isError`.
+    Previously these returned `isError: true`.
+  - Output is size-bounded without ever emitting malformed data: human-readable
+    console/summary text is character-capped with a CLI pointer, and oversized
+    `format:"json"` payloads collapse to a compact **valid-JSON** envelope
+    (truncation marker + findings-free summary + CLI pointer) rather than being
+    string-sliced into unparseable JSON or left unbounded.
+  - `pseolint_audit_site` and `pseolint_explain_score` now expose the
+    `authorityScore` (bring-your-own domain authority, 0-100) and `sampleSeed`
+    (deterministic stratified sampling) parameters that the engine already
+    supported — previously documented in the README but not wired up.
+  - All numeric inputs are range-constrained with descriptive errors. The
+    orchestrator budget ceilings are explicit MCP-surface safety bounds (core
+    itself imposes none): max $50 / 500 tool calls / 900s, well above the
+    conservative MCP defaults of $2 / 60 / 180.
+  - Added `idempotentHint` annotations: `true` for the read-only audit tools,
+    `false` for `pseolint_orchestrate_audit` (LLM-driven, non-deterministic).
+  - Size caps are env-tunable for parity with the existing page-sample cap:
+    `PSEOLINT_MCP_CHAR_LIMIT`, `PSEOLINT_MCP_JSON_CHAR_CAP`,
+    `PSEOLINT_MCP_FINDINGS_CAP` (alongside `PSEOLINT_MCP_SAMPLE_CAP`).
+  - Added a test suite (56 tests, ~82% branch / 98% line on the server) covering
+    two layers: contract tests that drive the real server through the MCP SDK
+    client over an in-memory transport with the engine mocked (tool registration,
+    schema-validated `structuredContent`, `isError` semantics, output size bounding
+    incl. boundary cases, input-validation, option forwarding, env knobs), plus a
+    true end-to-end suite that runs the real engine (`auditSource`/`formatJson`/
+    `formatConsole`) against a static filesystem fixture to catch core↔MCP drift.
+
+- Updated dependencies
+  - @pseolint/core@0.6.4
+
 ## 0.6.2
 
 ### Patch Changes

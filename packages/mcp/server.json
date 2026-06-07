@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ouranos-labs/pseolint",
+  "title": "pseolint",
+  "description": "Penalty-risk audit for programmatic SEO sites: verdict, risk score, and a fix manifest.",
+  "websiteUrl": "https://pseolint.dev",
+  "repository": {
+    "url": "https://github.com/ouranos-labs/pseolint",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "version": "0.6.4",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@pseolint/mcp",
+      "version": "0.6.4",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "description": "AI provider key used ONLY by the pseolint_orchestrate_audit tool (auto-detects ANTHROPIC_API_KEY / OPENAI_API_KEY / etc.). The other three tools run without it.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "PSEOLINT_MCP_SAMPLE_CAP",
+          "description": "Optional. Max pages sampled per audit (default 50).",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}
