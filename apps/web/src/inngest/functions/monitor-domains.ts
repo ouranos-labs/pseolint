@@ -28,7 +28,7 @@ const MAX_DOMAINS_PER_TICK = 20;
 const FULL_REAUDIT_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const monitorDomains = inngest.createFunction(
-  { id: "monitor-domains", retries: 1 },
+  { id: "monitor-domains", retries: 2 },
   { cron: "0 * * * *" },
   async ({ step }) => {
     if (auditMode() !== "normal") {

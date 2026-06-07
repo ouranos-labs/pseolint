@@ -15,7 +15,7 @@ const AUTO_POLL_WINDOW_MS = 24 * 60 * 60 * 1000;
 const MAX_PER_TICK = 60;
 
 export const autoVerifyDomains = inngest.createFunction(
-  { id: "auto-verify-domains", retries: 1 },
+  { id: "auto-verify-domains", retries: 2 },
   { cron: "*/5 * * * *" },
   async ({ step }) => {
     const cutoff = new Date(Date.now() - AUTO_POLL_WINDOW_MS);
