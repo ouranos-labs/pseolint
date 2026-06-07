@@ -7,8 +7,13 @@ import { mcpApiKeys } from "@/db/schema";
 /** `pseo_` + base64url(32 random bytes). 256 bits of entropy. */
 export const TOKEN_RE = /^pseo_[A-Za-z0-9_-]{43}$/;
 
+/** Length of the `pseo_` scheme prefix on every token. */
+const TOKEN_SCHEME_PREFIX = "pseo_";
+/** Chars of the token body shown in the dashboard to identify a key. */
+const DISPLAY_PREFIX_LEN = 8;
+
 export function generateMcpToken(): string {
-  return "pseo_" + randomBytes(32).toString("base64url");
+  return TOKEN_SCHEME_PREFIX + randomBytes(32).toString("base64url");
 }
 
 /** sha256 hex of the full token. High-entropy random ⇒ fast hash is safe (no KDF needed). */
@@ -16,9 +21,15 @@ export function hashMcpToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-/** First 8 chars of the token body (after the `pseo_` prefix), for dashboard display. */
+/**
+ * First {@link DISPLAY_PREFIX_LEN} chars of the token body (after `pseo_`),
+ * for dashboard display. Expects a well-formed token (see {@link TOKEN_RE}).
+ */
 export function mcpTokenPrefix(token: string): string {
-  return token.slice(5, 13);
+  if (!token.startsWith(TOKEN_SCHEME_PREFIX) || token.length < TOKEN_SCHEME_PREFIX.length + DISPLAY_PREFIX_LEN) {
+    throw new Error("mcpTokenPrefix: malformed token");
+  }
+  return token.slice(TOKEN_SCHEME_PREFIX.length, TOKEN_SCHEME_PREFIX.length + DISPLAY_PREFIX_LEN);
 }
 
 export interface McpKeySummary {
