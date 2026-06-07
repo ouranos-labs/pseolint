@@ -26,23 +26,25 @@ Because the three read-only tools are **already free and open-source**, exposing
 
 A single **stateless Streamable HTTP** endpoint, implemented as a Next.js App Router route handler inside `apps/web`, deployed on Vercel with the rest of the app.
 
-- **Public URL:** `https://pseolint.dev/mcp` (route at `apps/web/src/app/mcp/route.ts`). Chosen over `/api/mcp` for a friendlier paste target; both are equally easy to implement.
+- **Public URL & routing:** advertised as `https://pseolint.dev/mcp`. `mcp-handler` derives its endpoints from a dynamic `[transport]` segment, so the route lives at **`apps/web/src/app/api/[transport]/route.ts`** with `basePath: "/api"` → canonical endpoint `/api/mcp`. A `next.config.ts` rewrite maps the friendly `/mcp` → `/api/mcp`. We deliberately avoid a **root-level** `app/[transport]/route.ts`: at the app root a dynamic `[transport]` segment would capture every unknown single-segment path (e.g. `/typo`) and hand it to the MCP handler instead of Next's styled 404 — bad on a marketing site with many top-level routes and short-link namespaces (`/a`, `/m`, `/o`, `/r`). Mounting under `/api` confines the dynamic segment to the API namespace. `/api/mcp` is the guaranteed-working endpoint; `/mcp` is the advertised alias via rewrite (smoke-tested; if the rewrite misbehaves, fall back to advertising `/api/mcp`).
 - **Runtime:** `export const runtime = "nodejs"` — `@pseolint/core` performs filesystem + network I/O and the MCP SDK is Node-oriented; edge is not viable.
+- **Stateless config:** `createMcpHandler(register, { serverInfo }, { basePath: "/api", maxDuration: 60, disableSse: true, verboseLogs: false })`. `disableSse: true` reflects that SSE is dropped from the current MCP spec; with no session id generator the handler is stateless. `mcp-handler` defaults `redisUrl` to `process.env.REDIS_URL || process.env.KV_URL` (now present) — harmless with SSE disabled; not required for stateless streamable-HTTP request/response.
 - **Duration:** `export const maxDuration = 60` (read-only audits are sample-capped at `MCP_SAMPLE_CAP = 50` pages and finish well within this; the long-running `orchestrate` is intentionally not on this path).
-- **Stateless transport:** per the MCP best-practices guidance for remote servers, each `POST` instantiates a fresh `McpServer` + `StreamableHTTPServerTransport` configured **without** a session id (JSON responses, no SSE, no server-held session state). This is the documented serverless pattern — no sticky routing required, scales horizontally for free.
-- **No new transport dependency:** we use the MCP SDK's `StreamableHTTPServerTransport` directly rather than adding `mcp-handler`, so the route reuses our own tool factory (section 3) and we keep full control of auth/rate-limit interception.
+- **Transport adapter — `mcp-handler`:** the SDK's `StreamableHTTPServerTransport` is coupled to Node `req`/`res` and does not fit Next.js App Router's Web `Request`/`Response`. We use **`mcp-handler@^1.1.0`** (the Vercel-maintained Next.js MCP adapter) to bridge that gap. Its `createMcpHandler(register, options, config)` calls our `register` callback with a fresh SDK `McpServer` per request — so `registerReadOnlyTools(server)` (section 3) is reused verbatim. In **stateless** mode (no Redis configured) it handles one JSON-RPC request → one JSON response, which is exactly our need; SSE/notifications are simply disabled.
+  - **Peer-dep note:** `mcp-handler@1.1.0` declares `@modelcontextprotocol/sdk` peer at exactly `1.26.0`; the repo uses `^1.29.0`. `mcp-handler` imports the SDK as a peer, so the installed `1.29.x` is what actually runs — the pin is an over-strict declaration that produces an install warning we accept (bun does not hard-fail peer mismatches). The plan adds `@modelcontextprotocol/sdk@^1.29.0` explicitly to `apps/web` so a single, known SDK copy is resolved.
+  - **Transitive `redis` dep:** `mcp-handler` pulls in node-`redis` for its optional SSE/session store. We never configure it (stateless), so it is dead weight at runtime but harmless. Our rate limiting uses Upstash independently (section 5).
+- **Auth/rate-limit interception:** the exported `POST` is a thin wrapper — it runs `resolveMcpIdentity` + the Upstash rate-limit check first, then delegates to the `mcp-handler` handler. This keeps cross-cutting concerns outside the adapter and fully under our control.
 
 ### Request lifecycle
 
 ```
-POST /mcp
+POST /mcp  (our wrapper)
   │
-  ├─ rate-limit check  (Upstash; per-key if Bearer present, else per-IP)
+  ├─ auth resolve      (Bearer present? verifyMcpKey → identity; invalid → 401)
+  ├─ rate-limit check  (Upstash; per-key if authed, else per-IP)
   │     └─ over limit → 429 (JSON-RPC-shaped error + Retry-After)
-  ├─ auth resolve      (Bearer present? verify via better-auth apiKey → identity; invalid → 401)
-  ├─ build McpServer    (registerReadOnlyTools(server))
-  ├─ StreamableHTTPServerTransport (stateless)
-  └─ handle JSON-RPC → JSON response
+  └─ delegate → mcp-handler (createMcpHandler(registerReadOnlyTools), stateless)
+        └─ fresh McpServer per request → handle JSON-RPC → JSON response
 ```
 
 `GET /mcp` and `DELETE /mcp` return `405` (no SSE stream, no session teardown in stateless mode). A minimal capability/health response is acceptable on `GET` if a client probes it, but is not required by the stateless spec.
@@ -80,42 +82,61 @@ export function createServer(): McpServer {
 
 ## 4. Auth scaffolding (API key now, OAuth-ready)
 
-### Mechanism
+### Mechanism — self-managed hashed key table
 
-`better-auth` currently loads only the `magicLink` plugin (`apps/web/src/lib/auth.ts`). Add the official **`apiKey` plugin**:
+> **Library reality check:** the installed `better-auth@1.6.14` does **not** ship an `apiKey` plugin (its plugin set is `magic-link`, `bearer`, `mcp`, `jwt`, `organization`, … — no `api-key`). It *does* ship an official **`mcp` plugin** (`withMcpAuth`, `oAuthDiscoveryMetadata`, OIDC provider metadata) — but that is the heavier OAuth 2.1 flow we deliberately deferred. So v1 implements keys directly with a small hashed-token table; the better-auth `mcp` plugin is reserved for the OAuth-later phase (§9).
+
+A single new drizzle table `mcp_api_key`:
+
+| column | type | notes |
+| --- | --- | --- |
+| `id` | uuid pk | |
+| `userId` | text → `user.id` (cascade delete) | owner |
+| `name` | text | user-supplied label |
+| `prefix` | text | first 8 chars of the token, shown in the dashboard for identification |
+| `keyHash` | text unique | `sha256(token)` hex — the token itself is never stored |
+| `lastUsedAt` | timestamp null | best-effort, updated on use |
+| `createdAt` | timestamp | |
+| `revokedAt` | timestamp null | soft-delete; a revoked key fails verification |
+
+Token format: `pseo_` + 32 url-safe random bytes (`crypto.randomBytes(32)` → base64url). 256 bits of entropy makes `sha256` storage safe without a slow KDF (brute-force is infeasible; no slow hash needed for high-entropy random secrets — unlike user passwords).
+
+Three small server-only helpers in `apps/web/src/lib/mcp-keys.ts`:
 
 ```ts
-import { apiKey } from "better-auth/plugins";
-// plugins: [ magicLink({...}), apiKey() ]
+createMcpKey(userId: string, name: string): Promise<{ token: string; prefix: string }>  // returns plaintext token ONCE
+verifyMcpKey(token: string): Promise<{ userId: string } | null>                          // sha256 lookup, ignores revoked
+listMcpKeys(userId: string): Promise<Array<{ id: string; name: string; prefix: string; createdAt: Date; lastUsedAt: Date | null }>>
+revokeMcpKey(userId: string, id: string): Promise<void>                                  // sets revokedAt; scoped to owner
 ```
 
-This requires three coordinated changes (the drizzle adapter in `auth.ts` maps each table explicitly, so the new table must be wired in all three places):
-
-1. a new drizzle schema definition + migration for the `apikey` table,
-2. registering it in the `drizzleAdapter({ schema: { …, apikey: schema.apikeys } })` mapping in `auth.ts`,
-3. adding the `apiKey()` plugin to the `plugins` array.
-
-It then gives us server-side verification of a presented key → `{ userId }`.
+This deliberately does **not** touch `auth.ts` / the better-auth schema mapping — keys live in their own table, independent of the better-auth session machinery.
 
 ### Route guard
 
-A helper `resolveMcpIdentity(req): Promise<McpIdentity>`:
+A helper `resolveMcpIdentity(req): Promise<McpIdentity>` in `apps/web/src/lib/mcp-auth.ts`:
 
-- Reads `Authorization: Bearer <key>`.
-- **Present:** verify via the better-auth apiKey API. Valid → `{ kind: "key", userId, plan }` (plan via existing `getPlan`). Invalid/expired → respond `401` (JSON-RPC error `-32001`-style payload + HTTP 401).
+```ts
+type McpIdentity =
+  | { kind: "key"; userId: string }
+  | { kind: "anon"; ip: string };
+```
+
+- Reads `Authorization: Bearer <token>`.
+- **Present:** `verifyMcpKey(token)`. Valid → `{ kind: "key", userId }`. Invalid/revoked → the route responds `401` (HTTP 401 + a JSON-RPC error body so MCP clients surface it cleanly).
 - **Absent:** `{ kind: "anon", ip: clientIp(req) }`.
 
-In v1 **both identities may call the three read-only tools.** The guard's job is to (a) reject malformed keys early and (b) select the rate-limit bucket. The seam for phase 2: remote `orchestrate` registration will assert `identity.kind === "key"` and meter via Polar before running — no change to read-only behaviour.
+In v1 **both identities may call the three read-only tools.** The guard's job is to (a) reject malformed/invalid keys early and (b) select the rate-limit bucket. Seam for phase 2: remote `orchestrate` registration will assert `identity.kind === "key"`, resolve the plan via existing `getPlan(userId)`, and meter via Polar before running — no change to read-only behaviour.
 
 ### Dashboard affordance (minimal)
 
-A "Create / revoke MCP key" control in the existing dashboard settings area:
+A "MCP keys" card in the existing dashboard settings area, backed by a small route (`apps/web/src/app/api/mcp-keys/route.ts`, session-guarded via `requireSession`):
 
-- Calls the better-auth apiKey create/list/revoke endpoints.
-- Shows the key **once** on creation (copy-to-clipboard), with paste-ready client config snippet (`{"url": "https://pseolint.dev/mcp", "headers": {"Authorization": "Bearer <key>"}}`).
-- Lists existing keys (prefix + created date) with a revoke action.
+- `POST` → `createMcpKey`, returns the plaintext token **once** (copy-to-clipboard) with a paste-ready client config snippet (`{"url": "https://pseolint.dev/mcp", "headers": {"Authorization": "Bearer <token>"}}`).
+- `GET` → `listMcpKeys` (prefix + name + created date; never the full token).
+- `DELETE` → `revokeMcpKey`.
 
-Scope guard: no team keys, no scoped permissions, no key expiry UI in v1 — a single personal key per user is sufficient to validate the authenticated channel.
+Scope guard: no team keys, no scoped permissions, no expiry UI in v1 — personal keys are sufficient to validate the authenticated channel.
 
 ---
 
@@ -180,20 +201,25 @@ Integration smoke (manual / CI optional): MCP Inspector against a local `next de
 ## 8. Components touched / created
 
 **Created**
-- `apps/web/src/app/mcp/route.ts` — the endpoint (POST handler, method guards).
+- `apps/web/src/app/api/[transport]/route.ts` — the endpoint (POST wrapper: auth + rate-limit → `mcp-handler`; GET/DELETE 405).
+- `apps/web/next.config.ts` — add a `/mcp → /api/mcp` rewrite (modify).
 - `apps/web/src/lib/mcp-rate-limit.ts` — Upstash limiter wrappers + bucket selection.
-- `apps/web/src/lib/mcp-auth.ts` — `resolveMcpIdentity(req)`.
-- Dashboard MCP-key UI (component + minimal server actions / route).
-- `apps/web/src/db/migrations/<n>_apikey.sql` — better-auth apiKey table migration.
-- Route + unit tests under `apps/web/tests` (or co-located per app convention).
+- `apps/web/src/lib/mcp-auth.ts` — `resolveMcpIdentity(req)` + `McpIdentity` type.
+- `apps/web/src/lib/mcp-keys.ts` — `createMcpKey` / `verifyMcpKey` / `listMcpKeys` / `revokeMcpKey`.
+- `apps/web/src/app/api/mcp-keys/route.ts` — session-guarded key CRUD for the dashboard.
+- Dashboard MCP-keys UI component.
+- `apps/web/src/db/migrations/<n>_mcp_api_key.sql` — the `mcp_api_key` table migration (generated by `drizzle-kit`).
+- Unit tests under `apps/web/src/lib/*.test.ts` (mirrors existing co-located convention) and route/factory tests.
 
 **Modified**
 - `packages/mcp/src/server.ts` — extract `registerReadOnlyTools` / `registerOrchestrateTool` (additive; `createServer`/`startMcpServer` behaviour unchanged).
 - `packages/mcp/src/index.ts` — export the new functions.
-- `apps/web/package.json` — add `@pseolint/mcp` (workspace), `@upstash/ratelimit`, `@upstash/redis`.
-- `apps/web/src/lib/auth.ts` — add `apiKey()` plugin.
+- `apps/web/src/db/schema.ts` — add the `mcpApiKeys` table definition.
+- `apps/web/package.json` — add `@pseolint/mcp` (workspace), `mcp-handler`, `@modelcontextprotocol/sdk@^1.29.0`, `@upstash/ratelimit`, `@upstash/redis`.
 - `packages/mcp/server.json` — add `remotes` entry (registry publish deferred).
 - Docs: `packages/mcp/README.md` + a short "Remote MCP" page/section on the site documenting the URL and key flow.
+
+> `apps/web/src/lib/auth.ts` is **not** modified — keys are self-managed and independent of better-auth.
 
 **Deliberately unchanged**
 - Published `@pseolint/mcp` on npm (no release required for v1).
@@ -206,7 +232,7 @@ Integration smoke (manual / CI optional): MCP Inspector against a local `next de
 ## 9. Phase 2 seams (not built now)
 
 - **Remote `orchestrate`:** the async machinery already exists — `/api/orchestrate` inserts an `orchestrator_session` row and dispatches an Inngest event; `/api/orchestrate/[id]` polls. Remote orchestrate becomes: an authed MCP tool that kicks off the same job and returns a session id, plus a second `orchestrate_status` MCP tool that polls — gated to `identity.kind === "key"` and metered via the existing tier budget logic (`TIER_MAX_BUDGET`, `DAILY_SESSION_LIMIT`).
-- **OAuth 2.1:** layer authorization-server metadata + PKCE on top of the key path without removing it; the `resolveMcpIdentity` seam already normalizes identity so downstream code is auth-mechanism-agnostic.
+- **OAuth 2.1:** better-auth already ships the **`mcp` plugin** (`withMcpAuth`, `oAuthDiscoveryMetadata`, OIDC provider metadata) in the installed version — the OAuth path is largely a matter of enabling it and adding a `kind: "oauth"` arm to `McpIdentity`. The `resolveMcpIdentity` seam normalizes identity so downstream code stays auth-mechanism-agnostic; the key path and OAuth path coexist.
 
 ---
 
@@ -215,7 +241,7 @@ Integration smoke (manual / CI optional): MCP Inspector against a local `next de
 | Question | Resolution |
 | --- | --- |
 | Purpose | Tiered: anonymous read-only (acquisition) + authed paid tool (deferred) |
-| Auth mechanism | API key (better-auth apiKey plugin) now; OAuth-ready seam |
+| Auth mechanism | Self-managed hashed API-key table now (better-auth 1.6.14 has no apiKey plugin); better-auth `mcp` plugin reserved for OAuth-later |
 | v1 scope | 3 read-only tools + auth scaffolding; orchestrate deferred |
 | Public URL | `/mcp` |
 | Rate-limit store | Upstash Redis (newly provisioned) |
