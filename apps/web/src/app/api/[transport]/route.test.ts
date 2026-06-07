@@ -56,6 +56,19 @@ describe("POST /api/mcp wrapper", () => {
     expect(text).toContain("protocolVersion");
     expect(text).toContain("pseolint");
   });
+
+  it("fails CLOSED with 503 when identity resolution throws (DB down)", async () => {
+    auth.mockRejectedValue(new Error("db down"));
+    const res = await POST(mcpPost(initReq));
+    expect(res.status).toBe(503);
+    expect(rl).not.toHaveBeenCalled();
+  });
+
+  it("fails OPEN (delegates) when the rate-limit backend throws", async () => {
+    rl.mockRejectedValue(new Error("redis down"));
+    const res = await POST(mcpPost(initReq));
+    expect(res.status).toBe(200); // delegated to mcp-handler despite limiter failure
+  });
 });
 
 describe("method guards & CORS", () => {

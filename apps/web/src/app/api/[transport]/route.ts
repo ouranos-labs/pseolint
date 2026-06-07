@@ -1,10 +1,10 @@
 import { createMcpHandler } from "mcp-handler";
 import { registerReadOnlyTools } from "@pseolint/mcp";
-import { resolveMcpIdentity } from "@/lib/mcp-auth";
-import { checkMcpRateLimit } from "@/lib/mcp-rate-limit";
+import { resolveMcpIdentity, type McpIdentity } from "@/lib/mcp-auth";
+import { checkMcpRateLimit, type RateResult } from "@/lib/mcp-rate-limit";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 60; // Vercel function timeout (mcp-handler's own maxDuration option is separate)
 
 const mcpHandler = createMcpHandler(
   (server) => {
@@ -23,19 +23,39 @@ function jsonRpcError(status: number, message: string, code: number, headers?: R
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const identity = await resolveMcpIdentity(req);
+  let identity: McpIdentity;
+  try {
+    identity = await resolveMcpIdentity(req);
+  } catch {
+    // Identity backend (DB) unreachable → fail CLOSED. Never silently downgrade
+    // to anonymous, which would bypass key validation.
+    return jsonRpcError(503, "Service temporarily unavailable.", -32603);
+  }
+
   if (identity.kind === "invalid") {
     return jsonRpcError(401, "Invalid or revoked API key.", -32001);
   }
 
-  const limit = await checkMcpRateLimit(identity);
+  let limit: RateResult;
+  try {
+    limit = await checkMcpRateLimit(identity);
+  } catch {
+    // Rate-limit backend (Upstash) down → fail OPEN. This is a read-only public
+    // surface; locking everyone out on a Redis blip is worse than not limiting.
+    limit = { success: true, retryAfterSeconds: 0 };
+  }
+
   if (!limit.success) {
     return jsonRpcError(429, "Rate limit exceeded. Slow down and retry.", -32002, {
       "retry-after": String(limit.retryAfterSeconds),
     });
   }
 
-  return mcpHandler(req);
+  try {
+    return await mcpHandler(req);
+  } catch {
+    return jsonRpcError(500, "Internal error handling MCP request.", -32603);
+  }
 }
 
 const methodNotAllowed = () =>
