@@ -326,12 +326,8 @@ const CROSS_PAGE_RULES = new Set([
   "links/cluster-connectivity",
 ]);
 
-export function createServer(): McpServer {
-  const server = new McpServer({
-    name: "pseolint",
-    version,
-  });
-
+/** Register the three read-only audit tools (safe for anonymous/remote use). */
+export function registerReadOnlyTools(server: McpServer): void {
   server.registerTool(
     "pseolint_audit_site",
     {
@@ -576,7 +572,10 @@ export function createServer(): McpServer {
       }
     }
   );
+}
 
+/** Register the AI-orchestrated audit tool (costs money; gate behind auth when remote). */
+export function registerOrchestrateTool(server: McpServer): void {
   server.registerTool(
     "pseolint_orchestrate_audit",
     {
@@ -668,7 +667,15 @@ export function createServer(): McpServer {
       }
     }
   );
+}
 
+export function createServer(): McpServer {
+  const server = new McpServer({
+    name: "pseolint",
+    version,
+  });
+  registerReadOnlyTools(server);
+  registerOrchestrateTool(server);
   return server;
 }
 
