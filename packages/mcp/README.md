@@ -119,6 +119,22 @@ Check a single page URL for per-page technical SEO issues (canonical, Open Graph
 
 **Example prompt:** "Check https://yoursite.com/templates/california-llc for technical SEO issues"
 
+## Remote server (hosted, zero-install)
+
+Prefer not to install anything? Point your MCP client at the hosted endpoint:
+
+    https://pseolint.dev/mcp
+
+It serves the three read-only audit tools (`pseolint_audit_site`, `pseolint_explain_score`,
+`pseolint_check_page_technical`) with no signup — anonymous use is rate-limited. Create an
+API key in your pseolint.dev dashboard and send it as `Authorization: Bearer <key>` to raise
+your limits. The AI-orchestrated `pseolint_orchestrate_audit` tool is available only via the
+stdio package (below) or the CLI for now.
+
+Example client config:
+
+    { "url": "https://pseolint.dev/mcp", "headers": { "Authorization": "Bearer <key>" } }
+
 ## Installation
 
 ### Claude Code

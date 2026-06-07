@@ -34,5 +34,8 @@
         }
       ]
     }
+  ],
+  "remotes": [
+    { "type": "streamable-http", "url": "https://pseolint.dev/mcp" }
   ]
 }
