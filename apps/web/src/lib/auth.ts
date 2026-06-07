@@ -4,13 +4,23 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { db, schema } from "@/db";
 import { env } from "@/lib/env";
-import { sendMagicLinkEmail } from "@/lib/resend";
+import { deliverMagicLink } from "@/lib/magic-link-delivery";
 import { claimAnonAudits } from "@/lib/claim-anon-audits";
 
 const e = env();
 
+// Better Auth trusts only the baseURL origin by default, so a dev server that
+// falls back to :3001 (when :3000 is taken) gets "Invalid origin" 403s. Trust
+// the common localhost dev ports outside production; prod stays locked to
+// BETTER_AUTH_URL.
+const devTrustedOrigins =
+  process.env.NODE_ENV === "production"
+    ? undefined
+    : ["http://localhost:3000", "http://localhost:3001"];
+
 export const auth = betterAuth({
   baseURL: e.BETTER_AUTH_URL,
+  ...(devTrustedOrigins ? { trustedOrigins: devTrustedOrigins } : {}),
   secret: e.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -26,7 +36,7 @@ export const auth = betterAuth({
     : {},
   plugins: [
     magicLink({
-      sendMagicLink: async ({ email, url }) => { await sendMagicLinkEmail(email, url); },
+      sendMagicLink: async ({ email, url }) => { await deliverMagicLink(email, url); },
       expiresIn: 60 * 15,
     }),
   ],
