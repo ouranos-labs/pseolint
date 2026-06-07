@@ -37,3 +37,11 @@ apps/web/scripts/inspect-*
 # Office/LibreOffice temp + lock files.
 *.~lock.*#
 ~$*
+
+# Local-only credentials & tooling (never commit) — added during MCP work 2026-06-08
+.npmrc.disabled
+packages/mcp/.mcpregistry_*
+packages/mcp/mcp-publisher*
+# Native worktree dirs (EnterWorktree / stray variants)
+.claude/worktrees/
+.claire/
