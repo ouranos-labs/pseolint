@@ -488,9 +488,9 @@ export const mcpApiKeys = pgTable(
     name: text("name").notNull(),
     prefix: text("prefix").notNull(),
     keyHash: text("key_hash").notNull().unique(),
-    lastUsedAt: timestamp("last_used_at"),
-    revokedAt: timestamp("revoked_at"),
-    createdAt: timestamp("created_at").notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("mcp_api_key_user_idx").on(t.userId)],
 );

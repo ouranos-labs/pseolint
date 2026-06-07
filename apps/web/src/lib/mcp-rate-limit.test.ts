@@ -37,10 +37,20 @@ describe("checkMcpRateLimit", () => {
   });
 
   it("returns success:false with a Retry-After when over the limit", async () => {
-    const anon = fakeLimiter(false);
+    const futureReset = Date.now() + 42_000;
+    const overLimitLimiter = {
+      limit: vi.fn(async (_key: string) => ({
+        success: false,
+        limit: 20,
+        remaining: 0,
+        reset: futureReset,
+        pending: Promise.resolve(),
+      })),
+    };
     const id: McpIdentity = { kind: "anon", ip: "203.0.113.7" };
-    const r = await checkMcpRateLimit(id, { anon: anon as never, keyed: fakeLimiter(true) as never });
+    const r = await checkMcpRateLimit(id, { anon: overLimitLimiter as never, keyed: fakeLimiter(true) as never });
     expect(r.success).toBe(false);
-    expect(r.retryAfterSeconds).toBeGreaterThanOrEqual(0);
+    expect(r.retryAfterSeconds).toBeGreaterThan(0);
+    expect(r.retryAfterSeconds).toBeLessThanOrEqual(42);
   });
 });

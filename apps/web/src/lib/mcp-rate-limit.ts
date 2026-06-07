@@ -22,8 +22,8 @@ function defaultLimiters(): Limiters {
   if (cached) return cached;
   const redis = Redis.fromEnv();
   cached = {
-    anon: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "10 m"), prefix: "mcp" }),
-    keyed: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(200, "10 m"), prefix: "mcp" }),
+    anon: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(20, "10 m") }),
+    keyed: new Ratelimit({ redis, limiter: Ratelimit.slidingWindow(200, "10 m") }),
   };
   return cached;
 }

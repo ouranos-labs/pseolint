@@ -1,5 +1,5 @@
 {
-  "id": "ee191c75-eb01-4df4-a397-0ad848e73a27",
+  "id": "1f26d7cc-7f58-4495-8843-3158f2b00a9d",
   "prevId": "255d8d96-fe99-4e18-a640-e3b312fe0c3c",
   "version": "7",
   "dialect": "postgresql",
@@ -1624,19 +1624,19 @@
         },
         "last_used_at": {
           "name": "last_used_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
         "revoked_at": {
           "name": "revoked_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
