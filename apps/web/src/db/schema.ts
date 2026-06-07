@@ -471,3 +471,26 @@ export const fixManifests = pgTable("fix_manifest", {
   sessionIdx: index("fix_manifest_session_idx").on(t.sessionId),
   domainIdx: index("fix_manifest_domain_idx").on(t.domain),
 }));
+
+/**
+ * Self-managed API keys for the remote MCP endpoint. Keys are independent of
+ * better-auth (this version has no apiKey plugin). `keyHash` is a sha256 hex
+ * of the token (unique, used for lookup); `prefix` is the first 8 chars shown
+ * in the dashboard; `revokedAt` is a soft-delete sentinel.
+ */
+export const mcpApiKeys = pgTable(
+  "mcp_api_key",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    prefix: text("prefix").notNull(),
+    keyHash: text("key_hash").notNull().unique(),
+    lastUsedAt: timestamp("last_used_at"),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("mcp_api_key_user_idx").on(t.userId)],
+);
