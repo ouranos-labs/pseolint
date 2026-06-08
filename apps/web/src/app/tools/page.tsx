@@ -104,12 +104,37 @@ export default function ToolsIndexPage() {
         detects your site&apos;s URL templates, samples K=10 URLs per template,
         and produces one verdict per template cluster rather than a flat per-URL
         list. Verdicts are reproducible at a fixed sample-seed; findings cluster
-        instead of dumping per-pair noise; severity demotions are auditable via{" "}
+        instead of dumping per-pair noise; severity demotions are auditable via{ " " }
         <code className="font-mono text-xs">summary.appliedSeverityDemotions</code>.
         Dated snapshot results, the open-source corpus, and the trade-offs we
-        accepted are documented at{" "}
+        accepted are documented at{ " " }
         <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
       </p>
+
+      <div className="mt-8 flex flex-col gap-4">
+        { MARKETING_TOOLS.map((tool) => (
+          <Link
+            key={ tool.slug }
+            href={ `/tools/${tool.slug}` }
+            className="group flex flex-col gap-3 rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-card"
+          >
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                { tool.title }
+              </h2>
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                { tool.ruleLens }
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              { tool.shortPitch }
+            </p>
+            <span className="inline-flex items-center text-sm font-medium text-primary group-hover:underline">
+              Open tool →
+            </span>
+          </Link>
+        )) }
+      </div>
 
       <div className="mt-6 grid gap-4 rounded-[22px] border border-border/60 bg-card/40 p-5 sm:grid-cols-2">
         <div>
@@ -121,7 +146,7 @@ export default function ToolsIndexPage() {
             readiness — SpamBrain triggers from the March 27, 2026 core update that
             tightened scaled-content signals on date-stacked corpora (the most recent
             classifier shift to demote pSEO sites), the May 7, 2024 site-reputation-abuse
-            policy (now detected by{" "}
+            policy (now detected by{ " " }
             <code className="font-mono">links/host-section-divergence</code>), the March
             5, 2024 scaled-content-abuse update, plus the AEO patterns that determine
             ChatGPT, Perplexity, and Google AI Overview citations.
@@ -132,13 +157,13 @@ export default function ToolsIndexPage() {
             What they aren&apos;t
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">
-            A general SEO audit. For Core Web Vitals use{" "}
+            A general SEO audit. For Core Web Vitals use{ " " }
             <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>.
-            For broken links + general crawl use{" "}
-            <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{" "}
+            For broken links + general crawl use{ " " }
+            <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{ " " }
             <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a> ($259/yr).
-            For competitor / backlink data use{" "}
-            <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo) or{" "}
+            For competitor / backlink data use{ " " }
+            <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo) or{ " " }
             <a href="https://semrush.com" className="text-primary hover:underline" rel="nofollow">Semrush</a> ($139.95/mo).
           </p>
         </div>
@@ -155,26 +180,26 @@ export default function ToolsIndexPage() {
         </p>
         <ul className="ml-4 list-disc space-y-1.5">
           <li>
-            <span className="font-medium text-foreground">Per-page → template uniformity score.</span>{" "}
+            <span className="font-medium text-foreground">Per-page → template uniformity score.</span>{ " " }
             <code className="font-mono text-xs">spam/thin-content</code> fires on each sampled page
             and feeds the template&apos;s uniformity score (0–1). A score ≥0.8 means ≥8 of 10
             sampled pages are thin — that template gets a critical verdict regardless of the other
             templates&apos; health.
           </li>
           <li>
-            <span className="font-medium text-foreground">Corpus-wide (not template-scoped).</span>{" "}
+            <span className="font-medium text-foreground">Corpus-wide (not template-scoped).</span>{ " " }
             <code className="font-mono text-xs">spam/near-duplicate</code> is computed across the
             full sampled corpus — it compares pages across templates to surface cross-template
             duplication, not just within a single template.
           </li>
           <li>
-            <span className="font-medium text-foreground">Per-page → template-level signal.</span>{" "}
+            <span className="font-medium text-foreground">Per-page → template-level signal.</span>{ " " }
             <code className="font-mono text-xs">aeo/citable-facts</code> fires per sampled page;
             an 80% fire rate on a template (8/10 pages lack citable facts) becomes a template-level
             finding reported in the template card, not a list of 8 individual URL findings.
           </li>
           <li>
-            <span className="font-medium text-foreground">Site verdict.</span>{" "}
+            <span className="font-medium text-foreground">Site verdict.</span>{ " " }
             The site verdict is the worst-performing template that covers ≥5% of URLs
             (spec §15.1 <code className="font-mono text-xs">siteVerdictFromTemplates</code>). A
             healthy landing page template cannot mask a broken product-listing template if that
@@ -187,30 +212,7 @@ export default function ToolsIndexPage() {
         </p>
       </section>
 
-      <div className="mt-8 flex flex-col gap-4">
-        {MARKETING_TOOLS.map((tool) => (
-          <Link
-            key={tool.slug}
-            href={`/tools/${tool.slug}`}
-            className="group flex flex-col gap-3 rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-card"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                {tool.title}
-              </h2>
-              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                {tool.ruleLens}
-              </span>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {tool.shortPitch}
-            </p>
-            <span className="inline-flex items-center text-sm font-medium text-primary group-hover:underline">
-              Open tool →
-            </span>
-          </Link>
-        ))}
-      </div>
+
 
       <section className="mt-12 space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
@@ -238,7 +240,7 @@ export default function ToolsIndexPage() {
           answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.
         </p>
         <p>
-          The whole engine is{" "}
+          The whole engine is{ " " }
           <a
             href="https://github.com/ouranos-labs/pseolint"
             className="font-medium text-foreground underline decoration-border-strong underline-offset-2 hover:text-primary"
@@ -321,12 +323,12 @@ export default function ToolsIndexPage() {
           replacement for the &quot;site audit&quot; module those suites bolt
           on, specifically for templated programmatic content. The engine
           shipped its v0.4.0 redesign on April 29, 2026, added change-driven
-          monitoring in v0.5.0 (May 1, 2026), shipped the{" "}
+          monitoring in v0.5.0 (May 1, 2026), shipped the{ " " }
           <code className="font-mono">links/host-section-divergence</code>
-          {" "}site-reputation-abuse detector in v0.5.1 (May 3, 2026), the
+          { " " }site-reputation-abuse detector in v0.5.1 (May 3, 2026), the
           v0.5.2 credibility layer (May 3, 2026), and the v0.6
           template-aware engine — auditing by template rather than by URL,
-          producing one verdict per template cluster via{" "}
+          producing one verdict per template cluster via{ " " }
           <code className="font-mono">siteVerdictFromTemplates</code>. Runs as
           a Cloudflare R2 + Inngest pipeline on Vercel, MIT-licensed end-to-end
           so anything you see in the browser audit is reproducible from the
@@ -372,14 +374,14 @@ export default function ToolsIndexPage() {
         // passed through safeJsonLd which escapes `<` to neutralize any string
         // that could prematurely close the surrounding script tag.
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(collectionSchema) }}
+        dangerouslySetInnerHTML={ { __html: safeJsonLd(collectionSchema) } }
       />
       <script
         type="application/ld+json"
         // FAQPage payload built from compile-time-static FAQS array, escaped
         // by safeJsonLd to prevent script-tag breakout.
         // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: faqLd }}
+        dangerouslySetInnerHTML={ { __html: faqLd } }
       />
     </main>
   );
