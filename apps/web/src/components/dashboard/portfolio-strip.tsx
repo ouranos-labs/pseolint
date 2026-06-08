@@ -156,6 +156,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
             {unverified ? (
               <Link
                 href={`/dashboard/${encodeURIComponent(d.host)}`}
+                prefetch={false}
                 className="absolute right-3 top-3 z-10 inline-flex items-center rounded-[8px] border border-warning/40 bg-warning/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-warning shadow-sm hover:bg-warning/20"
               >
                 Verify
@@ -175,6 +176,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
             <h3 className="mx-1 mt-1 text-base font-semibold tracking-tight">
               <Link
                 href={`/dashboard/${encodeURIComponent(d.host)}`}
+                prefetch={false}
                 className="text-foreground transition-colors hover:text-primary hover:underline"
               >
                 {d.host}
@@ -192,6 +194,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
             <div className="mx-1 mt-3 mr-2 flex items-center justify-between">
               <Link
                 href={`/dashboard/${encodeURIComponent(d.host)}`}
+                prefetch={false}
                 className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
                 title="Open findings"
               >

@@ -69,6 +69,7 @@ export async function CrossDomainFixQueue({ userId }: { userId: string }) {
             <li key={r.id}>
               <Link
                 href={`/dashboard/${encodeURIComponent(r.host)}`}
+                prefetch={false}
                 className="group flex flex-col gap-2 rounded-[14px] border border-border/60 bg-card/40 px-4 py-3 transition-colors hover:border-border-strong hover:bg-card/70"
               >
                 <div className="flex flex-wrap items-center gap-2 text-xs">
