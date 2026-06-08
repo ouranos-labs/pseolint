@@ -155,10 +155,19 @@ export async function getCumulativeCoverage(args: {
     eq(audits.sourceUrl, `${origin}/`),
     like(audits.sourceUrl, `${origin}/%`),
   );
+  // NOTE: pass `since` as an ISO string, NOT a raw Date. drizzle-orm/postgres-js
+  // cannot serialize a JS Date interpolated into a raw sql`` template — it throws
+  // ERR_INVALID_ARG_TYPE ("Received an instance of Date"). (The old
+  // @neondatabase/serverless driver tolerated it; postgres.js does not. This was
+  // the cause of the /dashboard/[host] render crash after the 2026-06-05 driver
+  // migration.) Postgres coerces the text param back to timestamptz against
+  // completed_at. Typed Drizzle operators like gte() handle Dates fine; only raw
+  // sql`` interpolation needs this.
+  const sinceIso = since.toISOString();
   const [row] = await db
     .select({
       urlsAuditedTotal: sql<number>`coalesce(sum(${audits.pageCount}), 0)::int`,
-      urlsAuditedLast30d: sql<number>`coalesce(sum(case when ${audits.completedAt} >= ${since} then ${audits.pageCount} else 0 end), 0)::int`,
+      urlsAuditedLast30d: sql<number>`coalesce(sum(case when ${audits.completedAt} >= ${sinceIso} then ${audits.pageCount} else 0 end), 0)::int`,
     })
     .from(audits)
     .where(and(
