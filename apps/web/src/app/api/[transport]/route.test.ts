@@ -72,8 +72,14 @@ describe("POST /api/mcp wrapper", () => {
 });
 
 describe("method guards & CORS", () => {
-  it("GET → 405", async () => {
-    expect((await GET()).status).toBe(405);
+  it("GET from a browser → 302 redirect to /mcp-server docs", () => {
+    const res = GET(new Request("https://pseolint.dev/mcp", { headers: { accept: "text/html" } }));
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/mcp-server");
+  });
+  it("GET from a non-HTML caller → 405", () => {
+    const res = GET(new Request("https://pseolint.dev/mcp", { headers: { accept: "application/json" } }));
+    expect(res.status).toBe(405);
   });
   it("DELETE → 405", async () => {
     expect((await DELETE()).status).toBe(405);

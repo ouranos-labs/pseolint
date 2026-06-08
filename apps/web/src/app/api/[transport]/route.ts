@@ -64,7 +64,22 @@ const methodNotAllowed = () =>
     headers: { allow: "POST, OPTIONS" },
   });
 
-export const GET = methodNotAllowed;
+/**
+ * MCP clients use POST (stateless Streamable HTTP). A GET almost always means a
+ * human pasted the endpoint URL into a browser — send them to the human-facing
+ * setup docs. Non-HTML callers (curl, probes) still get a 405.
+ */
+export function GET(req: Request): Response {
+  const accept = req.headers.get("accept") ?? "";
+  if (accept.includes("text/html")) {
+    // Relative Location → resolved against the request origin by the browser.
+    // We never build the target from req.url's host, so there's no open-redirect
+    // surface: the destination is always this site's /mcp-server.
+    return new Response(null, { status: 302, headers: { location: "/mcp-server" } });
+  }
+  return methodNotAllowed();
+}
+
 export const DELETE = methodNotAllowed;
 
 /** Permissive CORS preflight — the endpoint is an unauthenticated, read-only public surface. */

@@ -108,6 +108,7 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
         <div className="flex items-center gap-1 text-sm">
 
           <Link href="/tools" className={ navLinkClass }>Tools</Link>
+          <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
           <Link href="/rules" className={ navLinkClass }>Rules</Link>
           <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
           <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
@@ -182,6 +183,7 @@ function SiteFooter({ lastUpdated }: { lastUpdated: string }) {
             <Link href="/tools/spambrain-checker" className="hover:text-foreground">SpamBrain checker</Link>
             <Link href="/tools/thin-content-scanner" className="hover:text-foreground">Thin content scanner</Link>
             <Link href="/tools/doorway-page-detector" className="hover:text-foreground">Doorway page detector</Link>
+            <Link href="/mcp-server" className="hover:text-foreground">MCP server</Link>
             <Link href="/tools" className="hover:text-foreground">All tools →</Link>
           </FooterColumn>
           <FooterColumn title="Learn">
