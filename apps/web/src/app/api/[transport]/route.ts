@@ -52,10 +52,33 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    return await mcpHandler(req);
+    return await mcpHandler(normalizeMcpUrl(req));
   } catch {
     return jsonRpcError(500, "Internal error handling MCP request.", -32603);
   }
+}
+
+/**
+ * The public endpoint is https://pseolint.dev/mcp, served by a next.config
+ * rewrite to /api/mcp. Rewrites preserve the original URL in req.url, but
+ * mcp-handler matches the pathname against its basePath ("/api") and returns
+ * 404 "Not found" for "/mcp". Re-wrap the request with the canonical pathname
+ * so both /mcp and /api/mcp work.
+ */
+function normalizeMcpUrl(req: Request): Request {
+  const url = new URL(req.url);
+  if (url.pathname === "/mcp") {
+    url.pathname = "/api/mcp";
+    // duplex is required by undici when constructing a Request with a stream
+    // body; it's missing from the TS RequestInit type, hence the cast.
+    return new Request(url, {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+      duplex: "half",
+    } as RequestInit);
+  }
+  return req;
 }
 
 const methodNotAllowed = () =>
