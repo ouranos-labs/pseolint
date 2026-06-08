@@ -4,6 +4,7 @@ import { and, desc, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
+import { withDbRetry } from "@/lib/db-retry";
 import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages, indexingRequests } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
@@ -41,12 +42,12 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 
   const { host: rawHost } = await params;
   const host = decodeURIComponent(rawHost);
-  const [domain] = await db.select().from(monitoredDomains)
+  const [domain] = await withDbRetry(() => db.select().from(monitoredDomains)
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
       isNull(monitoredDomains.removedAt),
-    )).limit(1);
+    )).limit(1));
   if (!domain) notFound();
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
@@ -61,7 +62,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     watchedRows,
     indexingIntegrations,
     recentIndexingRequests
-  ] = await Promise.all([
+  ] = await withDbRetry(() => Promise.all([
     db.select({
       slug: audits.slug,
       risk: audits.risk,
@@ -153,15 +154,15 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .from(indexingRequests)
       .where(eq(indexingRequests.domainId, domain.id))
       .orderBy(desc(indexingRequests.createdAt)),
-  ]);
+  ]));
 
-  const indexedUrlsRows = await db
+  const indexedUrlsRows = await withDbRetry(() => db
     .select({ url: gscPageMetrics.url })
     .from(gscPageMetrics)
     .where(and(
       eq(gscPageMetrics.domainId, domain.id),
       gte(gscPageMetrics.impressions, 1)
-    ));
+    )));
   const indexedUrls = indexedUrlsRows.map((r) => r.url);
   const indexedUrlSet = new Set(indexedUrls);
 
@@ -173,13 +174,13 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     .map((f) => f.representativeUrl)
     .filter((u): u is string => u !== null && u !== undefined);
 
-  const allRepresentativeUrlRows = await db
+  const allRepresentativeUrlRows = await withDbRetry(() => db
     .selectDistinct({ url: findingsState.representativeUrl })
     .from(findingsState)
     .where(and(
       eq(findingsState.domainId, domain.id),
       isNotNull(findingsState.representativeUrl)
-    ));
+    )));
 
   const cleanCandidateUrls = allRepresentativeUrlRows
     .map((r) => r.url)
@@ -267,9 +268,12 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     previousAt: null,
   };
   if (latestAudit?.completedAt) {
+    // Capture the narrowed (non-null) value: the withDbRetry closure below would
+    // otherwise widen latestAudit.completedAt back to Date | null.
+    const latestCompletedAt = latestAudit.completedAt;
     const previousCompletedAt = completedRuns[1]?.completedAt ?? null;
     if (previousCompletedAt) {
-      const [newRows, [{ recoveredCount }], recoveredRows] = await Promise.all([
+      const [newRows, [{ recoveredCount }], recoveredRows] = await withDbRetry(() => Promise.all([
         db.select({
           ruleId: findingsState.ruleId,
           severity: findingsState.severityLatest,
@@ -287,7 +291,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             eq(findingsState.domainId, domain.id),
             eq(findingsState.status, "open"),
             gte(findingsState.lastSeenAt, previousCompletedAt),
-            lt(findingsState.lastSeenAt, latestAudit.completedAt),
+            lt(findingsState.lastSeenAt, latestCompletedAt),
           )),
         // Recovered rows for the drawer — bounded so the page stays cheap when
         // a big chunk of issues drop off in one run. Anything beyond the cap
@@ -305,11 +309,11 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             eq(findingsState.domainId, domain.id),
             eq(findingsState.status, "open"),
             gte(findingsState.lastSeenAt, previousCompletedAt),
-            lt(findingsState.lastSeenAt, latestAudit.completedAt),
+            lt(findingsState.lastSeenAt, latestCompletedAt),
           ))
           .orderBy(desc(findingsState.rankScore))
           .limit(25),
-      ]);
+      ]));
       runDiff = {
         newFindings: newRows,
         recoveredCount,
