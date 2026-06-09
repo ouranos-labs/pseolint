@@ -1,5 +1,34 @@
 # @pseolint/action
 
+## 0.4.5
+
+### Patch Changes
+
+- surface partial-coverage (`truncated`) audits in the GitHub Action gate
+
+  The core engine now returns `AuditSummary.truncated` / `truncatedReason` when the
+  backpressure watchdog aborts a crawl mid-flight, in which case the report is
+  partial and verdict/risk/counts are lower bounds. The Action gated CI pass/fail
+  solely on `summary.risk` and ignored `truncated`, so a partial audit could
+  silently PASS a CI gate on incomplete coverage.
+
+  The Action now makes the partial status unmissable. On a truncated run it emits a
+  `core.warning` naming the reason and page count, sets two new outputs
+  (`truncated`, `truncated-reason`), and adds a ⚠ blockquote to the PR comment
+  ("Partial coverage — crawl aborted … treat a pass as provisional"). A partial run
+  is not auto-failed (a partial pass is still informative), but a new optional input
+  `fail-on-truncated` (default `false`) lets workflows opt into failing the check
+  when coverage was partial even if risk is under threshold. `action.yml` now
+  documents all outputs (`score`, `risk`, `verdict`, `pageCount`, `truncated`,
+  `truncated-reason`) and the new input.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @pseolint/core@0.6.5
+
 ## 0.4.4
 
 ### Patch Changes

@@ -85,6 +85,16 @@ export const audits = pgTable("audit", {
    * audits don't produce a scrapePlan.
    */
   scrapePlan: jsonb("scrape_plan").$type<ScrapePlanSummary>(),
+  /**
+   * True when the engine's backpressure watchdog aborted the crawl mid-flight
+   * (degraded origin) and flushed a PARTIAL report — counts/verdict/risk are
+   * lower bounds. Mirrors `AuditSummary.truncated`. Defaults false; legacy rows
+   * and complete runs are false. Lets the dashboard filter/flag degraded audits
+   * without round-tripping the R2 blob.
+   */
+  truncated: boolean("truncated").notNull().default(false),
+  /** Human-readable reason the run was truncated. Mirrors `AuditSummary.truncatedReason`; null when not truncated. */
+  truncatedReason: text("truncated_reason"),
   storageKey: text("storage_key"),
   errorMessage: text("error_message"),
   /** OG metadata captured from the audited site's homepage — used by the leaderboard

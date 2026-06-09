@@ -223,6 +223,70 @@ const md   = formatMarkdown(summary);
 const html = formatHtml(summary);
 ```
 
+## JSON output contract
+
+`formatJson(summary)` (and `pseolint --format json`) serializes the `AuditSummary` shape verbatim. This is the surface CI gates and other programmatic consumers (pseolint-gate-style scripts) should read. A machine-readable **JSON Schema (draft 2020-12)** is published with the package at [`schemas/audit-summary.schema.json`](./schemas/audit-summary.schema.json) — validate against it instead of hand-rolling shape assumptions.
+
+### `schemaVersion` — read it, branch on it
+
+```jsonc
+{
+  "schemaVersion": "2026-06-v0.6",  // bumps on EVERY breaking OR additive-public output change
+  "verdict": "caution",             // "ready" | "caution" | "concerning" | "critical"
+  "risk": 42,                       // 0-100, lower = better. Never shown to humans; use for CI thresholds.
+  "headline": "3 ship-blockers, 16 should-fix",
+  "categories": { /* 5 fixed keys → { grade, issues } */ },
+  "issues":     { /* severity buckets — see below */ },
+  "templates":  [ /* v0.6 per-template breakdown; may be [] or absent */ ],
+  "pageCount":  150
+  // ... diagnostics, auditedUrls, truncated, etc.
+}
+```
+
+The `schemaVersion` string carries a `YYYY-MM-vX.Y` tag (matching the `$id` of the published schema). **It bumps whenever the output shape changes** — breaking *or* additive. Gate scripts should assert the version they were written against (or accept a known range) so a shape change surfaces as a clear failure rather than silent misread.
+
+### `issues` is SEVERITY-bucketed (not a flat array, not category-keyed)
+
+This is the most common thing consumers get wrong:
+
+```jsonc
+"issues": {
+  "blockers":      [ /* RuleResult — severity error | critical */ ],
+  "shouldFix":     [ /* RuleResult — severity warning */ ],
+  "informational": [ /* RuleResult — severity info */ ]
+}
+```
+
+It is **not** `issues: RuleResult[]` and **not** `issues: { aeo: [...], spam: [...] }`. To get a single flat list for a gate:
+
+```ts
+const all = [...summary.issues.blockers, ...summary.issues.shouldFix, ...summary.issues.informational];
+const shouldFail = summary.issues.blockers.length > 0; // typical gate
+```
+
+`categories` (keyed by `integrity` | `discoverability` | `citation` | `data` | `audit`) carries **grades + counts only** — the per-category issue arrays live under `issues`, bucketed by severity, not under `categories`.
+
+### `truncated: true` means partial coverage
+
+When the crawl did not complete (e.g. the backpressure watchdog aborted on a degraded origin), the report sets `truncated: true` and a human-readable `truncatedReason`. The report still carries whatever findings were collected, but **CI gates MUST treat `pageCount`, `risk`, `verdict`, and all counts as LOWER bounds** — a "ready" verdict on a truncated run does not mean the site is clean, only that nothing was found before the abort. Gate on `truncated` explicitly if a partial pass should not count as a pass.
+
+### Validating in your own pipeline
+
+```ts
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+import schema from "@pseolint/core/schemas/audit-summary.schema.json" with { type: "json" };
+
+const ajv = new Ajv2020({ strict: false });
+addFormats(ajv);
+const validate = ajv.compile(schema);
+
+const report = JSON.parse(stdout);           // pseolint --format json
+if (!validate(report)) throw new Error(ajv.errorsText(validate.errors));
+```
+
+The schema's `additionalProperties` is permissive, so it pins the contract consumers gate on without rejecting forward-compatible field additions.
+
 ### AI triage
 
 When `ai.enabled` is set, findings are clustered into root-causes by an LLM. Providers are loaded lazily from optional peer deps — install only the one you need:

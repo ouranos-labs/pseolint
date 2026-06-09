@@ -12,6 +12,23 @@ inputs:
     description: "GitHub token for PR comments (defaults to github.token)"
     required: false
     default: ${{ github.token }}
+  fail-on-truncated:
+    description: "Fail the check when the audit was truncated (partial coverage) even if risk is under threshold. Default false (warn only)."
+    required: false
+    default: "false"
+outputs:
+  score:
+    description: "Risk score (0-100, lower is better). Alias of `risk`, kept for backwards compatibility."
+  risk:
+    description: "Risk score (0-100, lower is better)."
+  verdict:
+    description: "Overall verdict: ready | caution | concerning | critical."
+  pageCount:
+    description: "Number of pages analysed."
+  truncated:
+    description: "\"true\" when the crawl aborted mid-flight (e.g. backpressure watchdog on a degraded origin) and coverage is partial; otherwise \"false\". When true, verdict/risk/counts are lower bounds."
+  truncated-reason:
+    description: "Human-readable reason the crawl was truncated. Empty string when not truncated."
 runs:
   using: "node20"
   main: "dist/index.js"

@@ -12,6 +12,7 @@ import {
   formatHtml,
   isLocalhostUrl,
   OriginDegradedError,
+  SAFE_MODE_PRESETS,
 } from "@pseolint/core";
 import type { AuditSummary, Verdict } from "@pseolint/core";
 import type { CliFlags } from "./config.js";
@@ -628,6 +629,19 @@ async function runAudit(
       "pseolint: localhost detected — applying 'dev' preset (concurrency=1, sampleSize=25, maxCrawlDiscovered=50). Override with --full or --safe-mode cli.",
     );
   }
+  // Localhost concurrency-override guard. We warn when the concurrency that will
+  // actually REACH the engine is > 1 on a localhost target — i.e. only when the
+  // dev preset is NOT clamping it to 1 (the user passed --full / --safe-mode /
+  // an explicit higher concurrency). Don't change the value; just surface the
+  // risk that produced the real zero-output run against a single-process dev
+  // server. When the dev preset applies, concurrency resolves to 1 → no warning.
+  if (!devPresetWillApply) {
+    const effectiveConcurrency = Number(opts.concurrency);
+    if (Number.isFinite(effectiveConcurrency)) {
+      const warning = localhostConcurrencyWarning(source, effectiveConcurrency);
+      if (warning) console.error(warning);
+    }
+  }
   if (sourceLooksLocalhost && !opts.cache && options.cache === undefined) {
     // Opt-in by default for localhost only. We don't flip this for public
     // sources because users expect `--cache` to be explicit there.
@@ -710,6 +724,22 @@ async function runAudit(
     return 1;
   } finally {
     process.off("SIGINT", sigintHandler);
+  }
+
+  // Partial report: the backpressure watchdog aborted mid-crawl but the engine
+  // salvaged the pages it had already fetched. The report below IS still written
+  // / emitted — we just flag that coverage is incomplete and force a non-zero
+  // exit so CI treats it as a failed (incomplete) run. (The genuinely-empty /
+  // unsalvageable case still throws OriginDegradedError and is handled above.)
+  let truncatedRun = false;
+  if (summary.truncated) {
+    truncatedRun = true;
+    console.error(
+      `\n⚠ PARTIAL REPORT — origin degraded mid-crawl; coverage is incomplete.\n` +
+        `  Reason: ${summary.truncatedReason ?? "origin looks degraded"}\n` +
+        `  The report below reflects only the ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"} fetched before the watchdog fired. ` +
+        `Re-run with --concurrency 1 (or wait for the origin to recover) for full coverage.`,
+    );
   }
 
   if (summary.cacheStats && summary.cacheStats.total > 0) {
@@ -802,6 +832,11 @@ async function runAudit(
     console.error("Regression detected: new rule IDs fired vs prior state");
     exitCode = Math.max(exitCode, 1);
   }
+  // A truncated (partial) run is always a non-zero exit so CI knows coverage
+  // was incomplete — independent of the verdict computed over the partial set.
+  if (truncatedRun) {
+    exitCode = Math.max(exitCode, 1);
+  }
   return exitCode;
 }
 
@@ -873,6 +908,43 @@ function parseDuration(s: string): number {
   const unit = m[2];
   const mul = { ms: 1, s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[unit] ?? 1;
   return n * mul;
+}
+
+/**
+ * Localhost concurrency-override guard. The `dev` safe-mode preset clamps
+ * localhost crawls to concurrency 1 (a cache-cold dev server amplifies every
+ * fetch into a chain of DB queries). An explicit `--concurrency N` (N > 1)
+ * silently overrides that clamp — which is exactly how a user tripped the
+ * backpressure watchdog against a single-process dev server. We don't change
+ * the value (the user asked for it), we just surface the risk.
+ *
+ * Returns the warning line, or null when no warning is warranted. Exported for
+ * unit testing.
+ *
+ * @param source the audit target (URL or path)
+ * @param effectiveConcurrency the concurrency that will actually reach the
+ *   engine for this run (after preset resolution) — i.e. the value worth
+ *   warning about. The default-suppression here is defensive; the call site
+ *   already gates on the dev preset not being active. `undefined` → no warning.
+ */
+export function localhostConcurrencyWarning(
+  source: string,
+  effectiveConcurrency: number | undefined,
+): string | null {
+  if (effectiveConcurrency === undefined) return null;
+  if (!isLocalhostUrl(source)) return null;
+  const devConcurrency = SAFE_MODE_PRESETS.dev.concurrency ?? 1;
+  if (effectiveConcurrency <= devConcurrency) return null;
+  // Worded to be accurate whether the >1 concurrency came from an explicit
+  // --concurrency flag OR from --full / --safe-mode disabling the dev preset
+  // (which leaves concurrency at its default 5). Don't claim a flag the user
+  // may not have typed — just describe the effective config and the risk.
+  return (
+    `pseolint: crawling a localhost/single-origin target at concurrency ${effectiveConcurrency} ` +
+    `(the dev preset's concurrency=${devConcurrency} clamp is not active — e.g. --full or an explicit ` +
+    `--concurrency). A cache-cold dev server can collapse under parallel load and trip the backpressure ` +
+    `watchdog. Use --concurrency 1 for single-origin/dev targets.`
+  );
 }
 
 // Direct execution: compare real paths so global bins / npm link symlinks match import.meta.url

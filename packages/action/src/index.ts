@@ -30,6 +30,10 @@ function formatPrComment(summary: AuditSummary): string {
   lines.push(`## pseolint — Verdict: ${verdictLabel(summary.verdict)} (risk ${summary.risk}/100, lower is better)`);
   lines.push("");
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
+  if (summary.truncated) {
+    lines.push("");
+    lines.push("> ⚠ Partial coverage — crawl aborted (origin degraded). This gate ran on incomplete data; treat a pass as provisional. Verdict/risk/counts are lower bounds.");
+  }
   if (summary.templateDetected) {
     lines.push("");
     lines.push("> Template-generated content detected. Fix suggestions are tailored for template authors.");
@@ -89,6 +93,7 @@ async function run(): Promise<void> {
   const source = core.getInput("source", { required: true });
   const threshold = Number(core.getInput("threshold") || "40");
   const token = core.getInput("token") || process.env.GITHUB_TOKEN || "";
+  const failOnTruncated = core.getBooleanInput("fail-on-truncated");
 
   core.info(`Running pseolint on ${source} with risk threshold ${threshold}`);
 
@@ -101,6 +106,14 @@ async function run(): Promise<void> {
   core.setOutput("risk", summary.risk);
   core.setOutput("verdict", summary.verdict);
   core.setOutput("pageCount", summary.pageCount);
+  core.setOutput("truncated", String(Boolean(summary.truncated)));
+  core.setOutput("truncated-reason", summary.truncatedReason ?? "");
+
+  if (summary.truncated) {
+    core.warning(
+      `Partial coverage: ${summary.truncatedReason ?? "crawl aborted"} — ${summary.pageCount} pages audited before the crawl aborted. Verdict/risk are lower bounds.`
+    );
+  }
 
   const context = github.context;
   if (token && context.payload.pull_request) {
@@ -138,6 +151,12 @@ async function run(): Promise<void> {
   if (summary.risk >= threshold) {
     core.setFailed(
       `pseolint risk ${summary.risk} exceeds threshold ${threshold} (verdict: ${verdictLabel(summary.verdict)})`
+    );
+  } else if (summary.truncated && failOnTruncated) {
+    // Risk is under threshold, but coverage was partial and the caller opted in
+    // to fail on truncation. A clean pass on incomplete data is not trustworthy.
+    core.setFailed(
+      `pseolint coverage was partial (${summary.truncatedReason ?? "crawl aborted"}); failing because fail-on-truncated is set. Risk ${summary.risk} is a lower bound.`
     );
   }
 }

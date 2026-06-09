@@ -19,8 +19,20 @@ export type Verdict = "ready" | "caution" | "concerning" | "critical";
 /** Letter grade per category. */
 export type Grade = "A" | "B" | "C" | "D" | "F";
 
-/** Top-level v0.4 schema version. Bumps on every breaking output change. */
-export const SCHEMA_VERSION = "2026-04-v0.4";
+/**
+ * Top-level public-output schema version for `AuditSummary` (the shape
+ * `formatJson` serializes). Bumps on EVERY breaking OR additive-public output
+ * change so programmatic consumers (CI gates, pseolint-gate-style scripts) can
+ * branch on it instead of silently breaking. The stable contract is published
+ * as a JSON Schema at `schemas/audit-summary.schema.json` (its `$id` carries
+ * this same version string).
+ *
+ * Current value `"2026-06-v0.6"` covers the v0.6 `templates: Template[]`
+ * addition and the `truncated` / `truncatedReason` partial-coverage fields.
+ * (The prior `"2026-04-v0.4"` was never bumped when those landed — this
+ * corrects that drift.)
+ */
+export const SCHEMA_VERSION = "2026-06-v0.6";
 
 /** Options for `normalizeAuditUrl` (HTTP identity). */
 export interface NormalizeUrlOptions {
@@ -292,7 +304,7 @@ export interface AiOptions {
 }
 
 export interface AuditSummary {
-  /** Schema version. v0.4 = "2026-04-v0.4". Wave 2 / 3 consumers branch on this. */
+  /** Schema version (current: "2026-06-v0.6"). Programmatic consumers branch on this; see {@link SCHEMA_VERSION}. */
   schemaVersion: typeof SCHEMA_VERSION;
   /** User-facing verdict ladder. */
   verdict: Verdict;
@@ -369,6 +381,15 @@ export interface AuditSummary {
   scrapePlan?: ScrapePlanSummary;
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
+  /**
+   * True when the run did NOT complete the full crawl — e.g. the backpressure
+   * watchdog aborted on a degraded origin. The report still carries whatever
+   * findings were collected before the abort; consumers MUST treat coverage as
+   * partial (counts/verdict are lower bounds). Absent/false on complete runs.
+   */
+  truncated?: boolean;
+  /** Human-readable reason the run was truncated (e.g. the origin-degraded message). Present only when `truncated` is true. */
+  truncatedReason?: string;
 }
 
 /**
@@ -759,7 +780,22 @@ export interface HttpMeta {
 
 export interface ParsedPage {
   url: string;
+  /** Page title, scoped to `<head> > title`. Empty when no head title exists. */
   title: string;
+  /**
+   * Where `title` came from. `"head"` = a real `<head> > title`. `"none"` = no
+   * head title element (so `title` is empty). Used by the title-uniqueness rule
+   * to diagnose the SVG-`<title>` trap: a missing head title where an inline SVG
+   * `<title>` would otherwise masquerade as the page title to naive extractors.
+   */
+  titleSource?: "head" | "none";
+  /**
+   * First inline SVG `<title>` text found when the head title is missing. Lets the
+   * title-uniqueness rule say "no <head><title>; an SVG <title> (\"Spotify\") was
+   * found instead" rather than just reporting a shared/empty title. Absent when a
+   * head title exists or no SVG title is present.
+   */
+  svgTitleSample?: string;
   metaDescription: string;
   canonical: string;
   robotsMeta: string;

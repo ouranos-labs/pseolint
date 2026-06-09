@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { titleUniquenessRule } from "../../../src/rules/content/title-uniqueness.js";
 import type { ParsedPage } from "../../../src/types.js";
 
-function page(url: string, title: string): ParsedPage {
+function page(url: string, title: string, extra: Partial<ParsedPage> = {}): ParsedPage {
   return {
     url,
     title,
@@ -18,6 +18,7 @@ function page(url: string, title: string): ParsedPage {
     structureSignature: "",
     contentText: "",
     html: "",
+    ...extra,
   };
 }
 
@@ -27,6 +28,31 @@ describe("titleUniquenessRule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
     expect(findings[0].message).toContain("no <title>");
+  });
+
+  test("emits a diagnostic naming the SVG-title trap when the only title is an inline SVG", () => {
+    const findings = titleUniquenessRule([
+      page("https://ex.com/episodes/42", "", { titleSource: "none", svgTitleSample: "Spotify" }),
+    ]);
+    expect(findings).toHaveLength(1);
+    const f = findings[0];
+    expect(f.severity).toBe("error");
+    expect(f.message).toContain("SVG");
+    expect(f.message).toContain("Spotify");
+    // It must NOT fall back to the generic missing-title wording alone.
+    expect(f.message).not.toBe(
+      "https://ex.com/episodes/42 has no <title> element (or its title is empty)."
+    );
+  });
+
+  test("emits the generic missing-title message when there is no SVG title", () => {
+    const findings = titleUniquenessRule([
+      page("https://ex.com/a", "", { titleSource: "none" }),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].message).toContain("no <title>");
+    expect(findings[0].message).not.toContain("SVG");
   });
 
   test("emits an error when two pages share the exact title", () => {

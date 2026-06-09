@@ -332,6 +332,11 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // carried forward" without fetching the full R2 blob. Null on fresh
       // and one-shot audits — only monitoring runs produce a scrapePlan.
       scrapePlan: summary.scrapePlan ?? null,
+      // The backpressure watchdog can flush a PARTIAL report when the origin
+      // degrades mid-crawl. Mirror the flag onto the row so the dashboard can
+      // flag/filter degraded audits; the report page reads it straight off R2.
+      truncated: summary.truncated ?? false,
+      truncatedReason: summary.truncatedReason ?? null,
       storageKey: jsonKey,
       completedAt,
       // Permanence for eligible audits only; omit the key otherwise so the

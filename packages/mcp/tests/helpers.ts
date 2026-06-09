@@ -52,12 +52,14 @@ interface SummaryOverrides {
   templates?: Array<Record<string, unknown>>;
   categories?: Record<string, { grade: string; issues: number }>;
   templateDetected?: boolean;
+  truncated?: boolean;
+  truncatedReason?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function makeSummary(o: SummaryOverrides = {}): any {
   return {
-    schemaVersion: "2026-04-v0.4",
+    schemaVersion: "2026-06-v0.6",
     verdict: o.verdict ?? "caution",
     risk: o.risk ?? 25,
     headline: "1 should-fix",
@@ -79,6 +81,7 @@ export function makeSummary(o: SummaryOverrides = {}): any {
     pageCount: o.pageCount ?? 12,
     templates: o.templates ?? [],
     templateDetected: o.templateDetected ?? false,
+    ...(o.truncated ? { truncated: true, truncatedReason: o.truncatedReason ?? "origin degraded" } : {}),
   };
 }
 

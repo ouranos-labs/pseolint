@@ -34,7 +34,7 @@ import { canonicalNoindexConflictRule } from "./rules/tech/canonical-noindex-con
 import { hreflangConsistencyRule } from "./rules/tech/hreflang-consistency.js";
 import { robotsNoindexConflictRule } from "./rules/tech/robots-noindex-conflict.js";
 import { sitemapCompletenessRule } from "./rules/tech/sitemap-completeness.js";
-import { robotsComplianceRule, parseDisallowPatterns, isBlockedByPattern, parseCrawlDelaySeconds } from "./rules/tech/robots-sitemap-presence.js";
+import { robotsComplianceRule, parseDisallowPatterns, isBlockedByPattern, parseCrawlDelaySeconds, parseSitemapDirectives } from "./rules/tech/robots-sitemap-presence.js";
 import { llmsTxtRule } from "./rules/aeo/llms-txt.js";
 import { crawlerAccessRule } from "./rules/aeo/crawler-access.js";
 import { freshnessSignalsRule } from "./rules/aeo/freshness-signals.js";
@@ -741,25 +741,25 @@ function runRulesOnPages(
   // Spam rules — always compute cross-page data, only push findings if enabled
   const nearDuplicate = nearDuplicateRule(pages, resolvedRules.nearDuplicateThreshold);
   if (isEnabled("spam/near-duplicate") && modeOk("spam/near-duplicate")) {
-    findings.push(...tag(nearDuplicate.findings));
+    pushAll(findings, tag(nearDuplicate.findings));
   }
 
   const entitySwap = entitySwapRule(pages, entityPatterns, resolvedRules.entitySwapThreshold);
   if (isEnabled("spam/entity-swap") && modeOk("spam/entity-swap")) {
-    findings.push(...tag(entitySwap.findings));
+    pushAll(findings, tag(entitySwap.findings));
   }
 
   const thinContent = thinContentRule(pages, resolvedRules.thinContentMinWords);
   if (isEnabled("spam/thin-content") && modeOk("spam/thin-content")) {
-    findings.push(...tag(thinContent.findings));
+    pushAll(findings, tag(thinContent.findings));
   }
 
   if (isEnabled("spam/doorway-pattern") && modeOk("spam/doorway-pattern")) {
-    findings.push(...tag(doorwayPatternRule(nearDuplicate.pairs, entitySwap.pairs, thinContent.thinContentUrls, pages)));
+    pushAll(findings, tag(doorwayPatternRule(nearDuplicate.pairs, entitySwap.pairs, thinContent.thinContentUrls, pages)));
   }
 
   if (isEnabled("spam/publication-velocity") && modeOk("spam/publication-velocity")) {
-    findings.push(...tag(publicationVelocityRule(
+    pushAll(findings, tag(publicationVelocityRule(
       pages,
       resolvedRules.publicationVelocityMaxPerDay,
       resolvedRules.publicationVelocityMaxPerDayCorpusFraction,
@@ -767,169 +767,169 @@ function runRulesOnPages(
   }
 
   if (isEnabled("spam/boilerplate-ratio") && modeOk("spam/boilerplate-ratio")) {
-    findings.push(...tag(boilerplateRatioRule(pages, resolvedRules.boilerplateMaxRatio)));
+    pushAll(findings, tag(boilerplateRatioRule(pages, resolvedRules.boilerplateMaxRatio)));
   }
 
   if (isEnabled("spam/template-diversity") && modeOk("spam/template-diversity")) {
-    findings.push(...tag(templateDiversityRule(pages, resolvedRules.templateDiversityMinUniqueRatio)));
+    pushAll(findings, tag(templateDiversityRule(pages, resolvedRules.templateDiversityMinUniqueRatio)));
   }
 
   if (isEnabled("spam/template-coverage") && modeOk("spam/template-coverage")) {
-    findings.push(...tag(templateCoverageRule(pages, entityPatterns, resolvedRules.templateCoverageMinPages)));
+    pushAll(findings, tag(templateCoverageRule(pages, entityPatterns, resolvedRules.templateCoverageMinPages)));
   }
 
   // Content rules
   if (isEnabled("content/unique-value") && modeOk("content/unique-value")) {
-    findings.push(...tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
+    pushAll(findings, tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
   }
 
   if (isEnabled("content/meta-uniqueness") && modeOk("content/meta-uniqueness")) {
-    findings.push(...tag(metaUniquenessRule(pages, entityPatterns, resolvedRules.metaUniquenessMinJaccard)));
+    pushAll(findings, tag(metaUniquenessRule(pages, entityPatterns, resolvedRules.metaUniquenessMinJaccard)));
   }
 
   if (isEnabled("content/missing-author") && modeOk("content/missing-author")) {
-    findings.push(...tag(missingAuthorRule(pages)));
+    pushAll(findings, tag(missingAuthorRule(pages)));
   }
 
   if (isEnabled("content/eeat-signals") && modeOk("content/eeat-signals")) {
-    findings.push(...tag(eeatSignalsRule(pages)));
+    pushAll(findings, tag(eeatSignalsRule(pages)));
   }
 
   // 2026-05-03 v0.5.2 blind-spot fixes — title uniqueness + heading
   // structure + image alt-text were tier-1 gaps in the blind-spot audit.
   if (isEnabled("content/title-uniqueness") && modeOk("content/title-uniqueness")) {
-    findings.push(...tag(titleUniquenessRule(pages)));
+    pushAll(findings, tag(titleUniquenessRule(pages)));
   }
   if (isEnabled("content/heading-structure") && modeOk("content/heading-structure")) {
-    findings.push(...tag(headingStructureRule(pages)));
+    pushAll(findings, tag(headingStructureRule(pages)));
   }
   if (isEnabled("content/image-alt-text") && modeOk("content/image-alt-text")) {
-    findings.push(...tag(imageAltTextRule(pages)));
+    pushAll(findings, tag(imageAltTextRule(pages)));
   }
   if (isEnabled("content/translation-no-op") && modeOk("content/translation-no-op")) {
-    findings.push(...tag(translationNoOpRule(pages)));
+    pushAll(findings, tag(translationNoOpRule(pages)));
   }
   if (isEnabled("content/regurgitated-content") && modeOk("content/regurgitated-content")) {
-    findings.push(...tag(regurgitatedContentRule(pages)));
+    pushAll(findings, tag(regurgitatedContentRule(pages)));
   }
   if (isEnabled("content/common-phrase-reuse") && modeOk("content/common-phrase-reuse")) {
-    findings.push(...tag(commonPhraseReuseRule(pages)));
+    pushAll(findings, tag(commonPhraseReuseRule(pages)));
   }
   if (isEnabled("content/wikipedia-paraphrase") && modeOk("content/wikipedia-paraphrase")) {
-    findings.push(...tag(wikipediaParaphraseRule(pages)));
+    pushAll(findings, tag(wikipediaParaphraseRule(pages)));
   }
 
   // Link rules — use the global link graph
   if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {
-    findings.push(...tag(orphanPagesRule(pages, inbound, rootUrl)));
+    pushAll(findings, tag(orphanPagesRule(pages, inbound, rootUrl)));
   }
 
   if (isEnabled("links/dead-ends") && modeOk("links/dead-ends")) {
-    findings.push(...tag(deadEndsRule(pages, knownUrls, rootUrl)));
+    pushAll(findings, tag(deadEndsRule(pages, knownUrls, rootUrl)));
   }
 
   if (isEnabled("links/link-depth") && modeOk("links/link-depth")) {
     if (rootUrl) {
-      findings.push(...tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound, sampled)));
+      pushAll(findings, tag(linkDepthRule(pages, adjacency, rootUrl, resolvedRules.linkDepthMaxClicks, inbound, sampled)));
     }
   }
 
   if (isEnabled("links/cluster-connectivity") && modeOk("links/cluster-connectivity")) {
-    findings.push(...tag(clusterConnectivityRule(pages, knownUrls)));
+    pushAll(findings, tag(clusterConnectivityRule(pages, knownUrls)));
   }
 
   if (isEnabled("links/host-section-divergence") && modeOk("links/host-section-divergence")) {
-    findings.push(...tag(hostSectionDivergenceRule(pages, adjacency)));
+    pushAll(findings, tag(hostSectionDivergenceRule(pages, adjacency)));
   }
 
   // Tech rules
   if (isEnabled("tech/canonical-consistency") && modeOk("tech/canonical-consistency")) {
-    findings.push(...tag(canonicalConsistencyRule(pages, knownUrls, normalizeUrlOptions)));
+    pushAll(findings, tag(canonicalConsistencyRule(pages, knownUrls, normalizeUrlOptions)));
   }
 
   if (isEnabled("tech/canonical-noindex-conflict") && modeOk("tech/canonical-noindex-conflict")) {
-    findings.push(...tag(canonicalNoindexConflictRule(noindexAwarePages, normalizeUrlOptions)));
+    pushAll(findings, tag(canonicalNoindexConflictRule(noindexAwarePages, normalizeUrlOptions)));
   }
 
   if (isEnabled("tech/robots-noindex-conflict") && modeOk("tech/robots-noindex-conflict")) {
-    findings.push(...tag(robotsNoindexConflictRule(noindexAwarePages, inbound)));
+    pushAll(findings, tag(robotsNoindexConflictRule(noindexAwarePages, inbound)));
   }
 
   if (isEnabled("tech/redirect-chain") && modeOk("tech/redirect-chain")) {
-    findings.push(...tag(redirectChainRule(pages)));
+    pushAll(findings, tag(redirectChainRule(pages)));
   }
 
   if (isEnabled("tech/soft-404") && modeOk("tech/soft-404")) {
-    findings.push(...tag(soft404Rule(pages)));
+    pushAll(findings, tag(soft404Rule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
     // hreflang declarations on noindex'd pages are still bugs when they're
     // inconsistent — see auditor.test.ts "emits technical SEO findings".
-    findings.push(...tag(hreflangConsistencyRule(noindexAwarePages, normalizeUrlOptions)));
+    pushAll(findings, tag(hreflangConsistencyRule(noindexAwarePages, normalizeUrlOptions)));
   }
 
   // 2026-05-03 v0.5.2 blind-spot fix: og-completeness was referenced in
   // the v0.4.x README without ever shipping. Now it does.
   if (isEnabled("tech/og-completeness") && modeOk("tech/og-completeness")) {
-    findings.push(...tag(ogCompletenessRule(pages)));
+    pushAll(findings, tag(ogCompletenessRule(pages)));
   }
 
   // Schema rules
   if (isEnabled("schema/json-ld-valid") && modeOk("schema/json-ld-valid")) {
-    findings.push(...tag(jsonLdValidRule(pages)));
+    pushAll(findings, tag(jsonLdValidRule(pages)));
   }
 
   if (isEnabled("schema/required-fields") && modeOk("schema/required-fields")) {
-    findings.push(...tag(requiredFieldsRule(pages)));
+    pushAll(findings, tag(requiredFieldsRule(pages)));
   }
 
   if (isEnabled("schema/consistency") && modeOk("schema/consistency")) {
-    findings.push(...tag(schemaConsistencyRule(pages)));
+    pushAll(findings, tag(schemaConsistencyRule(pages)));
   }
 
   // AEO rules
   if (isEnabled("aeo/freshness-signals")) {
-    findings.push(...tag(freshnessSignalsRule(pages, {
+    pushAll(findings, tag(freshnessSignalsRule(pages, {
       maxStaleDays: resolvedRules.freshnessMaxStaleDays,
     })));
   }
 
   if (isEnabled("aeo/faq-coverage")) {
-    findings.push(...tag(faqCoverageRule(pages, {
+    pushAll(findings, tag(faqCoverageRule(pages, {
       minQuestionHeadings: resolvedRules.faqMinQuestionHeadings,
     })));
   }
 
   if (isEnabled("aeo/answer-first")) {
-    findings.push(...tag(answerFirstRule(pages, entityPatterns, {
+    pushAll(findings, tag(answerFirstRule(pages, entityPatterns, {
       maxFirstParagraphWords: resolvedRules.answerFirstMaxWords,
     })));
   }
 
   if (isEnabled("aeo/citable-facts")) {
-    findings.push(...tag(citableFactsRule(pages, entityPatterns, {
+    pushAll(findings, tag(citableFactsRule(pages, entityPatterns, {
       minFactsPerPage: resolvedRules.citableFactsMin,
       targetFactsPerPage: resolvedRules.citableFactsTarget,
     })));
   }
 
   if (isEnabled("aeo/content-modularity")) {
-    findings.push(...tag(contentModularityRule(pages, {
+    pushAll(findings, tag(contentModularityRule(pages, {
       maxParagraphWords: resolvedRules.modularityMaxParagraphWords,
       minSelfContainedRatio: resolvedRules.modularityMinSelfContainedRatio,
     })));
   }
 
   if (isEnabled("aeo/summary-bait")) {
-    findings.push(...tag(summaryBaitRule(pages, entityPatterns)));
+    pushAll(findings, tag(summaryBaitRule(pages, entityPatterns)));
   }
 
   // Cannibal rules — only url-pattern survives in v0.4 (title-overlap and
   // keyword-collision dropped due to high false-positive rates; see
   // 2026-04-29 v0.4 redesign spec §4.3).
   if (isEnabled("cannibal/url-pattern") && modeOk("cannibal/url-pattern")) {
-    findings.push(...tag(urlPatternRule(pages)));
+    pushAll(findings, tag(urlPatternRule(pages)));
   }
 
   return findings;
@@ -1200,6 +1200,20 @@ function withDocsUrls(findings: RuleResult[]): RuleResult[] {
   return findings;
 }
 
+/**
+ * Append every item of `items` to `target` in place. Use this instead of
+ * `target.push(...items)` whenever `items` can be large. The spread form passes
+ * each element as a separate call argument, and V8 caps argument count
+ * (~131072) — so `push(...bigArray)` throws `RangeError: Maximum call stack size
+ * exceeded` on large inputs. A dense site makes the pairwise rules
+ * (near-duplicate / entity-swap) emit C(N,2) findings, which blew the cap at the
+ * rule-aggregation push *before* enrichment was even reached. The loop has no
+ * such limit. See tests/integration/large-corpus-no-overflow.test.ts.
+ */
+function pushAll<T>(target: T[], items: readonly T[]): void {
+  for (const item of items) target.push(item);
+}
+
 async function collectHtmlFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = await Promise.all(
@@ -1255,6 +1269,10 @@ async function fetchWithRetry(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
+  // Per-sitemap byte cap (sitemaps.org caps an uncompressed sitemap at 50 MB).
+  // Guards against a hostile/misconfigured sitemap eating the whole byte budget
+  // or memory. 0 / undefined = no cap.
+  maxBytes?: number,
 ): Promise<{ text: string; contentType: string } | null> {
   try {
     stats.total += 1;
@@ -1264,6 +1282,11 @@ async function fetchWithRetry(
       stats.bytesSavedEstimate += r.body.length;
     }
     if (r.status < 200 || r.status >= 300) return null;
+    if (maxBytes && maxBytes > 0 && r.body.length > maxBytes) {
+      // eslint-disable-next-line no-console
+      console.error(`pseolint: sitemap ${url} is ${(r.body.length / 1_048_576).toFixed(0)}MB, over the ${(maxBytes / 1_048_576).toFixed(0)}MB cap — skipping it.`);
+      return null;
+    }
     return { text: r.body, contentType: (r.headers["content-type"] ?? "").toLowerCase() };
   } catch (err) {
     if (signal?.aborted) throw err; // propagate cancellation
@@ -1442,6 +1465,16 @@ function fisherYatesSample<T>(items: T[], n: number, random: () => number = Math
   return arr.slice(arr.length - n);
 }
 
+/** sitemaps.org caps an uncompressed sitemap at 50 MB. */
+const SITEMAP_MAX_BYTES = 50 * 1024 * 1024;
+/**
+ * Max `<sitemapindex>` nesting depth we recurse through. The protocol only
+ * defines a single level of nesting, but some sites nest deeper; 5 is generous
+ * while still bounding work (and stack) on a hostile/misconfigured index that a
+ * `visited` set alone wouldn't catch (e.g. a deep non-cyclic chain).
+ */
+const SITEMAP_MAX_DEPTH = 5;
+
 async function collectUrlsFromSitemap(
   sitemapText: string,
   sitemapUrl: string,
@@ -1451,6 +1484,8 @@ async function collectUrlsFromSitemap(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
+  depth: number = 0,
+  maxDepth: number = SITEMAP_MAX_DEPTH,
 ): Promise<{ urls: string[]; lastmodByUrl: Map<string, string> }> {
   visited.add(sitemapUrl);
   const entries = parseSitemapUrlsWithLastmod(sitemapText);
@@ -1467,18 +1502,26 @@ async function collectUrlsFromSitemap(
     return { urls, lastmodByUrl };
   }
 
+  // It's a sitemap index. Stop recursing past the depth cap (the index itself
+  // carries no page URLs, only child-sitemap refs, so returning empty is safe).
+  if (depth >= maxDepth) {
+    // eslint-disable-next-line no-console
+    console.error(`pseolint: sitemap-index nesting exceeded depth ${maxDepth} at ${sitemapUrl}; not recursing further.`);
+    return { urls: [], lastmodByUrl: new Map() };
+  }
+
   const allUrls: string[] = [];
   const allLastmodByUrl = new Map<string, string>();
   for (const entry of entries) {
     const childUrl = entry.url;
     if (signal?.aborted) throw signal.reason ?? new Error("aborted");
     if (visited.has(childUrl)) continue;
-    const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop);
+    const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop, SITEMAP_MAX_BYTES);
     if (!child) continue;
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
     if (!childLike) continue;
-    const { urls: childUrls, lastmodByUrl: childLastmodByUrl } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop);
-    allUrls.push(...childUrls);
+    const { urls: childUrls, lastmodByUrl: childLastmodByUrl } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop, depth + 1, maxDepth);
+    pushAll(allUrls, childUrls);
     for (const [u, lm] of childLastmodByUrl) {
       allLastmodByUrl.set(u, lm);
     }
@@ -1493,8 +1536,8 @@ async function fetchRobotsMeta(
   stats: CacheStats,
   signal?: AbortSignal,
   validateHop?: (url: string) => Promise<void>,
-): Promise<{ disallow: string[]; crawlDelaySec: number }> {
-  if (!origin) return { disallow: [], crawlDelaySec: 0 };
+): Promise<{ disallow: string[]; crawlDelaySec: number; sitemaps: string[] }> {
+  if (!origin) return { disallow: [], crawlDelaySec: 0, sitemaps: [] };
   try {
     const robotsUrl = `${origin}/robots.txt`;
     const fetched = await fetchTextStrict(robotsUrl, timeoutMs, cache, stats, signal, validateHop);
@@ -1504,9 +1547,13 @@ async function fetchRobotsMeta(
     return {
       disallow: parseDisallowPatterns(fetched.text, ["*", "pseolint"]),
       crawlDelaySec: parseCrawlDelaySeconds(fetched.text),
+      // `Sitemap:` directives are origin-relative-agnostic (absolute URLs) and
+      // there can be several. Surfaced so discovery can read the site's declared
+      // sitemaps instead of guessing.
+      sitemaps: parseSitemapDirectives(fetched.text),
     };
   } catch {
-    return { disallow: [], crawlDelaySec: 0 };
+    return { disallow: [], crawlDelaySec: 0, sitemaps: [] };
   }
 }
 
@@ -1564,6 +1611,11 @@ async function loadPagesFromSource(
   followRedirects: boolean = true,
   maxCrawlDiscovered: number = 5000,
   monitoringContext: MonitoringContext | null = null,
+  // Backpressure salvage: when provided, every page body that comes back is
+  // pushed into this caller-owned array as it's fetched. If the watchdog aborts
+  // mid-crawl and this function throws, the caller still holds the partial set
+  // (the local `pages` array would otherwise be lost with the stack frame).
+  pageSink?: LoadedPage[],
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number; scrapePlan?: ScrapePlan }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
@@ -1651,7 +1703,10 @@ async function loadPagesFromSource(
         urlsToFetch = sampledUrls;
       }
 
-      const pages: LoadedPage[] = [];
+      // Reuse the caller's salvage sink as the live page accumulator so a
+      // mid-crawl watchdog abort leaves the already-fetched pages visible to
+      // the caller. Falls back to a private array when no sink is passed.
+      const pages: LoadedPage[] = pageSink ?? [];
 
       // Fetch robots.txt once for the origin — reused for Crawl-Delay pacing and Disallow checks.
       const sourceOrigin = (() => { try { return new URL(source).origin; } catch { return ""; } })();
@@ -1757,7 +1812,10 @@ async function loadPagesFromSource(
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
       const initialPage: LoadedPage = { url: source, html: text };
-      const pages: LoadedPage[] = [initialPage];
+      // See note above: reuse the caller's salvage sink so a watchdog abort
+      // during link-discovery crawling preserves the pages fetched so far.
+      const pages: LoadedPage[] = pageSink ?? [];
+      pages.push(initialPage);
 
       if (crawlDiscovery) {
         let sourceOrigin: string;
@@ -1770,6 +1828,84 @@ async function loadPagesFromSource(
         const knownCrawled = new Set<string>([source]);
         const allDiscoveredUrls = new Set<string>([source]);
         const maxDepth = 3;
+
+        // Sitemap-first discovery (like Google). Before link-crawling, read the
+        // sitemap(s) the site declares — link-crawl only reaches *linked* pages,
+        // but a pSEO site's whole point is thousands of programmatic URLs that
+        // may be sparsely linked (or behind a build-frozen, under-linked nav).
+        // Sources of truth, in order:
+        //   1. `Sitemap:` directives in robots.txt (there can be several)
+        //   2. failing that, probe /sitemap.xml then /sitemap_index.xml
+        // Sitemap-listed URLs are authoritative, so we fetch them FIRST; the
+        // link-crawl below then fills any remaining budget and dedups against
+        // them. When no sitemap exists, this is a no-op and we crawl as before.
+        if (sourceOrigin) {
+          const robotsForDiscovery = await fetchRobotsMeta(sourceOrigin, timeoutMs, cache, stats, signal, validateHop);
+          const probing = robotsForDiscovery.sitemaps.length === 0;
+          const sitemapCandidates = probing
+            ? [`${sourceOrigin}/sitemap.xml`, `${sourceOrigin}/sitemap_index.xml`]
+            : robotsForDiscovery.sitemaps;
+          const visitedSitemaps = new Set<string>();
+          const sitemapListedUrls: string[] = [];
+          for (const candidate of sitemapCandidates) {
+            if (discoveryBudget > 0 && pages.length + sitemapListedUrls.length >= discoveryBudget) break;
+            if (visitedSitemaps.has(candidate)) continue;
+            let smText: string;
+            let smType: string;
+            try {
+              if (validateHop) await validateHop(candidate);
+              const fetched = await fetchWithRetry(candidate, timeoutMs, cache, stats, signal, validateHop, SITEMAP_MAX_BYTES);
+              if (!fetched) continue;
+              smText = fetched.text;
+              smType = fetched.contentType;
+            } catch {
+              continue; // SSRF refusal, network error, etc. — skip this candidate
+            }
+            if (!(smType.includes("xml") || looksLikeSitemap(smText))) continue;
+            const { urls: discoveredSmUrls } = await collectUrlsFromSitemap(
+              smText, candidate, visitedSitemaps, timeoutMs, cache, stats, signal, validateHop,
+            );
+            pushAll(sitemapListedUrls, discoveredSmUrls);
+            // When probing the conventional paths, stop at the first that hits.
+            if (probing && discoveredSmUrls.length > 0) break;
+          }
+
+          // Same-origin + robots-aware filter, deduped against what we have.
+          const seedUrls = Array.from(new Set(sitemapListedUrls)).filter((u) => {
+            if (knownCrawled.has(u)) return false;
+            try {
+              const parsed = new URL(u);
+              if (parsed.origin !== sourceOrigin) return false;
+              if (respectRobotsTxt && isDisallowedByRobots(parsed.pathname, robotsForDiscovery.disallow)) {
+                skippedByRobots.push(u);
+                return false;
+              }
+              return true;
+            } catch {
+              return false;
+            }
+          });
+          for (const u of seedUrls) allDiscoveredUrls.add(u);
+          // Cap the seed fetch. With a sampling budget, fit under it; without one
+          // (the default "audit everything" path) bound by maxCrawlDiscovered, the
+          // same ceiling the link-crawl honors — otherwise a homepage audit of a
+          // site with a 50k-URL sitemap would try to fetch all of them (the link
+          // crawl never could, so this would be an unbounded-egress regression).
+          const seedToFetch = discoveryBudget > 0
+            ? seedUrls.slice(0, Math.max(0, discoveryBudget - pages.length))
+            : seedUrls.slice(0, maxCrawlDiscovered);
+          if (seedToFetch.length > 0) {
+            await runWithConcurrency(seedToFetch, concurrency, async (url) => {
+              if (budgetExceeded(byteBudget)) return;
+              const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop, followRedirects);
+              knownCrawled.add(url);
+              if (result && result.httpMeta && result.httpMeta.statusCode >= 200 && result.httpMeta.statusCode < 300) {
+                byteBudget.used += result.html.length;
+                pages.push(result);
+              }
+            });
+          }
+        }
 
         for (let depth = 0; depth < maxDepth; depth += 1) {
           // Stop if we've hit the discovery budget
@@ -1830,7 +1966,7 @@ async function loadPagesFromSource(
             }
           });
 
-          pages.push(...newPages);
+          pushAll(pages, newPages);
           if (newPages.length === 0) break;
         }
 
@@ -1931,6 +2067,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const backpressureEnabled = options?.backpressure !== false;
   const backpressureAbort = new AbortController();
   let backpressureError: OriginDegradedError | null = null;
+  // Set once we've decided to salvage a partial report after a watchdog abort.
+  // From that point `throwIfAborted` must NOT re-throw the backpressure error —
+  // the watchdog already did its job (stopped fetching); the rest of the
+  // pipeline runs over the pages collected so far and the truncation is
+  // surfaced on the summary instead.
+  let truncated = false;
+  let truncatedReason: string | undefined;
   const signal = composeSignals(externalSignal, backpressureAbort.signal);
 
   const observer = new FetchObserver();
@@ -1975,10 +2118,31 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   };
 
+  // Flip the run into salvage mode after a watchdog abort: record the reason so
+  // assembly sets summary.truncated, and from here `throwIfAborted` will no
+  // longer re-throw the backpressure error. Idempotent. Returns true when a
+  // backpressure abort was present to salvage.
+  function salvageBackpressure(): boolean {
+    if (!backpressureError) return false;
+    truncated = true;
+    truncatedReason = backpressureError.message;
+    return true;
+  }
+
   function throwIfAborted(): void {
-    if (backpressureError) throw backpressureError;
+    // An EXTERNAL abort (ctrl-C, parent timeout) is always fatal: the caller
+    // asked to stop, not to degrade. Check it first so it wins over salvage.
     if (externalSignal?.aborted) {
       throw externalSignal.reason ?? new DOMException("Audit aborted", "AbortError");
+    }
+    // A backpressure abort is salvageable. Once we've committed to a partial
+    // report (`truncated`), swallow it and let the pipeline finish over the
+    // pages collected so far. Before that commit, the loader-boundary catch
+    // handles it; this guard only fires on the rare path where the loader
+    // returned normally (e.g. a fetch mock that ignores the abort signal) yet
+    // the watchdog still voted to abort — salvage rather than crash.
+    if (backpressureError && !truncated) {
+      salvageBackpressure();
     }
   }
 
@@ -2152,13 +2316,24 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         }
       : undefined;
     const pinnedPages: typeof loadedPagesRaw = [];
-    await runWithConcurrency(Array.from(pinned), concurrency, async (url) => {
-      const result = await fetchPageWithMeta(url, timeoutMs, cacheConfig, cacheStats, signal, validateHopPinned, followRedirects);
-      if (result) {
-        fetchByteBudget.used += result.html.length;
-        pinnedPages.push(result);
+    try {
+      await runWithConcurrency(Array.from(pinned), concurrency, async (url) => {
+        const result = await fetchPageWithMeta(url, timeoutMs, cacheConfig, cacheStats, signal, validateHopPinned, followRedirects);
+        if (result) {
+          fetchByteBudget.used += result.html.length;
+          pinnedPages.push(result);
+        }
+      });
+    } catch (err) {
+      // Same salvage contract as the sitemap/crawl path: a watchdog abort
+      // mid-fetch keeps the pages already collected in `pinnedPages`. Any other
+      // error (external abort, SSRF rejection) is fatal — re-throw it.
+      if (err instanceof OriginDegradedError) {
+        salvageBackpressure();
+      } else {
+        throw err;
       }
-    });
+    }
     loadedPagesRaw = pinnedPages;
     // No sitemap context in pinned mode
     sitemapUrlSet = undefined;
@@ -2166,12 +2341,44 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     discoveredUrlCount = undefined;
     scrapePlan = undefined;
   } else {
-    const loaded = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered, monitoringContext);
-    loadedPagesRaw = loaded.pages;
-    sitemapUrlSet = loaded.sitemapUrls;
-    sitemapLastmodByUrl = loaded.sitemapLastmodByUrl;
-    discoveredUrlCount = loaded.discoveredUrlCount;
-    scrapePlan = loaded.scrapePlan;
+    // Salvage sink: loadPagesFromSource fills this incrementally as pages come
+    // back. If the backpressure watchdog aborts mid-crawl the call throws an
+    // OriginDegradedError and the function's own return value is lost — but the
+    // already-fetched pages survive here, so we recover them and continue the
+    // pipeline with a `truncated` flag instead of throwing the whole run away.
+    const pageSink: LoadedPage[] = [];
+    try {
+      const loaded = await loadPagesFromSource(source, concurrency, timeoutMs, crawlDiscovery, discoveryBudget, cacheConfig, cacheStats, fillBudgetViaLinkDiscovery, fetchByteBudget, signal, guardSsrf, respectRobotsTxt, skippedByRobots, followRedirects, maxCrawlDiscovered, monitoringContext, pageSink);
+      loadedPagesRaw = loaded.pages;
+      sitemapUrlSet = loaded.sitemapUrls;
+      sitemapLastmodByUrl = loaded.sitemapLastmodByUrl;
+      discoveredUrlCount = loaded.discoveredUrlCount;
+      scrapePlan = loaded.scrapePlan;
+    } catch (err) {
+      // Only the watchdog abort is salvageable. An external abort (ctrl-C /
+      // parent timeout) or any other error is fatal — re-throw it untouched so
+      // --no-backpressure and ctrl-C behaviour are unchanged.
+      if (err instanceof OriginDegradedError) {
+        // Prefer the canonical backpressureError message (same object the
+        // monitor raised); fall back to the caught error if somehow distinct.
+        if (!salvageBackpressure()) {
+          truncated = true;
+          truncatedReason = err.message;
+        }
+        // Recover whatever was fetched before the abort. The sink is the same
+        // array loadPagesFromSource was pushing into, so it holds the partial
+        // page set even though the function never reached its `return`.
+        loadedPagesRaw = pageSink;
+        // No sitemap/discovery context survives a mid-sitemap abort; the
+        // downstream classifier falls back to the loaded page URLs.
+        sitemapUrlSet = undefined;
+        sitemapLastmodByUrl = undefined;
+        discoveredUrlCount = undefined;
+        scrapePlan = undefined;
+      } else {
+        throw err;
+      }
+    }
   }
   // The scrapePlan tells us which URLs were skipped pre-fetch under monitoring
   // mode. Surface them in skippedUrls so they show up under summary.skippedUrls
@@ -2417,33 +2624,33 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // Site-wide rules (run once, outside group loop)
   if (sitemapUrlSet && sitemapUrlSet.size > 0 && auditMode !== "diff") {
     const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet);
-    allFindings.push(...sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    pushAll(allFindings,sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
 
     if (robotsTxtContent) {
       const robotsFindings = robotsComplianceRule(parsedPages, sitemapUrlSet, robotsTxtContent);
-      allFindings.push(...robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+      pushAll(allFindings,robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
   }
 
   // AEO site-wide rules. These run unconditionally (consistent with sitemap-completeness
   // and robots-compliance); page-group rule lists govern per-page AEO rules only.
   const llmsFindings = await llmsTxtRule(source, { timeoutMs });
-  allFindings.push(...llmsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+  pushAll(allFindings,llmsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
 
   if (robotsTxtContent) {
     const crawlerFindings = crawlerAccessRule(robotsTxtContent);
-    allFindings.push(...crawlerFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    pushAll(allFindings,crawlerFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
   }
 
   // Data source comparison rules
   if (options?.dataSource?.records && options.dataSource.records.length > 0) {
     if (auditMode !== "diff" || isRuleAllowedInDiff("data/missing-binding")) {
       const dataBindingFindings = dataBindingRule(parsedPages, options.dataSource.records);
-      allFindings.push(...dataBindingFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+      pushAll(allFindings,dataBindingFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
     if (auditMode !== "diff" || isRuleAllowedInDiff("data/identical-across-pages")) {
       const dataIdenticalFindings = dataIdenticalRule(parsedPages, options.dataSource.records);
-      allFindings.push(...dataIdenticalFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+      pushAll(allFindings,dataIdenticalFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
   }
 
@@ -2476,7 +2683,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       isSampledAudit || hasPinnedUrlsEarly,
     );
 
-    allFindings.push(...findings);
+    pushAll(allFindings,findings);
     groupPageCounts[groupName] = groupPages.length;
     // v0.4.3: per-group scoring uses the same site-classification profile so
     // group-level risk numbers reflect the same severity / confidence remaps
@@ -2501,7 +2708,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       (auditMode === "full" || isRuleAllowedInDiff("content/value-add"));
     if (isValueAddEnabled) {
       const valueAddFindings = valueAddRule(parsedPages, allFindings);
-      allFindings.push(...valueAddFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+      pushAll(allFindings,valueAddFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
   }
 
@@ -2635,6 +2842,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       ? [...parsedPages.map((p) => p.url)].sort()
       : undefined,
   };
+
+  // Partial-report flag: the backpressure watchdog aborted mid-crawl and we
+  // salvaged whatever pages had been fetched. Consumers MUST treat coverage as
+  // a lower bound (counts/verdict are partial). Only set when actually
+  // truncated so complete runs keep `truncated` absent.
+  if (truncated) {
+    summary.truncated = true;
+    summary.truncatedReason = truncatedReason;
+  }
 
   if (cacheConfig) {
     summary.cacheStats = cacheStats;

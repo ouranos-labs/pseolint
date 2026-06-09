@@ -221,6 +221,9 @@ export default async function Page({
       { eligible ? (
         <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
       ) : null }
+      { summaryTruncation(summary).truncated ? (
+        <TruncatedBanner reason={ summaryTruncation(summary).reason } />
+      ) : null }
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
         Audit complete · { completedAgo }
@@ -409,6 +412,36 @@ function LegacyFormatBanner() {
         </Link>{ " " }
         for the new view.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Partial-coverage warning. Rendered above the hero when the engine flushed a
+ * `truncated:true` report (backpressure watchdog aborted the crawl mid-flight
+ * on a degraded origin). The findings shown are whatever was collected before
+ * the abort, so the verdict, risk, and every count are LOWER bounds — surface
+ * that loudly so a degraded audit isn't mistaken for a complete one.
+ */
+function TruncatedBanner({ reason }: { reason: string | null }) {
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex flex-wrap items-start gap-3 rounded-[18px] border border-warning/50 bg-warning/10 p-4 sm:flex-nowrap"
+    >
+      <span aria-hidden className="text-base leading-none text-warning">⚠</span>
+      <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
+        <span className="font-semibold text-foreground">Partial audit.</span>{ " " }
+        The crawl was interrupted before it finished (the origin degraded under load, so
+        pseolint stopped early to avoid overloading it). Coverage is incomplete — treat the
+        verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.
+        Re-audit once the site is stable for a complete picture.
+        { reason ? (
+          <span className="mt-1 block font-mono text-[11px] text-muted-foreground/80">
+            Reason: { reason }
+          </span>
+        ) : null }
+      </div>
     </div>
   );
 }
@@ -681,7 +714,7 @@ function legacyToV04Projection(legacy: AuditSummaryV03): AuditSummaryV04 {
   // only read `summary.issues` + `summary.pageCount`, so an `as` cast here is
   // safe — we're narrowing to the runtime contract the helpers actually use.
   return {
-    schemaVersion: "2026-04-v0.4",
+    schemaVersion: "2026-06-v0.6",
     verdict: "ready",
     risk: legacy.score ?? 0,
     headline: "",
@@ -984,4 +1017,24 @@ function safeParse<T>(raw: string): T | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Read the core engine's `truncated` / `truncatedReason` partial-coverage flags
+ * off whatever summary shape we parsed from R2. The field lives on the current
+ * `AuditSummary` (v0.4+); legacy v0.3 blobs never carry it, so this returns
+ * `{ truncated: false }` for them. Read defensively (the blob is untrusted
+ * JSON), so we duck-type rather than trust the static union.
+ */
+function summaryTruncation(summary: AnyAuditSummary | null): {
+  truncated: boolean;
+  reason: string | null;
+} {
+  const s = summary as { truncated?: unknown; truncatedReason?: unknown } | null;
+  const truncated = s?.truncated === true;
+  const reason =
+    truncated && typeof s?.truncatedReason === "string" && s.truncatedReason.trim().length > 0
+      ? s.truncatedReason
+      : null;
+  return { truncated, reason };
 }

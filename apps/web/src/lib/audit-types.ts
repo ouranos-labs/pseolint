@@ -47,10 +47,17 @@ export type AuditSummaryV04 = AuditSummaryV04Core;
 /** Union accepted by the renderer. Discriminate on `schemaVersion` presence. */
 export type AnyAuditSummary = AuditSummaryV03 | AuditSummaryV04;
 
-/** True when the summary is the v0.4 shape (has bucketed issues + diagnostics). */
+/**
+ * True when the summary is the current bucketed-issues shape (v0.4 and newer).
+ *
+ * The `schemaVersion` string carries a version tag that bumps on every public
+ * output change (`2026-04-v0.4` → `2026-06-v0.6` → …). Storage holds blobs
+ * written by multiple engine versions, so we detect "has a schemaVersion at
+ * all" (any dated `YYYY-MM-vX.Y` tag) rather than pinning a single literal —
+ * legacy v0.3 blobs have no `schemaVersion` field and fall through to the v0.3
+ * branch.
+ */
 export function isV04Summary(s: AnyAuditSummary): s is AuditSummaryV04 {
-  return (
-    typeof (s as AuditSummaryV04).schemaVersion === "string" &&
-    (s as AuditSummaryV04).schemaVersion.startsWith("2026-04-v0.4")
-  );
+  const v = (s as AuditSummaryV04).schemaVersion;
+  return typeof v === "string" && /^\d{4}-\d{2}-v\d+\.\d+/.test(v);
 }

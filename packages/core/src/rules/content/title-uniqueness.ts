@@ -26,6 +26,19 @@ export function titleUniquenessRule(pages: ParsedPage[]): RuleResult[] {
   for (const page of pages) {
     const title = (page.title ?? "").trim();
     if (title.length === 0) {
+      // Diagnostic case: the page has no <head><title>, but an inline SVG
+      // <title> (a logo's accessibility label) is the only <title> on the page.
+      // Naive extractors used to mis-report that SVG label as the page title.
+      if (page.titleSource === "none" && page.svgTitleSample) {
+        findings.push({
+          ruleId: "content/title-uniqueness",
+          severity: "error",
+          message: `${page.url} has no <head><title>; the only <title> on the page is an inline SVG <title> ("${page.svgTitleSample}"), which crawlers do NOT use as the page title.`,
+          pageUrl: page.url,
+          fix: "Add a real <head><title> with the per-record entity. The SVG <title> is decorative/accessibility text and will not appear in search results.",
+        });
+        continue;
+      }
       findings.push({
         ruleId: "content/title-uniqueness",
         severity: "error",

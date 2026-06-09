@@ -48,6 +48,61 @@ describe("parseHtmlPage", () => {
     expect(parsed.resolvedHrefs.some((link) => link.endsWith("next-step.html"))).toBe(true);
   });
 
+  test("ignores inline SVG <title> when there is no head title (the Spotify trap)", () => {
+    // Page has NO <head><title> but an inline SVG logo carries a <title>.
+    // An unscoped $("title") selector would pick up the SVG title and report
+    // every such page as titled "Spotify". The head-scoped selector must not.
+    const html = `
+      <html>
+        <head>
+          <meta name="description" content="Episode notes." />
+        </head>
+        <body>
+          <a href="/" aria-label="Home">
+            <svg viewBox="0 0 24 24"><title>Spotify</title><path d="M0 0h24v24H0z"/></svg>
+          </a>
+          <main><h1>Episode 42</h1></main>
+        </body>
+      </html>`;
+
+    const parsed = parseHtmlPage(html, "https://example.dev/episodes/42");
+
+    expect(parsed.title).toBe("");
+    expect(parsed.titleSource).toBe("none");
+    expect(parsed.svgTitleSample).toBe("Spotify");
+  });
+
+  test("uses the head title and records titleSource=head (no svgTitleSample)", () => {
+    const html = `
+      <html>
+        <head><title>Real Title</title></head>
+        <body><main><h1>Real Title</h1></main></body>
+      </html>`;
+
+    const parsed = parseHtmlPage(html, "https://example.dev/real");
+
+    expect(parsed.title).toBe("Real Title");
+    expect(parsed.titleSource).toBe("head");
+    expect(parsed.svgTitleSample).toBeUndefined();
+  });
+
+  test("head title wins even when an inline SVG <title> is also present", () => {
+    const html = `
+      <html>
+        <head><title>Head Wins</title></head>
+        <body>
+          <svg><title>Spotify</title></svg>
+          <main><h1>Head Wins</h1></main>
+        </body>
+      </html>`;
+
+    const parsed = parseHtmlPage(html, "https://example.dev/both");
+
+    expect(parsed.title).toBe("Head Wins");
+    expect(parsed.titleSource).toBe("head");
+    expect(parsed.svgTitleSample).toBeUndefined();
+  });
+
   test("drops javascript: and keeps only http(s) on web page URLs", () => {
     const html = `
       <html><body>

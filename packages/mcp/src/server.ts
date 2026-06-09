@@ -353,6 +353,9 @@ export function registerReadOnlyTools(server: McpServer): void {
         findingCount: z.number(),
         findingsTruncated: z.boolean().optional().describe("True when more than the cap of findings exist and the structured array was shortened. Use json format or the CLI for the full set."),
         textTruncated: z.boolean().optional().describe("True when the text content (not the structured data) was shortened or replaced to fit the size cap."),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncatedReason: z.string().optional().describe("Why the audit was truncated."),
+        schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
       annotations: {
         readOnlyHint: true,
@@ -389,6 +392,8 @@ export function registerReadOnlyTools(server: McpServer): void {
           findings: findings.slice(0, STRUCTURED_FINDINGS_CAP).map(toFinding),
           findingCount: findings.length,
           ...(findingsTruncated ? { findingsTruncated: true } : {}),
+          ...(summary.truncated ? { truncated: true, truncatedReason: summary.truncatedReason } : {}),
+          schemaVersion: summary.schemaVersion,
         };
 
         const isJson = format === "json";
@@ -413,6 +418,9 @@ export function registerReadOnlyTools(server: McpServer): void {
           }
         } else {
           let consoleText = formatConsole(summary, { noColor: true });
+          if (summary.truncated) {
+            consoleText = `⚠ Partial audit (origin degraded): coverage is incomplete; verdict/risk are lower bounds.\n\n${consoleText}`;
+          }
           if (summary.pageCount >= MCP_SAMPLE_CAP && sampleSize === 0) {
             consoleText += `\n\nNote: Results capped to ${MCP_SAMPLE_CAP} pages for performance. Run the CLI directly for a full audit: npx pseolint ${source}`;
           }
@@ -455,6 +463,9 @@ export function registerReadOnlyTools(server: McpServer): void {
         pageCount: z.number(),
         categories: CATEGORY_GRADES_SCHEMA,
         topRules: z.array(TOP_RULE_SCHEMA),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncatedReason: z.string().optional().describe("Why the audit was truncated."),
+        schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
       annotations: {
         readOnlyHint: true,
@@ -473,7 +484,11 @@ export function registerReadOnlyTools(server: McpServer): void {
         const findings = flattenIssues(summary);
         const drivers = topDrivers(findings, ruleCounts(findings), TOP_DRIVERS_LIMIT);
 
-        const { text } = truncateText(buildExplanation(summary, threshold, drivers), cliHint(source));
+        let explanation = buildExplanation(summary, threshold, drivers);
+        if (summary.truncated) {
+          explanation = `⚠ Partial audit (origin degraded): coverage is incomplete; verdict/risk are lower bounds.\n\n${explanation}`;
+        }
+        const { text } = truncateText(explanation, cliHint(source));
 
         const structured = {
           verdict: summary.verdict,
@@ -488,6 +503,8 @@ export function registerReadOnlyTools(server: McpServer): void {
             ...(finding?.effort ? { effort: finding.effort } : {}),
             ...(finding?.fix ? { fix: finding.fix } : {}),
           })),
+          ...(summary.truncated ? { truncated: true, truncatedReason: summary.truncatedReason } : {}),
+          schemaVersion: summary.schemaVersion,
         };
 
         return {
@@ -515,6 +532,9 @@ export function registerReadOnlyTools(server: McpServer): void {
         url: z.string(),
         issueCount: z.number(),
         findings: z.array(FINDING_SCHEMA),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncatedReason: z.string().optional().describe("Why the audit was truncated."),
+        schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
       annotations: {
         readOnlyHint: true,
@@ -562,6 +582,8 @@ export function registerReadOnlyTools(server: McpServer): void {
             url,
             issueCount: perPageFindings.length,
             findings: perPageFindings.map(toFinding),
+            ...(summary.truncated ? { truncated: true, truncatedReason: summary.truncatedReason } : {}),
+            schemaVersion: summary.schemaVersion,
           },
         };
       } catch (err) {

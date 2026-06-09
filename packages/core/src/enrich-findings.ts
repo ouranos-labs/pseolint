@@ -358,9 +358,25 @@ export function enrichFindings(
           similarity: f.similarity ?? 0,
         }));
 
-      const similarities = clusterPairs.map((f) => f.similarity ?? 0);
-      const minSim = Math.min(...similarities);
-      const maxSim = Math.max(...similarities);
+      // NOTE: iterate rather than `Math.min(...similarities)`. The spread
+      // passes every element as a separate call argument, and V8 caps the
+      // argument count (~131072). A single fully-connected near-duplicate /
+      // entity-swap component on a large dense site produces C(N,2) pairwise
+      // findings, so `similarities` can hold hundreds of thousands of values —
+      // spreading it overflowed the stack ("Maximum call stack size exceeded")
+      // while building the cluster finding. See
+      // tests/enrich-findings-large-cluster.test.ts.
+      let minSim = Infinity;
+      let maxSim = -Infinity;
+      for (const f of clusterPairs) {
+        const sim = f.similarity ?? 0;
+        if (sim < minSim) minSim = sim;
+        if (sim > maxSim) maxSim = sim;
+      }
+      if (clusterPairs.length === 0) {
+        minSim = 0;
+        maxSim = 0;
+      }
 
       const severity = highestSeverity(clusterPairs.map((f) => f.severity));
 
@@ -413,9 +429,12 @@ export function enrichFindings(
   // ── Step 2b: Group per-page findings ──
 
   const groupedPassthrough = applyGrouping(passthrough);
-  // Replace passthrough array contents with grouped results
+  // Replace passthrough array contents with grouped results. Assign element by
+  // element rather than `push(...groupedPassthrough)`: the spread passes every
+  // element as a call argument, which overflows the stack on very large sites
+  // (same V8 argument-count cap that crashed the cluster similarity range).
   passthrough.length = 0;
-  passthrough.push(...groupedPassthrough);
+  for (const f of groupedPassthrough) passthrough.push(f);
 
   // ── Step 3: Detect template generation ──
 

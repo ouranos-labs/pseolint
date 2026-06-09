@@ -69,7 +69,21 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
   const normalizeOpts = mergeNormalizeUrlOptions(options?.normalizeUrl);
   const $ = load(html);
 
-  const title = normalizedText($("title").first().text());
+  // Scope the title to the document <head>. An unscoped $("title") also matches
+  // inline SVG <title> elements (e.g. a logo's accessibility label), which made
+  // pages with no <head><title> report the SVG label as the page title (the
+  // "307 episodes all titled Spotify" bug). SVG titles must never win here.
+  const title = normalizedText($("head > title").first().text());
+  const titleSource: "head" | "none" = title.length > 0 ? "head" : "none";
+  // When there is no head title, capture the first inline SVG <title> so the
+  // title-uniqueness rule can name the trap. Crawlers do NOT use SVG <title>.
+  let svgTitleSample: string | undefined;
+  if (titleSource === "none") {
+    const svgTitle = normalizedText($("svg title").first().text());
+    if (svgTitle.length > 0) {
+      svgTitleSample = svgTitle;
+    }
+  }
   const metaDescription = normalizedText($('meta[name="description"]').attr("content") ?? "");
   const canonical = normalizedText($('link[rel="canonical"]').attr("href") ?? "");
   const robotsMeta = normalizedText($('meta[name="robots"]').attr("content") ?? "");
@@ -133,6 +147,8 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
   return {
     url,
     title,
+    titleSource,
+    svgTitleSample,
     metaDescription,
     canonical,
     robotsMeta,

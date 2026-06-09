@@ -92,7 +92,7 @@ export function stratifiedSample(urls: string[], n: number, random: () => number
 
   const result: string[] = [];
   for (let i = 0; i < entries.length; i += 1) {
-    result.push(...fisherYates(entries[i], allocations[i], random));
+    for (const item of fisherYates(entries[i], allocations[i], random)) result.push(item);
   }
   return result;
 }

@@ -143,6 +143,22 @@ Per-template breakdown (3 templates):
 
 Use `--legacy-flat` to suppress the template cards and get the v0.5-style flat findings list.
 
+### Partial coverage (`truncated`)
+
+If the crawl is interrupted — e.g. the backpressure watchdog aborts because the origin is degrading — pseolint still emits whatever it collected, flagged as partial:
+
+```json
+{
+  "verdict": "ready",
+  "risk": 12,
+  "truncated": true,
+  "truncatedReason": "Origin degraded mid-crawl (p95 latency exceeded threshold)",
+  "pageCount": 42
+}
+```
+
+When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower bounds** — a partial pass is not a full pass. The CLI prints a `PARTIAL REPORT` banner and exits non-zero; the GitHub Action warns (and can fail with `fail-on-truncated: true`); the MCP tools and web report surface the same flag. Programmatic consumers should branch on it. The full output contract is published as a JSON Schema (`packages/core/schemas/audit-summary.schema.json`, `$id` carries the `schemaVersion`).
+
 ## Audit Modes
 
 | Mode | Command | What you get |

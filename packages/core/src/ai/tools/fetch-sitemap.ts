@@ -86,7 +86,7 @@ export const fetchSitemapTool = defineTool({
 
     if (isSitemapIndex(rootXml) && maxDepth > 0) {
       const childUrls = extractLocs(rootXml);
-      childSitemaps.push(...childUrls);
+      for (const u of childUrls) childSitemaps.push(u);
       for (const child of childUrls) {
         if (urls.length >= maxUrls) break;
         try {

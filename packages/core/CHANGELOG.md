@@ -1,5 +1,124 @@
 # @pseolint/core
 
+## 0.6.5
+
+### Patch Changes
+
+- Harden the public JSON output contract. Bump `SCHEMA_VERSION` from
+  `2026-04-v0.4` to `2026-06-v0.6` so it reflects the current v0.6 shape
+  (`templates[]`, `truncated`/`truncatedReason`) — the constant had drifted and
+  was never bumped when those landed. Publish a draft 2020-12 JSON Schema at
+  `schemas/audit-summary.schema.json` (now shipped via the package `files`/`exports`)
+  and add a schema-contract test that validates the JSON formatter output against
+  it so the schema and types can't silently drift. Document the contract in the
+  README, including that `issues` is severity-bucketed (`blockers`/`shouldFix`/
+  `informational`) rather than a flat array or category-keyed map, that
+  `schemaVersion` bumps on every breaking or additive-public output change, and
+  that `truncated: true` means counts/verdict are lower bounds for CI gates.
+- flush a partial `truncated:true` report on watchdog abort + warn on localhost concurrency override
+
+  When the backpressure watchdog aborted a crawl mid-flight (the real user run at
+  `--concurrency 5` against a single-process dev server), the `OriginDegradedError`
+  propagated out of `auditSource()` and every downstream phase (dedup, rules,
+  enrichment, scoring, report assembly) was skipped — the CLI caught the error,
+  printed "aborted — origin looks degraded", and exited 1 with **zero output**.
+  Protecting the origin is correct; throwing away everything collected is not.
+
+  `loadPagesFromSource()` now fills a caller-owned salvage sink incrementally, so a
+  mid-crawl abort no longer loses the pages already fetched. `auditSource()`
+  catches the watchdog abort at the page-loading boundary (and at the next
+  abort checkpoint, for fetch implementations that ignore the abort signal),
+  recovers the partial page set, runs the rest of the pipeline over it, and
+  returns a normal `AuditSummary` with `truncated: true` and `truncatedReason`
+  set to the origin-degraded message. A zero-page abort still returns a valid
+  truncated summary instead of crashing. External aborts (ctrl-C / parent
+  timeout) and `--no-backpressure` are unchanged.
+
+  The CLI now prints a clear `⚠ PARTIAL REPORT` banner to stderr for a truncated
+  run, still writes/emits the report (JSON/console/etc.), and exits 1 so CI knows
+  coverage was incomplete. It also warns (without changing the value) when a
+  localhost/single-origin target is crawled with an explicit `--concurrency`
+  greater than the dev preset's 1, suggesting `--concurrency 1`.
+
+- Sitemap-first discovery for homepage/page sources (closer to how Google crawls)
+
+  Previously, auditing a homepage URL only link-crawled — it never read the site's
+  declared sitemap, so a programmatic site with thousands of sparsely-linked (or
+  build-frozen, under-linked) URLs was under-discovered. Nested `<sitemapindex>`
+  files were already followed when a sitemap URL was passed directly, but nothing
+  _discovered_ the sitemap from a plain page URL.
+
+  The HTML-source path now does sitemap-first discovery before link-crawling:
+
+  1. reads `Sitemap:` directives from robots.txt (there can be several), and
+  2. failing that, probes `/sitemap.xml` then `/sitemap_index.xml`.
+
+  Discovered sitemap URLs are SSRF-validated, same-origin- and robots-Disallow-
+  filtered, then fetched first (they're authoritative); the existing link-crawl
+  then fills any remaining discovery budget and dedups against them. When no
+  sitemap exists this is a no-op and the audit link-crawls exactly as before.
+
+  Hardening: `<sitemapindex>` recursion is now depth-capped (5 levels) in addition
+  to the existing `visited` cycle guard, and individual sitemap fetches are capped
+  at 50 MB (the sitemaps.org limit) so a hostile/misconfigured sitemap can't eat
+  the byte budget. `fetchRobotsMeta` now also returns the parsed `Sitemap:`
+  directives.
+
+  Deferred (noted, not in this change): `.xml.gz` sitemaps served as
+  `application/gzip` without `Content-Encoding: gzip` (the common gzip case via
+  `Content-Encoding` already works through fetch), URL normalization before
+  sitemap sampling, and running the change-driven monitoring matrix over
+  discovered sitemaps on homepage-sourced audits.
+
+- make cluster/link-graph traversal iterative to fix "Maximum call stack size exceeded" on large sites
+
+  On a large, densely cross-linked site (the 351-page reproduction), report
+  generation crashed with `RangeError: Maximum call stack size exceeded` and
+  produced zero output. Clusterable rules (`spam/near-duplicate`,
+  `spam/entity-swap`, `spam/doorway-pattern`) emit one finding per related pair,
+  so a single fully-connected component yields C(N,2) pairwise findings. While
+  collapsing a component into one cluster finding, `enrichFindings` computed the
+  similarity range with `Math.min(...similarities)` / `Math.max(...similarities)`.
+  The spread operator passes every array element as a separate call argument, and
+  V8 caps the argument count (~131072) — so a similarity array of hundreds of
+  thousands of pairs overflowed the call stack.
+
+  The similarity range is now computed with a single iterative pass, and the
+  post-grouping `passthrough.push(...groupedPassthrough)` spread was replaced with
+  an element-wise loop for the same reason. Output is unchanged. Added a
+  deterministic, synthetic regression test
+  (`tests/enrich-findings-large-cluster.test.ts`) that builds a 600-node
+  fully-connected near-duplicate component (179,700 pairs) and asserts
+  `enrichFindings` no longer throws.
+
+  Follow-up: the same `push(...spread)` overflow existed earlier in the pipeline,
+  which the enrichment-only test missed. In `auditSource` the rule-aggregation
+  steps spread the per-rule findings into the running list
+  (`findings.push(...tag(rule.findings))` and `allFindings.push(...)`) — so a dense
+  site overflowed at rule aggregation _before_ enrichment was reached. All such
+  spreads in the audit path are now routed through an iterative `pushAll` helper
+  (rule aggregation, sitemap-URL and discovered-page accumulation), plus the
+  latent `Math.max(...counts.values())` in the site classifier (100k+ distinct
+  titles) and the spreads in `stratified-sample` and the AI `fetch-sitemap` tool.
+  Added an integration test (`tests/integration/large-corpus-no-overflow.test.ts`)
+  that drives the full `auditSource` over a 600-page directory corpus — it first
+  asserts the guarded-against spread still overflows on the runtime, then that the
+  audit completes. This is the test that caught the second (pre-enrichment) site.
+
+- fix unscoped title selector picking up SVG <title>; add SVG-title diagnostic
+
+  `parseHtmlPage` extracted the page title with an unscoped `$("title")`
+  selector, which also matches inline SVG `<title>` elements (e.g. a logo's
+  accessibility label). On pages with no `<head><title>` but an SVG logo, the
+  SVG label was reported as the page title — the cause of "307 podcast episodes
+  all titled Spotify".
+
+  Title extraction is now scoped to `$("head > title")`. The parser records
+  `titleSource` (`"head"` or `"none"`) and, when the head title is missing,
+  captures the first inline SVG `<title>` text as `svgTitleSample`. The
+  `content/title-uniqueness` rule uses these to emit a diagnostic naming the
+  SVG-title trap instead of a generic missing-title message.
+
 ## 0.6.4
 
 ### Patch Changes

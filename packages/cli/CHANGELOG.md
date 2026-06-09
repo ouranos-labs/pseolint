@@ -1,5 +1,43 @@
 # pseolint
 
+## 0.6.4
+
+### Patch Changes
+
+- flush a partial `truncated:true` report on watchdog abort + warn on localhost concurrency override
+
+  When the backpressure watchdog aborted a crawl mid-flight (the real user run at
+  `--concurrency 5` against a single-process dev server), the `OriginDegradedError`
+  propagated out of `auditSource()` and every downstream phase (dedup, rules,
+  enrichment, scoring, report assembly) was skipped — the CLI caught the error,
+  printed "aborted — origin looks degraded", and exited 1 with **zero output**.
+  Protecting the origin is correct; throwing away everything collected is not.
+
+  `loadPagesFromSource()` now fills a caller-owned salvage sink incrementally, so a
+  mid-crawl abort no longer loses the pages already fetched. `auditSource()`
+  catches the watchdog abort at the page-loading boundary (and at the next
+  abort checkpoint, for fetch implementations that ignore the abort signal),
+  recovers the partial page set, runs the rest of the pipeline over it, and
+  returns a normal `AuditSummary` with `truncated: true` and `truncatedReason`
+  set to the origin-degraded message. A zero-page abort still returns a valid
+  truncated summary instead of crashing. External aborts (ctrl-C / parent
+  timeout) and `--no-backpressure` are unchanged.
+
+  The CLI now prints a clear `⚠ PARTIAL REPORT` banner to stderr for a truncated
+  run, still writes/emits the report (JSON/console/etc.), and exits 1 so CI knows
+  coverage was incomplete. It also warns (without changing the value) when a
+  localhost/single-origin target is crawled with an explicit `--concurrency`
+  greater than the dev preset's 1, suggesting `--concurrency 1`.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @pseolint/core@0.6.5
+  - @pseolint/mcp@0.6.5
+
 ## 0.6.2
 
 ### Patch Changes
@@ -148,6 +186,7 @@
   - `--since` is now an alias for `--mode=monitoring` (back-compat).
 
   End-of-run summary line when monitoring is active:
+
   ```
   Monitoring: 47/4012 URLs re-scraped (recheck=23, lastmod=12, age=8, new=4),
   3965 carried forward.

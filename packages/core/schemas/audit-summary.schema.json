@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pseolint.dev/schemas/2026-06-v0.6/audit-summary.schema.json",
+  "title": "pseolint AuditSummary (JSON output contract)",
+  "description": "The stable public shape that `formatJson` (pseolint --format json) serializes. Programmatic consumers (CI gates, pseolint-gate-style scripts) should validate against this and branch on `schemaVersion`. `schemaVersion` bumps on every breaking OR additive-public output change. The engine emits additional internal/legacy fields not described here; `additionalProperties` is therefore permissive (true) so this schema pins the CONTRACT consumers gate on without rejecting forward-compatible additions.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schemaVersion",
+    "verdict",
+    "risk",
+    "headline",
+    "categories",
+    "issues",
+    "diagnostics",
+    "pageCount"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "Output-contract version tag. Bumps on every breaking OR additive-public output change. Consumers MUST branch on this. Equal to the `$id` version segment.",
+      "const": "2026-06-v0.6"
+    },
+    "verdict": {
+      "description": "User-facing verdict ladder, replacing the legacy numeric score as the human signal.",
+      "type": "string",
+      "enum": ["ready", "caution", "concerning", "critical"]
+    },
+    "risk": {
+      "description": "Internal numeric risk score, 0-100, lower is better. Retained for CI thresholding, trend deltas, and alert-gate diff logic. Never shown to humans. When `truncated` is true, treat as a LOWER bound.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "headline": {
+      "description": "One-line count summary, e.g. \"3 ship-blockers, 16 should-fix\".",
+      "type": "string"
+    },
+    "categories": {
+      "description": "Per-category grade + raw issue count. Keyed by the 5 fixed category keys. NOTE: these objects carry grades/counts only, NOT the issue arrays (those live under `issues`). The `audit` category exists for completeness but is weight-0 and never affects the verdict.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["integrity", "discoverability", "citation", "data", "audit"],
+      "properties": {
+        "integrity": { "$ref": "#/$defs/categoryGrade" },
+        "discoverability": { "$ref": "#/$defs/categoryGrade" },
+        "citation": { "$ref": "#/$defs/categoryGrade" },
+        "data": { "$ref": "#/$defs/categoryGrade" },
+        "audit": { "$ref": "#/$defs/categoryGrade" }
+      }
+    },
+    "issues": {
+      "description": "Findings bucketed by SEVERITY. This is the v0.4+ replacement for the flat `findings` array and is NOT category-keyed. To get a flat list for a gate: [...issues.blockers, ...issues.shouldFix, ...issues.informational].",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockers", "shouldFix", "informational"],
+      "properties": {
+        "blockers": {
+          "description": "Severity = error or critical. Must be fixed before shipping.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleResult" }
+        },
+        "shouldFix": {
+          "description": "Severity = warning. Should be fixed before scaling.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleResult" }
+        },
+        "informational": {
+          "description": "Severity = info. Tracked for trend analysis.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleResult" }
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Engine-internal diagnostics (origin readiness, crawl stats, engine-emitted audit/* findings). Weight 0 — never affects the verdict. Shape is intentionally loose here; consumers should not gate on diagnostics internals.",
+      "type": "object"
+    },
+    "pageCount": {
+      "description": "Number of pages audited this run. When `truncated` is true, the crawl did not complete, so treat as a LOWER bound.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "templates": {
+      "description": "v0.6 per-template breakdown. Present on sites where the classifier found >=2 template clusters; an empty array (or omitted, on older blobs / tiny sites) means the per-URL findings carry everything. Additive: consumers reading only `issues`/`findings` still work.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/template" }
+    },
+    "templateDetected": {
+      "description": "True when the enrichment pipeline detected template-generated content.",
+      "type": "boolean"
+    },
+    "rawFindingCount": {
+      "description": "Pre-enrichment finding count, for backward compatibility with CI scripts that counted raw findings before clustering collapsed them.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "auditedUrls": {
+      "description": "URLs actually audited this run (after sampling, dedup, and policy filtering), sorted for deterministic diffs. Absent when no pages were audited.",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "skippedUrls": {
+      "description": "v0.5+ monitoring: URLs the change-driven matrix decided to skip pre-fetch (their findings were carried forward from prior state).",
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "truncated": {
+      "description": "True when the run did NOT complete the full crawl (e.g. the backpressure watchdog aborted on a degraded origin). The report still carries whatever findings were collected before the abort. CI gates MUST treat coverage as PARTIAL: counts, `risk`, and `verdict` are LOWER bounds. Absent or false on complete runs.",
+      "type": "boolean"
+    },
+    "truncatedReason": {
+      "description": "Human-readable reason the run was truncated. Present only when `truncated` is true.",
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "categoryGrade": {
+      "description": "Per-category letter grade + raw issue count.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["grade", "issues"],
+      "properties": {
+        "grade": {
+          "description": "Letter grade for the category.",
+          "type": "string",
+          "enum": ["A", "B", "C", "D", "F"]
+        },
+        "issues": {
+          "description": "Raw count of findings contributing to this category.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "ruleResult": {
+      "description": "A single rule finding. Only `ruleId`, `severity`, and `message` are guaranteed; all other fields are populated contextually by the rule and enrichment pipeline.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["ruleId", "severity", "message"],
+      "properties": {
+        "ruleId": {
+          "description": "Stable rule identifier, e.g. \"spam/thin-content\".",
+          "type": "string"
+        },
+        "severity": {
+          "description": "Finding severity. blockers bucket = error|critical, shouldFix = warning, informational = info.",
+          "type": "string",
+          "enum": ["info", "warning", "error", "critical"]
+        },
+        "message": {
+          "description": "Human-readable description of the finding.",
+          "type": "string"
+        },
+        "fix": {
+          "description": "What to do about this finding.",
+          "type": "string"
+        },
+        "ref": {
+          "description": "Google documentation URL backing this finding.",
+          "type": "string"
+        },
+        "docsUrl": {
+          "description": "Marketing-page deeplink for this rule (https://pseolint.dev/rules/{slug}).",
+          "type": "string"
+        },
+        "pageUrl": {
+          "description": "Primary page this finding refers to, when applicable.",
+          "type": "string"
+        },
+        "relatedUrls": {
+          "description": "Other URLs involved (cluster members, related pairs).",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "effort": {
+          "description": "Fix effort level assigned by the enrichment pipeline.",
+          "type": "string",
+          "enum": ["quick", "moderate", "structural"]
+        },
+        "confidence": {
+          "description": "Confidence in this finding. Defaults to `high` when omitted.",
+          "type": "string",
+          "enum": ["high", "medium", "low", "speculative"]
+        },
+        "template": {
+          "description": "v0.6: which template the finding belongs to. Absent for site-level findings.",
+          "type": "string"
+        },
+        "carriedForward": {
+          "description": "v0.5+: true when carried forward from a prior audit without re-verification this run.",
+          "type": "boolean"
+        },
+        "lastVerifiedAt": {
+          "description": "v0.5+: ISO timestamp of the last audit that re-fetched the page and confirmed this finding.",
+          "type": "string"
+        }
+      }
+    },
+    "template": {
+      "description": "v0.6 per-template audit breakdown.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "signature",
+        "totalUrls",
+        "totalDiscoveredUrls",
+        "auditedUrls",
+        "verdict",
+        "risk",
+        "categories",
+        "variance",
+        "findingIds"
+      ],
+      "properties": {
+        "signature": {
+          "description": "Stable identifier derived from the URL pattern, e.g. \"/listing/:slug\".",
+          "type": "string"
+        },
+        "totalUrls": {
+          "description": "Cluster size in the discovered URL set (NOT the audit sample).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "totalDiscoveredUrls": {
+          "description": "Total discovered URLs (denominator for coverage % calculation).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "auditedUrls": {
+          "description": "URLs actually audited for this template.",
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "verdict": {
+          "description": "Per-template verdict, independent of site-level verdict.",
+          "type": "string",
+          "enum": ["ready", "caution", "concerning", "critical"]
+        },
+        "risk": {
+          "description": "Per-template risk score (0-100), independent of site-level risk.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "categories": {
+          "description": "Per-template category grades + counts.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["integrity", "discoverability", "citation", "data", "audit"],
+          "properties": {
+            "integrity": { "$ref": "#/$defs/categoryGrade" },
+            "discoverability": { "$ref": "#/$defs/categoryGrade" },
+            "citation": { "$ref": "#/$defs/categoryGrade" },
+            "data": { "$ref": "#/$defs/categoryGrade" },
+            "audit": { "$ref": "#/$defs/categoryGrade" }
+          }
+        },
+        "variance": {
+          "description": "Per-template fire-rate variance across the sampled pages.",
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["ruleFireRates", "uniformityScore", "topDriver"],
+          "properties": {
+            "ruleFireRates": {
+              "description": "Per-rule fire-rate within the template, e.g. {\"spam/thin-content\": 0.8}.",
+              "type": "object",
+              "additionalProperties": { "type": "number" }
+            },
+            "uniformityScore": {
+              "description": "0-1, higher = more uniform quality across the template's pages.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "topDriver": {
+              "description": "Worst-firing rule + its rate, or null when no rule fired.",
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "required": ["ruleId", "fireRate"],
+              "properties": {
+                "ruleId": { "type": "string" },
+                "fireRate": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        },
+        "findingIds": {
+          "description": "Finding IDs whose pageUrl is in auditedUrls. Reference, not duplication.",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

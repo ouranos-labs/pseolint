@@ -148,6 +148,13 @@
       "when": 1780872893695,
       "tag": "0020_friendly_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781020217188,
+      "tag": "0021_loud_emma_frost",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,37 @@
 # @pseolint/web
 
+## 0.6.6
+
+### Patch Changes
+
+- surface partial (`truncated`) audits in the web app
+
+  The core engine flushes a `truncated: true` report when its backpressure
+  watchdog aborts a crawl mid-flight (degraded origin) — counts, risk, and the
+  verdict are then lower bounds. The web app stored that summary to R2 and
+  rendered it, but never surfaced the flag, so a degraded audit looked identical
+  to a complete one.
+
+  - `/r/[slug]` now renders a prominent partial-coverage warning banner above the
+    hero when the R2 summary has `truncated === true`, including `truncatedReason`
+    when present. This reads straight off the summary blob — no DB column needed.
+  - The `audit` table gains `truncated` (boolean, default false) and
+    `truncated_reason` (text) columns (migration `0021_loud_emma_frost`), mirrored
+    from `AuditSummary` in the run-audit completion update so degraded audits are
+    queryable/filterable without round-tripping R2.
+  - The per-domain workspace (`/dashboard/[host]`) shows a small "⚠ Partial" badge
+    next to the latest-audit header when the run was truncated.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @pseolint/core@0.6.5
+  - @pseolint/mcp@0.6.5
+  - pseolint@0.6.4
+
 ## 0.6.5
 
 ### Patch Changes

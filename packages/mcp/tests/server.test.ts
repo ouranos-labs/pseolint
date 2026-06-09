@@ -130,6 +130,25 @@ describe("pseolint_audit_site", () => {
     expect(templates[0]).toMatchObject({ signature: "/listing/:slug", auditedUrlCount: 2, verdict: "concerning" });
   });
 
+  it("surfaces schemaVersion in structured output", async () => {
+    const r = await call("pseolint_audit_site", { source: "./out" });
+    expect(r.structuredContent!.schemaVersion).toBe("2026-06-v0.6");
+  });
+
+  it("omits truncated fields on a complete run", async () => {
+    const r = await call("pseolint_audit_site", { source: "./out" });
+    expect(r.structuredContent).not.toHaveProperty("truncated");
+    expect(r.structuredContent).not.toHaveProperty("truncatedReason");
+  });
+
+  it("surfaces truncated + truncatedReason in structured output and a warning in text when the crawl aborts mid-run", async () => {
+    mAudit.mockResolvedValue(makeSummary({ truncated: true, truncatedReason: "origin degraded mid-crawl" }));
+    const r = await call("pseolint_audit_site", { source: "https://flaky.example", format: "console" });
+    expect(r.isError).toBeFalsy();
+    expect(r.structuredContent).toMatchObject({ truncated: true, truncatedReason: "origin degraded mid-crawl" });
+    expect(textOf(r)).toContain("Partial audit");
+  });
+
   describe("output size bounding", () => {
     it("leaves small JSON intact and unflagged", async () => {
       mJson.mockReturnValue('{"real":"json","n":1}');
@@ -305,6 +324,19 @@ describe("pseolint_explain_score", () => {
     expect(text).toContain("Suppressed 2 rules");
   });
 
+  it("surfaces schemaVersion in structured output", async () => {
+    const r = await call("pseolint_explain_score", { source: "./out" });
+    expect(r.structuredContent!.schemaVersion).toBe("2026-06-v0.6");
+  });
+
+  it("surfaces truncated + truncatedReason in structured output and prepends a warning to the explanation text", async () => {
+    mAudit.mockResolvedValue(makeSummary({ truncated: true, truncatedReason: "origin degraded mid-crawl" }));
+    const r = await call("pseolint_explain_score", { source: "https://flaky.example" });
+    expect(r.isError).toBeFalsy();
+    expect(r.structuredContent).toMatchObject({ truncated: true, truncatedReason: "origin degraded mid-crawl" });
+    expect(textOf(r)).toContain("Partial audit");
+  });
+
   it("returns isError with a friendly message when the audit throws", async () => {
     mAudit.mockRejectedValue(new Error("kaboom"));
     const r = await call("pseolint_explain_score", { source: "./out" });
@@ -357,6 +389,11 @@ describe("pseolint_check_page_technical", () => {
     const r = await call("pseolint_check_page_technical", { url: "https://example.com/p" });
     expect(r.structuredContent!.issueCount).toBe(0);
     expect(textOf(r)).toContain("No technical SEO issues found");
+  });
+
+  it("surfaces schemaVersion in structured output", async () => {
+    const r = await call("pseolint_check_page_technical", { url: "https://example.com/p" });
+    expect(r.structuredContent!.schemaVersion).toBe("2026-06-v0.6");
   });
 
   it("reports a non-URL argument as an input-validation error", async () => {

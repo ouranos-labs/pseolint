@@ -1,5 +1,36 @@
 # @pseolint/mcp
 
+## 0.6.5
+
+### Patch Changes
+
+- surface partial-coverage (`truncated`) audits in the MCP structured output
+
+  The core engine flushes a `truncated: true` report (with `truncatedReason`) when
+  its backpressure watchdog aborts a crawl mid-flight on a degraded origin — counts,
+  risk, and the verdict are then lower bounds. The MCP server hand-builds the
+  `structuredContent` payload per tool and omitted `truncated`, so an AI client saw
+  a partial audit as if it were complete. It also omitted `schemaVersion`, leaving
+  programmatic consumers unable to branch on the output contract.
+
+  - All three audit tools (`pseolint_audit_site`, `pseolint_explain_score`,
+    `pseolint_check_page_technical`) now emit `schemaVersion` and, on a truncated
+    run, `truncated` + `truncatedReason` in `structuredContent`. The matching
+    optional fields were added to each tool's `outputSchema` with descriptions so
+    clients know coverage is partial and to treat verdict/risk/pageCount as lower
+    bounds.
+  - The human-readable text of `pseolint_audit_site` and `pseolint_explain_score`
+    now prepends a "⚠ Partial audit (origin degraded)" warning line when the run
+    was truncated, so chat-UI users see the caveat without inspecting structured
+    data.
+
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+- Updated dependencies
+  - @pseolint/core@0.6.5
+
 ## 0.6.4
 
 ### Patch Changes

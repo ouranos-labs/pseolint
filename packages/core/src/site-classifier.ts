@@ -549,7 +549,11 @@ export function corpusStatsFromPages(pages: ReadonlyArray<{ title: string; conte
     // Find the largest cluster of identical titles, divided by page count.
     const counts = new Map<string, number>();
     for (const t of titles) counts.set(t, (counts.get(t) ?? 0) + 1);
-    const maxClusterSize = Math.max(...counts.values());
+    // Iterative max, not `Math.max(...counts.values())`: a programmatic site can
+    // have 100k+ distinct titles, and spreading that many args overflows V8's
+    // argument cap ("Maximum call stack size exceeded") during classification.
+    let maxClusterSize = 0;
+    for (const c of counts.values()) if (c > maxClusterSize) maxClusterSize = c;
     identicalTitleRatio = maxClusterSize / pages.length;
   }
 
