@@ -105,12 +105,17 @@
       "items": { "type": "string" }
     },
     "truncated": {
-      "description": "True when the run did NOT complete the full crawl (e.g. the backpressure watchdog aborted on a degraded origin). The report still carries whatever findings were collected before the abort. CI gates MUST treat coverage as PARTIAL: counts, `risk`, and `verdict` are LOWER bounds. Absent or false on complete runs.",
+      "description": "True when the run did NOT cover the full site — either the backpressure watchdog aborted a degraded-origin crawl, or discovery under-delivered against the declared sitemap (see truncatedKind). The report still carries whatever was collected. CI gates MUST treat coverage as PARTIAL: counts, `risk`, and `verdict` are LOWER bounds. Absent or false on complete runs.",
       "type": "boolean"
     },
     "truncatedReason": {
       "description": "Human-readable reason the run was truncated. Present only when `truncated` is true.",
       "type": "string"
+    },
+    "truncatedKind": {
+      "description": "Machine-readable cause of truncation, present only when `truncated` is true. \"backpressure\" = watchdog aborted a degraded-origin crawl; \"coverage\" = discovery under-delivered vs the declared sitemap (unreachable child sitemaps or far fewer pages fetched than declared).",
+      "type": "string",
+      "enum": ["backpressure", "coverage"]
     }
   },
   "$defs": {

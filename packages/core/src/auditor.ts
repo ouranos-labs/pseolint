@@ -1486,7 +1486,12 @@ async function collectUrlsFromSitemap(
   validateHop?: (url: string) => Promise<void>,
   depth: number = 0,
   maxDepth: number = SITEMAP_MAX_DEPTH,
-): Promise<{ urls: string[]; lastmodByUrl: Map<string, string> }> {
+  // `childTotal` = number of child sitemaps referenced by index(es) we walked.
+  // `childFailed` = those we could NOT fetch/parse (404, non-sitemap, or skipped
+  // by the depth cap). A non-zero `childFailed` means the declared URL list is
+  // itself INCOMPLETE — the caller's coverage guardrail keys on this to catch
+  // "unreachable child sitemaps", which a urls-only count can never reveal.
+): Promise<{ urls: string[]; lastmodByUrl: Map<string, string>; childTotal: number; childFailed: number }> {
   visited.add(sitemapUrl);
   const entries = parseSitemapUrlsWithLastmod(sitemapText);
 
@@ -1499,34 +1504,40 @@ async function collectUrlsFromSitemap(
         lastmodByUrl.set(entry.url, entry.lastmod);
       }
     }
-    return { urls, lastmodByUrl };
+    return { urls, lastmodByUrl, childTotal: 0, childFailed: 0 };
   }
 
-  // It's a sitemap index. Stop recursing past the depth cap (the index itself
-  // carries no page URLs, only child-sitemap refs, so returning empty is safe).
+  // It's a sitemap index. Past the depth cap we stop recursing — but the
+  // children we DON'T walk are unreached coverage, so report them as failed.
   if (depth >= maxDepth) {
     // eslint-disable-next-line no-console
     console.error(`pseolint: sitemap-index nesting exceeded depth ${maxDepth} at ${sitemapUrl}; not recursing further.`);
-    return { urls: [], lastmodByUrl: new Map() };
+    return { urls: [], lastmodByUrl: new Map(), childTotal: entries.length, childFailed: entries.length };
   }
 
   const allUrls: string[] = [];
   const allLastmodByUrl = new Map<string, string>();
+  let childTotal = 0;
+  let childFailed = 0;
   for (const entry of entries) {
     const childUrl = entry.url;
     if (signal?.aborted) throw signal.reason ?? new Error("aborted");
-    if (visited.has(childUrl)) continue;
+    childTotal += 1;
+    if (visited.has(childUrl)) continue; // already walked (cyclic index) — not a failure
     const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop, SITEMAP_MAX_BYTES);
-    if (!child) continue;
+    if (!child) { childFailed += 1; continue; }
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
-    if (!childLike) continue;
-    const { urls: childUrls, lastmodByUrl: childLastmodByUrl } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop, depth + 1, maxDepth);
+    if (!childLike) { childFailed += 1; continue; }
+    const { urls: childUrls, lastmodByUrl: childLastmodByUrl, childTotal: ct, childFailed: cf } = await collectUrlsFromSitemap(child.text, childUrl, visited, timeoutMs, cache, stats, signal, validateHop, depth + 1, maxDepth);
     pushAll(allUrls, childUrls);
     for (const [u, lm] of childLastmodByUrl) {
       allLastmodByUrl.set(u, lm);
     }
+    // Accumulate nested index structure (a child that is itself an index).
+    childTotal += ct;
+    childFailed += cf;
   }
-  return { urls: allUrls, lastmodByUrl: allLastmodByUrl };
+  return { urls: allUrls, lastmodByUrl: allLastmodByUrl, childTotal, childFailed };
 }
 
 async function fetchRobotsMeta(
@@ -1616,7 +1627,7 @@ async function loadPagesFromSource(
   // mid-crawl and this function throws, the caller still holds the partial set
   // (the local `pages` array would otherwise be lost with the stack frame).
   pageSink?: LoadedPage[],
-): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number; scrapePlan?: ScrapePlan }> {
+): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number; declaredSitemapUrlCount?: number; sitemapChildTotal?: number; sitemapChildFailed?: number; scrapePlan?: ScrapePlan }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
   // this. DNS is hit once per unique hostname per audit — a 4k-page audit on
@@ -1674,7 +1685,7 @@ async function loadPagesFromSource(
 
     if (isXml) {
       const visited = new Set<string>();
-      const { urls: allSitemapUrls, lastmodByUrl: sitemapLastmodByUrl } = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
+      const { urls: allSitemapUrls, lastmodByUrl: sitemapLastmodByUrl, childTotal: sitemapChildTotal, childFailed: sitemapChildFailed } = await collectUrlsFromSitemap(text, source, visited, timeoutMs, cache, stats, signal, validateHop);
 
       // If we have a budget, sample from sitemap URLs before fetching
       const sampledUrls = discoveryBudget > 0 && allSitemapUrls.length > discoveryBudget
@@ -1807,7 +1818,7 @@ async function loadPagesFromSource(
         }
       }
 
-      return { pages, sitemapUrls: new Set(allSitemapUrls), sitemapLastmodByUrl, discoveredUrlCount: allSitemapUrls.length, scrapePlan };
+      return { pages, sitemapUrls: new Set(allSitemapUrls), sitemapLastmodByUrl, discoveredUrlCount: allSitemapUrls.length, declaredSitemapUrlCount: allSitemapUrls.length, sitemapChildTotal, sitemapChildFailed, scrapePlan };
     }
 
     if (contentType.includes("html") || looksLikeHtml(text)) {
@@ -1828,6 +1839,14 @@ async function loadPagesFromSource(
         const knownCrawled = new Set<string>([source]);
         const allDiscoveredUrls = new Set<string>([source]);
         const maxDepth = 3;
+        // Total URLs the discovered sitemap(s) declare — the basis for the
+        // caller's coverage guardrail. Undefined when no sitemap is found.
+        let declaredSitemapUrlCount: number | undefined;
+        // Child-sitemap reachability for the guardrail: how many child sitemaps
+        // an index referenced vs how many we could not fetch/parse. childFailed>0
+        // means the declared URL list is itself incomplete.
+        let sitemapChildTotal = 0;
+        let sitemapChildFailed = 0;
 
         // Sitemap-first discovery (like Google). Before link-crawling, read the
         // sitemap(s) the site declares — link-crawl only reaches *linked* pages,
@@ -1862,15 +1881,21 @@ async function loadPagesFromSource(
               continue; // SSRF refusal, network error, etc. — skip this candidate
             }
             if (!(smType.includes("xml") || looksLikeSitemap(smText))) continue;
-            const { urls: discoveredSmUrls } = await collectUrlsFromSitemap(
+            const { urls: discoveredSmUrls, childTotal: ct, childFailed: cf } = await collectUrlsFromSitemap(
               smText, candidate, visitedSitemaps, timeoutMs, cache, stats, signal, validateHop,
             );
+            sitemapChildTotal += ct;
+            sitemapChildFailed += cf;
             pushAll(sitemapListedUrls, discoveredSmUrls);
             // When probing the conventional paths, stop at the first that hits.
             if (probing && discoveredSmUrls.length > 0) break;
           }
 
           // Same-origin + robots-aware filter, deduped against what we have.
+          // Record what the sitemap(s) declared (deduped) before same-origin /
+          // robots filtering — the operator's site has this many URLs.
+          if (sitemapListedUrls.length > 0) declaredSitemapUrlCount = new Set(sitemapListedUrls).size;
+
           const seedUrls = Array.from(new Set(sitemapListedUrls)).filter((u) => {
             if (knownCrawled.has(u)) return false;
             try {
@@ -1970,7 +1995,7 @@ async function loadPagesFromSource(
           if (newPages.length === 0) break;
         }
 
-        return { pages, discoveredUrlCount: allDiscoveredUrls.size };
+        return { pages, discoveredUrlCount: allDiscoveredUrls.size, declaredSitemapUrlCount, sitemapChildTotal, sitemapChildFailed };
       }
 
       return { pages };
@@ -2074,6 +2099,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // surfaced on the summary instead.
   let truncated = false;
   let truncatedReason: string | undefined;
+  let truncatedKind: "backpressure" | "coverage" | undefined;
   const signal = composeSignals(externalSignal, backpressureAbort.signal);
 
   const observer = new FetchObserver();
@@ -2126,6 +2152,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     if (!backpressureError) return false;
     truncated = true;
     truncatedReason = backpressureError.message;
+    truncatedKind = "backpressure";
     return true;
   }
 
@@ -2272,6 +2299,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   let sitemapUrlSet: Set<string> | undefined;
   let sitemapLastmodByUrl: Map<string, string> | undefined;
   let discoveredUrlCount: number | undefined;
+  let declaredSitemapUrlCount: number | undefined;
+  let sitemapChildTotal: number | undefined;
+  let sitemapChildFailed: number | undefined;
   let scrapePlan: ScrapePlan | undefined;
 
   if (hasPinnedUrlsEarly) {
@@ -2353,6 +2383,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       sitemapUrlSet = loaded.sitemapUrls;
       sitemapLastmodByUrl = loaded.sitemapLastmodByUrl;
       discoveredUrlCount = loaded.discoveredUrlCount;
+      declaredSitemapUrlCount = loaded.declaredSitemapUrlCount;
+      sitemapChildTotal = loaded.sitemapChildTotal;
+      sitemapChildFailed = loaded.sitemapChildFailed;
       scrapePlan = loaded.scrapePlan;
     } catch (err) {
       // Only the watchdog abort is salvageable. An external abort (ctrl-C /
@@ -2364,6 +2397,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         if (!salvageBackpressure()) {
           truncated = true;
           truncatedReason = err.message;
+          truncatedKind = "backpressure";
         }
         // Recover whatever was fetched before the abort. The sink is the same
         // array loadPagesFromSource was pushing into, so it holds the partial
@@ -2374,12 +2408,22 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         sitemapUrlSet = undefined;
         sitemapLastmodByUrl = undefined;
         discoveredUrlCount = undefined;
+        declaredSitemapUrlCount = undefined;
+        sitemapChildTotal = undefined;
+        sitemapChildFailed = undefined;
         scrapePlan = undefined;
       } else {
         throw err;
       }
     }
   }
+  // Pages we successfully FETCHED (HTTP 2xx) from discovery — before content-type
+  // and policy filtering, and before sampling. This is the right denominator for
+  // the coverage guardrail: noindex / non-HTML pages were still *reached* (they
+  // count), intentional sampling happens later (doesn't count against us), and
+  // only genuinely-unreachable URLs (4xx/5xx) are missing from it.
+  const fetchedCount = loadedPagesRaw.length;
+
   // The scrapePlan tells us which URLs were skipped pre-fetch under monitoring
   // mode. Surface them in skippedUrls so they show up under summary.skippedUrls
   // (kept for back-compat with --since consumers); T7 will carry their prior
@@ -2413,7 +2457,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       skippedByContentType.push(p.url);
     }
   }
-  loadedPages.splice(0, loadedPages.length, ...htmlOnlyPages);
+  // Replace contents in place without `splice(0, n, ...big)` — that spread hits
+  // the V8 argument-count cap on large corpora (same class as pushAll).
+  loadedPages.length = 0;
+  pushAll(loadedPages, htmlOnlyPages);
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
@@ -2847,9 +2894,60 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // salvaged whatever pages had been fetched. Consumers MUST treat coverage as
   // a lower bound (counts/verdict are partial). Only set when actually
   // truncated so complete runs keep `truncated` absent.
+  // ── Coverage guardrails (#4) ─────────────────────────────────────────────
+  // A sitemap was found at discovery, so we know roughly how large the site is.
+  // Two independent under-coverage signals, each reusing the `truncated`
+  // partial-coverage surface (CLI/Action/MCP/web already flag it) tagged
+  // `truncatedKind: "coverage"` so consumers can tell it apart from a
+  // backpressure abort. Backpressure (set during the crawl) takes precedence.
+  if (!truncated && sitemapChildFailed && sitemapChildFailed > 0) {
+    // (A) Extraction-side: a sitemap INDEX referenced child sitemaps we could
+    // not fetch/parse (404, non-sitemap, or beyond the depth cap). The declared
+    // URL list is itself incomplete — the "unreachable child sitemaps" case a
+    // urls-only count can never see (and the original false-negative class).
+    truncated = true;
+    truncatedKind = "coverage";
+    truncatedReason =
+      `${sitemapChildFailed} of ${sitemapChildTotal} child sitemaps referenced by the sitemap index could not be ` +
+      `fetched or parsed — both the declared URL count and this audit are incomplete, so the verdict is not ` +
+      `representative of the full site. Check that every child sitemap is reachable (HTTP 200, valid XML).`;
+    // eslint-disable-next-line no-console
+    console.error(`pseolint: ${truncatedReason}`);
+  }
+  if (!truncated && declaredSitemapUrlCount && declaredSitemapUrlCount >= 20) {
+    // (B) Audit-side: the sitemap declared N URLs but we FETCHED far fewer than
+    // we intended to. Compare against `fetchedCount` (pages actually fetched,
+    // pre-filter/pre-sample) so legitimately-skipped pages (noindex, non-HTML)
+    // and intentional sampling do NOT register as a shortfall. `intended` is
+    // bounded by every deliberate limit — an explicit sample, the crawl cap, and
+    // the declared total — so none of them false-fire.
+    const sampleCap = sampleSize > 0 ? sampleSize : Number.POSITIVE_INFINITY;
+    const crawlCap = maxCrawlDiscovered > 0 ? maxCrawlDiscovered : Number.POSITIVE_INFINITY;
+    const intended = Math.min(sampleCap, crawlCap, declaredSitemapUrlCount);
+    const floor = Math.max(20, Math.floor(intended * 0.05));
+    // `intended >= 20`: only judge representativeness when we actually meant to
+    // audit a substantial slice. A deliberately tiny sample/crawl cap (intended
+    // < 20) is the operator's choice, not under-discovery — don't flag it (and
+    // it would otherwise trip the absolute floor of 20).
+    if (intended >= 20 && fetchedCount < floor) {
+      const unreached = Math.max(0, declaredSitemapUrlCount - fetchedCount);
+      const ratio = fetchedCount / declaredSitemapUrlCount;
+      const pct = (ratio * 100).toFixed(ratio < 0.01 ? 2 : 1);
+      truncated = true;
+      truncatedKind = "coverage";
+      truncatedReason =
+        `Fetched ${fetchedCount} of ~${declaredSitemapUrlCount} sitemap-declared URLs (~${pct}% coverage); ` +
+        `~${unreached} could not be retrieved (4xx/5xx, redirects, or robots-blocked). The verdict covers only the ` +
+        `pages reached and is not representative — check for a stale sitemap or unreachable pages, or raise crawl limits.`;
+      // eslint-disable-next-line no-console
+      console.error(`pseolint: ${truncatedReason}`);
+    }
+  }
+
   if (truncated) {
     summary.truncated = true;
     summary.truncatedReason = truncatedReason;
+    if (truncatedKind) summary.truncatedKind = truncatedKind;
   }
 
   if (cacheConfig) {

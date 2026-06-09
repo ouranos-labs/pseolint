@@ -382,14 +382,23 @@ export interface AuditSummary {
   /** AI triage result when AI is enabled and call succeeded. */
   triage?: import("./ai/types.js").TriageResult;
   /**
-   * True when the run did NOT complete the full crawl — e.g. the backpressure
-   * watchdog aborted on a degraded origin. The report still carries whatever
-   * findings were collected before the abort; consumers MUST treat coverage as
-   * partial (counts/verdict are lower bounds). Absent/false on complete runs.
+   * True when the run did NOT cover the full site. Two causes (see
+   * `truncatedKind`): the backpressure watchdog aborted on a degraded origin, OR
+   * discovery under-delivered against the site's sitemap (unreachable child
+   * sitemaps / far fewer pages fetched than declared). Either way the report
+   * carries whatever was collected; consumers MUST treat coverage as partial
+   * (counts/verdict are lower bounds). Absent/false on complete runs.
    */
   truncated?: boolean;
-  /** Human-readable reason the run was truncated (e.g. the origin-degraded message). Present only when `truncated` is true. */
+  /** Human-readable reason the run was truncated. Present only when `truncated` is true. */
   truncatedReason?: string;
+  /**
+   * Machine-readable cause of truncation, so consumers/CI can branch:
+   *   - `"backpressure"` — the watchdog aborted a degraded-origin crawl mid-flight.
+   *   - `"coverage"` — discovery under-delivered vs the declared sitemap.
+   * Present only when `truncated` is true.
+   */
+  truncatedKind?: "backpressure" | "coverage";
 }
 
 /**
