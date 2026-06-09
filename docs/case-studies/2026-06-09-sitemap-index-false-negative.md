@@ -52,6 +52,12 @@ This dogfood directly drove `96a78dd` ("dogfood reliability hardening + sitemap-
 
 The remainder of this document is the original analysis. **All five gaps are now addressed** — Gaps 1/2/5 in `96a78dd`, Gaps 3/4 in the follow-up (issues #3, #4).
 
+## Update — live re-run (2026-06-10): the bug also reproduces via backpressure
+
+Re-running the real `pseolint https://paperforge.dev` (not a fixture) revealed the false-negative still appears by a **different path** than Gap 1. With sitemap-first discovery in place, discovery itself works — with the backpressure watchdog OFF the run finds all **5,680** URLs, classifies `programmatic-directory`, and returns `CAUTION · risk 33`. But with the watchdog ON (the default), paperforge's cold-start origin degrades under crawl (rolling p95 ~2.8s vs a ~0.44s warm baseline), the watchdog **correctly aborts after ~11 fetches** (it exists precisely to stop this origin's uncached-DB fan-out), and the **1-page salvage was then classified `small-marketing`, had its pSEO rules suppressed, and scored `READY ✓`** — the original false-negative, now via the watchdog rather than discovery. Synthetic tests missed it because mock fetches never trip backpressure.
+
+Fix (commit follow-up): a run truncated *before* classification is forced to site type `unclear` (no rule suppression), and **any** truncated run's verdict is floored to at least `caution` — it can never read `ready`. The watchdog is unchanged (it's doing its job); the salvaged report is just honest now. The actionable signal for this site: the origin can't sustain a full crawl, so audit a child sitemap directly or a faster environment.
+
 ## Gap 1 (critical): root-URL discovery doesn't surface a sitemap-index corpus
 
 pseolint already has the machinery — `isSitemapIndex()`, a depth-capped recursive walker (`packages/core/src/auditor.ts` ~L1471–1509), and `parseSitemapUrlsWithLastmod()` which matches both `<url>` and `<sitemap>` blocks (~L1372–1390). And there is a homepage-crawl fallback: *"Sitemap URL returned non-200 — fallback to crawl from origin homepage"* (~L1657).

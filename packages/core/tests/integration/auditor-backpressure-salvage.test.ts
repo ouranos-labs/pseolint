@@ -95,6 +95,15 @@ describe("auditSource — backpressure partial-report salvage", () => {
     // We aborted before fetching all 42 URLs — coverage is a lower bound.
     expect(summary.pageCount).toBeLessThan(allUrls.length);
     expect(liveFetches).toBeLessThan(allUrls.length);
+
+    // Honest output on a backpressure-salvaged fragment (the paperforge false
+    // "READY" class): the cause is machine-readable, the fragment is NOT
+    // confidently classified as a small-marketing site (which would suppress the
+    // pSEO rules off it), and the verdict is never a clean green.
+    expect(summary.truncatedKind).toBe("backpressure");
+    expect(summary.siteClassification.type).toBe("unclear");
+    expect(summary.siteClassification.suppressedRules).toEqual([]);
+    expect(summary.verdict).not.toBe("ready");
   });
 
   test("returns a valid truncated summary even when zero pages survive the abort", async () => {

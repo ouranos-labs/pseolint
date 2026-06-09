@@ -52,6 +52,9 @@ describe("declared-vs-discovered coverage guardrail", () => {
     expect(summary.truncatedKind).toBe("coverage");
     expect(summary.truncatedReason ?? "").toMatch(/sitemap-declared/i);
     expect(summary.truncatedReason ?? "").not.toMatch(/degrad/i); // distinct from backpressure
+    // A truncated run is never a clean green — the lone fetched homepage would
+    // otherwise score "ready"; the verdict floor downgrades it.
+    expect(summary.verdict).not.toBe("ready");
   });
 
   it("(A) flags coverage when child sitemaps in an index are unreachable", async () => {

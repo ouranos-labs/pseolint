@@ -2637,9 +2637,21 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   );
   // `--strict` (or AuditOptions.strict) keeps the classification but forces
   // every rule to run regardless of detected site type.
+  //
+  // A backpressure abort BEFORE classification salvages only a fragment of the
+  // crawl (`truncated` is already set here; the coverage guardrail runs later).
+  // Classifying that fragment — e.g. the 1 page left after the watchdog aborts a
+  // cold-start origin — as `small-marketing` and suppressing the pSEO rules off
+  // it is exactly what produced the confident false "READY" on a 5,600-page
+  // site. When the run was truncated pre-classification we genuinely could not
+  // determine the site type: force `unclear` (confidence 0, no suppression,
+  // neutral scoring) so nothing masks the incompleteness.
+  const classificationUnreliable = truncated;
   const siteClassification: SiteClassification = options?.strict
     ? { ...guardedClassification, suppressedRules: [] }
-    : guardedClassification;
+    : classificationUnreliable
+      ? { ...guardedClassification, type: "unclear", confidence: 0, suppressedRules: [] }
+      : guardedClassification;
   const suppressedRuleSet = new Set<string>(siteClassification.suppressedRules);
 
   // Classify pages into groups and run only enabled rules per group
@@ -2948,6 +2960,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.truncated = true;
     summary.truncatedReason = truncatedReason;
     if (truncatedKind) summary.truncatedKind = truncatedKind;
+    // A truncated run is incomplete — never present it as a clean green. Floor
+    // the verdict to at least "caution" so the headline matches the partial-
+    // coverage banner instead of the false "READY ✓" over a salvaged fragment.
+    // ("ready" is the only rung below "caution"; everything else already is.)
+    if (summary.verdict === "ready") summary.verdict = "caution";
   }
 
   if (cacheConfig) {
