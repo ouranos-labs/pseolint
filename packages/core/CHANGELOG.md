@@ -1,5 +1,61 @@
 # @pseolint/core
 
+## 0.6.6
+
+### Patch Changes
+
+- 44d018f: Sitemap coverage guardrail + axis-aware unique-value guidance (fixes #3, #4)
+
+  **#4 — declared-vs-discovered coverage guardrail.** When a sitemap is found at
+  discovery, two independent under-coverage signals now flag the run `truncated`
+  with `truncatedKind: "coverage"` (distinct from the backpressure
+  `"backpressure"` kind), reusing the existing partial-coverage surface
+  (CLI/Action/MCP/web):
+
+  - **(A) unreachable child sitemaps.** `collectUrlsFromSitemap` now reports child
+    total/failed counts, so a sitemap **index** whose children 404 / aren't valid
+    sitemaps / exceed the depth cap is flagged — the case a URL-count comparison
+    can never see, and the original false-negative class.
+  - **(B) fetch shortfall.** Far fewer pages were FETCHED than the sitemap
+    declares. Compared against pages actually fetched (pre-filter, pre-sample) and
+    bounded by every deliberate limit (explicit `--sample-size`, crawl cap,
+    declared total) — so noindex / non-HTML pages, intentional sampling, and a
+    small crawl cap do **not** false-fire (the two false positives the first cut
+    shipped with).
+
+  Adds `AuditSummary.truncatedKind: "backpressure" | "coverage"` (+ JSON schema)
+  so consumers and CI can branch on the cause rather than overloading one boolean.
+
+  **#3 — `content/unique-value` guidance.** The fix string is now axis-aware
+  (warns that content shared across same-axis sibling pages — boilerplate,
+  per-axis data — does NOT count), the message surfaces the shared-vs-unique word
+  split, and tokenization strips surrounding punctuation so `"word"` / `"word."`
+  count as one token (removing false precision in the surfaced counts).
+
+  Also routed a remaining `splice(0, n, ...big)` spread through the iterative
+  `pushAll` helper (same V8 argument-cap class as the earlier crash fix).
+
+- ea4e822: A truncated run can no longer present as a confident clean verdict
+
+  Found by re-running `pseolint https://paperforge.dev` against the live site: the
+  backpressure watchdog (correctly) aborts the cold-start origin after ~11 fetches,
+  but the 1-page salvage was then run through the normal classify → score → verdict
+  pipeline and emerged as `small-marketing` + suppressed pSEO rules + **`READY ✓`**
+  — reproducing the original case-study false-negative via the watchdog rather than
+  via discovery (which works). Two fixes:
+
+  - **Classification:** when a run is truncated BEFORE classification (a
+    backpressure abort salvaged only a fragment), the site type is forced to
+    `unclear` (confidence 0, no rule suppression). Classifying a salvaged fragment
+    as a confident `small-marketing` site — and suppressing the pSEO rules off it —
+    is what produced the false green.
+  - **Verdict:** any truncated run's verdict is floored to at least `caution` — it
+    can never read `ready`, so the headline matches the partial-coverage banner.
+
+  The watchdog itself is unchanged: it exists to protect exactly this origin (its
+  crawl fans out into uncached DB queries), so it should keep aborting — the fix is
+  that the salvaged report is now honest about being incomplete.
+
 ## 0.6.5
 
 ### Patch Changes
