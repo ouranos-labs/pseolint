@@ -1,0 +1,31 @@
+name: Dogfood — audit pseolint.dev
+
+# We hold pseolint.dev to its own linter. This runs the published Action
+# against production on a daily schedule, after every merge that touches the
+# web app, and on demand. It fails if the SpamBrain Risk Score crosses the
+# threshold or the crawl is truncated (e.g. the backpressure watchdog trips on
+# a degraded origin) — so a regression on our own site can't ship silently.
+#
+# To gate a PR against its *preview* deploy instead of production, add a
+# `pull_request` trigger plus a step that resolves the Vercel preview URL
+# (wait for the deployment, read its URL) and pass that as `source` below.
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # daily 07:00 UTC
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit pseolint.dev with pseolint
+        uses: ouranos-labs/pseolint@action-v1
+        with:
+          source: https://pseolint.dev/sitemap.xml
+          threshold: 40
+          fail-on-truncated: "true"

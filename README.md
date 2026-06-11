@@ -7,6 +7,7 @@
 [![License](https://img.shields.io/npm/l/pseolint?color=blue)](./LICENSE)
 [![Node](https://img.shields.io/node/v/pseolint?color=339933&logo=node.js)](https://www.npmjs.com/package/pseolint)
 [![GitHub stars](https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social)](https://github.com/ouranos-labs/pseolint)
+[![pseolint.dev dogfood](https://pseolint.dev/api/badge/pseolint.dev)](https://pseolint.dev/leaderboard)
 
 <p align="center">
   <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
