@@ -596,9 +596,12 @@ export function LandingForm() {
           <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
             Early-stage and built in the open. Open-source (MIT), launched January 2026, with{" "}
             <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{" "}
-            mapped to current Google policy. Every public scan lands on the{" "}
-            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> —
-            so the traction is the receipts, not a number we made up.
+            mapped to current Google policy. We run pseolint on{" "}
+            <span className="text-foreground">pseolint.dev</span> itself and publish the result on the public{" "}
+            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> — verdict{" "}
+            <span className="text-foreground">Ready</span>, origin handled the crawl at a 106ms median TTFB, and the
+            audit&apos;s open findings are literally our own SEO to-do list. The traction is the receipts, not a
+            number we made up.
           </p>
         </div>
       </section>
