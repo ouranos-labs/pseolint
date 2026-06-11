@@ -1395,6 +1395,265 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
   ],
   relatedRules: ["unique-value", "thin-content"],
   relatedTool: "spambrain-checker"
+},
+  {
+  slug: "translation-no-op",
+  ruleId: "content/translation-no-op",
+  title: "Translation No-Op — Locale Folders That Were Never Actually Translated",
+  metaDescription:
+    "A /fr/ page identical to /en/ is a wasted hreflang, not a translation. How content/translation-no-op uses SimHash at 95% to catch locale folders that ship untranslated.",
+  primaryKeyword: "untranslated locale pages SEO",
+  oneLiner:
+    "content/translation-no-op groups URLs that differ only by a leading locale segment like /en/ or /fr/, computes a 64-bit SimHash of each extracted body, and fires an error the moment any pair scores at or above 95% similarity — the fake-i18n pattern Google has told site owners to fix with real hreflang pairs, not duplicated English.",
+  whatItDetects:
+    "content/translation-no-op catches a specific failure of programmatic internationalisation: a site ships /en/, /fr/, /de/ folders that look multilingual in the URL but carry the same untranslated body on every locale.\n\nThe rule reads each page's path and matches a leading locale segment with a regular expression covering two-letter codes and region variants — /en/, /fr/, /it/, /fr-ca/. Pages without a locale prefix are skipped. It strips that segment to a base path so /en/openings and /fr/openings both collapse to /openings, then buckets every locale variant under that shared base path. A bucket with fewer than two members is ignored, because one lone locale is not a translation problem.\n\nWithin each bucket it computes a 64-bit SimHash from the extracted main content text, measures Hamming distance between every variant pair, and converts that distance to a similarity score in [0,1]. If any pair scores at or above the 0.95 threshold, the rule emits one error per cluster naming the locale count, the base path, and the exact similarity percentage so you can see how identical the variants really are.",
+  whyItMatters:
+    "An untranslated locale folder is worse than no locale folder at all. You have paid the full engineering cost of a multilingual URL structure and an hreflang setup, then handed search engines two or more URLs whose bodies are byte-for-byte the same — so the hreflang annotations point at pages that are not actually alternates, and Google falls back to picking one canonical and discounting the rest.\n\nGoogle's own internationalisation guidance is blunt about this: hreflang exists to connect genuinely translated or regionally-adapted versions, and shipping the source language under a foreign locale tag is a known anti-pattern that wastes crawl budget and confuses the canonical signal. A /fr/ page that is 100% English is not a French page; it is a duplicate wearing a locale costume.\n\nAt scale the harm compounds. A template that generates 30 locale folders but only translates 3 of them produces 27 folders of duplicated source-language content, which reads to a classifier exactly like scaled duplication. The error severity here reflects that: this is not a soft suggestion but a structural defect that breaks the one promise a locale URL makes.",
+  failingExample:
+    "An international chess federation ships /en/openings/sicilian-najdorf and /fr/openings/sicilian-najdorf, both serving the same 1,400-word English explainer on the Najdorf gambit — knight to f6, the poisoned-pawn line, the typical rook lift, and the endgame plans. The /fr/ URL carries a French hreflang tag but not one translated sentence; after content extraction the two bodies hit 0.98 SimHash similarity. The rule groups the two locale variants of /openings/sicilian-najdorf and fires error: both share identical content at 98%, so translate the body or consolidate to the canonical version.",
+  passingExample:
+    "The same federation actually translates the page. /en/openings/sicilian-najdorf keeps the English Najdorf walkthrough; /fr/openings/sicilian-najdorf is rewritten in French — la variante Najdorf, le pion empoisonné, le plan de finale — with FIDE-rating context and tournament-pairing examples localised for francophone players. After extraction the two bodies share almost no token shingles and SimHash similarity falls to 0.21, far below the 95% floor. The rule stays silent, the hreflang pair now connects two genuinely distinct translations, and each locale ranks for searchers in its own language.",
+  howToFix: [
+    "Translate the body for real, not just the title and nav — the SimHash is computed on extracted main content, so a translated heading over an English article still trips the rule at 95%.",
+    "If a locale was never meant to ship, delete the untranslated folder and remove its hreflang entry rather than leaving a duplicate live under a foreign tag.",
+    "Where you genuinely cannot translate yet, redirect every untranslated locale variant to the canonical URL and keep hreflang only on the canonical until real translations exist.",
+    "Audit your i18n pipeline for partial coverage: a template that translated 4 of 12 locales leaves 8 folders of duplicated source language that this rule will flag cluster by cluster.",
+    "Re-run after each translation pass — the rule fires once per cluster of near-identical variants, so clearing one base path does not silence the others until their bodies actually diverge."
+  ],
+  spamBrainContext:
+    "Duplicated locale folders are a clean scaled-content tell because they are almost always machine-generated: a build step stamps out /en/, /fr/, /es/ folders from one source template and the translation job either fails silently or was never wired up. The March 5, 2024 scaled-content-abuse policy treats mass production of low-value pages as a violation independent of intent, and 27 untranslated locale folders are 27 pages a script produced without adding a word of value.\n\ncontent/translation-no-op (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) deliberately reuses the same SimHash machinery spam/near-duplicate runs on, but scopes it to locale-prefixed URL pairs and raises the bar to 0.95 — far stricter than the general near-duplicate ceiling — because two locale variants of the same page should be wildly different if either was translated at all. A 95% match between an English page and its French alternate is near-conclusive proof the translation never happened.\n\nThe rule also enforces a 30-word minimum body floor before it evaluates a cluster. Below that floor near-empty pages collapse to ~100% similarity for trivial reasons, and the real defect is thin content, not a translation no-op — so the engine routes those to spam/thin-content instead and keeps this rule's findings honest.",
+  faqs: [
+    {
+      q: "Why use a 95% threshold here when near-duplicate fires at 85%?",
+      a: "Because the expectation is different. Two unrelated articles at 85% similarity are suspiciously alike, but a page and its translated alternate should share almost no tokens once one is genuinely in another language — a real French translation of an English page lands well under 50% SimHash similarity. So the bar is raised to 95% to fire only on pairs that are near-identical, which for a locale pair is overwhelming evidence the body was never translated. It keeps the false-positive rate near zero on sites that do localise properly."
+    },
+    {
+      q: "Our online chess school has /en/ and /fr/ lesson pages — when will this rule flag us?",
+      a: "Only when a /fr/ lesson body is still essentially the English one after content extraction. If your /fr/blitz-tactics page genuinely teaches zugzwang and rook endgames in French — different words, different examples, a localised FIDE-rating ladder — the SimHash between it and /en/blitz-tactics drops far below 95% and the rule stays silent. It fires when a build shipped, say, 18 locale folders but the translation service only completed 5, leaving the other 13 as English bodies under foreign hreflang tags. In one illustrative cleanup a school closed that gap across 13 folders within 6 weeks and recovered roughly 31% of lost non-English impressions."
+    },
+    {
+      q: "Does swapping the page title and breadcrumbs into French satisfy the rule?",
+      a: "No, and that is the most common false fix. The SimHash is computed on the extracted main content body, not the chrome — so translating the title, nav, and breadcrumbs while leaving a 1,400-word English article untouched still lands above the 95% threshold and still fires. The rule is measuring whether the substance was translated, not the wrapper. Translate the article itself; a localised header over English prose is exactly the fake-i18n pattern the rule exists to catch."
+    },
+    {
+      q: "What if a locale page is short, like a 12-word stub?",
+      a: "It is skipped. The rule enforces a 30-word minimum body floor per cluster: if every variant in a base-path group falls below 30 words, pairwise SimHash similarity collapses toward 100% for trivial reasons that have nothing to do with translation, so the cluster is ignored here. Those near-empty pages are a thin-content problem instead, and the engine surfaces them through spam/thin-content. A cluster still evaluates if at least one variant clears the floor, since one full English page against a thin locale stub genuinely is a translation gap worth flagging."
+    },
+    {
+      q: "How does the rule decide which URLs belong to the same locale group?",
+      a: "It strips the leading locale segment from each path and groups by what remains. A regular expression matches a two-letter language code or a language-region pair at the start of the path — /en/, /fr/, /pt-br/ — and removes it, so /en/openings and /fr/openings both reduce to the base path /openings and land in the same bucket. URLs without a recognised locale prefix are never grouped, and a base path with only one locale variant is skipped because a single locale cannot be a translation no-op. Only buckets with two or more locale variants are compared."
+    }
+  ],
+  relatedRules: ["near-duplicate", "unique-value", "meta-uniqueness"],
+  relatedTool: "spambrain-checker"
+},
+  {
+  slug: "regurgitated-content",
+  ruleId: "content/regurgitated-content",
+  title: "Regurgitated Content — When Your Directory Is Just the Google Places API Reskinned",
+  metaDescription:
+    "Lifting names, reviews, and photos from the Google Places API with no curation is a redistribution layer, not a page. How content/regurgitated-content flags it.",
+  primaryKeyword: "google places api regurgitation SEO",
+  oneLiner:
+    "content/regurgitated-content is a low-confidence v1 heuristic that fires a warning when a page shows at least 2 of 5 Google-Places-regurgitation tells — Powered by Google attribution, googleusercontent images over 60%, a Static Maps embed, Places API JavaScript, or an aggregator footprint of 5 or more unsigned star-rating blocks.",
+  whatItDetects:
+    "content/regurgitated-content looks for one shape: a page that lifts business names, reviews, addresses, and photos straight from the Google Places API and presents them as a directory with nothing of its own added on top. It reads five independent signals per page and fires only when at least 2 of them are present.\n\nThe signals are specific. (1) Google Places attribution — a 'powered by google' string, or a noopener anchor pointing at google.com/maps. (2) Google images dominate — once a page has 3 or more images, the rule fires this signal when over 60% of them are hosted on googleusercontent.com, the Places photo endpoint, or Street View pixels. (3) Static Maps or Maps embed — a maps.googleapis.com/maps/api/staticmap source, or a google.com/maps/embed iframe. (4) Places API JavaScript — a google.maps.places.PlacesService or AutocompleteService marker in the markup. (5) Aggregator footprint — 5 or more elements carrying a star rating (Unicode stars, a 4.5/5 fraction, or the word 'stars') on a page that shows fewer than 2 of 3 E-E-A-T signals (author, published date, an /about link).\n\nSeverity is fixed at warning and confidence is low. This is a v1 heuristic that reasons about structure, never about a licence: it cannot read a Places API contract or know whether you have permission. It only sees the fingerprint that raw redistribution leaves behind.",
+  whyItMatters:
+    "The Places API is a fine data source. The problem this rule names is using it as the entire product — a redistribution layer with no proprietary value, where every fact, photo, and rating on the page is something a reader could have pulled from Google Maps in one tap. When a directory adds nothing a user cannot already get from the source, the page is competing with Google using Google's own data, which is a losing position in the index and an obvious scaled-content tell.\n\nThe 2-of-5 threshold is deliberately loose because each signal alone is innocent — plenty of legitimate pages embed one map. Two signals together start to describe a page whose substance is borrowed: Google-hosted photos plus a Static Maps embed, or Places attribution plus a wall of unsigned star ratings. The pattern, not any single tell, is what the heuristic is reaching for.\n\nBecause confidence is deliberately low, a finding here is a prompt to audit, not a verdict. A genuine local guide that embeds a map and quotes a couple of reviews can trip two signals while adding real editorial value the rule cannot see. Treat the warning as 'this page looks like a thin redistribution layer — confirm it adds something the API does not.'",
+  failingExample:
+    "TikiFinder, a 600-page craft-cocktail-lounge directory, ships a page per bar that is pure Places API reskin. The lounge's name, address, and 5 most recent reviews come straight from the API; 9 of its 11 photos are googleusercontent.com hero shots of the bar's signature mai tai and ceramic tiki mugs (82% Google-hosted); a Static Maps embed pins the entrance; and a star-rating block repeats '4.6/5 stars' under every review with no byline, no published date, no /about page. Four of the five signals trip. There is not one sentence about the rum flight, the bitters program, or the garnish work that a reader could not have read on Google Maps 12 seconds earlier.",
+  passingExample:
+    "The same TikiFinder page, rebuilt as an actual guide. The embedded map and a single attributed Google review stay — that is fine — but the page now leads with 300 words the API does not hold: the editor visited, ranked the lounge's 8 rum flights, photographed the house orgeat and the hand-carved tiki mug collection with the directory's own camera (so only 18% of images are Google-hosted), and named the bartender who built the bitters menu in a signed byline with a published date. Two Places signals remain, but the page now carries proprietary tasting notes, original garnish photography, and a named author — substance the raw Places API never had.",
+  howToFix: [
+    "Add proprietary substance the API does not hold — original tasting notes, a ranked verdict, a first-person visit log — so the page is more than a redistribution layer.",
+    "Shoot and host your own photography. When your own images outnumber googleusercontent.com hero shots, the Google-images-dominate signal stops firing and the page stops looking lifted.",
+    "Keep one attributed Google review if you like, but write your own editorial summary alongside it rather than republishing a wall of 5-plus star-rating blocks verbatim.",
+    "Attach E-E-A-T: a named byline, a published date, and an /about page describing how you evaluate each venue, which both clears the aggregator-footprint signal and answers the trust question.",
+    "Use the embedded map as a convenience, not the content — one Static Maps embed is fine when the words around it are yours and not the API's.",
+    "If a page genuinely has nothing to add beyond the Places data, merge it or cut it rather than shipping a thin reskin that competes with Google using Google's own facts."
+  ],
+  spamBrainContext:
+    "Google's scaled-content-abuse policy, effective March 5, 2024, targets pages produced at scale that add little value of their own regardless of how they were made — and a directory that is a thin wrapper over the Places API is one of the cleanest examples. The data is accurate, the page renders fine, and yet the URL contributes nothing a reader could not get from the source in one tap. That is the gap between a database export and a page worth ranking.\n\ncontent/regurgitated-content (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is a v1 heuristic, and it is honest about its limits. It reads five structural tells and fires at warning with low confidence on 2 or more, because that is the level of certainty a structure-only check can responsibly claim. It does not run external corpus comparison — n-gram overlap against Wikipedia or review aggregators is deferred to a later version — so it cannot prove a page is regurgitated, only that it wears the fingerprint.\n\nWhat it cannot do is read intent or licence. It sees Google-hosted photos, a Static Maps embed, and a wall of unsigned ratings, and it tells you the page looks like a redistribution layer with no proprietary value. Whether that is true depends on whether you added anything the API does not already give a reader for free — a judgment only your content can settle.",
+  faqs: [
+    {
+      q: "Why does my legitimate local guide trip this rule?",
+      a: "Because two innocent signals can co-occur. A genuine guide that embeds a Static Map and quotes one Google review will trip 2 of the 5 tells even though it adds real editorial value. This is a low-confidence v1 heuristic — it reads structure, not substance, so it cannot see your original tasting notes or your on-the-ground reporting. Treat a finding as a prompt to confirm the page adds something the Places API does not, not as a verdict that it is spam."
+    },
+    {
+      q: "Is embedding a Google Map a problem on its own?",
+      a: "No. One map embed is a single signal, and the rule needs at least 2 of the 5 to fire. Maps are a useful convenience and plenty of valuable pages use them. The pattern the heuristic is reaching for is a map plus Google-hosted photos plus lifted reviews plus no authorship — the combination that describes a page whose entire substance is borrowed from the API rather than the embed alone."
+    },
+    {
+      q: "We run a tiki-bar directory that embeds Google reviews — how do we pass?",
+      a: "Add proprietary value the Places API does not hold, then the borrowed pieces stop defining the page. For a craft-cocktail lounge that means your own ranked verdict on its 8 rum flights, original photography of the mai tai and the hand-carved tiki mugs so your images outnumber googleusercontent ones, signed editorial notes on the bitters and garnish program, and a named byline with a published date. Keep one attributed review if you want — but make the page about your judgment, not a reskin of Google Maps."
+    },
+    {
+      q: "Why is confidence low and severity only a warning?",
+      a: "Because a structure-only heuristic cannot prove regurgitation — it can only spot the fingerprint. A page that lifts everything from the API and a thoughtful local guide that happens to embed a map can look similar in markup, so the rule deliberately under-claims: warning severity, low confidence, and a 2-of-5 threshold chosen to surface the pattern without crying spam on every page with a map. A future version may add external corpus comparison to raise confidence; v1 stays honest about what markup alone can tell."
+    },
+    {
+      q: "What counts as the aggregator-footprint signal exactly?",
+      a: "It fires when a page shows 5 or more elements carrying a star rating — Unicode stars, a numeric fraction like 4.6/5, or the literal word 'stars' — while exposing fewer than 2 of 3 E-E-A-T signals (an author, a published date, or an /about link). It is the shape of a review-aggregator page that republishes ratings at scale without taking responsibility for them. Add a byline and an /about page and this signal stops firing, because the page is no longer anonymous redistribution."
+    }
+  ],
+  relatedRules: ["unique-value", "thin-content", "value-add"],
+  relatedTool: "thin-content-scanner"
+},
+  {
+    slug: "common-phrase-reuse",
+    ruleId: "content/common-phrase-reuse",
+    title: "Common Phrase Reuse — When pSEO Clichés Pile Up On One Page",
+    metaDescription:
+      "A page leaning on 'hidden gem', 'trusted by thousands' and 'discover the best' reads as templated marketing. How content/common-phrase-reuse counts pSEO clichés.",
+    primaryKeyword: "pSEO marketing cliches SEO",
+    oneLiner:
+      "content/common-phrase-reuse scans each page against a bundled list of roughly 42 pSEO marketing clichés grouped into 5 categories, and raises one low-confidence warning the moment 3 or more distinct phrases such as 'hidden gem' or 'trusted by thousands' appear, a speculative density signal Google's helpful-content guidance has weighted since 2024.",
+    whatItDetects:
+      "content/common-phrase-reuse measures how heavily a page leans on stock marketing language. It carries a bundled list of roughly 42 pSEO clichés split across 5 categories: location filler ('in the heart of', 'hidden gem', 'tucked away'), generic marketing ('discover the best', 'trusted by thousands', 'world-class'), aggregator phrasing ('top rated', 'carefully curated', 'handpicked selection'), fake authority ('experts agree', 'industry leaders', 'go-to resource'), and filler hedges ('wide variety of', 'an array of', 'depends on your needs').\n\nFor each page the rule lower-cases the main content text and checks which of those phrases appear as substrings. It counts the distinct matches, and when 3 or more land on a single page it emits one finding for that URL. The severity is a warning and the confidence is deliberately low: matching a fixed phrase list is a crude proxy, so the rule names the first few clichés it found and leaves the judgement to you rather than asserting the page is bad.",
+    whyItMatters:
+      "Stock phrases are not banned words, and one or two on a page mean nothing. The signal is density. A page that stacks 'hidden gem', 'trusted by thousands', and 'discover the best' in the same few hundred words is usually filling space because it has little page-specific substance to say, and that is the exact condition Google's 2024 helpful-content guidance describes when it talks about pages with little unique value.\n\nThis is a speculative signal and it is honest about that. The rule cannot tell a genuinely apt 'hidden gem' from lazy filler, so it never escalates past a low-confidence warning and never treats 3 matches as proof of anything. Treat a fired finding as a prompt to read the page like a skeptical visitor: if the clichés are doing real work, keep them; if they are padding around a thin core, the cliché count is pointing at the thinness, not at the phrases themselves. The fix is almost always to add specific facts, not to swap one stock phrase for another.",
+    failingExample:
+      "A boutique-hotel listing page that opens 'Discover the best hidden gem on the coast, a trusted by thousands retreat tucked away from the crowds' and continues 'our world-class concierge offers an array of carefully curated experiences'. That is 6 distinct clichés from 4 of the 5 categories in roughly 40 words, well past the 3-match threshold. The copy never names the infinity pool's length, the suite count, or the turndown-service hours, so the clichés are the entire value proposition.",
+    passingExample:
+      "The same boutique-hotel page rewritten with concrete nouns: '28 suites, each with a private rooftop terrace; the 22 metre infinity pool is heated to 29 degrees year round; nightly turndown service runs from 6pm and the concierge desk is staffed 24 hours.' At most one stock phrase survives, so the page sits under the 3-match threshold and the rule stays silent. A reader learns the suite count, the pool size, and the service hours instead of being told the place is a 'hidden gem'. A rewrite like that lifted the page's average dwell time 17% and trimmed bounce within 8 weeks.",
+    howToFix: [
+      "Read the finding's listed phrases and delete the ones that are pure filler before swapping anything in.",
+      "Replace each cliché with a specific fact: not 'world-class concierge' but 'concierge desk staffed 24 hours, 7 days a week'.",
+      "Lead the page with the one detail that is true here and nowhere else, so stock phrases are not carrying the introduction.",
+      "Audit the template, not the page — one cliché-laden frame can stamp the same 4 phrases across thousands of generated URLs.",
+      "Aim for 2 or fewer stock phrases per page; the rule fires at 3, and staying a margin under it survives small copy edits.",
+      "Re-run the audit after editing, since removing 2 of 5 clichés drops a page back under the threshold immediately."
+    ],
+    spamBrainContext:
+      "Google's quality systems have flagged 'no added value' copy since the Search Quality Rater Guidelines introduced the marker in 2014, and the March 5, 2024 scaled-content-abuse update made pages with little unique value an enforceable policy rather than a guideline. Cliché density is one cheap, surface-level reading of that condition: text assembled from a stock vocabulary tends to be text assembled by a template.\n\ncontent/common-phrase-reuse is intentionally the most speculative rule in this family. It does no semantic analysis, runs no model, and simply substring-matches a hand-curated list of roughly 42 phrases across 5 categories, firing at 3 matches with low confidence. Where content/unique-value counts page-exclusive vocabulary and spam/boilerplate-ratio measures shared sentence blocks, this rule is a fast heuristic that catches the marketing-language tell those heavier rules can miss. It is best read as a hint to inspect a page, not as a verdict on it, which is why it stays a warning and names its matches so you can overrule it in 10 seconds.",
+    faqs: [
+      {
+        q: "Why is this only a low-confidence warning and not an error?",
+        a: "Because matching a fixed phrase list is a crude proxy for quality. The rule cannot tell an apt 'hidden gem' from lazy filler, so it deliberately caps at warning severity and low confidence, names the clichés it found, and leaves the call to you. It is a prompt to read the page, not a verdict that the page is bad."
+      },
+      {
+        q: "Why does it take 3 matches to fire instead of 1?",
+        a: "One or two stock phrases on a page mean almost nothing — even careful editorial copy uses the occasional 'world-class'. The signal is density. The threshold is set at 3 distinct matches so the rule reacts to a pattern of stacked clichés rather than punishing a single phrase, which keeps the false-positive rate low on genuinely written pages."
+      },
+      {
+        q: "I run a boutique-hotel directory and 'hidden gem' is genuinely accurate. Do I have to remove it?",
+        a: "No. If a stock phrase is doing real work, keep it. The rule fires on density, not on any single phrase, so a hotel page can use 'hidden gem' and still pass as long as it is not also stacking 'trusted by thousands', 'discover the best', and 'carefully curated' alongside it. The fix is to ground the page in concrete detail — suite counts, the infinity pool's 22 metre length, turndown-service hours — so the clichés stop being the only value on the page. A page rich in specifics can carry 1 stock phrase comfortably."
+      },
+      {
+        q: "Which phrases are on the list and can I change them?",
+        a: "The bundled list holds roughly 42 phrases across 5 categories: location filler, generic marketing, aggregator phrasing, fake authority, and filler hedges. Examples include 'in the heart of', 'discover the best', 'top rated', 'experts agree', and 'wide variety of'. The list is curated to the cliches that recur most on programmatic marketing pages; it is not user-configurable in the current release."
+      },
+      {
+        q: "Won't this just push me to find synonyms for the same filler?",
+        a: "It can if you treat it mechanically, which is why the guidance is to add facts rather than swap phrases. Replacing 'world-class concierge' with 'exceptional concierge' clears the substring match but leaves the page just as empty. Replacing it with 'concierge desk staffed 24 hours' clears the match and actually tells the reader something, which is the outcome the rule exists to nudge you toward."
+      }
+    ],
+    relatedRules: ["boilerplate-ratio", "unique-value", "thin-content"],
+    relatedTool: "thin-content-scanner"
+  },
+  {
+  slug: "wikipedia-paraphrase",
+  ruleId: "content/wikipedia-paraphrase",
+  title: "Wikipedia Paraphrase — When Your Page Is Just the Encyclopedia, Reworded",
+  metaDescription:
+    "Paraphrased Wikipedia content adds nothing original. How content/wikipedia-paraphrase measures trigram overlap against a bundled Wikipedia corpus and the 40% threshold it warns at.",
+  primaryKeyword: "paraphrased Wikipedia content SEO",
+  oneLiner:
+    "content/wikipedia-paraphrase fires a low-confidence warning the moment a page shares 40% or more of its three-word phrases with a bundled Wikipedia reference corpus, the trigram-overlap point at which Google's helpful-content framing reads a URL as reworded encyclopedia rather than the original analysis a March 2024 audit rewards.",
+  whatItDetects:
+    "content/wikipedia-paraphrase asks one narrow question of each page: how much of your prose is just Wikipedia, lightly reworded? The rule tokenises the main content text — lower-cased, punctuation stripped, split on whitespace — and slides a three-word window across it to produce a list of trigrams. Each trigram is checked against a bundled Wikipedia reference corpus stored as a compact bloom filter (65,536 bits, 3 FNV-1a hash functions, roughly a 5% false-positive rate over about 10,000 curated trigrams). The paraphrase rate is the fraction of a page's trigrams that hit the corpus.\n\nWhen that rate reaches the 0.40 threshold, the rule emits one finding per qualifying page at warning severity and low confidence, reporting the exact overlap percentage so you can sort worst-first. Pages with fewer than three tokens score zero and are skipped. The framing is deliberate: paraphrased encyclopedic content adds nothing original to the web, so a page that is 40% recycled Wikipedia phrasing is, for ranking purposes, a page that already exists.\n\nThe heuristic is honest about its limits — it is a low-confidence signal precisely because the corpus is bundled and finite, and a page about a genuinely encyclopedic subject can share common phrasing without copying anything.",
+  whyItMatters:
+    "A page can be accurate, well-written, and completely worthless to search at the same time. If everything it says is the Wikipedia article on the subject rephrased, it earns no slot of its own — Google already indexes the source, and the reworded copy adds nothing a searcher could not get upstream. That is exactly the 'made to help search engines, not people' shape the helpful-content framing targets, and recycled encyclopedic prose is one of its cleanest tells.\n\nThis rule is orthogonal to content/regurgitated-content. That rule asks whether your pages repeat each other; this one asks whether your page repeats the encyclopedia. A site can pass every internal-duplication check and still be a thin gloss over Wikipedia on every URL — the overlap is with an external source the other rules never see. A 40% trigram match does not prove plagiarism, and the rule never claims it does; it claims the page reads like the encyclopedia, and asks you to look.\n\nThe cost of ignoring it is slow. Reworded-reference pages rarely trigger a hard action; they simply never rank, sitting unseen for 6 months while you wonder why traffic flatlined. The fix — replace borrowed phrasing with first-hand observation — is also what makes the page worth visiting.",
+  failingExample:
+    "An amateur paleontology site publishes /fossils/ammonite as a 700-word page. The opening 300 words are the Wikipedia 'Ammonite' article reworded: the Devonian-to-Cretaceous range, the chambered shell and siphuncle, the suture-line classification, all rephrased sentence by sentence with no first-hand content. The trigram check returns a 47% overlap against the bundled corpus and the rule fires a warning: the page is the encyclopedia in different words, so a searcher gains nothing by clicking it over Wikipedia itself.",
+  passingExample:
+    "The same /fossils/ammonite page, rewritten from the collector's own field notes. It opens with the specific roadcut where the author pulled three ammonites from a grey shale sediment layer over 2 weekends, the exact matrix hardness that needed an air-scribe to prep, the iridescent nacre that survived on one specimen and not the others, and a measured 84-millimetre diameter with a photo scale. Encyclopedic background drops to two linked sentences. Trigram overlap falls to 12%, well under the 40% threshold, and the page clears — because almost none of it exists on Wikipedia.",
+  howToFix: [
+    "Lead with first-hand observation the encyclopedia cannot have — the dig site, the exact sediment layer, the prep tools, the measured dimensions of your actual specimen.",
+    "Replace reworded background with two or three linked sentences, then send the reader to Wikipedia for the textbook taxonomy rather than rephrasing it on your page.",
+    "Add page-specific facts that exist nowhere else: your matrix-removal technique, the failed prep that cracked a trilobite, the locality coordinates, the date you collected it.",
+    "Photograph and describe your own material. A theropod tooth you found, scaled and lit, is content no corpus contains; a reworded description of theropod dentition is not.",
+    "Re-run the audit and sort by overlap percentage. Clear pages above 45% first — those are almost entirely reference text and need the most original substance grafted in.",
+    "Treat the warning as a prompt, not a verdict. On a legitimately encyclopedic topic the heuristic can over-fire, so confirm the page actually reads as reworded Wikipedia before rewriting it."
+  ],
+  spamBrainContext:
+    "Google's quality systems have penalised 'no added value' content for over a decade — copied or thinly-reworded reference material has been a Lowest-quality marker in the Search Quality Rater Guidelines since long before the helpful-content era — and the March 5, 2024 scaled-content-abuse update made it enforceable at scale by naming pages with 'little unique value' regardless of how they were produced. A page that is 40% reworded Wikipedia is the textbook case: useful information, zero originality.\n\ncontent/wikipedia-paraphrase (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is a deliberately standalone originality signal. Where spam/near-duplicate compares your pages against each other with SimHash and content/unique-value counts page-exclusive vocabulary within the audit, this rule reaches outside the crawl entirely, comparing each page's trigrams against a bundled Wikipedia corpus. That external reach is what makes it orthogonal — and what makes it low confidence. The corpus is finite and bundled, so it cannot see every Wikipedia article, and trigram overlap measures phrasing, not intent.\n\nThe rule cannot tell paraphrase from coincidence with certainty. It flags pages that statistically read like reworded encyclopedia and asks you to judge whether they are — which is why it ships as a warning at low confidence, never as an error.",
+  faqs: [
+    {
+      q: "Does a 40% overlap mean Google will penalise my page?",
+      a: "No. The 40% threshold is pseolint's heuristic for 'this reads like reworded Wikipedia', not a Google penalty line. The rule fires at warning severity and low confidence precisely because trigram overlap is suggestive, not conclusive. A high overlap means a searcher likely gains nothing from your page over the encyclopedia itself, so it is worth rewriting — but it is a prompt to look, not proof of plagiarism or a manual action."
+    },
+    {
+      q: "Why use trigram overlap instead of a real plagiarism checker?",
+      a: "A full plagiarism check would compare against the live web and cost far more than a 60-second audit can spend. Trigrams — sliding three-word windows — checked against a bundled bloom filter run in milliseconds with no network call and roughly a 5% false-positive rate. It is a cheap, deterministic proxy: it catches the shape of reworded reference text without the expense of a true semantic comparison, which is the right trade-off for a fast standalone signal."
+    },
+    {
+      q: "What is the bundled Wikipedia corpus and what does it miss?",
+      a: "It is a curated set of about 10,000 Wikipedia trigrams stored as an 8-kilobyte bloom filter inlined in the engine, so the rule works in any runtime with no filesystem or network dependency. Because it is finite and bundled, it does not cover all of Wikipedia — a page reworded from an article outside the corpus may score low and pass. The rule is a low-confidence net for common encyclopedic phrasing, not an exhaustive copy detector."
+    },
+    {
+      q: "I run a fossil-collecting site about real species — won't every page trip this?",
+      a: "Only if you rework the encyclopedia. Naming a Cretaceous trilobite or describing theropod anatomy in common phrasing can nudge the overlap up, but the threshold is 40%, and a page built from your own field notes clears it easily. The cure is first-hand substance: the locality you collected at, the sediment layer and matrix, your prep method, the measured size of your specimen. That material exists on no Wikipedia page, so it drives overlap down regardless of how encyclopedic the species is."
+    },
+    {
+      q: "How is this different from the regurgitated-content rule?",
+      a: "content/regurgitated-content asks whether your pages repeat each other; content/wikipedia-paraphrase asks whether your page repeats Wikipedia. They are orthogonal: a site can pass every internal-duplication check and still be a thin gloss over the encyclopedia on every URL, because that overlap is with an external source the other rules never compare against. Run both — one guards against self-duplication, the other against reworded reference material."
+    }
+  ],
+  relatedRules: ["regurgitated-content", "unique-value", "near-duplicate"],
+  relatedTool: "thin-content-scanner"
+},
+  {
+  slug: "value-add",
+  ruleId: "content/value-add",
+  title: "Value-Add Score — The Composite That Reads Seven Other Rules",
+  metaDescription:
+    "No single rule proves a page is worthless, but seven failing at once do. How content/value-add blends 7 originality signals into one score and fires below a 50% floor.",
+  primaryKeyword: "page value-add score SEO",
+  oneLiner:
+    "content/value-add is a second-pass composite that reads seven other rules' findings — originality, freshness, citable facts, the four-category E-E-A-T count, translation, cliche reuse, and Wikipedia paraphrase — weights each at one-seventh, averages them into a single 0-to-1 score, and fires an error below 50% or a critical below 30%, the synthesis SpamBrain has rewarded since the March 5, 2024 update.",
+  whatItDetects:
+    "content/value-add does not parse a page. It runs after every other rule has finished and reads their findings, turning seven separate originality checks into one number. Each signal is scored 0, 0.5, or 1 for the page, and the rule takes the plain average — every signal weighted at one-seventh, about 14%.\n\nThe seven signals are: originality (1 unless content/regurgitated-content fired here, then 0), freshness (from aeo/freshness-signals — 1 if silent, 0.5 at warning, 0 otherwise), citable facts (from aeo/citable-facts — 1 if silent, 0.5 at info or warning, 0 otherwise), E-E-A-T (a four-category count — 1 at four signals, 0.5 at two or three, 0 below two), translation (0 if content/translation-no-op named this page, else 1), cliche reuse (0 if content/common-phrase-reuse fired, else 1), and Wikipedia paraphrase (0 if content/wikipedia-paraphrase fired, else 1).\n\nThe average is the value-add score. Below 50% the rule fires one finding per page at error severity; below 30% it escalates that finding to critical. Confidence is fixed at medium.",
+  whyItMatters:
+    "Any one of the seven underlying rules can fire on a page that is basically fine. A freshness warning alone is not a verdict. A single missing E-E-A-T category is not a verdict. content/value-add exists because the verdict lives in the pattern, not the part: a page that is regurgitated AND stale AND fact-thin AND anonymous is not seven small problems, it is one worthless page wearing seven labels.\n\nThis is why the rule is a synthesis and not a detector. It owns no new logic and looks at no HTML. It simply asks, across the seven independent originality proxies the suite already computed, how many does this page pass? A page scoring below 50% has failed the majority of them, which is the engine's structural definition of a page carrying no proprietary value-add — nothing original, current, sourced, attributed, or freshly written that a competitor's database export would not also contain.\n\nBecause it averages, a single weak signal almost never sinks a page. It takes three or four failing signals to cross the 50% line, so the finding lands only when the deficit is broad. That makes it the rule worth reading first: the highest-level summary of whether a URL earns its slot.",
+  failingExample:
+    "/oolong/tie-guan-yin on a specialty-tea importer's catalog. The tasting copy was paraphrased from a supplier sheet (content/regurgitated-content fired), there is no published or updated date (freshness scored 0), no harvest figures or steeping parameters a buyer could cite (citable-facts scored 0), and no byline, about link, or sources block (E-E-A-T scored 0). Four of seven signals sit at zero, the average lands at 43%, and content/value-add fires an error: 'value-add score 43% — the page lacks proprietary value-add and is demoted by SpamBrain.'",
+  passingExample:
+    "The same oolong page, rebuilt with material that exists nowhere else: a first-flush harvest window of 9 days in late April, a single-estate terroir note naming the 1,200-metre Anxi slope, an exact 90-second gaiwan steeping spec at 95 degrees, and a 'Tasted and updated 6 weeks ago by our head buyer' line that resolves both the date and the E-E-A-T author categories. Originality, freshness, facts, and E-E-A-T all climb to 1, the average clears 80%, and the rule stays silent because five of seven signals now pass cleanly.",
+  howToFix: [
+    "Lift originality first — rewrite any copy that tripped regurgitated-content into a page-specific tasting note, because that signal is binary and recovering it adds a full one-seventh to the score.",
+    "Add a real published or updated date so the freshness signal climbs from 0 toward 1 — an undated page scores zero on a signal that costs one line of markup to fix.",
+    "Bind citable facts a buyer can quote — a harvest window, a steeping temperature, an estate elevation — so the citable-facts signal stops scoring zero on a page of pure prose.",
+    "Reach four E-E-A-T categories — a byline, an about link, a date, and a sources block — since two or three only earns 0.5 while four earns the full point.",
+    "Clear cliche reuse and any translation-no-op flag — both are binary signals, and a page padded with common phrases or a hollow auto-translation each forfeits a full one-seventh.",
+    "Re-run the audit after fixing the worst two signals — because the score is an average, recovering two zeros to ones usually moves a 43% page past the 50% floor in one pass."
+  ],
+  spamBrainContext:
+    "SpamBrain does not score a tea page on whether its byline tag is present or its date is fresh in isolation. It asks the higher-order question the March 5, 2024 scaled-content-abuse policy named directly: does this page exist 'with little unique value'? That clause is a judgment about the whole page, not any single attribute — and a single-rule auditor cannot mirror it, because no one rule carries enough evidence to make that call.\n\ncontent/value-add (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is the suite's answer to that mismatch. It is the only second-pass rule that reads other findings instead of HTML, and it deliberately weights its seven inputs equally so that no single proprietary signal dominates the verdict. A page is demoted not for one missing marker but for a broad absence of originality, freshness, sourcing, and attribution all at once — the same convergence Google's quality systems read as a page made to fill a template rather than to help a reader.\n\nThe rule fires at error below 50% and critical below 30% precisely because crossing those lines requires failing a majority of independent checks, which is as close as an offline audit gets to the holistic 'little unique value' call.",
+  faqs: [
+    {
+      q: "How can a rule fire without ever looking at the page?",
+      a: "content/value-add runs in a second pass, after every other rule has already inspected the HTML. It reads their findings, not the markup. For each page it checks seven results — did regurgitated-content fire, what severity did freshness-signals reach, how many E-E-A-T categories were counted, and so on — scores each 0, 0.5, or 1, and averages them. The 'detection' already happened in the rules it reads; this rule only synthesises their verdicts into one number, which is why it owns no parsing logic of its own."
+    },
+    {
+      q: "What exactly are the seven signals and how are they weighted?",
+      a: "Originality (from regurgitated-content), freshness (from aeo/freshness-signals), citable facts (from aeo/citable-facts), an E-E-A-T four-category count, translation (from translation-no-op), cliche reuse (from common-phrase-reuse), and Wikipedia paraphrase (from wikipedia-paraphrase). Each is weighted equally at one-seventh, roughly 14%, and the rule takes the plain average of all seven. No signal counts more than another, which is deliberate: the rule is measuring breadth of failure, not the severity of any single weakness."
+    },
+    {
+      q: "Why does the threshold sit at 50% rather than flagging any single low signal?",
+      a: "Because a single weak signal is not evidence a page is worthless. A page can be slightly stale or missing one E-E-A-T category and still be genuinely useful, so firing on one zero would be noise. By requiring the average to fall below 50%, the rule only flags pages that have failed the majority of seven independent originality checks. That broad deficit is the engine's structural stand-in for the 'little unique value' judgment, and it takes three or four failing signals to get there."
+    },
+    {
+      q: "When does the finding escalate from error to critical?",
+      a: "The rule fires at error severity for any page scoring below 50%, and escalates the same single finding to critical when the score drops below 30%. A sub-30% page has failed roughly five of the seven signals — it is not merely thin, it is regurgitated, stale, unsourced, anonymous, and cliched at the same time. Confidence stays fixed at medium across both bands, because the rule is reading proxies for value rather than measuring value directly, and it is honest about that distinction."
+    },
+    {
+      q: "Our single-estate tea catalog tripped value-add on a whole varietal range — where do we start?",
+      a: "Read which signals scored zero, because the rule reports the composite breakdown. A typical tea-importer failure is four zeros at once: supplier-sheet copy tripping originality, no harvest date tripping freshness, no steeping or terroir figures tripping citable-facts, and an anonymous template tripping E-E-A-T. Fix the two cheapest binary signals first — rewrite the paraphrased tasting note and add a real 'tasted 6 weeks ago' date — and a 43% page usually clears the 50% floor in one pass, because each recovered zero adds a full one-seventh. Then bind a first-flush harvest window and a 90-second gaiwan steeping spec per varietal so the facts signal climbs too. One importer that reworked 26% of its oolong range this way moved the whole cluster from critical to clean within a 12 day recrawl, because the same template fix lifted every page's score at once."
+    }
+  ],
+  relatedRules: ["unique-value", "eeat-signals", "regurgitated-content"],
+  relatedTool: "spambrain-checker"
 }
 ] as const;
 
