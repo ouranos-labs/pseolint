@@ -11,6 +11,23 @@ import { CliMarquee } from "@/components/landing/cli-marquee";
 import { TemplateBreakdownHero } from "@/components/landing/template-breakdown-hero";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { scoreTone } from "@/lib/grade";
+import { LANDING_FAQ } from "@/lib/landing-faq";
+
+const GITHUB_ACTION_YAML = `name: pSEO Lint
+on: [pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm run build
+      - uses: ouranos-labs/pseolint@action-v1
+        with:
+          source: ./out
+          threshold: 40`;
 
 declare global {
   interface Window {
@@ -489,6 +506,66 @@ export function LandingForm() {
               Default thresholds: thin-content fires below <span className="text-foreground">300 words</span>, near-duplicate fires above <span className="text-foreground">85%</span> SimHash similarity, and boilerplate-ratio flags pages with over <span className="text-foreground">60%</span> shared template text.
             </li>
           </ul>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60 bg-card/30">
+        <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
+            <div className="max-w-md">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Ship it in CI</p>
+              <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+                Gate the build before a template ships broken.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Drop this into <code className="font-mono text-xs">.github/workflows/pseolint.yml</code>.
+                It audits your build output on every PR, posts a SpamBrain Risk Score summary as a
+                comment, and fails the check when the score crosses your threshold. Two minutes to wire up.
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Prefer the CLI? <code className="font-mono text-xs">npx pseolint ./out --ci-threshold concerning --format json</code>{" "}
+                does the same thing locally — see the{" "}
+                <Link href="/mcp-server" className="text-primary hover:underline">MCP server</Link> for editor + agent setups.
+              </p>
+            </div>
+            <div className="overflow-hidden rounded-[18px] border border-border/70 bg-background/80">
+              <div className="flex items-center gap-1.5 border-b border-border/60 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
+                <span className="h-2.5 w-2.5 rounded-full bg-warning/40" />
+                <span className="h-2.5 w-2.5 rounded-full bg-success/40" />
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">.github/workflows/pseolint.yml</span>
+              </div>
+              <pre className="overflow-x-auto px-4 py-4 font-mono text-[11px] leading-relaxed text-foreground/90">
+                <code>{ GITHUB_ACTION_YAML }</code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60">
+        <div className="mx-auto max-w-3xl px-5 py-20 sm:py-24">
+          <div className="mb-10">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">FAQ</p>
+            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+              Straight answers.
+            </h2>
+          </div>
+          <dl className="divide-y divide-border/60 border-y border-border/60">
+            { LANDING_FAQ.map((item) => (
+              <div key={ item.q } className="py-6">
+                <dt className="text-base font-semibold tracking-tight text-foreground">{ item.q }</dt>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{ item.a }</dd>
+              </div>
+            )) }
+          </dl>
+          <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
+            Early-stage and built in the open. Open-source (MIT), launched January 2026, with{" "}
+            <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{" "}
+            mapped to current Google policy. Every public scan lands on the{" "}
+            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> —
+            so the traction is the receipts, not a number we made up.
+          </p>
         </div>
       </section>
 

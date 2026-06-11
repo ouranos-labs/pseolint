@@ -60,4 +60,25 @@ describe("POST /api/audits", () => {
     expect(json.auditId).toBe("audit-1");
     expect(json.reportUrl).toBe("/a/audit-1");
   });
+
+  it("503 origin_unreachable when the pre-flight probe can't reach the origin", async () => {
+    // Force the pre-flight on (off by default outside production). The `.invalid`
+    // TLD never resolves (RFC 2606), so every probe fails its DNS-validated hop
+    // → verdict "unreachable" → the route refuses to dispatch. No network needed.
+    process.env.DISABLE_ORIGIN_PREFLIGHT = "0";
+    try {
+      const { POST } = await import("@/app/api/audits/route");
+      const req = new Request("http://localhost/api/audits", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.5" },
+        body: JSON.stringify({ url: "https://nonexistent.invalid/", turnstileToken: "tok" }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(503);
+      const json = await res.json();
+      expect(json.code).toBe("origin_unreachable");
+    } finally {
+      delete process.env.DISABLE_ORIGIN_PREFLIGHT;
+    }
+  });
 });

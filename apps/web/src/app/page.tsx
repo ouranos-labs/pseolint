@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { LandingForm } from "@/components/landing/landing-form";
+import { LANDING_FAQ } from "@/lib/landing-faq";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
@@ -39,6 +40,16 @@ const SOFTWARE_APPLICATION_JSON_LD = {
   ],
 };
 
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: LANDING_FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 export default function Page() {
   return (
     <>
@@ -47,6 +58,12 @@ export default function Page() {
         // Pre-sanitized: JSON.stringify + escape `</` per HTML spec
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(SOFTWARE_APPLICATION_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        // Pre-sanitized: JSON.stringify + escape `</` per HTML spec
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(FAQ_JSON_LD) }}
       />
       <LandingForm />
     </>
