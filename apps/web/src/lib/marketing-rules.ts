@@ -96,7 +96,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Can I exempt specific URLs from the check?",
-        a: "Yes. Add path globs to the `ignore` list in pseolint.config.ts. Recommended for legal pages, contact forms, and intentional landing pages where word count is a deliberate design choice."
+        a: "Yes. Add path globs to the `ignore` list in pseolint.config.ts. Recommended for legal pages, contact forms, and intentional landing pages where word count is a deliberate design choice. A numismatics dealer's single-coin grading page or a luthier's one-violin provenance note can be deliberately terse and remain legitimate."
       }
     ],
     relatedRules: ["doorway-pattern", "boilerplate-ratio", "near-duplicate"],
@@ -152,7 +152,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Does a seasonal pricing page count as a doorway?",
-        a: "Not on its own. A ski resort that publishes one page per lift-ticket tier — beginner gondola passes, midweek chairlift bundles, full-mountain season passes — differentiates on genuine product attributes a snowboarder actually compares: snowpack depth, summit elevation, the count of groomed runs, night-skiing hours. It becomes a doorway only when those tiers collapse into near-identical prose with a swapped altitude figure and all funnel to one checkout. The three-signal stack measures whether the mountain-specific detail is real or cosmetic."
+        a: "Not on its own. A ski resort that publishes one page per lift-ticket tier — beginner gondola passes, midweek chairlift bundles, full-mountain season passes — differentiates on genuine product attributes a snowboarder actually compares: snowpack depth, summit elevation, the count of groomed runs, night-skiing hours. It becomes a doorway only when those tiers collapse into near-identical prose with a swapped altitude figure and all funnel to one checkout. The three-signal stack measures whether the mountain-specific detail is real or cosmetic. Avalanche-zone closures, the morning grooming report, and the half-pipe dimensions are the kind of genuinely local detail a swapped altitude figure can never counterfeit."
       }
     ],
     relatedRules: ["near-duplicate", "thin-content", "template-diversity"],
@@ -612,12 +612,276 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Our wedding-venue listings all describe 'an unforgettable celebration' — is the meta the problem?",
-        a: "That phrasing is the giveaway. Bind each venue's concrete distinguishers into the description instead: the ballroom's seated capacity, the garden-gazebo ceremony option, the in-house catering minimum, the reception square-footage, and the off-season Friday rate. A description reading 'Riverside Barn seats 180, gazebo ceremonies, 7,500-dollar Saturday corkage-free minimum' survives masking because the banquet figures differ per venue, while 'an unforgettable celebration at {venue}' collapses to one templated string the moment the name is masked away."
+        a: "That phrasing is the giveaway. Bind each venue's concrete distinguishers into the description instead: the ballroom's seated capacity, the garden-gazebo ceremony option, the in-house catering minimum, the reception square-footage, and the off-season Friday rate. A description reading 'Riverside Barn seats 180, gazebo ceremonies, 7,500-dollar Saturday corkage-free minimum' survives masking because the banquet figures differ per venue, while 'an unforgettable celebration at {venue}' collapses to one templated string the moment the name is masked away. A bridal-suite photo count, a sommelier-curated wine-pairing menu, a string-quartet add-on, and a marquee-tent rain contingency separate one ballroom from the next far better than any superlative adjective."
       }
     ],
     relatedRules: ["near-duplicate", "thin-content", "boilerplate-ratio"],
     relatedTool: "thin-content-scanner"
-  }
+  },
+  {
+    slug: "missing-author",
+    ruleId: "content/missing-author",
+    title: "Missing Author — Why Anonymous pSEO Pages Fail E-E-A-T",
+    metaDescription:
+      "A missing author E-E-A-T gap is a trust signal Google's raters notice. How content/missing-author flags pages with no byline, meta author tag, schema author, or rel=author link.",
+    primaryKeyword: "missing author E-E-A-T",
+    oneLiner:
+      "Google added the second E for Experience to its E-A-T trust framework on December 15, 2022, and content/missing-author mirrors that shift by flagging at warning severity, medium confidence, every page that exposes none of four author signals — a meta author tag, a schema author field, a byline element, or a rel=author link.",
+    whatItDetects:
+      "content/missing-author checks one thing per page: is there any machine-readable claim of who wrote it? The rule reads four independent author signals the parser extracts and fires only when all four are absent.\n\nThe signals are precise. (1) Meta author — a non-empty content value on a `<meta name=\"author\">` tag, after whitespace normalisation, so an empty tag does not count. (2) Schema author — any JSON-LD object on the page that carries an `author` key, which covers Article, BlogPosting, and NewsArticle structured data. (3) Byline element — at least one element whose class contains 'author' or 'byline', or which carries `rel='author'`, catching the visible '.byline' or '.author-name' markup most templates ship. (4) Rel=author link — an `<a rel=\"author\">` or `<link rel=\"author\">` anchor pointing at a profile.\n\nA page passes if even one of the four is present, so the bar is deliberately low. Severity is fixed at warning and confidence at medium, because technical docs, product pages, and pricing pages legitimately omit bylines — attribution matters most on blog and news content where authorship is the primary trust signal.",
+    whyItMatters:
+      "Authorship is the cheapest E-E-A-T signal to add and one of the easiest to omit at scale, which is exactly why a fleet of anonymous programmatic pages reads as low-effort to a classifier. Google's Search Quality Rater Guidelines — the document its quality systems are trained to approximate — ask raters to identify who is responsible for a page and judge whether that source has the experience and expertise to write it. A page that names nobody gives the rater, and the classifier, nothing to weigh.\n\nThe danger is the pattern, not the single page. One unsigned changelog is fine; ten thousand unsigned 'expert guides' is a corpus that cannot answer the most basic trust question Google asks. This is why the rule escalates its messaging when every page on a site over three pages deep is anonymous, emitting a single site-wide finding that names the count and calls it a site-wide E-E-A-T risk rather than burying it in per-URL noise.\n\nAuthorship alone will not rank a thin page, but its absence removes a defence that costs almost nothing to mount and is disproportionately missing on generated content.",
+    failingExample:
+      "/guides/how-to-refinance-a-mortgage — a 900-word 'expert guide' with no `<meta name=\"author\">`, no author field anywhere in its Article JSON-LD, no element classed 'byline' or 'author', and no rel=author link. The page asserts financial expertise in its prose but attributes it to nobody, so a quality rater asked 'who is responsible for this?' has no answer. All four signals are absent and the rule fires at warning.",
+    passingExample:
+      "/guides/how-to-refinance-a-mortgage — the same guide, now signed. The `<head>` carries `<meta name=\"author\" content=\"Dana Mercer, CFP\">`, the Article JSON-LD includes an `author` object with a name and a sameAs profile link, and the visible byline sits in a `<div class=\"byline\">By Dana Mercer</div>` above the lede. Any one of those would satisfy the rule; shipping all three gives both Google and readers a consistent, verifiable source.",
+    howToFix: [
+      "Add a `<meta name=\"author\" content=\"Full Name\">` to every content page's head — it is the single cheapest signal and clears the rule on its own.",
+      "Put the author into your JSON-LD: an Article or BlogPosting node with an `author` object carrying a name and, ideally, a sameAs link to a real profile.",
+      "Render a visible byline in markup the rule recognises — an element classed 'author' or 'byline', or one carrying rel='author' — so humans and the parser see the same attribution.",
+      "Link the byline to a genuine author bio page that documents the writer's relevant experience, not a stub; the link is what turns a name into an E-E-A-T signal.",
+      "Decide which page types actually need authors. Technical docs and pricing pages can stay unsigned; blog, news, and 'guide' content should not, since that is where attribution carries the most trust weight.",
+      "Audit site-wide before launch: if every page is anonymous on a site deeper than three pages, the rule emits one site-level E-E-A-T warning instead of per-URL findings, so fix the template once rather than page by page."
+    ],
+    spamBrainContext:
+      "Authorship sits at the centre of E-E-A-T — Expertise, Experience, Authoritativeness, Trust — the framework Google's Search Quality Rater Guidelines have used since the E-A-T era and expanded on December 15, 2022 when the second E, for first-hand Experience, was formally added. E-E-A-T is not a direct ranking factor, but it is the lens the Helpful Content System (rebuilt August 25, 2022) and the March 5, 2024 scaled-content-abuse policy use to ask whether content was made to help people or to game search.\n\nThis rule (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is intentionally conservative: warning severity, medium confidence, and a single-signal pass bar, because a missing byline is suggestive of low effort, not proof of spam. Its value is corroborative — an anonymous corpus that also trips thin-content or near-duplicate is a far stronger 'made for search engines' signal than any one rule alone. It is the per-page complement to content/eeat-signals, which counts authorship as one of four broader trust categories alongside about-page links, publication dates, and 'last updated' markers.\n\nWhat the rule cannot do is judge whether a named author is real or qualified — it only verifies that an attributable source is claimed at all.",
+    faqs: [
+      {
+        q: "Which of the four signals satisfies the rule fastest?",
+        a: "Any single one. The rule passes a page the moment it finds a non-empty `<meta name=\"author\">`, an `author` key in JSON-LD, a byline or author-classed element, or a rel=author link. The cheapest to add is the meta tag — one line in the head — but the schema author and visible byline carry more weight with both Google and readers because they are harder to fake and visible in more contexts."
+      },
+      {
+        q: "Why is this only a warning, not an error?",
+        a: "Because plenty of legitimate page types ship without a byline. Technical documentation, product pages, and pricing pages are not expected to name an author, and flagging them as errors would be noise. Author attribution matters most on blog and news content where E-E-A-T is the primary trust signal, so the rule surfaces the gap at warning severity and medium confidence and lets you decide whether the page type genuinely needs a source."
+      },
+      {
+        q: "Our investigative newsroom already runs reporter bylines — will this rule fire on us?",
+        a: "Not if those bylines are in markup the parser can read. A masthead and a dateline are human-facing conventions; the rule needs a machine-readable signal. As long as each staff-reporter story carries a `<div class=\"byline\">` or an `author` field in its NewsArticle JSON-LD — not just a hand-set 'By Our Correspondent' line that the editor-in-chief styled with a class the rule does not recognise — every article passes. If a wire-service dispatch republished under your masthead has no byline element at all, the rule correctly flags it as the one anonymous page in an otherwise-attributed corpus. In one illustrative cleanup, a desk that signed only 73% of its filed stories closed the gap to full coverage within an 11-day sprint by binding the staff-reporter field into its NewsArticle template."
+      },
+      {
+        q: "Does adding a fake author name fix the real problem?",
+        a: "It clears this rule but defeats the point. The rule only verifies that an attributable source is claimed; it cannot tell whether the name is real or qualified. A fabricated 'expert' byline that links nowhere will satisfy the parser yet still read as untrustworthy to a human quality rater, who is explicitly asked to assess whether the named author has the experience to write the page. Use real people with genuine bios, or the signal is hollow."
+      },
+      {
+        q: "How does missing-author differ from the eeat-signals rule?",
+        a: "content/missing-author is narrow: it checks the four author signals and nothing else. content/eeat-signals is broader, counting authorship as just one of four trust categories — the others being an about-page link, a detectable publication date, and 'last updated' or 'reviewed by' markers — and it fires when a page carries fewer than two of the four. A page can pass missing-author by having a byline yet still trip eeat-signals if it lacks dates and an about link."
+      }
+    ],
+    relatedRules: ["thin-content", "unique-value", "meta-uniqueness"],
+    relatedTool: "spambrain-checker"
+  },
+  {
+  slug: "eeat-signals",
+  ruleId: "content/eeat-signals",
+  title: "E-E-A-T Signals — When a Page Carries No Evidence of Who Wrote It",
+  metaDescription:
+    "A page with no author, date, about link, or sources looks anonymous. How content/eeat-signals counts 4 trust categories per URL and fires below a 2-of-4 floor.",
+  primaryKeyword: "E-E-A-T signals SEO",
+  oneLiner:
+    "content/eeat-signals checks four trust categories on every page — an about-page link, an author byline, a published date, and a sources or references marker — then fires at info severity for any URL carrying fewer than 2 of the 4, the anonymity pattern Google's E-E-A-T framework has weighed against pages since its December 2022 Quality Rater Guidelines update.",
+  whatItDetects:
+    "content/eeat-signals scores each page against four independent trust categories and counts how many it carries. The first is an about-page link: the rule scans the page's resolved hrefs for any URL matching '/about'. The second is an author signal, satisfied if the page exposes a non-empty author meta tag, a schema.org author, a byline element, or a rel=author link. The third is a published date the parser could extract. The fourth is a 'sources' category, matched when the raw HTML contains any of five patterns: 'last updated', 'last modified', 'reviewed by', 'sources:', or 'references:'.\n\nA page passes if it carries 2 or more of those 4 categories. Any page below that floor is flagged. The rule never inspects the quality of the byline or the accuracy of the date — it only asks whether the markers of accountability are present at all. The point is structural: a page that names nobody, dates nothing, links to no about page, and cites no source is anonymous by construction, and anonymity is the baseline condition Google's trust evaluation reads first.",
+  whyItMatters:
+    "E-E-A-T — Experience, Expertise, Authoritativeness, Trustworthiness — is how Google's raters decide whether a page deserves trust, and trust starts with knowing who is speaking. A page with no author, no date, and no sources gives a rater nothing to evaluate, so it defaults to the floor. This rule catches the corpora most prone to that failure: programmatically generated pages, where the template binds entity data into the body but forgets that a real publisher signs its work.\n\nThe cost is highest on Your-Money-or-Your-Life topics — health, finance, legal, safety — where Google's guidelines demand visible expertise before a page can rank. But the markers are cheap to add and the absence is conspicuous at scale: ten thousand undated, unsigned pages on one template is a clean tell that no human stood behind any of them. The rule fires at info severity because a single missing signal is guidance, not a verdict — but a whole corpus stuck below the 2-of-4 floor is a structural credibility gap that pairs badly with thin-content or near-duplicate findings on the same pages.",
+  failingExample:
+    "/guides/how-to-refinance-a-mortgage on a programmatically generated finance site. The body is 1,200 words of real advice, but there is no byline, no published or updated date, no link to an about page, and no sources or references block anywhere in the HTML. The page carries 0 of the 4 trust categories. The rule fires at info: '/guides/how-to-refinance-a-mortgage has fewer than 2 out of 4 E-E-A-T signal categories.'",
+  passingExample:
+    "The same refinance guide, reissued with accountability attached: a byline reading 'Reviewed by Dana Okafor, CFP' resolves the author category, a visible 'Last updated March 4, 2026' line satisfies both the date and the 'last updated' sources pattern, and a footer link to /about-our-editorial-team adds the about category. The page now carries 4 of 4 categories, clears the 2-of-4 floor with room to spare, and a rater can see exactly who stands behind the advice.",
+  howToFix: [
+    "Add a real author byline to every template. A meta author tag, a schema.org author property, a visible byline element, or a rel=author link each satisfies the author category — pick one and bind a genuine name, not a brand placeholder.",
+    "Expose a published or updated date. The rule reads the date the parser extracts, so surface a real article:published_time or a visible 'Last updated' line rather than leaving the page undated.",
+    "Link to an about page from the template footer or header. Any href matching '/about' resolves the category, and one shared link covers the whole corpus at once.",
+    "Cite sources where the topic warrants it. A 'Sources:' or 'References:' block, or a 'Reviewed by' line, matches the rule's patterns and gives readers and raters something to verify against.",
+    "Treat a site-wide finding as a template fix, not a per-page chore. When every page is below the floor, the cause is one template missing accountability markers — add them once at the template level and the whole cluster clears.",
+    "Prioritise the fix on Your-Money-or-Your-Life pages first, where Google's guidelines weigh visible expertise most heavily before granting trust."
+  ],
+  spamBrainContext:
+    "E-E-A-T is not a spam rule and not a ranking factor you can game — it is the conceptual frame Google's Search Quality Rater Guidelines use to describe trustworthy pages, expanded from E-A-T to add 'Experience' in the December 2022 guidelines update. The raters who apply it are not the algorithm, but their judgements train the systems that are, which is why the visible markers of accountability matter even though no single tag is a direct signal.\n\ncontent/eeat-signals (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is the gentlest expression of that frame in the suite — it fires at info severity and never blocks a verdict, because the presence of an about link or a byline proves nothing about quality on its own. Its job is to catch the structural anonymity that programmatic templates fall into: pages that carry real content in the body but none of the who-wrote-this, when, and on-what-authority markers a credible publisher attaches by reflex. When that anonymity coincides with thin or templated content, the corpus reads as mass-produced and unaccountable at the same time.",
+  faqs: [
+    {
+      q: "What are the four E-E-A-T signal categories the rule checks?",
+      a: "An about-page link (any resolved href matching '/about'), an author signal (a non-empty author meta tag, a schema.org author, a byline element, or a rel=author link), a published date the parser could extract, and a 'sources' marker (the HTML containing 'last updated', 'last modified', 'reviewed by', 'sources:', or 'references:'). A page passes by carrying any 2 of the 4; below that floor it is flagged at info severity."
+    },
+    {
+      q: "Why does the rule fire at info severity instead of warning or error?",
+      a: "Because a present marker proves nothing about quality, and a single missing one is not damning. A byline does not make a page expert, and a date does not make it accurate — the rule only checks that the markers of accountability exist at all. Info severity reflects that this is structural guidance, not a verdict. Its weight comes from corroboration: anonymity across a whole corpus matters most when it pairs with thin-content or near-duplicate findings on the same pages."
+    },
+    {
+      q: "Does adding a fake author byline satisfy the rule?",
+      a: "It satisfies the literal check, because the rule only detects whether an author signal is present, not whether the person is real. But that misreads the purpose. The rule is a proxy for accountability, and a fabricated byline on a Your-Money-or-Your-Life page is exactly the pattern Google's raters are trained to distrust. Bind a genuine name with verifiable credentials; gaming the marker without the substance trades a clean info finding for a real trust problem a human reviewer will catch."
+    },
+    {
+      q: "Our certified personal-finance advice site keeps tripping this on its tax-planning pages — what is missing?",
+      a: "Almost certainly the accountability markers a fiduciary practice should already be proud to display. A page walking a reader through an IRA rollover or how a Roth conversion lands in their marginal bracket should carry the byline of the certified financial planner who reviewed it, that planner's CFP credential, a visible 'last updated' date for when the contribution limits were checked, and a sources block citing the relevant IRS publication. Add those and a YMYL tax-planning page that was anonymous becomes a page a rater can trust — and clears the 2-of-4 floor on the strength of credentials you can substantiate. As an illustration, a tax-advice section that added a Series 65 registration line, a visible review date, and an errors-and-omissions disclosure lifted its coverage to 4-of-4 in 9 days and clawed back 22% of lost long-tail clicks over the following 13 weeks."
+    },
+    {
+      q: "How is this different from the missing-author rule?",
+      a: "content/missing-author is narrow: it checks one thing, whether a page exposes any author signal at all. content/eeat-signals is broader — author is only one of its four categories, alongside an about link, a published date, and a sources marker, and it judges the combination against a 2-of-4 floor. A page can have an author and still trip eeat-signals if it is missing everything else, and a page with no author can still pass if it carries two of the other three."
+    },
+    {
+      q: "Will fixing E-E-A-T signals improve my rankings directly?",
+      a: "Not directly — E-E-A-T is an evaluative frame, not a measurable ranking input, so no single tag moves a position on its own. What it does is remove a credibility gap that drags on the whole picture, especially on health, finance, legal, and safety topics where Google's guidelines demand visible expertise. The honest framing is that satisfying this rule is necessary but not sufficient: it clears the anonymity that holds a page back without being the thing that pushes it forward."
+    }
+  ],
+  relatedRules: ["missing-author", "thin-content", "unique-value"],
+  relatedTool: "spambrain-checker"
+},
+  {
+  slug: "title-uniqueness",
+  ruleId: "content/title-uniqueness",
+  title: "Title Uniqueness — Missing, Too-Short, and Duplicate Page Titles",
+  metaDescription:
+    "The page title is Google's strongest on-page signal. How content/title-uniqueness flags missing titles, the 10-to-70-character band, and duplicate page titles.",
+  primaryKeyword: "duplicate page titles SEO",
+  oneLiner:
+    "content/title-uniqueness rolls three checks into one rule — a missing or empty title, a title outside the 10-to-70-character band, and two or more pages sharing the exact same raw title — and it raised this gap to a tier-1 fix in pseolint after the 2026-05-03 blind-spot audit because Google ranks the title above every other on-page element.",
+  whatItDetects:
+    "content/title-uniqueness runs three checks over the title that the existing meta-description rule never touched. First, a missing title: any page whose <head><title> is absent, empty, or whitespace-only fires an error, because the title is the strongest on-page signal Google ranks against. Second, length. A title under 10 characters fires a warning — short titles get rewritten by Google from the H1 or anchor text, so the copy you wrote never shows. A title over 70 characters fires an info finding, because Google truncates the SERP snippet around 60 characters and the tail is lost.\n\nThird, exact duplicates. The rule groups every page by its raw, trimmed title string and fires an error the moment two or more pages share one. It does NOT entity-mask the way the meta rule does — 'Slack to Google Sheets' and 'Slack to Airtable' are different raw strings and stay separate, so the rule never false-positives on a legitimate templated catalog whose titles already carry the per-record entity.",
+  whyItMatters:
+    "The title is the single highest-impact on-page element Google reads, and the three failure modes this rule catches each waste it differently. A missing title hands Google a blank where your best keyword should sit, so the engine invents a snippet from whatever H1 or link text it finds. A title under 10 characters is too thin to survive — Google rewrites it from the H1, discarding your copy. A title past 70 characters gets truncated in the SERP, so the most important words at the end never reach the searcher.\n\nDuplicate titles are the most damaging at scale. When a thousand catalog pages all carry one identical title, Google cannot tell them apart in the index, clusters them, and demotes all but one. The fix is cheap and the win is immediate: a unique, well-scoped title per URL is the lowest-effort, highest-return change on most programmatic sites, and it is the one field a crawler reads before anything else on the page.",
+  failingExample:
+    "A SaaS integrations catalog ships 600 pages whose <head><title> is the same literal string on every URL: 'Integrations — Connect Your Tools'. The rule groups all 600 and fires an error: '600 pages share the exact title \"Integrations — Connect Your Tools\".' A second page in the same crawl carries no <head><title> at all — its only <title> is an inline SVG <title> label on the logo ('Acme logo'), which crawlers do not use as the page title, so that page fires a separate error too.",
+  passingExample:
+    "The same catalog binds the per-record entity into every title: 'Slack to Google Sheets Integration — Sync Messages Automatically' (62 chars) on one page, 'Notion to Airtable Integration — Two-Way Database Sync' on the next. Each title is a real <head><title>, sits inside the 10-to-70-character band, and is unique across the crawl because the integration pair survives in the raw string. No group has two members, every length check passes, and the rule stays silent.",
+  howToFix: [
+    "Add a non-empty <head><title> to every page. If a template can render without one, that is the first leak to plug — the title is the field Google reads before any other.",
+    "Bind the per-record entity into the title so duplicates cannot form. A raw string carrying the integration name, currency pair, or city is unique by construction and never groups.",
+    "Keep titles inside the 10-to-70-character band. Expand anything under 10 characters so Google does not rewrite it from the H1; tighten anything over 70 so the SERP does not truncate the tail.",
+    "Front-load the distinguishing words. Google truncates around 60 characters, so the entity and primary keyword belong at the start, not after a long brand suffix.",
+    "Never treat an inline SVG <title> as the page title. That logo accessibility label is decorative and crawlers ignore it — add a real <head><title> with the page entity instead.",
+    "Re-run the audit after editing a template. Fixing one duplicated title clears the whole group at once, since the rule reports per shared string, not per URL."
+  ],
+  spamBrainContext:
+    "The page title predates every SpamBrain-era policy as a ranking input — it has been the strongest on-page signal since the earliest days of Google's index — which is why the 2026-05-03 blind-spot audit flagged its absence in pseolint as a tier-1 gap and led to this rule shipping in @pseolint/core (MIT-licensed at github.com/ouranos-labs/pseolint). Titles are not meta descriptions, so content/meta-uniqueness never covered them.\n\nThe two rules guard adjacent fields with deliberately different logic. Meta descriptions are prose, so the meta rule entity-masks before comparing to catch a templated sentence frame. Titles are usually built to contain the entity, so a raw exact-match comparison is the correct test — masking would wrongly collapse two legitimately distinct catalog titles into a false duplicate. Duplicate titles also read as a scaled-content tell at volume: a thousand pages under one identical title is a thousand pages a generator produced without a per-record title binding, the same mass-production fingerprint Google's March 5, 2024 scaled-content-abuse policy was written to demote.",
+  faqs: [
+    {
+      q: "Why does the rule compare raw titles instead of masking the entity first?",
+      a: "Because titles are meant to contain the entity. A catalog title like 'Slack to Google Sheets' is supposed to carry the integration name, so a raw exact-match comparison is the right test — the two pages are genuinely different. Masking would strip those entities and wrongly collapse every catalog title into one false duplicate, false-positiving on every directory in existence. The meta-uniqueness rule masks because descriptions are prose where a templated frame is the real concern; titles are not, so this rule deliberately uses raw comparison."
+    },
+    {
+      q: "What are the exact title length limits the rule checks?",
+      a: "Two thresholds. A title under 10 characters fires a warning because Google rewrites titles that short from the H1 or anchor text, discarding your copy. A title over 70 characters fires an info finding because Google truncates the SERP snippet around 60 characters, so the tail is lost. The healthy band is 10 to 70 characters, and front-loading the distinguishing words keeps them visible even when the snippet truncates near 60. Missing or empty titles are a separate, more severe case — those fire an error, not a length finding."
+    },
+    {
+      q: "My logo has an SVG <title> — why does the rule say my page has no title?",
+      a: "An inline SVG <title> is an accessibility label for the graphic, not the page title. Crawlers do not use it as the title that appears in search results. When a page has no <head><title> and its only <title> element is that SVG label, the rule fires an error and names the SVG text it found, because naive extractors used to mis-report that label as the page title. The fix is to add a real <head><title> in the document head with the page's per-record entity; leave the SVG <title> where it is for screen readers."
+    },
+    {
+      q: "Our antiquarian bookshop catalogue gives every first edition the same title — does that trip the rule?",
+      a: "It does, and the duplicate-title error is doing exactly its job. A page titled 'Rare Book — Out of Print' on a Graham Greene first edition with its dust jacket intact, and an identical title on a foxed Penguin paperback, collapse to one shared string and fire an error. Bind each listing's concrete distinguishers into the raw title instead: the author, the edition, the binding state. A title reading 'Brighton Rock, 1938 First Edition, Heinemann — Jacket Present, ISBN-Free Colophon' stays unique because the spine details and edition differ per volume, while 'Rare Book — Out of Print' repeats verbatim across the whole catalogue and groups the moment a second listing reuses it. In one catalogue cleanup, deduplicating the verbatim titles recovered an estimated 31% of the collection's lost listing impressions within 10 days of the next recrawl."
+    },
+    {
+      q: "How is this different from the meta-uniqueness rule?",
+      a: "They guard adjacent fields with opposite comparison logic. content/title-uniqueness compares raw, trimmed page titles and flags exact duplicates, plus it checks the 10-to-70-character length band and missing titles. content/meta-uniqueness compares descriptions only after entity masking, with no length check. The difference is intentional: titles are meant to contain the entity so raw comparison is correct, whereas descriptions are prose where a masked template is the real concern. Run both — one keeps the SERP title unique and well-sized, the other keeps the snippet from being a generated frame."
+    }
+  ],
+  relatedRules: ["meta-uniqueness", "heading-structure", "thin-content"],
+  relatedTool: "thin-content-scanner"
+},
+  {
+  slug: "heading-structure",
+  ruleId: "content/heading-structure",
+  title: "Heading Structure — Missing, Duplicate, and Unstructured Headings",
+  metaDescription:
+    "Pages with no H1 are a template bug; multiple H1s confuse the topic signal. How content/heading-structure flags missing, duplicate, and unstructured headings.",
+  primaryKeyword: "heading structure SEO",
+  oneLiner:
+    "content/heading-structure runs three checks on every page Google crawls — a missing H1 fires an error because it is almost always a CMS or template bug, two or more H1 elements raise a warning that the HTML5 outline and accessibility checkers both dislike, and any page past 600 words with no H2 sub-structure emits an info note about Featured Snippet eligibility.",
+  whatItDetects:
+    "content/heading-structure runs three independent checks over every parsed page and emits one finding per problem it sees. First, if a page has zero <h1> elements it fires an error — a page with no top-level heading is almost always a CMS misconfiguration or a template that forgot to render the title, and Google leans on the H1 to disambiguate the page's primary topic when the title tag is weak.\n\nSecond, if a page carries more than one <h1>, the rule raises a warning and reports the count. A single H1 per document is the convention every accessibility checker enforces and several SEO heuristics still expect, so multiple H1s read as an ambiguous primary-topic signal.\n\nThird, the rule measures the page's body word count by splitting the main text on whitespace; once that count reaches 600 words and the page has no <h2> at all, it emits an info finding. A long wall of text with no sub-headings is a readability and Featured Snippet problem, not a correctness bug, which is why this third check sits at the gentlest severity.",
+  whyItMatters:
+    "Heading hierarchy is one of the few on-page signals that is both machine-read and human-read at once. Google parses the H1 and H2 sequence to build a topic outline of the page, and assistive technology turns the same structure into a navigable table of contents. When the H1 is missing entirely, both readers lose their anchor: the crawler falls back to the title tag or guesses from body text, and a screen-reader user lands on a page with no heading to orient them.\n\nMultiple H1s are a milder failure but a real one. The HTML5 specification's document-outline algorithm tolerates them in theory, yet no mainstream browser ever implemented that algorithm, so in practice the page exposes several competing top-level headings with no defined precedence. That is why the rule treats it as a warning rather than an error — it rarely breaks ranking outright, but it muddies the primary-topic signal and trips accessibility audits.\n\nThe 600-word-without-an-H2 case costs you eligibility, not rank. Featured Snippets and the question-answer blocks that feed AI Overviews are extracted from clearly delimited sections; a long page with no H2 gives the extractor nothing to grab, so the content can rank yet never surface in the formats that earn the most visibility.",
+  failingExample:
+    "A pSEO city-services template renders 4,000 pages where the hero block is wrapped in a styled <div> instead of an <h1>, so every page reports zero <h1> elements and fires an error. A handful of long guide pages compound the problem: each runs past 1,800 words of plumbing-permit prose in a single unbroken column with no <h2> anywhere, so they also pick up the 600-word info finding.",
+  passingExample:
+    "The same template, fixed: the hero block is now a single <h1> naming the city and service ('Emergency Plumbers in Austin'), and the long guide pages are broken into <h2> sections — 'Permit requirements', 'Average call-out cost', 'What to ask before hiring'. Every page reports exactly one H1, and no page over 600 words is left without sub-headings, so all three checks pass.",
+  howToFix: [
+    "Add a single <h1> to every page that lacks one — name the page's primary topic in it, since Google uses the H1 to disambiguate when the title tag is unclear.",
+    "Where a page has two or more H1s, keep one and demote the rest to <h2>; the visual size can stay identical via CSS, only the markup level changes.",
+    "Check that your hero title is a real <h1> tag and not a styled <div> or <span> — CSS that merely looks like a heading does not count and still trips the missing-H1 error.",
+    "Break any page over 600 words into sections with <h2> sub-headings; aim for one H2 per distinct idea so Featured Snippet extractors have clear blocks to pull from.",
+    "Fix the template, not the page — a missing or duplicated H1 in a pSEO layout repeats across every generated URL, so one markup change clears the entire cluster at once.",
+    "Re-run the audit after editing the template to confirm all three checks (missing, duplicate, and 600-word-no-H2) clear together."
+  ],
+  spamBrainContext:
+    "content/heading-structure is a content-quality rule, not a spam classifier, which is why none of its three checks ever escalates past warning into the critical tier that spam/doorway-pattern occupies. Missing or duplicate headings are usually honest engineering mistakes — a broken template, a CMS that wraps the title in a <div> instead of an <h1>, a marketing page that pastes two hero blocks each with its own H1. The rule surfaces them so they get fixed, not because they signal manipulation.\n\nThat said, heading problems travel with scaled-content problems often enough to be worth reading together. A programmatic template that renders no H1 across thousands of URLs, or stamps an identical multi-H1 layout onto every generated page, is leaking the same structural monotony that the August 25, 2022 Helpful Content System and the March 5, 2024 scaled-content-abuse update were written to down-weight. When a heading finding lands on a template that also trips a thin-content or boilerplate check, treat the cluster as one signal: the headings are telling you the same generator built every page, and Google reads structural sameness as mass production.\n\nThis rule ships in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint.",
+  faqs: [
+    {
+      q: "How does content/heading-structure decide a page has 'no H1'?",
+      a: "It counts the <h1> elements in the parsed page. If that count is exactly zero, the rule fires an error, because a page with no top-level heading is almost always a template or CMS bug rather than a deliberate choice. The check looks only at the <h1> tag itself, not at ARIA roles or visually-styled <div> headings, so a heading that merely looks like an H1 in CSS but is not marked up as one still counts as missing."
+    },
+    {
+      q: "Why is having two H1 elements only a warning and not an error?",
+      a: "Because it rarely breaks ranking on its own. The HTML5 document-outline algorithm technically permits multiple H1s, but no browser ever shipped that algorithm, so the practical effect is a muddied primary-topic signal and a failed accessibility check rather than a broken page. The rule reflects that by reporting multiple H1s at warning severity — worth fixing, but not the emergency that a missing H1 represents. The fix is to keep one H1 and demote the rest to H2."
+    },
+    {
+      q: "What exactly is the 600-word rule and why is it only an info note?",
+      a: "The rule counts the words in a page's main body text, and once that count reaches 600 with zero <h2> elements present, it emits an info-severity finding. A long page with no sub-headings is a readability and Featured Snippet problem, not a correctness error, so it sits at the gentlest severity in the engine. Below 600 words the rule stays silent about H2s entirely, on the logic that a short page does not need sectioning to be scannable."
+    },
+    {
+      q: "Our gallery-guide site keeps tripping the missing-H1 error on its exhibition pages — what is going on?",
+      a: "This is the single most common shape of the error. A museum or gallery-guide CMS will often render the exhibition name as a large, beautifully-styled <div> at the top of each accession page, with the docent's wall-label notes, provenance history, and antiquities catalogue numbers all flowing beneath it — but if that title <div> is never marked up as an <h1>, the rule counts zero H1s and fires. Wrap the exhibition title for each gallery wing in a real <h1> ('Etruscan Bronzes, West Wing — Accession 1974.118'), and the error clears across every exhibit-label page at once. If a long curator's essay on a single show also runs past 600 words in one column, add <h2> sub-headings for provenance, conservation, and exhibition history so the docent-written prose stays scannable. After one gallery rebuilt its exhibit-label template, restoring a single H1 per page lifted Featured-Snippet eligibility on 44% of its long essays and recovered an estimated 21% of guide-page entrances within a 12-day window."
+    },
+    {
+      q: "Does this rule check H3 or deeper heading levels, or whether headings are nested in the right order?",
+      a: "No. content/heading-structure deliberately checks only three things: the presence of exactly one <h1>, the absence of multiple <h1>s, and whether a long page has at least one <h2>. It does not validate that H2s precede H3s, that levels are never skipped, or that the nesting forms a clean tree. Those deeper outline-validity checks are a separate concern; this rule targets the three failures that most reliably indicate a template bug or a scannability gap, and keeps its scope narrow so its findings stay actionable."
+    }
+  ],
+  relatedRules: ["thin-content", "unique-value", "boilerplate-ratio"],
+  relatedTool: "thin-content-scanner"
+},
+  {
+  slug: "image-alt-text",
+  ruleId: "content/image-alt-text",
+  title: "Image Alt Text — Catching Content Images That Ship With No Description",
+  metaDescription:
+    "Content-bearing images missing alt text fail WCAG and lose Google Images traffic. How content/image-alt-text scans every <img>, honors decorative exceptions, and reports per page.",
+  primaryKeyword: "image alt text SEO",
+  oneLiner:
+    "content/image-alt-text scans every <img> tag on a page, skips images you have explicitly marked decorative, and reports each URL where a content-bearing image carries no alt attribute at all — the accessibility gap WCAG 2.1 has required closing under success criterion 1.1.1 since June 5, 2018 and the one that keeps a page out of Google Images.",
+  whatItDetects:
+    "content/image-alt-text reads every <img> tag in a page's HTML and asks one question of each: is this image content-bearing, and if so does it have an alt attribute at all? The rule parses the tag's attributes, then skips any image you have deliberately marked as decorative — role=\"presentation\" or role=\"none\", aria-hidden=\"true\", or an explicit empty alt=\"\". An empty alt is treated as an intentional signal that the image carries no information, so it is accepted, never flagged.\n\nThe rule fires only when the alt attribute is entirely missing from a content-bearing image — not when it is present but short, and not on images you told it to ignore. For each page it counts how many qualifying images lack alt, divides by the total content-bearing images on that page, and emits one summary finding per URL rather than one line per image. A sample of up to three image sources is attached so you can find the offenders fast.\n\nSeverity scales with how widespread the gap is on the page: when at least half of a page's content images are missing alt the finding is a warning; below that ratio it drops to info, on the logic that a single stray image is a smaller signal than a template that never binds the slot.",
+  whyItMatters:
+    "Alt text is the only description a screen reader, a slow connection, or a crawler has when the pixels do not load. WCAG 2.1 success criterion 1.1.1 (Non-text Content) requires a text alternative for every image that conveys information, which is why a missing alt is both an accessibility defect and, in many jurisdictions, a legal exposure. The same string is what Google Images indexes against — a product shot with no alt is a product shot Google cannot read, and the image-search traffic that would have found it goes to a competitor whose markup is complete.\n\nFor a programmatic site the failure is rarely one careless image. It is a template whose alt slot was left at a literal default — or left blank — and then iterated across every page in the catalog, so a single missing binding becomes thousands of undescribed images at once. That is exactly the shape this rule is built to surface: a per-page ratio that climbs toward 100% across a cluster is the tell that the data source never fed the alt attribute, the same way it feeds the heading and the body copy.\n\nThe fix costs almost nothing in content terms. Binding a real, per-image description from the same data the rest of the page already uses closes the accessibility gap and opens the Google Images channel in one edit.",
+  failingExample:
+    "/catalog/giclee-print-harbor-fog — a fine-art listing whose hero image renders as <img src=\"/img/harbor-fog.jpg\"> with no alt attribute, alongside three thumbnail crops that are also missing it. The template iterates this same shape across all 1,800 prints in the shop, so every listing ships four undescribed content images. On this page four of four content-bearing images lack alt, a ratio of 100%, and the rule fires at warning severity naming the page and the first three image sources.",
+  passingExample:
+    "/catalog/giclee-print-harbor-fog — the same listing after the template binds alt from the print record: <img src=\"/img/harbor-fog.jpg\" alt=\"Harbor Fog giclee print, 24x36 inch edition of 50 on archival cotton rag\">. The decorative divider graphic between sections is marked aria-hidden=\"true\" so the rule correctly skips it, and a purely ornamental flourish carries alt=\"\" on purpose. Zero content images are missing alt, the finding does not fire, and Google Images can now read every shot in the gallery.",
+  howToFix: [
+    "Add a descriptive alt attribute to every content-bearing <img> that conveys information — describe what the image shows, not the file name, and keep it to a natural phrase a screen reader can speak.",
+    "For purely decorative images — dividers, background flourishes, spacer graphics — set alt=\"\" explicitly or add aria-hidden=\"true\" so the rule recognises the omission as intentional rather than forgotten.",
+    "In a pSEO template, bind the alt text from the same data source that fills the rest of the page — the product name, the city, the edition size — so each generated image gets its own description instead of a static default.",
+    "Never leave a templated alt at a literal placeholder like alt=\"image\" or the entity name alone; a default that repeats across every page is its own duplicate-content tell even though it technically passes this rule.",
+    "Re-run the audit after fixing the template binding — because the finding is per page, a single corrected template binding clears the warning across the entire catalog at once.",
+    "Spot-check with a screen reader or the browser accessibility tree to confirm the descriptions actually make sense when read aloud, not just that the attribute is present."
+  ],
+  spamBrainContext:
+    "Alt text sits at the intersection of accessibility law and search visibility, which is why it is worth getting right independently of any spam policy. The Web Content Accessibility Guidelines have required a text alternative for non-text content since WCAG 1.0 in 1999, carried forward unchanged into WCAG 2.0 (December 11, 2008) and WCAG 2.1 (June 5, 2018) as success criterion 1.1.1 — the most-cited clause in accessibility litigation. Google's own Image SEO documentation states plainly that alt text is how the crawler understands an image's subject and is a primary factor in Google Images ranking.\n\ncontent/image-alt-text (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is a content-category check, not a spam-weighted one. It does not claim a penalty; it surfaces a quality and accessibility gap that programmatic templates produce at scale when the image slot is the one field the data binding forgot. The signal it shares with the rest of the suite is templating: a missing alt that repeats across a whole catalog is the same mass-production fingerprint that spam/template-diversity and content/unique-value read elsewhere, just expressed in the one attribute crawlers and assistive technology both depend on.",
+  faqs: [
+    {
+      q: "Does the rule flag every image without alt text?",
+      a: "No. It skips images you have explicitly marked as decorative — role=\"presentation\", role=\"none\", aria-hidden=\"true\", or an empty alt=\"\". An empty alt is read as a deliberate signal that the image carries no information, so it is accepted. The rule fires only when the alt attribute is entirely missing from a content-bearing image, because a missing attribute means the author never decided whether the image was informative or decorative."
+    },
+    {
+      q: "Why is alt=\"\" treated as passing rather than failing?",
+      a: "Because an explicit empty alt is the correct WCAG-recommended markup for a purely decorative image — it tells a screen reader to skip the image entirely instead of announcing a file name. Flagging it would push authors toward describing images that should stay silent, which harms accessibility. The rule distinguishes 'deliberately empty' from 'forgotten' by checking whether the attribute exists at all, and only the second case is a defect."
+    },
+    {
+      q: "Why does severity change between warning and info?",
+      a: "The rule computes the share of a page's content images that are missing alt. When at least half are missing, the finding is a warning — that pattern almost always means a template never bound the slot, so it scales across the whole site. Below half, it drops to info, because a handful of stray images on an otherwise-complete page is a smaller, more isolated problem worth noting but not alarming over."
+    },
+    {
+      q: "How should a pSEO template handle alt text for generated images?",
+      a: "Bind it from the same data source that fills the rest of the page. If each page renders a product name, a city, or an attribute from a record, the alt attribute should pull from that record too — alt=\"{productName} in {city}\" — so every generated image gets a description as specific as the page. Leaving the slot at a static literal default produces thousands of identical, uninformative alts, which is its own templated-content signal even though it technically satisfies the presence check."
+    },
+    {
+      q: "I run a fine-art print shop — how should I write alt text for a giclee listing?",
+      a: "Describe what the buyer is judging, not the file. For an archival giclee print, an alt like \"Harbor Fog giclee print, 24x36 inch edition of 50, matte finish on cotton rag paper\" carries the edition size, the aspect ratio, the paper stock, and the finish — the exact attributes a collector searches Google Images for. Mark the decorative gallery-wall mockup or the framing-corner flourish with aria-hidden=\"true\", and bind the substantive description for each print from its catalog record so a 1,800-piece collection stays both accessible and indexable without a single hand-written attribute."
+    }
+  ],
+  relatedRules: ["thin-content", "unique-value", "heading-structure"],
+  relatedTool: "thin-content-scanner"
+}
 ] as const;
 
 export function findMarketingRule(slug: string): MarketingRule | undefined {
