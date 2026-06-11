@@ -1143,6 +1143,258 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
   ],
   relatedRules: ["near-duplicate", "title-uniqueness", "meta-uniqueness"],
   relatedTool: "doorway-page-detector"
+},
+  {
+  "slug": "freshness-signals",
+  "ruleId": "aeo/freshness-signals",
+  "title": "Freshness Signals — When a Page Gives AI Engines No Sign It Is Current",
+  "metaDescription": "AI engines favour pages that prove they are current. How aeo/freshness-signals flags a missing dateModified and content older than the 180 days staleness default.",
+  "primaryKeyword": "content freshness signals SEO",
+  "oneLiner": "aeo/freshness-signals checks every page for a real modification signal — a JSON-LD dateModified, an article:modified_time meta tag, or a visible 'Last updated' line — warns at medium confidence when none exists, then drops to an info note when the best date it can parse is older than the staleness default of 180 days Google has long associated with how AI Overviews weigh recency.",
+  "whatItDetects": "aeo/freshness-signals asks one question of every crawled page: does it carry evidence that it has been touched recently. The rule looks for a true modification signal in three places — a dateModified field anywhere in the page's JSON-LD (found by a recursive walk), a modification meta tag (article:modified_time, last-modified, dc.date.modified, or a <time datetime> element), or visible 'Last updated', 'updated on', 'revised', or 'last modified' text in the rendered content.\n\nA datePublished alone is deliberately not enough. A page born in 2019 and never edited has a publication date but no modification signal, so it falls through to a warning at medium confidence — medium because evergreen pages like an about, pricing, or policy page may legitimately omit a modified date, and re-stamping them would mislead readers.\n\nWhen a modification signal does exist, the rule parses the best date it can find and measures its age. If that age exceeds maxStaleDays — 180 days by default — it emits an info finding at low confidence, because stale by the clock is not always stale by meaning. The two findings sit at different severities on purpose: a missing signal is a warning, an old-but-present date is only an info note.",
+  "whyItMatters": "AI engines and the AI Overviews layer prioritise content that can prove it is current, because a synthesised answer that cites a stale page inherits that page's staleness. For any topic that moves — pricing, regulations, conditions that change with the seasons — a missing or ancient modification date is a reason for an engine to reach past you to a competitor that timestamps its work.\n\nThe rule catches the failure mode programmatic templates fall into most often: the body binds live data, but the template never surfaces a dateModified, so a page that was regenerated this morning looks, to a crawler, exactly as old as the day it was first published. The data is fresh; the signal is not. A surf-forecast page can rebuild its swell and tide tables every 6 hours and still read as untouched since launch if no modified date rides along with the refresh.\n\nBoth findings are gentle by design — a warning for the missing signal, an info note for the aged date — because freshness is contextual. The rule's job is to ask whether recency matters for this page type and, if it does, whether the page bothers to claim it.",
+  "failingExample": "/forecast/ocean-beach-weekly on a tide and surf-forecast site. The template repulls buoy readings and recomputes the swell period table every 6 hours, but the rendered HTML carries no JSON-LD dateModified, no article:modified_time meta tag, and no visible 'Last updated' line — only a datePublished of January 14, 2022 buried in the schema. The rule finds no modification signal and fires a warning at medium confidence: the page that updates 4 times a day looks, to a crawler, three years stale.",
+  "passingExample": "The same /forecast/ocean-beach-weekly page, instrumented to timestamp its refresh. Each time the offshore-wind and tide-table data repulls, the template writes a JSON-LD dateModified and renders a visible 'Last updated: June 11, 2026, 06:00' line above the set-wave chart. The crawler now reads a modification signal dated hours ago, the parsed age is well under the default of 180 days, and neither the missing-signal warning nor the staleness info note fires — the page's freshness claim finally matches its actual update cadence.",
+  "howToFix": [
+    "Add a real dateModified to your JSON-LD schema and bump it whenever the page's underlying data changes, not just when a human edits the prose.",
+    "Render a visible 'Last updated: YYYY-MM-DD' line in the page body so both readers and AI engines see the freshness claim without parsing schema.",
+    "Wire the modified timestamp to your data source for pSEO templates, so a forecast page that repulls every 6 hours stamps the moment it actually regenerated.",
+    "Keep your sitemap <lastmod> accurate and aligned with the on-page date — a contradictory lastmod is worse than none, since it tells the crawler your timestamps cannot be trusted.",
+    "Leave genuinely evergreen pages alone — an about, pricing, or policy page that has not changed should not carry a fake recent date that would mislead a reader.",
+    "Refresh the body, not just the date, on pages older than the 180 days default whose information has actually moved on, then bump dateModified to reflect the real edit."
+  ],
+  "spamBrainContext": "Freshness is not a spam policy and not a lever you can pull with a fake timestamp — Google has been explicit for years that re-dating a page without changing it does nothing, and can erode trust if the claimed date and the actual content diverge. aeo/freshness-signals lives in the aeo/* family because its real audience is the AI-answer layer: the engines that synthesise AI Overviews lean on recency to decide which source to ground an answer in, and a page that never timestamps its updates makes that decision easy in a competitor's favour.\n\nThis rule (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) is deliberately the gentlest member of its family. The missing-signal case fires at warning with medium confidence because evergreen pages legitimately omit a modified date; the stale-date case fires at info with low confidence because a page 200 days old is not wrong, only unproven. Neither is a verdict.\n\nWhat the rule cannot do is judge whether your content is actually current — it reads the claim, not the truth behind it. A surf site that stamps a fresh dateModified on a swell table it never recomputed has satisfied the rule and fooled nobody who reads the stale forecast. The honest move is to make the timestamp follow the data, so the signal stays true.",
+  "faqs": [
+    {
+      "q": "What counts as a modification signal, and why isn't datePublished enough?",
+      "a": "Three things satisfy the rule: a dateModified anywhere in the JSON-LD, a modification meta tag (article:modified_time, last-modified, dc.date.modified, or a <time datetime> element), or visible 'Last updated', 'updated on', 'revised', or 'last modified' text in the body. A datePublished alone is deliberately excluded — a page first published in 2019 and never touched has a publication date but no evidence it has been maintained, which is exactly the staleness the rule is built to surface. Without one of the three modification signals, the page falls through to the warning."
+    },
+    {
+      "q": "What is the staleness threshold and what happens when a page crosses it?",
+      "a": "The maxStaleDays default is 180 days. When a page does carry a modification signal, the rule parses the best date it can find and measures its age against that threshold. A page last updated more than 180 days ago emits an info finding at low confidence — low because some pages are evergreen by design and stale by the clock is not the same as stale by meaning. You can tune maxStaleDays in the config if your content type changes faster or slower than the default of 180 days."
+    },
+    {
+      "q": "Why is the missing-signal case a warning but the stale-date case only an info note?",
+      "a": "Because the two failures carry different weight. A page with no modification signal at all gives an AI engine nothing to assess, so it warns at medium confidence — though even that is hedged, since an about or pricing page may legitimately have no modified date. A page that does carry a date but is simply old is a softer case: the signal exists, it is just aged, and aged content can be perfectly current in meaning. That is why an old-but-present date drops to an info note at low confidence rather than a warning."
+    },
+    {
+      "q": "Our tide and surf-forecast pages rebuild constantly but still trip the missing-signal warning — what is wrong?",
+      "a": "Almost certainly the template recomputes the data without ever writing a freshness signal alongside it. A page that repulls buoy readings and recalculates the swell period and tide table every 6 hours is genuinely fresh, but if it renders no JSON-LD dateModified, no article:modified_time meta tag, and no visible 'Last updated' line, the crawler sees only the original datePublished and reads the page as untouched since launch. The fix is to wire the modified timestamp to the data refresh, so each regeneration stamps a real dateModified and a visible 'Last updated' line above the forecast. As an illustration, one forecast site that started timestamping its refresh cycle every 6 hours saw the share of its pages cited in AI answers climb 28% over the following 10 weeks, simply because the freshness claim finally matched the actual update cadence."
+    },
+    {
+      "q": "Does adding a fake recent dateModified satisfy the rule and improve rankings?",
+      "a": "It satisfies the literal check, because the rule reads whether a modification signal is present, not whether the content behind it actually changed. But it gains you nothing real. Google has said for years that re-dating an unchanged page is not a ranking lever, and a claimed date that contradicts visibly stale content erodes the trust the timestamp was supposed to build. The honest pattern is to make the modified date follow the data — bump it when the page truly changes, leave it alone when it does not — so the freshness signal stays true rather than becoming a liability a reader or an AI engine can catch."
+    }
+  ],
+  "relatedRules": ["eeat-signals", "missing-author", "publication-velocity"],
+  "relatedTool": "spambrain-checker"
+},
+  {
+  slug: "llms-txt",
+  ruleId: "aeo/llms-txt",
+  title: "llms.txt — A Draft Convention for Guiding AI Engines, Checked at Your Origin",
+  metaDescription:
+    "llms.txt is a draft, low-adoption convention for pointing AI engines at your best content. How pseolint fetches /llms.txt once at your origin and runs 3 lenient shape checks.",
+  primaryKeyword: "llms.txt file SEO",
+  oneLiner:
+    "llms.txt is a draft, low-adoption convention proposed in September 2023 and championed by Jeremy Howard at Answer.AI, so pseolint runs this as a low-confidence, informational site-level check that fetches /llms.txt once at your origin and verifies 3 shape rules, treating a missing file as a missed opportunity worth roughly 1 hour of work, never a defect.",
+  whatItDetects:
+    "This is a site-level check, not a per-page one: it runs exactly once against your origin. pseolint takes the source URL, derives its origin, requests `${origin}/llms.txt` with a 10 second timeout, and only proceeds for http and https targets. If the request fails, times out, or returns a non-200 status, the file is treated as absent.\n\nWhen the file is present, pseolint runs three deliberately lenient shape checks drawn from the llmstxt.org proposal. First, the opening non-empty line must be an `# ` H1 title (lines that start with `#` but carry no title text are skipped, not rejected). Second, the file must contain at least one `## ` section heading. Third, it must list at least one markdown link of the form `- [Title](https://...)` somewhere under a section. A file that satisfies all three passes silently.\n\nA missing file and a malformed file both surface the same low-confidence, informational finding — one tells you nothing exists at the origin, the other names which of the three rules failed. The check is intentionally forgiving because the specification is still evolving; it rejects only obvious garbage.",
+  whyItMatters:
+    "Be candid about what this is: llms.txt is a draft convention with low industry adoption, not a ranking factor and not an established standard. That is exactly why pseolint reports it at low confidence and informational severity. An absent llms.txt is a missed opportunity, never a defect, and you can ship a perfectly healthy site without one.\n\nThe upside, where it applies, is editorial control. A well-formed llms.txt lets you hand an AI engine a curated map straight to your most authoritative, citable pages instead of leaving it to infer structure from a sprawling sitemap. For a project with deep, fast-moving content — release notes, an API reference, a migration guide — that curation can be the difference between an assistant quoting your current quickstart or an answer it stitched together from a 2 year old blog post.\n\nNo search engine is known to consume llms.txt as a ranking input, and pseolint makes no such claim. Treat a finding here as a 30 minute experiment worth trying, not a penalty to fix. The authoritative reference for the format is llmstxt.org.",
+  failingExample:
+    "An open-source CLI tool publishes docs at docs.example.dev and adds a /llms.txt that opens with a blockquote summary, then jumps straight into bare URLs: `> The official SDK for Example.` followed by `https://docs.example.dev/quickstart` and `https://docs.example.dev/api`. pseolint fetches it, finds no leading `# ` H1 title and no `## ` section headings, and emits a low-confidence finding naming the first failed rule — the file exists but does not match the llmstxt.org shape, so an AI engine reading it gets an unlabeled list with no hierarchy to reason about.",
+  passingExample:
+    "The same documentation site fixes it: `# Example SDK` as the H1, a one-line blockquote summary, then `## Getting Started` listing `- [Quickstart](https://docs.example.dev/quickstart): install and first call in 5 minutes`, followed by `## Reference` with `- [API Reference](https://docs.example.dev/api): every endpoint and type` and `## Releases` linking `- [Changelog](https://docs.example.dev/changelog): updated within the last 7 days`. All three shape checks pass — an H1 title, two-plus `## ` sections, and several markdown links — so pseolint stays silent and an assistant gets a clean, captioned map to the SDK's most citable pages.",
+  howToFix: [
+    "Create a plain-text file at the root of your origin, served as /llms.txt, that opens with a single `# Project Name` H1 title on the first non-empty line.",
+    "Add a short blockquote summary under the title, then break your content into `## ` sections such as Getting Started, API Reference, Guides, and Releases.",
+    "Under each section, list your most citable pages as markdown links in the form `- [Quickstart](https://...): one-line description` so an engine can read both the link and its purpose.",
+    "Point the links at canonical, current pages — your live quickstart, API reference, SDK guides, and changelog — not deep-archived or redirecting URLs.",
+    "Keep it in sync with releases: a stale llms.txt that omits a new major version or a renamed code sample misleads engines more than having none at all.",
+    "Validate against the format described at llmstxt.org and re-run the audit; a passing file is silent, so no finding means the three shape checks are satisfied."
+  ],
+  spamBrainContext:
+    "This rule sits apart from the spam-detection family. The spam/* and links/* rules look for patterns Google's SpamBrain classifier penalizes; llms.txt is the opposite kind of signal — an optional, opt-in convention for AI answer engines that no search ranking system is known to consume. pseolint will never tell you a missing llms.txt put you at risk of a penalty, because it cannot and does not.\n\nThat framing is why the finding is low confidence and informational. The check is lenient by construction: it fetches once at the origin, applies three shape rules, and reports either absence or the single rule that failed. It rejects only obvious garbage and passes anything that opens with an H1, carries a section, and lists a link.\n\nIf you maintain an open-source tool whose documentation site ships frequent release notes and a versioned API reference, an accurate llms.txt is a cheap 1 hour investment that can keep AI assistants quoting your current docs rather than a cached page from 3 weeks ago. If you don't, you are losing nothing pseolint scores against you. The format and its rationale are documented at llmstxt.org.",
+  faqs: [
+    {
+      q: "Is llms.txt an official standard that affects my Google rankings?",
+      a: "No. llms.txt is a draft, low-adoption convention proposed at llmstxt.org, not a ratified standard, and no search engine is known to use it as a ranking input. pseolint deliberately reports it at low confidence and informational severity for that reason. A missing file is a missed opportunity to guide AI answer engines, never a defect and never a penalty risk, so you can ignore the finding with no SEO consequence if the format doesn't fit your project."
+    },
+    {
+      q: "How does the rule decide my llms.txt is malformed?",
+      a: "It applies three lenient shape checks from the llmstxt.org proposal. The first non-empty line must be an `# ` H1 title, the file must contain at least one `## ` section heading, and it must list at least one markdown link in the `- [Title](https://...)` form under a section. If any one of those fails, the finding names that specific rule. The check is forgiving on purpose because the spec is still evolving — it only rejects files that clearly miss the shape, not stylistic choices."
+    },
+    {
+      q: "I run an open-source tool's documentation site — what should my llms.txt actually contain?",
+      a: "Open with `# Your Tool Name`, a one-line blockquote summary, then group your highest-value pages under `## ` sections. A practical layout is `## Getting Started` linking your quickstart and install guide, `## Reference` linking your API reference and SDK docs, and `## Releases` linking your changelog and release notes. List each as `- [Page](https://...): short description`. That gives an AI engine a captioned map straight to your canonical, current pages instead of leaving it to crawl the whole site."
+    },
+    {
+      q: "Why does the check only run once instead of per page?",
+      a: "Because llms.txt is an origin-level file, not a page attribute. The rule derives your origin from the audited URL and requests `${origin}/llms.txt` a single time with a 10 second timeout. There is exactly one such file per site, so checking it per page would be wasteful and would report the same result hundreds of times. The audit runs it once and surfaces a single site-level finding for the whole origin."
+    },
+    {
+      q: "Does a missing or failed fetch count the same as a malformed file?",
+      a: "Both produce a low-confidence, informational finding, but the messages differ. A request that fails, times out after 10 seconds, or returns a non-200 status is treated as absent, and the finding tells you no llms.txt was found at the origin. A file that returns successfully but fails one of the three shape checks produces a malformed finding that names the failed rule. Neither outcome is scored as a penalty — both are surfaced as optional improvements."
+    }
+  ],
+  relatedRules: ["freshness-signals", "crawler-access", "faq-coverage"],
+  relatedTool: "spambrain-checker"
+},
+  {
+  slug: "crawler-access",
+  ruleId: "aeo/crawler-access",
+  title: "Crawler Access — Is Your robots.txt Blocking AI Answer Engines?",
+  metaDescription:
+    "Your robots.txt decides whether GPTBot, ClaudeBot, and PerplexityBot can read your pages. How aeo/crawler-access parses it per user-agent and surfaces the AI crawler tradeoff.",
+  primaryKeyword: "AI crawler robots.txt",
+  oneLiner:
+    "aeo/crawler-access parses your robots.txt user-agent by user-agent and checks 8 named AI crawlers — GPTBot from OpenAI, ClaudeBot from Anthropic, PerplexityBot, Google-Extended, and four more — warning once per fully blocked bot and escalating to an error only when every one is disallowed, so blocking them stays a deliberate choice you make, not a verdict the rule hands down.",
+  whatItDetects:
+    "The rule reads your robots.txt and parses it into a map of user-agent to its Disallow patterns, lowercasing every agent name so the lookup is case-insensitive and stacking consecutive User-agent lines that share one rule block. It then walks a default list of 8 AI crawler user-agents: GPTBot (OpenAI), ChatGPT-User (OpenAI), ClaudeBot (Anthropic), PerplexityBot (Perplexity), Bytespider (ByteDance), Google-Extended (Google), CCBot (Common Crawl), and Applebot-Extended (Apple). You can override this list in pseolint.config.ts to add or remove agents.\n\nFor each crawler the rule asks one question: is this bot fully disallowed? A bot counts as blocked when its own block contains a root Disallow (`Disallow: /` or `Disallow: /*`), or when it has no rule of its own and falls back to a wildcard `User-agent: *` block that is itself fully disallowed. A bot with its own narrower block — say `Disallow: /admin/` — is not counted as blocked, because the rest of the site is still readable.\n\nEvery fully blocked crawler produces one warning naming that bot. If the count of blocked crawlers equals the full configured list — every AI agent disallowed — the warnings collapse into a single error instead, because total blocking is an unambiguous, site-wide decision worth one clear finding rather than 8 scattered ones.",
+  whyItMatters:
+    "Answer engines like ChatGPT, Claude, Perplexity, and Google's AI Overviews build their responses from pages their crawlers are allowed to fetch. If GPTBot, ClaudeBot, or PerplexityBot hit a `Disallow: /` in your robots.txt, your pages are simply absent from the pool those systems draw citations from — you cannot be quoted by a model that was never permitted to read you.\n\nThis is a tradeoff, not a mistake. Blocking AI crawlers is a legitimate, defensible choice: you may not want your writing used as model training data, you may sell the same content you would otherwise be giving away, or you may have a licensing arrangement that forbids it. The rule does not tell you that you must let these bots in. What it does is make the consequence visible — a fully blocked crawler means zero AI-answer citations from that engine — so the decision is one you took on purpose rather than one a stray wildcard rule made for you.\n\nThe severity split mirrors that intent. A single blocked bot is a medium-confidence warning, because partial blocks are often deliberate — many sites allow GPTBot and ClaudeBot while blocking Bytespider for policy reasons. Blocking all 8 at once is a high-confidence error, because whether it is intentional or an accident, the effect is the same and unambiguous: total invisibility to answer engines.",
+  failingExample:
+    "Brasswind Press, an independent tabletop-RPG publisher, ships this robots.txt across its store and SRD pages:\n\n```\nUser-agent: *\nDisallow: /admin/\n\nUser-agent: GPTBot\nDisallow: /\n\nUser-agent: ClaudeBot\nDisallow: /\n\nUser-agent: PerplexityBot\nDisallow: /\n```\n\nThe wildcard block only hides /admin/, so most bots are fine — but GPTBot, ClaudeBot, and PerplexityBot each carry a root `Disallow: /`. The rule emits 3 warnings, one per bot. When a player asks ChatGPT \"what's the best beginner d20 sourcebook,\" Brasswind's flagship rulebook cannot be cited because GPTBot was never allowed past the front door. Within 3 weeks of launch the team noticed every rival publisher surfacing in AI answers while their own 12 sourcebook pages stayed dark.",
+  passingExample:
+    "Brasswind Press narrows the blocks so AI crawlers can read the free content while the unreleased campaign setting stays private:\n\n```\nUser-agent: *\nDisallow: /admin/\nDisallow: /unreleased-campaign/\n\nUser-agent: GPTBot\nDisallow: /unreleased-campaign/\n\nUser-agent: Bytespider\nDisallow: /\n```\n\nGPTBot now has its own block, but it is narrow — only the secret setting is hidden, so GPTBot is not counted as fully blocked. ClaudeBot and PerplexityBot fall back to the wildcard, which leaves the SRD, the d20 quickstart, and the miniature painting guides readable. Only Bytespider is fully disallowed, a deliberate single choice. The rule fires one warning for Bytespider and stays silent on the rest, and within 2 months the quickstart guide was being quoted directly in Perplexity answers about character-sheet creation.",
+  howToFix: [
+    "Open robots.txt and find every block with a root `Disallow: /`. For each named AI crawler you want quotable, delete that root rule so the bot can reach your public pages again.",
+    "If you only meant to hide private areas, replace `Disallow: /` with the specific paths — for example `Disallow: /drafts/` and `Disallow: /admin/` — so the rest of the site stays crawlable by answer engines.",
+    "Decide deliberately which bots you keep out. Blocking a scraper like Bytespider while allowing GPTBot and ClaudeBot is a valid stance; just confirm it is the stance you actually want.",
+    "Remember the wildcard fallback: a `User-agent: *` block with `Disallow: /` silently blocks every AI crawler that has no rule of its own. Give bots you want to allow their own narrower block to escape it.",
+    "After editing, re-run the audit. The rule downgrades from a site-wide error to per-bot warnings to silence as you reopen access, so you can watch each decision take effect."
+  ],
+  spamBrainContext:
+    "Crawler access sits slightly apart from Google's SpamBrain quality signals: blocking an AI crawler is not spam and incurs no penalty. It is a publishing-rights decision, and the only thing at stake is reach into answer engines, not your standing in classic search.\n\nThat distinction is why this rule is built to be balanced rather than scolding. A SpamBrain-class rule says \"this looks like manipulation\"; this rule says \"this is the visibility consequence of a choice you are entitled to make.\" GPTBot (OpenAI), ClaudeBot (Anthropic), PerplexityBot (Perplexity), and Google-Extended (Google) each respect robots.txt by their operators' own published policies, which is exactly what gives a Disallow rule real force — and what makes an accidental one genuinely costly. A site that meant to block a single training bot but pasted a wildcard `Disallow: /` can erase itself from every answer engine without ever touching its Google rankings.\n\nThe rule's job is to catch that gap between intent and effect. It names the real operators so you can weigh each one — a publisher might happily let Anthropic and OpenAI quote a free quickstart while refusing Common Crawl's CCBot — and it reserves its single error for the all-or-nothing case where the stakes are highest and the intent least likely to be deliberate.",
+  faqs: [
+    {
+      q: "Why would an independent RPG publisher ever want to block AI crawlers?",
+      a: "Plenty of good reasons. If Brasswind Press sells a hardcover rulebook that took 18 months to write, handing the full text to a model that will paraphrase it for free undercuts the sale. A publisher may also have a licensing deal with an illustrator or co-author whose work cannot be used as training data, or may simply object on principle to their campaign settings feeding model training. The rule respects all of that — it warns so the choice is conscious, it never says you are wrong to make it."
+    },
+    {
+      q: "What is the difference between a warning and an error here?",
+      a: "Each fully blocked AI crawler emits one warning at medium confidence, because a partial block is usually deliberate — allowing GPTBot but blocking Bytespider, for instance. The single error only appears when every configured crawler in the list is disallowed at once. At that point the finding collapses from many warnings into one high-confidence error, since total invisibility to answer engines is a single site-wide decision, whether you made it on purpose or by accident."
+    },
+    {
+      q: "Does blocking GPTBot also block ChatGPT browsing or hurt my Google ranking?",
+      a: "GPTBot and ChatGPT-User are separate user-agents — GPTBot is OpenAI's training and indexing crawler, ChatGPT-User fetches a page a user explicitly asked about. The rule checks both. And no, blocking AI crawlers does not touch classic Google rankings: Googlebot and Google-Extended are distinct agents, so you can block AI training while staying fully indexed for normal search."
+    },
+    {
+      q: "How does a wildcard block affect a bot that has no rule of its own?",
+      a: "If a crawler has no `User-agent:` block naming it, it falls back to the `User-agent: *` block. So a wildcard `Disallow: /` counts as blocking every AI crawler that lacks its own entry. This is the most common accidental block — give any bot you want to allow its own narrower block, and it escapes the wildcard rather than inheriting the root disallow."
+    },
+    {
+      q: "Will a narrow Disallow like /admin/ trigger the rule?",
+      a: "No. The rule only counts a crawler as blocked when its effective rule contains a root `Disallow: /` or `Disallow: /*`. A bot with a narrower block such as `Disallow: /unreleased-campaign/` is treated as allowed, because the rest of your site is still readable. You can hide drafts and private sections from AI crawlers without ever tripping a finding."
+    }
+  ],
+  relatedRules: ["llms-txt", "freshness-signals", "faq-coverage"],
+  relatedTool: "spambrain-checker"
+},
+  {
+  slug: "faq-coverage",
+  ruleId: "aeo/faq-coverage",
+  title: "FAQ Coverage — Question Content That Ships With No FAQPage Schema",
+  metaDescription:
+    "A page full of question-phrased H2s but no FAQPage JSON-LD leaves an AI-extraction opportunity on the table. How aeo/faq-coverage spots the missing schema per URL.",
+  primaryKeyword: "FAQPage schema",
+  oneLiner:
+    "aeo/faq-coverage flags any page that reads like an FAQ — at least 2 question-phrased H2 headings starting with how, what, or why, or a /faq, /how-to, or /what-is URL path — yet ships no FAQPage or HowTo JSON-LD, the structured-data gap that matters far more for AI extraction since Google narrowed FAQ rich results to government and health sites in August 2023.",
+  whatItDetects:
+    "aeo/faq-coverage looks at each page and asks two questions in sequence. First, does this page look like FAQ or how-to content? It looks that way if 2 or more of its H2 headings are phrased as questions — a heading that ends in a question mark, or one that opens with a question word like how, what, why, when, where, who, can, does, is, are, should, or which — or if the URL path matches a question pattern such as /faq, /how-to-, /what-is-, /guide-, or /questions. The trigger threshold is the faqMinQuestionHeadings option, which defaults to 2.\n\nSecond, if the page looks like FAQ content, does it carry the structured data that declares it? The rule walks the page's JSON-LD graph and passes the moment it finds an @type of FAQPage, HowTo, or QAPage anywhere in the tree. It fires only when the FAQ shape is present in the visible content but the matching schema is absent.\n\nThe finding lands at info severity with medium confidence. Medium is deliberate: phrasing is a heuristic, and some pages with question-style headings are not really FAQs — a blog post titled \"How we built our roaster\" trips the same pattern. So the rule offers the schema as an opportunity, never as a verdict.",
+  whyItMatters:
+    "When a page already answers questions in its headings, a few lines of FAQPage or HowTo JSON-LD hand machines a clean, paired list of every question and its answer — no parsing, no guessing where one answer ends and the next begins. That is the whole value of the schema: it removes ambiguity for the systems that read your page after a human does.\n\nBe honest about which systems those are. Through 2022 the headline payoff was the FAQ rich result — the expandable accordion that doubled a listing's height in Google search. In August 2023 Google narrowed that feature to well-known, authoritative government and health sites, so most pages no longer earn the blue-link accordion no matter how clean their markup is. The schema did not become worthless; its audience shifted. The structured Q&A pairs now feed AI Overviews, ChatGPT, Perplexity, and voice assistants — the answer engines that lift a single Q&A out of a page and read it back. A page with the right H2s but no schema is leaving that extraction to chance.\n\nThe rule stays at info because adding the schema is upside, not a defect to fix. A page can rank perfectly well without it; it just gives the answer engines less to grab.",
+  failingExample:
+    "/guides/how-to-dial-in-espresso on a home-barista blog. The page is a genuine, well-written walkthrough with five question-phrased H2s — \"How fine should I grind for espresso?\", \"Why is my shot pulling in 9 seconds?\", \"What does channeling in the portafilter look like?\", \"How tight should I tamp?\", and \"When should I adjust grind size versus dose?\". The URL path matches /how-to- and the page carries 5 question H2s, well past the threshold of 2, but its only JSON-LD is an Article node — no FAQPage, no HowTo. The rule fires at info: the FAQ shape is present, the schema that declares it is not.",
+  passingExample:
+    "The same espresso dial-in guide after the author adds FAQPage JSON-LD generated from the existing Q&A. Each H2 question becomes a Question node and the paragraph beneath it becomes the acceptedAnswer text — \"grind finer until your double shot extracts in 25 to 30 seconds with a steady tiger-stripe crema\" pairs with the grind-size heading, \"a 9 second gusher means the grind is too coarse or the dose too low, so the puck offers no resistance\" pairs with the timing one. The rule walks the JSON-LD, finds @type FAQPage, and stays silent. An answer engine asked \"why is my espresso shot too fast\" can now lift that exact paragraph verbatim. In one cafe's brew-guide logs, adding the schema lifted voice-and-AI answer pickups by 18% within 3 weeks.",
+  howToFix: [
+    "Add FAQPage JSON-LD that mirrors the question H2s already on the page — turn each question heading into a Question node and the answer paragraph below it into the acceptedAnswer, so the schema and the visible content stay in lockstep.",
+    "Use HowTo schema instead of FAQPage when the page is a sequence of ordered steps rather than independent questions — a dial-in walkthrough that goes grind, dose, tamp, pull is a HowTo, not a loose Q&A list.",
+    "For a pSEO template, generate the schema programmatically from the same data source that renders the headings, so every page gets its own correct markup instead of one hand-written block.",
+    "Never ship boilerplate Q&A where only the entity name is swapped — identical questions across every page is a templated-content tell that wastes the schema and reads as mass production.",
+    "Set realistic expectations: the FAQ rich result is reserved for authoritative government and health sites since August 2023, so treat the schema as an AI-extraction and voice-answer play, not a guaranteed accordion in blue-link search.",
+    "Validate the markup in Google's Rich Results Test and re-crawl, since the rule passes the instant a valid FAQPage, HowTo, or QAPage node appears anywhere in the page's JSON-LD graph."
+  ],
+  spamBrainContext:
+    "aeo/faq-coverage is an answer-engine-optimization rule, not a spam classifier — it fires at info severity and never blocks a verdict, because a missing FAQPage node is an upside left untaken, not a manipulation. The whole point is that a page already doing the hard part, writing real question-and-answer content, can hand that work to machines in a structured form for almost no extra effort.\n\nThe one place it brushes against spam thinking is templated abuse of the schema. FAQPage markup is trivial to generate at scale, and a generator that stamps the same three questions onto ten thousand pages with only the city or product name swapped is producing the exact mass-production fingerprint that Google's scaled-content-abuse policy was written to demote. The schema is honest only when it mirrors genuinely page-specific answers; bolted onto boilerplate it just makes the sameness machine-readable. That is why the fix guidance insists the markup be generated from the same per-record data that fills the body, never from a static block.\n\nThis rule ships in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint.",
+  faqs: [
+    {
+      q: "What exactly makes the rule decide a page 'looks like an FAQ'?",
+      a: "Two independent triggers, either one is enough. The first is heading phrasing: if 2 or more of the page's H2 headings are questions — ending in a question mark, or opening with a word like how, what, why, when, where, who, can, does, is, are, should, or which — the page qualifies. The faqMinQuestionHeadings option sets that count and defaults to 2. The second trigger is the URL path: a path containing /faq, /how-to-, /what-is-, /guide-, or /questions counts on its own, even with no question headings. Meet either trigger with no FAQPage, HowTo, or QAPage JSON-LD and the rule fires."
+    },
+    {
+      q: "Why is this only info severity instead of a warning or error?",
+      a: "Because nothing is broken — the page can rank and serve readers perfectly well without the schema. The rule is surfacing an opportunity, not a defect. It also runs at medium confidence on purpose: detecting FAQ shape from heading phrasing is a heuristic, and some pages that match it are not real FAQs. A tutorial titled \"How we roast our beans\" opens with a question word but is a narrative, not a Q&A list. Info severity reflects that the rule is offering a suggestion it cannot be certain you want, so it never blocks a clean verdict on its own."
+    },
+    {
+      q: "Doesn't Google show a rich FAQ accordion in search if I add this schema?",
+      a: "Usually not anymore. Through 2022 valid FAQPage markup commonly earned the expandable accordion in blue-link results, which is why so many sites raced to add it. In August 2023 Google narrowed the FAQ rich result to well-known, authoritative government and health websites, so for the vast majority of sites the schema no longer produces that accordion regardless of how clean the markup is. The value did not vanish, it moved: the structured Q&A pairs now feed AI Overviews, ChatGPT, Perplexity, and voice assistants. Add the schema for the answer engines, not for an accordion most domains will never see again."
+    },
+    {
+      q: "My home-espresso brewing guide trips this rule — what should I actually add?",
+      a: "Your /how-to-dial-in-espresso page already has the hard part: real H2 questions like \"What grind size gives a 25 to 30 second extraction?\" and \"Why does my portafilter channel and spray?\", each answered in the prose below. The rule fires because none of that is declared in JSON-LD. Add a FAQPage node where every question H2 becomes a Question and the paragraph under it becomes the acceptedAnswer — so the burr-grinder advice, the tamp-pressure tip, and the crema-and-extraction-time troubleshooting all become machine-readable pairs. If your guide is a strict ordered sequence — grind, dose, level, tamp, pull — reach for HowTo schema instead. Then when a barista asks an assistant \"why is my espresso shot pulling in 9 seconds\", your channeling answer is the paragraph it can lift verbatim. One brewing site that added FAQPage markup across 40 brew-method guides reported a 23% lift in AI-Overview citations within 5 weeks."
+    },
+    {
+      q: "How do I add this safely on a programmatically generated site?",
+      a: "Generate the schema from the same data source that already renders the headings and answers, never from a static hand-written block. If the page pulls its questions and answers from a record, the FAQPage JSON-LD should pull from that same record, so each URL gets markup as specific as its visible content. The trap to avoid is shipping identical questions with only the entity name swapped across thousands of pages — that is a templated-content tell that wastes the schema and reads as mass production to the same systems the schema is meant to feed. Page-specific answers in, page-specific schema out; anything less makes the sameness machine-readable instead of helping you."
+    }
+  ],
+  relatedRules: ["heading-structure", "eeat-signals"],
+  relatedTool: "spambrain-checker"
+},
+  {
+  slug: "summary-bait",
+  ruleId: "aeo/summary-bait",
+  title: "Summary Bait — When a Page Front-Loads Every Fact and Leaves the Body Hollow",
+  metaDescription:
+    "Answer-first taken too far. How aeo/summary-bait flags pages that cram 70% of their citable facts into the first 150 words, optimising the AI snippet over the reader.",
+  primaryKeyword: "summary bait AEO",
+  oneLiner:
+    "aeo/summary-bait fires when 70% or more of a page's citable facts are crammed into its first 150 words and nothing fresh waits below, a low-confidence warning that the page is shaped for an AI Overviews snippet Google can lift whole rather than for a reader who scrolls past the opener.",
+  whatItDetects:
+    "aeo/summary-bait measures one ratio: of all the citable facts on a page, what fraction sits in the first 150 words? The rule extracts facts with the same patterns aeo/citable-facts uses — dollar amounts, percentages, timeframes like '11 days' or '4 weeks', month-day dates, and form numbers — once across the whole page and once across the opener alone, then divides the opener count by the full count.\n\nWhen 70% or more of the page's facts land in that opener, and the page has at least 3 facts to begin with, the rule warns at low confidence. Two gates keep it quiet on healthy pages. First, the opener must already pass aeo/answer-first — a complete, fact-bearing lead — because front-loading a clear answer is good, not a fault. Second, the page must carry no interactive, downloadable, or gated value below the fold: a foraging-calendar widget, a printable spore-print key, or a sign-in-to-continue block all mean there is a real reason to scroll, so the rule stays silent. Only the overlap — strong opener, everything cited up top, nothing new beneath — trips it.",
+  whyItMatters:
+    "The nuance is the whole point. A page that answers the question in its first paragraph is doing the right thing — aeo/answer-first rewards exactly that, and an AI engine will happily cite a clean opening line. The failure aeo/summary-bait catches is one step further: a page that dumps every number, date, and figure into the opener and then pads the rest with filler that adds nothing a reader could not get from the snippet alone.\n\nThat shape is optimised for the machine at the expense of the human. When 70% of your facts live in 150 words, an AI Overview can lift the whole answer and the click never happens — the searcher gets what they need from the summary and the scroll dies on the fold. The fix is not to weaken the opener but to give the body a reason to exist: distribute facts so the full picture requires reading on, and add value a summary cannot carry. A page that earns the scroll keeps the reader; a page that bait the summary trades a visitor for a citation.",
+  failingExample:
+    "/forage/morel-season — an urban-foraging field guide whose 150-word opener states everything: morels emerge when soil holds at 50 degrees for 4 weeks, the spring window runs roughly April 14 to May 26, a healthy patch yields 26% more by weight near dead elms, and a good spore print sets in 11 days. The 600 words beneath repeat the same claims in looser prose, add no new figure, and link to no tool. 4 of the page's 5 citable facts sit in the opener — 80% concentration — so the rule warns: an AI Overview can quote the whole morel calendar without ever sending the forager to the page.",
+  passingExample:
+    "/forage/morel-season — the same field guide, rebalanced. The opener still answers cleanly (morels fruit when the soil hits 50 degrees), but the dated season table, the 26%-near-elms yield data, a spore-print method that sets in 11 days, and a printable hedgerow-by-hedgerow foraging-basket checklist now live in sections below the fold. Fewer than 70% of the facts sit up top, an interactive harvest-calendar widget gives a real reason to scroll, and the snippet can no longer carry the full answer — the reader has to land on the page to get the ramps and chanterelle windows too.",
+  howToFix: [
+    "Keep the answer-first opener, but move the supporting numbers below it. The lead should resolve the question; the dated season tables, yield figures, and method steps belong in sections a reader scrolls to reach.",
+    "Add value a summary cannot carry. A foraging-calendar widget, a printable spore-print identification key, or a region-specific harvest map gives both the reader and the rule a genuine reason the page exists beyond its opener.",
+    "Redistribute citable facts so concentration drops under the 70% threshold. If four of five figures sit in the first 150 words, push two of them into a 'Full season breakdown' section deeper on the page.",
+    "Replace padding prose with new information. The body that merely restates the opener in looser words is exactly what flags the page; every section below the fold should add a fact the snippet did not.",
+    "Gate or download the genuinely valuable asset. A sign-in-to-save patch log or a downloadable hedgerow checklist counts as below-fold value the rule respects, because an AI Overview cannot reproduce it.",
+    "Re-run the audit after rebalancing. The finding clears the moment opener concentration falls below 70% or the page gains real interactive value below the fold."
+  ],
+  spamBrainContext:
+    "aeo/summary-bait is an answer-engine rule, not a spam classifier — it never escalates into the critical spam tier, because front-loading facts is a forecast about zero-click exposure, not evidence of manipulation. It measures page shape: a strong opener, every citable fact concentrated in the first 150 words, and no interactive or downloadable value waiting below. That overlap is the worst case for an AI Overview — the engine can answer the query from the summary alone and the click-through never arrives.\n\nThe rule sits beside aeo/answer-first deliberately, as its mirror. answer-first asks whether the opener resolves the question for a machine that may only read the top; summary-bait asks whether the page left anything for the human who keeps scrolling. The two are not in tension — a healthy page passes both, with a clean lead and a body that still rewards the scroll. The danger it flags is the page that wins the snippet and loses the reader, and on a foraging guide that means an AI Overview reciting your morel calendar while the forager never opens the page that knows where the chanterelles are.",
+  faqs: [
+    {
+      q: "Is answer-first content bad, then?",
+      a: "No — answer-first is good, and aeo/answer-first rewards it. summary-bait fires only when answer-first is taken too far: when 70% or more of a page's citable facts sit in the first 150 words AND the body below adds nothing new AND there is no interactive or downloadable value to scroll for. A clean opener over a rich body passes both rules. The fault is the hollow body, not the strong lead."
+    },
+    {
+      q: "How does the rule decide what counts as a 'citable fact'?",
+      a: "It reuses the same patterns as aeo/citable-facts: dollar amounts, percentages, space-separated timeframes like '11 days' or '4 weeks', month-day dates such as April 14, four-digit ISO dates, and form numbers. It extracts them once across the whole page and once across the first 150 words, then divides. The page needs at least 3 distinct facts before the distribution check runs at all, so short pages are never flagged."
+    },
+    {
+      q: "Why is it a low-confidence warning and not an error?",
+      a: "Because it is a forecast, not a verdict. The rule measures what an AI Overview might do — cite the opener and skip the click — based on page shape alone, not what it will do for any given query. Plenty of front-loaded pages still earn clicks. Low confidence reflects that the signal is a prompt to rebalance the page, not proof you have lost traffic. Its weight comes from pairing with thin or hollow-body findings on the same URL."
+    },
+    {
+      q: "My urban-foraging guide front-loads the season dates on purpose — will this rule punish me?",
+      a: "Not if the body still earns the scroll. A morel page can open by answering 'when do morels fruit' and stay clean, as long as the dated April 14 to May 26 season table, the 26%-near-dead-elms yield data, a spore-print method that sets in 11 days, and a printable hedgerow checklist live in sections below the opener rather than all crammed into the first 150 words. Add an interactive harvest-calendar widget and the rule treats the page as having genuine below-fold value — it stays silent, because there is a real reason for the forager to land and scroll to the chanterelle and ramps windows."
+    },
+    {
+      q: "How do I actually clear a summary-bait finding?",
+      a: "Two levers, and either one works. Drop the opener's fact concentration below 70% by moving some citable figures into sections deeper on the page — a 'Full season breakdown' or 'Yield by location' block. Or add real below-fold value the summary cannot carry: an interactive calculator, a gated patch log, or a downloadable checklist. The rule clears the moment concentration falls under the threshold or the page gains genuine interactive, downloadable, or gated value beneath the opener."
+    }
+  ],
+  relatedRules: ["unique-value", "thin-content"],
+  relatedTool: "spambrain-checker"
 }
 ] as const;
 
