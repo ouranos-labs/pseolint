@@ -463,6 +463,12 @@ export interface AuditOptions {
     metaUniquenessMinJaccard?: number;
     linkDepthMaxClicks?: number;
     templateCoverageMinPages?: number;
+    /** content/citation-coverage: quantified-claim count that expects a citation. */
+    citationCoverageMinClaims?: number;
+    /** content/citation-coverage: authoritative-citation floor below which it fires. */
+    citationCoverageMinAuthoritative?: number;
+    /** content/citation-coverage: extra authoritative domains merged with defaults. */
+    citationAllowlist?: readonly string[];
     /** aeo/answer-first: max words in the first paragraph for extractable answer. */
     answerFirstMaxWords?: number;
     /** aeo/citable-facts: below this count, a page errors. */

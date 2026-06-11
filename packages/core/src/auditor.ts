@@ -5,6 +5,7 @@ import { parseHtmlPage } from "./parser.js";
 import { pageSkipReason } from "./page-filter.js";
 import { mergeNormalizeUrlOptions, normalizeAuditUrl } from "./url-normalize.js";
 import { eeatSignalsRule } from "./rules/content/eeat-signals.js";
+import { citationCoverageRule } from "./rules/content/citation-coverage.js";
 import { metaUniquenessRule } from "./rules/content/meta-uniqueness.js";
 import { missingAuthorRule } from "./rules/content/missing-author.js";
 import { uniqueValueRule } from "./rules/content/unique-value.js";
@@ -114,6 +115,8 @@ const DEFAULTS = {
   metaUniquenessMinJaccard: 0.9,
   linkDepthMaxClicks: 3,
   templateCoverageMinPages: 5,
+  citationCoverageMinClaims: 4,
+  citationCoverageMinAuthoritative: 1,
   answerFirstMaxWords: 100,
   citableFactsMin: 3,
   citableFactsTarget: 8,
@@ -696,6 +699,9 @@ function runRulesOnPages(
     metaUniquenessMinJaccard: number;
     linkDepthMaxClicks: number;
     templateCoverageMinPages: number;
+    citationCoverageMinClaims: number;
+    citationCoverageMinAuthoritative: number;
+    citationAllowlist?: readonly string[];
     answerFirstMaxWords: number;
     citableFactsMin: number;
     citableFactsTarget: number;
@@ -793,6 +799,14 @@ function runRulesOnPages(
 
   if (isEnabled("content/eeat-signals") && modeOk("content/eeat-signals")) {
     pushAll(findings, tag(eeatSignalsRule(pages)));
+  }
+
+  if (isEnabled("content/citation-coverage") && modeOk("content/citation-coverage")) {
+    pushAll(findings, tag(citationCoverageRule(pages, entityPatterns, {
+      minClaims: resolvedRules.citationCoverageMinClaims,
+      minAuthoritative: resolvedRules.citationCoverageMinAuthoritative,
+      allowlist: resolvedRules.citationAllowlist,
+    })));
   }
 
   // 2026-05-03 v0.5.2 blind-spot fixes — title uniqueness + heading
@@ -2191,6 +2205,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       options?.rules?.metaUniquenessMinJaccard ?? DEFAULTS.metaUniquenessMinJaccard,
     linkDepthMaxClicks: options?.rules?.linkDepthMaxClicks ?? DEFAULTS.linkDepthMaxClicks,
     templateCoverageMinPages: options?.rules?.templateCoverageMinPages ?? DEFAULTS.templateCoverageMinPages,
+    citationCoverageMinClaims:
+      options?.rules?.citationCoverageMinClaims ?? DEFAULTS.citationCoverageMinClaims,
+    citationCoverageMinAuthoritative:
+      options?.rules?.citationCoverageMinAuthoritative ?? DEFAULTS.citationCoverageMinAuthoritative,
+    citationAllowlist: options?.rules?.citationAllowlist,
     answerFirstMaxWords: options?.rules?.answerFirstMaxWords ?? DEFAULTS.answerFirstMaxWords,
     citableFactsMin: options?.rules?.citableFactsMin ?? DEFAULTS.citableFactsMin,
     citableFactsTarget: options?.rules?.citableFactsTarget ?? DEFAULTS.citableFactsTarget,

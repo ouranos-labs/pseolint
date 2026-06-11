@@ -69,6 +69,7 @@ export const PSEO_ONLY_RULE_IDS: readonly string[] = [
   "spam/entity-swap",
   "cannibal/url-pattern",
   "links/host-section-divergence",
+  "content/citation-coverage",
 ];
 
 /**

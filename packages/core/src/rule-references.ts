@@ -11,6 +11,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "content/meta-uniqueness": "https://developers.google.com/search/docs/appearance/snippet#meta-descriptions",
   "content/missing-author": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content#eeat",
   "content/eeat-signals": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content#eeat",
+  "content/citation-coverage": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content#eeat",
   "content/title-uniqueness": "https://developers.google.com/search/docs/appearance/title-link",
   "content/heading-structure": "https://developers.google.com/search/docs/appearance/title-link#headings",
   "content/image-alt-text": "https://developers.google.com/search/docs/appearance/google-images#descriptive-alt-text",

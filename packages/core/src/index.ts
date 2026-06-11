@@ -17,6 +17,7 @@ export * from "./rules/content/unique-value.js";
 export * from "./rules/content/meta-uniqueness.js";
 export * from "./rules/content/missing-author.js";
 export * from "./rules/content/eeat-signals.js";
+export * from "./rules/content/citation-coverage.js";
 export * from "./rules/links/orphan-pages.js";
 export * from "./rules/links/dead-ends.js";
 export * from "./rules/links/link-depth.js";
