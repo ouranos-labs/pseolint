@@ -69,7 +69,7 @@ export async function generateMetadata({
     title,
     description,
     robots,
-    openGraph: { title, description, type: "article" },
+    openGraph: { title, description, type: "article", images: [absoluteUrl("/opengraph-image")] },
     twitter: { card: "summary_large_image", title, description },
   };
 }

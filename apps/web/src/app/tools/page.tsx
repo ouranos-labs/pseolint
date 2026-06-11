@@ -16,6 +16,7 @@ export const metadata: Metadata = {
       "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware — each rule contributes to a per-template verdict. No signup, runs in 60 seconds.",
     url: `${SITE_URL}/tools`,
     type: "website",
+    images: [`${SITE_URL}/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",

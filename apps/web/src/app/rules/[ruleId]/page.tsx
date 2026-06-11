@@ -51,7 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: rule.metaDescription,
       type: "article",
       url,
-      siteName: "pseolint"
+      siteName: "pseolint",
+      images: [`${SITE_URL}/opengraph-image`],
     },
     twitter: {
       card: "summary_large_image",

@@ -18,7 +18,8 @@ export const metadata: Metadata = {
       "Five flagship rule explainers covering thin content, doorway patterns, near-duplicates, boilerplate ratio, and template diversity. v0.6 — rules aggregate to per-template verdicts, not per-URL lists.",
     type: "website",
     url: PAGE_URL,
-    siteName: "pseolint"
+    siteName: "pseolint",
+    images: [`${SITE_URL}/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",
