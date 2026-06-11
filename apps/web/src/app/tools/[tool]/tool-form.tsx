@@ -56,12 +56,23 @@ export function ToolForm({ tool }: ToolFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<FormError | null>(null);
   const [authorized, setAuthorized] = useState(false);
-  const [tosGateShown, setTosGateShown] = useState(false);
+  // True only when authorization was restored from localStorage on mount (a
+  // returning user) — used to hide the checkbox entirely for them.
+  const [rememberedAuthorization, setRememberedAuthorization] = useState(false);
+  // Turnstile is deferred until the user engages the form (focuses the URL
+  // field, or arrives with a prefilled URL) so the ~65px widget stays out of
+  // first paint and the CTA sits right under the input.
+  const [turnstileArmed, setTurnstileArmed] = useState<boolean>(
+    Boolean(searchParams.get("url")),
+  );
 
   // Re-sync prefill when query param changes (Next router doesn't remount).
   useEffect(() => {
     const q = searchParams.get("url");
-    if (q && !url) setUrl(q);
+    if (q && !url) {
+      setUrl(q);
+      setTurnstileArmed(true);
+    }
     // intentionally only on mount-equivalent search-params change
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -70,9 +81,10 @@ export function ToolForm({ tool }: ToolFormProps) {
     try {
       if (window.localStorage.getItem(TOS_STORAGE_KEY) === "1") {
         setAuthorized(true);
+        setRememberedAuthorization(true);
       }
     } catch {
-      // localStorage unavailable — fall back to the submit-time gate.
+      // localStorage unavailable — checkbox stays visible and unchecked.
     }
   }, []);
 
@@ -90,7 +102,7 @@ export function ToolForm({ tool }: ToolFormProps) {
   // callback so we never poll for window.turnstile. Handle both ordering paths
   // (callback before or after this effect) and clean the widget up on unmount.
   useEffect(() => {
-    if (!siteKey) return;
+    if (!siteKey || !turnstileArmed) return;
     let widgetId: string | undefined;
 
     const render = (): void => {
@@ -118,7 +130,7 @@ export function ToolForm({ tool }: ToolFormProps) {
         }
       }
     };
-  }, [siteKey]);
+  }, [siteKey, turnstileArmed]);
 
   const submit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -131,13 +143,15 @@ export function ToolForm({ tool }: ToolFormProps) {
       return;
     }
     if (!authorized) {
-      setTosGateShown(true);
       setErr({
         message: "Please confirm you're authorized to audit this URL.",
         hint: "Tick the authorization box below the URL input. We only check it once.",
       });
       return;
     }
+    // Defensive: arm Turnstile if a focus-less path (autofill + Enter) reached
+    // submit; this submit still falls through to the token guard below.
+    if (!turnstileArmed) setTurnstileArmed(true);
     if (!token) {
       setErr({
         message: "Complete the bot check first.",
@@ -178,11 +192,16 @@ export function ToolForm({ tool }: ToolFormProps) {
 
   return (
     <>
-      <Script
-        src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady"
-        async
-        defer
-      />
+      {/* Load the Turnstile script only once the form is armed — its `onload`
+          callback (window.onTurnstileReady) is registered by the armed render
+          effect, so loading it eagerly would warn about a missing callback. */}
+      {siteKey && turnstileArmed && (
+        <Script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady"
+          async
+          defer
+        />
+      )}
 
       <form onSubmit={submit} className="flex flex-col gap-3">
         <label htmlFor={`url-${tool.slug}`} className="sr-only">
@@ -198,6 +217,7 @@ export function ToolForm({ tool }: ToolFormProps) {
           required
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          onFocus={() => setTurnstileArmed(true)}
           onBlur={() => {
             const n = normalizeUserUrl(url);
             if (n) setUrl(n);
@@ -206,37 +226,38 @@ export function ToolForm({ tool }: ToolFormProps) {
           className="h-11"
         />
 
-        {tosGateShown && (
-          <label className="flex items-start gap-2 rounded-[14px] border border-border/60 bg-card/40 p-3 text-xs leading-relaxed text-muted-foreground">
+        {!rememberedAuthorization && (
+          <label className="flex items-start gap-2 text-xs leading-snug text-muted-foreground">
             <input
               type="checkbox"
               checked={authorized}
               onChange={(e) => onAuthorizedChange(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong"
+              className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-border-strong"
               aria-label="Confirm authorization to audit"
             />
             <span>
-              I have authorization to audit the URL above (it&apos;s mine, or I have the owner&apos;s
-              permission). Audits respect <code className="font-mono text-[10px]">robots.txt</code>{" "}
-              by default.
+              I&apos;m authorized to audit this URL (it&apos;s mine, or I have the owner&apos;s
+              permission). Audits respect <code className="font-mono text-[10px]">robots.txt</code>.
             </span>
           </label>
         )}
 
-        <div className="relative">
-          <div id="turnstile-widget-tool" />
-          {siteKey && !token && (
-            <p className="mt-1 text-xs text-muted-foreground">
-              Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
-            </p>
-          )}
-          {!siteKey && (
-            <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
-              Turnstile isn&apos;t configured. Set{" "}
-              <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
-            </p>
-          )}
-        </div>
+        {siteKey && turnstileArmed && (
+          <div className="relative">
+            <div id="turnstile-widget-tool" />
+            {!token && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
+              </p>
+            )}
+          </div>
+        )}
+        {!siteKey && (
+          <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
+            Turnstile isn&apos;t configured. Set{" "}
+            <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
+          </p>
+        )}
 
         <Button type="submit" disabled={submitting} className="h-11 w-full font-semibold">
           {submitting ? "Starting audit…" : `Run ${tool.primaryKeyword} — free`}

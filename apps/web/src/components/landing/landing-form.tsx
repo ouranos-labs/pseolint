@@ -63,20 +63,32 @@ export function LandingForm() {
   // Authorization attestation — remembered across visits once checked so
   // repeat users don't re-tick. Legal cover, not security.
   const [authorized, setAuthorized] = useState(false);
-  // tosGateShown is kept for backwards compatibility but is initialized to
-  // true so the checkbox is always visible from the first page load.
-  const [tosGateShown, setTosGateShown] = useState(true);
+  // True only when authorization was restored from localStorage on mount (a
+  // returning user). Used to hide the checkbox entirely for them — a fresh
+  // visitor who ticks it this session still sees it stay, checked.
+  const [rememberedAuthorization, setRememberedAuthorization] = useState(false);
+  // Turnstile is deferred until the user engages the form (focuses the URL
+  // field, or arrives with a prefilled URL). This keeps the ~65px widget out of
+  // first paint so the CTA sits right under the input, while still solving in
+  // the background well before submit.
+  const [turnstileArmed, setTurnstileArmed] = useState(false);
 
   useEffect(() => {
     try {
       const params = new URL(window.location.href).searchParams;
       const prefill = params.get("prefill");
-      if (prefill) setUrl(prefill);
+      if (prefill) {
+        setUrl(prefill);
+        // A prefilled URL can be submitted without ever focusing the input, so
+        // arm Turnstile now rather than waiting for a focus that may not come.
+        setTurnstileArmed(true);
+      }
       if (params.get("force") === "1") setForce(true);
-    } catch {}
+    } catch { }
     try {
       if (window.localStorage.getItem(TOS_STORAGE_KEY) === "1") {
         setAuthorized(true);
+        setRememberedAuthorization(true);
       }
     } catch {
       // localStorage unavailable — checkbox remains visible and unchecked.
@@ -88,14 +100,14 @@ export function LandingForm() {
     try {
       if (checked) window.localStorage.setItem(TOS_STORAGE_KEY, "1");
       else window.localStorage.removeItem(TOS_STORAGE_KEY);
-    } catch {}
+    } catch { }
   };
 
   // Turnstile mount: render explicitly via the script's `?onload=` callback so we
   // don't have to poll for `window.turnstile`. The callback may fire before this
   // effect runs (script already cached) or after, so we handle both paths.
   useEffect(() => {
-    if (!siteKey) return;
+    if (!siteKey || !turnstileArmed) return;
     let widgetId: string | undefined;
 
     const render = (): void => {
@@ -116,10 +128,10 @@ export function LandingForm() {
     return () => {
       window.onTurnstileReady = undefined;
       if (widgetId !== undefined && window.turnstile?.remove) {
-        try { window.turnstile.remove(widgetId); } catch {}
+        try { window.turnstile.remove(widgetId); } catch { }
       }
     };
-  }, [siteKey]);
+  }, [siteKey, turnstileArmed]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,13 +144,16 @@ export function LandingForm() {
       return;
     }
     if (!authorized) {
-      setTosGateShown(true);
       setErr({
         message: "Please confirm you're authorized to audit this URL.",
         hint: "Tick the authorization box below the URL input. We only check it once.",
       });
       return;
     }
+    // Defensive: if the user reached submit without the focus that normally arms
+    // Turnstile (e.g. browser autofill + Enter), arm it now so the widget renders
+    // for the retry — this submit still falls through to the token guard below.
+    if (!turnstileArmed) setTurnstileArmed(true);
     if (!token) {
       setErr({
         message: "Complete the bot check first.",
@@ -181,7 +196,12 @@ export function LandingForm() {
 
   return (
     <>
-      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady" async defer />
+      {/* Load the Turnstile script only once the form is armed — its `onload`
+          callback (window.onTurnstileReady) is registered by the armed render
+          effect, so loading it eagerly would warn about a missing callback. */}
+      { siteKey && turnstileArmed && (
+        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady" async defer />
+      ) }
 
       <section className="relative">
         <div className="mx-auto max-w-5xl px-5 pb-16 pt-16 sm:pt-20">
@@ -192,11 +212,11 @@ export function LandingForm() {
                 Template-aware SpamBrain + AEO · v0.6.3
               </div>
 
-              <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
+              <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-4xl">
                 Catch the patterns that get programmatic-SEO sites deindexed — before SpamBrain does.
               </h1>
 
-              <p className="text-base leading-relaxed text-muted-foreground">
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 pseolint is the open-source linter for programmatic SEO. Paste a URL or drop it in CI:
                 it finds the doorway clusters, near-duplicates, and thin templates that trip SpamBrain,
                 then tells you which <span className="text-foreground">template</span> to fix — one fix, N pages.
@@ -217,39 +237,42 @@ export function LandingForm() {
                   required
                   value={ url }
                   onChange={ (e) => setUrl(e.target.value) }
+                  onFocus={ () => setTurnstileArmed(true) }
                   onBlur={ () => { const n = normalizeUserUrl(url); if (n) setUrl(n); } }
                   placeholder="yoursite.com"
                   className="h-11"
                 />
 
-                { tosGateShown && (
-                  <label className="flex items-start gap-2 rounded-[14px] border border-border/60 bg-card/40 p-3 text-xs leading-relaxed text-muted-foreground">
+                { !rememberedAuthorization && (
+                  <label className="flex items-start gap-2 text-xs leading-snug text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={ authorized }
                       onChange={ (e) => onAuthorizedChange(e.target.checked) }
-                      className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong"
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-border-strong"
                       aria-label="Confirm authorization to audit"
                     />
                     <span>
-                      I have authorization to audit the URL above (it&apos;s mine, or I have the owner&apos;s permission). Audits respect <code className="font-mono text-[10px]">robots.txt</code> by default.
+                      I&apos;m authorized to audit this URL (it&apos;s mine, or I have the owner&apos;s permission). Audits respect <code className="font-mono text-[10px]">robots.txt</code>.
                     </span>
                   </label>
                 ) }
 
-                <div className="relative">
-                  <div id="turnstile-widget" />
-                  { siteKey && !token && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
-                    </p>
-                  ) }
-                  { !siteKey && (
-                    <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
-                      Turnstile isn&apos;t configured. Set <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
-                    </p>
-                  ) }
-                </div>
+                { siteKey && turnstileArmed && (
+                  <div className="relative">
+                    <div id="turnstile-widget" />
+                    { !token && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
+                      </p>
+                    ) }
+                  </div>
+                ) }
+                { !siteKey && (
+                  <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
+                    Turnstile isn&apos;t configured. Set <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
+                  </p>
+                ) }
 
                 <Button
                   type="submit"
@@ -388,21 +411,21 @@ export function LandingForm() {
               </p>
               <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <span className="font-medium text-foreground">Core Web Vitals</span> ·{" "}
-                  <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>{" "}
+                  <span className="font-medium text-foreground">Core Web Vitals</span> ·{ " " }
+                  <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>{ " " }
                   (free)
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">Broken links + general crawl</span> ·{" "}
-                  <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{" "}
+                  <span className="font-medium text-foreground">Broken links + general crawl</span> ·{ " " }
+                  <a href="https://sitebulb.com" className="text-primary hover:underline" rel="nofollow">Sitebulb</a> ($35/mo) or{ " " }
                   <a href="https://screamingfrog.co.uk" className="text-primary hover:underline" rel="nofollow">Screaming Frog</a> ($259/yr, free up to 500 URLs)
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">Competitor research / backlinks</span> ·{" "}
+                  <span className="font-medium text-foreground">Competitor research / backlinks</span> ·{ " " }
                   <a href="https://ahrefs.com" className="text-primary hover:underline" rel="nofollow">Ahrefs</a> ($129/mo)
                 </li>
                 <li>
-                  <span className="font-medium text-foreground">Keyword research</span> ·{" "}
+                  <span className="font-medium text-foreground">Keyword research</span> ·{ " " }
                   <a href="https://semrush.com" className="text-primary hover:underline" rel="nofollow">Semrush</a> ($139.95/mo)
                 </li>
               </ul>
@@ -430,7 +453,7 @@ export function LandingForm() {
             <p className="mt-3 text-base text-muted-foreground">
               Illustrative archetypes, not real sites — the shapes pseolint actually finds. Each grid shows a
               dominant template&apos;s sample; lower score = safer. The verifiable version is your own scan and
-              the public{" "}
+              the public{ " " }
               <Link href="/leaderboard" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
                 leaderboard
               </Link>.
@@ -557,8 +580,8 @@ export function LandingForm() {
                 comment, and fails the check when the score crosses your threshold. Two minutes to wire up.
               </p>
               <p className="mt-4 text-sm text-muted-foreground">
-                Prefer the CLI? <code className="font-mono text-xs">npx pseolint ./out --ci-threshold concerning --format json</code>{" "}
-                does the same thing locally — see the{" "}
+                Prefer the CLI? <code className="font-mono text-xs">npx pseolint ./out --ci-threshold concerning --format json</code>{ " " }
+                does the same thing locally — see the{ " " }
                 <Link href="/mcp-server" className="text-primary hover:underline">MCP server</Link> for editor + agent setups.
               </p>
             </div>
@@ -594,11 +617,11 @@ export function LandingForm() {
             )) }
           </dl>
           <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
-            Early-stage and built in the open. Open-source (MIT), launched January 2026, with{" "}
-            <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{" "}
-            mapped to current Google policy. We run pseolint on{" "}
-            <span className="text-foreground">pseolint.dev</span> itself and publish the result on the public{" "}
-            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> — verdict{" "}
+            Early-stage and built in the open. Open-source (MIT), launched January 2026, with{ " " }
+            <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{ " " }
+            mapped to current Google policy. We run pseolint on{ " " }
+            <span className="text-foreground">pseolint.dev</span> itself and publish the result on the public{ " " }
+            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> — verdict{ " " }
             <span className="text-foreground">Ready</span>, origin handled the crawl at a 106ms median TTFB, and the
             audit&apos;s open findings are literally our own SEO to-do list. The traction is the receipts, not a
             number we made up.
@@ -634,7 +657,7 @@ export function LandingForm() {
                 Audit my site — free
               </a>
               <span className="text-xs text-muted-foreground">
-                Free, no signup. Pro is <span className="text-foreground">$19/mo</span> —{" "}
+                Free, no signup. Pro is <span className="text-foreground">$19/mo</span> —{ " " }
                 <Link href="/pricing" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
                   what&apos;s included
                 </Link>.
