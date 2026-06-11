@@ -142,6 +142,8 @@ export { FetchObserver, computeReadiness, detectDevServer } from "./fetch-observ
 export type { DetectedFramework, FetchObservation, ReadinessReport, ReadinessVerdict, ReadinessThresholds } from "./fetch-observer.js";
 export { BackpressureMonitor, OriginDegradedError } from "./backpressure.js";
 export type { BackpressureOptions, BackpressureDecision, BackpressureSnapshot } from "./backpressure.js";
+export { checkOriginHealth } from "./origin-preflight.js";
+export type { OriginVerdict, OriginPreflightOptions, OriginPreflightReport, OriginProbeSample } from "./origin-preflight.js";
 export {
   classifySite,
   clusterUrlTemplates,

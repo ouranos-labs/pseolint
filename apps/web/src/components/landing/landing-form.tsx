@@ -150,8 +150,8 @@ export function LandingForm() {
         router.push(next);
         return;
       }
-      const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
-      setErr(mapApiError(res.status, String(error ?? "Unknown error")));
+      const { error, code } = await res.json().catch(() => ({ error: "Unknown error" }));
+      setErr(mapApiError(res.status, String(error ?? "Unknown error"), code));
     } catch (fetchErr) {
       setErr({
         message: "Couldn't reach the server.",
@@ -551,8 +551,17 @@ function normalizeUrl(raw: string): string | null {
   }
 }
 
-function mapApiError(status: number, message: string): FormError {
+function mapApiError(status: number, message: string, code?: string): FormError {
   const lower = message.toLowerCase();
+  // Pre-flight origin-health block — the server probed the origin before
+  // dispatching and found it down or degraded. The message already explains
+  // what we found and how to override; just give it an honest title.
+  if (code === "origin_unreachable") {
+    return { message: "We couldn't reach your origin.", hint: message };
+  }
+  if (code === "origin_degraded") {
+    return { message: "Your origin looks degraded right now.", hint: message };
+  }
   if (status === 429) {
     if (lower.includes("session limit")) {
       return {

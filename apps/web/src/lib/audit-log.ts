@@ -13,6 +13,7 @@ export type AuditLogEvent =
   | "audit.request.deduped"
   | "audit.request.rate_limited"
   | "audit.request.in_flight_limited"
+  | "audit.request.preflight_blocked"
   | "audit.created"
   | "audit.dispatched"
   | "audit.started"
