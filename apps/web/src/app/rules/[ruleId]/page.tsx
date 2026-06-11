@@ -181,11 +181,11 @@ export default async function RulePage({ params }: PageProps) {
       </div>
 
       <Section title="What it detects">
-        <p className="text-sm leading-relaxed text-foreground">{rule.whatItDetects}</p>
+        <Prose text={rule.whatItDetects} />
       </Section>
 
       <Section title="Why it matters">
-        <p className="text-sm leading-relaxed text-foreground">{rule.whyItMatters}</p>
+        <Prose text={rule.whyItMatters} />
       </Section>
 
       <Section title="A page that fails">
@@ -217,7 +217,7 @@ export default async function RulePage({ params }: PageProps) {
       </Section>
 
       <Section title="SpamBrain context">
-        <p className="text-sm leading-relaxed text-foreground">{rule.spamBrainContext}</p>
+        <Prose text={rule.spamBrainContext} />
       </Section>
 
       <Section title="Frequently asked questions">
@@ -296,5 +296,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       </h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * Render a long-form field as one paragraph per blank-line-separated block.
+ * Keeps each rendered <p> independently extractable and under the
+ * aeo/content-modularity word ceiling — split the source string with `\n\n`.
+ */
+function Prose({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/\n\n+/).map((para, i) => (
+        <p key={i} className={`text-sm leading-relaxed text-foreground${i > 0 ? " mt-3" : ""}`}>
+          {para}
+        </p>
+      ))}
+    </>
   );
 }
