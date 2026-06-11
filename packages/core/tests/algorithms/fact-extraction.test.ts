@@ -114,3 +114,32 @@ describe("extractPageFacts", () => {
     expect(facts.groundedClaims).toHaveLength(1);
   });
 });
+
+import { citableFactsRule } from "../../src/rules/aeo/citable-facts.js";
+import type { ParsedPage } from "../../src/types.js";
+
+function fakePage(url: string, contentText: string): ParsedPage {
+  return {
+    url, title: "", titleSource: "none", metaDescription: "", canonical: "",
+    robotsMeta: "", og: { title: "", description: "", image: "" }, hreflangs: [],
+    headings: { h1: [], h2: [] }, resolvedHrefs: [], structureSignature: "",
+    jsonLd: [], authorSignals: { metaAuthor: "", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+    contentText, html: `<html><body>${contentText}</body></html>`,
+  };
+}
+
+describe("aeo/citable-facts characterization (frozen after refactor)", () => {
+  it("produces the expected messages on a 2-page fixture", () => {
+    const pages = [
+      fakePage("https://x.test/a", "Costs $50 and $99. Filed March 5, 2024. Took 3 days."),
+      fakePage("https://x.test/b", "Only one fact here: 10%."),
+    ];
+    const findings = citableFactsRule(pages, []);
+    const byUrl = Object.fromEntries(findings.map((f) => [f.pageUrl, f]));
+    // page a: 4 unique facts (<8) -> warning; page b: 1 unique fact (<3) -> error
+    expect(byUrl["https://x.test/a"]?.severity).toBe("warning");
+    expect(byUrl["https://x.test/a"]?.message).toContain("4 unique citable facts");
+    expect(byUrl["https://x.test/b"]?.severity).toBe("error");
+    expect(byUrl["https://x.test/b"]?.message).toContain("1 unique citable fact");
+  });
+});

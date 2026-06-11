@@ -1,36 +1,11 @@
 import type { Confidence, EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
+import { extractCitableFacts } from "../../algorithms/fact-extraction.js";
 
 export interface CitableFactsOptions {
   /** Below this count → error. Default: 3. */
   minFactsPerPage?: number;
   /** At or above this count → pass. Default: 8. */
   targetFactsPerPage?: number;
-}
-
-const FACT_PATTERNS: Array<{ name: string; regex: RegExp }> = [
-  { name: "dollar", regex: /\$[\d,]+(\.\d{2})?/g },
-  { name: "percent", regex: /\b\d+(\.\d+)?\s*%/g },
-  {
-    name: "timeframe",
-    regex: /\b\d+(?:-\d+)?\s*(business\s+days?|days?|weeks?|months?|years?|hours?|minutes?)\b/gi,
-  },
-  {
-    name: "date",
-    regex:
-      /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(?:,\s*\d{4})?\b/gi,
-  },
-  { name: "isoDate", regex: /\b\d{4}-\d{2}-\d{2}\b/g },
-  { name: "form", regex: /\bForm\s+[A-Z0-9][A-Z0-9-]*\b/g },
-];
-
-function extractRawFacts(text: string): string[] {
-  const out = new Set<string>();
-  for (const { regex } of FACT_PATTERNS) {
-    const matches = text.match(regex);
-    if (!matches) continue;
-    for (const m of matches) out.add(m.trim().toLowerCase());
-  }
-  return Array.from(out);
 }
 
 function applyEntityMask(text: string, patterns: EntityMaskPattern[]): string {
@@ -68,7 +43,7 @@ export function citableFactsRule(
 
   for (const page of pages) {
     const masked = applyEntityMask(page.contentText, entityPatterns);
-    const rawFacts = extractRawFacts(masked);
+    const rawFacts = extractCitableFacts(masked);
     perPageFacts.set(page.url, rawFacts);
     for (const f of rawFacts) {
       factFrequency.set(f, (factFrequency.get(f) ?? 0) + 1);
