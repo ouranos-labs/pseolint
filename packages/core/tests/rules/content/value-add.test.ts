@@ -287,4 +287,43 @@ describe("valueAddRule", () => {
     // Message should include cliché-reuse in the composite breakdown
     expect(results[0].message).toContain("cliché-reuse");
   });
+
+  // -------------------------------------------------------------------------
+  // Authoritative-citation → E-E-A-T sources credit (Task 9)
+  // -------------------------------------------------------------------------
+
+  test("counts an authoritative outbound citation toward the E-E-A-T sources category", () => {
+    // A page with NO 'Sources:'/'References:' text but a .gov citation should get
+    // the sources credit, so its E-E-A-T signal is never lower than an identical
+    // page with neither. Both pages carry one OTHER E-E-A-T category
+    // (publishedDate) so the citation flips the cited page from 1→2 categories
+    // (0.0→0.5 band), giving a measurable, strictly-higher E-E-A-T %.
+    // Force value-add to fire on both (regurgitated + freshness + facts errors)
+    // so each emits a message we can read the E-E-A-T % from.
+    const withCitation = page("https://x.test/cited", {
+      publishedDate: "2024-01-01",
+      html: '<main><p>Body. <a href="https://epa.gov/x">EPA</a></p></main>',
+      resolvedHrefs: ["https://epa.gov/x"],
+    });
+    const withoutCitation = page("https://x.test/uncited", {
+      publishedDate: "2024-01-01",
+      html: "<main><p>Body.</p></main>",
+      resolvedHrefs: [],
+    });
+    // Enough bad signals that BOTH pages stay < 0.5 even after the cited page
+    // gains the +0.5 E-E-A-T band, so both emit a readable message.
+    const findingsFor = (url: string): RuleResult[] => [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("content/common-phrase-reuse", url, "warning"),
+    ];
+    const a = valueAddRule([withCitation], findingsFor("https://x.test/cited"));
+    const b = valueAddRule([withoutCitation], findingsFor("https://x.test/uncited"));
+    const eeatPct = (msg?: string) => Number(msg?.match(/E-E-A-T: (\d+)%/)?.[1] ?? "0");
+    // The cited page must never score worse than the uncited one on E-E-A-T.
+    expect(eeatPct(a[0]?.message)).toBeGreaterThanOrEqual(eeatPct(b[0]?.message));
+    // And concretely: the .gov citation lifts E-E-A-T above the uncited baseline.
+    expect(eeatPct(a[0]?.message)).toBeGreaterThan(eeatPct(b[0]?.message));
+  });
 });

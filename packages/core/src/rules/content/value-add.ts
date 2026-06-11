@@ -1,4 +1,5 @@
 import type { ParsedPage, RuleResult, Severity } from "../../types.js";
+import { hasAuthoritativeCitation } from "../../algorithms/fact-extraction.js";
 
 const RULE_ID = "content/value-add";
 
@@ -16,7 +17,10 @@ function countEeatCategories(page: ParsedPage): number {
   const { metaAuthor, schemaAuthor, bylineElement, relAuthorLink } = page.authorSignals;
   if (metaAuthor !== "" || schemaAuthor || bylineElement || relAuthorLink) count += 1;
   if (page.publishedDate) count += 1;
-  if (EEAT_HTML_PATTERNS.some((p) => p.test(page.html))) count += 1;
+  if (
+    EEAT_HTML_PATTERNS.some((p) => p.test(page.html)) ||
+    hasAuthoritativeCitation(page.resolvedHrefs, page.url)
+  ) count += 1;
   return count;
 }
 
