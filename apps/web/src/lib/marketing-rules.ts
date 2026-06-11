@@ -306,7 +306,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "What's a healthy unique-ratio target?",
-        a: "0.30 is the default minimum and the floor at which most pSEO sites stop reading as templated. 0.50+ feels like an editorial site to a classifier. Below 0.10 is almost always a single template — fine for some content types, dangerous for others."
+        a: "0.30 is the default minimum and the floor at which most pSEO sites stop reading as templated. 0.50+ feels like an editorial site to a classifier. Below 0.10 is almost always a single template — fine for some content types, dangerous for others. A taxidermy-studio portfolio of near-identical mounted-specimen pages reads as one template no matter how distinct each pheasant or roebuck mount actually is."
       }
     ],
     relatedRules: ["boilerplate-ratio", "doorway-pattern", "near-duplicate"],
@@ -412,7 +412,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "We run a real multi-location veterinary group — will this rule punish us?",
-        a: "Only if your clinic pages are interchangeable. A genuine veterinary group differentiates each location on its on-site surgical suite, its emergency feline-and-canine triage hours, its boarding-kennel capacity, and the named vets who practise there. Mask the town and those pages still diverge, so the entity-swap pair never assembles. If masking leaves identical vaccination-schedule boilerplate behind, the rule is correctly telling you the locations exist only on paper."
+        a: "Only if your clinic pages are interchangeable. A genuine veterinary group differentiates each location on its on-site surgical suite, its emergency feline-and-canine triage hours, its boarding-kennel capacity, and the named vets who practise there. Mask the town and those pages still diverge, so the entity-swap pair never assembles. If masking leaves identical vaccination-schedule boilerplate behind, the rule is correctly telling you the locations exist only on paper. A mobile farrier who lists every locality where he shoes horses, repeating one hoof-trimming blurb per page, is the equine version of the same trap."
       }
     ],
     relatedRules: ["near-duplicate", "doorway-pattern", "thin-content"],
@@ -459,7 +459,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Should I just remove publish dates to avoid this?",
-        a: "Only if you have no real dates to show. The rule skips pages with no detectable date, so stripping dates does silence it — but it also throws away a freshness and trust signal that helps elsewhere. The better move is to expose accurate dates that happen to be well distributed, which satisfies this rule and the aeo/freshness-signals rule at the same time."
+        a: "Only if you have no real dates to show. The rule skips pages with no detectable date, so stripping dates does silence it — but it also throws away a freshness and trust signal that helps elsewhere. The better move is to expose accurate dates that happen to be well distributed, which satisfies this rule and the aeo/freshness-signals rule at the same time. A philately seller who stamps each listing with the day its first-day cover was catalogued shows a believable, well-spread release history rather than one suspicious bulk import."
       }
     ],
     relatedRules: ["template-diversity", "boilerplate-ratio", "thin-content"],
@@ -561,7 +561,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "I sell telescopes — every page repeats the same optics glossary. Does that count?",
-        a: "The glossary does not, but the instrument's own numbers do. A refractor page stating its 102-millimetre aperture, its 660-millimetre focal length, the supplied 25-millimetre eyepiece, and the dovetail mount it ships on carries vocabulary no sibling listing repeats. A computerised go-to altazimuth mount and a manual equatorial tripod differentiate two products that would otherwise read alike. Move the shared 'what is magnification' explainer to one reference URL, and each telescope's distinct aperture, focal ratio, and eyepiece kit becomes the page-unique substance the rule counts."
+        a: "The glossary does not, but the instrument's own numbers do. A refractor page stating its 102-millimetre aperture, its 660-millimetre focal length, the supplied 25-millimetre eyepiece, and the dovetail mount it ships on carries vocabulary no sibling listing repeats. A computerised go-to altazimuth mount and a manual equatorial tripod differentiate two products that would otherwise read alike. Move the shared 'what is magnification' explainer to one reference URL, and each telescope's distinct aperture, focal ratio, and eyepiece kit becomes the page-unique substance the rule counts. A heritage-orchard nursery that lists the rootstock, the chill-hours requirement, and the pollination group for each apple cultivar gives every page words no sibling listing repeats."
       }
     ],
     relatedRules: ["thin-content", "boilerplate-ratio", "near-duplicate"],
@@ -612,7 +612,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Our wedding-venue listings all describe 'an unforgettable celebration' — is the meta the problem?",
-        a: "That phrasing is the giveaway. Bind each venue's concrete distinguishers into the description instead: the ballroom's seated capacity, the garden-gazebo ceremony option, the in-house catering minimum, the reception square-footage, and the off-season Friday rate. A description reading 'Riverside Barn seats 180, gazebo ceremonies, 7,500-dollar Saturday corkage-free minimum' survives masking because the banquet figures differ per venue, while 'an unforgettable celebration at {venue}' collapses to one templated string the moment the name is masked away. A bridal-suite photo count, a sommelier-curated wine-pairing menu, a string-quartet add-on, and a marquee-tent rain contingency separate one ballroom from the next far better than any superlative adjective."
+        a: "That phrasing is the giveaway. Bind each venue's concrete distinguishers into the description instead: the ballroom's seated capacity, the garden-gazebo ceremony option, the in-house catering minimum, the reception square-footage, and the off-season Friday rate. A description reading 'Riverside Barn seats 180, gazebo ceremonies, 7,500-dollar Saturday corkage-free minimum' survives masking because the banquet figures differ per venue, while 'an unforgettable celebration at {venue}' collapses to one templated string the moment the name is masked away. A bridal-suite photo count, a sommelier-curated wine-pairing menu, a string-quartet add-on, and a marquee-tent rain contingency separate one ballroom from the next far better than any superlative adjective. A kiln-fired ceramics studio that names each glaze recipe, the cone firing temperature, and the wheel-thrown dimensions per piece avoids the same templated-snippet collapse."
       }
     ],
     relatedRules: ["near-duplicate", "thin-content", "boilerplate-ratio"],
@@ -656,7 +656,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       },
       {
         q: "Our investigative newsroom already runs reporter bylines — will this rule fire on us?",
-        a: "Not if those bylines are in markup the parser can read. A masthead and a dateline are human-facing conventions; the rule needs a machine-readable signal. As long as each staff-reporter story carries a `<div class=\"byline\">` or an `author` field in its NewsArticle JSON-LD — not just a hand-set 'By Our Correspondent' line that the editor-in-chief styled with a class the rule does not recognise — every article passes. If a wire-service dispatch republished under your masthead has no byline element at all, the rule correctly flags it as the one anonymous page in an otherwise-attributed corpus. In one illustrative cleanup, a desk that signed only 73% of its filed stories closed the gap to full coverage within an 11-day sprint by binding the staff-reporter field into its NewsArticle template."
+        a: "Not if those bylines are in markup the parser can read. A masthead and a dateline are human-facing conventions; the rule needs a machine-readable signal. As long as each staff-reporter story carries a `<div class=\"byline\">` or an `author` field in its NewsArticle JSON-LD — not just a hand-set 'By Our Correspondent' line that the editor-in-chief styled with a class the rule does not recognise — every article passes. If a wire-service dispatch republished under your masthead has no byline element at all, the rule correctly flags it as the one anonymous page in an otherwise-attributed corpus. In one illustrative cleanup, a desk that signed only 73% of its filed stories closed the gap to full coverage within an 11-day sprint by binding the staff-reporter field into its NewsArticle template. The same fix rescues a herbalist co-op whose remedy monographs ran unsigned until each contributing clinical-herbalist credential was bound into the byline."
       },
       {
         q: "Does adding a fake author name fix the real problem?",
@@ -712,7 +712,7 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
     },
     {
       q: "Our certified personal-finance advice site keeps tripping this on its tax-planning pages — what is missing?",
-      a: "Almost certainly the accountability markers a fiduciary practice should already be proud to display. A page walking a reader through an IRA rollover or how a Roth conversion lands in their marginal bracket should carry the byline of the certified financial planner who reviewed it, that planner's CFP credential, a visible 'last updated' date for when the contribution limits were checked, and a sources block citing the relevant IRS publication. Add those and a YMYL tax-planning page that was anonymous becomes a page a rater can trust — and clears the 2-of-4 floor on the strength of credentials you can substantiate. As an illustration, a tax-advice section that added a Series 65 registration line, a visible review date, and an errors-and-omissions disclosure lifted its coverage to 4-of-4 in 9 days and clawed back 22% of lost long-tail clicks over the following 13 weeks."
+      a: "Almost certainly the accountability markers a fiduciary practice should already be proud to display. A page walking a reader through an IRA rollover or how a Roth conversion lands in their marginal bracket should carry the byline of the certified financial planner who reviewed it, that planner's CFP credential, a visible 'last updated' date for when the contribution limits were checked, and a sources block citing the relevant IRS publication. Add those and a YMYL tax-planning page that was anonymous becomes a page a rater can trust — and clears the 2-of-4 floor on the strength of credentials you can substantiate. As an illustration, a tax-advice section that added a Series 65 registration line, a visible review date, and an errors-and-omissions disclosure lifted its coverage to 4-of-4 in 9 days and clawed back 22% of lost long-tail clicks over the following 13 weeks. A vineyard's tasting-notes pages earn the same lift once each varietal entry carries a winemaker byline, the bottling vintage, and a soil-and-terroir sourcing note."
     },
     {
       q: "How is this different from the missing-author rule?",
@@ -881,6 +881,268 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
   ],
   relatedRules: ["thin-content", "unique-value", "heading-structure"],
   relatedTool: "thin-content-scanner"
+},
+  {
+  "slug": "orphan-pages",
+  "ruleId": "links/orphan-pages",
+  "title": "Orphan Pages — URLs No Other Page Links To",
+  "metaDescription": "Orphan pages have zero inbound internal links, so Googlebot can't crawl them from your site. How links/orphan-pages finds every unreachable URL in your corpus.",
+  "primaryKeyword": "orphan pages SEO",
+  "oneLiner": "links/orphan-pages scans every URL in the crawl, counts the inbound internal links pointing at each one, and fires at error severity on any page with exactly 0 of them — the dead-zone shape that leaves Googlebot unable to reach a URL through your own navigation, a structural gap the March 27, 2026 core update treats as a discoverability failure rather than a content one.",
+  "whatItDetects": "links/orphan-pages builds one number for every page in the crawl: how many other pages in the same corpus link to it. It walks each parsed page, reads the inbound-link count the crawler accumulated while following internal hrefs, and flags any URL whose count is exactly 0. The root URL is exempted — your homepage is reached directly, not via an internal link — so the rule never accuses the front door of being unreachable.\n\nThe check is corpus-scoped, which is the detail that makes it honest. It only knows about pages the crawl actually visited and only counts links between those pages. A URL with zero inbound links is one that no page in the set references, meaning a crawler arriving at your homepage has no internal path to it. The page might still be reachable through your XML sitemap or an external backlink, but inside the site's own link graph it is an island.\n\nEvery orphan emits a single error-severity finding naming the URL and recommending you link to it from a relevant hub or index and add it to navigation. The rule reasons purely about reachability — it makes no judgement about whether the page's content is good, only about whether anything points at it.",
+  "whyItMatters": "Search engines discover most pages by following links. Googlebot starts somewhere it already knows — usually your homepage or a sitemap entry — and crawls outward along internal hrefs. A page with zero inbound internal links sits outside that graph: nothing on your site points a crawler toward it, so it competes for discovery and crawl budget at a severe disadvantage even when its content is excellent.\n\nOrphans are a classic failure mode of programmatic builds. A template generates 4,000 location pages and writes them to disk, but the index that should link them is paginated to show only the first 200, or the generation job ships the detail pages a week before the hub that lists them. The pages exist, return 200, and may even sit in the sitemap — yet no human or crawler can navigate to 3,800 of them without typing the URL. PageRank, the internal-link signal Google has used since 1998, never flows to a page nothing links to, so orphans tend to rank far below their integrated siblings.\n\nThe error severity reflects that this is a structural defect, not a stylistic one. A page no one can reach is functionally invisible, and invisibility is the most expensive SEO problem there is.",
+  "failingExample": "A beekeeping-supplies shop ships a /hives/ catalog whose index template paginates to the first 24 products, but the store stocks 310 SKUs. The $420 cedar Langstroth deep brood box, the nuc box, and roughly 280 other hive components live at real URLs that return 200, yet no page in the crawl links to them. The rule counts 0 inbound internal links for each and fires at error severity 286 times, naming every unreachable product. Googlebot arriving at the homepage has no internal path to 92% of the hive inventory, and 3 months after launch those pages still hold no rankings.",
+  "passingExample": "The same beekeeping-supplies shop rebuilds the /hives/ index as a fully linked, filterable grid — every brood box, queen excluder, and Langstroth frame is reachable from the catalog, and each product also appears in a 'goes with this hive' block on related pages, so a smoker links to the apiary-starter bundle and the honey extractor links back to the frames it spins. Every one of the 310 SKUs now carries at least 1 inbound internal link. The rule counts no zero-inbound URLs and stays silent, because Googlebot can walk from the homepage to any product in 3 clicks.",
+  "howToFix": [
+    "Link every orphan from a relevant hub or category index so it joins the site's internal link graph and a crawler can actually reach it.",
+    "Fix paginated or truncated index templates that list only the first N items — the missing children are usually the orphans, and crawlable pagination restores them all at once.",
+    "Add the page to your primary or contextual navigation when it is genuinely important, so it earns inbound links from high-traffic parts of the site.",
+    "Cross-link related items to each other, so a product, article, or location references its siblings instead of depending on one fragile index page.",
+    "Re-crawl after wiring the links and confirm the inbound count is no longer 0 — a sitemap entry alone does not clear this rule, because the rule measures internal links, not sitemap membership.",
+    "For pages that should not exist as standalone URLs, consolidate or noindex them rather than leaving unreachable thin pages stranded in the corpus."
+  ],
+  "spamBrainContext": "Orphan detection predates the spam era — it is plain crawlability hygiene that Google has documented for as long as it has explained how discovery works. A page nothing links to cannot accumulate the internal PageRank that has shaped ranking since 1998, and Googlebot's own crawl documentation is explicit that links are the primary discovery mechanism.\n\nlinks/orphan-pages (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) sits in the structural integrity family rather than the spam family, but it matters disproportionately on programmatic sites because bulk generation is exactly where orphans appear at scale. The March 27, 2026 core update sharpened scrutiny of programmatic corpora, and a template that emits thousands of unlinked pages presents two problems at once: the pages waste crawl budget Google would rather spend elsewhere, and their existence inflates a site's apparent page count without any of them being reachable or rankable.\n\nWhat the rule cannot see is your sitemap or your external backlinks. It judges the internal link graph alone, so it can flag a page as an orphan even when a sitemap lists it — which is intentional. Sitemap inclusion is a hint, not a navigable path, and Google has repeatedly said a strong internal link is worth more than a sitemap row.",
+  "faqs": [
+    {
+      "q": "What exactly counts as an orphan page in this rule?",
+      "a": "A page with exactly 0 inbound internal links from any other page in the same crawl. The rule counts the links the crawler followed between pages it visited, and any URL that no visited page references is an orphan. The homepage (root URL) is exempt, because it is reached directly rather than through an internal link, so the rule never flags it."
+    },
+    {
+      "q": "My orphan page is in my XML sitemap. Doesn't that make it reachable?",
+      "a": "A sitemap is a list of suggestions, not a navigable path. Google may still discover a sitemap-only URL, but it receives none of the internal PageRank that a real inbound link carries, so it tends to rank poorly and gets crawled less often. This rule deliberately measures internal links rather than sitemap membership, which is why a sitemapped page can still be flagged as an orphan."
+    },
+    {
+      "q": "Why does the rule fire at error severity instead of a warning?",
+      "a": "Because an unreachable page is a structural defect, not a matter of taste. A URL that nothing links to is functionally invisible to crawlers navigating your site, and invisibility is the most expensive SEO outcome there is — the page cannot rank for anything if a crawler never arrives. Error severity signals that this should be fixed before stylistic concerns, since no amount of content quality helps a page nobody can reach."
+    },
+    {
+      "q": "I run a beekeeping-supplies shop and 286 hive products got flagged. How do I clear them fast?",
+      "a": "The cause is almost always a truncated index. If your /hives/ catalog template paginates to the first 24 of 310 SKUs, then 286 brood boxes, queen excluders, and Langstroth frames have zero inbound links. Rebuild the index as a fully crawlable, filterable grid and add a 'pairs with this hive' cross-link block — a $39 smoker linking to its apiary-starter bundle, the honey extractor linking to its frames. Re-crawl and the inbound count for each product rises above 0, clearing all 286 findings in one pass — in one illustrative run the orphaned pages began earning impressions roughly 9 days after the links shipped."
+    },
+    {
+      "q": "Does the rule consider external backlinks when deciding if a page is orphaned?",
+      "a": "No. The rule is corpus-scoped: it only knows about the pages in the crawl and only counts links between them. An external site might link to your orphan, which would help Google discover it, but the rule cannot see that and judges your internal link graph alone. The goal is to surface pages your own site fails to connect, since those are the ones within your control to fix."
+    },
+    {
+      "q": "Could fixing orphans accidentally create a different problem?",
+      "a": "It can if you over-correct. Dumping links to 3,800 orphans into a single footer or a sitewide block restores reachability but can dilute internal PageRank and trip link-graph rules that watch for unnatural link density. The better fix is contextual: link each page from a genuinely relevant hub or sibling, so the link makes sense to a reader and the crawler, rather than wiring every orphan into one indiscriminate index."
+    }
+  ],
+  "relatedRules": ["link-depth", "cluster-connectivity", "host-section-divergence"],
+  "relatedTool": "spambrain-checker"
+},
+  {
+    slug: "dead-ends",
+    ruleId: "links/dead-ends",
+    title: "Dead Ends — Pages With Zero Outbound Links to the Rest of Your Crawl",
+    metaDescription:
+      "A dead-end page has zero outbound links to other crawled URLs, so crawlers stall and link equity stops flowing forward. How links/dead-ends finds these pages.",
+    primaryKeyword: "dead end pages SEO",
+    oneLiner:
+      "links/dead-ends flags every crawled page (the homepage aside) whose outbound links include zero URLs that point to another page in the same crawl, the forward-flow gap that strands Googlebot and traps link equity, a warning a model-railway shop's 1,400 product listings hit when each turnout and locomotive page links only out to a vendor, never deeper into the store.",
+    whatItDetects:
+      "links/dead-ends walks every page in your audited corpus, skips the root URL, and for each remaining page counts how many of its resolved outbound links point to another page that is also in the crawl. The check is strict: a link only counts if its target is in the known-URL set and is not a self-link back to the same page. When that count lands at exactly zero, the page is a dead end and the rule emits a warning naming the URL.\n\nThe test is corpus-scoped, not page-local. A page can carry dozens of links to external vendors, social profiles, or PDFs and still be a dead end, because none of those targets is another crawled page on your own site. Forward flow is the only thing measured: does standing on this page give a crawler, or a reader, any path deeper into the rest of the corpus.\n\nSeverity is fixed at warning. A dead end is not a broken page or a thin page; it renders fine and may read well. It simply terminates the internal link graph at that node, so anything that travels along links, crawl reach and ranking signal alike, stops there instead of moving on to the next page.",
+    whyItMatters:
+      "Googlebot discovers and re-crawls pages largely by following links from pages it already knows. A dead-end page is a node the crawler can arrive at but never leave, so it contributes nothing to discovering the rest of your site. On a small site one dead end is harmless. On a 1,400-page programmatic catalogue where most leaf pages dead-end, the internal graph collapses into a wide, shallow fan that the crawler exhausts in a single hop, leaving deeper inventory undiscovered for weeks.\n\nLink equity, the ranking signal that propagates along internal links, behaves the same way. It flows into a dead-end page and then has nowhere to go. Every page that terminates the graph is a place where authority pools and stops compounding across the rest of the corpus, which is wasteful on exactly the deep long-tail pages programmatic sites most need to rank.\n\nThe fix is also the cheapest in the link family: a dead end becomes a live node the moment it links to even one other crawled page. Unlike orphan pages, which no page links to, a dead end is reachable but is itself a one-way valve. Adding a handful of contextual internal links forward turns a terminal node back into a junction the crawler and link equity can pass through.",
+    failingExample:
+      "RailYardHobbies.example ships 1,400 product pages for HO gauge locomotives, rolling stock, turnouts, ballast, and weathering powder. Each listing template renders the price, an add-to-cart button, and a single outbound link to the manufacturer's spec sheet on an external domain. It links to nothing else on the store: no category page, no related locomotive, no diorama guide. Every one of those 1,400 pages counts zero outbound links to another crawled URL, so links/dead-ends fires a warning on each. In one illustrative run the crawler reached barely 38% of the catalogue before exhausting its budget, leaving the deep aisles unindexed for 9 weeks. A crawler that lands on the Atlas GP38 diesel listing can read it, then has to retreat the way it came, because the page offers no path forward into the other 1,399.",
+    passingExample:
+      "The same RailYardHobbies catalogue, with the listing template reworked so every product page links forward into the corpus. The Atlas GP38 listing now links to its parent category (HO gauge diesel locomotives), to three related items a crawler can follow (a matching DCC decoder, a length of flex track, a bottle of rust weathering powder), and to a buying guide on bedding turnouts in ballast. The external manufacturer link stays, but it no longer stands alone. Each page now counts four or more outbound links to other crawled URLs, the dead-end warnings clear across all 1,400 pages, and in the same illustrative scenario crawl reach climbs from 38% to 94% within 12 days as the graph stops dead-ending. A crawler arriving on any listing can travel deeper into the store instead of hitting a wall.",
+    howToFix: [
+      "Add contextual internal links from every leaf page to a handful of genuinely related crawled pages, so each node offers the crawler a path forward rather than a one-way valve.",
+      "Link each product or article up to its parent category or hub page, which alone is usually enough to clear the warning while also restoring a route back into the broader corpus.",
+      "Build a related-items or related-reading block into the page template, since dead ends on programmatic sites almost always trace to a template that renders only external links.",
+      "Audit your link resolver: relative hrefs, JavaScript-injected menus, or trailing-slash mismatches can make real internal links resolve to URLs outside the known set, so a linked page still reads as a dead end.",
+      "Distinguish a dead end from a deliberately terminal page like a checkout or thank-you screen, and exclude only those that should not feed the crawl, never the content pages you want indexed.",
+      "Re-crawl after editing the template, because dead ends are usually template-wide: one fix to the shared listing layout clears the warning on hundreds of pages at once."
+    ],
+    spamBrainContext:
+      "Dead ends are not a spam policy. Google has never published a rule that says a page must link onward, and a single dead-end page will not draw a manual action or a SpamBrain demotion. links/dead-ends sits in the crawlability family, not the integrity family, and it ships at warning severity for that reason: it describes a structural inefficiency in your internal link graph, not a violation.\n\nWhere it intersects scaled-content territory is shape. The programmatic sites Google's March 5, 2024 scaled-content-abuse update targeted tend to share a tell beyond thin or duplicated text: a flat, terminal link graph where thousands of generated leaf pages link out to nothing on the same site. That shape is what makes a corpus feel like a database export rather than a navigable publication, and a wall of dead-end warnings is one of the clearest structural readouts of it.\n\nSo treat a dead-end finding as a crawl-efficiency and architecture signal, not a penalty risk. Clearing it makes Googlebot's job cheaper and lets link equity compound across your deep pages. On a programmatic catalogue, pairing dead-end fixes with the integrity rules that judge content is how a generated grid starts reading like a site someone actually built to be browsed.",
+    faqs: [
+      {
+        q: "What exactly counts as a dead-end page in pseolint?",
+        a: "A page in your crawled corpus, other than the root URL, whose outbound links include zero URLs that point to another page also in the crawl. The rule resolves every href on the page, then keeps only the ones whose target is in the known-URL set and is not a self-link back to the same page. If that surviving count is zero, the page is a dead end and gets a warning. Links to external sites, files, or anchors on the same page do not count, because none of them carries a crawler forward into the rest of your corpus."
+      },
+      {
+        q: "How is a dead end different from an orphan page?",
+        a: "They are mirror images. An orphan page is one that no other crawled page links to, so a crawler struggles to reach it in the first place. A dead end is the opposite: the crawler can reach the page fine, but the page links to nothing else in the corpus, so the crawler cannot leave it for another internal URL. A page can be both at once, fully stranded, but the two rules describe different failures. Orphans are a discovery problem on the way in; dead ends are a forward-flow problem on the way out."
+      },
+      {
+        q: "Why is this only a warning and not an error?",
+        a: "Because a dead-end page is structurally inefficient, not broken or deceptive. The page renders, indexes, and may serve users perfectly well in isolation. What it fails to do is pass crawl reach and link equity onward to the rest of the site. That is a real cost on a large corpus, but it is not a content-quality violation or a spam signal, so the rule reports it at warning severity, flagging an architecture issue worth fixing rather than a penalty risk demanding it."
+      },
+      {
+        q: "My model-railway store links every product to its manufacturer. Why are these still dead ends?",
+        a: "Because manufacturer links point to an external domain, and the rule only counts links to other pages inside your own crawl. A listing for a brass HO gauge locomotive can carry a link to the maker's spec sheet, a link to a review video, and a link to a parts PDF, and still be a dead end, because not one of those targets is another page on your store. The moment that listing also links to its category, to a related rolling-stock item, or to a ballasting guide on your own site, it stops being a dead end. In one illustrative scenario a store whose $2,300 brass locomotive pages all dead-ended this way saw them sit unindexed for 8 weeks until the template linked them forward. Forward flow has to stay on your domain to count."
+      },
+      {
+        q: "Does a dead-end page hurt my rankings directly?",
+        a: "Not by itself, and not the way a thin or duplicate page can. The harm is indirect and graph-shaped. A dead end is where link equity arrives and stops compounding, and where a crawler runs out of road, so the cost lands on the pages downstream that never get the signal or the crawl budget the dead end absorbed. On a small site this is negligible. On a programmatic catalogue with hundreds of terminal pages, the cumulative drag on crawl reach and internal authority flow is exactly the kind of architectural waste worth clearing across the whole template at once."
+      }
+    ],
+    relatedRules: ["orphan-pages", "link-depth", "cluster-connectivity"],
+    relatedTool: "spambrain-checker"
+  },
+  {
+  slug: "link-depth",
+  ruleId: "links/link-depth",
+  title: "Link Depth — How Many Clicks From Home Before Googlebot Gives Up",
+  metaDescription:
+    "Pages buried more than 3 clicks from your homepage waste crawl budget and dilute PageRank. How links/link-depth runs a BFS from the root and flags deep and unreachable pages.",
+  primaryKeyword: "link depth SEO",
+  oneLiner:
+    "links/link-depth runs a breadth-first search from your root URL and measures the shortest click-distance to every page, flagging anything past the default ceiling of 3 clicks as info and anything Googlebot cannot reach from the root at all as a warning, because a page Google crawls last is a page Google ranks last.",
+  whatItDetects:
+    "links/link-depth treats your internal-link graph the way a crawler does. It seeds a breadth-first search at the root URL you audited, walks every internal link, and records for each page the shortest number of clicks it takes to arrive there. The BFS guarantees that distance is the minimum, so a page linked from both the homepage and a deep article is scored by its nearest path, not its farthest.\n\nTwo distinct findings come out of that single traversal. First, any page whose shortest click-distance exceeds maxClicks — default 3 — is reported at info severity with a message naming the page and the depth it sits at. Three clicks is the conventional ceiling because it mirrors how deep a crawler will eagerly follow before a page starts competing for scarce budget.\n\nSecond, any page that has inbound internal links yet never gets visited by the BFS is reported at warning severity as unreachable-from-root. That gap means the page is referenced somewhere, but no chain of links actually connects it back to the root, so a crawler starting at the homepage would never find it.\n\nWhen the audit only sampled a subset of the site, the unreachable check is suppressed, because a missing path may be a sampling artifact rather than a real dead end; the depth measurement keeps running on whatever subgraph was fetched.",
+  whyItMatters:
+    "Crawl budget and link equity both flow outward from your homepage along internal links, and both thin out with every hop. A page sitting 7 clicks deep receives a fraction of the PageRank that a 2-click page does, and Googlebot reaches it late in a crawl cycle, if at all. The 3-click ceiling is a practical proxy: pages inside it tend to get crawled promptly and rank on their merits, while pages beyond it compete for whatever budget is left.\n\nDepth is not a penalty signal — it is a discoverability one. A buried page is not flagged as spam; it is flagged as expensive to find and starved of the internal authority it needs. That is why this finding lands at info severity. It tells you where your architecture is leaking equity into pages too far from the root to compete.\n\nThe unreachable-from-root warning is sharper. A page that other pages link to but that has no path back to the root is an island. Googlebot can only follow links it can actually reach by walking from a known entry point, so an island page depends entirely on external links or a sitemap to be discovered, and it never receives internal equity. That is a structural defect worth fixing before you touch anything cosmetic.",
+  failingExample:
+    "A scuba-diving certification school sells a $1,800 open-water cert that runs over 10 days, but buries the page five clicks deep: home, then a region menu, then a dive-site list, then a single reef page, then finally the open-water cert page itself. The BFS records the cert page at depth 5, past the 3-click ceiling, and links/link-depth fires at info — so the page driving 40% of revenue is the one Googlebot reaches last. Worse, the school's nitrox-specialty page is linked only from a retired blog post that nothing else points to, so no chain reaches it from the root: the rule reports it as unreachable-from-root at warning severity, and a crawler starting at the homepage would never find it.",
+  passingExample:
+    "The same scuba school flattens its architecture. The homepage links straight to a course hub, and the hub links directly to every certification page — open-water, advanced, rescue diver, and nitrox specialty — so each cert page sits exactly 2 clicks from the root, comfortably inside the 3-click ceiling. The dive log, wetsuit-and-regulator rental, buoyancy clinic, and decompression-theory pages are all cross-linked from the hub too, so the BFS reaches every URL and not one page is stranded. Within 4 weeks of the restructure, organic impressions on that $1,800 cert page climb roughly 30% as Googlebot crawls it early and internal equity flows to it. links/link-depth stays silent: nothing is buried, nothing is an island.",
+  howToFix: [
+    "Link your deepest money pages directly from a hub or category page so the BFS reaches them in 2 to 3 clicks instead of 5 or 6.",
+    "Audit any page reported as unreachable-from-root first — that is a structural island, and adding a single navigational link from a reachable page fixes it.",
+    "Flatten deep taxonomies: collapse redundant intermediate index pages that add a click without adding value to a visitor or a crawler.",
+    "Add contextual in-content links from popular shallow pages down to important deep ones, so equity has a short path to follow.",
+    "Re-run the audit after restructuring, because moving one hub link can lift an entire subtree of pages back inside the 3-click ceiling at once.",
+    "Do not rely on an XML sitemap to rescue a buried page — a sitemap aids discovery but does not pass the internal PageRank that depth controls."
+  ],
+  spamBrainContext:
+    "Link depth is not a SpamBrain signal and pseolint does not pretend it is. SpamBrain targets manipulative and low-value content; an honest page buried 6 clicks deep is neither. What link depth governs is the crawl-and-index economics that decide whether your good pages ever get a fair hearing in the first place.\n\nGoogle has been consistent for years that crawl budget is finite and that internal-link structure is how that budget is distributed across a site. The reasonable-surfer model behind PageRank assumes equity flows along links and attenuates with distance, so a page far from your strongest entry points simply inherits less authority. Neither idea is a penalty; both are mechanics, and both are exactly what a BFS from the root measures.\n\nlinks/link-depth (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) reports at info severity for buried pages and warning severity for unreachable ones precisely because it describes architecture, not abuse. Treat a finding as a map of where your internal authority drains away, not as evidence that Google thinks you are spamming. Fixing depth is almost always a pure win: the same page, made cheaper to crawl and richer in internal equity, with nothing about its content changed.",
+  faqs: [
+    {
+      q: "Why is 3 clicks the default depth ceiling?",
+      a: "Three clicks from the homepage is the conventional rule of thumb for a healthy architecture, and it is the maxClicks default in links/link-depth. The number reflects crawl economics: a crawler follows links eagerly for the first few hops, then pages start competing for finite budget. Inside 3 clicks a page tends to get crawled promptly and inherit meaningful internal PageRank; beyond it, both discovery and equity fall off. You can raise or lower the ceiling, but 3 is a defensible default for most sites."
+    },
+    {
+      q: "What is the difference between a deep page and an unreachable page?",
+      a: "Both come from the same breadth-first search, but they are different findings. A deep page is reachable from the root — the BFS does visit it — but only after more clicks than the ceiling allows, so it fires at info severity. An unreachable-from-root page has inbound internal links yet is never visited by the BFS at all, meaning no chain of links connects it back to the root. That is a structural island and fires at the sharper warning severity, because a crawler starting at the homepage would never find it."
+    },
+    {
+      q: "How would this rule treat my dive school's course pages?",
+      a: "Imagine a scuba-diving certification school whose $1,800 open-water cert page sits five clicks deep behind a region menu, a dive-site list, and a reef page. The BFS records depth 5, past the 3-click ceiling, and the rule flags it at info — Googlebot reaches it late and it inherits little internal equity. If your nitrox-specialty page is linked only from a stranded blog post with no path back to the root, the rule escalates to a warning. Link both pages from a course hub two clicks from home, give it 4 weeks, and every finding clears while the cert page starts ranking on its merits."
+    },
+    {
+      q: "Does a deep page actually get penalized by Google?",
+      a: "No. Link depth is a discoverability and equity signal, not a spam signal, which is why the rule reports buried pages at info rather than error severity. A page 6 clicks deep is not flagged as low quality; it is flagged as expensive for Googlebot to reach and starved of the internal PageRank it needs to compete. The harm is opportunity cost: a good page that ranks worse than it should because your architecture buried it. Fixing depth lifts the same page without changing a word of its content."
+    },
+    {
+      q: "Will an XML sitemap fix a deep or unreachable page?",
+      a: "A sitemap helps Google discover a URL, so it can partly mitigate an unreachable-from-root page, but it does not solve the underlying problem. Sitemaps aid discovery; they do not pass internal PageRank. A page that is only reachable via the sitemap still inherits no link equity from the rest of your site, so it competes from a weak position. The durable fix is an actual internal link from a reachable page, which both shortens the click-distance the BFS measures and lets authority flow to the page."
+    },
+    {
+      q: "Why is the unreachable check skipped when the audit is sampled?",
+      a: "When pseolint only fetches a subset of a large site, the link graph it builds reflects the sample, not the whole site. A page that looks unreachable might simply be missing its intermediary pages from the crawl — the real path back to the root exists, the audit just did not fetch the pages in between. To avoid crying wolf on a sampling artifact, the rule suppresses the unreachable-from-root warning on sampled runs. The depth measurement still runs on whatever subgraph was fetched, since that distance is meaningful even on a partial crawl."
+    }
+  ],
+  relatedRules: ["orphan-pages", "dead-ends", "cluster-connectivity"],
+  relatedTool: "spambrain-checker"
+},
+  {
+    slug: "cluster-connectivity",
+    ruleId: "links/cluster-connectivity",
+    title: "Cluster Connectivity — When a Directory of Pages Becomes a Topic Silo",
+    metaDescription:
+      "A directory of pages with no internal links in or out is a topic silo that hoards authority. How links/cluster-connectivity flags siloed same-parent clusters.",
+    primaryKeyword: "internal linking topic silo",
+    oneLiner:
+      "links/cluster-connectivity groups every crawled URL by its parent directory, and for each cluster of 2 or more pages it checks whether a single internal crawl link enters from another cluster or leaves toward one — firing a warning when neither exists, because Google cannot diffuse authority into a directory that no other section of your site references or is referenced by.",
+    whatItDetects:
+      "The rule keys every crawled URL to its parent directory using the same cluster logic the link family shares: /cheese/affinage/ and /cheese/rind/ collapse to the /cheese/ parent, so a cluster is simply the set of pages that live under one folder. It builds that map first, then only looks at clusters that hold 2 or more pages, because a lone page is an orphan question, not a connectivity one.\n\nFor each multi-page cluster it asks two narrow questions against the set of URLs the crawl actually knows about. First, outbound: does any page in the cluster carry a resolved internal href whose target resolves to a different cluster? Second, inbound: does any page outside the cluster link to any URL inside it? A link that stays within the same parent directory does not count for either test — internal-to-cluster links keep the silo sealed.\n\nWhen a cluster of 2 or more pages has neither a cross-cluster outbound link nor a cross-cluster inbound link, it is a sealed silo and the rule emits one warning naming the directory, the page count, and the affected URLs. A cluster with even a single link crossing its boundary in either direction passes.",
+    whyItMatters:
+      "Internal links are how PageRank-style authority flows through a site. A directory that no other section links to, and that links to nothing outside itself, is a closed loop: whatever authority lands on it stays trapped, and whatever authority the rest of the site has cannot reach it. The pages can be individually excellent and still underperform because they sit in a pocket Google has no strong path into.\n\nThis is a warning, not an error, because a silo is a missed opportunity rather than a spam signal. A 12-page guide to washed-rind cheeses that no recipe, no shop category, and no blog post ever links to is not penalised — it is simply starved. The fix is cheap and additive: one contextual link from a related section into the cluster, and one back out, breaks the seal and lets authority diffuse both ways.\n\nThe rule deliberately requires total isolation in both directions before it fires. A cluster that receives even one inbound link, or sends even one outbound link to another section, is considered connected, because that single edge is enough for a crawler to find and credit the directory. The bar is set at sealed, not merely sparse.",
+    failingExample:
+      "A specialty fromagerie ships a /cave-aged/ directory with 9 deep guides — affinage timelines, washed-rind humidity, raw-milk safety. Every link inside those pages points only to other /cave-aged/ guides, and nothing in the shop's /shop/ catalog, its /recipes/ pairings, or its /journal/ posts ever links into the directory. The cluster is sealed in both directions, so the rule warns: 'Cluster /cave-aged/ (9 pages) has no crawl links to or from other clusters.' The guides took 6 weeks to write, yet draw barely 4% of the site's organic sessions, because Google has no internal path into the silo.",
+    passingExample:
+      "The same fromagerie adds two contextual links. The /shop/ page for its flagship cave-aged gruyere — a $42 wheel aged 18 months in the cave — links into /cave-aged/affinage-timeline, giving the cluster an inbound edge from the catalog; and each /cave-aged/ guide closes with a 'shop this wheel' link out to the matching /shop/ product, giving it outbound edges. One inbound link plus outbound links is more than enough — the seal is broken in both directions, authority diffuses between the curd-to-counter sections, and the rule stays silent on a directory that now sits inside the site's link graph instead of beside it.",
+    howToFix: [
+      "Add at least one inbound link from a related section. A single contextual link from your catalog, blog, or navigation into the siloed directory is enough for a crawler to find and credit it.",
+      "Add at least one outbound link from inside the cluster to another section. Linking out is half the test; a cluster that only receives links still reads as a one-way pocket until its own pages reference the rest of the site.",
+      "Link on topical relevance, not in a footer dump. A contextual link from a genuinely related page passes far more authority and reads as editorial rather than as a sitewide boilerplate block.",
+      "Audit your navigation for whole sections it omits. Silos usually form when a directory was built after the main nav was frozen and never got wired back into it.",
+      "Re-crawl after adding the links. Because the rule only needs one crossing edge in each direction, a small number of well-placed links can clear several siloed clusters at once.",
+      "Treat the warning as a discoverability prompt, not a penalty. The pages are not flagged as low quality — they are flagged as unreachable, which is usually a quick fix with outsized traffic upside."
+    ],
+    spamBrainContext:
+      "Cluster connectivity is not a spam rule at all — it is a discoverability and authority-flow rule that happens to share the link family's plumbing. Google has said for years, most explicitly across its 2008 to 2024 internal-linking guidance, that internal links help it discover pages and understand site structure, and that important pages should be reachable from many internal links. A sealed directory contradicts both: it is hard to discover and structurally orphaned from the rest of the topic graph.\n\nThe rule ships in @pseolint/core (MIT-licensed at github.com/ouranos-labs/pseolint) at warning severity, never error, because a silo is a self-inflicted ceiling on your own pages, not a violation that draws enforcement. It pairs naturally with the rest of the link family — it asks a coarser, cluster-level version of the question that per-page reachability rules ask, catching the case where an entire folder, not just one stray URL, fell out of the link graph.\n\nWhat the rule cannot see is whether the isolation was deliberate. A staging directory, a gated members area, or a deliberately noindexed section may be siloed on purpose. The rule reports the structural fact — this cluster has no crossing edges — and leaves the judgment of whether that is intended to you."
+    ,
+    faqs: [
+      {
+        q: "What exactly counts as a cluster here?",
+        a: "A cluster is the set of crawled pages that share the same parent directory. The rule keys each URL to its parent folder — so /cheese/rind and /cheese/affinage both belong to the /cheese/ cluster — and only evaluates clusters that hold 2 or more pages. A single page under a directory is an orphan question handled elsewhere, not a connectivity one, which is why the rule needs at least two pages before it considers a directory a cluster worth testing."
+      },
+      {
+        q: "Why does a link within the same directory not count?",
+        a: "Because links that stay inside the cluster keep the silo sealed. The whole point of the rule is to detect a directory that the rest of the site cannot reach and that reaches nothing outside itself. Nine guides that link only to each other are still a closed loop no matter how densely they interlink internally. Only an edge that crosses the cluster boundary — inbound from another section or outbound to one — proves the directory is part of the wider link graph."
+      },
+      {
+        q: "Does the rule need both an inbound and an outbound link to pass?",
+        a: "No. The rule fires only when a cluster has neither a cross-cluster inbound link nor a cross-cluster outbound link. A single crossing edge in either direction is enough to clear it. In practice you usually want both — authority should flow into and out of a section — but the rule's bar is total isolation, so even one link entering or leaving the directory is enough to silence the warning."
+      },
+      {
+        q: "It is a warning, not an error — should I still care?",
+        a: "Yes, because a silo is a ceiling on your own pages. The severity is warning rather than error because isolation is a missed opportunity, not a spam signal that draws a manual action. But a directory Google cannot reach internally tends to underperform regardless of page quality. The fix is one of the cheapest, highest-upside changes in the audit: a couple of contextual links can unlock a whole section that was quietly starved of authority."
+      },
+      {
+        q: "My fromagerie has a /cave-aged/ directory that trips this — what do I do?",
+        a: "Wire it into the rest of the shop. Link your /shop/ catalog page for a cave-aged wheel into the relevant affinage guide so the cluster gains an inbound edge, and have each guide link out to the matching product or to a /recipes/ pairing so it gains outbound edges. One contextual link from the counter to the cave and one back is enough to break the seal. The 9 guides that took 6 weeks to write stop being a sealed terroir pocket and start passing authority to and from the rest of the site within a crawl or two."
+      }
+    ],
+    relatedRules: ["host-section-divergence", "template-diversity"],
+    relatedTool: "spambrain-checker"
+  },
+  {
+  slug: "url-pattern",
+  ruleId: "cannibal/url-pattern",
+  title: "URL Pattern Cannibalization — When Two Slugs Are the Same Words Reordered",
+  metaDescription:
+    "Two URLs in one directory built from the same slug words in a different order compete for one query. How cannibal/url-pattern detects token-reorder URL cannibalization.",
+  primaryKeyword: "URL cannibalization",
+  oneLiner:
+    "cannibal/url-pattern splits each URL's last slug on hyphens, sorts the tokens, and flags at info severity any two pages in the same directory whose sorted token sets match exactly — the reordered-slug keyword cannibalization Google has resolved by collapsing competing URLs to one canonical result since well before its March 2026 core update.",
+  whatItDetects:
+    "cannibal/url-pattern looks for two URLs that are, word for word, the same page wearing a different word order. For every page it takes the final path segment — the slug after the last slash, trailing slashes removed — splits it on hyphens, drops empty tokens, and sorts what remains alphabetically. Two slugs that differ only in the order of their words produce an identical sorted token list.\n\nThe rule then compares pages pairwise, but only within the same parent directory: the path up to that last slash must match, and it must not be empty. When two distinct URLs in one directory collapse to the same sorted tokens, the rule fires once at info severity, naming both URLs and reporting that they carry the same tokens in a different order. Pages in different directories never compare against each other, and a slug with no tokens is skipped. The match is exact after sorting — not fuzzy — so it fires only when the two slugs really are the same word set reshuffled.",
+  whyItMatters:
+    "Two URLs assembled from one word set are two pages chasing a single query. A vintage-synth marketplace that ships /moog-analog-synthesizer and /analog-synthesizer-moog in the same listings directory has not built two products; it has built one product twice and asked Google to choose. The crawler usually does choose — it folds the pair to a single canonical result and splits the link equity, anchor text, and click history that should have accrued to one strong page across two weaker ones.\n\nThe damage is quiet because nothing 404s and nothing looks broken. Both pages index, both rank somewhere, and neither ranks as well as the consolidated page would. On a programmatic catalog the reorder is rarely intentional — it usually comes from a slug builder that concatenates attribute tokens in whatever order the data arrives, so /eurorack-modular-oscillator and /oscillator-eurorack-modular both get minted from the same record. The rule sits at info severity because a reordered pair is a signal to consolidate, not proof of spam, but every such pair is link equity you are dividing against yourself.",
+  failingExample:
+    "A vintage-synthesizer marketplace mints two listing URLs from one record: /listings/moog-modular-oscillator and /listings/oscillator-moog-modular. Both live in /listings, and after splitting each slug on hyphens and sorting, both collapse to modular-moog-oscillator — the same three tokens reshuffled. The rule fires at info: 'these URLs have the same tokens in different order'. Google indexed both, picked one as canonical 9 days after launch, and the patch-cable and CV-gate detail on the losing page now earns nothing toward the ranking page.",
+  passingExample:
+    "The same marketplace settles on one canonical slug order for every listing and 301-redirects the reordered twin: /listings/oscillator-moog-modular permanently points at /listings/moog-modular-oscillator. Within the /listings directory no two slugs now share a sorted token set, so the rule stays silent. The MIDI spec, the filter-cutoff range, and the modular-rack photos all consolidate onto one URL, and the page that was splitting equity with its anagram now holds the full signal for the query.",
+  howToFix: [
+    "Pick one canonical token order for every slug your builder emits, so the same record can never mint both /moog-analog-oscillator and /oscillator-moog-analog.",
+    "Add a 301 redirect from the reordered twin to the canonical URL, collapsing the pair into one address before the link equity finishes splitting.",
+    "Set a rel=canonical on any duplicate you cannot redirect, pointing every reordered variant at the single slug you want Google to rank.",
+    "Audit the slug-generation code, not the pages — the reorder almost always comes from a builder concatenating attribute tokens in whatever order the data arrives.",
+    "Sort or fix the token order at write time in your data pipeline, so new listings are minted in canonical order and the pair never appears again.",
+    "Check internal links and your sitemap for both variants, and repoint every reference at the canonical slug so crawlers stop discovering the twin."
+  ],
+  spamBrainContext:
+    "Keyword cannibalization predates any algorithm name — it is simply two of your own pages competing for the same query, a problem SEOs have written about since the early 2010s. Reordered URL slugs are one of its most mechanical forms: not a content overlap a writer introduced, but a duplicate the address space minted on its own when a slug builder shuffled the same attribute tokens.\n\ncannibal/url-pattern (in @pseolint/core, MIT-licensed at github.com/ouranos-labs/pseolint) reasons about your URL structure rather than your page content. It does not read the HTML at all — it only asks whether two addresses in one directory are the same words in a different order. That is why it ships at info severity and never contributes a blocker on its own: a reordered pair is a consolidation opportunity, not a policy violation. Google's deduplication systems will eventually pick one canonical URL for the pair regardless, so the rule's job is to surface the split before the crawler resolves it for you and you lose a say in which slug wins.",
+  faqs: [
+    {
+      q: "What exactly counts as a reordered-token match?",
+      a: "Two URLs match when they sit in the same parent directory and their final slugs, after splitting on hyphens and sorting alphabetically, produce the identical token list. So /gear/analog-synth-rack and /gear/rack-synth-analog match because both sort to analog-rack-synth, while /gear/analog-synth-rack and /shop/analog-synth-rack do not, because their directories differ. The comparison is exact after sorting, so a single different or extra word breaks the match and the rule stays silent."
+    },
+    {
+      q: "Why is this only an info-severity finding?",
+      a: "Because a reordered slug pair is a signal to consolidate, not evidence of spam or manipulation. Nothing is broken — both pages still load and index — so the rule never blocks an audit verdict on its own. It surfaces the pair so you can decide which slug to keep and redirect the other, ideally before Google's deduplication picks a canonical URL for you. Treat it as a cleanup task that recovers split link equity, not as an emergency."
+    },
+    {
+      q: "Will it flag two URLs that share words but in different directories?",
+      a: "No. The rule compares pages only within the same parent directory — the entire path up to the final slash must match, and it must not be empty. So /listings/moog-oscillator and /archive/oscillator-moog never compare against each other, even though their slugs are the same two words reordered. Directory scoping keeps the rule from flagging legitimately separate sections that happen to reuse vocabulary, and it only ever fires on genuine same-folder duplicates."
+    },
+    {
+      q: "My synth marketplace auto-builds slugs from attribute tags — how do I stop reordered duplicates?",
+      a: "This is the classic source of the finding. A listing for a Moog modular oscillator gets a slug concatenated from its attribute tokens, but if the same instrument is re-listed and the tags arrive as oscillator, modular, moog instead of moog, modular, oscillator, your builder mints /listings/oscillator-modular-moog alongside the original /listings/moog-modular-oscillator — two URLs, one patch-cable-and-CV-gate product. Fix it at write time: sort the attribute tokens into a fixed canonical order before assembling the slug, so the polyphony, filter-cutoff, and MIDI details of a given modular rack only ever resolve to one address. In one illustrative cleanup, a dealer carrying 1,400 listings found 6% were reordered twins and recovered the split equity within 3 weeks of redirecting them."
+    },
+    {
+      q: "Does redirecting the duplicate recover the lost ranking signal?",
+      a: "Largely, yes. A 301 redirect from the reordered twin to your canonical slug passes the accumulated link equity and consolidates the two pages' signals onto one URL, so the page that was competing with its own anagram regains the anchor text and click history it was splitting. The recovery is not instant — Google has to recrawl and process the redirect — but it is the right fix, because leaving the pair live means the crawler keeps dividing the signal until it picks a canonical itself, with no guarantee it picks the slug you would have chosen."
+    }
+  ],
+  relatedRules: ["near-duplicate", "title-uniqueness", "meta-uniqueness"],
+  relatedTool: "doorway-page-detector"
 }
 ] as const;
 
