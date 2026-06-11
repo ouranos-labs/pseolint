@@ -14,6 +14,50 @@ function absoluteUrl(path: string): string {
   return `${base}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
+/** Escape `<` so a JSON-LD string can't terminate the surrounding <script> early. */
+function safeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+/**
+ * FAQ pairs mirrored from the visible Q&A on this page. The audit's
+ * `aeo/faq-coverage` rule wants FAQPage JSON-LD whose questions/answers match
+ * on-page content — these paraphrase the sections below and are kept in sync
+ * by hand (not entity-swapped boilerplate).
+ */
+const METHODOLOGY_FAQ: { q: string; a: string }[] = [
+  {
+    q: "How does pseolint calibrate its verdicts?",
+    a: "pseolint adds predictive validity on top of face validity: it audits a curated corpus of in-production programmatic-SEO sites that demonstrably win in search, and treats any deviation between its verdict and a site's real-world ranking success as a bug in the engine, not the site. The corpus, runner, and regression tests are open-source and reproducible at a fixed sample seed.",
+  },
+  {
+    q: "How do v0.6 audits work?",
+    a: "v0.6 shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples K=10 URLs per template (K=20 on manual re-audits) and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
+  },
+  {
+    q: "Does pseolint measure domain authority?",
+    a: "No. pseolint is a static-content and link-graph analyzer — it reads what pages say, how they link, and how they nest. It does not check backlinks, brand mentions, domain age, or any external trust signal, and has no Moz/Ahrefs/Semrush dependency, by design, so it can run offline against a build directory. Pass --authority-score (0-100) to shift the verdict ladder for your authority tier.",
+  },
+  {
+    q: "What does a passing verdict mean?",
+    a: "A pass means pseolint's rules don't false-positive on shapes that high-authority sites successfully ship. A fail often means the engine correctly identified a real issue (duplicate titles, redirect chains, missing OG tags) that the site can absorb because of its authority — not that the engine is wrong.",
+  },
+  {
+    q: "What stays true regardless of which sites pseolint audits?",
+    a: "Doorway-pattern findings collapse to one cluster line instead of per-pair noise; sample-seed determinism makes verdicts reproducible (mulberry32 PRNG); info-severity findings are capped per bucket so they can't tank a verdict on their own; severity demotions are auditable via summary.appliedSeverityDemotions; and the spec, corpus, runner, and regression tests are open-source so anyone can re-run the calibration.",
+  },
+];
+
+const FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: METHODOLOGY_FAQ.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 export function generateMetadata(): Metadata {
   const url = absoluteUrl(PAGE_PATH);
   return {
@@ -86,7 +130,13 @@ function VerdictPill({ v }: { v: string }) {
 
 export default function MethodologyPage(): React.ReactElement {
   return (
-    <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+    <>
+      <script
+        type="application/ld+json"
+        // eslint-disable-next-line react/no-danger
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(FAQ_JSON_LD) }}
+      />
+      <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
         Methodology · v0.6.3 · for skeptical engineers
@@ -686,5 +736,6 @@ export default function MethodologyPage(): React.ReactElement {
         </div>
       </section>
     </main>
+    </>
   );
 }

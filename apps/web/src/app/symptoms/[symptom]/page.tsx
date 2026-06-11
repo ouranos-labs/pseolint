@@ -48,6 +48,7 @@ export async function generateMetadata({ params }: RouteParams): Promise<Metadat
       url: canonical,
       type: "article",
       siteName: ORG_NAME,
+      images: [`${SITE_URL}/opengraph-image`],
     },
     twitter: {
       card: "summary_large_image",

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
     url: CANONICAL,
     type: "website",
     siteName: "pseolint",
+    images: [`${SITE_URL}/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",

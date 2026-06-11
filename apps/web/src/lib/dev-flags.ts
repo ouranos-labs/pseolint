@@ -34,4 +34,13 @@ export const devFlags = {
   get domainVerifySkipped(): boolean {
     return flag("DEV_SKIP_DOMAIN_VERIFY");
   },
+  /**
+   * Skip the pre-flight origin-health probe before dispatching an audit. The
+   * probe sends a few requests at the target to confirm it can take a crawl;
+   * disabling it is useful when pointing at a slow local dev server. Off in
+   * local dev by default (don't probe localhost), explicit env var in prod.
+   */
+  get preflightDisabled(): boolean {
+    return flag("DISABLE_ORIGIN_PREFLIGHT");
+  },
 };

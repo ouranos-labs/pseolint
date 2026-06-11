@@ -16,6 +16,7 @@ export const metadata: Metadata = {
       "Zero-install remote endpoint (paste one URL) or the open-source stdio package. Audit programmatic SEO sites for SpamBrain risk without leaving Claude or Cursor.",
     url: `${SITE_URL}/mcp-server`,
     type: "website",
+    images: [`${SITE_URL}/opengraph-image`],
   },
   twitter: {
     card: "summary_large_image",

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
@@ -11,6 +11,23 @@ import { CliMarquee } from "@/components/landing/cli-marquee";
 import { TemplateBreakdownHero } from "@/components/landing/template-breakdown-hero";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { scoreTone } from "@/lib/grade";
+import { LANDING_FAQ } from "@/lib/landing-faq";
+
+const GITHUB_ACTION_YAML = `name: pSEO Lint
+on: [pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm run build
+      - uses: ouranos-labs/pseolint@action-v1
+        with:
+          source: ./out
+          threshold: 40`;
 
 declare global {
   interface Window {
@@ -150,8 +167,8 @@ export function LandingForm() {
         router.push(next);
         return;
       }
-      const { error } = await res.json().catch(() => ({ error: "Unknown error" }));
-      setErr(mapApiError(res.status, String(error ?? "Unknown error")));
+      const { error, code } = await res.json().catch(() => ({ error: "Unknown error" }));
+      setErr(mapApiError(res.status, String(error ?? "Unknown error"), code));
     } catch (fetchErr) {
       setErr({
         message: "Couldn't reach the server.",
@@ -176,12 +193,14 @@ export function LandingForm() {
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
-                Most programmatic SEO is doorway-page gardening. v0.6 audits your templates, not just URLs.
+                Catch the patterns that get programmatic-SEO sites deindexed — before SpamBrain does.
               </h1>
 
               <p className="text-base leading-relaxed text-muted-foreground">
-                Paste a URL. In 60 seconds, see which template clusters trip SpamBrain and which pages
-                get cited by ChatGPT, Perplexity, and Google AI Overviews.
+                pseolint is the open-source linter for programmatic SEO. Paste a URL or drop it in CI:
+                it finds the doorway clusters, near-duplicates, and thin templates that trip SpamBrain,
+                then tells you which <span className="text-foreground">template</span> to fix — one fix, N pages.
+                It also flags which pages can get cited in ChatGPT, Perplexity, and Google AI Overviews.
               </p>
 
               <form onSubmit={ submit } className="flex flex-col gap-3">
@@ -290,6 +309,33 @@ export function LandingForm() {
         </div>
       </section>
 
+      <section className="border-t border-border/60 bg-card/30">
+        <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Who it&apos;s for</p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            { AUDIENCE.map((a) => (
+              <div key={ a.who } className="rounded-[18px] border border-border/60 bg-background/60 p-5">
+                <h3 className="text-sm font-semibold text-foreground">{ a.who }</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{ a.what }</p>
+              </div>
+            )) }
+          </div>
+          <div className="mt-7">
+            <a
+              href="#top"
+              onClick={ (e) => {
+                e.preventDefault();
+                document.getElementById("url")?.focus();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } }
+              className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Audit my site — free
+            </a>
+          </div>
+        </div>
+      </section>
+
       <TemplateBreakdownHero />
 
       <section className="border-t border-border/60 bg-card/30">
@@ -368,9 +414,9 @@ export function LandingForm() {
       <section className="border-t border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
           <div className="mb-14 max-w-2xl">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Field report</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Three archetypes</p>
             <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
-              Three pSEO sites,{ " " }
+              Three shapes of pSEO,{ " " }
               <span
                 style={ {
                   fontFamily: "var(--font-display)",
@@ -382,7 +428,12 @@ export function LandingForm() {
               </span>
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Names redacted. Each grid shows the dominant template&apos;s sample. Lower score = safer.
+              Illustrative archetypes, not real sites — the shapes pseolint actually finds. Each grid shows a
+              dominant template&apos;s sample; lower score = safer. The verifiable version is your own scan and
+              the public{" "}
+              <Link href="/leaderboard" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+                leaderboard
+              </Link>.
             </p>
           </div>
 
@@ -462,7 +513,7 @@ export function LandingForm() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across all 32 rules.
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
             </li>
             <li>
               <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
@@ -492,6 +543,69 @@ export function LandingForm() {
         </div>
       </section>
 
+      <section className="border-t border-border/60 bg-card/30">
+        <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
+            <div className="max-w-md">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Ship it in CI</p>
+              <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+                Gate the build before a template ships broken.
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                Drop this into <code className="font-mono text-xs">.github/workflows/pseolint.yml</code>.
+                It audits your build output on every PR, posts a SpamBrain Risk Score summary as a
+                comment, and fails the check when the score crosses your threshold. Two minutes to wire up.
+              </p>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Prefer the CLI? <code className="font-mono text-xs">npx pseolint ./out --ci-threshold concerning --format json</code>{" "}
+                does the same thing locally — see the{" "}
+                <Link href="/mcp-server" className="text-primary hover:underline">MCP server</Link> for editor + agent setups.
+              </p>
+            </div>
+            <div className="overflow-hidden rounded-[18px] border border-border/70 bg-background/80">
+              <div className="flex items-center gap-1.5 border-b border-border/60 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-destructive/40" />
+                <span className="h-2.5 w-2.5 rounded-full bg-warning/40" />
+                <span className="h-2.5 w-2.5 rounded-full bg-success/40" />
+                <span className="ml-2 font-mono text-[11px] text-muted-foreground">.github/workflows/pseolint.yml</span>
+              </div>
+              <pre className="overflow-x-auto px-4 py-4 font-mono text-[11px] leading-relaxed text-foreground/90">
+                <code>{ GITHUB_ACTION_YAML }</code>
+              </pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60">
+        <div className="mx-auto max-w-3xl px-5 py-20 sm:py-24">
+          <div className="mb-10">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">FAQ</p>
+            <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
+              Straight answers.
+            </h2>
+          </div>
+          <dl className="divide-y divide-border/60 border-y border-border/60">
+            { LANDING_FAQ.map((item) => (
+              <div key={ item.q } className="py-6">
+                <dt className="text-base font-semibold tracking-tight text-foreground">{ item.q }</dt>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{ linkifyAnswer(item.a) }</dd>
+              </div>
+            )) }
+          </dl>
+          <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
+            Early-stage and built in the open. Open-source (MIT), launched January 2026, with{" "}
+            <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{" "}
+            mapped to current Google policy. We run pseolint on{" "}
+            <span className="text-foreground">pseolint.dev</span> itself and publish the result on the public{" "}
+            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> — verdict{" "}
+            <span className="text-foreground">Ready</span>, origin handled the crawl at a 106ms median TTFB, and the
+            audit&apos;s open findings are literally our own SEO to-do list. The traction is the receipts, not a
+            number we made up.
+          </p>
+        </div>
+      </section>
+
       <section className="border-t border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-20">
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
@@ -507,7 +621,7 @@ export function LandingForm() {
                 A per-template verdict you can ship.
               </span>
             </h2>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-start gap-2">
               <a
                 href="#top"
                 onClick={ (e) => {
@@ -517,14 +631,14 @@ export function LandingForm() {
                 } }
                 className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Start free audit
+                Audit my site — free
               </a>
-              <Link
-                href="/pricing"
-                className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-              >
-                See pricing
-              </Link>
+              <span className="text-xs text-muted-foreground">
+                Free, no signup. Pro is <span className="text-foreground">$19/mo</span> —{" "}
+                <Link href="/pricing" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+                  what&apos;s included
+                </Link>.
+              </span>
             </div>
           </div>
         </div>
@@ -535,6 +649,24 @@ export function LandingForm() {
 
 function scoreToneClass(score: number): string {
   return scoreTone(score);
+}
+
+// FAQ answers are stored as plain prose (so they serialize cleanly into
+// FAQPage JSON-LD), but the in-page copy should let people click the routes it
+// mentions. Linkify the known internal paths without touching the JSON-LD.
+const FAQ_PATHS = ["/rules", "/methodology", "/pricing"] as const;
+function linkifyAnswer(answer: string): ReactNode {
+  const parts = answer.split(/(\/rules|\/methodology|\/pricing)\b/g);
+  return parts.map((part, i) =>
+    (FAQ_PATHS as readonly string[]).includes(part) ? (
+      <Link key={ i } href={ part } className="text-primary hover:underline">
+        { part }
+      </Link>
+    ) : (
+      // Keyed span so every array item has a key (bare strings don't).
+      <span key={ i }>{ part }</span>
+    ),
+  );
 }
 
 function normalizeUrl(raw: string): string | null {
@@ -551,8 +683,17 @@ function normalizeUrl(raw: string): string | null {
   }
 }
 
-function mapApiError(status: number, message: string): FormError {
+function mapApiError(status: number, message: string, code?: string): FormError {
   const lower = message.toLowerCase();
+  // Pre-flight origin-health block — the server probed the origin before
+  // dispatching and found it down or degraded. The message already explains
+  // what we found and how to override; just give it an honest title.
+  if (code === "origin_unreachable") {
+    return { message: "We couldn't reach your origin.", hint: message };
+  }
+  if (code === "origin_degraded") {
+    return { message: "Your origin looks degraded right now.", hint: message };
+  }
   if (status === 429) {
     if (lower.includes("session limit")) {
       return {
@@ -630,6 +771,25 @@ function buildTiles({
   for (let i = is; i < is + infos && i < total; i++) if (states[i] === "clean") states[i] = "info";
   return states;
 }
+
+const AUDIENCE = [
+  {
+    who: "pSEO builders",
+    what: "City × service grids, directories, state × fee matrices — content generated from a template at scale.",
+  },
+  {
+    who: "Template-site operators",
+    what: "Thousands of pages from one template. One structural fix should cover all of them — pseolint tells you which.",
+  },
+  {
+    who: "Agencies shipping client sites",
+    what: "Gate every client build before it goes live. Catch the deindexing risk in the PR, not in a ranking drop.",
+  },
+  {
+    who: "Indie SaaS with scaled pages",
+    what: "Integration, comparison, and feature pages that quietly drifted into doorway territory while you shipped.",
+  },
+] as const;
 
 const STATS = [
   { label: "Median audit time", value: "1 minute" },

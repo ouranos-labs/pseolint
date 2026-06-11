@@ -18,6 +18,7 @@ import { publicSlug } from "@/lib/slug";
 import { clientIp } from "@/lib/ip";
 import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
 import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
+import { checkOriginHealth } from "@pseolint/core";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
 
@@ -347,6 +348,38 @@ export async function POST(req: Request): Promise<Response> {
         { error: `Too many audits in flight (${count}/${inFlightLimit}). Wait for one to finish.` },
         { status: 429 },
       );
+    }
+  }
+
+  // Pre-flight origin health check. The in-flight BackpressureMonitor only
+  // trips after a crawl has already fired dozens of requests at a struggling
+  // origin (the paperforge/Neon incident). A concurrent probe at the entry URL
+  // tells us the origin's state up front. We only *block* when the origin is
+  // unreachable — there is genuinely nothing to audit, so no false-positive /
+  // override concern. A `degraded` origin is NOT blocked here: the audit
+  // proceeds and `run-audit` automatically drops it to gentle (low-concurrency)
+  // mode, which is friendlier than refusing the run. `force` (sessioned
+  // override) and the dev flag both skip the probe.
+  if (!forceNew && !devFlags.preflightDisabled) {
+    const health = await checkOriginHealth(url, { probes: 3, timeoutMs: 4000 });
+    if (health.verdict === "unreachable") {
+      auditLog("audit.request.preflight_blocked", {
+        url, host, verdict: health.verdict, reason: health.reason,
+        responded: health.responded, attempted: health.attempted,
+      });
+      return NextResponse.json(
+        {
+          error: `We couldn't reach ${host} — ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.`,
+          code: "origin_unreachable",
+        },
+        { status: 503 },
+      );
+    }
+    if (health.verdict === "degraded") {
+      // Not fatal — let it run gentle. Logged so we can see how often it happens.
+      auditLog("audit.request.preflight_degraded", {
+        url, host, reason: health.reason, medianMs: health.medianMs, errorRatio: health.errorRatio,
+      });
     }
   }
 
