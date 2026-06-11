@@ -1,17 +1,12 @@
 import type { Confidence, EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
 import { extractCitableFacts } from "../../algorithms/fact-extraction.js";
+import { maskEntities } from "../../algorithms/entity-mask.js";
 
 export interface CitableFactsOptions {
   /** Below this count → error. Default: 3. */
   minFactsPerPage?: number;
   /** At or above this count → pass. Default: 8. */
   targetFactsPerPage?: number;
-}
-
-function applyEntityMask(text: string, patterns: EntityMaskPattern[]): string {
-  let out = text;
-  for (const p of patterns) out = out.replace(p.pattern, p.placeholder);
-  return out;
 }
 
 export function citableFactsRule(
@@ -42,7 +37,7 @@ export function citableFactsRule(
   const perPageFacts = new Map<string, string[]>();
 
   for (const page of pages) {
-    const masked = applyEntityMask(page.contentText, entityPatterns);
+    const masked = maskEntities(page.contentText, entityPatterns);
     const rawFacts = extractCitableFacts(masked);
     perPageFacts.set(page.url, rawFacts);
     for (const f of rawFacts) {

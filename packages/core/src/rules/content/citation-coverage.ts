@@ -1,5 +1,5 @@
 import type { EntityMaskPattern, ParsedPage, RuleResult } from "../../types.js";
-import { extractPageFacts } from "../../algorithms/fact-extraction.js";
+import { extractPageFacts, DEFAULT_CITATION_ALLOWLIST } from "../../algorithms/fact-extraction.js";
 
 export interface CitationCoverageOptions {
   /** Quantified-claim count at/above which an authoritative citation is expected. Default: 4. */
@@ -17,10 +17,15 @@ export function citationCoverageRule(
 ): RuleResult[] {
   const minClaims = options?.minClaims ?? 4;
   const minAuthoritative = options?.minAuthoritative ?? 1;
+  // Merge caller-supplied domains with the default allowlist (additive, per the
+  // option contract) rather than replacing it.
+  const allowlist = options?.allowlist
+    ? [...DEFAULT_CITATION_ALLOWLIST, ...options.allowlist]
+    : undefined;
   const findings: RuleResult[] = [];
 
   for (const page of pages) {
-    const facts = extractPageFacts(page, entityPatterns, options?.allowlist);
+    const facts = extractPageFacts(page, entityPatterns, allowlist);
     // "Quantified claims": distinct numeric facts + measurements + grounded claims.
     const quantified = new Set<string>([
       ...facts.citableFacts,

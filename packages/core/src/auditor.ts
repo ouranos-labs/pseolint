@@ -499,6 +499,9 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/title-uniqueness": { baseImpact: 8,  perInstance: 2,  maxImpact: 25 }, // 2026-05-03 round 11: title is high-impact but the original 50-cap was disproportionate to other content rules and tipped Typeform into critical on a 6-finding cluster. Keep the rule at native error severity (duplicate titles ARE real bugs); just don't let one rule dominate the integrity bucket.
   "content/heading-structure":{ baseImpact: 5,  perInstance: 1,  maxImpact: 20 },
   "content/image-alt-text":   { baseImpact: 3,  perInstance: 1,  maxImpact: 20 },
+  // Citation coverage is low-confidence (block-level grounded-claim heuristic);
+  // keep its impact modest so it nudges rather than dominates the score.
+  "content/citation-coverage":{ baseImpact: 3,  perInstance: 1,  maxImpact: 15 },
   "content/translation-no-op":{ baseImpact: 30, perInstance: 10, maxImpact: 60 },
   // v1 warning-severity heuristic; lower than translation-no-op since it's speculative
   "content/regurgitated-content": { baseImpact: 15, perInstance: 5, maxImpact: 35 },
