@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
@@ -320,6 +320,19 @@ export function LandingForm() {
               </div>
             )) }
           </div>
+          <div className="mt-7">
+            <a
+              href="#top"
+              onClick={ (e) => {
+                e.preventDefault();
+                document.getElementById("url")?.focus();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              } }
+              className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Audit my site — free
+            </a>
+          </div>
         </div>
       </section>
 
@@ -401,9 +414,9 @@ export function LandingForm() {
       <section className="border-t border-border/60">
         <div className="mx-auto max-w-5xl px-5 py-20 sm:py-24">
           <div className="mb-14 max-w-2xl">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Field report</p>
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Three archetypes</p>
             <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
-              Three pSEO sites,{ " " }
+              Three shapes of pSEO,{ " " }
               <span
                 style={ {
                   fontFamily: "var(--font-display)",
@@ -415,7 +428,12 @@ export function LandingForm() {
               </span>
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Names redacted. Each grid shows the dominant template&apos;s sample. Lower score = safer.
+              Illustrative archetypes, not real sites — the shapes pseolint actually finds. Each grid shows a
+              dominant template&apos;s sample; lower score = safer. The verifiable version is your own scan and
+              the public{" "}
+              <Link href="/leaderboard" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+                leaderboard
+              </Link>.
             </p>
           </div>
 
@@ -495,7 +513,7 @@ export function LandingForm() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across all 32 rules.
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
             </li>
             <li>
               <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
@@ -571,7 +589,7 @@ export function LandingForm() {
             { LANDING_FAQ.map((item) => (
               <div key={ item.q } className="py-6">
                 <dt className="text-base font-semibold tracking-tight text-foreground">{ item.q }</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{ item.a }</dd>
+                <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{ linkifyAnswer(item.a) }</dd>
               </div>
             )) }
           </dl>
@@ -628,6 +646,24 @@ export function LandingForm() {
 
 function scoreToneClass(score: number): string {
   return scoreTone(score);
+}
+
+// FAQ answers are stored as plain prose (so they serialize cleanly into
+// FAQPage JSON-LD), but the in-page copy should let people click the routes it
+// mentions. Linkify the known internal paths without touching the JSON-LD.
+const FAQ_PATHS = ["/rules", "/methodology", "/pricing"] as const;
+function linkifyAnswer(answer: string): ReactNode {
+  const parts = answer.split(/(\/rules|\/methodology|\/pricing)\b/g);
+  return parts.map((part, i) =>
+    (FAQ_PATHS as readonly string[]).includes(part) ? (
+      <Link key={ i } href={ part } className="text-primary hover:underline">
+        { part }
+      </Link>
+    ) : (
+      // Keyed span so every array item has a key (bare strings don't).
+      <span key={ i }>{ part }</span>
+    ),
+  );
 }
 
 function normalizeUrl(raw: string): string | null {
