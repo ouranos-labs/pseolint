@@ -1,4 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// The route is the only consumer of @pseolint/core in this graph (run-audit is
+// mocked below), so mocking just checkOriginHealth is safe and lets us drive
+// each pre-flight verdict deterministically without touching the network.
+const { preflightMock } = vi.hoisted(() => ({ preflightMock: vi.fn() }));
+vi.mock("@pseolint/core", () => ({ checkOriginHealth: preflightMock }));
 
 vi.mock("@/lib/turnstile", () => ({ verifyTurnstileToken: vi.fn().mockResolvedValue(true) }));
 vi.mock("@/lib/inngest", () => ({
@@ -46,39 +52,56 @@ const ENV = {
 };
 for (const [k, v] of Object.entries(ENV)) process.env[k] = v;
 
+function auditRequest(ip: string, url = "https://example.com/") {
+  return new Request("http://localhost/api/audits", {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": ip },
+    body: JSON.stringify({ url, turnstileToken: "tok" }),
+  });
+}
+
+const HEALTHY = { verdict: "ok", medianMs: 80, maxMs: 90, errorRatio: 0, responded: 3, attempted: 3, samples: [] };
+
 describe("POST /api/audits", () => {
-  it("202 with auditId on valid request", async () => {
+  beforeEach(() => {
+    preflightMock.mockReset();
+    delete process.env.DISABLE_ORIGIN_PREFLIGHT;
+  });
+
+  it("202 with auditId on valid request (pre-flight off by default in test env)", async () => {
     const { POST } = await import("@/app/api/audits/route");
-    const req = new Request("http://localhost/api/audits", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.4" },
-      body: JSON.stringify({ url: "https://example.com/", turnstileToken: "tok" }),
-    });
-    const res = await POST(req);
+    const res = await POST(auditRequest("1.2.3.4"));
     expect(res.status).toBe(202);
     const json = await res.json();
     expect(json.auditId).toBe("audit-1");
     expect(json.reportUrl).toBe("/a/audit-1");
+    expect(preflightMock).not.toHaveBeenCalled();
   });
 
-  it("503 origin_unreachable when the pre-flight probe can't reach the origin", async () => {
-    // Force the pre-flight on (off by default outside production). The `.invalid`
-    // TLD never resolves (RFC 2606), so every probe fails its DNS-validated hop
-    // → verdict "unreachable" → the route refuses to dispatch. No network needed.
+  it("202 when the pre-flight is on and the origin is healthy", async () => {
     process.env.DISABLE_ORIGIN_PREFLIGHT = "0";
-    try {
-      const { POST } = await import("@/app/api/audits/route");
-      const req = new Request("http://localhost/api/audits", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.5" },
-        body: JSON.stringify({ url: "https://nonexistent.invalid/", turnstileToken: "tok" }),
-      });
-      const res = await POST(req);
-      expect(res.status).toBe(503);
-      const json = await res.json();
-      expect(json.code).toBe("origin_unreachable");
-    } finally {
-      delete process.env.DISABLE_ORIGIN_PREFLIGHT;
-    }
+    preflightMock.mockResolvedValue(HEALTHY);
+    const { POST } = await import("@/app/api/audits/route");
+    const res = await POST(auditRequest("1.2.3.5"));
+    expect(res.status).toBe(202);
+    expect(preflightMock).toHaveBeenCalledOnce();
+  });
+
+  it("503 origin_unreachable when the pre-flight can't reach the origin", async () => {
+    process.env.DISABLE_ORIGIN_PREFLIGHT = "0";
+    preflightMock.mockResolvedValue({ ...HEALTHY, verdict: "unreachable", reason: "no response from 3 probes", responded: 0 });
+    const { POST } = await import("@/app/api/audits/route");
+    const res = await POST(auditRequest("1.2.3.6"));
+    expect(res.status).toBe(503);
+    const json = await res.json();
+    expect(json.code).toBe("origin_unreachable");
+  });
+
+  it("proceeds (202) when the origin is degraded — run-audit drops it to gentle, the route does not block", async () => {
+    process.env.DISABLE_ORIGIN_PREFLIGHT = "0";
+    preflightMock.mockResolvedValue({ ...HEALTHY, verdict: "degraded", reason: "origin median response 9000ms exceeds 8000ms", medianMs: 9000 });
+    const { POST } = await import("@/app/api/audits/route");
+    const res = await POST(auditRequest("1.2.3.7"));
+    expect(res.status).toBe(202);
   });
 });

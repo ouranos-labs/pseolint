@@ -144,11 +144,13 @@ origin that was visibly struggling.** The actionable signal for this site was
 "the origin can't sustain a full crawl — audit a child sitemap directly, or a
 faster environment."
 
-So pseolint now does that check *up front*: a **pre-flight origin health
-probe** runs before an audit is dispatched, and if the origin is already
-degraded or unreachable, pseolint refuses to start the crawl rather than finish
-the job a struggling server began. "We check your origin can take the crawl
-first" is a feature paperforge paid for in downtime.
+So pseolint now does that check *up front*: a **concurrent pre-flight origin
+probe** runs before the crawl on every audit path — one-off scans *and* the
+monitoring runs that caused this incident in the first place. If the origin is
+unreachable, pseolint refuses to start; if it's degraded, pseolint drops to a
+gentle, low-concurrency crawl instead of finishing off a struggling server.
+"We check your origin can take the crawl first" is a feature paperforge paid for
+in downtime.
 
 <!-- TODO at publish: confirm the released version that ships checkOriginHealth /
 the pre-flight check and reference it precisely (it landed on the launch-strategy

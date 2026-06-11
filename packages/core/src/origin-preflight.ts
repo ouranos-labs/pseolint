@@ -9,11 +9,13 @@ import { cachedFetch, type Fetcher } from "./cache.js";
  * canonical case: each fetch fanned out into uncached DB queries and the
  * crawl had already exhausted the egress quota before backpressure noticed.
  *
- * This check runs *before* the audit is dispatched. It sends a handful of
- * sequential probes at the target's entry URL and decides whether the origin
- * looks healthy enough to take a full crawl. If it's already unreachable or
- * degraded, we don't dispatch — we tell the caller to warm their cache or try
- * again, instead of finishing the job the load test started.
+ * This check runs *before* the audit is dispatched. It fires a handful of
+ * concurrent probes at the target's entry URL — concurrent, not sequential, so
+ * it observes the origin the way the real crawl will hit it (parallel fetches
+ * that fan out into uncached work), rather than the rosier one-request-at-a-time
+ * picture. It returns an `ok` / `unreachable` / `degraded` verdict; callers can
+ * refuse to dispatch, or fall back to a gentler (lower-concurrency) crawl,
+ * instead of finishing the job a struggling server started.
  *
  * Conservative by design: a single transient timeout never trips it. We only
  * report `unreachable` when *every* probe fails, and `degraded` when the
@@ -25,7 +27,7 @@ import { cachedFetch, type Fetcher } from "./cache.js";
 export type OriginVerdict = "ok" | "unreachable" | "degraded";
 
 export interface OriginPreflightOptions {
-  /** Sequential probes to send at the origin. Default 3. */
+  /** Concurrent probes to fire at the origin. Default 3. */
   probes?: number;
   /** Per-probe timeout in ms. Default 5000. */
   timeoutMs?: number;
@@ -103,8 +105,10 @@ async function defaultValidateHop(u: string): Promise<void> {
 }
 
 /**
- * Probe a target origin and return a health verdict. SSRF-safe — every probe
- * (and every redirect hop) is re-validated against private/loopback ranges.
+ * Probe a target origin and return a health verdict. Probes fire concurrently,
+ * so the measured latency reflects the origin under parallel load (the way the
+ * crawl hits it), and the wall-clock cost is ~one request, not N. SSRF-safe —
+ * every probe and redirect hop is re-validated against private/loopback ranges.
  * Never throws: any unexpected internal failure resolves to an `ok` verdict so
  * a bug here can never block a legitimate audit (fail-open).
  */
@@ -118,10 +122,7 @@ export async function checkOriginHealth(
   const errorRatioThreshold = options.errorRatioThreshold ?? 0.5;
   const validateHop = options.validateHop ?? defaultValidateHop;
 
-  const samples: OriginProbeSample[] = [];
-
-  for (let i = 0; i < probes; i++) {
-    if (options.signal?.aborted) break;
+  const oneProbe = async (): Promise<OriginProbeSample> => {
     const startedAt = Date.now();
     try {
       const res = await cachedFetch(url, {
@@ -132,11 +133,17 @@ export async function checkOriginHealth(
         fetcher: options.fetcher,
         validateHop,
       });
-      samples.push({ status: res.status, durationMs: Date.now() - startedAt });
+      return { status: res.status, durationMs: Date.now() - startedAt };
     } catch (e) {
-      samples.push({ status: null, durationMs: Date.now() - startedAt, error: (e as Error).message });
+      return { status: null, durationMs: Date.now() - startedAt, error: (e as Error).message };
     }
-  }
+  };
+
+  // Already cancelled → no probes, fail-open to "ok" (a false "unreachable"
+  // would be worse than letting the audit proceed and trip the in-flight watchdog).
+  const samples: OriginProbeSample[] = options.signal?.aborted
+    ? []
+    : await Promise.all(Array.from({ length: probes }, oneProbe));
 
   const attempted = samples.length;
   const responses = samples.filter((s) => s.status !== null);

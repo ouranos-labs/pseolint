@@ -5,8 +5,9 @@ import { audits, monitoredDomains, domainDataSources, domainRuleOverrides, userA
 import { inArray } from "drizzle-orm";
 import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
-import { auditSource, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
+import { auditSource, checkOriginHealth, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
+import { devFlags } from "@/lib/dev-flags";
 import { openSecret } from "@/lib/secret-box";
 import {
   resolveAuditIgnorePatterns,
@@ -148,10 +149,32 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
     // sample to 200 — easier on small origins and less likely to trip the
     // engine's BackpressureMonitor.
-    const gentleProfile = applyGentleProfile({ gentle: gentleAuditMode, sampleSize });
+    // Pre-flight origin health (concurrent probe). Every audit path — public
+    // one-off scans, dashboard re-audits, and the monitoring cron — runs
+    // through here, so this is where we cover the paperforge/Neon scenario (a
+    // monitored own-site run whose uncached fan-out degrades the origin). If
+    // the origin already looks stressed and we're not already gentle, drop to
+    // gentle (low-concurrency) mode so the crawl doesn't finish off a
+    // struggling server. Skipped when already gentle (nothing to gain) or when
+    // the dev flag is set (don't probe localhost).
+    let gentle = gentleAuditMode;
+    if (!gentle && !devFlags.preflightDisabled) {
+      const health = await runStep("preflight-origin", () =>
+        checkOriginHealth(url, { probes: 3, timeoutMs: 4000 }),
+      );
+      if (health.verdict !== "ok") {
+        gentle = true;
+        auditLog("audit.preflight.gentle_forced", {
+          auditId, verdict: health.verdict, reason: health.reason,
+          medianMs: health.medianMs, errorRatio: health.errorRatio,
+        });
+      }
+    }
+
+    const gentleProfile = applyGentleProfile({ gentle, sampleSize });
     const effectiveSampleSize = gentleProfile.sampleSize;
     const effectiveConcurrency = gentleProfile.concurrency;
-    if (gentleAuditMode) {
+    if (gentle) {
       auditLog("audit.gentle_mode_applied", {
         auditId,
         sampleSize: effectiveSampleSize,

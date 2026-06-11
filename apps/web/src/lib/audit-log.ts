@@ -14,6 +14,8 @@ export type AuditLogEvent =
   | "audit.request.rate_limited"
   | "audit.request.in_flight_limited"
   | "audit.request.preflight_blocked"
+  | "audit.request.preflight_degraded"
+  | "audit.preflight.gentle_forced"
   | "audit.created"
   | "audit.dispatched"
   | "audit.started"

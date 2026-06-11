@@ -353,28 +353,33 @@ export async function POST(req: Request): Promise<Response> {
 
   // Pre-flight origin health check. The in-flight BackpressureMonitor only
   // trips after a crawl has already fired dozens of requests at a struggling
-  // origin (the paperforge/Neon incident). Probing the entry URL first lets us
-  // refuse to dispatch when the origin is already down or degraded — so a
-  // 300-page crawl can't finish the job a struggling server started. `force`
-  // (sessioned override) skips it, as does the dev flag for local servers.
+  // origin (the paperforge/Neon incident). A concurrent probe at the entry URL
+  // tells us the origin's state up front. We only *block* when the origin is
+  // unreachable — there is genuinely nothing to audit, so no false-positive /
+  // override concern. A `degraded` origin is NOT blocked here: the audit
+  // proceeds and `run-audit` automatically drops it to gentle (low-concurrency)
+  // mode, which is friendlier than refusing the run. `force` (sessioned
+  // override) and the dev flag both skip the probe.
   if (!forceNew && !devFlags.preflightDisabled) {
     const health = await checkOriginHealth(url, { probes: 3, timeoutMs: 4000 });
-    if (health.verdict !== "ok") {
+    if (health.verdict === "unreachable") {
       auditLog("audit.request.preflight_blocked", {
         url, host, verdict: health.verdict, reason: health.reason,
-        medianMs: health.medianMs, errorRatio: health.errorRatio,
         responded: health.responded, attempted: health.attempted,
       });
-      const forceHint = session
-        ? " Re-run with force to override."
-        : " Sign in to override and audit it anyway.";
-      const message = health.verdict === "unreachable"
-        ? `We couldn't reach ${host} — ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.${forceHint}`
-        : `${host} looks degraded right now — ${health.reason}. pseolint checks your origin can take the crawl first; auditing now would likely make it worse. Warm your cache or wait a moment, then retry.${forceHint}`;
       return NextResponse.json(
-        { error: message, code: health.verdict === "unreachable" ? "origin_unreachable" : "origin_degraded" },
+        {
+          error: `We couldn't reach ${host} — ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.`,
+          code: "origin_unreachable",
+        },
         { status: 503 },
       );
+    }
+    if (health.verdict === "degraded") {
+      // Not fatal — let it run gentle. Logged so we can see how often it happens.
+      auditLog("audit.request.preflight_degraded", {
+        url, host, reason: health.reason, medianMs: health.medianMs, errorRatio: health.errorRatio,
+      });
     }
   }
 

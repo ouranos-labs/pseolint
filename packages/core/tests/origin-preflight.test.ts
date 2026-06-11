@@ -104,6 +104,25 @@ describe("checkOriginHealth", () => {
     expect(report.medianMs).toBeGreaterThan(50);
   });
 
+  it("fires probes concurrently — wall-clock is ~one probe, not N", async () => {
+    // Three 100ms probes run in parallel finish in well under the 300ms a
+    // sequential loop would take. This is what lets the check observe the
+    // origin under parallel load without taxing the request that triggered it.
+    const start = Date.now();
+    const report = await probe("https://example.com/", {
+      probes: 3,
+      fetcher: scriptedFetcher([
+        { status: 200, delayMs: 100 },
+        { status: 200, delayMs: 100 },
+        { status: 200, delayMs: 100 },
+      ]),
+    });
+    const elapsed = Date.now() - start;
+    expect(report.verdict).toBe("ok");
+    expect(report.responded).toBe(3);
+    expect(elapsed).toBeLessThan(250);
+  });
+
   it("stops probing once the signal is aborted", async () => {
     const controller = new AbortController();
     controller.abort();
