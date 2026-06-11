@@ -5,14 +5,14 @@ import { LANDING_FAQ } from "@/lib/landing-faq";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
-  title: "pseolint — audit your pSEO site by template, not by URL",
+  title: "pseolint — catch the patterns that get pSEO sites deindexed",
   description:
-    "Open-source linter for programmatic SEO. v0.6 audits by template — find which template is dragging your score down. Free tier + $19/mo Pro monitoring.",
+    "Open-source linter for programmatic SEO. Paste a URL or gate it in CI — pseolint finds the doorway clusters, near-duplicates, and thin templates that trip SpamBrain, by template. Free tier + $19/mo Pro monitoring.",
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: "pseolint — template-aware programmatic SEO audit",
+    title: "pseolint — catch the patterns that get pSEO sites deindexed",
     description:
-      "v0.6 audits by template. K=10 URLs sampled per template. Find the broken template before SpamBrain does.",
+      "The open-source linter for programmatic SEO. Find the broken template before SpamBrain does — paste a URL or wire it into CI.",
     type: "website",
     url: SITE_URL,
   },

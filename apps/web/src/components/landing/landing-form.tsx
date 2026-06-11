@@ -193,12 +193,14 @@ export function LandingForm() {
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-5xl">
-                Most programmatic SEO is doorway-page gardening. v0.6 audits your templates, not just URLs.
+                Catch the patterns that get programmatic-SEO sites deindexed — before SpamBrain does.
               </h1>
 
               <p className="text-base leading-relaxed text-muted-foreground">
-                Paste a URL. In 60 seconds, see which template clusters trip SpamBrain and which pages
-                get cited by ChatGPT, Perplexity, and Google AI Overviews.
+                pseolint is the open-source linter for programmatic SEO. Paste a URL or drop it in CI:
+                it finds the doorway clusters, near-duplicates, and thin templates that trip SpamBrain,
+                then tells you which <span className="text-foreground">template</span> to fix — one fix, N pages.
+                It also flags which pages can get cited in ChatGPT, Perplexity, and Google AI Overviews.
               </p>
 
               <form onSubmit={ submit } className="flex flex-col gap-3">
@@ -303,6 +305,20 @@ export function LandingForm() {
                 page. Watch the identity mark in the nav.
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-t border-border/60 bg-card/30">
+        <div className="mx-auto max-w-5xl px-5 py-12 sm:py-14">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Who it&apos;s for</p>
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            { AUDIENCE.map((a) => (
+              <div key={ a.who } className="rounded-[18px] border border-border/60 bg-background/60 p-5">
+                <h3 className="text-sm font-semibold text-foreground">{ a.who }</h3>
+                <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{ a.what }</p>
+              </div>
+            )) }
           </div>
         </div>
       </section>
@@ -584,7 +600,7 @@ export function LandingForm() {
                 A per-template verdict you can ship.
               </span>
             </h2>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col items-start gap-2">
               <a
                 href="#top"
                 onClick={ (e) => {
@@ -594,14 +610,14 @@ export function LandingForm() {
                 } }
                 className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Start free audit
+                Audit my site — free
               </a>
-              <Link
-                href="/pricing"
-                className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-              >
-                See pricing
-              </Link>
+              <span className="text-xs text-muted-foreground">
+                Free, no signup. Pro is <span className="text-foreground">$19/mo</span> —{" "}
+                <Link href="/pricing" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+                  what&apos;s included
+                </Link>.
+              </span>
             </div>
           </div>
         </div>
@@ -716,6 +732,25 @@ function buildTiles({
   for (let i = is; i < is + infos && i < total; i++) if (states[i] === "clean") states[i] = "info";
   return states;
 }
+
+const AUDIENCE = [
+  {
+    who: "pSEO builders",
+    what: "City × service grids, directories, state × fee matrices — content generated from a template at scale.",
+  },
+  {
+    who: "Template-site operators",
+    what: "Thousands of pages from one template. One structural fix should cover all of them — pseolint tells you which.",
+  },
+  {
+    who: "Agencies shipping client sites",
+    what: "Gate every client build before it goes live. Catch the deindexing risk in the PR, not in a ranking drop.",
+  },
+  {
+    who: "Indie SaaS with scaled pages",
+    what: "Integration, comparison, and feature pages that quietly drifted into doorway territory while you shipped.",
+  },
+] as const;
 
 const STATS = [
   { label: "Median audit time", value: "1 minute" },
