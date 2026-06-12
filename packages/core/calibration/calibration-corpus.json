@@ -42766,6 +42766,53 @@
         "https://stripe.com/institutional"
       ],
       "class": "reputable"
+    },
+    {
+      "url": "https://paperforge.dev/",
+      "vertical": "legal-document-templates",
+      "expectedSiteType": "programmatic-directory",
+      "class": "subject",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "doorway",
+        "thin-content"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "low",
+        "evidence": "Own dogfood site; ~5,600 templated role×document×state pages, no E-E-A-T, YMYL (legal). Tracked subject — no pass/fail expectation."
+      },
+      "samplingHint": {
+        "sampleSize": 25
+      },
+      "pinnedUrls": [
+        "https://paperforge.dev/",
+        "https://paperforge.dev/templates/appliance-repair-technician-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/auto-repair-shop-owner-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/bookkeeping-service-owner-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/cryptocurrency-fund-manager-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/drone-pilot-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/drone-pilot-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/food-truck-operator-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/freelance-graphic-designer-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/handyman-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/hvac-contractor-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/landscaping-business-owner-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/moving-company-owner-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/notary-public-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/property-manager-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/real-estate-investor-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/social-media-manager-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/speech-therapist-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/speech-therapist-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/tattoo-artist-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/tree-service-company-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/trucking-company-owner-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/trucking-company-owner-cease-and-desist-letter-florida",
+        "https://paperforge.dev/templates/web-designer-cease-and-desist-letter-california",
+        "https://paperforge.dev/templates/web-designer-cease-and-desist-letter-florida"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/paperforge_dev/"
     }
   ],
   "excluded": {

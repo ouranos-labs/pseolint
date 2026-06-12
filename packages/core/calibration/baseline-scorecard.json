@@ -1,8 +1,9 @@
 {
-  "ranAt": "2026-06-12T07:28:39.183Z",
+  "ranAt": "2026-06-12T07:37:29.367Z",
   "rulesetVersion": "15",
   "corpusVersion": "1",
   "perSiteVerdict": {
+    "https://zapier.com/apps/slack/integrations": "caution",
     "https://www.g2.com/categories": "ready",
     "https://wise.com/us/currency-converter": "concerning",
     "https://webflow.com/templates": "caution",
@@ -11,13 +12,14 @@
     "https://www.jasper.ai/templates": "ready",
     "https://ramp.com/spend-management": "ready",
     "https://www.numbeo.com/cost-of-living": "concerning",
-    "https://airbyte.com/connectors": "ready"
+    "https://airbyte.com/connectors": "ready",
+    "https://paperforge.dev/": "caution"
   },
   "scorecard": {
     "confusion": {
       "tp": 0,
       "fp": 3,
-      "tn": 6,
+      "tn": 7,
       "fn": 0,
       "precision": 0,
       "recall": 0,
@@ -25,9 +27,9 @@
     },
     "risk": {
       "reputable": {
-        "n": 9,
-        "min": 20,
-        "median": 38,
+        "n": 10,
+        "min": 2,
+        "median": 36.5,
         "max": 74
       },
       "policyViolating": {
@@ -39,33 +41,49 @@
       "cleanlySeparated": false
     },
     "perRule": {
+      "content/missing-author": {
+        "reputableFired": 10,
+        "reputableTotal": 10,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 9
+      },
+      "content/eeat-signals": {
+        "reputableFired": 10,
+        "reputableTotal": 10,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 5
+      },
+      "aeo/freshness-signals": {
+        "reputableFired": 10,
+        "reputableTotal": 10,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 9
+      },
+      "aeo/citable-facts": {
+        "reputableFired": 10,
+        "reputableTotal": 10,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 9
+      },
       "spam/near-duplicate": {
         "reputableFired": 5,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
         "demotedOn": 2
       },
-      "content/missing-author": {
-        "reputableFired": 9,
-        "reputableTotal": 9,
-        "policyFired": 0,
-        "policyTotal": 0,
-        "suppressedOn": 0,
-        "demotedOn": 8
-      },
-      "content/eeat-signals": {
-        "reputableFired": 9,
-        "reputableTotal": 9,
-        "policyFired": 0,
-        "policyTotal": 0,
-        "suppressedOn": 0,
-        "demotedOn": 4
-      },
       "content/title-uniqueness": {
         "reputableFired": 8,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -73,7 +91,7 @@
       },
       "content/heading-structure": {
         "reputableFired": 8,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -81,31 +99,15 @@
       },
       "schema/consistency": {
         "reputableFired": 6,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
         "demotedOn": 0
       },
-      "aeo/freshness-signals": {
-        "reputableFired": 9,
-        "reputableTotal": 9,
-        "policyFired": 0,
-        "policyTotal": 0,
-        "suppressedOn": 0,
-        "demotedOn": 8
-      },
       "aeo/answer-first": {
         "reputableFired": 9,
-        "reputableTotal": 9,
-        "policyFired": 0,
-        "policyTotal": 0,
-        "suppressedOn": 0,
-        "demotedOn": 8
-      },
-      "aeo/citable-facts": {
-        "reputableFired": 9,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -113,7 +115,7 @@
       },
       "spam/template-coverage": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -121,7 +123,7 @@
       },
       "spam/template-diversity": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -129,7 +131,7 @@
       },
       "spam/entity-swap": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -137,7 +139,7 @@
       },
       "cannibal/url-pattern": {
         "reputableFired": 0,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -145,7 +147,7 @@
       },
       "links/host-section-divergence": {
         "reputableFired": 0,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -153,7 +155,7 @@
       },
       "content/citation-coverage": {
         "reputableFired": 4,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 4,
@@ -161,7 +163,7 @@
       },
       "content/unique-value": {
         "reputableFired": 8,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -169,7 +171,7 @@
       },
       "content/meta-uniqueness": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -177,7 +179,7 @@
       },
       "links/orphan-pages": {
         "reputableFired": 5,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -185,7 +187,7 @@
       },
       "links/unreachable-from-root": {
         "reputableFired": 2,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -193,7 +195,7 @@
       },
       "tech/hreflang-consistency": {
         "reputableFired": 4,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -201,7 +203,7 @@
       },
       "spam/thin-content": {
         "reputableFired": 7,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -209,7 +211,7 @@
       },
       "content/image-alt-text": {
         "reputableFired": 2,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -217,7 +219,15 @@
       },
       "tech/canonical-consistency": {
         "reputableFired": 4,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/robots-noindex-conflict": {
+        "reputableFired": 1,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -225,7 +235,7 @@
       },
       "tech/og-completeness": {
         "reputableFired": 6,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -233,7 +243,7 @@
       },
       "schema/required-fields": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -241,7 +251,7 @@
       },
       "aeo/faq-coverage": {
         "reputableFired": 3,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -249,7 +259,7 @@
       },
       "spam/doorway-pattern": {
         "reputableFired": 2,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -257,7 +267,7 @@
       },
       "spam/boilerplate-ratio": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -265,7 +275,7 @@
       },
       "content/translation-no-op": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -273,7 +283,7 @@
       },
       "schema/json-ld-valid": {
         "reputableFired": 2,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -281,7 +291,7 @@
       },
       "content/common-phrase-reuse": {
         "reputableFired": 1,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -289,7 +299,7 @@
       },
       "links/dead-ends": {
         "reputableFired": 2,
-        "reputableTotal": 9,
+        "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 0,
         "suppressedOn": 0,
@@ -297,10 +307,26 @@
       }
     },
     "classCounts": {
-      "reputable": 9,
+      "reputable": 10,
       "policyViolating": 0,
-      "subject": 0
+      "subject": 1
     },
-    "trackedSubjects": []
+    "trackedSubjects": [
+      {
+        "url": "https://paperforge.dev/",
+        "verdict": "caution",
+        "risk": 34,
+        "topFired": [
+          "content/unique-value",
+          "links/orphan-pages",
+          "content/citation-coverage",
+          "links/unreachable-from-root",
+          "spam/template-coverage",
+          "content/title-uniqueness",
+          "aeo/freshness-signals",
+          "aeo/citable-facts"
+        ]
+      }
+    ]
   }
 }
