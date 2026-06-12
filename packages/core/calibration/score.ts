@@ -75,3 +75,36 @@ export function confusionMatrix(rows: ScoreRow[], threshold: Verdict = DEFAULT_F
   const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
   return { tp, fp, tn, fn, precision, recall, f1 };
 }
+
+export function median(xs: number[]): number {
+  if (xs.length === 0) return NaN;
+  const s = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 === 0 ? (s[mid - 1] + s[mid]) / 2 : s[mid];
+}
+
+export interface ClassRisk { n: number; min: number; median: number; max: number; }
+export interface RiskStats {
+  reputable: ClassRisk;
+  policyViolating: ClassRisk;
+  /** True when the highest reputable risk is below the lowest policy-violating risk. */
+  cleanlySeparated: boolean;
+}
+
+function classRisk(risks: number[]): ClassRisk {
+  return {
+    n: risks.length,
+    min: risks.length ? Math.min(...risks) : NaN,
+    median: median(risks),
+    max: risks.length ? Math.max(...risks) : NaN,
+  };
+}
+
+export function perClassRiskStats(rows: ScoreRow[]): RiskStats {
+  const rep = rows.filter((r) => r.siteClass === "reputable").map((r) => r.audit.risk);
+  const pol = rows.filter((r) => r.siteClass === "policy-violating").map((r) => r.audit.risk);
+  const reputable = classRisk(rep);
+  const policyViolating = classRisk(pol);
+  const cleanlySeparated = rep.length > 0 && pol.length > 0 && reputable.max < policyViolating.min;
+  return { reputable, policyViolating, cleanlySeparated };
+}

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { evaluateAlignment, confusionMatrix, isFlagged, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
+import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
 import type { CorpusSite } from "../../calibration/corpus-types.js";
 
 function audit(partial: Partial<ScoredAudit>): ScoredAudit {
@@ -69,5 +69,37 @@ describe("confusionMatrix", () => {
     expect(m.precision).toBe(0);
     expect(m.recall).toBe(0);
     expect(m.f1).toBe(0);
+  });
+});
+
+describe("median", () => {
+  test("odd and even length", () => {
+    expect(median([3, 1, 2])).toBe(2);
+    expect(median([4, 1, 3, 2])).toBe(2.5);
+  });
+  test("empty is NaN", () => {
+    expect(Number.isNaN(median([]))).toBe(true);
+  });
+});
+
+describe("perClassRiskStats", () => {
+  test("computes per-class min/median/max and clean-separation flag", () => {
+    const rows: ScoreRow[] = [
+      { url: "a", siteClass: "reputable", audit: audit({ risk: 10 }) },
+      { url: "b", siteClass: "reputable", audit: audit({ risk: 20 }) },
+      { url: "c", siteClass: "policy-violating", audit: audit({ risk: 60 }) },
+      { url: "d", siteClass: "policy-violating", audit: audit({ risk: 80 }) },
+    ];
+    const s = perClassRiskStats(rows);
+    expect(s.reputable.median).toBe(15);
+    expect(s.policyViolating.median).toBe(70);
+    expect(s.cleanlySeparated).toBe(true); // max reputable (20) < min policy (60)
+  });
+  test("not cleanly separated when ranges overlap", () => {
+    const rows: ScoreRow[] = [
+      { url: "a", siteClass: "reputable", audit: audit({ risk: 65 }) },
+      { url: "c", siteClass: "policy-violating", audit: audit({ risk: 60 }) },
+    ];
+    expect(perClassRiskStats(rows).cleanlySeparated).toBe(false);
   });
 });
