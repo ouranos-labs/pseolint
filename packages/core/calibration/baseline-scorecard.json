@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-06-12T08:20:33.743Z",
+  "ranAt": "2026-06-12T08:59:52.743Z",
   "rulesetVersion": "15",
   "corpusVersion": "1",
   "perSiteVerdict": {
@@ -15,30 +15,44 @@
     "https://airbyte.com/connectors": "ready",
     "https://paperforge.dev/": "caution",
     "https://www.healthyceleb.com/": "ready",
-    "https://www.fresherslive.com/": "caution"
+    "https://www.fresherslive.com/": "caution",
+    "https://doorwayspam.example/": "caution",
+    "https://hiddentextspam.example/": "concerning",
+    "https://zacjohnson.com/": "concerning",
+    "https://beingselfish.in/": "caution",
+    "https://www.newsunzip.com/": "ready",
+    "https://popularnetworth.com/": "concerning",
+    "https://www.thehairpin.com/": "concerning",
+    "https://equityatlas.org/": "caution",
+    "https://coupons.cnn.com/": "concerning",
+    "https://www.outlookindia.com/outlook-spotlight/": "caution",
+    "https://www.sfgate.com/coupons": "ready",
+    "https://www.forbes.com/advisor/": "concerning",
+    "https://www.cnn.com/cnn-underscored/money/": "concerning",
+    "https://www.usatoday.com/money/blueprint/": "ready"
   },
   "scorecard": {
     "confusion": {
-      "tp": 0,
+      "tp": 7,
       "fp": 3,
       "tn": 7,
-      "fn": 2,
-      "precision": 0,
-      "recall": 0,
-      "f1": 0
+      "fn": 9,
+      "precision": 0.7,
+      "recall": 0.4375,
+      "f1": 0.5384615384615384
     },
     "risk": {
       "reputable": {
         "n": 10,
         "min": 2,
-        "median": 36.5,
+        "median": 35.5,
         "max": 74
       },
       "policyViolating": {
-        "n": 2,
-        "min": 5,
-        "median": 16.5,
-        "max": 28
+        "n": 16,
+        "min": 3,
+        "median": 26.5,
+        "max": 60
       },
       "cleanlySeparated": false
     },
@@ -46,128 +60,128 @@
       "content/missing-author": {
         "reputableFired": 10,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 9,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 9
+        "demotedOn": 18
       },
       "content/eeat-signals": {
         "reputableFired": 10,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 10,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 5
+        "demotedOn": 6
       },
       "aeo/freshness-signals": {
         "reputableFired": 10,
         "reputableTotal": 10,
-        "policyFired": 2,
-        "policyTotal": 2,
+        "policyFired": 16,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 11
+        "demotedOn": 25
       },
       "aeo/citable-facts": {
         "reputableFired": 10,
         "reputableTotal": 10,
-        "policyFired": 2,
-        "policyTotal": 2,
+        "policyFired": 12,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 11
+        "demotedOn": 21
       },
       "spam/near-duplicate": {
         "reputableFired": 5,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 1,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 2
       },
       "content/title-uniqueness": {
         "reputableFired": 8,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 7,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "content/heading-structure": {
         "reputableFired": 8,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 8,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 9
+        "demotedOn": 16
       },
       "schema/consistency": {
         "reputableFired": 6,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 4,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "aeo/answer-first": {
         "reputableFired": 9,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 11,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 9
+        "demotedOn": 19
       },
       "spam/template-coverage": {
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "spam/template-diversity": {
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "spam/entity-swap": {
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "cannibal/url-pattern": {
         "reputableFired": 0,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "links/host-section-divergence": {
         "reputableFired": 0,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "content/citation-coverage": {
         "reputableFired": 4,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
-        "suppressedOn": 6,
+        "policyFired": 2,
+        "policyTotal": 16,
+        "suppressedOn": 18,
         "demotedOn": 0
       },
       "content/unique-value": {
         "reputableFired": 8,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 9,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
@@ -175,87 +189,87 @@
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 1,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "links/orphan-pages": {
         "reputableFired": 5,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 9,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "links/unreachable-from-root": {
         "reputableFired": 2,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 5,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "tech/hreflang-consistency": {
         "reputableFired": 4,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "spam/thin-content": {
         "reputableFired": 7,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 6,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 7
+        "demotedOn": 12
       },
       "content/image-alt-text": {
         "reputableFired": 2,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 8,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 3
+        "demotedOn": 10
       },
       "tech/canonical-consistency": {
         "reputableFired": 4,
         "reputableTotal": 10,
         "policyFired": 2,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "tech/robots-noindex-conflict": {
         "reputableFired": 1,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 1,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "tech/og-completeness": {
         "reputableFired": 6,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 9,
+        "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 6
+        "demotedOn": 14
       },
       "schema/required-fields": {
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "aeo/faq-coverage": {
         "reputableFired": 3,
         "reputableTotal": 10,
-        "policyFired": 1,
-        "policyTotal": 2,
+        "policyFired": 10,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
@@ -263,7 +277,7 @@
         "reputableFired": 2,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 1
       },
@@ -271,7 +285,7 @@
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
@@ -279,7 +293,7 @@
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
@@ -287,7 +301,7 @@
         "reputableFired": 2,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
@@ -295,22 +309,30 @@
         "reputableFired": 1,
         "reputableTotal": 10,
         "policyFired": 0,
-        "policyTotal": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "links/dead-ends": {
         "reputableFired": 2,
         "reputableTotal": 10,
-        "policyFired": 0,
-        "policyTotal": 2,
+        "policyFired": 2,
+        "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
+      },
+      "aeo/content-modularity": {
+        "reputableFired": 0,
+        "reputableTotal": 10,
+        "policyFired": 1,
+        "policyTotal": 16,
+        "suppressedOn": 0,
+        "demotedOn": 1
       }
     },
     "classCounts": {
       "reputable": 10,
-      "policyViolating": 2,
+      "policyViolating": 16,
       "subject": 1
     },
     "trackedSubjects": [

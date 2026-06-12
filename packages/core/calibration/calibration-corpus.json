@@ -42886,6 +42886,346 @@
         "https://www.fresherslive.com/terms-conditions"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/www_fresherslive_com/"
+    },
+    {
+      "url": "https://doorwayspam.example/",
+      "vertical": "constructed-doorway",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "doorway",
+        "scaled-content-abuse",
+        "thin-content"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "CONSTRUCTED synthetic fixture — no reliable live doorway example exists. Near-identical {city} emergency-plumber pages all funneling to one /contact destination. Recall target for doorway/near-duplicate/entity-swap detection."
+      },
+      "pinnedUrls": [
+        "https://doorwayspam.example/emergency-plumber-austin",
+        "https://doorwayspam.example/emergency-plumber-dallas",
+        "https://doorwayspam.example/emergency-plumber-houston",
+        "https://doorwayspam.example/emergency-plumber-phoenix",
+        "https://doorwayspam.example/emergency-plumber-denver",
+        "https://doorwayspam.example/emergency-plumber-seattle",
+        "https://doorwayspam.example/contact"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/doorwayspam_example/"
+    },
+    {
+      "url": "https://hiddentextspam.example/",
+      "vertical": "constructed-hidden-text",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "hidden-text",
+        "keyword-stuffing"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "CONSTRUCTED synthetic fixture — hidden-text is invisible by design so no live example exists. Thin visible content + CSS-hidden (offscreen/white/font-size:0) keyword-stuffed block. Recall target for hidden-text/keyword-stuffing detection (currently uncovered)."
+      },
+      "pinnedUrls": [
+        "https://hiddentextspam.example/",
+        "https://hiddentextspam.example/cheap-widgets",
+        "https://hiddentextspam.example/discount-gadgets",
+        "https://hiddentextspam.example/bulk-gizmos",
+        "https://hiddentextspam.example/wholesale-doohickeys"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/hiddentextspam_example/"
+    },
+    {
+      "url": "https://zacjohnson.com/",
+      "vertical": "celebrity-networth-ai-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "visiblePolicies": [
+        "scaled-content-abuse"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Manual action (March-2024 AI update); ~60,000 AI net-worth articles, 8.2M visits → 0. Wayback Jan–Feb 2024. https://originality.ai/blog/google-march-2024-manual-action-ai-update-list"
+      },
+      "pinnedUrls": [
+        "https://zacjohnson.com/",
+        "https://zacjohnson.com/1000-lb-sisters-net-worth/",
+        "https://zacjohnson.com/21-savage-net-worth/",
+        "https://zacjohnson.com/1password-affiliate-program/",
+        "https://zacjohnson.com/13-going-on-30-cast-net-worth/",
+        "https://zacjohnson.com/25-highest-paying-jobs-america/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/zacjohnson_com/"
+    },
+    {
+      "url": "https://beingselfish.in/",
+      "vertical": "dp-image-gallery-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "thin-content"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Manual action (March-2024 AI update); 1M+ visits → 0. Hundreds of templated WhatsApp-DP gallery pages. Wayback May 2024."
+      },
+      "pinnedUrls": [
+        "https://beingselfish.in/",
+        "https://beingselfish.in/boys-dp/",
+        "https://beingselfish.in/anime-dp/",
+        "https://beingselfish.in/black-dp/",
+        "https://beingselfish.in/breakup-dp/",
+        "https://beingselfish.in/cartoon-dp/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/beingselfish_in/"
+    },
+    {
+      "url": "https://www.newsunzip.com/",
+      "vertical": "celebrity-bio-ai-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "scaled-content-abuse"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 AI-prevalence study set; templated [Name] Wiki/Age/Net-Worth bios at scale. Wayback Feb–Jun 2024."
+      },
+      "pinnedUrls": [
+        "https://www.newsunzip.com/",
+        "https://www.newsunzip.com/actor/rob-gomez/",
+        "https://www.newsunzip.com/actress/sangeetha-v/",
+        "https://www.newsunzip.com/actress/uno-kanaya/",
+        "https://www.newsunzip.com/articles/how-dog-breeds-looked-100-years-ago-vs-today/",
+        "https://www.newsunzip.com/articles/bullied-quaden-bayles-has-best-day-of-his-life-as-he-leads-out-rugby-team-mom-says/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_newsunzip_com/"
+    },
+    {
+      "url": "https://popularnetworth.com/",
+      "vertical": "celebrity-networth-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "keyword-stuffing"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "low",
+        "evidence": "Templated celebrity net-worth pages with keyword-stuffed long-form titles; Originality.ai study set. Wayback Jan–Mar 2024."
+      },
+      "pinnedUrls": [
+        "https://popularnetworth.com/",
+        "https://popularnetworth.com/2rare-rapper-songwriter-when-did-he-start-rapping-wiki-age-height-net-worth-relationship-ethnicity-career/",
+        "https://popularnetworth.com/aaron-sorkin/",
+        "https://popularnetworth.com/aaren-simpson/",
+        "https://popularnetworth.com/aaron-melloul-american-social-media-personality-net-worth-age-bio-wiki-career-family-nationality-ethnicity-dating-instagram-and-facts/",
+        "https://popularnetworth.com/adam-boulton-british-journalist-net-worth-age-bio-wiki-career-family-nationality-ethnicity-partner-news-and-facts/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/popularnetworth_com/"
+    },
+    {
+      "url": "https://www.thehairpin.com/",
+      "vertical": "expired-domain-ai-blog",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "expired-domain-abuse",
+        "scaled-content-abuse"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "low",
+        "evidence": "Beloved indie blog bought for its backlinks, now AI listicles under fake bylines (meta author John Lane). WIRED documented the takeover. Wayback Jan–Mar 2024."
+      },
+      "pinnedUrls": [
+        "https://www.thehairpin.com/",
+        "https://www.thehairpin.com/actual-tiny-house-future-resident/",
+        "https://www.thehairpin.com/easy-tips-for-venting-to-friends/",
+        "https://www.thehairpin.com/celebrities-real-teeth-under-big-fake-teeth/",
+        "https://www.thehairpin.com/questions-to-check-if-youre-in-healthy-relationship/",
+        "https://www.thehairpin.com/remembering-your-dreams-meaning/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/thehairpin_com/"
+    },
+    {
+      "url": "https://equityatlas.org/",
+      "vertical": "finance-listicle-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "expired-domain-abuse"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Named March-2024 manual-action site; finance listicles + payday-loan doorways + net-worth + geo-spam; now 301s to walletwyse.com. Wayback Jan–May 2024."
+      },
+      "pinnedUrls": [
+        "https://equityatlas.org/",
+        "https://equityatlas.org/10-best-credit-cards-of-2023/",
+        "https://equityatlas.org/25-richest-black-actors/",
+        "https://equityatlas.org/100-approval-personal-loans-for-bad-credit/",
+        "https://equityatlas.org/10-worst-places-to-live-in-kansas/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/equityatlas_org/"
+    },
+    {
+      "url": "https://coupons.cnn.com/",
+      "vertical": "parasite-coupon-subdomain",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "thin-affiliation"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Third-party (Savings.com) coupon subdomain on CNN brand; manual action May 2024, delisted. Wayback Mar–Apr 2024. NOTE: only the parasite subdomain captured, not CNN main — host-section-divergence cannot fire."
+      },
+      "pinnedUrls": [
+        "https://coupons.cnn.com/",
+        "https://coupons.cnn.com/adidas",
+        "https://coupons.cnn.com/amazon",
+        "https://coupons.cnn.com/7now"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/coupons_cnn_com/"
+    },
+    {
+      "url": "https://www.outlookindia.com/outlook-spotlight/",
+      "vertical": "parasite-spotlight-section",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Outlook Spotlight paid affiliate reviews (CBD/casino/supplement, multilingual) under a news masthead; deindexed parasite directory May 2024. Wayback 2023–2024. Subfolder-only capture."
+      },
+      "pinnedUrls": [
+        "https://www.outlookindia.com/outlook-spotlight/",
+        "https://www.outlookindia.com/outlook-spotlight/%C3%92ros-cbd-gummies-reviews-must-read-before-you-buy-news-258231",
+        "https://www.outlookindia.com/outlook-spotlight/%D0%9A%D0%B0%D0%B7%D0%B8%D0%BD%D0%BE-%D0%B1%D0%B5%D0%B7-%D0%B2%D0%B5%D1%80%D0%B8%D1%84%D0%B8%D0%BA%D0%B0%D1%86%D0%B8%D0%B8-%D0%B8-%D0%BF%D0%B0%D1%81%D0%BF%D0%BE%D1%80%D1%82%D0%B0-2023-news-331235",
+        "https://www.outlookindia.com/outlook-spotlight/%D8%A3%D9%81%D8%B6%D9%84-4-%D9%85%D9%88%D8%A7%D9%82%D8%B9-%D8%A7%D9%88%D9%86-%D9%84%D8%A7%D9%8A%D9%86-%D9%83%D8%A7%D8%B2%D9%8A%D9%86%D9%88-%D8%B9%D8%B1%D8%A8%D9%8A%D8%A9-news-318997",
+        "https://www.outlookindia.com/outlook-spotlight/red-boost-australia-canada-uk-usa-nz-ireland-reviews-where-to-buy-red-boost-and-price-news-258285"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_outlookindia_com/"
+    },
+    {
+      "url": "https://www.sfgate.com/coupons",
+      "vertical": "parasite-coupon-section",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "thin-affiliation"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Hearst SFGATE /coupons/ third-party affiliate directory (retailer-named subpages); completely-deindexed parasite May 2024. Wayback Mar 2024. Subfolder-only capture."
+      },
+      "pinnedUrls": [
+        "https://www.sfgate.com/coupons",
+        "https://www.sfgate.com/coupons/acehardware.com",
+        "https://www.sfgate.com/coupons/bestbuy.com",
+        "https://www.sfgate.com/coupons/lululemon.com",
+        "https://www.sfgate.com/coupons/homedepot.com"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_sfgate_com/"
+    },
+    {
+      "url": "https://www.forbes.com/advisor/",
+      "vertical": "parasite-affiliate-section",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "thin-affiliation"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "Forbes /advisor/ standalone affiliate operation on Forbes brand; ~90% visibility lost late 2024 site-reputation-abuse enforcement. Wayback Mar–Aug 2024. Subfolder-only capture."
+      },
+      "pinnedUrls": [
+        "https://www.forbes.com/advisor/",
+        "https://www.forbes.com/advisor/credit-cards/",
+        "https://www.forbes.com/advisor/credit-cards/best-credit-cards/",
+        "https://www.forbes.com/advisor/mortgages/best-mortgage-lenders/",
+        "https://www.forbes.com/advisor/credit-cards-oc/amex-gold-vs-amex-platinum/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_forbes_com/"
+    },
+    {
+      "url": "https://www.cnn.com/cnn-underscored/money/",
+      "vertical": "parasite-affiliate-section",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "thin-affiliation"
+      ],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "low",
+        "evidence": "CNN Underscored Money run by independent affiliate team (revenue-share), not CNN journalists; Aug 2024 enforcement. Wayback Mar–Oct 2024. Subfolder-only capture."
+      },
+      "pinnedUrls": [
+        "https://www.cnn.com/cnn-underscored/money",
+        "https://www.cnn.com/cnn-underscored/money/best-mortgage-lenders",
+        "https://www.cnn.com/cnn-underscored/money/best-va-mortgage-lenders",
+        "https://www.cnn.com/cnn-underscored/money/best-credit-unions",
+        "https://www.cnn.com/cnn-underscored/money/best-burial-insurance"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_cnn_com/"
+    },
+    {
+      "url": "https://www.usatoday.com/money/blueprint/",
+      "vertical": "parasite-affiliate-section",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "thin-affiliation"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "USA Today Blueprint operated by Forbes Marketplace staff; among first confirmed March-2024 site-reputation-abuse penalties, subfolder deindexed. Wayback Mar–Jun 2024. Subfolder-only capture."
+      },
+      "pinnedUrls": [
+        "https://www.usatoday.com/money/blueprint/",
+        "https://www.usatoday.com/money/blueprint/advisors/7-must-dos-to-manage-your-finances-at-any-age/",
+        "https://www.usatoday.com/money/blueprint/advisors/are-financial-advisors-worth-it/",
+        "https://www.usatoday.com/money/blueprint/advisors/do-i-need-a-financial-advisor/",
+        "https://www.usatoday.com/money/blueprint/advisors/what-is-financial-consultant/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_usatoday_com/"
     }
   ],
   "excluded": {
