@@ -43089,6 +43089,7 @@
       "url": "https://coupons.cnn.com/",
       "vertical": "parasite-coupon-subdomain",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [
@@ -43112,6 +43113,7 @@
       "url": "https://www.outlookindia.com/outlook-spotlight/",
       "vertical": "parasite-spotlight-section",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [
@@ -43135,6 +43137,7 @@
       "url": "https://www.sfgate.com/coupons",
       "vertical": "parasite-coupon-section",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [
@@ -43159,6 +43162,7 @@
       "url": "https://www.forbes.com/advisor/",
       "vertical": "parasite-affiliate-section",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [
@@ -43183,6 +43187,7 @@
       "url": "https://www.cnn.com/cnn-underscored/money/",
       "vertical": "parasite-affiliate-section",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [
@@ -43207,6 +43212,7 @@
       "url": "https://www.usatoday.com/money/blueprint/",
       "vertical": "parasite-affiliate-section",
       "expectedSiteType": "programmatic-directory",
+      "detectability": "off-page-only",
       "class": "policy-violating",
       "expectedVerdictFloor": "concerning",
       "visiblePolicies": [

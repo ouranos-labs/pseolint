@@ -376,11 +376,11 @@ function aggregate(results: SiteResult[]): CalibrationResults["ruleAggregates"] 
 
 // ----- calibration report (score vs outcome) -----------------------------
 
-function printCalibration(confusion: Confusion, cal: CalibrationMetrics): void {
+function printCalibration(confusion: Confusion, cal: CalibrationMetrics, label?: string): void {
   const pct = (x: number) => (Number.isNaN(x) ? " n/a" : `${(x * 100).toFixed(0)}%`);
   const f2 = (x: number) => (Number.isNaN(x) ? "n/a" : x.toFixed(2));
   console.log("");
-  console.log(`${ansi.bold}Calibration — does the risk score track the real outcome?${ansi.reset}`);
+  console.log(`${ansi.bold}Calibration — does the risk score track the real outcome?${label ? `  [${label}]` : ""}${ansi.reset}`);
   console.log(
     `  Confusion (verdict ≥ concerning): P=${pct(confusion.precision)} R=${pct(confusion.recall)} F1=${pct(confusion.f1)}` +
       `  (TP ${confusion.tp} · FP ${confusion.fp} · FN ${confusion.fn} · TN ${confusion.tn})`,
@@ -647,7 +647,22 @@ async function mainNormal(): Promise<void> {
   console.log(`  ${ansi.red}Failed:${ansi.reset}        ${failed}`);
   console.log(`  ${ansi.yellow}Fetch errors:${ansi.reset}  ${fetchErrors}`);
 
-  printCalibration(scorecard.confusion, scorecard.calibration);
+  printCalibration(scorecard.confusion, scorecard.calibration, "full corpus");
+
+  // Addressable ceiling: exclude the structurally-undetectable parasites (their
+  // policy violation lives off-page and an on-page audit cannot see it). This is
+  // the fair measure of what the on-page score CAN do.
+  const offPageOnly = new Set(
+    corpus.sites.filter((s) => s.detectability === "off-page-only").map((s) => s.url),
+  );
+  const detectableRows = rows.filter((r) => !offPageOnly.has(r.url));
+  if (offPageOnly.size > 0) {
+    printCalibration(
+      confusionMatrix(detectableRows),
+      calibrationMetrics(detectableRows),
+      `detectable subset — ${offPageOnly.size} off-page-only parasites excluded`,
+    );
+  }
 
   console.log("");
   console.log(`Wrote ${ansi.cyan}${RESULTS_JSON}${ansi.reset}`);

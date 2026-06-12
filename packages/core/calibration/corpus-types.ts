@@ -31,6 +31,15 @@ export interface CorpusSite {
   expectedVerdictFloor?: Verdict;
   /** Policy-violating only: named spam policies the site visibly violates. */
   visiblePolicies?: string[];
+  /**
+   * Whether the policy violation is visible in the fetched page content.
+   * `off-page-only` = the abuse lives in the host relationship or domain history
+   * (site-reputation parasites) and is invisible to an on-page audit by
+   * construction — an on-page score CANNOT detect it. Unset = on-page-detectable.
+   * Used to report the engine's *addressable* calibration ceiling separately
+   * from the structurally-undetectable cases.
+   */
+  detectability?: "on-page" | "off-page-only";
   groundTruth: {
     status: Status;
     trafficClass: TrafficClass;

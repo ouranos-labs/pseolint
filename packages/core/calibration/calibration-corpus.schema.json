@@ -41,6 +41,11 @@
         },
         "expectedVerdictFloor": { "type": "string", "enum": ["ready", "caution", "concerning", "critical"] },
         "visiblePolicies": { "type": "array", "items": { "type": "string" } },
+        "detectability": {
+          "type": "string",
+          "enum": ["on-page", "off-page-only"],
+          "description": "Whether the policy violation is visible in fetched page content. 'off-page-only' = site-reputation parasite / host-relationship abuse that an on-page audit cannot detect by construction. Absent = on-page-detectable. Used to compute the engine's addressable calibration ceiling separately from undetectable cases."
+        },
         "groundTruth": {
           "type": "object",
           "required": ["status", "trafficClass", "evidence"],
