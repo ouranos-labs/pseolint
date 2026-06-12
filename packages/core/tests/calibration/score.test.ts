@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, perRuleFiringTable, ratchet, type Baseline, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
+import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, perRuleFiringTable, calibrationMetrics, ratchet, type Baseline, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
 import type { CorpusSite } from "../../calibration/corpus-types.js";
 
 function audit(partial: Partial<ScoredAudit>): ScoredAudit {
@@ -105,6 +105,62 @@ describe("perClassRiskStats", () => {
       { url: "c", siteClass: "policy-violating", audit: audit({ risk: 60 }) },
     ];
     expect(perClassRiskStats(rows).cleanlySeparated).toBe(false);
+  });
+});
+
+describe("calibrationMetrics", () => {
+  const r = (siteClass: ScoreRow["siteClass"], url: string, risk: number): ScoreRow => ({
+    url, siteClass, audit: audit({ risk }),
+  });
+
+  test("perfect ordering ⇒ AUC 1.0, positive gap, no confusion-zone sites", () => {
+    const rows = [r("reputable", "a", 10), r("reputable", "b", 20), r("policy-violating", "c", 60), r("policy-violating", "d", 80)];
+    const m = calibrationMetrics(rows);
+    expect(m.auc).toBe(1);
+    expect(m.separationGap).toBe(40); // min policy 60 − max reputable 20
+    expect(m.reputableAbovePolicyMedian).toEqual([]);
+    expect(m.policyBelowReputableMedian).toEqual([]);
+  });
+
+  test("fully inverted ordering ⇒ AUC 0.0", () => {
+    const rows = [r("reputable", "a", 80), r("reputable", "b", 90), r("policy-violating", "c", 10), r("policy-violating", "d", 20)];
+    expect(calibrationMetrics(rows).auc).toBe(0);
+  });
+
+  test("ties contribute 0.5 to AUC", () => {
+    const rows = [r("reputable", "a", 50), r("policy-violating", "b", 50)];
+    expect(calibrationMetrics(rows).auc).toBe(0.5);
+  });
+
+  test("surfaces the overlap zone: over-flagged winners and recall-leak farms", () => {
+    // reputable median = 50, policy median = 50; one winner above (60), one farm below (40)
+    const rows = [
+      r("reputable", "win-low", 40), r("reputable", "win-high", 60),
+      r("policy-violating", "farm-low", 40), r("policy-violating", "farm-high", 60),
+    ];
+    const m = calibrationMetrics(rows);
+    expect(m.reputableAbovePolicyMedian.map((x) => x.url)).toContain("win-high"); // 60 ≥ policy median 50
+    expect(m.policyBelowReputableMedian.map((x) => x.url)).toContain("farm-low"); // 40 ≤ reputable median 50
+    expect(m.separationGap).toBeLessThanOrEqual(0); // ranges overlap
+  });
+
+  test("buckets report per-band penalty rate; top band is inclusive of 100", () => {
+    const rows = [
+      r("reputable", "a", 10), r("policy-violating", "b", 50), r("policy-violating", "c", 100),
+    ];
+    const m = calibrationMetrics(rows);
+    const band = (label: string) => m.buckets.find((x) => x.label === label)!;
+    expect(band("0-20").policyRate).toBe(0); // only the reputable site
+    expect(band("40-60").policyRate).toBe(1); // one policy site at 50
+    expect(band("80-100").policyViolating).toBe(1); // risk 100 lands in the inclusive top band
+  });
+
+  test("excludes subject sites from the labeled calibration", () => {
+    const rows = [r("reputable", "a", 10), r("policy-violating", "b", 80), r("subject", "mine", 99)];
+    const m = calibrationMetrics(rows);
+    expect(m.nReputable).toBe(1);
+    expect(m.nPolicy).toBe(1);
+    expect(m.buckets.reduce((s, x) => s + x.n, 0)).toBe(2); // subject not bucketed
   });
 });
 

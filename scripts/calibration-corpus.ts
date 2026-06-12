@@ -37,8 +37,8 @@ import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 import { parseSitemapDirectives } from "../packages/core/src/rules/tech/robots-sitemap-presence.js";
 import { VERDICT_RANK, type CorpusSite, type Corpus, type SiteClass } from "../packages/core/calibration/corpus-types.js";
 import {
-  confusionMatrix, perClassRiskStats, perRuleFiringTable, ratchet,
-  type ScoreRow, type Confusion, type RiskStats, type RuleFiring, type Baseline,
+  confusionMatrix, perClassRiskStats, perRuleFiringTable, calibrationMetrics, ratchet,
+  type ScoreRow, type Confusion, type RiskStats, type RuleFiring, type CalibrationMetrics, type Baseline,
 } from "../packages/core/calibration/score.js";
 
 // ----- CLI flags ----------------------------------------------------------
@@ -123,6 +123,8 @@ interface CalibrationResults {
   scorecard: {
     confusion: Confusion;
     risk: RiskStats;
+    /** Score-vs-outcome calibration (AUC, separation, confusion-zone sites, bands). */
+    calibration: CalibrationMetrics;
     perRule: Record<string, RuleFiring>;
     classCounts: { reputable: number; policyViolating: number; subject: number };
     /** Non-gated dogfood targets — verdict/risk/top fired rules, no pass/fail. */
@@ -372,6 +374,47 @@ function aggregate(results: SiteResult[]): CalibrationResults["ruleAggregates"] 
   return out;
 }
 
+// ----- calibration report (score vs outcome) -----------------------------
+
+function printCalibration(confusion: Confusion, cal: CalibrationMetrics): void {
+  const pct = (x: number) => (Number.isNaN(x) ? " n/a" : `${(x * 100).toFixed(0)}%`);
+  const f2 = (x: number) => (Number.isNaN(x) ? "n/a" : x.toFixed(2));
+  console.log("");
+  console.log(`${ansi.bold}Calibration — does the risk score track the real outcome?${ansi.reset}`);
+  console.log(
+    `  Confusion (verdict ≥ concerning): P=${pct(confusion.precision)} R=${pct(confusion.recall)} F1=${pct(confusion.f1)}` +
+      `  (TP ${confusion.tp} · FP ${confusion.fp} · FN ${confusion.fn} · TN ${confusion.tn})`,
+  );
+  const aucColor = cal.auc >= 0.8 ? ansi.green : cal.auc >= 0.65 ? ansi.yellow : ansi.red;
+  console.log(
+    `  ${ansi.bold}AUC (rank-separation): ${aucColor}${f2(cal.auc)}${ansi.reset}` +
+      `  [1.0 perfect · 0.5 coin-flip]  on ${cal.nPolicy} policy vs ${cal.nReputable} reputable`,
+  );
+  const gapColor = cal.separationGap > 0 ? ansi.green : ansi.red;
+  const gapStr = Number.isNaN(cal.separationGap) ? "n/a" : cal.separationGap.toFixed(1);
+  console.log(
+    `  Separation gap (minPolicy − maxReputable): ${gapColor}${gapStr}${ansi.reset}` +
+      `  (${cal.separationGap > 0 ? "clean" : "OVERLAP"})`,
+  );
+  console.log("");
+  console.log(`  Risk band → empirical penalty rate (monotone ⇒ calibrated):`);
+  for (const b of cal.buckets) {
+    const rate = Number.isNaN(b.policyRate) ? 0 : b.policyRate;
+    const bar = b.n === 0 ? "·".padEnd(10) : "█".repeat(Math.round(rate * 10)).padEnd(10, "░");
+    console.log(`    ${b.label.padStart(6)}  ${bar}  ${pct(b.policyRate).padStart(4)}  (n=${b.n}, policy=${b.policyViolating})`);
+  }
+  if (cal.reputableAbovePolicyMedian.length) {
+    console.log("");
+    console.log(`  ${ansi.yellow}Over-flag zone${ansi.reset} — reputable winners scoring ≥ policy median (${cal.reputableAbovePolicyMedian.length}):`);
+    for (const s of cal.reputableAbovePolicyMedian.slice(0, 8)) console.log(`    ${String(s.risk.toFixed(0)).padStart(3)}  ${s.url}`);
+  }
+  if (cal.policyBelowReputableMedian.length) {
+    console.log("");
+    console.log(`  ${ansi.yellow}Recall-leak zone${ansi.reset} — policy farms scoring ≤ reputable median (${cal.policyBelowReputableMedian.length}):`);
+    for (const s of cal.policyBelowReputableMedian.slice(0, 8)) console.log(`    ${String(s.risk.toFixed(0)).padStart(3)}  ${s.url}`);
+  }
+}
+
 // ----- markdown report ---------------------------------------------------
 
 function renderMarkdown(out: CalibrationResults): string {
@@ -567,6 +610,7 @@ async function mainNormal(): Promise<void> {
   const scorecard = {
     confusion: confusionMatrix(rows),
     risk: perClassRiskStats(rows),
+    calibration: calibrationMetrics(rows),
     perRule: perRuleFiringTable(rows),
     classCounts: {
       reputable: rows.filter((r) => r.siteClass === "reputable").length,
@@ -602,6 +646,9 @@ async function mainNormal(): Promise<void> {
   console.log(`  ${ansi.green}Passed:${ansi.reset}        ${passed}`);
   console.log(`  ${ansi.red}Failed:${ansi.reset}        ${failed}`);
   console.log(`  ${ansi.yellow}Fetch errors:${ansi.reset}  ${fetchErrors}`);
+
+  printCalibration(scorecard.confusion, scorecard.calibration);
+
   console.log("");
   console.log(`Wrote ${ansi.cyan}${RESULTS_JSON}${ansi.reset}`);
   console.log(`Wrote ${ansi.cyan}${RESULTS_MD}${ansi.reset}`);

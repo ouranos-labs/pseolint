@@ -110,6 +110,101 @@ export function perClassRiskStats(rows: ScoreRow[]): RiskStats {
   return { reputable, policyViolating, cleanlySeparated };
 }
 
+export interface CalibrationBucket {
+  /** Human label, e.g. "40-60". */
+  label: string;
+  lo: number;
+  hi: number;
+  /** Gated sites whose risk falls in [lo, hi) (the top band is inclusive of hi). */
+  n: number;
+  policyViolating: number;
+  /** policyViolating / n — the empirical penalty rate of the band; NaN when empty. */
+  policyRate: number;
+}
+
+export interface CalibrationMetrics {
+  nReputable: number;
+  nPolicy: number;
+  /**
+   * Mann-Whitney AUC: the probability that a randomly chosen policy-violating
+   * site carries a HIGHER risk than a randomly chosen reputable site (ties count
+   * 0.5). 1.0 = the score orders outcomes perfectly, 0.5 = no better than a coin,
+   * < 0.5 = inverted. This is the single "is the score statistically close to the
+   * real outcome" number, independent of any verdict threshold.
+   */
+  auc: number;
+  /** min(policy risk) − max(reputable risk); ≤ 0 means the two classes overlap. */
+  separationGap: number;
+  /** Reputable sites whose risk ≥ the policy-violating median — over-flag-prone. */
+  reputableAbovePolicyMedian: Array<{ url: string; risk: number }>;
+  /** Policy-violating sites whose risk ≤ the reputable median — recall leaks. */
+  policyBelowReputableMedian: Array<{ url: string; risk: number }>;
+  /** Risk-band calibration: empirical penalty rate per band (monotone ⇒ calibrated). */
+  buckets: CalibrationBucket[];
+}
+
+/** AUC via exhaustive pairwise comparison (ties = 0.5). O(nPos·nNeg); NaN if either class is empty. */
+function computeAuc(policyRisks: number[], reputableRisks: number[]): number {
+  if (policyRisks.length === 0 || reputableRisks.length === 0) return NaN;
+  let wins = 0;
+  for (const p of policyRisks) {
+    for (const r of reputableRisks) {
+      if (p > r) wins += 1;
+      else if (p === r) wins += 0.5;
+    }
+  }
+  return wins / (policyRisks.length * reputableRisks.length);
+}
+
+const CALIBRATION_BANDS: ReadonlyArray<readonly [number, number]> = [
+  [0, 20], [20, 40], [40, 60], [60, 80], [80, 100],
+];
+
+/**
+ * Score-vs-outcome calibration over the gated corpus (subjects excluded). Treats
+ * the continuous risk as a binary classifier of the true label (policy-violating
+ * = positive) and reports how well the *number itself* tracks reality — AUC,
+ * class separation, the confusion-zone sites, and per-band penalty rates —
+ * decoupled from the verdict threshold the confusion matrix uses.
+ */
+export function calibrationMetrics(rows: ScoreRow[]): CalibrationMetrics {
+  const rep = rows.filter((r) => r.siteClass === "reputable");
+  const pol = rows.filter((r) => r.siteClass === "policy-violating");
+  const repRisks = rep.map((r) => r.audit.risk);
+  const polRisks = pol.map((r) => r.audit.risk);
+  const repMedian = median(repRisks);
+  const polMedian = median(polRisks);
+
+  const reputableAbovePolicyMedian = rep
+    .filter((r) => r.audit.risk >= polMedian)
+    .map((r) => ({ url: r.url, risk: r.audit.risk }))
+    .sort((a, b) => b.risk - a.risk);
+  const policyBelowReputableMedian = pol
+    .filter((r) => r.audit.risk <= repMedian)
+    .map((r) => ({ url: r.url, risk: r.audit.risk }))
+    .sort((a, b) => a.risk - b.risk);
+
+  const gated = [...rep, ...pol];
+  const buckets: CalibrationBucket[] = CALIBRATION_BANDS.map(([lo, hi]) => {
+    const inBand = gated.filter((r) => {
+      const x = r.audit.risk;
+      return hi === 100 ? x >= lo && x <= hi : x >= lo && x < hi;
+    });
+    const pv = inBand.filter((r) => r.siteClass === "policy-violating").length;
+    return { label: `${lo}-${hi}`, lo, hi, n: inBand.length, policyViolating: pv, policyRate: inBand.length ? pv / inBand.length : NaN };
+  });
+
+  return {
+    nReputable: rep.length,
+    nPolicy: pol.length,
+    auc: computeAuc(polRisks, repRisks),
+    separationGap: polRisks.length && repRisks.length ? Math.min(...polRisks) - Math.max(...repRisks) : NaN,
+    reputableAbovePolicyMedian,
+    policyBelowReputableMedian,
+    buckets,
+  };
+}
+
 export interface RuleFiring {
   reputableFired: number;
   reputableTotal: number;
