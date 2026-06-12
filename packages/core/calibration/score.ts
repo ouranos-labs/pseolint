@@ -140,3 +140,53 @@ export function perRuleFiringTable(rows: ScoreRow[]): Record<string, RuleFiring>
   }
   return table;
 }
+
+export interface Baseline {
+  /** Last committed verdict per site URL. */
+  perSiteVerdict: Record<string, Verdict>;
+  /** Last committed firing counts per rule. */
+  perRule: Record<string, { policyFired: number; reputableFired: number }>;
+}
+
+export interface RatchetResult {
+  /** HARD gate: reputable over ceiling, or policy-violating below its baseline verdict. */
+  verdictRegressions: string[];
+  /** SOFT (warn): a rule's recall dropped or its reputable false-positives rose vs baseline. */
+  ruleRegressions: string[];
+}
+
+/**
+ * No-regression ratchet vs the committed baseline. Green at baseline by
+ * construction; it only fires when a change makes the engine worse.
+ */
+export function ratchet(rows: ScoreRow[], sites: CorpusSite[], baseline: Baseline): RatchetResult {
+  const siteByUrl = new Map(sites.map((s) => [s.url, s]));
+  const verdictRegressions: string[] = [];
+  for (const r of rows) {
+    const s = siteByUrl.get(r.url);
+    if (!s) continue;
+    const curRank = VERDICT_RANK[r.audit.verdict];
+    if (s.class === "reputable") {
+      const ceiling = s.expectedVerdictCeiling ?? "critical";
+      if (curRank > VERDICT_RANK[ceiling]) {
+        verdictRegressions.push(`${r.url}: reputable verdict ${r.audit.verdict} exceeds ceiling ${ceiling}`);
+      }
+    } else if (s.class === "policy-violating") {
+      const base = baseline.perSiteVerdict[r.url];
+      if (base && curRank < VERDICT_RANK[base]) {
+        verdictRegressions.push(`${r.url}: recall dropped — verdict ${r.audit.verdict} < baseline ${base}`);
+      }
+    }
+    // s.class === "subject": never gated — skipped intentionally.
+  }
+  const ruleRegressions: string[] = [];
+  const current = perRuleFiringTable(rows);
+  for (const [id, base] of Object.entries(baseline.perRule)) {
+    const cur = current[id];
+    const curPolicy = cur?.policyFired ?? 0;
+    const curRep = cur?.reputableFired ?? 0;
+    if (curPolicy < base.policyFired) ruleRegressions.push(`${id}: recall dropped (${base.policyFired} -> ${curPolicy} policy sites)`);
+    if (curRep > base.reputableFired) ruleRegressions.push(`${id}: false-positives rose (${base.reputableFired} -> ${curRep} reputable sites)`);
+  }
+  return { verdictRegressions, ruleRegressions };
+}

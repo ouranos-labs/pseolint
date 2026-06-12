@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, perRuleFiringTable, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
+import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, perRuleFiringTable, ratchet, type Baseline, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
 import type { CorpusSite } from "../../calibration/corpus-types.js";
 
 function audit(partial: Partial<ScoredAudit>): ScoredAudit {
@@ -121,5 +121,50 @@ describe("perRuleFiringTable", () => {
       { url: "bad1", siteClass: "policy-violating", audit: audit({ firedRuleIds: ["spam/thin-content", "spam/thin-content"] }) },
     ];
     expect(perRuleFiringTable(rows)["spam/thin-content"].policyFired).toBe(1);
+  });
+});
+
+describe("ratchet", () => {
+  const sites: CorpusSite[] = [
+    site({ url: "good1", class: "reputable", expectedVerdictCeiling: "caution" }),
+    site({ url: "bad1", class: "policy-violating", expectedVerdictFloor: "critical" }),
+  ];
+  const baseline: Baseline = {
+    perSiteVerdict: { good1: "caution", bad1: "concerning" },
+    perRule: { "spam/entity-swap": { policyFired: 1, reputableFired: 0 } },
+  };
+
+  test("green when nothing regresses", () => {
+    const rows: ScoreRow[] = [
+      { url: "good1", siteClass: "reputable", audit: audit({ verdict: "caution", firedRuleIds: [] }) },
+      { url: "bad1", siteClass: "policy-violating", audit: audit({ verdict: "concerning", firedRuleIds: ["spam/entity-swap"] }) },
+    ];
+    const r = ratchet(rows, sites, baseline);
+    expect(r.verdictRegressions).toEqual([]);
+    expect(r.ruleRegressions).toEqual([]);
+  });
+  test("flags a reputable site exceeding its ceiling", () => {
+    const rows: ScoreRow[] = [
+      { url: "good1", siteClass: "reputable", audit: audit({ verdict: "concerning" }) },
+    ];
+    expect(ratchet(rows, sites, baseline).verdictRegressions.length).toBe(1);
+  });
+  test("flags a policy-violating site whose verdict dropped below baseline (recall regression)", () => {
+    const rows: ScoreRow[] = [
+      { url: "bad1", siteClass: "policy-violating", audit: audit({ verdict: "caution" }) },
+    ];
+    expect(ratchet(rows, sites, baseline).verdictRegressions.length).toBe(1);
+  });
+  test("reports rule-level recall drop and FP rise as soft regressions", () => {
+    const rows: ScoreRow[] = [
+      { url: "bad1", siteClass: "policy-violating", audit: audit({ verdict: "concerning", firedRuleIds: [] }) }, // entity-swap stopped firing
+    ];
+    const r = ratchet(rows, sites, baseline);
+    expect(r.ruleRegressions.some((m) => m.includes("recall dropped"))).toBe(true);
+  });
+  test("a subject site never produces a verdict regression", () => {
+    const subjectSites: CorpusSite[] = [site({ url: "mine", class: "subject" })];
+    const rows: ScoreRow[] = [{ url: "mine", siteClass: "subject", audit: audit({ verdict: "critical" }) }];
+    expect(ratchet(rows, subjectSites, baseline).verdictRegressions).toEqual([]);
   });
 });
