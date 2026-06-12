@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="The page you are looking for could not be found.">
+    <meta name="keywords" content="government jobs, sarkari naukri, latest jobs, fresherslive, govt jobs 2026, employment news, job notifications">
+    <meta name="author" content="FreshersLive">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="language" content="English">
+    <meta name="revisit-after" content="1 days">
+    <meta name="rating" content="General">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.fresherslive.com/">
+    <meta property="og:title" content="404 - Page Not Found | FreshersLive">
+    <meta property="og:description" content="The page you are looking for could not be found.">
+    <meta property="og:image" content="https://img20.fresherslive.com/fresherslive-og.webp">
+    <meta property="og:site_name" content="FreshersLive">
+    <meta property="og:locale" content="en_IN">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.fresherslive.com/">
+    <meta name="twitter:title" content="404 - Page Not Found | FreshersLive">
+    <meta name="twitter:description" content="The page you are looking for could not be found.">
+    <meta name="twitter:image" content="https://img20.fresherslive.com/fresherslive-og.webp">
+    <meta name="twitter:site" content="@Fresherslive">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://www.fresherslive.com/">
+
+    <!-- Alternate for language/region targeting -->
+    <link rel="alternate" href="https://www.fresherslive.com/" hreflang="en-IN">
+    <link rel="alternate" href="https://www.fresherslive.com/" hreflang="en">
+    <link rel="alternate" href="https://www.fresherslive.com/" hreflang="x-default">
+
+    <title>404 - Page Not Found | FreshersLive</title>
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#2563eb">
+    <meta name="msapplication-TileColor" content="#2563eb">
+
+    <!-- Preconnect for external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://img20.fresherslive.com">
+    <link rel="preload" href="https://img20.fresherslive.com/fresherslive-logo.webp" as="image" type="image/webp" fetchpriority="high">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/productionnew/assets/css/main.css?v=1.7">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Favicon -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+
+    </head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="/" class="logo-link">
+                    <img src="https://img20.fresherslive.com/fresherslive-logo.webp" alt="FreshersLive" class="logo-img" fetchpriority="high">
+                </a>
+
+                <nav class="main-nav">
+                    <a href="/" class="nav-link ">Home</a>
+                    <a href="/search-jobs/" class="nav-link ">Jobs</a>
+                    <a href="/results" class="nav-link ">Results</a>
+                    <a href="/admit-card" class="nav-link ">Admit Card</a>
+                    <a href="/answer-key" class="nav-link ">Answer Key</a>
+                    <a href="/syllabus" class="nav-link ">Syllabus</a>
+                </nav>
+
+                <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle mobile menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+<!-- 404 Error Page -->
+<main class="main-content">
+    <div class="container">
+        <div class="error-page">
+            <div class="error-content">
+                <div class="error-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1 class="error-title">404</h1>
+                <h2 class="error-heading">Page Not Found</h2>
+                <p class="error-message">
+                    Sorry, the page you're looking for doesn't exist or has been moved.
+                </p>
+                <div class="error-actions">
+                    <a href="/" class="btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        Back to Home
+                    </a>
+                    <a href="/search-jobs/" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Browse Jobs
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<style>
+.error-page {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-3xl) var(--spacing-lg);
+}
+
+.error-content {
+    text-align: center;
+    max-width: 600px;
+}
+
+.error-icon {
+    margin: 0 auto var(--spacing-xl);
+}
+
+.error-icon svg {
+    width: 120px;
+    height: 120px;
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+
+.error-title {
+    font-size: 8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.error-heading {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+}
+
+.error-message {
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin: 0 0 var(--spacing-2xl);
+    line-height: 1.6;
+}
+
+.error-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    border: 2px solid var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.btn-secondary:hover {
+    background: var(--primary-lighter);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+}
+
+.btn-primary svg,
+.btn-secondary svg {
+    width: 20px;
+    height: 20px;
+}
+
+@media (max-width: 768px) {
+    .error-icon svg {
+        width: 80px;
+        height: 80px;
+    }
+
+    .error-title {
+        font-size: 5rem;
+    }
+
+    .error-heading {
+        font-size: 1.75rem;
+    }
+
+    .error-message {
+        font-size: 1rem;
+    }
+
+    .error-actions {
+        flex-direction: column;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .error-title {
+        font-size: 4rem;
+    }
+
+    .error-heading {
+        font-size: 1.5rem;
+    }
+}
+</style>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About FreshersLive</h4>
+                    <ul class="footer-links">
+                        <li><a href="/about-us" class="footer-link">About Us</a></li>
+                        <li><a href="/contact" class="footer-link">Contact Us</a></li>
+                        <li><a href="/advertise" class="footer-link">Advertise With Us</a></li>
+                        <li><a href="/privacy-policy" class="footer-link">Privacy Policy</a></li>
+                        <li><a href="/terms-conditions" class="footer-link">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Job Categories</h4>
+                    <ul class="footer-links">
+                        <li><a href="/category/government-jobs" class="footer-link">Government Jobs</a></li>
+                        <li><a href="/category/bank-jobs" class="footer-link">Bank Jobs</a></li>
+                        <li><a href="/category/railway-jobs" class="footer-link">Railway Jobs</a></li>
+                        <li><a href="/category/ssc-jobs" class="footer-link">SSC Jobs</a></li>
+                        <li><a href="/category/teaching-jobs" class="footer-link">Teaching Jobs</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="/search-jobs/" class="footer-link">Latest Jobs</a></li>
+                        <li><a href="/results" class="footer-link">Results</a></li>
+                        <li><a href="/admit-card" class="footer-link">Admit Card</a></li>
+                        <li><a href="/answer-key" class="footer-link">Answer Key</a></li>
+                        <li><a href="/syllabus" class="footer-link">Syllabus</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <ul class="footer-links">
+                        <li><a href="https://www.facebook.com/fresherslive" class="footer-link" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+                        <li><a href="https://x.com/Fresherslive" class="footer-link" target="_blank" rel="noopener noreferrer">Twitter</a></li>
+                        <li><a href="https://www.linkedin.com/company/fresherslive.com" class="footer-link" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="footer-description">FreshersLive - No.1 Job Portal in India. Here you can find latest 2026 Central Government and State Government job recruitment notifications for various posts and vacancies across India. Get instant updates on Sarkari Naukri, PSU Jobs, Railway Jobs, Bank Jobs, Defence Jobs, Teaching Jobs and more. Job Seekers can check latest Exam Results, Download Admit Cards, Check Answer Keys and get complete Syllabus details for all Government Examinations. Stay updated with SSC, UPSC, IBPS, RRB, State PSC and other major recruitment notifications. Register with us to get latest Employment News and Rojgar Samachar alerts daily through E-mail. FreshersLive covers all Central and State Government recruitment notifications for 2025-2026, updated daily and trusted by lakhs of job seekers across India.</p>
+                <p>&copy; 2026 Fresherslive. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"e00e93b227b14c7fa65f755393ca56f8","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>

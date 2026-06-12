@@ -42813,6 +42813,79 @@
         "https://paperforge.dev/templates/web-designer-cease-and-desist-letter-florida"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/paperforge_dev/"
+    },
+    {
+      "url": "https://www.healthyceleb.com/",
+      "vertical": "celebrity-bio",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "keyword-stuffing"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "medium",
+        "evidence": "Live; templated \"[Name] Height, Weight, Age, Facts, Biography\" pages at scale; flagged in Originality.ai March-2024 AI-prevalence study set. https://originality.ai/blog/google-march-2024-manual-action-ai-update-list"
+      },
+      "samplingHint": {
+        "sampleSize": 25
+      },
+      "pinnedUrls": [
+        "https://www.healthyceleb.com/"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_healthyceleb_com/"
+    },
+    {
+      "url": "https://www.fresherslive.com/",
+      "vertical": "govt-jobs-directory",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "visiblePolicies": [
+        "keyword-stuffing",
+        "scaled-content-abuse",
+        "doorway"
+      ],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "high",
+        "evidence": "Live; footer densely stuffed with Sarkari Naukri / Government Jobs / 2025-2026 keyword variants; templated category/job pages at scale (keyword-stuffing density example)."
+      },
+      "samplingHint": {
+        "sampleSize": 25
+      },
+      "pinnedUrls": [
+        "https://www.fresherslive.com/",
+        "https://www.fresherslive.com/about-us",
+        "https://www.fresherslive.com/admit-card",
+        "https://www.fresherslive.com/admit-card/page/5",
+        "https://www.fresherslive.com/admit-card/page/6",
+        "https://www.fresherslive.com/advertise",
+        "https://www.fresherslive.com/answer-key",
+        "https://www.fresherslive.com/answer-key/page/5",
+        "https://www.fresherslive.com/answer-key/page/6",
+        "https://www.fresherslive.com/category/bank-jobs",
+        "https://www.fresherslive.com/category/defense-jobs",
+        "https://www.fresherslive.com/category/engineering-jobs",
+        "https://www.fresherslive.com/category/government-jobs",
+        "https://www.fresherslive.com/category/government-jobs/page/2167",
+        "https://www.fresherslive.com/category/government-jobs/page/3",
+        "https://www.fresherslive.com/category/medical-jobs",
+        "https://www.fresherslive.com/category/railway-jobs",
+        "https://www.fresherslive.com/category/ssc-jobs",
+        "https://www.fresherslive.com/category/teaching-jobs",
+        "https://www.fresherslive.com/contact",
+        "https://www.fresherslive.com/privacy-policy",
+        "https://www.fresherslive.com/results",
+        "https://www.fresherslive.com/results/page/2",
+        "https://www.fresherslive.com/results/page/3",
+        "https://www.fresherslive.com/search-jobs",
+        "https://www.fresherslive.com/syllabus",
+        "https://www.fresherslive.com/terms-conditions"
+      ],
+      "localFixtureDir": "packages/core/calibration/fixtures/www_fresherslive_com/"
     }
   ],
   "excluded": {
