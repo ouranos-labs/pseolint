@@ -142,7 +142,7 @@ function urlToNormalizedTemplate(url: string): string | null {
   }
 }
 
-function normalizePathToTemplate(pathname: string): string {
+export function normalizePathToTemplate(pathname: string): string {
   let p = pathname || "/";
   if (p.length > 1 && p.endsWith("/")) p = p.slice(0, -1);
   if (!p.startsWith("/")) p = "/" + p;
