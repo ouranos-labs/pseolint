@@ -544,6 +544,8 @@ export interface AuditOptions {
   templateGenerated?: boolean;
   /** Custom entity mask patterns. Merged with defaults (US states, ZIP codes). Set to empty array to disable defaults. */
   entityPatterns?: Array<{ placeholder: string; pattern: string; flags?: string }>;
+  /** Auto-derive entity-mask patterns from the corpus (default true). Set false to A/B compare. */
+  autoEntityMask?: boolean;
   /** Source data records for data-binding verification. */
   dataSource?: DataSourceOptions;
   /** HTTP cache configuration. When omitted, caching is disabled. */

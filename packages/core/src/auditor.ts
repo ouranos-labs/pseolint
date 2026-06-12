@@ -102,6 +102,7 @@ import { CORE_RULESET_VERSION } from "./ruleset-version.js";
 import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
 import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
+import { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -2735,6 +2736,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
+  const derivedEntityPatterns =
+    options?.autoEntityMask === false ? [] : deriveEntityPatterns(parsedPagesAll);
+
   for (const [groupName, groupPages] of classified) {
     if (groupPages.length === 0) continue;
 
@@ -2751,7 +2755,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const findings = runRulesOnPages(
       groupPages, parsedPagesAll, groupRules, enabledCheck, groupName,
       knownUrls, adjacency, inbound, rootUrl,
-      normalizeUrlOptions, source, DEFAULT_ENTITY_PATTERNS,
+      normalizeUrlOptions, source, [...DEFAULT_ENTITY_PATTERNS, ...derivedEntityPatterns],
       groupConfig?.overrides,
       options?.mode ?? "full",
       // 2026-05-06 calibration fix: pinnedUrls mode fetches a hand-picked subset

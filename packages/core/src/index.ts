@@ -5,6 +5,7 @@ export * from "./url-normalize.js";
 export * from "./algorithms/simhash.js";
 export * from "./algorithms/entity-mask.js";
 export * from "./algorithms/fact-extraction.js";
+export { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
 export * from "./rules/spam/near-duplicate.js";
 export * from "./rules/spam/entity-swap.js";
 export * from "./rules/spam/thin-content.js";
