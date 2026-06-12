@@ -14,7 +14,7 @@
  * verdict fires on a Zapier-shaped site, our verdict ladder is wrong.
  *
  * Usage:
- *   bun run scripts/calibration-reputable-pseo.ts
+ *   bun run scripts/calibration-corpus.ts
  *
  * Outputs:
  *   - scripts/calibration-results.json (consumed by tests/calibration/*)
@@ -62,7 +62,7 @@ const isSeedClassifierUrlsMode = args.includes("--seed-classifier-urls");
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const CORPUS_PATH = resolve(__dirname, "../packages/core/calibration/reputable-pseo-corpus.json");
+const CORPUS_PATH = resolve(__dirname, "../packages/core/calibration/calibration-corpus.json");
 const FIXTURES_BASE = resolve(__dirname, "../packages/core/calibration/fixtures");
 const RESULTS_JSON = resolve(__dirname, "calibration-results.json");
 const RESULTS_MD = resolve(__dirname, "calibration-results.md");
@@ -697,7 +697,7 @@ export async function discoverSitemapsFromRobotsTxt(originUrl: string): Promise<
  * resolving sitemap-index entries), dedupes, caps at 5000 per site, and
  * writes them into corpus.json classifierUrls for each site.
  *
- * Invocation: bun run scripts/calibration-reputable-pseo.ts --seed-classifier-urls
+ * Invocation: bun run scripts/calibration-corpus.ts --seed-classifier-urls
  */
 async function mainSeedClassifierUrls(): Promise<void> {
   const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;

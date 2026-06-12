@@ -1,5 +1,5 @@
 {
-  "$schema": "./reputable-pseo-corpus.schema.json",
+  "$schema": "./calibration-corpus.schema.json",
   "version": "1",
   "ranAt": null,
   "rationale": "Curated list of programmatic-SEO sites that are demonstrably winning in production. The engine's verdict on each must be at or below `expectedVerdictCeiling` — anything worse is a calibration failure on our side, not the site. See docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.",

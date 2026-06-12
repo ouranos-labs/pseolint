@@ -2,7 +2,7 @@
  * Reputable-pSEO calibration regression test.
  *
  * This test reads the most recent output of
- * `scripts/calibration-reputable-pseo.ts` and asserts that no site in the
+ * `scripts/calibration-corpus.ts` and asserts that no site in the
  * curated reputable-pSEO corpus scored worse than its expected verdict
  * ceiling. Any failure here means the engine has regressed in a way that
  * causes it to flag sites that demonstrably win at pSEO — which is a bug
@@ -17,11 +17,11 @@
  *
  * To run the calibration and refresh the gate:
  *
- *   bun run scripts/calibration-reputable-pseo.ts
+ *   bun run scripts/calibration-corpus.ts
  *
  * See:
  *   - docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md
- *   - packages/core/calibration/reputable-pseo-corpus.json
+ *   - packages/core/calibration/calibration-corpus.json
  */
 
 import { describe, it, expect } from "vitest";
@@ -74,7 +74,7 @@ describe("reputable-pSEO calibration regression", () => {
 
   if (status.state === "missing") {
     it.skip(
-      "calibration not run — execute `bun run scripts/calibration-reputable-pseo.ts` to populate scripts/calibration-results.json",
+      "calibration not run — execute `bun run scripts/calibration-corpus.ts` to populate scripts/calibration-results.json",
       () => {},
     );
     return;
@@ -82,7 +82,7 @@ describe("reputable-pSEO calibration regression", () => {
 
   if (status.state === "stale") {
     it.skip(
-      `calibration is ${status.ageDays} days old — re-run \`bun run scripts/calibration-reputable-pseo.ts\` to refresh the gate`,
+      `calibration is ${status.ageDays} days old — re-run \`bun run scripts/calibration-corpus.ts\` to refresh the gate`,
       () => {},
     );
     return;

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ReputablePseoCorpus",
-  "description": "Schema for the reputable-pSEO calibration corpus used by scripts/calibration-reputable-pseo.ts",
+  "description": "Schema for the calibration corpus used by scripts/calibration-corpus.ts",
   "type": "object",
   "required": ["version", "sites"],
   "properties": {

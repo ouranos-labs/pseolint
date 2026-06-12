@@ -271,7 +271,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
     // first-principles analysis predicts will false-positive on catalog-
     // shaped sites (Zapier integrations, G2 categories, Wise currency pairs,
     // etc.). A reputable-pSEO calibration corpus + runner has been added
-    // (scripts/calibration-reputable-pseo.ts); these overrides will be
+    // (scripts/calibration-corpus.ts); these overrides will be
     // tightened or loosened based on actual fire-rates measured against
     // sites that demonstrably win in production. See
     // docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.
