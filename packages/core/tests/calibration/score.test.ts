@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
+import { evaluateAlignment, confusionMatrix, isFlagged, median, perClassRiskStats, perRuleFiringTable, type ScoredAudit, type ScoreRow } from "../../calibration/score.js";
 import type { CorpusSite } from "../../calibration/corpus-types.js";
 
 function audit(partial: Partial<ScoredAudit>): ScoredAudit {
@@ -101,5 +101,25 @@ describe("perClassRiskStats", () => {
       { url: "c", siteClass: "policy-violating", audit: audit({ risk: 60 }) },
     ];
     expect(perClassRiskStats(rows).cleanlySeparated).toBe(false);
+  });
+});
+
+describe("perRuleFiringTable", () => {
+  test("counts fired/suppressed/demoted per rule, split by class", () => {
+    const rows: ScoreRow[] = [
+      { url: "good1", siteClass: "reputable", audit: audit({ firedRuleIds: ["spam/thin-content"] }) },
+      { url: "bad1", siteClass: "policy-violating", audit: audit({ firedRuleIds: ["spam/thin-content", "spam/entity-swap"] }) },
+      { url: "bad2", siteClass: "policy-violating", audit: audit({ firedRuleIds: [], suppressedRuleIds: ["spam/entity-swap"], demotedRuleIds: ["aeo/citable-facts"] }) },
+    ];
+    const t = perRuleFiringTable(rows);
+    expect(t["spam/thin-content"]).toEqual({ reputableFired: 1, reputableTotal: 1, policyFired: 1, policyTotal: 2, suppressedOn: 0, demotedOn: 0 });
+    expect(t["spam/entity-swap"]).toEqual({ reputableFired: 0, reputableTotal: 1, policyFired: 1, policyTotal: 2, suppressedOn: 1, demotedOn: 0 });
+    expect(t["aeo/citable-facts"].demotedOn).toBe(1);
+  });
+  test("a duplicate ruleId on one site counts that site once", () => {
+    const rows: ScoreRow[] = [
+      { url: "bad1", siteClass: "policy-violating", audit: audit({ firedRuleIds: ["spam/thin-content", "spam/thin-content"] }) },
+    ];
+    expect(perRuleFiringTable(rows)["spam/thin-content"].policyFired).toBe(1);
   });
 });

@@ -108,3 +108,35 @@ export function perClassRiskStats(rows: ScoreRow[]): RiskStats {
   const cleanlySeparated = rep.length > 0 && pol.length > 0 && reputable.max < policyViolating.min;
   return { reputable, policyViolating, cleanlySeparated };
 }
+
+export interface RuleFiring {
+  reputableFired: number;
+  reputableTotal: number;
+  policyFired: number;
+  policyTotal: number;
+  suppressedOn: number;
+  demotedOn: number;
+}
+
+/**
+ * Per-rule firing across the corpus, split by class, plus suppressed/demoted
+ * attribution. A rule "fired" on a site if it emitted >=1 finding; each site is
+ * counted at most once per rule.
+ */
+export function perRuleFiringTable(rows: ScoreRow[]): Record<string, RuleFiring> {
+  const reputableTotal = rows.filter((r) => r.siteClass === "reputable").length;
+  const policyTotal = rows.filter((r) => r.siteClass === "policy-violating").length;
+  const table: Record<string, RuleFiring> = {};
+  const ensure = (id: string): RuleFiring =>
+    (table[id] ??= { reputableFired: 0, reputableTotal, policyFired: 0, policyTotal, suppressedOn: 0, demotedOn: 0 });
+  for (const r of rows) {
+    for (const id of new Set(r.audit.firedRuleIds)) {
+      const e = ensure(id);
+      if (r.siteClass === "reputable") e.reputableFired++;
+      else e.policyFired++;
+    }
+    for (const id of new Set(r.audit.suppressedRuleIds)) ensure(id).suppressedOn++;
+    for (const id of new Set(r.audit.demotedRuleIds)) ensure(id).demotedOn++;
+  }
+  return table;
+}
