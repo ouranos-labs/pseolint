@@ -35,7 +35,7 @@ import type { CachedFetchOptions } from "../packages/core/src/index.js";
 import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 import { parseSitemapDirectives } from "../packages/core/src/rules/tech/robots-sitemap-presence.js";
-import { VERDICT_RANK, type CorpusSite, type Corpus } from "../packages/core/calibration/corpus-types.js";
+import { VERDICT_RANK, type CorpusSite, type Corpus, type SiteClass } from "../packages/core/calibration/corpus-types.js";
 import {
   confusionMatrix, perClassRiskStats, perRuleFiringTable, ratchet,
   type ScoreRow, type Confusion, type RiskStats, type RuleFiring, type Baseline,
@@ -80,7 +80,9 @@ const BASELINE_PATH = resolve(__dirname, "../packages/core/calibration/baseline-
 interface SiteResult {
   url: string;
   vertical: string;
-  expectedVerdictCeiling: Verdict;
+  class: SiteClass;
+  /** Reputable only; undefined for policy-violating/subject. */
+  expectedVerdictCeiling?: Verdict;
   expectedSiteType: string;
   pass: boolean;
   /** When `pass` is false, a one-line reason for human readability. */
@@ -239,6 +241,7 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
   const result: SiteResult & { _auditedUrls?: string[] } = {
     url: target.url,
     vertical: target.vertical,
+    class: target.class,
     expectedVerdictCeiling: target.expectedVerdictCeiling,
     expectedSiteType: target.expectedSiteType,
     pass: false,
@@ -584,7 +587,7 @@ async function mainNormal(): Promise<void> {
     ranAt: new Date().toISOString(),
     rulesetVersion: CORE_RULESET_VERSION,
     corpusVersion: corpus.version,
-    ruleAggregates: aggregate(results),
+    ruleAggregates: aggregate(results.filter((r) => r.class === "reputable")),
     scorecard,
     results,
     summary: { sitesAudited: audited, sitesPassed: passed, sitesFailed: failed, fetchErrors },

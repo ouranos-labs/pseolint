@@ -44,7 +44,8 @@ const VERDICT_RANK: Record<Verdict, number> = {
 interface SiteResult {
   url: string;
   vertical: string;
-  expectedVerdictCeiling: Verdict;
+  class?: "reputable" | "policy-violating" | "subject";
+  expectedVerdictCeiling?: Verdict;
   pass: boolean;
   failureReason?: string;
   audit: null | { verdict: Verdict; risk: number; topDrivers: Array<{ ruleId: string; count: number; impact: number }> };
@@ -101,6 +102,9 @@ describe("reputable-pSEO calibration regression", () => {
       continue;
     }
     if (!site.audit) continue;
+    // Two-sided corpus: only the reputable class has a verdict ceiling to gate.
+    // policy-violating + subject sites are measured by the scorecard, not here.
+    if (site.class !== "reputable") continue;
 
     const actual = site.audit.verdict;
     const ceiling = site.expectedVerdictCeiling;
