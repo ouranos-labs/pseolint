@@ -46,3 +46,32 @@ export function evaluateAlignment(site: CorpusSite, audit: ScoredAudit): Alignme
     note: aligned ? `verdict ${audit.verdict} >= floor ${floor}` : `verdict ${audit.verdict} < floor ${floor} (under-flagged)`,
   };
 }
+
+export const DEFAULT_FLAG_THRESHOLD: Verdict = "concerning";
+
+/** Engine "positive" prediction: verdict at or above the flag threshold. */
+export function isFlagged(audit: ScoredAudit, threshold: Verdict = DEFAULT_FLAG_THRESHOLD): boolean {
+  return VERDICT_RANK[audit.verdict] >= VERDICT_RANK[threshold];
+}
+
+export interface Confusion {
+  tp: number; fp: number; tn: number; fn: number;
+  precision: number; recall: number; f1: number;
+}
+
+/** Binary classifier metrics: label-positive = policy-violating, prediction = isFlagged. */
+export function confusionMatrix(rows: ScoreRow[], threshold: Verdict = DEFAULT_FLAG_THRESHOLD): Confusion {
+  let tp = 0, fp = 0, tn = 0, fn = 0;
+  for (const r of rows) {
+    const flagged = isFlagged(r.audit, threshold);
+    const positive = r.siteClass === "policy-violating";
+    if (positive && flagged) tp++;
+    else if (positive && !flagged) fn++;
+    else if (!positive && flagged) fp++;
+    else tn++;
+  }
+  const precision = tp + fp === 0 ? 0 : tp / (tp + fp);
+  const recall = tp + fn === 0 ? 0 : tp / (tp + fn);
+  const f1 = precision + recall === 0 ? 0 : (2 * precision * recall) / (precision + recall);
+  return { tp, fp, tn, fn, precision, recall, f1 };
+}
