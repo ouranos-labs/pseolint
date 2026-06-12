@@ -1,5 +1,5 @@
 {
-  "ranAt": "2026-06-12T08:59:52.743Z",
+  "ranAt": "2026-06-12T11:28:28.981Z",
   "rulesetVersion": "15",
   "corpusVersion": "1",
   "perSiteVerdict": {
@@ -16,10 +16,10 @@
     "https://paperforge.dev/": "caution",
     "https://www.healthyceleb.com/": "ready",
     "https://www.fresherslive.com/": "caution",
-    "https://doorwayspam.example/": "caution",
+    "https://doorwayspam.example/": "concerning",
     "https://hiddentextspam.example/": "concerning",
     "https://zacjohnson.com/": "concerning",
-    "https://beingselfish.in/": "caution",
+    "https://beingselfish.in/": "concerning",
     "https://www.newsunzip.com/": "ready",
     "https://popularnetworth.com/": "concerning",
     "https://www.thehairpin.com/": "concerning",
@@ -33,25 +33,25 @@
   },
   "scorecard": {
     "confusion": {
-      "tp": 7,
+      "tp": 9,
       "fp": 3,
       "tn": 7,
-      "fn": 9,
-      "precision": 0.7,
-      "recall": 0.4375,
-      "f1": 0.5384615384615384
+      "fn": 7,
+      "precision": 0.75,
+      "recall": 0.5625,
+      "f1": 0.6428571428571429
     },
     "risk": {
       "reputable": {
         "n": 10,
         "min": 2,
-        "median": 35.5,
+        "median": 34,
         "max": 74
       },
       "policyViolating": {
         "n": 16,
         "min": 3,
-        "median": 26.5,
+        "median": 45,
         "max": 60
       },
       "cleanlySeparated": false
@@ -124,13 +124,13 @@
       "aeo/answer-first": {
         "reputableFired": 9,
         "reputableTotal": 10,
-        "policyFired": 11,
+        "policyFired": 12,
         "policyTotal": 16,
         "suppressedOn": 0,
-        "demotedOn": 19
+        "demotedOn": 20
       },
       "spam/template-coverage": {
-        "reputableFired": 1,
+        "reputableFired": 2,
         "reputableTotal": 10,
         "policyFired": 0,
         "policyTotal": 16,
@@ -146,12 +146,12 @@
         "demotedOn": 0
       },
       "spam/entity-swap": {
-        "reputableFired": 1,
+        "reputableFired": 2,
         "reputableTotal": 10,
-        "policyFired": 0,
+        "policyFired": 1,
         "policyTotal": 16,
         "suppressedOn": 18,
-        "demotedOn": 0
+        "demotedOn": 1
       },
       "cannibal/url-pattern": {
         "reputableFired": 0,
@@ -186,9 +186,9 @@
         "demotedOn": 0
       },
       "content/meta-uniqueness": {
-        "reputableFired": 1,
+        "reputableFired": 2,
         "reputableTotal": 10,
-        "policyFired": 1,
+        "policyFired": 4,
         "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
@@ -237,14 +237,6 @@
         "reputableFired": 4,
         "reputableTotal": 10,
         "policyFired": 2,
-        "policyTotal": 16,
-        "suppressedOn": 0,
-        "demotedOn": 0
-      },
-      "tech/robots-noindex-conflict": {
-        "reputableFired": 1,
-        "reputableTotal": 10,
-        "policyFired": 1,
         "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
@@ -317,6 +309,14 @@
         "reputableFired": 2,
         "reputableTotal": 10,
         "policyFired": 2,
+        "policyTotal": 16,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/robots-noindex-conflict": {
+        "reputableFired": 0,
+        "reputableTotal": 10,
+        "policyFired": 1,
         "policyTotal": 16,
         "suppressedOn": 0,
         "demotedOn": 0
