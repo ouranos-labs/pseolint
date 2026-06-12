@@ -845,6 +845,38 @@ Then add these three keys into the `result.audit = { ... }` object (after `v6Pat
         demotedRuleIds,
 ```
 
+- [ ] **Step 2b: Make `auditOne`'s pass/fail class-aware**
+
+The existing `result.pass = actualRank <= ceilingRank` assumes every site has an `expectedVerdictCeiling`. That field is now optional (only `reputable` sites have it), so a `policy-violating` or `subject` site would compute `VERDICT_RANK[undefined]` and spuriously "fail," wrongly tripping the `if (failed > 0) process.exitCode = 1` gate. Replace the existing pass block in `auditOne` — the lines:
+```ts
+      const actualRank = VERDICT_RANK[summary.verdict];
+      const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling];
+      result.pass = actualRank <= ceilingRank;
+      if (!result.pass) {
+        result.failureReason =
+          `Engine returned verdict='${summary.verdict}' on a site whose ground-truth ` +
+          `evidence supports verdict <= '${target.expectedVerdictCeiling}'. The engine is mis-calibrated, not the site.`;
+      }
+```
+with:
+```ts
+      const actualRank = VERDICT_RANK[summary.verdict];
+      if (target.class === "reputable") {
+        const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling ?? "critical"];
+        result.pass = actualRank <= ceilingRank;
+        if (!result.pass) {
+          result.failureReason =
+            `Engine returned verdict='${summary.verdict}' on a site whose ground-truth ` +
+            `evidence supports verdict <= '${target.expectedVerdictCeiling}'. The engine is mis-calibrated, not the site.`;
+        }
+      } else {
+        // policy-violating + subject are NOT hard-gated by the ceiling logic.
+        // Their floor shortfall is surfaced in the scorecard's alignment report,
+        // and policy-violating recall is gated by the ratchet (Step 5), not here.
+        result.pass = true;
+      }
+```
+
 - [ ] **Step 3: Extend the `CalibrationResults` type with the scorecard**
 
 Add to the `CalibrationResults` interface (after `ruleAggregates`):
