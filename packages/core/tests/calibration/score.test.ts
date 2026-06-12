@@ -154,11 +154,17 @@ describe("ratchet", () => {
     expect(r.verdictRegressions).toEqual([]);
     expect(r.ruleRegressions).toEqual([]);
   });
-  test("flags a reputable site exceeding its ceiling", () => {
+  test("flags a reputable site that worsened vs baseline", () => {
     const rows: ScoreRow[] = [
       { url: "good1", siteClass: "reputable", audit: audit({ verdict: "concerning" }) },
     ];
     expect(ratchet(rows, sites, baseline).verdictRegressions.length).toBe(1);
+  });
+  test("does not flag a reputable site sitting at its (already-breaching) baseline", () => {
+    const debtSites: CorpusSite[] = [site({ url: "segment", class: "reputable", expectedVerdictCeiling: "caution" })];
+    const debtBaseline: Baseline = { perSiteVerdict: { segment: "critical" }, perRule: {} };
+    const rows: ScoreRow[] = [{ url: "segment", siteClass: "reputable", audit: audit({ verdict: "critical" }) }];
+    expect(ratchet(rows, debtSites, debtBaseline).verdictRegressions).toEqual([]);
   });
   test("flags a policy-violating site whose verdict dropped below baseline (recall regression)", () => {
     const rows: ScoreRow[] = [

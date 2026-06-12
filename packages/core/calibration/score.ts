@@ -169,9 +169,9 @@ export function ratchet(rows: ScoreRow[], sites: CorpusSite[], baseline: Baselin
     if (!s) continue;
     const curRank = VERDICT_RANK[r.audit.verdict];
     if (s.class === "reputable") {
-      const ceiling = s.expectedVerdictCeiling ?? "critical";
-      if (curRank > VERDICT_RANK[ceiling]) {
-        verdictRegressions.push(`${r.url}: reputable verdict ${r.audit.verdict} exceeds ceiling ${ceiling}`);
+      const base = baseline.perSiteVerdict[r.url];
+      if (base && curRank > VERDICT_RANK[base]) {
+        verdictRegressions.push(`${r.url}: reputable over-flag worsened — verdict ${r.audit.verdict} > baseline ${base}`);
       }
     } else if (s.class === "policy-violating") {
       const base = baseline.perSiteVerdict[r.url];

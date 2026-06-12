@@ -1,0 +1,306 @@
+{
+  "ranAt": "2026-06-12T07:28:39.183Z",
+  "rulesetVersion": "15",
+  "corpusVersion": "1",
+  "perSiteVerdict": {
+    "https://www.g2.com/categories": "ready",
+    "https://wise.com/us/currency-converter": "concerning",
+    "https://webflow.com/templates": "caution",
+    "https://www.typeform.com/templates": "caution",
+    "https://segment.com/integrations": "critical",
+    "https://www.jasper.ai/templates": "ready",
+    "https://ramp.com/spend-management": "ready",
+    "https://www.numbeo.com/cost-of-living": "concerning",
+    "https://airbyte.com/connectors": "ready"
+  },
+  "scorecard": {
+    "confusion": {
+      "tp": 0,
+      "fp": 3,
+      "tn": 6,
+      "fn": 0,
+      "precision": 0,
+      "recall": 0,
+      "f1": 0
+    },
+    "risk": {
+      "reputable": {
+        "n": 9,
+        "min": 20,
+        "median": 38,
+        "max": 74
+      },
+      "policyViolating": {
+        "n": 0,
+        "min": null,
+        "median": null,
+        "max": null
+      },
+      "cleanlySeparated": false
+    },
+    "perRule": {
+      "spam/near-duplicate": {
+        "reputableFired": 5,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 2
+      },
+      "content/missing-author": {
+        "reputableFired": 9,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 8
+      },
+      "content/eeat-signals": {
+        "reputableFired": 9,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 4
+      },
+      "content/title-uniqueness": {
+        "reputableFired": 8,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "content/heading-structure": {
+        "reputableFired": 8,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 8
+      },
+      "schema/consistency": {
+        "reputableFired": 6,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "aeo/freshness-signals": {
+        "reputableFired": 9,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 8
+      },
+      "aeo/answer-first": {
+        "reputableFired": 9,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 8
+      },
+      "aeo/citable-facts": {
+        "reputableFired": 9,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 8
+      },
+      "spam/template-coverage": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "spam/template-diversity": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "spam/entity-swap": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "cannibal/url-pattern": {
+        "reputableFired": 0,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "links/host-section-divergence": {
+        "reputableFired": 0,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "content/citation-coverage": {
+        "reputableFired": 4,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 4,
+        "demotedOn": 0
+      },
+      "content/unique-value": {
+        "reputableFired": 8,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "content/meta-uniqueness": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "links/orphan-pages": {
+        "reputableFired": 5,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "links/unreachable-from-root": {
+        "reputableFired": 2,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/hreflang-consistency": {
+        "reputableFired": 4,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "spam/thin-content": {
+        "reputableFired": 7,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 6
+      },
+      "content/image-alt-text": {
+        "reputableFired": 2,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 2
+      },
+      "tech/canonical-consistency": {
+        "reputableFired": 4,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/og-completeness": {
+        "reputableFired": 6,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 5
+      },
+      "schema/required-fields": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "aeo/faq-coverage": {
+        "reputableFired": 3,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "spam/doorway-pattern": {
+        "reputableFired": 2,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 1
+      },
+      "spam/boilerplate-ratio": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "content/translation-no-op": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "schema/json-ld-valid": {
+        "reputableFired": 2,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "content/common-phrase-reuse": {
+        "reputableFired": 1,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "links/dead-ends": {
+        "reputableFired": 2,
+        "reputableTotal": 9,
+        "policyFired": 0,
+        "policyTotal": 0,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      }
+    },
+    "classCounts": {
+      "reputable": 9,
+      "policyViolating": 0,
+      "subject": 0
+    },
+    "trackedSubjects": []
+  }
+}

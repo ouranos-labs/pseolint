@@ -64,6 +64,8 @@ const snapshotFilter: string | undefined =
 // v0.6.1: --seed-classifier-urls fetches live sitemaps and writes classifierUrls to corpus
 const isSeedClassifierUrlsMode = args.includes("--seed-classifier-urls");
 
+const isWriteBaselineMode = args.includes("--write-baseline");
+
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -71,6 +73,7 @@ const CORPUS_PATH = resolve(__dirname, "../packages/core/calibration/calibration
 const FIXTURES_BASE = resolve(__dirname, "../packages/core/calibration/fixtures");
 const RESULTS_JSON = resolve(__dirname, "calibration-results.json");
 const RESULTS_MD = resolve(__dirname, "calibration-results.md");
+const BASELINE_PATH = resolve(__dirname, "../packages/core/calibration/baseline-scorecard.json");
 
 // ----- output types -------------------------------------------------------
 
@@ -604,20 +607,24 @@ async function mainNormal(): Promise<void> {
     process.exitCode = 1;
   }
 
-  // Ratchet vs the previously-committed baseline (the results JSON from git HEAD
-  // before this run overwrote it). Read it from git so a local re-run doesn't
-  // ratchet against itself.
+  // Ratchet vs the committed baseline file (packages/core/calibration/baseline-scorecard.json).
+  // Written only via --write-baseline; never auto-regenerated during normal runs.
   let baseline: Baseline | null = null;
   try {
-    const { execSync } = await import("node:child_process");
-    const prior = execSync("git show HEAD:scripts/calibration-results.json", { encoding: "utf-8" });
-    const priorOut = JSON.parse(prior) as CalibrationResults;
-    baseline = {
-      perSiteVerdict: Object.fromEntries(priorOut.results.filter((r) => r.audit).map((r) => [r.url, r.audit!.verdict])),
-      perRule: Object.fromEntries(Object.entries(priorOut.scorecard?.perRule ?? {}).map(([id, f]) => [id, { policyFired: f.policyFired, reputableFired: f.reputableFired }])),
-    };
+    if (existsSync(BASELINE_PATH)) {
+      const prior = JSON.parse(readFileSync(BASELINE_PATH, "utf-8")) as {
+        perSiteVerdict?: Record<string, Verdict>;
+        scorecard?: { perRule?: Record<string, RuleFiring> };
+      };
+      baseline = {
+        perSiteVerdict: prior.perSiteVerdict ?? {},
+        perRule: Object.fromEntries(
+          Object.entries(prior.scorecard?.perRule ?? {}).map(([id, f]) => [id, { policyFired: f.policyFired, reputableFired: f.reputableFired }]),
+        ),
+      };
+    }
   } catch {
-    baseline = null; // no committed baseline yet (first run) — nothing to ratchet against
+    baseline = null; // no committed baseline yet (first run)
   }
   if (baseline) {
     const rr = ratchet(rows, corpus.sites, baseline);
@@ -632,6 +639,21 @@ async function mainNormal(): Promise<void> {
       for (const m of rr.verdictRegressions) console.log(`  ${ansi.red}x${ansi.reset} ${m}`);
       process.exitCode = 1;
     }
+  }
+
+  if (isWriteBaselineMode) {
+    const perSiteVerdict = Object.fromEntries(
+      results.filter((r) => r.audit).map((r) => [r.url, r.audit!.verdict]),
+    );
+    const baselineOut = {
+      ranAt: out.ranAt,
+      rulesetVersion: out.rulesetVersion,
+      corpusVersion: out.corpusVersion,
+      perSiteVerdict,
+      scorecard,
+    };
+    writeFileSync(BASELINE_PATH, JSON.stringify(baselineOut, null, 2) + "\n", "utf-8");
+    console.log(`Wrote baseline ${BASELINE_PATH}`);
   }
 }
 
