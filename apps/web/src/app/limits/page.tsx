@@ -154,6 +154,7 @@ export default function LimitsPage() {
         <Item k="No JavaScript rendering by default" v="We audit server-rendered HTML. Client-side rendered pages will look empty to us. Pro has optional browser rendering via CDP." />
         <Item k="The rule set is a subset of SpamBrain" v="We infer plausible SpamBrain signals from public documentation, research, and observed patterns. We do not have access to Google&apos;s actual classifier and make no claim of one-to-one correspondence." />
         <Item k="Score is a heuristic" v="Treat it as a structured conversation, not a verdict. A low score isn&apos;t a guarantee of indexing success. A high score isn&apos;t proof SpamBrain will act." />
+        <Item k="We can't see off-page signals" v="We measure on-page structural risk. We can't see the off-page authority and user-behaviour signals Google weighs most heavily — so a thin, templated page on a high-authority domain can rank fine, while a clean-looking page can still be suppressed by signals we don't observe. The audit covers the controllable, on-page surface of risk; pair it with your domain's authority for the off-page half." />
       </Section>
 
       <Section title="Operational controls (when things go wrong)">
