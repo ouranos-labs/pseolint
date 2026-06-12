@@ -36,6 +36,10 @@ import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 import { parseSitemapDirectives } from "../packages/core/src/rules/tech/robots-sitemap-presence.js";
 import { VERDICT_RANK, type CorpusSite, type Corpus } from "../packages/core/calibration/corpus-types.js";
+import {
+  confusionMatrix, perClassRiskStats, perRuleFiringTable, ratchet,
+  type ScoreRow, type Confusion, type RiskStats, type RuleFiring, type Baseline,
+} from "../packages/core/calibration/score.js";
 
 // ----- CLI flags ----------------------------------------------------------
 
@@ -94,6 +98,12 @@ interface SiteResult {
     templateCount: number;
     /** v0.6.1 — whether v0.6 siteVerdictFromTemplates fired (templateCount >= 2). */
     v6PathExecuted: boolean;
+    /** Every rule that emitted >=1 finding (any severity). */
+    firedRuleIds: string[];
+    /** Rules the site-classifier suppressed. */
+    suppressedRuleIds: string[];
+    /** Rules the scoring profile demoted. */
+    demotedRuleIds: string[];
   };
   error?: string;
 }
@@ -104,6 +114,15 @@ interface CalibrationResults {
   corpusVersion: string;
   /** Per-rule fire-rate aggregates across all sites where the audit succeeded. */
   ruleAggregates: Record<string, { sitesFired: number; sitesAudited: number; firingRatio: number; severityCounts: Record<string, number> }>;
+  /** Two-sided scorecard (added 2026-06). Present once the corpus has class labels. */
+  scorecard: {
+    confusion: Confusion;
+    risk: RiskStats;
+    perRule: Record<string, RuleFiring>;
+    classCounts: { reputable: number; policyViolating: number; subject: number };
+    /** Non-gated dogfood targets — verdict/risk/top fired rules, no pass/fail. */
+    trackedSubjects: Array<{ url: string; verdict: string; risk: number; topFired: string[] }>;
+  };
   results: SiteResult[];
   summary: {
     sitesAudited: number;
@@ -271,6 +290,12 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
         shouldFix: summary.issues.shouldFix,
         informational: summary.issues.informational,
       });
+      const firedRuleIds = [...new Set(
+        [...summary.issues.blockers, ...summary.issues.shouldFix, ...summary.issues.informational]
+          .map((r) => r.ruleId),
+      )];
+      const suppressedRuleIds = summary.siteClassification?.suppressedRules ?? [];
+      const demotedRuleIds = summary.appliedSeverityDemotions ?? [];
       const templateCount = summary.templates?.length ?? 0;
       result.audit = {
         verdict: summary.verdict,
@@ -285,14 +310,24 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
         topDrivers: drivers,
         templateCount,
         v6PathExecuted: templateCount >= 2,
+        firedRuleIds,
+        suppressedRuleIds,
+        demotedRuleIds,
       };
       const actualRank = VERDICT_RANK[summary.verdict];
-      const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling];
-      result.pass = actualRank <= ceilingRank;
-      if (!result.pass) {
-        result.failureReason =
-          `Engine returned verdict='${summary.verdict}' on a site whose ground-truth ` +
-          `evidence supports verdict <= '${target.expectedVerdictCeiling}'. The engine is mis-calibrated, not the site.`;
+      if (target.class === "reputable") {
+        const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling ?? "critical"];
+        result.pass = actualRank <= ceilingRank;
+        if (!result.pass) {
+          result.failureReason =
+            `Engine returned verdict='${summary.verdict}' on a site whose ground-truth ` +
+            `evidence supports verdict <= '${target.expectedVerdictCeiling}'. The engine is mis-calibrated, not the site.`;
+        }
+      } else {
+        // policy-violating + subject are NOT hard-gated by the ceiling logic.
+        // Their floor shortfall is surfaced in the scorecard's alignment report,
+        // and policy-violating recall is gated by the ratchet (Step 5), not here.
+        result.pass = true;
       }
     } finally {
       clearTimeout(timer);
@@ -359,6 +394,33 @@ function renderMarkdown(out: CalibrationResults): string {
     lines.push(`| ${r.url} | ${r.vertical} | ${r.expectedVerdictCeiling} | ${actual} | ${deltaCell} | \`${driver}\` |`);
   }
   lines.push("");
+  if (out.scorecard) {
+    const c = out.scorecard.confusion;
+    lines.push(`## Scorecard`);
+    lines.push("");
+    lines.push(`Classes: ${out.scorecard.classCounts.reputable} reputable, ${out.scorecard.classCounts.policyViolating} policy-violating.`);
+    lines.push("");
+    lines.push(`| | flagged | not flagged |`);
+    lines.push(`| ---- | ------: | ----------: |`);
+    lines.push(`| **policy-violating** | ${c.tp} (TP) | ${c.fn} (FN) |`);
+    lines.push(`| **reputable** | ${c.fp} (FP) | ${c.tn} (TN) |`);
+    lines.push("");
+    lines.push(`Precision ${(c.precision * 100).toFixed(0)}% · Recall ${(c.recall * 100).toFixed(0)}% · F1 ${(c.f1 * 100).toFixed(0)}%`);
+    const rk = out.scorecard.risk;
+    lines.push("");
+    lines.push(`Risk medians — reputable ${rk.reputable.median}, policy-violating ${rk.policyViolating.median}; cleanly separated: ${rk.cleanlySeparated ? "yes" : "no"}.`);
+    lines.push("");
+    if (out.scorecard.trackedSubjects.length > 0) {
+      lines.push(`### Tracked subjects (non-gated)`);
+      lines.push("");
+      lines.push(`| Subject | Verdict | Risk | Top fired rules |`);
+      lines.push(`| ------- | ------- | ---: | --------------- |`);
+      for (const s of out.scorecard.trackedSubjects) {
+        lines.push(`| ${s.url} | ${s.verdict} | ${s.risk} | ${s.topFired.map((r) => `\`${r}\``).join(", ")} |`);
+      }
+      lines.push("");
+    }
+  }
   lines.push(`## Per-rule fire-rate (across audited sites)`);
   lines.push("");
   lines.push(`| Rule | Sites fired | Firing ratio | Severities |`);
@@ -477,11 +539,47 @@ async function mainNormal(): Promise<void> {
   const fetchErrors = results.filter((r) => r.error).length;
   const audited = results.filter((r) => r.audit !== null).length;
 
+  const rows: ScoreRow[] = results
+    .filter((r) => r.audit !== null)
+    .map((r) => {
+      const cs = corpus.sites.find((s) => s.url === r.url)!;
+      return {
+        url: r.url,
+        siteClass: cs.class,
+        audit: {
+          verdict: r.audit!.verdict,
+          risk: r.audit!.risk,
+          firedRuleIds: r.audit!.firedRuleIds,
+          suppressedRuleIds: r.audit!.suppressedRuleIds,
+          demotedRuleIds: r.audit!.demotedRuleIds,
+        },
+      };
+    });
+  const scorecard = {
+    confusion: confusionMatrix(rows),
+    risk: perClassRiskStats(rows),
+    perRule: perRuleFiringTable(rows),
+    classCounts: {
+      reputable: rows.filter((r) => r.siteClass === "reputable").length,
+      policyViolating: rows.filter((r) => r.siteClass === "policy-violating").length,
+      subject: rows.filter((r) => r.siteClass === "subject").length,
+    },
+    trackedSubjects: rows
+      .filter((r) => r.siteClass === "subject")
+      .map((r) => ({
+        url: r.url,
+        verdict: r.audit.verdict,
+        risk: r.audit.risk,
+        topFired: r.audit.firedRuleIds.slice(0, 8),
+      })),
+  };
+
   const out: CalibrationResults = {
     ranAt: new Date().toISOString(),
     rulesetVersion: CORE_RULESET_VERSION,
     corpusVersion: corpus.version,
     ruleAggregates: aggregate(results),
+    scorecard,
     results,
     summary: { sitesAudited: audited, sitesPassed: passed, sitesFailed: failed, fetchErrors },
   };
@@ -504,6 +602,36 @@ async function mainNormal(): Promise<void> {
     console.log(`${ansi.yellow}One or more reputable pSEO sites scored worse than their ceiling.${ansi.reset}`);
     console.log(`${ansi.yellow}Review calibration-results.md → adjust SCORING_PROFILES['programmatic-directory'].${ansi.reset}`);
     process.exitCode = 1;
+  }
+
+  // Ratchet vs the previously-committed baseline (the results JSON from git HEAD
+  // before this run overwrote it). Read it from git so a local re-run doesn't
+  // ratchet against itself.
+  let baseline: Baseline | null = null;
+  try {
+    const { execSync } = await import("node:child_process");
+    const prior = execSync("git show HEAD:scripts/calibration-results.json", { encoding: "utf-8" });
+    const priorOut = JSON.parse(prior) as CalibrationResults;
+    baseline = {
+      perSiteVerdict: Object.fromEntries(priorOut.results.filter((r) => r.audit).map((r) => [r.url, r.audit!.verdict])),
+      perRule: Object.fromEntries(Object.entries(priorOut.scorecard?.perRule ?? {}).map(([id, f]) => [id, { policyFired: f.policyFired, reputableFired: f.reputableFired }])),
+    };
+  } catch {
+    baseline = null; // no committed baseline yet (first run) — nothing to ratchet against
+  }
+  if (baseline) {
+    const rr = ratchet(rows, corpus.sites, baseline);
+    if (rr.ruleRegressions.length > 0) {
+      console.log("");
+      console.log(`${ansi.yellow}Per-rule regressions vs baseline (soft):${ansi.reset}`);
+      for (const m of rr.ruleRegressions) console.log(`  ${ansi.yellow}~${ansi.reset} ${m}`);
+    }
+    if (rr.verdictRegressions.length > 0) {
+      console.log("");
+      console.log(`${ansi.red}Verdict regressions vs baseline (HARD — gate fails):${ansi.reset}`);
+      for (const m of rr.verdictRegressions) console.log(`  ${ansi.red}x${ansi.reset} ${m}`);
+      process.exitCode = 1;
+    }
   }
 }
 
