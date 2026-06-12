@@ -25,8 +25,8 @@
  * matrix used to convert calibration results into scoring-profile changes.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname, relative, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -389,12 +389,12 @@ function renderMarkdown(out: CalibrationResults): string {
   lines.push(`| ---- | -------- | ---------- | ------ | -- | ---------- |`);
   for (const r of out.results) {
     const actual = r.audit ? r.audit.verdict : "ERROR";
-    const delta = r.audit
+    const delta = r.audit && r.expectedVerdictCeiling != null
       ? VERDICT_RANK[r.audit.verdict] - VERDICT_RANK[r.expectedVerdictCeiling]
       : "—";
     const driver = r.audit?.topDrivers[0]?.ruleId ?? "—";
     const deltaCell = typeof delta === "number" && delta > 0 ? `**+${delta}**` : `${delta}`;
-    lines.push(`| ${r.url} | ${r.vertical} | ${r.expectedVerdictCeiling} | ${actual} | ${deltaCell} | \`${driver}\` |`);
+    lines.push(`| ${r.url} | ${r.vertical} | ${r.expectedVerdictCeiling ?? "—"} | ${actual} | ${deltaCell} | \`${driver}\` |`);
   }
   lines.push("");
   if (out.scorecard) {
@@ -527,6 +527,9 @@ async function mainNormal(): Promise<void> {
     const r = await auditOne(site);
     if (r.error) {
       console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset}`);
+    } else if (site.class === "subject") {
+      const v = r.audit?.verdict ?? "?";
+      console.log(`${ansi.cyan}TRACKED${ansi.reset} verdict=${v} ${ansi.dim}(subject — no gate)${ansi.reset}`);
     } else if (r.pass) {
       const v = r.audit?.verdict ?? "?";
       console.log(`${ansi.green}PASS${ansi.reset} verdict=${v} (≤ ${site.expectedVerdictCeiling})`);

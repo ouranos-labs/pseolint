@@ -151,7 +151,7 @@ export interface Baseline {
 }
 
 export interface RatchetResult {
-  /** HARD gate: reputable over ceiling, or policy-violating below its baseline verdict. */
+  /** HARD gate: reputable verdict worsened vs baseline, or policy-violating verdict dropped vs baseline. */
   verdictRegressions: string[];
   /** SOFT (warn): a rule's recall dropped or its reputable false-positives rose vs baseline. */
   ruleRegressions: string[];

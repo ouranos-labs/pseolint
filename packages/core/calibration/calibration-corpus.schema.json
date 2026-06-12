@@ -34,7 +34,7 @@
         "url": { "type": "string", "format": "uri" },
         "vertical": { "type": "string" },
         "expectedSiteType": { "type": "string" },
-        "class": { "type": "string", "enum": ["reputable", "policy-violating"] },
+        "class": { "type": "string", "enum": ["reputable", "policy-violating", "subject"] },
         "expectedVerdictCeiling": {
           "type": "string",
           "enum": ["ready", "caution", "concerning", "critical"]

@@ -23,7 +23,7 @@ export interface CorpusSite {
   url: string;
   vertical: string;
   expectedSiteType: string;
-  /** Binary label. Reputable uses `expectedVerdictCeiling`; policy-violating uses `expectedVerdictFloor` + `visiblePolicies`. */
+  /** Three-class label. Reputable uses `expectedVerdictCeiling`; policy-violating uses `expectedVerdictFloor` + `visiblePolicies`; subject is non-gated. */
   class: SiteClass;
   /** Reputable only: engine verdict must be <= this (hard gate). */
   expectedVerdictCeiling?: Verdict;
