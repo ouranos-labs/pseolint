@@ -63,6 +63,7 @@ export interface Confusion {
 export function confusionMatrix(rows: ScoreRow[], threshold: Verdict = DEFAULT_FLAG_THRESHOLD): Confusion {
   let tp = 0, fp = 0, tn = 0, fn = 0;
   for (const r of rows) {
+    if (r.siteClass === "subject") continue; // non-gated dogfood target — excluded from labeled metrics
     const flagged = isFlagged(r.audit, threshold);
     const positive = r.siteClass === "policy-violating";
     if (positive && flagged) tp++;
@@ -130,6 +131,7 @@ export function perRuleFiringTable(rows: ScoreRow[]): Record<string, RuleFiring>
   const ensure = (id: string): RuleFiring =>
     (table[id] ??= { reputableFired: 0, reputableTotal, policyFired: 0, policyTotal, suppressedOn: 0, demotedOn: 0 });
   for (const r of rows) {
+    if (r.siteClass === "subject") continue; // tracked, not counted in labeled firing stats
     for (const id of new Set(r.audit.firedRuleIds)) {
       const e = ensure(id);
       if (r.siteClass === "reputable") e.reputableFired++;

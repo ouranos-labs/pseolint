@@ -70,6 +70,10 @@ describe("confusionMatrix", () => {
     expect(m.recall).toBe(0);
     expect(m.f1).toBe(0);
   });
+  test("excludes subject sites from TP/FP/TN/FN", () => {
+    const m = confusionMatrix([row("subject", "critical"), row("subject", "ready")]);
+    expect({ tp: m.tp, fp: m.fp, tn: m.tn, fn: m.fn }).toEqual({ tp: 0, fp: 0, tn: 0, fn: 0 });
+  });
 });
 
 describe("median", () => {
@@ -121,6 +125,13 @@ describe("perRuleFiringTable", () => {
       { url: "bad1", siteClass: "policy-violating", audit: audit({ firedRuleIds: ["spam/thin-content", "spam/thin-content"] }) },
     ];
     expect(perRuleFiringTable(rows)["spam/thin-content"].policyFired).toBe(1);
+  });
+  test("excludes subject-site firings (and their suppressed/demoted) from the table", () => {
+    const rows: ScoreRow[] = [
+      { url: "mine", siteClass: "subject", audit: audit({ firedRuleIds: ["spam/thin-content"], suppressedRuleIds: ["spam/entity-swap"] }) },
+    ];
+    expect(perRuleFiringTable(rows)["spam/thin-content"]?.policyFired ?? 0).toBe(0);
+    expect(perRuleFiringTable(rows)["spam/entity-swap"]).toBeUndefined();
   });
 });
 
