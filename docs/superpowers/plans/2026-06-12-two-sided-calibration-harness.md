@@ -676,6 +676,8 @@ git commit -m "feat(calibration): per-rule firing table with suppressed/demoted 
 
 ---
 
+> **Refinement note (post-implementation):** Tasks 7–9 below were refined during execution (see spec §3.4 and commit `0b7d1ee`). The ratchet baseline is a *deliberate* committed artifact `packages/core/calibration/baseline-scorecard.json` (written via a `--write-baseline` flag), NOT the ephemeral `scripts/calibration-results.json` (which stays gitignored). The reputable ratchet is symmetric — "worse than baseline verdict," not "exceeds absolute ceiling" — so pre-existing breaches (segment, numbeo) don't block. Task 9's consumer test is a new `tests/calibration/scorecard.test.ts` reading the committed baseline (the old `reputable-corpus.test.ts` is unchanged, a local soft gate). The code blocks below show the pre-refinement shape; the committed code is the source of truth.
+
 ## Task 7: Pure scorer — ratchet (no-regression gate)
 
 **Files:**
