@@ -35,6 +35,7 @@ import type { CachedFetchOptions } from "../packages/core/src/index.js";
 import { CORE_RULESET_VERSION } from "../packages/core/src/ruleset-version.js";
 import type { RuleResult, Verdict } from "../packages/core/src/types.js";
 import { parseSitemapDirectives } from "../packages/core/src/rules/tech/robots-sitemap-presence.js";
+import { VERDICT_RANK, type CorpusSite, type Corpus } from "../packages/core/calibration/corpus-types.js";
 
 // ----- CLI flags ----------------------------------------------------------
 
@@ -66,46 +67,6 @@ const CORPUS_PATH = resolve(__dirname, "../packages/core/calibration/calibration
 const FIXTURES_BASE = resolve(__dirname, "../packages/core/calibration/fixtures");
 const RESULTS_JSON = resolve(__dirname, "calibration-results.json");
 const RESULTS_MD = resolve(__dirname, "calibration-results.md");
-
-// ----- corpus types -------------------------------------------------------
-
-const VERDICT_RANK: Record<Verdict, number> = {
-  ready: 0,
-  caution: 1,
-  concerning: 2,
-  critical: 3,
-};
-
-type Status = "winning" | "stable" | "declining";
-type TrafficClass = "very-high" | "high" | "medium" | "low";
-
-interface CorpusSite {
-  url: string;
-  vertical: string;
-  expectedSiteType: string;
-  expectedVerdictCeiling: Verdict;
-  groundTruth: {
-    status: Status;
-    trafficClass: TrafficClass;
-    evidence: string;
-  };
-  samplingHint?: {
-    sampleSize?: number;
-    noRender?: boolean;
-  };
-  /** v0.5.12 — pinned URLs for stable calibration. Empty = legacy random sampling. */
-  pinnedUrls?: string[];
-  /** v0.5.15 — relative path to pre-captured fixture directory. When set and directory exists, audit reads from disk. */
-  localFixtureDir?: string;
-  /** v0.6.1 — full sitemap URL list for classification + template detection. Populated by --seed-classifier-urls. */
-  classifierUrls?: string[];
-}
-
-interface Corpus {
-  version: string;
-  rationale: string;
-  sites: CorpusSite[];
-}
 
 // ----- output types -------------------------------------------------------
 

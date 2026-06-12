@@ -5026,7 +5026,8 @@
         "http://zapier.com/apps/realvolve/integrations/bucketio",
         "http://zapier.com/apps/buffer/integrations/feedly",
         "http://zapier.com/apps/buffer/integrations/google-sheets"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://www.g2.com/categories",
@@ -5070,7 +5071,8 @@
         "https://www.g2.com/it/categories/video-conferencing"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/www_g2_com/",
-      "classifierUrls": []
+      "classifierUrls": [],
+      "class": "reputable"
     },
     {
       "url": "https://wise.com/us/currency-converter",
@@ -10099,7 +10101,8 @@
         "https://wise.com/ee/send-money/send-money-to-bkash-account",
         "https://wise.com/ee/send-money/send-money-to-clabe",
         "https://wise.com/ee/send-money/send-money-to-duitnow-id"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://www.nerdwallet.com/best/credit-cards",
@@ -15117,7 +15120,8 @@
         "https://www.nerdwallet.com/banking/learn/saving-money-in-the-right-place",
         "https://www.nerdwallet.com/mortgages/learn/house-rich-cash-strapped-advice-for-older-homeowners",
         "https://www.nerdwallet.com/travel/learn/air-france-lounge-lax"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://webflow.com/templates",
@@ -20135,7 +20139,8 @@
         "https://webflow.com/@tristinlyle",
         "https://webflow.com/@martowap",
         "https://webflow.com/@jacomienkodde"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://www.typeform.com/templates",
@@ -25180,7 +25185,8 @@
         "https://www.typeform.com/es/plantillas/marketing-manager-job-application-form-template",
         "https://www.typeform.com/fr/templates/marketing-manager-job-application-form-template",
         "https://www.typeform.com/templates/marketing-quote-form-template"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://segment.com/integrations",
@@ -30225,7 +30231,8 @@
         "https://www.twilio.com/es-mx/resource-center/call-center-vs-contact-center",
         "https://www.twilio.com/es-mx/resource-center/how-to-build-a-customer-engagement-strategy",
         "https://www.twilio.com/es-mx/resource-center/inbound-call-center"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://www.jasper.ai/templates",
@@ -31030,7 +31037,8 @@
         "https://www.jasper.ai/solutions/by-industry/professional-services",
         "https://www.jasper.ai/solutions/by-industry/retail-and-consumer-goods",
         "https://www.jasper.ai/solutions/by-industry/tech"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://ramp.com/spend-management",
@@ -34776,7 +34784,8 @@
         "https://ramp.com/webinars/inside-the-forecast",
         "https://ramp.com/webinars/hire-and-upskill",
         "https://ramp.com/webinars/5-ai-agents"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://www.numbeo.com/cost-of-living",
@@ -34820,7 +34829,8 @@
         "https://www.numbeo.com/traffic"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/www_numbeo_com/",
-      "classifierUrls": []
+      "classifierUrls": [],
+      "class": "reputable"
     },
     {
       "url": "https://airbyte.com/connectors",
@@ -39864,7 +39874,8 @@
         "https://airbyte.com/success-stories/codesandbox",
         "https://airbyte.com/success-stories/drivepoint",
         "https://airbyte.com/success-stories/faros-ai"
-      ]
+      ],
+      "class": "reputable"
     },
     {
       "url": "https://stripe.com/atlas/states",
@@ -42753,7 +42764,8 @@
         "https://stripe.com/img/email/sepa.png",
         "https://stripe.com/",
         "https://stripe.com/institutional"
-      ]
+      ],
+      "class": "reputable"
     }
   ],
   "excluded": {

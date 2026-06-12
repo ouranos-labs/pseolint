@@ -29,20 +29,23 @@
   "definitions": {
     "CorpusSite": {
       "type": "object",
-      "required": ["url", "vertical", "expectedSiteType", "expectedVerdictCeiling", "groundTruth"],
+      "required": ["url", "vertical", "expectedSiteType", "class", "groundTruth"],
       "properties": {
         "url": { "type": "string", "format": "uri" },
         "vertical": { "type": "string" },
         "expectedSiteType": { "type": "string" },
+        "class": { "type": "string", "enum": ["reputable", "policy-violating"] },
         "expectedVerdictCeiling": {
           "type": "string",
           "enum": ["ready", "caution", "concerning", "critical"]
         },
+        "expectedVerdictFloor": { "type": "string", "enum": ["ready", "caution", "concerning", "critical"] },
+        "visiblePolicies": { "type": "array", "items": { "type": "string" } },
         "groundTruth": {
           "type": "object",
           "required": ["status", "trafficClass", "evidence"],
           "properties": {
-            "status": { "type": "string", "enum": ["winning", "stable", "declining"] },
+            "status": { "type": "string", "enum": ["winning", "stable", "declining", "penalized", "deindexed"] },
             "trafficClass": { "type": "string", "enum": ["very-high", "high", "medium", "low"] },
             "evidence": { "type": "string" }
           }
