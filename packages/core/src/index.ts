@@ -159,3 +159,7 @@ export type {
   SiteClassification,
   SiteType,
 } from "./site-classifier.js";
+export { CompositeAuthorityProvider } from "./algorithms/authority/provider.js";
+export type { AuthorityProvider } from "./algorithms/authority/provider.js";
+export { OpenPageRankProvider } from "./algorithms/authority/openpagerank.js";
+export { CommonCrawlProvider } from "./algorithms/authority/commoncrawl.js";

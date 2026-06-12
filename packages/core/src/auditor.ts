@@ -103,6 +103,9 @@ import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./s
 import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 import { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
+import { CompositeAuthorityProvider } from "./algorithms/authority/provider.js";
+import { OpenPageRankProvider } from "./algorithms/authority/openpagerank.js";
+import { registrableDomain } from "./algorithms/fact-extraction.js";
 
 const DEFAULTS = {
   nearDuplicateThreshold: 0.85,
@@ -2878,12 +2881,31 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   const issues = bucketIssues(enriched.findings);
 
+  // Resolve a domain-authority score to moderate the verdict. Explicit option
+  // wins; otherwise a provider (custom, or default OPR composite). null/absent
+  // → no moderation (fail-safe).
+  let resolvedAuthorityScore: number | undefined = options?.authorityScore;
+  let resolvedAuthorityDomain: string | undefined;
+  if (resolvedAuthorityScore === undefined) {
+    const provider =
+      options?.authorityProvider ??
+      new CompositeAuthorityProvider([new OpenPageRankProvider(options?.openPageRankApiKey ?? "")]);
+    try {
+      const host = new URL(source.startsWith("http") ? source : `https://${source}`).hostname;
+      resolvedAuthorityDomain = registrableDomain(host);
+      const a = await provider.authorityFor(resolvedAuthorityDomain);
+      if (a !== null) resolvedAuthorityScore = a;
+    } catch {
+      /* source is a local dir / unparseable → no authority */
+    }
+  }
+
   // v0.6.0 — spec §15.1: site verdict comes from siteVerdictFromTemplates when
   // ≥1 template has ≥5% coverage. Falls back to the legacy risk-ladder verdict
   // when no template meets the threshold (single-template sites, `unclear`/
   // `small-marketing` classifications, or the long-tail-only case).
   // The `risk` score is intentionally unchanged — §15.1 governs verdict only.
-  const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), options?.authorityScore);
+  const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), resolvedAuthorityScore);
   const templateVerdict = siteVerdictFromTemplates(siteTemplates);
   const verdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
 
@@ -2926,6 +2948,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     auditedUrls: parsedPages.length > 0
       ? [...parsedPages.map((p) => p.url)].sort()
       : undefined,
+    ...(resolvedAuthorityScore !== undefined
+      ? { authority: { score: resolvedAuthorityScore, domain: resolvedAuthorityDomain ?? "" } }
+      : {}),
   };
 
   // Partial-report flag: the backpressure watchdog aborted mid-crawl and we

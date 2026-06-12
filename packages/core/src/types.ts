@@ -399,6 +399,8 @@ export interface AuditSummary {
    * Present only when `truncated` is true.
    */
   truncatedKind?: "backpressure" | "coverage";
+  /** Resolved domain authority used to moderate the verdict (0–100), with sources. Absent when unavailable. */
+  authority?: { score: number; domain: string };
 }
 
 /**
@@ -585,6 +587,10 @@ export interface AuditOptions {
    * Omitted = no shift (back-compat).
    */
   authorityScore?: number;
+  /** OpenPageRank API key; enables live authority lookup when authorityScore is not supplied. */
+  openPageRankApiKey?: string;
+  /** Custom authority provider (overrides the default OPR/CC composite). For tests + offline corpora. */
+  authorityProvider?: import("./algorithms/authority/provider.js").AuthorityProvider;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
   /**
