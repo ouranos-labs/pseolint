@@ -12,11 +12,11 @@ export type RuleRingProps = {
 };
 
 export function RuleRing({
-  total = 35,
+  total = 44,
   fired = [],
   size = 26,
   className,
-  title = "pseolint — 35 SpamBrain rules",
+  title = "pseolint — 44 SpamBrain rules",
 }: RuleRingProps) {
   const cx = size / 2;
   const cy = size / 2;

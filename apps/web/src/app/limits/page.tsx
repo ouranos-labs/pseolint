@@ -26,7 +26,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "How does pseolint treat the site it's auditing?",
-    a: "The crawler identifies as Mozilla/5.0 (compatible; pseolint/0.6.3; +https://pseolint.dev/bot), fully honours robots.txt (both Disallow paths and Crawl-delay pacing capped at 60 seconds per request), respects Retry-After once per URL up to 30 seconds, holds at most 5 parallel fetches (dropping to 1 if Crawl-delay is declared), and stops at 50 MB of fetched bytes per audit. SSRF protection rejects localhost, private networks, and non-http(s) schemes.",
+    a: "The crawler identifies as Mozilla/5.0 (compatible; pseolint/0.7.0; +https://pseolint.dev/bot), fully honours robots.txt (both Disallow paths and Crawl-delay pacing capped at 60 seconds per request), respects Retry-After once per URL up to 30 seconds, holds at most 5 parallel fetches (dropping to 1 if Crawl-delay is declared), and stops at 50 MB of fetched bytes per audit. SSRF protection rejects localhost, private networks, and non-http(s) schemes.",
   },
 ];
 
@@ -126,7 +126,7 @@ export default function LimitsPage() {
 
       <Section title="How we treat the site we&apos;re auditing">
         {/* UA string matches packages/core/src/cache.ts PSEOLINT_USER_AGENT — built dynamically from package.json version */}
-        <Item k="User-Agent" v={<code className="font-mono text-foreground">Mozilla/5.0 (compatible; pseolint/0.6.3; +https://pseolint.dev/bot)</code>} />
+        <Item k="User-Agent" v={<code className="font-mono text-foreground">Mozilla/5.0 (compatible; pseolint/0.7.0; +https://pseolint.dev/bot)</code>} />
         <Item k="robots.txt" v="Fully honored — both Disallow paths and Crawl-delay pacing (capped at 60 seconds per request)." />
         <Item k="Retry-After" v="Honored once per URL, capped at 30 seconds. We don&apos;t hammer sites that ask us to back off." />
         <Item k="Concurrency" v="At most 5 parallel fetches, dropping to 1 if Crawl-delay is declared." />

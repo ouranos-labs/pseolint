@@ -30,8 +30,8 @@ export default function Terms() {
         Terms of Service
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        These terms are the agreement between you and pseolint (engine v0.5.0;
-        @pseolint/core v0.5.0, @pseolint/cli v0.5.0, @pseolint/mcp v0.4.3, all
+        These terms are the agreement between you and pseolint (engine v0.7.0;
+        @pseolint/core v0.7.0, @pseolint/cli v0.7.0, @pseolint/mcp v0.7.0, all
         MIT-licensed at github.com/ouranos-labs/pseolint). By using the service,
         you accept them. We wrote them in plain English — if a clause seems
         unreasonable, email us and we&apos;ll explain or fix it. Pro

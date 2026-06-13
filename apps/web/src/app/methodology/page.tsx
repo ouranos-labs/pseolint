@@ -139,7 +139,7 @@ export default function MethodologyPage(): React.ReactElement {
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-        Methodology · v0.6.3 · for skeptical engineers
+        Methodology · v0.7.0 · for skeptical engineers
       </div>
 
       <h1
@@ -196,7 +196,7 @@ export default function MethodologyPage(): React.ReactElement {
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Stratified-sample{" "}
               <strong className="text-foreground">K=10 URLs per template</strong> (monitoring
-              runs) or K=20 (manual re-audits). Run all 32 rules on each sample set. Compute
+              runs) or K=20 (manual re-audits). Run all 44 rules on each sample set. Compute
               per-template risk, verdict, and variance metric. Total fetches: T × K — typical
               T=8, K=10 = <strong className="text-foreground">80 fetches</strong> (vs 200
               in v0.5 flat sampling) with full template coverage.
@@ -243,7 +243,7 @@ export default function MethodologyPage(): React.ReactElement {
         │
         ▼ Phase 2 — Per-template deep audit (T × K fetches)
   for each template:
-    sample K=10 URLs  →  fetch + parse  →  run 32 rules
+    sample K=10 URLs  →  fetch + parse  →  run 44 rules
     compute: risk, verdict, uniformityScore, topDriver
         │
         ▼ Aggregation
@@ -344,7 +344,7 @@ export default function MethodologyPage(): React.ReactElement {
               year: "numeric", month: "long", day: "numeric",
             })}
           </time>
-          {" "}· Engine: <code className="font-mono text-xs">v0.6.3</code>
+          {" "}· Engine: <code className="font-mono text-xs">v0.7.0</code>
           {" "}· Ruleset version <code className="font-mono text-xs">12</code>
           {" "}· Sample seed <code className="font-mono text-xs">1729</code>
         </p>

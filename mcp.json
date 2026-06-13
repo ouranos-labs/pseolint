@@ -1,7 +1,7 @@
 {
   "name": "pseolint",
   "display_name": "pSEO Lint",
-  "description": "Audit programmatic SEO sites for SpamBrain risk. 35 rules across 6 categories detect near-duplicates, doorway pages, thin content, and missing technical SEO.",
+  "description": "Audit programmatic SEO sites for SpamBrain risk. 44 rules across 8 categories detect near-duplicates, doorway pages, thin content, and missing technical SEO.",
   "icon_url": "https://pseolint.dev/icon.png",
   "homepage": "https://pseolint.dev",
   "repository": "https://github.com/ouranos-labs/pseolint",

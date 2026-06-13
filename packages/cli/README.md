@@ -2,7 +2,7 @@
 
 > Find the broken template before SpamBrain does.
 
-The CLI for **programmatic SEO auditing** — v0.6.2. Detects SpamBrain-risk patterns across large template-generated sites, now surfaced per-template instead of as a flat findings list.
+The CLI for **programmatic SEO auditing** — v0.7.0. Detects SpamBrain-risk patterns across large template-generated sites, now surfaced per-template instead of as a flat findings list.
 
 ## What's new in v0.6 — audit-as-template
 

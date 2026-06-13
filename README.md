@@ -13,7 +13,7 @@
   <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
 </p>
 
-The only tool purpose-built for **programmatic SEO compliance**. v0.6.2 shifts the unit of analysis from URL to template: when you run an audit on a 10,000-URL pSEO directory, pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. Fix one template, fix N pages.
+The only tool purpose-built for **programmatic SEO compliance**. v0.7 shifts the unit of analysis from URL to template: when you run an audit on a 10,000-URL pSEO directory, pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. Fix one template, fix N pages.
 
 ```bash
 npx pseolint http://localhost:3000
@@ -39,7 +39,7 @@ Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-temp
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 45 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 44 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server. Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
@@ -47,7 +47,7 @@ Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-temp
 - **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `--authority-score N` (0-100) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
 - **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
-## What's new in v0.5.2 — credibility layer (v0.6.2 is current)
+## What's new in v0.5.2 — credibility layer (v0.7.0 is current)
 
 - **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
   - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
@@ -172,7 +172,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 
 ## What It Checks
 
-**45 rules** across **8 categories** (7 scored + `data/*` unscored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
+**44 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
 
 ### SpamBrain Risk Detection
 
@@ -526,9 +526,9 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 
 | Package | npm | Version | License |
 |---------|-----|---------|---------|
-| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.6.2 | MIT |
-| `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.6.2 | MIT |
-| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.6.2 | MIT |
+| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.0 | MIT |
+| `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.0 | MIT |
+| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.0 | MIT |
 | `packages/action` | GitHub Action (`ouranos-labs/pseolint@action-v1`) | — | MIT |
 | `apps/web` | pseolint.dev | — | AGPL-3.0 |
 
@@ -537,7 +537,7 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 ```bash
 bun install
 bun run build
-bun run test     # 358 tests across 46 files (core)
+bun run test     # 1,203 tests across 126 files (core)
 ```
 
 ## License

@@ -10,7 +10,7 @@ const PAGE_URL = `${SITE_URL.replace(/\/$/, "")}/rules`;
 export const metadata: Metadata = {
   title: "SpamBrain rules — what pseolint detects · pseolint",
   description:
-    "32 SpamBrain + AEO rules across 8 categories. Each rule aggregates to a per-template verdict in v0.6. Five flagship rules written up in depth.",
+    "44 SpamBrain + AEO rules across 8 categories. Each rule aggregates to a per-template verdict in v0.7. Five flagship rules written up in depth.",
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "SpamBrain rules — what pseolint detects",
@@ -41,7 +41,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do the pseolint rules map to Google's SpamBrain classifier?",
-    a: "The rule set clusters around the major axes SpamBrain scores against. spam/* covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. In v0.6, each rule fires per sampled page and the results aggregate to a per-template verdict: a rule that fires on 8/10 sampled pages of the same template becomes a template-level finding, not 8 separate URL findings. content/* checks intent match, originality, and reading level. aeo/* audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews. Site-type-aware weights mean a programmatic-directory is scored differently from a small-marketing site.",
+    a: "The rule set clusters around the major axes SpamBrain scores against. spam/* covers the patterns that triggered the March 5, 2024 scaled-content-abuse update — thin content under 300 words, doorway clusters, near-duplicate templates with >85% lexical overlap, and templates that don't vary their structural skeleton. In v0.7, each rule fires per sampled page and the results aggregate to a per-template verdict: a rule that fires on 8/10 sampled pages of the same template becomes a template-level finding, not 8 separate URL findings. content/* checks intent match, originality, and reading level. aeo/* audits answer-engine readiness for Perplexity, ChatGPT, and Google's AI Overviews. Site-type-aware weights mean a programmatic-directory is scored differently from a small-marketing site.",
   },
   {
     q: "What makes a rule 'AEO-aligned'?",
@@ -132,12 +132,12 @@ export default function RulesIndexPage() {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-        pseolint v0.6 runs 32 rules across 8 categories — spam-pattern
+        pseolint v0.7 runs 44 rules across 8 categories — spam-pattern
         detection (8 spam/*), AEO/answer-engine readiness (8 aeo/*), graph
         integrity (6 links/* including host-section-divergence, the May 2024
-        site-reputation-abuse detector), technical SEO (4 tech/*), content
-        quality (4 content/*), structured data (3 schema/*), data-binding
-        consistency (2 data/*), and cannibalization (1 cannibal/*). In v0.6,
+        site-reputation-abuse detector), technical SEO (9 tech/*), content
+        quality (7 content/*), structured data (3 schema/*), data-binding
+        consistency (2 data/*), and cannibalization (1 cannibal/*). In v0.7,
         every rule fires per sampled page and aggregates into a per-template
         verdict — not a per-URL list.
       </p>
@@ -189,10 +189,10 @@ export default function RulesIndexPage() {
           Per-template aggregation — how rules feed verdicts
         </h2>
         <p>
-          In v0.6, the engine audits by template rather than by URL. Phase 1
+          In v0.7, the engine audits by template rather than by URL. Phase 1
           detects URL templates (filter ≥1% of URLs, ≥5 URLs, ≥2 survivors
           after deduplication). Phase 2 samples K=10 URLs per template and
-          runs all 32 rules. Each rule&apos;s output per template is
+          runs all 44 rules. Each rule&apos;s output per template is
           summarised as a{" "}
           <span className="font-medium text-foreground">uniformity score</span>{" "}
           (0–1) and a{" "}

@@ -50,7 +50,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What does the audit actually check?",
-    a: "pseolint runs 30+ rules mapped to documented Google SpamBrain signals (thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, scaled-content density, site-reputation abuse) plus answer-engine-optimization checks for AI Overviews, Perplexity, and ChatGPT search. It audits by template, returning a per-template verdict and a 0–100 risk score, not a flat per-URL list.",
+    a: "pseolint runs 44 rules mapped to documented Google SpamBrain signals (thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, scaled-content density, site-reputation abuse) plus answer-engine-optimization checks for AI Overviews, Perplexity, and ChatGPT search. It audits by template, returning a per-template verdict and a 0–100 risk score, not a flat per-URL list.",
   },
   {
     q: "Is it safe to point it at any URL?",

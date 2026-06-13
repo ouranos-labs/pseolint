@@ -1,8 +1,8 @@
 # @pseolint/core
 
-> Programmatic SEO audit engine — 45 rules, surfaced per-template, on every monitored release.
+> Programmatic SEO audit engine — 44 rules, surfaced per-template, on every monitored release.
 
-The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.6.2. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
+The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.0. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
 
 ## Install
 
@@ -34,7 +34,7 @@ for (const t of result.templates) {
 
 ## What It Checks
 
-45 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
+44 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
 
 - **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern (cluster-collapsed since v0.5.2)
 - **Technical SEO** (9) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2)

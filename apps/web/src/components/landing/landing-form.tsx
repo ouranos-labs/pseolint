@@ -209,7 +209,7 @@ export function LandingForm() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                Template-aware SpamBrain + AEO · v0.6.3
+                Template-aware SpamBrain + AEO · v0.7.0
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-4xl">

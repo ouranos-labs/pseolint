@@ -2,7 +2,7 @@
 
 > MCP server for pseolint — audit pSEO sites by template from AI coding assistants.
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.6.3 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.7.0 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
 All tools are namespaced with a `pseolint_` prefix (`pseolint_audit_site`, `pseolint_explain_score`, `pseolint_check_page_technical`, `pseolint_orchestrate_audit`) so they don't collide with other MCP servers, and each returns both human-readable text and machine-readable `structuredContent`.
 
@@ -205,14 +205,14 @@ Add to `.vscode/mcp.json`:
 
 ## What It Checks
 
-40+ rules, grouped by theme (scored across 4 categories: integrity, discoverability, citation, data):
+44 rules, grouped by theme (scored across 4 categories: integrity, discoverability, citation, data):
 
 - **SpamBrain Risk** — near-duplicate detection, entity-swap doorway pages, thin content, boilerplate ratio
 - **Content Quality** — unique value per page, heading/meta uniqueness, E-E-A-T signals
 - **Internal Linking** — orphan pages, dead ends, cluster connectivity, link depth
 - **Technical SEO** — canonical consistency, sitemap completeness, robots.txt conflicts
 - **Structured Data** — JSON-LD validation, required fields, schema consistency
-- **Cannibalization** — title overlap, keyword collision, URL pattern conflicts
+- **Cannibalization** — URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 for high false-positive rates)
 
 ## Links
 
