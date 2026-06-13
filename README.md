@@ -44,7 +44,7 @@ Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-temp
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
 - **Calibrated against reputable pSEO** (v0.5.2). Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
-- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `--authority-score N` (0-100) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
+- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `authorityScore` (0-100, via the core API or MCP — not a CLI flag) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
 - **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
 ## What's new in v0.5.2 — credibility layer (v0.7.0 is current)
@@ -54,7 +54,7 @@ Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-temp
   - `content/heading-structure` — `<h1>` presence, single-`<h1>` discipline, and `<h2>` sub-structure on long pages.
   - `content/image-alt-text` — `<img>` tags missing `alt` (decorative images marked `role="presentation"` / `aria-hidden="true"` / explicit `alt=""` are skipped).
   - `tech/og-completeness` — the long-promised OG-tag rule that finally ships.
-- **`AuditOptions.authorityScore`** (CLI: `--authority-score N`, 0-100) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`AuditOptions.authorityScore`** (0-100; core API or MCP `audit_site`, not a CLI flag) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
 - **Calibration-driven scoring profile** — site-classifier-aware severity demotions for AEO + EEAT rules on catalog/template-driven sites. The `unclear` profile (low classifier confidence) now demotes structurally-incompatible rules conservatively rather than firing them at full strength. Result: reputable pSEO sites no longer false-positive into `concerning`.
 - **`spam/doorway-pattern` cluster collapse** — 276 per-pair findings on a heavy-template catalog now collapse to **one** cluster line in the report.
 - **`spam/doorway-pattern` content-quality gate** — requires thin-content OR identical-meta as the third signal; structural similarity alone (which all catalogs have) no longer constitutes a doorway finding.
@@ -308,20 +308,18 @@ Each group gets its own score. Unmatched pages get all rules.
 
 ## SpamBrain Risk Score
 
-Weighted composite score from 0 (safe) to 100 (critical):
+The risk score (0–100) aggregates rule penalties into **4 super-categories** — **Integrity** (spam + content + cannibal), **Discoverability** (links + tech), **Citation** (aeo + schema), and **Data** — with site-type-aware weights, so a programmatic directory and a docs site are each scored against the rule weighting that matches their archetype. Since v0.6, scoring runs **per template** and rolls up to a site verdict: the worst-scoring template that covers ≥5% of the audited URLs.
 
-```
-score = (spam * 0.40) + (content * 0.25) + (links * 0.15)
-      + (tech * 0.10) + (schema * 0.05) + (cannibal * 0.05)
-```
+The score maps to a 4-rung **verdict ladder**, and CI gates on the verdict (`--ci-threshold`, default `concerning`) — not a raw numeric band:
 
-| Score | Label | CI Exit |
-|-------|-------|---------|
-| 0-20 | Safe | 0 |
-| 21-40 | Caution | 0 |
-| 41-60 | Risky | 1 |
-| 61-80 | Dangerous | 1 |
-| 81-100 | Critical | 1 |
+| Verdict | Meaning | CI exit (verdict ≥ threshold) |
+|---------|---------|-------------------------------|
+| `ready` | no material risk | 0 |
+| `caution` | minor issues | 0 |
+| `concerning` | likely penalty-pattern exposure | 1 |
+| `critical` | strong penalty-pattern exposure | 1 |
+
+See [pseolint.dev/methodology](https://pseolint.dev/methodology) for the calibrated weights and verdict thresholds.
 
 ## Actionable Output
 
@@ -342,7 +340,8 @@ Arguments:
 
 Output
   -f, --format <type>            Output format: console | json | markdown | html (default: console)
-  -t, --threshold <n>            SpamBrain Risk Score threshold for CI exit (default: 40)
+  --ci-threshold <severity>      Min verdict that fails CI: ready|caution|concerning|critical (default: concerning)
+  -t, --threshold <n>            [deprecated] Numeric risk threshold; use --ci-threshold instead
   -o, --output <file>            Write report to file instead of stdout
   --no-color                     Disable colored output
 
