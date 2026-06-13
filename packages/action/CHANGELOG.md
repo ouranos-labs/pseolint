@@ -1,5 +1,17 @@
 # @pseolint/action
 
+## 0.7.0
+
+### Minor Changes
+
+- Unified to the 0.7.0 release line (calibration & authority foundations).
+
+### Patch Changes
+
+- Updated dependencies [ba1c6ca]
+- Updated dependencies
+  - @pseolint/core@0.7.0
+
 ## 0.4.6
 
 ### Patch Changes

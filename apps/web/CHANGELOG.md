@@ -1,5 +1,22 @@
 # @pseolint/web
 
+## 0.7.0
+
+### Minor Changes
+
+- v0.7.0 — Off-page-authority disclosure + docs freshness
+
+  - `/limits` now discloses the off-page-authority blind spot: pseolint measures on-page structural risk and cannot see the off-page authority and user-behaviour signals Google weighs most heavily, so a thin templated page on a high-authority domain may rank fine while a clean-looking page can still be suppressed.
+  - Version, rule-count, and scoring-model copy synced across the app to the current engine (44 rules across 8 categories; the v0.4 super-category verdict model).
+
+### Patch Changes
+
+- Updated dependencies [ba1c6ca]
+- Updated dependencies
+  - @pseolint/core@0.7.0
+  - pseolint@0.7.0
+  - @pseolint/mcp@0.7.0
+
 ## 0.6.7
 
 ### Patch Changes

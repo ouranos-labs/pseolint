@@ -2,6 +2,16 @@
 
 Changelog for `pseolint`, `@pseolint/core`, and `@pseolint/mcp`. All three packages version together.
 
+## 0.7.0 — 2026-06-13 — Calibration & authority foundations
+
+The whole product line is realigned to a single **0.7.0** version (core, CLI, MCP, web, and the GitHub Action). The 0.6.x line was tracked in the per-package changelogs; this entry re-establishes the unified narrative.
+
+**Measurement.** A two-sided calibration harness scores the engine against a labeled corpus of real winning and penalized pSEO sites. The new `calibrationMetrics()` instrument reports, threshold-free, how well the risk score tracks the real outcome — AUC, class-separation gap, per-band empirical penalty rate, and the over-flag / recall-leak confusion-zone sites — with a `detectability` field that separates the engine's addressable ceiling from structurally-undetectable (off-page) cases. The first measurement was honest and sobering: on-page structural risk alone tracks the real outcome at roughly chance, because the deciding factor is off-page authority the engine can't see.
+
+**Engine.** Corpus-derived entity auto-masking (`deriveEntityPatterns`) clusters pages by URL template and masks tokens that vary across siblings, lifting policy-violating recall (44% → 56%) and fixing the reputable-vs-spam risk inversion. Domain-authority moderation scaffolding lands as a pluggable `AuthorityProvider` (`CompositeAuthorityProvider`, `OpenPageRankProvider`, `CommonCrawlProvider`) feeding the existing verdict-shift — a fail-safe no-op until an authority source is configured. `checkOriginHealth()` adds a concurrent, SSRF-safe pre-flight origin probe that drops a degraded origin to gentle mode before a crawl piles on.
+
+**Web.** `/limits` now discloses the off-page-authority blind spot. Version, rule-count, and scoring-model copy is synced across the app to the current engine (44 rules across 8 categories; the v0.4 super-category verdict model).
+
 ## 0.5.2 — 2026-05-03 — Credibility layer
 
 This release shipped after empirically calibrating the engine against a

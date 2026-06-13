@@ -1,5 +1,22 @@
 # pseolint
 
+## 0.7.0
+
+### Minor Changes
+
+- v0.7.0 — Calibration & authority foundations
+
+  - **Two-sided calibration harness + score-vs-outcome instrument.** New `calibrationMetrics()` reports how well the risk score tracks real winning/penalized outcomes against a labeled corpus — threshold-free AUC, class-separation gap, per-band empirical penalty rate, and the over-flag / recall-leak confusion-zone sites. A `detectability` corpus field separates the engine's addressable ceiling from structurally-undetectable (off-page) cases.
+  - **Corpus-derived entity auto-masking** (`deriveEntityPatterns`): clusters pages by URL template and masks tokens that vary across siblings, lifting policy-violating recall (44% → 56% on the calibration corpus) and fixing the reputable-vs-spam risk inversion.
+  - **Domain-authority moderation scaffolding**: a pluggable `AuthorityProvider` (`CompositeAuthorityProvider` max-combine, `OpenPageRankProvider`, `CommonCrawlProvider`) feeds the existing verdict-shift. Fail-safe no-op until an authority source is configured — no behaviour change by default.
+
+### Patch Changes
+
+- Updated dependencies [ba1c6ca]
+- Updated dependencies
+  - @pseolint/core@0.7.0
+  - @pseolint/mcp@0.7.0
+
 ## 0.6.4
 
 ### Patch Changes
