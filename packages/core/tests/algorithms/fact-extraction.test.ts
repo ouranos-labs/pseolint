@@ -80,6 +80,25 @@ describe("classifyCitations", () => {
     expect(cites.find((c) => c.domain === "randomblog.com")?.authority).toBe("general");
     expect(hasAuthoritativeCitation(hrefs, pageUrl)).toBe(true);
   });
+
+  it("credits Google Search Central docs and web.dev as authoritative", () => {
+    const hrefs = [
+      "https://developers.google.com/search/docs/essentials/spam-policies",
+      "https://web.dev/articles/vitals",
+    ];
+    const cites = classifyCitations(hrefs, pageUrl);
+    expect(cites.find((c) => c.href.includes("developers.google.com"))?.authority).toBe("authoritative");
+    expect(cites.find((c) => c.href.includes("developers.google.com"))?.reason).toBe("allowlist");
+    expect(cites.find((c) => c.href.includes("web.dev"))?.authority).toBe("authoritative");
+    expect(hasAuthoritativeCitation(hrefs, pageUrl)).toBe(true);
+  });
+
+  it("does NOT credit a bare google.com link (Maps / search results) as authoritative", () => {
+    const hrefs = ["https://www.google.com/maps/place/Somewhere", "https://google.com/search?q=x"];
+    const cites = classifyCitations(hrefs, pageUrl);
+    expect(cites.every((c) => c.authority === "general")).toBe(true);
+    expect(hasAuthoritativeCitation(hrefs, pageUrl)).toBe(false);
+  });
 });
 
 import { extractGroundedClaims, extractPageFacts } from "../../src/algorithms/fact-extraction.js";

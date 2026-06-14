@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
+import { EXAMPLE_REGION_SELECTOR } from "../../algorithms/example-regions.js";
 
 const RULE_ID = "content/regurgitated-content";
 
@@ -103,12 +104,20 @@ export function regurgitatedContentRule(pages: ParsedPage[]): RuleResult[] {
     if (!html) continue;
 
     const $ = cheerio.load(html);
+    // Drop quoted-example/code regions before scanning so an explainer page that
+    // *documents* the regurgitation patterns (e.g. /rules/regurgitated-content,
+    // which quotes "powered by Google", the Static Maps URL, and the Places API
+    // JS marker as code) isn't flagged for teaching them. We deliberately keep
+    // <script>/<style> in place: a real Places-scraping site carries the JS in a
+    // live <script>, which must still trip the detector.
+    $(EXAMPLE_REGION_SELECTOR).remove();
+    const cleanedHtml = $.html();
     const eeat = eeatSignalCount(page);
     const signals: SignalResult[] = [
       checkGoogleAttribution($),
       checkGoogleImagesDominate($),
-      checkStaticMapsEmbed($, html),
-      checkPlacesApiJs(html),
+      checkStaticMapsEmbed($, cleanedHtml),
+      checkPlacesApiJs(cleanedHtml),
       checkAggregatorFootprint($, eeat),
     ];
 

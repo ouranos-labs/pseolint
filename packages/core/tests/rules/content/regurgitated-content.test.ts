@@ -124,6 +124,36 @@ describe("regurgitatedContentRule", () => {
     expect(findings[0].message).toContain("Places API JS markers");
   });
 
+  test("explainer page: patterns quoted inside code/[data-example] don't fire", () => {
+    // /rules/regurgitated-content documents the exact strings the rule scans for.
+    // Quoted as <code>/example markup, they must NOT count as the page's own use.
+    const html = `
+      <main>
+        <h1>Regurgitated content</h1>
+        <p>This rule looks for sites that lift Google Places data.</p>
+        <ul data-example>
+          <li><code>powered by Google</code> attribution text</li>
+          <li><code>maps.googleapis.com/maps/api/staticmap</code> image source</li>
+          <li><code>google.maps.places.PlacesService</code> JS marker</li>
+        </ul>
+      </main>
+    `;
+    const findings = regurgitatedContentRule([page("https://pseolint.dev/rules/regurgitated-content", html)]);
+    expect(findings).toHaveLength(0);
+  });
+
+  test("real site: live <script> Places JS still trips (script is not example markup)", () => {
+    // The exclusion removes example/code regions but NOT <script> — a genuine
+    // scraper carries the marker in a live script, which must still be detected.
+    const html = `
+      <script>const s = new google.maps.places.PlacesService(map);</script>
+      <img src="https://maps.googleapis.com/maps/api/staticmap?center=Florence" alt="map">
+    `;
+    const findings = regurgitatedContentRule([page("https://scraper.example/places", html)]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("Places API JS markers");
+  });
+
   test("fewer than 3 images skips the image-ratio check entirely", () => {
     // 2 googleusercontent images + Powered by Google = 1 signal (ratio check skipped)
     const html = `

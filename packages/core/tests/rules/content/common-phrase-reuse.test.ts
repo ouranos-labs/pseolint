@@ -110,6 +110,32 @@ describe("commonPhraseReuseRule", () => {
     expect(results[0].fix).toContain("≤2");
   });
 
+  test("clichés inside quoted-example regions (code/blockquote/[data-example]) are excluded", () => {
+    // An explainer page that QUOTES clichés to teach about them should not be
+    // flagged for its own examples. Same phrases in flowing prose still fire.
+    const examplesOnly: ParsedPage = {
+      ...page("https://pseolint.dev/rules/common-phrase-reuse", ""),
+      html:
+        "<body><main><h1>Common phrase reuse</h1>" +
+        "<p>This rule flags overused marketing clichés.</p>" +
+        '<blockquote data-example>in the heart of the city, a hidden gem, tucked away off the beaten path</blockquote>' +
+        "<code>discover the best, trusted by thousands, world-class</code>" +
+        "<pre>top rated, carefully curated, handpicked selection</pre>" +
+        "</main></body>",
+    };
+    expect(commonPhraseReuseRule([examplesOnly])).toHaveLength(0);
+
+    const inProse: ParsedPage = {
+      ...page("https://spam.example/listing", ""),
+      html:
+        "<body><main><p>Located in the heart of downtown, this hidden gem is " +
+        "tucked away and world-class.</p></main></body>",
+    };
+    const fired = commonPhraseReuseRule([inProse]);
+    expect(fired).toHaveLength(1);
+    expect(fired[0].pageUrl).toBe("https://spam.example/listing");
+  });
+
   test("multiple pages — fires only on pages meeting threshold", () => {
     const good = page("https://example.com/good", "Specific, substantive content about pricing and features.");
     const bad = page(

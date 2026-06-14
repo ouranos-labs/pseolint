@@ -140,6 +140,12 @@ export const DEFAULT_CITATION_ALLOWLIST: readonly string[] = [
   "wikipedia.org", "w3.org", "iso.org", "ietf.org", "rfc-editor.org",
   "doi.org", "nih.gov", "ncbi.nlm.nih.gov", "who.int", "schema.org",
   "oecd.org", "worldbank.org", "europa.eu",
+  // Google's own published documentation is the primary authoritative source for
+  // claims about Google's ranking and spam systems (Search Essentials, spam
+  // policies, helpful-content guidance) and for Core Web Vitals (web.dev).
+  // Scoped to the docs subdomain — a bare google.com link (Maps, search results)
+  // is deliberately NOT credited as authoritative.
+  "developers.google.com", "web.dev",
 ];
 
 const MULTI_PART_SUFFIXES = new Set([

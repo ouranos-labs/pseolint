@@ -1,4 +1,5 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
+import { proseTextExcludingExamples } from "../../algorithms/example-regions.js";
 
 const RULE_ID = "content/common-phrase-reuse";
 
@@ -129,9 +130,13 @@ export function commonPhraseReuseRule(pages: ParsedPage[]): RuleResult[] {
   const results: RuleResult[] = [];
 
   for (const page of pages) {
-    if (!page.contentText) continue;
+    // Judge the page's OWN prose: strip quoted-example/code regions so a page
+    // that *teaches* about clichés (an explainer or style guide) isn't flagged
+    // for the examples it quotes. Falls back to contentText when html is absent.
+    const prose = proseTextExcludingExamples(page);
+    if (!prose) continue;
 
-    const matched = findMatchedPhrases(page.contentText);
+    const matched = findMatchedPhrases(prose);
     if (matched.length < FIRE_THRESHOLD) continue;
 
     results.push({
