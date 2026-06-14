@@ -189,6 +189,7 @@ function SiteFooter({ lastUpdated }: { lastUpdated: string }) {
           <FooterColumn title="Learn">
             <Link href="/rules" className="hover:text-foreground">SpamBrain rules</Link>
             <Link href="/symptoms" className="hover:text-foreground">Diagnose symptoms</Link>
+            <Link href="/research" className="hover:text-foreground">Research</Link>
             <Link href="/research/state-of-pseo-2026" className="hover:text-foreground">State of pSEO 2026</Link>
             <Link href="/leaderboard" className="hover:text-foreground">Leaderboard</Link>
           </FooterColumn>

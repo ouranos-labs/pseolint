@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { env } from "@/lib/env";
 import { getOptionalSession } from "@/lib/session";
 import SigninClient from "./signin-client";
 
@@ -8,8 +7,11 @@ export const metadata: Metadata = {
   title: "Sign in · pseolint",
   description:
     "Sign in to pseolint to monitor your domains, set alert thresholds, and get weekly audit digests.",
+  // noindex only — deliberately no rel=canonical. Combining noindex with a
+  // canonical sends Google contradictory signals, and auth-gated routes
+  // (/dashboard/*) redirect here, so a crawler that follows the redirect would
+  // otherwise see "noindex but canonicalizes to /signin" (tech/canonical-noindex-conflict).
   robots: { index: false, follow: false },
-  alternates: { canonical: `${env().BETTER_AUTH_URL}/signin` },
 };
 
 // Restrict callbackUrl to same-origin paths; reject protocol-relative ("//evil")

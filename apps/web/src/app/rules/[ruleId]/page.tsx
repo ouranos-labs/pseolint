@@ -189,13 +189,17 @@ export default async function RulePage({ params }: PageProps) {
       </Section>
 
       <Section title="A page that fails">
-        <div className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
+        {/* data-example: this is a quoted illustration, not the page's own voice.
+            pseolint's content-quality rules (common-phrase-reuse,
+            regurgitated-content) exclude [data-example] regions, so an explainer
+            that must *quote* a bad pattern isn't penalised for teaching it. */}
+        <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
           <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
         </div>
       </Section>
 
       <Section title="A page that passes">
-        <div className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
+        <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
           <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
         </div>
       </Section>

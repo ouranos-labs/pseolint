@@ -70,11 +70,13 @@ export function generateMetadata(): Metadata {
       siteName: "pseolint",
       title: PAGE_TITLE,
       description: PAGE_DESCRIPTION,
+      images: [{ url: absoluteUrl("/opengraph-image"), width: 1200, height: 630, alt: PAGE_TITLE }],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: PAGE_TITLE,
       description: PAGE_DESCRIPTION,
+      images: [absoluteUrl("/opengraph-image")],
     },
   };
 }
