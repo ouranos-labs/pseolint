@@ -120,10 +120,21 @@ The canonical rule set is the published 34 rules across 6 categories. The extens
 
 ### Tier 1 — Client-badgeable (Path A)
 Single-page-evaluable, sound from rendered DOM + HTTP signals:
-- `tech/canonical-consistency`, `tech/robots-noindex-conflict`, `tech/canonical-noindex-conflict`
-- `tech/soft-404`, `tech/og-completeness`
-- `spam/thin-content`, `spam/boilerplate-ratio`
+- `tech/canonical-noindex-conflict`, `tech/soft-404`, `tech/og-completeness`, `spam/thin-content`
 - host-section-divergence heuristics (topic of section vs. host — derivable from rendered output)
+
+> **Grounded correction (verified against `@pseolint/core`, not assumed):** the
+> first-draft Tier-1 list overclaimed. Reading the actual rule signatures, three
+> of the originally-listed rules need corpus state and so **cannot soundly badge
+> from one page** — they move to Tier 2:
+> - `tech/canonical-consistency` — needs the crawl's `knownUrls` set to classify in-scope vs. off-site.
+> - `tech/robots-noindex-conflict` — needs a per-page inbound-link map (corpus aggregation).
+> - `spam/boilerplate-ratio` — fires only across ≥2 within-site pages; meaningless on one cross-site result.
+>
+> The four rules above import **only `import type`** from core, so they are pure
+> functions with zero runtime deps. `canonical-noindex-conflict` is the one with
+> a runtime coupling (`resolveCanonicalUrl` → `node:path`); it ships once that
+> helper is made browser-safe (HTTP-only URL handling), tracked as a follow-up.
 
 ### Tier 2 — Server-only (Path B)
 Require a page **corpus** or true template source — structurally impossible from one SERP result:
@@ -136,6 +147,31 @@ Require a page **corpus** or true template source — structurally impossible fr
 > **Why this split is non-negotiable:** a wrong badge on a SERP full of sites the practitioner *built themselves* is instant credibility death with this audience. Tier 1 contains only rules defensible from what the extension can actually see. Cannibalization rules stay in the canonical set but are Tier 2 because they need the within-site page set the overlay context doesn't have.
 
 `shared/rules-client.ts` imports the Tier-1 logic from `@pseolint/core` so there is **one** implementation — the extension never forks rule logic.
+
+### Rule-reuse mechanism (resolved with evidence, not preference)
+
+How do these rules reach the browser without dragging `cheerio` + the `ai` SDK
+(core's barrel imports) into users' authenticated browsers (§9/§10)? Two
+candidates were weighed: **curated subpath exports in core** vs. **a separate
+`@pseolint/page-rules` package**. A spike decided it:
+
+```
+$ bun build packages/core/src/rules/tech/og-completeness.ts --target=browser --minify | wc -c
+478          # 478 bytes, zero `node:`/`require` references — type-only imports erased
+```
+
+So browser-safety is **already real** for these rules, and the extension's own
+`bun build --target=browser` is the enforcer: a stray `node:` import breaks the
+bundle build loudly. That removes the separate package's main justification
+(policing the invariant), leaving only its cost (a refactor of core's
+`auditor.ts` runner + a type-only dependency cycle). **Decision: curated subpath
+exports.** Core's `package.json#exports` lists exactly the client-safe rule
+modules — that map *is* the documented Tier-1 boundary, in one legible place,
+with no core refactor. Add an export line when a rule graduates to client-sound.
+
+> **Sequencing (ponytail):** the exports + the `rules-client` wiring land in the
+> same step as SERP detection (Path A, build-seq step 3), against a live SERP —
+> not before. Adding exports ahead of that consumer is scaffolding for later.
 
 ---
 
