@@ -8,6 +8,10 @@
  * case + faqs + recovery), excluding nav chrome.
  */
 
+import type { MarketingSourceRef } from "./marketing-sources";
+import { SYMPTOM_SOURCES } from "./marketing-source-notes";
+import { SYMPTOM_EXTRA, type MarketingExtra } from "./marketing-extra-content";
+
 export type LikelyCause = { cause: string; explanation: string };
 export type Faq = { q: string; a: string };
 
@@ -24,9 +28,13 @@ export interface MarketingSymptom {
   caseStudy: string;
   faqs: Faq[];
   recoveryTimeline: string;
+  /** 2-4 authoritative citations with page-specific notes. */
+  sources: MarketingSourceRef[];
+  /** Optional "in practice" worked-example paragraphs (page-specific scenario). */
+  extra?: MarketingExtra;
 }
 
-export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
+const SYMPTOMS_BASE = [
   {
     slug: "lost-rankings-after-google-update",
     title: "Lost rankings after a Google update — diagnose what tripped SpamBrain",
@@ -836,7 +844,14 @@ export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = [
     recoveryTimeline:
       "There is no manual-action clock here because there is no manual action — recovery is gated entirely by Google re-crawling and re-clustering your pages, which moves at crawl-budget pace. For pages you genuinely differentiate, expect Google to re-evaluate over the next one to three crawl cycles (roughly two to six weeks for a healthy host) and to start honoring your declared canonical once the bodies are distinct enough to read as separate documents; the indexed-as-declared ratio in Search Console is your leading indicator. For pages you consolidate on purpose, cleanup is faster and more predictable: once 301s or aligned canonicals are in place, the duplicate cluster shrinks within a crawl cycle or two and the surviving URL absorbs the impressions. Do not expect the \"Duplicate\" bucket to empty overnight — it drains URL by URL — and resist re-requesting indexing on individual pages, since the pace at which Google re-includes your differentiated pages is itself the quality verdict you are waiting on.",
   },
-] as const;
+];
+
+/** Merge per-slug authoritative sources onto each base entry. */
+export const MARKETING_SYMPTOMS: readonly MarketingSymptom[] = SYMPTOMS_BASE.map((entry) => ({
+  ...entry,
+  sources: SYMPTOM_SOURCES[entry.slug] ?? [],
+  extra: SYMPTOM_EXTRA[entry.slug] ?? [],
+}));
 
 export function findSymptom(slug: string): MarketingSymptom | undefined {
   return MARKETING_SYMPTOMS.find((s) => s.slug === slug);

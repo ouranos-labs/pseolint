@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { MARKETING_TOOLS, getMarketingTool, type MarketingTool } from "@/lib/marketing-tools";
 import { ToolForm } from "./tool-form";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
+import { WorkedExampleSection } from "@/components/marketing/worked-example-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -155,6 +157,10 @@ export default async function ToolPage({ params }: { params: Promise<RouteParams
           ))}
         </dl>
       </Section>
+
+      <WorkedExampleSection title="What a scan turns up" paragraphs={tool.extra ?? []} />
+
+      <SourcesSection sources={tool.sources} />
 
       {tool.related.length > 0 && (
         <Section title="Related tools">

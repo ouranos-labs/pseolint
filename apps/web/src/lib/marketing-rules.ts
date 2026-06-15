@@ -11,6 +11,10 @@
  * algorithm, update the corresponding `whatItDetects` paragraph.
  */
 
+import type { MarketingSourceRef } from "./marketing-sources";
+import { RULE_SOURCES } from "./marketing-source-notes";
+import { RULE_EXTRA, type MarketingExtra } from "./marketing-extra-content";
+
 export interface MarketingRuleFaq {
   q: string;
   a: string;
@@ -47,9 +51,15 @@ export interface MarketingRule {
   relatedRules: string[];
   /** Tool slug to deep-link from the CTA. */
   relatedTool: string;
+  /** 2-4 authoritative citations (keyed into SOURCE_LIBRARY) with a
+   *  page-specific note. Grounds the page's quantified claims for
+   *  content/citation-coverage and AI Overviews. */
+  sources: MarketingSourceRef[];
+  /** Optional "in practice" worked-example paragraphs (page-specific scenario). */
+  extra?: MarketingExtra;
 }
 
-export const MARKETING_RULES: readonly MarketingRule[] = [
+const RULES_BASE = [
   {
     slug: "thin-content",
     ruleId: "spam/thin-content",
@@ -1507,11 +1517,11 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
       "A page leaning on 'hidden gem', 'trusted by thousands' and 'discover the best' reads as templated marketing. How content/common-phrase-reuse counts pSEO clichés.",
     primaryKeyword: "pSEO marketing cliches SEO",
     oneLiner:
-      "content/common-phrase-reuse scans each page against a bundled list of roughly 42 pSEO marketing clichés grouped into 5 categories, and raises one low-confidence warning the moment 3 or more distinct phrases such as 'hidden gem' or 'trusted by thousands' appear, a speculative density signal Google's helpful-content guidance has weighted since 2024.",
+      "content/common-phrase-reuse scans each page against a bundled list of roughly 42 pSEO marketing clichés grouped into 5 categories — location filler, generic-marketing superlatives, aggregator phrasing, fake-authority claims, and filler hedges — and raises one low-confidence warning the moment 3 or more distinct phrases from that list appear, a speculative density signal Google's helpful-content guidance has weighted since 2024.",
     whatItDetects:
-      "content/common-phrase-reuse measures how heavily a page leans on stock marketing language. It carries a bundled list of roughly 42 pSEO clichés split across 5 categories: location filler ('in the heart of', 'hidden gem', 'tucked away'), generic marketing ('discover the best', 'trusted by thousands', 'world-class'), aggregator phrasing ('top rated', 'carefully curated', 'handpicked selection'), fake authority ('experts agree', 'industry leaders', 'go-to resource'), and filler hedges ('wide variety of', 'an array of', 'depends on your needs').\n\nFor each page the rule lower-cases the main content text and checks which of those phrases appear as substrings. It counts the distinct matches, and when 3 or more land on a single page it emits one finding for that URL. The severity is a warning and the confidence is deliberately low: matching a fixed phrase list is a crude proxy, so the rule names the first few clichés it found and leaves the judgement to you rather than asserting the page is bad.",
+      "content/common-phrase-reuse measures how heavily a page leans on stock marketing language. It carries a bundled list of roughly 42 pSEO clichés split across 5 categories: location filler, generic-marketing superlatives, aggregator phrasing, fake-authority claims, and filler hedges. The failing example below shows the kind of phrasing each category covers, so this explainer keeps the quoted samples inside that illustration rather than scattering them through the prose.\n\nFor each page the rule lower-cases the main content text and checks which bundled phrases appear as substrings. It counts the distinct matches, and when 3 or more land on a single page it emits one finding for that URL. The severity is a warning and the confidence is deliberately low: matching a fixed phrase list is a crude proxy, so the rule names the first few matches it found and leaves the judgement to you rather than asserting the page is bad.",
     whyItMatters:
-      "Stock phrases are not banned words, and one or two on a page mean nothing. The signal is density. A page that stacks 'hidden gem', 'trusted by thousands', and 'discover the best' in the same few hundred words is usually filling space because it has little page-specific substance to say, and that is the exact condition Google's 2024 helpful-content guidance describes when it talks about pages with little unique value.\n\nThis is a speculative signal and it is honest about that. The rule cannot tell a genuinely apt 'hidden gem' from lazy filler, so it never escalates past a low-confidence warning and never treats 3 matches as proof of anything. Treat a fired finding as a prompt to read the page like a skeptical visitor: if the clichés are doing real work, keep them; if they are padding around a thin core, the cliché count is pointing at the thinness, not at the phrases themselves. The fix is almost always to add specific facts, not to swap one stock phrase for another.",
+      "Stock phrases are not banned words, and one or two on a page mean nothing. The signal is density. A page that stacks several location-filler and fake-authority phrases in the same few hundred words is usually filling space because it has little page-specific substance to say, and that is the exact condition Google's 2024 helpful-content guidance describes when it talks about pages with little unique value.\n\nThis is a speculative signal and it is honest about that. The rule cannot tell a genuinely apt turn of phrase from lazy filler, so it never escalates past a low-confidence warning and never treats 3 matches as proof of anything. Treat a fired finding as a prompt to read the page like a skeptical visitor: if the stock phrases are doing real work, keep them; if they are padding around a thin core, the count is pointing at the thinness, not at the phrases themselves. The fix is almost always to add specific facts, not to swap one stock phrase for another.",
     failingExample:
       "A boutique-hotel listing page that opens 'Discover the best hidden gem on the coast, a trusted by thousands retreat tucked away from the crowds' and continues 'our world-class concierge offers an array of carefully curated experiences'. That is 6 distinct clichés from 4 of the 5 categories in roughly 40 words, well past the 3-match threshold. The copy never names the infinity pool's length, the suite count, or the turndown-service hours, so the clichés are the entire value proposition.",
     passingExample:
@@ -1655,7 +1665,15 @@ export const MARKETING_RULES: readonly MarketingRule[] = [
   relatedRules: ["unique-value", "eeat-signals", "regurgitated-content"],
   relatedTool: "spambrain-checker"
 }
-] as const;
+];
+
+/** Merge per-slug authoritative sources onto each base entry. Sources live in
+ *  marketing-source-notes.ts so the 48 citation sets can be authored together. */
+export const MARKETING_RULES: readonly MarketingRule[] = RULES_BASE.map((entry) => ({
+  ...entry,
+  sources: RULE_SOURCES[entry.slug] ?? [],
+  extra: RULE_EXTRA[entry.slug] ?? [],
+}));
 
 export function findMarketingRule(slug: string): MarketingRule | undefined {
   return MARKETING_RULES.find((rule) => rule.slug === slug);

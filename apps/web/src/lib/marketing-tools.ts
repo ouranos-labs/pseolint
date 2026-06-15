@@ -9,6 +9,10 @@
  * find-replace duplication. Each entry is unique enough to pass our own
  * thin-content rules.
  */
+import type { MarketingSourceRef } from "./marketing-sources";
+import { TOOL_SOURCES } from "./marketing-source-notes";
+import { TOOL_EXTRA, type MarketingExtra } from "./marketing-extra-content";
+
 export type MarketingToolFaq = {
   q: string;
   a: string;
@@ -39,9 +43,13 @@ export type MarketingTool = {
   faqs: MarketingToolFaq[];
   /** 2-3 slugs of related tools/rules/symptoms. */
   related: string[];
+  /** 2-4 authoritative citations with page-specific notes. */
+  sources: MarketingSourceRef[];
+  /** Optional "in practice" worked-example paragraphs (page-specific scenario). */
+  extra?: MarketingExtra;
 };
 
-export const MARKETING_TOOLS: readonly MarketingTool[] = [
+const TOOLS_BASE = [
   {
     slug: "spambrain-checker",
     title: "Free SpamBrain checker for programmatic SEO sites",
@@ -199,7 +207,14 @@ export const MARKETING_TOOLS: readonly MarketingTool[] = [
     ],
     related: ["spambrain-checker", "thin-content-scanner"],
   },
-] as const;
+];
+
+/** Merge per-slug authoritative sources onto each base entry. */
+export const MARKETING_TOOLS: readonly MarketingTool[] = TOOLS_BASE.map((entry) => ({
+  ...entry,
+  sources: TOOL_SOURCES[entry.slug] ?? [],
+  extra: TOOL_EXTRA[entry.slug] ?? [],
+}));
 
 /** O(1)-ish lookup since the array is tiny. Returns undefined for unknown slugs. */
 export function getMarketingTool(slug: string): MarketingTool | undefined {

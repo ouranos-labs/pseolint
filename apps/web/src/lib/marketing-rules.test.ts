@@ -7,6 +7,8 @@ import {
   metaUniquenessRule,
   citableFactsRule,
   answerFirstRule,
+  citationCoverageRule,
+  commonPhraseReuseRule,
   type ParsedPage,
   type EntityMaskPattern,
   type RuleResult,
@@ -14,6 +16,11 @@ import {
 import { MARKETING_RULES, type MarketingRule } from "@/lib/marketing-rules";
 import { MARKETING_SYMPTOMS } from "@/lib/marketing-symptoms";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
+import {
+  resolveSources,
+  SOURCE_LIBRARY,
+  type MarketingSourceRef,
+} from "@/lib/marketing-sources";
 
 /**
  * Dogfood contract for /rules/[ruleId] explainer pages (Task T7).
@@ -47,6 +54,23 @@ function prose(text: string): string {
     .join("");
 }
 
+/** Render the Sources section the way SourcesSection does: real <a href> links
+ *  (so resolvedHrefs picks up the authoritative citations) plus the note text. */
+function sourcesBlock(refs: readonly MarketingSourceRef[]): string {
+  if (!refs || refs.length === 0) return "";
+  const items = resolveSources(refs)
+    .map((s) => `<li><a href="${esc(s.url)}">${esc(s.title)}</a> — ${esc(s.note)}</li>`)
+    .join("");
+  return `<h2>Sources</h2><ul>${items}</ul>`;
+}
+
+/** Render the optional "in practice" worked-example paragraphs, mirroring
+ *  WorkedExampleSection (page's own voice — counts toward unique-value). */
+function extraBlock(paragraphs: readonly string[] | undefined): string {
+  if (!paragraphs || paragraphs.length === 0) return "";
+  return `<h2>In practice</h2>${paragraphs.map((p) => `<p>${esc(p)}</p>`).join("")}`;
+}
+
 /** Reconstruct the rule page's <main> content, mirroring rules/[ruleId]/page.tsx. */
 function buildRuleHtml(rule: MarketingRule): string {
   return [
@@ -59,18 +83,29 @@ function buildRuleHtml(rule: MarketingRule): string {
     `<p>${esc(rule.oneLiner)}</p>`,
     `<h2>What it detects</h2>${prose(rule.whatItDetects)}`,
     `<h2>Why it matters</h2>${prose(rule.whyItMatters)}`,
-    `<h2>A page that fails</h2><p>${esc(rule.failingExample)}</p>`,
-    `<h2>A page that passes</h2><p>${esc(rule.passingExample)}</p>`,
+    // [data-example]: mirrors rules/[ruleId]/page.tsx — quoted illustrations the
+    // engine's content-quality rules exclude (so an explainer that quotes a bad
+    // pattern isn't flagged for teaching it).
+    `<h2>A page that fails</h2><div data-example><p>${esc(rule.failingExample)}</p></div>`,
+    `<h2>A page that passes</h2><div data-example><p>${esc(rule.passingExample)}</p></div>`,
     `<h2>How to fix it</h2><ol>${rule.howToFix.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`,
     `<h2>SpamBrain context</h2>${prose(rule.spamBrainContext)}`,
     `<h2>Frequently asked questions</h2><dl>${rule.faqs
       .map((f) => `<dt>${esc(f.q)}</dt><dd>${esc(f.a)}</dd>`)
       .join("")}</dl>`,
+    extraBlock(rule.extra),
+    sourcesBlock(rule.sources),
     "</main></body></html>",
   ].join("");
 }
 
-function buildTextHtml(title: string, metaDescription: string, parts: string[]): string {
+function buildTextHtml(
+  title: string,
+  metaDescription: string,
+  parts: string[],
+  sources: readonly MarketingSourceRef[] = [],
+  extra: readonly string[] = [],
+): string {
   return [
     "<!doctype html><html><head>",
     `<title>${esc(title)} · pseolint</title>`,
@@ -78,6 +113,8 @@ function buildTextHtml(title: string, metaDescription: string, parts: string[]):
     "</head><body><main>",
     `<h1>${esc(title)}</h1>`,
     parts.map((p) => `<p>${esc(p)}</p>`).join(""),
+    extraBlock(extra),
+    sourcesBlock(sources),
     "</main></body></html>",
   ].join("");
 }
@@ -96,7 +133,7 @@ const symptomPages: ParsedPage[] = MARKETING_SYMPTOMS.map((s) =>
       s.caseStudy,
       ...s.faqs.map((f) => `${f.q} ${f.a}`),
       s.recoveryTimeline,
-    ]),
+    ], s.sources, s.extra),
     `${SITE}/symptoms/${s.slug}`,
   ),
 );
@@ -110,7 +147,7 @@ const toolPages: ParsedPage[] = MARKETING_TOOLS.map((t) =>
       ...t.howItWorks,
       ...t.whatYouGet,
       ...t.faqs.map((f) => `${f.q} ${f.a}`),
-    ]),
+    ], t.sources, t.extra),
     `${SITE}/tools/${t.slug}`,
   ),
 );
@@ -144,18 +181,42 @@ describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
   });
 
   // content/unique-value is corpus-relative: it counts words that appear on NO
-  // other audited page. A tight reference glossary of 25+ closely-adjacent rule
-  // pages — compared here against the 11 long same-topic symptom pages too —
-  // cannot carry 100 totally-unique words each, and does not need to: these are
-  // distinct prose, not boilerplate. We assert a meaningful floor (80) that a
-  // genuinely near-duplicate / entity-swapped rule page would fall far below,
-  // while tolerating legitimate vocabulary adjacency in a reference section. The
-  // authoritative gate is the live /rules re-audit (which stratified-samples and
-  // demotes this rule's severity on the site's small-marketing classification).
-  it("no /rules page is genuinely thin on unique value (>= 80 page-unique words)", () => {
-    const findings = uniqueValueRule(corpus, 80);
-    const hits = onRulePages(findings);
-    expect(hits, `unique-value (<80) fired on rule pages:\n${describeFindings(hits)}`).toEqual([]);
+  // other audited page. We hold every reference page to the engine's PRODUCTION
+  // floor (100 page-unique words) across the full rules+symptoms+tools corpus —
+  // the same bar a live audit applies. The per-page Sources notes (annotated
+  // bibliography, page-specific) are the main lever that carries each tightly
+  // adjacent glossary page over the line without boilerplate. A genuinely
+  // near-duplicate / entity-swapped page falls far below 100 and would fail here.
+  it("no reference page is thin on unique value (>= 100 page-unique words, full corpus)", () => {
+    const findings = uniqueValueRule(corpus, 100);
+    expect(
+      findings,
+      `unique-value (<100) fired on reference pages:\n${describeFindings(findings)}`,
+    ).toEqual([]);
+  });
+
+  it("no reference page trips content/citation-coverage (claims are grounded in authoritative sources)", () => {
+    const findings = citationCoverageRule(corpus, NO_ENTITY_PATTERNS);
+    expect(
+      findings,
+      `citation-coverage fired on reference pages:\n${describeFindings(findings)}`,
+    ).toEqual([]);
+  });
+
+  it("no reference page trips content/common-phrase-reuse (incl. source notes)", () => {
+    // The /rules/common-phrase-reuse explainer is the one legitimate exception:
+    // its entire subject is cataloguing pSEO clichés, so it must quote them in
+    // prose (they are also the page's target keywords). The fail/pass example
+    // boxes are already [data-example]-excluded; the remaining matches live in
+    // the teaching prose by necessity. Every OTHER page must stay clean — this
+    // proves the engine's example-exclusion works and that the source notes
+    // introduce no clichés.
+    const CLICHE_CATALOG = `${SITE}/rules/common-phrase-reuse`;
+    const findings = commonPhraseReuseRule(corpus).filter((f) => f.pageUrl !== CLICHE_CATALOG);
+    expect(
+      findings,
+      `common-phrase-reuse fired on reference pages:\n${describeFindings(findings)}`,
+    ).toEqual([]);
   });
 
   it("no /rules page trips aeo/content-modularity", () => {
@@ -247,6 +308,51 @@ describe("MARKETING_RULES integrity contract", () => {
             words,
             `rule ${rule.slug} field ${String(field)} has a ${words}-word paragraph`,
           ).toBeLessThanOrEqual(180);
+        }
+      }
+    }
+  });
+});
+
+describe("MARKETING source citations integrity", () => {
+  const collections: Array<{ kind: string; entries: ReadonlyArray<{ slug: string; sources: MarketingSourceRef[] }> }> = [
+    { kind: "rule", entries: MARKETING_RULES },
+    { kind: "symptom", entries: MARKETING_SYMPTOMS },
+    { kind: "tool", entries: MARKETING_TOOLS },
+  ];
+
+  for (const { kind, entries } of collections) {
+    it(`every ${kind} page has >= 2 authoritative sources with non-trivial, page-specific notes`, () => {
+      for (const entry of entries) {
+        expect(entry.sources, `${kind} ${entry.slug} has no sources`).toBeDefined();
+        expect(
+          entry.sources.length,
+          `${kind} ${entry.slug} has ${entry.sources.length} sources (need >= 2)`,
+        ).toBeGreaterThanOrEqual(2);
+        for (const ref of entry.sources) {
+          expect(
+            SOURCE_LIBRARY[ref.source],
+            `${kind} ${entry.slug} references unknown source key "${ref.source}"`,
+          ).toBeDefined();
+          const noteWords = ref.note.trim().split(/\s+/).filter(Boolean).length;
+          expect(
+            noteWords,
+            `${kind} ${entry.slug} note for "${ref.source}" is only ${noteWords} words`,
+          ).toBeGreaterThanOrEqual(10);
+        }
+      }
+    });
+  }
+
+  it("source notes do not duplicate verbatim across pages (each is page-specific)", () => {
+    const seen = new Map<string, string>();
+    for (const { kind, entries } of collections) {
+      for (const entry of entries) {
+        for (const ref of entry.sources) {
+          const key = ref.note.trim().toLowerCase();
+          const prior = seen.get(key);
+          expect(prior, `${kind} ${entry.slug} reuses a note verbatim from ${prior}`).toBeUndefined();
+          seen.set(key, `${kind}/${entry.slug}`);
         }
       }
     }

@@ -10,6 +10,8 @@ import {
 import { MARKETING_RULES, type MarketingRule } from "@/lib/marketing-rules";
 import { env } from "@/lib/env";
 import { InlineAuditWidget } from "@/components/marketing/inline-audit-widget";
+import { SourcesSection } from "@/components/marketing/sources-section";
+import { WorkedExampleSection } from "@/components/marketing/worked-example-section";
 
 const RULE_BY_SLUG: ReadonlyMap<string, MarketingRule> = new Map(
   MARKETING_RULES.map((rule) => [rule.slug, rule] as const),
@@ -258,6 +260,10 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
       <Section title="What recovery looks like">
         <p className="text-sm leading-relaxed text-muted-foreground">{entry.recoveryTimeline}</p>
       </Section>
+
+      <WorkedExampleSection title="A diagnosis in practice" paragraphs={entry.extra ?? []} />
+
+      <SourcesSection sources={entry.sources} />
 
       <section className="mt-14 rounded-xl border border-border/60 bg-card/50 p-6">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">

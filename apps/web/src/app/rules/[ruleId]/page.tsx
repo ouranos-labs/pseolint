@@ -9,6 +9,8 @@ import {
 } from "@/lib/marketing-rules";
 import { env } from "@/lib/env";
 import { InlineAuditWidget } from "@/components/marketing/inline-audit-widget";
+import { SourcesSection } from "@/components/marketing/sources-section";
+import { WorkedExampleSection } from "@/components/marketing/worked-example-section";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? env().BETTER_AUTH_URL ?? "https://pseolint.dev";
@@ -237,6 +239,10 @@ export default async function RulePage({ params }: PageProps) {
           ))}
         </dl>
       </Section>
+
+      <WorkedExampleSection title="How this shows up in practice" paragraphs={rule.extra ?? []} />
+
+      <SourcesSection sources={rule.sources} />
 
       {related.length > 0 && (
         <Section title="Related rules">
