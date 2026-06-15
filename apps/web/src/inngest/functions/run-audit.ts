@@ -15,6 +15,7 @@ import {
 } from "@/lib/audit-defaults";
 import { fetchOgMeta } from "@/lib/og-fetch";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
+import { trackServer } from "@/lib/analytics/track.server";
 
 const MAX_COST_USD = 0.50;
 
@@ -126,6 +127,16 @@ function applyGentleProfile(args: {
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   const { auditId, url, plan, sampleSize, mode, state, render, force } = input;
   const startedAt = Date.now();
+  const analyticsHost = (() => {
+    try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "unknown"; }
+  })();
+  const [analyticsOwner] = await db
+    .select({ userId: audits.userId, anonSessionId: audits.anonSessionId })
+    .from(audits)
+    .where(eq(audits.id, auditId))
+    .limit(1);
+  const analyticsProfileId = analyticsOwner?.userId ?? analyticsOwner?.anonSessionId ?? undefined;
+  const analyticsAuthed = !!analyticsOwner?.userId;
   auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full", render: render ?? false });
 
   await runStep("mark-running", async () => {
@@ -278,6 +289,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       status: "failed", errorMessage: msg.slice(0, 500), completedAt: new Date(),
     }).where(eq(audits.id, auditId));
     auditLog("audit.failed", { auditId, err: msg, ms: Date.now() - startedAt });
+    await trackServer(
+      { name: "audit_failed", props: { host: analyticsHost, reason: msg.slice(0, 200) } },
+      { profileId: analyticsProfileId },
+    );
     return { ok: false as const, error: msg };
   }
 
@@ -420,6 +435,22 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     findingCount,
     ms: Date.now() - startedAt,
   });
+  await trackServer(
+    {
+      name: "audit_completed",
+      props: {
+        host: analyticsHost,
+        score: summary.risk,
+        pageCount: summary.pageCount,
+        findingCount,
+        durationMs: Date.now() - startedAt,
+        classification: summary.siteClassification?.type ?? null,
+        truncated: summary.truncated ?? false,
+        authed: analyticsAuthed,
+      },
+    },
+    { profileId: analyticsProfileId },
+  );
   return { ok: true as const, risk: summary.risk };
 }
 

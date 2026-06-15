@@ -4,12 +4,14 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 export default function SigninClient() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { track } = useAnalytics();
 
   return (
     <main className="mx-auto flex min-h-full max-w-md items-center px-5 py-16">
@@ -41,6 +43,7 @@ export default function SigninClient() {
                   e.preventDefault();
                   setError(null);
                   setSubmitting(true);
+                  track({ name: "signin_started", props: { method: "magic_link" } });
                   const { error: err } = await authClient.signIn.magicLink({
                     email,
                     callbackURL: "/dashboard",
@@ -81,9 +84,10 @@ export default function SigninClient() {
               <Button
                 variant="outline"
                 className="w-full"
-                onClick={() =>
-                  authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" })
-                }
+                onClick={() => {
+                  track({ name: "signin_started", props: { method: "google" } });
+                  authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" });
+                }}
               >
                 Continue with Google
               </Button>

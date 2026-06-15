@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 type Interval = "monthly" | "yearly";
 
@@ -94,9 +95,11 @@ function PricingInner() {
   const search = useSearchParams();
   const intent = search.get("intent");
   const auditSlug = search.get("audit");
+  const { track } = useAnalytics();
 
   const go = async (interval: Interval) => {
     setLoading(interval);
+    track({ name: "checkout_started", props: { interval } });
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },

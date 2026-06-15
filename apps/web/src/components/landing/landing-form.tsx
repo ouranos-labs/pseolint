@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import Link from "next/link";
@@ -12,6 +12,7 @@ import { TemplateBreakdownHero } from "@/components/landing/template-breakdown-h
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { scoreTone } from "@/lib/grade";
 import { LANDING_FAQ } from "@/lib/landing-faq";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 const GITHUB_ACTION_YAML = `name: pSEO Lint
 on: [pull_request]
@@ -57,6 +58,8 @@ export function LandingForm() {
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<FormError | null>(null);
   const router = useRouter();
+  const { track } = useAnalytics();
+  const engagedRef = useRef(false);
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const [force, setForce] = useState(false);
@@ -164,6 +167,7 @@ export function LandingForm() {
     setSubmitting(true);
     setErr(null);
     try {
+      track({ name: "audit_submitted", props: { host: hostOf(normalized), force, source: "landing" } });
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -183,6 +187,7 @@ export function LandingForm() {
         return;
       }
       const { error, code } = await res.json().catch(() => ({ error: "Unknown error" }));
+      track({ name: "audit_submit_failed", props: { status: res.status, code: typeof code === "string" ? code : undefined } });
       setErr(mapApiError(res.status, String(error ?? "Unknown error"), code));
     } catch (fetchErr) {
       setErr({
@@ -237,7 +242,10 @@ export function LandingForm() {
                   required
                   value={ url }
                   onChange={ (e) => setUrl(e.target.value) }
-                  onFocus={ () => setTurnstileArmed(true) }
+                  onFocus={ () => {
+                    setTurnstileArmed(true);
+                    if (!engagedRef.current) { engagedRef.current = true; track({ name: "audit_form_engaged" }); }
+                  } }
                   onBlur={ () => { const n = normalizeUserUrl(url); if (n) setUrl(n); } }
                   placeholder="yoursite.com"
                   className="h-11"
@@ -704,6 +712,10 @@ function normalizeUrl(raw: string): string | null {
   } catch {
     return null;
   }
+}
+
+function hostOf(url: string): string {
+  try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "unknown"; }
 }
 
 function mapApiError(status: number, message: string, code?: string): FormError {

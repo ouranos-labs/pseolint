@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { rememberEventOnce, isActiveSubscriptionStatus } from "@/lib/polar";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
+import { trackServer } from "@/lib/analytics/track.server";
 
 // Email casing varies between BetterAuth (preserves what user typed) and Polar
 // (often normalizes to lowercase). Compare with lower() on both sides so a payment
@@ -73,6 +74,18 @@ export async function POST(req: Request): Promise<Response> {
       target: userProfiles.userId,
       set: { polarCustomerId: customer.id, plan, planExpiresAt },
     });
+
+    if (event.type !== "subscription.updated" && plan === "pro") {
+      const interval =
+        event.data.recurringInterval === "month" ? "monthly"
+        : event.data.recurringInterval === "year" ? "yearly"
+        : "unknown";
+      const md = (event.data.metadata ?? {}) as Record<string, string>;
+      await trackServer(
+        { name: "subscription_started", props: { interval, intent: md.intent ?? null } },
+        { profileId: u.id },
+      );
+    }
   }
 
   if (event.type === "subscription.created") {
@@ -117,6 +130,10 @@ export async function POST(req: Request): Promise<Response> {
           planExpiresAt: new Date(),
         }).where(eq(userProfiles.userId, u.id));
       }
+      await trackServer(
+        { name: "subscription_canceled", props: { immediate } },
+        { profileId: u.id },
+      );
     }
   }
 
