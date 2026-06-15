@@ -3,8 +3,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import { requireSession } from "@/lib/session";
 import { createCheckoutSession } from "@/lib/polar";
-import { after } from "next/server";
-import { trackServer } from "@/lib/analytics/track.server";
+import { trackServerAfter } from "@/lib/analytics/track.server";
 
 export const runtime = "nodejs";
 const Body = z.object({
@@ -33,9 +32,9 @@ export async function POST(req: Request): Promise<Response> {
       ...(body.data.auditSlug ? { auditSlug: body.data.auditSlug } : {}),
     },
   });
-  after(() => trackServer(
+  trackServerAfter(
     { name: "checkout_redirected", props: { interval: body.data.interval } },
     { profileId: session.user.id },
-  ));
+  );
   return NextResponse.json({ url });
 }

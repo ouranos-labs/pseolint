@@ -21,8 +21,7 @@ import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { checkOriginHealth } from "@pseolint/core";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
-import { after } from "next/server";
-import { trackServer } from "@/lib/analytics/track.server";
+import { trackServerAfter } from "@/lib/analytics/track.server";
 import type { AuditBlockReason } from "@/lib/analytics/events";
 
 export const runtime = "nodejs";
@@ -82,7 +81,7 @@ export async function POST(req: Request): Promise<Response> {
   const mode = auditMode();
   if (mode !== "normal") {
     auditLog("audit.request.rejected", { reason: `mode=${mode}` });
-    after(() => trackServer({ name: "audit_blocked", props: { reason: "paused", status: 503 } }));
+    trackServerAfter({ name: "audit_blocked", props: { reason: "paused", status: 503 } });
     return NextResponse.json(
       { error: mode === "disabled" ? disabledMessage() : readOnlyMessage() },
       { status: 503 },
@@ -109,7 +108,7 @@ export async function POST(req: Request): Promise<Response> {
   // ride OpenPanel's cookieless hash (the anon cookie may not exist yet here).
   const blockProfileId = session?.user.id;
   const trackBlocked = (reason: AuditBlockReason, status: number): void => {
-    after(() => trackServer({ name: "audit_blocked", props: { reason, status } }, { profileId: blockProfileId }));
+    trackServerAfter({ name: "audit_blocked", props: { reason, status } }, { profileId: blockProfileId });
   };
 
   if (!sessionTrusted) {
@@ -189,7 +188,7 @@ export async function POST(req: Request): Promise<Response> {
 
     if (cached) {
       auditLog("audit.request.deduped", { url, existingAuditId: cached.id });
-      after(() => trackServer({ name: "audit_created", props: { host, cached: true, authed: !!session } }, { profileId: session?.user.id }));
+      trackServerAfter({ name: "audit_created", props: { host, cached: true, authed: !!session } }, { profileId: session?.user.id });
       return NextResponse.json(
         { auditId: cached.id, reportUrl: `/r/${cached.slug}`, cached: true },
         { status: 200 },
@@ -423,10 +422,10 @@ export async function POST(req: Request): Promise<Response> {
 
   void hashIp(ip);
 
-  after(() => trackServer(
+  trackServerAfter(
     { name: "audit_created", props: { host, cached: false, authed: !!userId } },
     { profileId: userId ?? anonSessionId ?? undefined },
-  ));
+  );
   return NextResponse.json({ auditId: row.id, reportUrl: `/a/${row.id}` }, { status: 202 });
 }
 
