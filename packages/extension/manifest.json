@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "pseolint",
+  "version": "0.0.0",
+  "description": "Template-level pSEO failure signals on the live SERP.",
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "permissions": ["activeTab", "storage"],
+  "host_permissions": ["https://www.google.com/search*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
+  }
+}
