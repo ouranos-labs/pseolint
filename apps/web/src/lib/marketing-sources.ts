@@ -109,6 +109,10 @@ export const SOURCE_LIBRARY = {
     title: "Charikar — Similarity Estimation Techniques from Rounding Algorithms (SimHash), STOC 2002",
     url: "https://doi.org/10.1145/509907.509965",
   },
+  gdpr: {
+    title: "EUR-Lex — General Data Protection Regulation (EU) 2016/679",
+    url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+  },
 } satisfies Record<string, SourceEntry>;
 
 export type SourceKey = keyof typeof SOURCE_LIBRARY;

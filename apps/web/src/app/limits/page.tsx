@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -190,6 +191,23 @@ export default function LimitsPage() {
           </a>
         </div>
       </div>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "searchEssentials",
+            note: "Google Search Essentials defines robots.txt, crawlability, and technical requirements that pseolint's crawler is built to respect, including Disallow paths and Crawl-delay directives.",
+          },
+          {
+            source: "crawlBudget",
+            note: "Google's crawl-budget guidance explains why polite concurrency limits (5 parallel fetches, 50 MB cap, per-host ceiling of 30 audits per hour) matter for small origins on shared hosting.",
+          },
+          {
+            source: "sitemaps",
+            note: "Google's sitemap documentation explains the sitemap.xml discovery model that pseolint uses as its authoritative URL source for template detection and stratified sampling.",
+          },
+        ]}
+      />
     </main>
   );
 }

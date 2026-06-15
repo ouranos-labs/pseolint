@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -283,6 +284,14 @@ export default function Terms() {
         </p>
       </Clause>
 
+      <SourcesSection
+        sources={[
+          {
+            source: "gdpr",
+            note: "The data-processing, account-deletion, and user-rights clauses in these terms are written to sit alongside our obligations under the General Data Protection Regulation (EU) 2016/679, which governs how we handle the personal data you submit.",
+          },
+        ]}
+      />
       <LegalDisclaimer />
       <LegalFooter />
     </main>

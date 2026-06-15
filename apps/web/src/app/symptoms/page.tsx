@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { MARKETING_SYMPTOMS } from "@/lib/marketing-symptoms";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -269,6 +270,32 @@ export default function SymptomsIndexPage() {
           differential rather than committing to a fix.
         </p>
       </section>
+
+      <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        Each symptom page maps a Search Console signal to the specific Google policy
+        or algorithm update that caused it — impressions cliffs to the March 5, 2024
+        scaled-content-abuse update, manual actions to the May 7, 2024
+        site-reputation-abuse policy, and CTR collapse to SpamBrain thin-content
+        scoring. The triage flow starts from what you observe in GSC, not from a
+        generic checklist, so you know which template to fix before you touch any code.
+      </p>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies document the thin-content, doorway, and site-reputation-abuse signals behind the most common pSEO ranking drops covered on these symptom pages.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Google's helpful-content guidance is the baseline each symptom's content-quality triage branch checks against — relevant for CTR-collapse and thin-intent symptoms.",
+          },
+          {
+            source: "searchEssentials",
+            note: "Google Search Essentials defines crawlability and indexing requirements that underpin the indexed-but-not-served and coverage-drop symptom diagnoses.",
+          },
+        ]}
+      />
 
       <section className="mt-14 rounded-xl border border-border/60 bg-card/50 p-6">
         <h2 className="text-sm font-semibold tracking-tight text-foreground">

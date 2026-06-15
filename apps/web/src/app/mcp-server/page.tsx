@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 const REMOTE_URL = "https://pseolint.dev/mcp";
@@ -271,6 +272,33 @@ export default function McpServerPage() {
         or read the{" "}
         <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">calibration methodology</Link>.
       </p>
+
+      <p className="mt-6 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        The MCP server exposes four tools over the Model Context Protocol: an
+        async site audit that returns a per-template risk score and full findings
+        JSON, a score-explanation tool that surfaces quick wins ranked by severity,
+        a per-page technical check covering canonical tags, Open Graph, and JSON-LD,
+        and an AI-orchestrated audit (stdio only) that produces a paste-able fix
+        manifest. All tools run the same 44-rule engine as the web UI — no separate
+        install or account required for the remote endpoint.
+      </p>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "aiFeatures",
+            note: "Google's AI Overviews documentation describes the citation and content-quality signals the MCP server's audit tools directly check for answer-engine readiness.",
+          },
+          {
+            source: "llmsTxt",
+            note: "The llms.txt convention for machine-readable site summaries is one of the structured-content signals checked by the MCP server's per-page technical tool.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Google's helpful-content system guidance informs the content-quality rules — thin content, boilerplate ratio, citable facts — surfaced in every MCP audit response.",
+          },
+        ]}
+      />
     </main>
   );
 }

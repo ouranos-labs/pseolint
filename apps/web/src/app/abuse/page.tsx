@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -101,6 +102,21 @@ export default function AbusePage() {
         </p>
       </Section>
 
+      <Section title="What abuse reports cover">
+        <p>
+          Abuse reports via this page cover one scenario: a domain owner who does not
+          want pseolint crawling their site. Reports are not a channel for contesting
+          audit findings, requesting score adjustments, or flagging competitor misuse.
+          Once a domain is blocklisted, all future audit requests for that domain return
+          a 403 before pseolint touches the network — the block applies to every user
+          and every plan, including Pro. Blocklist additions are permanent unless the
+          domain owner requests removal. Ownership verification is required in both
+          directions (add and remove) to prevent the blocklist from becoming a
+          suppression or harassment vector itself. Typical turnaround after a verified
+          email is one business day.
+        </p>
+      </Section>
+
       <Section title="Other concerns">
         <p>
           Bug reports, security issues, or anything that doesn&apos;t fit above:{" "}
@@ -111,6 +127,19 @@ export default function AbusePage() {
           starting with <code className="font-mono text-xs">[security]</code> so we can triage faster.
         </p>
       </Section>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies govern what constitutes crawlable public content — the same framework that determines whether a pseolint audit of a public URL is appropriate.",
+          },
+          {
+            source: "searchEssentials",
+            note: "Google Search Essentials documents the robots.txt disallow directive and crawl-delay that pseolint honors as its primary self-serve opt-out mechanism.",
+          },
+        ]}
+      />
     </main>
   );
 }

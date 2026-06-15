@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const LAST_CALIBRATED = "2026-05-03";
 const NEXT_REFRESH_TARGET = "2026-08-03"; // quarterly cadence
@@ -737,6 +738,22 @@ export default function MethodologyPage(): React.ReactElement {
           </Link>
         </div>
       </section>
+      <SourcesSection
+        sources={[
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies are the primary reference for the eight SpamBrain-aligned rule categories that pseolint's calibration corpus tests against.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Google's helpful-content guidance underpins the calibration ceiling logic: sites that demonstrably win in search are expected to meet the originality and usefulness criteria described here.",
+          },
+          {
+            source: "searchEssentials",
+            note: "Google Search Essentials documents the technical requirements — canonical tags, crawlability, structured data — that several of pseolint's tech-bucket rules enforce and that the calibration data validates.",
+          },
+        ]}
+      />
     </main>
     </>
   );

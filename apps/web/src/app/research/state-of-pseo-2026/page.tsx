@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const PUBLISHED_DATE = "2026-04-29";
 const REPORT_PATH = "/research/state-of-pseo-2026";
@@ -716,6 +717,23 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           Run a free audit
         </Link>
       </div>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "scaledContent",
+            note: "Google's scaled-content-abuse policy, introduced in the March 2024 core update, is the primary enforcement mechanism behind the template-uniqueness and thin-body failure rates reported in this study.",
+          },
+          {
+            source: "helpfulContent",
+            note: "The helpful-content criteria — originality, primary-source data, user-first intent — map directly to the passing patterns (primary-source fact per page, cross-page lexical variance) identified in this report's corpus.",
+          },
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies, including site-reputation-abuse, supply the policy basis for the year-over-year shift in borrowed-authority hosting rates and the predictions for 2027 enforcement expansion.",
+          },
+        ]}
+      />
     </main>
   );
 }

@@ -2,6 +2,7 @@ import { type Metadata } from "next";
 import Link from "next/link";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -368,6 +369,35 @@ export default function ToolsIndexPage() {
           </Link>
         </div>
       </div>
+
+      <p className="mt-8 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+        The three tools cover three distinct SpamBrain-risk surfaces: the SpamBrain
+        checker targets scaled-content-abuse and thin-content signals across your full
+        template set, the thin-content scanner isolates the{" "}
+        <code className="font-mono text-xs">spam/thin-content</code> and{" "}
+        <code className="font-mono text-xs">content/boilerplate-ratio</code> rules per
+        template, and the doorway-page detector maps to the site-reputation-abuse policy
+        enforced since May 7, 2024. Each tool samples K=10 URLs per detected template
+        and returns a per-template verdict — not a flat per-URL list — so triage goes
+        straight to the template responsible rather than to hundreds of individual URLs.
+      </p>
+
+      <SourcesSection
+        sources={[
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies define the thin-content, doorway, and scaled-content-abuse signals these tools directly audit against.",
+          },
+          {
+            source: "scaledContent",
+            note: "The March 5, 2024 scaled-content-abuse update is the primary algorithmic signal the SpamBrain checker and thin-content scanner are calibrated against.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Google's helpful-content guidance underpins the content-quality rules (boilerplate ratio, unique-value, citable-facts) surfaced by the thin-content scanner.",
+          },
+        ]}
+      />
 
       <script
         type="application/ld+json"

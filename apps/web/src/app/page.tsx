@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import { LandingForm } from "@/components/landing/landing-form";
 import { LANDING_FAQ } from "@/lib/landing-faq";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 
@@ -66,6 +67,22 @@ export default function Page() {
         dangerouslySetInnerHTML={{ __html: safeJsonLd(FAQ_JSON_LD) }}
       />
       <LandingForm />
+      <SourcesSection
+        sources={[
+          {
+            source: "spamPolicies",
+            note: "Google's spam policies define the scaled-content-abuse and site-reputation-abuse patterns that pseolint's SpamBrain-aligned rules are built to detect.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Google's helpful-content guidance describes the originality and user-first criteria used to calibrate pseolint's template-uniqueness and thin-content findings.",
+          },
+          {
+            source: "aiFeatures",
+            note: "Google's guidance on AI-generated content clarifies that AI assistance is acceptable when content is helpful and original, backing the AI-content detection rule's scope.",
+          },
+        ]}
+      />
     </>
   );
 }
