@@ -4,9 +4,11 @@ import { Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { NavRing } from "@/components/landing/nav-ring";
-import { getOptionalSession } from "@/lib/session";
+import { getOptionalSession, getAnonSessionId } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { AccountMenu } from "@/components/dashboard/account-menu";
+import { env } from "@/lib/env";
+import { AnalyticsProvider } from "@/lib/analytics/op-transport.client";
 
 const displaySerif = Instrument_Serif({
   subsets: ["latin"],
@@ -77,9 +79,12 @@ const ORGANIZATION_JSON_LD = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getOptionalSession();
   const plan: "free" | "pro" | null = session ? await getPlan(session.user.id) : null;
+  const e = env();
+  const profileId = session?.user.id ?? (await getAnonSessionId()) ?? undefined;
   return (
     <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
       <body className="relative flex h-screen flex-col overflow-hidden bg-background font-sans text-foreground antialiased">
+        <AnalyticsProvider clientId={e.OPENPANEL_CLIENT_ID} apiUrl={e.OPENPANEL_API_URL} profileId={profileId} />
         <SiteNav signedIn={ !!session } email={ session?.user.email } plan={ plan } />
         <main className="relative flex-1 overflow-y-auto">
           <div className="relative">{ children }</div>

@@ -6,6 +6,7 @@ import { db, schema } from "@/db";
 import { env } from "@/lib/env";
 import { deliverMagicLink } from "@/lib/magic-link-delivery";
 import { claimAnonAudits } from "@/lib/claim-anon-audits";
+import { recordSignIn } from "@/lib/analytics/record-sign-in";
 
 const e = env();
 
@@ -45,6 +46,7 @@ export const auth = betterAuth({
     session: {
       create: {
         after: async (session) => {
+          await recordSignIn(session.userId);
           await claimAnonAudits(session.userId);
         },
       },
