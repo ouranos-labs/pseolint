@@ -7,6 +7,7 @@ import {
   unpackState,
 } from "@/lib/gsc";
 import { auditLog } from "@/lib/audit-log";
+import { trackServerAfter } from "@/lib/analytics/track.server";
 
 export const runtime = "nodejs";
 
@@ -64,6 +65,7 @@ export async function GET(req: Request): Promise<Response> {
   // here is non-fatal — the connection itself succeeded.
   const result = await autoBindGscPropertiesForUser(session.user.id);
   auditLog("gsc.autobind", { userId: session.user.id, ...result });
+  trackServerAfter({ name: "gsc_connected" }, { profileId: session.user.id });
   return back({
     gsc: "connected",
     bound: String(result.bound),

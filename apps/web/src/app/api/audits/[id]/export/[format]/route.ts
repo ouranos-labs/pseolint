@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
+import { trackServerAfter } from "@/lib/analytics/track.server";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,8 @@ export async function GET(
 
   const stem = safeHost(audit.sourceUrl).replace(/[^a-z0-9.-]/gi, "_");
   const day = (audit.completedAt ?? audit.createdAt).toISOString().slice(0, 10);
+
+  trackServerAfter({ name: "report_exported", props: { format } }, { profileId: session?.user.id });
 
   if (format === "json") {
     return new Response(summaryJson, {

@@ -5,6 +5,7 @@ import { integrations } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
+import { GscConnectButton } from "@/components/dashboard/gsc-connect-button";
 
 export const runtime = "nodejs";
 
@@ -112,12 +113,7 @@ export default async function IntegrationsPage({
             </div>
           ) : (
             <div className="mt-4 flex flex-col gap-2">
-              <a
-                href="/api/integrations/gsc/connect"
-                className="inline-flex w-fit items-center rounded-[14px] border border-border-strong bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Connect with Google
-              </a>
+              <GscConnectButton />
               <p className="text-[11px] text-muted-foreground">
                 Read-only scope (<code className="font-mono">webmasters.readonly</code>). Tokens encrypted at rest.
                 You can disconnect any time.

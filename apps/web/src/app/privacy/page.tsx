@@ -30,7 +30,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What personal data does pseolint collect, and why?",
-    a: "Email address (for magic-link auth and audit-completion notifications), account metadata (name, timezone, UI preferences), audited URLs and rendered reports, a SHA-256 hashed IP combined with a 30-day rotating server-side salt for rate limiting, an anonymous session cookie, an authentication cookie (HttpOnly, Secure, SameSite=Lax, 30-day inactivity expiry), billing metadata via Polar.sh ($19/month Pro), and aggregate request logs retained 30 days. No raw IPs, no card data, no behavioral tracking.",
+    a: "Email address (for magic-link auth and audit-completion notifications), account metadata (name, timezone, UI preferences), audited URLs and rendered reports, a SHA-256 hashed IP combined with a 30-day rotating server-side salt for rate limiting, an anonymous session cookie, an authentication cookie (HttpOnly, Secure, SameSite=Lax, 30-day inactivity expiry), billing metadata via Polar.sh ($19/month Pro), and aggregate request logs retained 30 days. No raw IPs, no card data. Product analytics is first-party, self-hosted, and cookieless (see Analytics below).",
   },
   {
     q: "How long does pseolint keep data?",
@@ -112,13 +112,13 @@ export default function Privacy() {
         <Item k="Anonymous session cookie" v="One opaque random ID (signed). Lets us tie a pre-sign-in audit to your browser so you can reclaim it on sign-up. Legal basis: strictly necessary (functional — exempt from EU cookie consent)." />
         <Item k="Authentication cookie" v="Issued after you sign in. HttpOnly, Secure, SameSite=Lax. Expires after 30 days of inactivity. Legal basis: strictly necessary." />
         <Item k="Billing metadata" v="Subscription plan, Polar customer ID, renewal date. We do NOT receive your card details — those stay with Polar.sh, our merchant of record. Legal basis: contract + legal obligation (invoicing, VAT)." />
-        <Item k="Analytics" v="Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. No cross-site tracking. No third-party analytics SDK. Legal basis: legitimate interest." />
+        <Item k="Analytics" v="Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (openpanel-api.philippekam.dev) — first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest." />
       </Section>
 
       <Section title="What we do NOT collect">
         <Item k="No raw IP addresses" v="They never touch disk. Only salted hashes do." />
         <Item k="No card / bank data" v="Polar.sh handles payment collection end-to-end." />
-        <Item k="No behavioral tracking" v="No Google Analytics, Segment, Mixpanel, FB pixel, LinkedIn pixel, or similar. No cross-site identifiers." />
+        <Item k="No third-party / cross-site tracking" v="No third-party or cross-site tracking. No Google Analytics, Segment, Mixpanel, FB pixel, LinkedIn pixel, or similar. No cross-site identifiers. Our product analytics is first-party and runs on our own servers." />
         <Item k="No advertising" v="We do not sell or rent data. We do not run ads. We do not participate in ad networks." />
         <Item k="No training on your data" v="Your audit content is not used to train AI models — ours or anyone else's. AI triage calls (Pro) send the minimum necessary snippet to Anthropic under their zero-retention terms." />
       </Section>
@@ -168,7 +168,7 @@ export default function Privacy() {
 
       <Section title="Cookies and local storage">
         <Item k="Strictly necessary cookies" v="Session cookie (auth), anonymous session cookie, CSRF token. Exempt from consent under EU ePrivacy — these are required for the service to function." />
-        <Item k="No analytics cookies" v="We set no analytics or tracking cookies." />
+        <Item k="No analytics cookies" v="Our analytics is cookieless — we set no analytics or tracking cookies. We reuse the strictly-necessary anonymous session identifier as a first-party analytics profile key, setting no additional cookie." />
         <Item k="No advertising cookies" v="We set none." />
         <Item k="Third-party cookies from embeds" v="We do not embed third-party trackers. Turnstile may set a short-lived functional cookie during the bot challenge." />
         <Item k="Local storage" v="We use localStorage only to remember UI preferences (e.g. theme). No personal identifiers." />

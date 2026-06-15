@@ -3,6 +3,7 @@ import { GeistSans, GeistMono } from "geist/font";
 import { Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 import { NavRing } from "@/components/landing/nav-ring";
 import { getOptionalSession, getAnonSessionId } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
@@ -122,12 +123,13 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
             <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
           ) }
           { signedIn && plan === "free" && (
-            <Link
+            <TrackedLink
               href="/pricing"
+              event={{ name: "upgrade_clicked", props: { source: "nav" } }}
               className="ml-1 hidden h-8 items-center rounded-[18px] border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/15 sm:inline-flex"
             >
               Upgrade
-            </Link>
+            </TrackedLink>
           ) }
           <a
             href="https://github.com/ouranos-labs/pseolint"

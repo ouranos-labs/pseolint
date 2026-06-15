@@ -324,6 +324,7 @@ function PricingInner() {
         <p className="text-muted-foreground">Not ready to pay? Run a free audit first.</p>
         <Link
           href="/"
+          onClick={() => track({ name: "cta_clicked", props: { location: "pricing_try_free" } })}
           className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
         >
           Try free audit →

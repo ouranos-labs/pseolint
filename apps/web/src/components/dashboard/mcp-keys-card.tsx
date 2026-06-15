@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 interface KeySummary {
   id: string;
@@ -16,6 +17,7 @@ export function McpKeysCard() {
   const [keys, setKeys] = useState<KeySummary[]>([]);
   const [newToken, setNewToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { track } = useAnalytics();
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/mcp-keys");
@@ -36,6 +38,7 @@ export function McpKeysCard() {
       });
       if (res.ok) {
         setNewToken((await res.json()).token);
+        track({ name: "mcp_key_created" });
         await refresh();
       }
     } finally {

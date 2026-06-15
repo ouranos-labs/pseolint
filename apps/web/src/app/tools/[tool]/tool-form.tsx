@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { type MarketingTool } from "@/lib/marketing-tools";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 declare global {
   interface Window {
@@ -50,6 +51,7 @@ export function ToolForm({ tool }: ToolFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const { track } = useAnalytics();
 
   const [url, setUrl] = useState<string>(searchParams.get("url") ?? "");
   const [token, setToken] = useState<string | null>(null);
@@ -169,6 +171,7 @@ export function ToolForm({ tool }: ToolFormProps) {
       });
       if (res.ok) {
         const data = (await res.json()) as AuditResponse;
+        track({ name: "tool_run", props: { tool: tool.slug } });
         const next =
           data.cached && data.reportUrl
             ? `${data.reportUrl}?cached=1`

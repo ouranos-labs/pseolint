@@ -356,6 +356,7 @@ export function LandingForm() {
               href="#top"
               onClick={ (e) => {
                 e.preventDefault();
+                track({ name: "cta_clicked", props: { location: "hero_secondary" } });
                 document.getElementById("url")?.focus();
                 window.scrollTo({ top: 0, behavior: "smooth" });
               } }
@@ -657,6 +658,7 @@ export function LandingForm() {
                 href="#top"
                 onClick={ (e) => {
                   e.preventDefault();
+                  track({ name: "cta_clicked", props: { location: "final_cta" } });
                   document.getElementById("url")?.focus();
                   window.scrollTo({ top: 0, behavior: "smooth" });
                 } }

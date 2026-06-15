@@ -7,6 +7,7 @@ import { LEADERBOARD_RISK_MAX, LEADERBOARD_MIN_PAGES } from "@/lib/leaderboard";
 import { env } from "@/lib/env";
 import { GradeChip } from "@/components/audit/grade-chip";
 import { SiteThumbnail } from "@/components/audit/site-thumbnail";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export const runtime = "nodejs";
 export const revalidate = 600;
@@ -241,12 +242,13 @@ export default async function Leaderboard() {
                   <SiteThumbnail host={ host } imageUrl={ r.ogImageUrl } />
 
                   <h3 className="mt-1 mx-1 text-base font-semibold tracking-tight">
-                    <Link
+                    <TrackedLink
                       href={ `/r/${r.slug}` }
+                      event={{ name: "leaderboard_entry_clicked", props: { host } }}
                       className="text-foreground transition-colors hover:text-primary hover:underline"
                     >
                       { host }
-                    </Link>
+                    </TrackedLink>
                   </h3>
                   <p className="mt-0.5 mx-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
                     { r.ogDescription || `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }

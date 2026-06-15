@@ -3,6 +3,7 @@ import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { addMonitoredDomain } from "@/app/dashboard/actions";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 export function MonitorDomainButton({
   sourceUrl,
@@ -16,6 +17,7 @@ export function MonitorDomainButton({
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
+  const { track } = useAnalytics();
 
   // Free users: route to /pricing with monitor-intent so the post-checkout
   // webhook auto-binds this audit's domain. Skips the silent-failure where
@@ -47,6 +49,10 @@ export function MonitorDomainButton({
               setErr(res.error);
               return;
             }
+            try {
+              const host = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, "");
+              track({ name: "monitoring_domain_added", props: { host } });
+            } catch { /* malformed URL — skip tracking */ }
             router.push("/dashboard");
           })
         }

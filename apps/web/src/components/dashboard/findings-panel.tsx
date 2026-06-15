@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { snoozeFinding, dismissFinding } from "@/app/dashboard/_actions/findings";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 import { sevDot, sevBorderBg, sevText } from "@/lib/severity-style";
 import {
   DropdownMenu,
@@ -383,6 +384,7 @@ function FindingRow({
   indexedUrls: string[];
 }) {
   const [pending, start] = useTransition();
+  const { track } = useAnalytics();
   const isSuppressed = f.status !== "open";
   const hasTraffic = Boolean(f.traffic && (f.traffic.impressions > 0 || f.traffic.clicks > 0));
   const hasGoogleIndexing = indexingIntegrations.includes("google-indexing");
@@ -485,7 +487,10 @@ function FindingRow({
                     {SNOOZE_OPTIONS.map((opt) => (
                       <DropdownMenuItem
                         key={opt.days}
-                        onSelect={() => start(() => snoozeFinding(f.id, opt.days))}
+                        onSelect={() => {
+                          track({ name: "triage_action", props: { action: `snooze_${opt.days}d` } });
+                          start(() => snoozeFinding(f.id, opt.days));
+                        }}
                       >
                         <span className="font-mono text-xs">{opt.label}</span>
                         <span className="ml-auto font-mono text-[10px] text-muted-foreground">
@@ -497,7 +502,10 @@ function FindingRow({
                 </DropdownMenu>
                 <button
                   disabled={pending}
-                  onClick={() => start(() => dismissFinding(f.id))}
+                  onClick={() => {
+                    track({ name: "triage_action", props: { action: "dismiss" } });
+                    start(() => dismissFinding(f.id));
+                  }}
                   className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
                 >
                   Dismiss

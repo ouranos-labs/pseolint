@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useAnalytics } from "@/lib/analytics/use-analytics";
 
 /**
  * Dashboard CTA: start an AI-orchestrated audit. Calls POST /api/orchestrate
@@ -17,6 +18,7 @@ export function StartOrchestratorButton() {
   const [domain, setDomain] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const { track } = useAnalytics();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +36,7 @@ export function StartOrchestratorButton() {
           return;
         }
         const data = (await res.json()) as { sessionId: string };
+        track({ name: "manifest_created" });
         router.push(`/o/${data.sessionId}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
