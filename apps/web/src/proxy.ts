@@ -65,25 +65,15 @@ export function proxy(req: NextRequest) {
     res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
 
-  // Self-hosted OpenPanel origin (script + event endpoint). Derived from env so
-  // the domain is never hardcoded; empty (and thus omitted from CSP) when
-  // analytics is unconfigured. We load the SDK script from this origin and POST
-  // events to it, so it must appear in both script-src and connect-src.
-  let openpanelOrigin = "";
-  try {
-    openpanelOrigin = process.env.OPENPANEL_API_URL ? new URL(process.env.OPENPANEL_API_URL).origin : "";
-  } catch {
-    /* malformed/unset env — omit from CSP */
-  }
-  const op = openpanelOrigin ? ` ${openpanelOrigin}` : "";
-
+  // OpenPanel analytics is proxied same-origin through /api/op (script + events),
+  // so the CSP stays 'self' — no external analytics origin needed.
   const scriptSrc = isProd
-    ? `'self' 'unsafe-inline' challenges.cloudflare.com${op}`
-    : `'self' 'unsafe-inline' ${CSP_DEV_DYNAMIC_CODE} challenges.cloudflare.com${op}`;
+    ? "'self' 'unsafe-inline' challenges.cloudflare.com"
+    : `'self' 'unsafe-inline' ${CSP_DEV_DYNAMIC_CODE} challenges.cloudflare.com`;
 
   res.headers.set(
     "Content-Security-Policy",
-    `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src challenges.cloudflare.com *.r2.cloudflarestorage.com; connect-src 'self' challenges.cloudflare.com${op};`,
+    `default-src 'self'; script-src ${scriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; frame-src challenges.cloudflare.com *.r2.cloudflarestorage.com; connect-src 'self' challenges.cloudflare.com;`,
   );
   return res;
 }

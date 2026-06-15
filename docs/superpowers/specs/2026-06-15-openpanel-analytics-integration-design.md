@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Integrate the user's **self-hosted OpenPanel** instance (`https://openpanel-api.philippekam.dev`) into `pseolint.dev` with an **exhaustive, typed product-analytics event catalog** covering the full funnel — acquisition, the core audit flow, activation, monetization, engagement, and top-of-funnel content.
+Integrate the user's **self-hosted OpenPanel** instance (`https://api-openpanel.philippekam.dev`) into `pseolint.dev` with an **exhaustive, typed product-analytics event catalog** covering the full funnel — acquisition, the core audit flow, activation, monetization, engagement, and top-of-funnel content.
 
 Tracking is **full-funnel + identity**: client SDK for UI interactions and pageviews, server SDK for authoritative lifecycle/revenue events, with anonymous visitors stitched to their account on sign-in.
 
@@ -31,7 +31,7 @@ The live `/privacy` page currently makes absolute promises that any analytics to
 - *"No analytics cookies — We set no analytics or tracking cookies."*
 - *"We do not embed third-party trackers."*
 
-These were a **trust-signal positioning choice**, not a legal constraint. The reconciliation: OpenPanel self-hosted on the user's own `openpanel-api.philippekam.dev` is **first-party** (not third-party), and OpenPanel is **cookieless by default** — it identifies sessions via a privacy-preserving **daily-rotating hash of IP + user-agent**, persisting nothing past 24h. This is *the same technique pseolint already discloses for rate limiting* ("SHA-256 hashed IP + 30-day rotating salt"), so it extends the existing privacy story instead of contradicting it.
+These were a **trust-signal positioning choice**, not a legal constraint. The reconciliation: OpenPanel self-hosted on the user's own `api-openpanel.philippekam.dev` is **first-party** (not third-party), and OpenPanel is **cookieless by default** — it identifies sessions via a privacy-preserving **daily-rotating hash of IP + user-agent**, persisting nothing past 24h. This is *the same technique pseolint already discloses for rate limiting* ("SHA-256 hashed IP + 30-day rotating salt"), so it extends the existing privacy story instead of contradicting it.
 
 **Decision:** keep the *spirit* (no third-party ad tracking, no cross-site identifiers, no data sold) and drop the *absolutism* (zero analytics of any kind). Update the copy. No consent banner (legitimate interest, cookieless — consistent with the current "strictly-necessary cookies only" posture).
 
@@ -261,7 +261,7 @@ This is explicitly **out of scope for this implementation** — we build the sea
 **`src/app/privacy/page.tsx`** — rewrite these items to describe OpenPanel honestly:
 
 - **Data-collected answer** (line ~33): replace "No raw IPs, no card data, no behavioral tracking." with language covering first-party, self-hosted, cookieless product analytics.
-- **"Analytics"** item (line ~115): describe OpenPanel — *self-hosted on our own infrastructure (`openpanel-api.philippekam.dev`), first-party, cookieless (daily-rotating IP+UA hash, nothing persisted past 24h — the same technique used for rate limiting), used for product analytics (which features get used, funnel conversion). Legal basis: legitimate interest.*
+- **"Analytics"** item (line ~115): describe OpenPanel — *self-hosted on our own infrastructure (`api-openpanel.philippekam.dev`), first-party, cookieless (daily-rotating IP+UA hash, nothing persisted past 24h — the same technique used for rate limiting), used for product analytics (which features get used, funnel conversion). Legal basis: legitimate interest.*
 - **"No behavioral tracking"** item (line ~121): reframe → *"No third-party / cross-site tracking. No Google Analytics, Segment, Mixpanel, FB/LinkedIn pixels. Our product analytics is first-party and runs on our own servers; data is never sold or shared."*
 - **"No analytics cookies"** item (line ~171): keep — **still literally true** (we set zero cookies for analytics). Optionally clarify: *"Our analytics is cookieless; we reuse the strictly-necessary anonymous session identifier as a first-party profile key, setting no additional cookie."*
 - **"Third-party cookies from embeds"** / processor list: note self-hosting means **no third-party analytics processor**.
@@ -288,10 +288,10 @@ No dev/build fallbacks needed (optional keys; integration degrades to no-op).
 # OpenPanel (self-hosted product analytics). Optional — omit to disable analytics.
 OPENPANEL_CLIENT_ID=
 OPENPANEL_CLIENT_SECRET=
-OPENPANEL_API_URL=https://openpanel-api.philippekam.dev
+OPENPANEL_API_URL=https://api-openpanel.philippekam.dev
 ```
 
-**`.env`** — add `OPENPANEL_API_URL=https://openpanel-api.philippekam.dev` (the two keys already exist).
+**`.env`** — add `OPENPANEL_API_URL=https://api-openpanel.philippekam.dev` (the two keys already exist).
 
 ## 8. Dependencies
 
@@ -319,7 +319,7 @@ pnpm --filter web add @openpanel/nextjs @openpanel/sdk
 
 ## 11. Acceptance criteria
 
-1. With env keys set, visiting `pseolint.dev` sends pageviews to `openpanel-api.philippekam.dev`; submitting the landing form emits `audit_submitted` (client) and `audit_created` (server); a completed audit emits `audit_completed` (server) attributed to the visitor's anon id; signing in emits `signed_in` + `identify` + `alias`, and subsequent events attribute to `user.id`; a Pro purchase emits `subscription_started`.
+1. With env keys set, visiting `pseolint.dev` sends pageviews to `api-openpanel.philippekam.dev`; submitting the landing form emits `audit_submitted` (client) and `audit_created` (server); a completed audit emits `audit_completed` (server) attributed to the visitor's anon id; signing in emits `signed_in` + `identify` + `alias`, and subsequent events attribute to `user.id`; a Pro purchase emits `subscription_started`.
 2. With env keys **unset**, the app builds and runs exactly as today — no network calls, no thrown errors, provider renders nothing.
 3. `/privacy` and `/terms` accurately describe the analytics; no remaining text claims "no analytics SDK" / "no behavioral tracking" in absolute terms.
 4. `vitest` green; no new type errors.

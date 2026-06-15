@@ -85,7 +85,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={ cn(GeistSans.variable, GeistMono.variable, displaySerif.variable) }>
       <body className="relative flex h-screen flex-col overflow-hidden bg-background font-sans text-foreground antialiased">
-        <AnalyticsProvider clientId={e.OPENPANEL_CLIENT_ID} apiUrl={e.OPENPANEL_API_URL} profileId={profileId} />
+        <AnalyticsProvider clientId={e.OPENPANEL_CLIENT_ID} profileId={profileId} />
         <SiteNav signedIn={ !!session } email={ session?.user.email } plan={ plan } />
         <main className="relative flex-1 overflow-y-auto">
           <div className="relative">{ children }</div>

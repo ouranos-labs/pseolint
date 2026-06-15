@@ -88,14 +88,14 @@ Append to `apps/web/.env.example`:
 # OpenPanel (self-hosted product analytics). Optional — omit to disable analytics (no-op).
 OPENPANEL_CLIENT_ID=
 OPENPANEL_CLIENT_SECRET=
-OPENPANEL_API_URL=https://openpanel-api.philippekam.dev
+OPENPANEL_API_URL=https://api-openpanel.philippekam.dev
 ```
 
 - [ ] **Step 4: Add the API URL to `.env`** (the two keys already exist there)
 
 Add to `apps/web/.env`:
 ```
-OPENPANEL_API_URL=https://openpanel-api.philippekam.dev
+OPENPANEL_API_URL=https://api-openpanel.philippekam.dev
 ```
 
 - [ ] **Step 5: Typecheck**
@@ -1337,7 +1337,7 @@ Change the trailing sentence `... No raw IPs, no card data, no behavioral tracki
 
 Replace the `Analytics` item value with:
 ```
-Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (openpanel-api.philippekam.dev) — first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest.
+Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (api-openpanel.philippekam.dev) — first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest.
 ```
 
 - [ ] **Step 3: Privacy — "No behavioral tracking" item (line ~121)**
