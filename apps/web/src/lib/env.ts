@@ -99,6 +99,9 @@ const envSchema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1),
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1),
   IP_HASH_SALT: z.string().min(16),
+  OPENPANEL_CLIENT_ID: z.string().min(1).optional(),
+  OPENPANEL_CLIENT_SECRET: z.string().min(1).optional(),
+  OPENPANEL_API_URL: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
