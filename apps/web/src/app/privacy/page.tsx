@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -183,6 +184,14 @@ export default function Privacy() {
         <Item k="History" v="Previous versions of this policy are available on request." />
       </Section>
 
+      <SourcesSection
+        sources={[
+          {
+            source: "gdpr",
+            note: "Our lawful-basis, data-subject-rights, and retention commitments below track Articles 6, 15-22, and 5(1)(e) of the General Data Protection Regulation (EU) 2016/679, the regulation this policy is written to comply with.",
+          },
+        ]}
+      />
       <LegalDisclaimer />
       <LegalFooter />
     </main>

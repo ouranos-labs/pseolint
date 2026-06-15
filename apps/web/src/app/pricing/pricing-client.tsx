@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 type Interval = "monthly" | "yearly";
 
@@ -330,6 +331,19 @@ function PricingInner() {
           Try free audit →
         </Link>
       </div>
+
+      <SourcesSection
+        sources={ [
+          {
+            source: "spamPolicies",
+            note: "Both tiers exist to catch the scaled-content, doorway, and site-reputation patterns Google's spam policies enforce, before those patterns cost you rankings.",
+          },
+          {
+            source: "helpfulContent",
+            note: "The monitored Pro tier re-checks your templates against the people-first content standard on every change, so a helpful-content regression surfaces in an alert rather than in a traffic drop.",
+          },
+        ] }
+      />
 
       <FaqJsonLd faqs={ FAQS } />
     </main>

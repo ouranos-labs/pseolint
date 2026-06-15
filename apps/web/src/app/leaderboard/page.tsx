@@ -8,6 +8,7 @@ import { env } from "@/lib/env";
 import { GradeChip } from "@/components/audit/grade-chip";
 import { SiteThumbnail } from "@/components/audit/site-thumbnail";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import { SourcesSection } from "@/components/marketing/sources-section";
 
 export const runtime = "nodejs";
 export const revalidate = 600;
@@ -398,6 +399,22 @@ export default async function Leaderboard() {
           )) }
         </ul>
       </section>
+      <SourcesSection
+        sources={ [
+          {
+            source: "spamPolicies",
+            note: "Each domain's risk score is computed from rules that operationalise Google's published spam policies, so a low score reflects distance from documented scaled-content, doorway, and reputation-abuse violations.",
+          },
+          {
+            source: "scaledContent",
+            note: "Programmatic-directory entrants are scored against the scaled-content-abuse criteria, the policy that separates a genuinely useful template grid from one mass-produced for search alone.",
+          },
+          {
+            source: "helpfulContent",
+            note: "Only sites that read as people-first under Google's helpful-content guidance hold the top, clean-corpus ranks; the leaderboard indexes that distinction rather than raw traffic.",
+          },
+        ] }
+      />
     </main>
   );
 }
