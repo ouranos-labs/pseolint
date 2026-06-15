@@ -231,6 +231,11 @@ describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
     expect(hits, `answer-first fired on rule pages:\n${describeFindings(hits)}`).toEqual([]);
   });
 
+  it("no /symptoms page trips aeo/answer-first (opener has an extractable answer)", () => {
+    const findings = answerFirstRule(symptomPages, NO_ENTITY_PATTERNS);
+    expect(findings, `answer-first fired on symptom pages:\n${describeFindings(findings)}`).toEqual([]);
+  });
+
   it("no /rules page trips content/meta-uniqueness", () => {
     const findings = metaUniquenessRule(corpus, NO_ENTITY_PATTERNS, 0);
     const hits = onRulePages(findings);
