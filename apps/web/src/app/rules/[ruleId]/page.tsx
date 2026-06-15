@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrackView } from "@/lib/analytics/track-view";
 import {
   MARKETING_RULES,
   findMarketingRule,
@@ -127,6 +128,7 @@ export default async function RulePage({ params }: PageProps) {
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+      <TrackView event={{ name: "rule_viewed", props: { ruleId: rule.ruleId } }} />
       <script
         type="application/ld+json"
         // Compile-time-static payload built from MARKETING_RULES; safeJsonLd

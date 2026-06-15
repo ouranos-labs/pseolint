@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrackView } from "@/lib/analytics/track-view";
 import { MARKETING_TOOLS, getMarketingTool, type MarketingTool } from "@/lib/marketing-tools";
 import { ToolForm } from "./tool-form";
 import { env } from "@/lib/env";
@@ -95,6 +96,7 @@ export default async function ToolPage({ params }: { params: Promise<RouteParams
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+      <TrackView event={{ name: "tool_viewed", props: { tool: tool.slug } }} />
       <nav className="text-xs text-muted-foreground">
         <Link href="/tools" className="hover:text-foreground hover:underline">
           Free tools

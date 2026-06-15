@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrackView } from "@/lib/analytics/track-view";
 import {
   MARKETING_SYMPTOMS,
   allSymptomSlugs,
@@ -160,6 +161,7 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
+      <TrackView event={{ name: "symptom_viewed", props: { symptom: entry.slug } }} />
       <StructuredData payload={ldPayload} />
 
       <nav aria-label="Breadcrumb" className="text-xs text-muted-foreground">
