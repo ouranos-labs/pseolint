@@ -3,9 +3,14 @@
   "name": "pseolint",
   "version": "0.0.0",
   "description": "Template-level pSEO failure signals on the live SERP.",
+  "icons": {
+    "128": "icons/icon-128.png",
+    "512": "icons/icon-512.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "pseolint — scan results"
+    "default_title": "pseolint — scan results",
+    "default_icon": { "128": "icons/icon-128.png" }
   },
   "background": {
     "service_worker": "dist/background.js"

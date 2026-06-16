@@ -35,5 +35,18 @@ assert.strictEqual(host.shadowMode, "closed", "shadow root is closed");
 const badge = doc.created.find((e) => e.className === "b");
 assert.strictEqual(badge.textSets.at(-1), "3 flags", "label set via textContent");
 assert.strictEqual(badge.style.background, "#cf222e", "level colour applied");
+assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
+
+// Clickable variant (Path B): href → an <a> badge, href set via property (not
+// innerHTML), opens a new tab, label still via textContent (+ ↗ hint).
+doc = fakeDoc();
+const linked = mountBadge({ level: "warn", label: "thin" }, doc, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com");
+const a = doc.created.find((e) => e.tag === "a" && e.className === "b");
+assert.ok(a, "badge is an anchor when href given");
+assert.strictEqual(a.href, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com", "audit href set");
+assert.strictEqual(a.target, "_blank", "opens a new tab");
+assert.strictEqual(a.rel, "noopener noreferrer", "rel hardened");
+assert.strictEqual(a.textSets.at(-1), "thin ↗", "label via textContent with hint");
+assert.ok(linked, "host returned for clickable badge");
 
 console.log("overlay: all safety checks passed");

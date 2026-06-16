@@ -2,11 +2,13 @@
 
 MV3 extension. Design: [`docs/extension-architecture.md`](../../docs/extension-architecture.md).
 
-**Status:** build-sequence step 3 — the client-only **Path A** SERP overlay.
-On a Google results page a "Scan results with pseolint" button appears; clicking
-it requests host access for that scan, the service worker fetches each ranked
-result, runs the Tier-1 rules locally, and paints a health badge on the flagged
-results. No data is sent to pseolint (Path B, the hosted full audit, is step 5).
+**Status:** build-sequence steps 3–5. On a Google results page, click the
+toolbar icon → **Scan** (the popup owns the gesture + host-access grant). The
+service worker fetches each ranked result, runs the Tier-1 rules locally, and
+paints a health badge on the flagged ones — no data sent to pseolint (**Path A**).
+Each badge links to the hosted full audit via `pseolint.dev/?prefill=` (**Path B**,
+a deep link — no signal egress yet; `signals.js`/`client.js` are reserved for a
+future pre-computed handoff).
 
 ## Tier-1 rules (the only ones the client badges)
 

@@ -19,11 +19,14 @@ export function badgeView(verdict) {
 const STYLE =
   ":host{all:initial}" +
   ".b{display:inline-flex;align-items:center;font:12px/1.4 system-ui,sans-serif;" +
-  "padding:1px 6px;border-radius:10px;color:#fff}";
+  "padding:1px 6px;border-radius:10px;color:#fff;text-decoration:none;cursor:pointer}";
 
 // Build the shadow-host element for a verdict, or null (no badge). Glue only —
 // the decision lives in badgeView; this just plumbs it into a closed shadow root.
-export function mountBadge(verdict, doc = document) {
+// When `href` is given the badge is a link to the hosted full audit (Path B, §5):
+// it's OUR constructed URL (never page-derived) set via .href, not innerHTML, so
+// the §9 injection-safety contract holds.
+export function mountBadge(verdict, doc = document, href = null) {
   const view = badgeView(verdict);
   if (!view) return null;
 
@@ -33,10 +36,16 @@ export function mountBadge(verdict, doc = document) {
   const style = doc.createElement("style");
   style.textContent = STYLE; // our own static CSS, no interpolation
 
-  const badge = doc.createElement("span");
+  const badge = doc.createElement(href ? "a" : "span");
   badge.className = "b";
   badge.style.background = view.color;
-  badge.textContent = view.text; // untrusted label → textContent, never innerHTML
+  badge.textContent = href ? `${view.text} ↗` : view.text; // label via textContent, never innerHTML
+  if (href) {
+    badge.href = href;
+    badge.target = "_blank";
+    badge.rel = "noopener noreferrer";
+    badge.title = "Open the full pseolint audit";
+  }
 
   root.append(style, badge);
   return host;

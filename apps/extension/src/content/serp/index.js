@@ -9,6 +9,11 @@
 import { detectResults } from "./detect.js";
 import { mountBadge } from "./overlay.js";
 
+// Path B (§5): a flagged badge links to the hosted full audit. The SaaS landing
+// form already prefills + arms from `?prefill=` (apps/web landing-form), so the
+// handoff is a deep link — no signal egress, no new endpoint. One origin, by design.
+const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
+
 async function run() {
   const results = detectResults(document);
   if (results.length === 0) return { flagged: 0 };
@@ -22,9 +27,12 @@ async function run() {
   let flagged = 0;
   for (const { url, verdict } of reply?.results ?? []) {
     const anchor = anchorByUrl.get(url);
-    const badge = anchor && mountBadge(verdict); // null verdict → null badge, skipped
+    if (!anchor) continue;
+    const badge = mountBadge(verdict, document, AUDIT_PREFILL + encodeURIComponent(url));
     if (badge) {
-      anchor.append(badge);
+      // Sibling AFTER the result link, never inside it — so clicking the badge
+      // opens our audit, not the search result.
+      anchor.insertAdjacentElement("afterend", badge);
       flagged++;
     }
   }
