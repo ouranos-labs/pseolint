@@ -1,4 +1,5 @@
-import type { ParsedPage, RuleResult } from "../../types.js";
+import type { ParsedPage, RuleResult, EntityMaskPattern } from "../../types.js";
+import { maskEntities } from "../../algorithms/entity-mask.js";
 
 export interface UniqueValueThresholds {
   /** Unique-content density below this fires (info). Default 0.20. */
@@ -28,14 +29,20 @@ function tokenize(text: string): string[] {
 export function uniqueValueRule(
   pages: ParsedPage[],
   thresholds: UniqueValueThresholds,
+  entityPatterns: EntityMaskPattern[] = [],
 ): RuleResult[] {
   const { passBelow, errorBelow } = thresholds;
   const N = pages.length;
   const lnN = Math.log(N);
   if (N <= 1 || lnN === 0) return []; // can't measure rarity against a single page
 
+  // Mask entities (names, numbers, dates) before measuring rarity. Otherwise a
+  // scaled-content farm — same template skeleton, swapped entity per page —
+  // scores HIGH density because each page's entity tokens are page-exclusive.
+  // Masking collapses the swapped entities so the residual measures originality
+  // of the *non-entity* prose: templated skeleton -> low, genuine analysis -> high.
   const df = new Map<string, number>();
-  const pageDistinct = pages.map((p) => new Set(tokenize(p.contentText)));
+  const pageDistinct = pages.map((p) => new Set(tokenize(maskEntities(p.contentText, entityPatterns))));
   for (const distinct of pageDistinct) {
     for (const t of distinct) df.set(t, (df.get(t) ?? 0) + 1);
   }

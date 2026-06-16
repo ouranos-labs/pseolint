@@ -793,7 +793,7 @@ function runRulesOnPages(
 
   // Content rules
   if (isEnabled("content/unique-value") && modeOk("content/unique-value")) {
-    pushAll(findings, tag(uniqueValueRule(pages, resolvedRules.uniqueValueDensity)));
+    pushAll(findings, tag(uniqueValueRule(pages, resolvedRules.uniqueValueDensity, entityPatterns)));
   }
 
   if (isEnabled("content/meta-uniqueness") && modeOk("content/meta-uniqueness")) {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { uniqueValueRule } from "../../../src/rules/content/unique-value.js";
-import type { ParsedPage } from "../../../src/types.js";
+import type { ParsedPage, EntityMaskPattern } from "../../../src/types.js";
 
 const TH = { passBelow: 0.2, errorBelow: 0.12 };
 
@@ -66,6 +66,19 @@ describe("uniqueValueRule (density)", () => {
 
   test("single-page corpus never fires (can't measure rarity)", () => {
     expect(uniqueValueRule([page("a", `${SHARED} aonly`)], TH)).toEqual([]);
+  });
+
+  test("entity-swap: masking collapses swapped entities so a templated farm page fires", () => {
+    const tmpl = Array.from({ length: 10 }, (_, i) => `tmpl${i}`).join(" ");
+    const a = page("a", `${tmpl} ${Array.from({ length: 10 }, (_, i) => `alice${i}`).join(" ")}`);
+    const b = page("b", `${tmpl} ${Array.from({ length: 10 }, (_, i) => `bob${i}`).join(" ")}`);
+    const patterns: EntityMaskPattern[] = [{ pattern: /(?:alice|bob)\d+/g, placeholder: "ENT" }];
+    // Unmasked, the page-exclusive entity tokens keep density high → no fire (the evasion).
+    expect(uniqueValueRule([a, b], TH).some((x) => x.pageUrl === "a")).toBe(false);
+    // Masked, the residual is all shared template prose → fires.
+    const f = uniqueValueRule([a, b], TH, patterns).find((x) => x.pageUrl === "a");
+    expect(f).toBeDefined();
+    expect(f!.severity).toBe("error");
   });
 
   test("message reports density and shared overlap; fix warns axis-shared doesn't count", () => {
