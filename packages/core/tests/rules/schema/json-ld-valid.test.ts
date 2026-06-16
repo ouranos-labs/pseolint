@@ -65,4 +65,41 @@ describe("schema/json-ld-valid", () => {
     const findings = jsonLdValidRule([p]);
     expect(findings).toHaveLength(0);
   });
+
+  // --- array @type fixes ---
+
+  test("does NOT flag @type as array of valid strings (regression)", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{ "@context": "https://schema.org", "@type": ["Article", "NewsArticle"] }]
+    });
+    const findings = jsonLdValidRule([p]);
+    expect(findings).toHaveLength(0);
+  });
+
+  test("flags @type as empty string", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{ "@context": "https://schema.org", "@type": "" }]
+    });
+    const findings = jsonLdValidRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("invalid @type");
+  });
+
+  test("flags @type as empty array", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{ "@context": "https://schema.org", "@type": [] }]
+    });
+    const findings = jsonLdValidRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("invalid @type");
+  });
+
+  test("flags @type array containing an empty string", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{ "@context": "https://schema.org", "@type": ["Article", ""] }]
+    });
+    const findings = jsonLdValidRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("invalid @type");
+  });
 });

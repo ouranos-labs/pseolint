@@ -39,7 +39,16 @@ export function jsonLdValidRule(pages: ParsedPage[]): RuleResult[] {
 
       if (obj["@type"] !== undefined) {
         const typeValue = obj["@type"];
-        if (typeof typeValue !== "string" || typeValue.trim() === "") {
+        const typeIsValid =
+          // string: non-empty non-whitespace
+          (typeof typeValue === "string" && typeValue.trim() !== "") ||
+          // array: non-empty, every element is a non-empty non-whitespace string
+          (Array.isArray(typeValue) &&
+            typeValue.length > 0 &&
+            (typeValue as unknown[]).every(
+              (t) => typeof t === "string" && t.trim() !== ""
+            ));
+        if (!typeIsValid) {
           findings.push({
             ruleId: "schema/json-ld-valid",
             severity: "error",

@@ -7,21 +7,31 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  *
  * Required: og:title, og:description, og:image.
  *
- * The rule was referenced in the v0.4.x README without ever shipping. The
- * 2026-05-03 blind-spot audit surfaced it as a tier-1 gap; this is the
- * v0.5.2 fix.
+ * Severity gradation:
+ *   - warning: og:title or og:description is missing (core social-card identity
+ *              fields that affect how a link appears in feeds and AI summaries).
+ *   - info:    only og:image is missing (cosmetic — the card still has a title
+ *              and description; the missing image is low-priority).
+ *
+ * Presence check: a field is considered MISSING when it is absent, empty, or
+ * whitespace-only (value is trimmed before evaluation).
  */
 export function ogCompletenessRule(pages: ParsedPage[]): RuleResult[] {
   const findings: RuleResult[] = [];
   for (const page of pages) {
     const missing: string[] = [];
-    if (!page.og.title) missing.push("og:title");
-    if (!page.og.description) missing.push("og:description");
-    if (!page.og.image) missing.push("og:image");
+    if (!page.og.title.trim()) missing.push("og:title");
+    if (!page.og.description.trim()) missing.push("og:description");
+    if (!page.og.image.trim()) missing.push("og:image");
     if (missing.length === 0) continue;
+
+    const missingCore = missing.some((f) => f === "og:title" || f === "og:description");
+    const severity: RuleResult["severity"] = missingCore ? "warning" : "info";
+
     findings.push({
       ruleId: "tech/og-completeness",
-      severity: "warning",
+      severity,
+      confidence: missingCore ? "high" : "medium",
       message: `${page.url} is missing Open Graph tags: ${missing.join(", ")}.`,
       pageUrl: page.url,
       fix: `Add the missing meta tags inside <head>: ${missing.map((tag) => `<meta property="${tag}" content="...">`).join(" ")}.`,

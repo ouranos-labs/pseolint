@@ -88,4 +88,74 @@ describe("schema/required-fields", () => {
     const findings = requiredFieldsRule([p]);
     expect(findings).toHaveLength(0);
   });
+
+  // --- presence-not-quality fixes ---
+
+  test("flags FAQPage with mainEntity as empty array", () => {
+    const p = page("https://example.dev/faq", {
+      jsonLd: [{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: [] }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("mainEntity");
+  });
+
+  test("flags Article with whitespace-only headline", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "  ",
+        author: "Author",
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("headline");
+  });
+
+  test("does NOT flag Article with valid object author (Person)", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "Test",
+        author: { "@type": "Person", name: "Alice" },
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(0);
+  });
+
+  test("flags Article with author as false (boolean)", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "Test",
+        author: false,
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("author");
+  });
+
+  test("flags Article with author as 0 (number)", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "Test",
+        author: 0,
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("author");
+  });
 });

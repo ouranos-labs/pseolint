@@ -6,6 +6,37 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
   FAQPage: ["mainEntity"]
 };
 
+/**
+ * Returns true when a field value should be treated as "missing" (junk/empty).
+ * Accepts non-empty strings, non-empty arrays, and non-empty objects as present.
+ */
+function isMissing(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return Object.keys(value as object).length === 0;
+  // booleans (false/true) and numbers other than checked above
+  if (typeof value === "boolean" || typeof value === "number") return false;
+  return true;
+}
+
+/**
+ * Article `author` is valid when it is:
+ *   - a non-empty string, OR
+ *   - an object with a non-empty `name` property (Person/Organization)
+ * Returns true when the author value is missing/junk.
+ */
+function isAuthorMissing(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return value.trim() === "";
+  if (typeof value === "object" && !Array.isArray(value) && value !== null) {
+    const obj = value as Record<string, unknown>;
+    return typeof obj.name !== "string" || obj.name.trim() === "";
+  }
+  // arrays, booleans, numbers — not a valid author shape
+  return true;
+}
+
 function hasPrice(obj: Record<string, unknown>): boolean {
   if (obj.price !== undefined && obj.price !== null && obj.price !== "") {
     return true;
@@ -49,7 +80,11 @@ export function requiredFieldsRule(pages: ParsedPage[]): RuleResult[] {
 
       const missing: string[] = [];
       for (const field of required) {
-        if (obj[field] === undefined || obj[field] === null || obj[field] === "") {
+        if (field === "author" && schemaType === "Article") {
+          if (isAuthorMissing(obj[field])) {
+            missing.push(field);
+          }
+        } else if (isMissing(obj[field])) {
           missing.push(field);
         }
       }
