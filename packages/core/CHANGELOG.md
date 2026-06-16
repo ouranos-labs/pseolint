@@ -1,5 +1,45 @@
 # @pseolint/core
 
+## 0.7.1
+
+### Patch Changes
+
+- d9797e4: content/unique-value now scores originality as a rarity **density** (normalized-IDF
+  average over a page's distinct tokens) instead of an absolute count of
+  exactly-page-exclusive words. This fixes margin instability (the flagged set no
+  longer "shuffles" when content is added) and false positives on large, tightly-
+  themed sites — validated against the reputable-pSEO fixtures: doorway/entity-swap
+  spam fires at density ~0.09 while reputable corpora (incl. paperforge.dev) clear
+  at ≥0.28, with floors `passBelow 0.20` / `errorBelow 0.12` in the gap.
+
+  Config knob renamed: `rules.uniqueValueMinWords: number` →
+  `rules.uniqueValueDensity: { passBelow, errorBelow }`. The rule signature is now
+  `uniqueValueRule(pages, { passBelow, errorBelow })`. Borderline pages fire `info`
+  rather than `error` so a near-miss no longer reads as a ship-blocker.
+
+- ce06ef7: v0.7.1 — rule false-positive elimination batch (post unique-value design review).
+
+  Stops the engine flagging healthy sites without weakening real detection. Each fix
+  is TDD'd and validated against the reputable-pSEO fixtures.
+
+  - **links/orphan-pages, links/cluster-connectivity** — suppressed on sampled crawls
+    (the linking/target page is often un-fetched; reliable only on a full crawl).
+  - **tech/canonical-consistency** — collapse "canonicalizes outside crawl scope" to
+    one site-level note when all pages point at the same alternate host (staging/
+    preview/localhost), instead of one finding per page; dedup HTTP-vs-HTML.
+  - **tech/sitemap-completeness** — normalize sitemap URLs before the set-diff (kills
+    trailing-slash/query false "missing"); demote the missing aggregate to warning.
+  - **schema/consistency** — flag @type variance per template cluster (structureSignature),
+    not site-wide (was a guaranteed FP on any multi-template site).
+  - **aeo/crawler-access** — honor robots `Allow` directives per RFC 9309 (allow-all
+    no longer reported as fully blocked).
+  - **Severity/confidence bands** — error/critical demoted to warning on weak or
+    forecast signals: thin-content medium band, summary-bait, translation-no-op,
+    entity-swap (low mask coverage), soft-404 (OR-weighted confidence model).
+
+  Note: bundled as a patch (0.x) despite a behavior/scoring shift and the
+  `rules.uniqueValueMinWords` → `rules.uniqueValueDensity` config rename.
+
 ## 0.7.0
 
 ### Minor Changes
