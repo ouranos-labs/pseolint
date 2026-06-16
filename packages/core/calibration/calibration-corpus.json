@@ -42912,7 +42912,8 @@
         "https://doorwayspam.example/emergency-plumber-seattle",
         "https://doorwayspam.example/contact"
       ],
-      "localFixtureDir": "packages/core/calibration/fixtures/doorwayspam_example/"
+      "localFixtureDir": "packages/core/calibration/fixtures/doorwayspam_example/",
+      "synthetic": true
     },
     {
       "url": "https://hiddentextspam.example/",
@@ -42936,7 +42937,8 @@
         "https://hiddentextspam.example/bulk-gizmos",
         "https://hiddentextspam.example/wholesale-doohickeys"
       ],
-      "localFixtureDir": "packages/core/calibration/fixtures/hiddentextspam_example/"
+      "localFixtureDir": "packages/core/calibration/fixtures/hiddentextspam_example/",
+      "synthetic": true
     },
     {
       "url": "https://zacjohnson.com/",

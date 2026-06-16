@@ -46,6 +46,10 @@
           "enum": ["on-page", "off-page-only"],
           "description": "Whether the policy violation is visible in fetched page content. 'off-page-only' = site-reputation parasite / host-relationship abuse that an on-page audit cannot detect by construction. Absent = on-page-detectable. Used to compute the engine's addressable calibration ceiling separately from undetectable cases."
         },
+        "synthetic": {
+          "type": "boolean",
+          "description": "true = hand-constructed fixture asserting a recall floor on a specific rule, not a real-world site. Excluded from real-world recall/precision metrics; kept as a separate must-catch floor."
+        },
         "groundTruth": {
           "type": "object",
           "required": ["status", "trafficClass", "evidence"],

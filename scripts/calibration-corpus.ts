@@ -666,18 +666,25 @@ async function mainNormal(): Promise<void> {
 
   printCalibration(scorecard.confusion, scorecard.calibration, "full corpus");
 
-  // Addressable ceiling: exclude the structurally-undetectable parasites (their
-  // policy violation lives off-page and an on-page audit cannot see it). This is
-  // the fair measure of what the on-page score CAN do.
-  const offPageOnly = new Set(
-    corpus.sites.filter((s) => s.detectability === "off-page-only").map((s) => s.url),
+  // Addressable recall: the fair measure of what an on-page score CAN do.
+  // Exclude (a) off-page-only parasites — the violation lives in the host
+  // relationship, invisible to an on-page audit by construction — and (b)
+  // synthetic fixtures — catching a hand-built doorway proves the rule fires,
+  // not that the engine tracks reality. Raw recall over all labelled sites
+  // blends these together and understates the true addressable performance.
+  const excluded = new Set(
+    corpus.sites
+      .filter((s) => s.detectability === "off-page-only" || s.synthetic === true)
+      .map((s) => s.url),
   );
-  const detectableRows = rows.filter((r) => !offPageOnly.has(r.url));
-  if (offPageOnly.size > 0) {
+  const addressableRows = rows.filter((r) => !excluded.has(r.url));
+  if (excluded.size > 0) {
+    const offPage = corpus.sites.filter((s) => s.detectability === "off-page-only").length;
+    const synthetic = corpus.sites.filter((s) => s.synthetic === true).length;
     printCalibration(
-      confusionMatrix(detectableRows),
-      calibrationMetrics(detectableRows),
-      `detectable subset — ${offPageOnly.size} off-page-only parasites excluded`,
+      confusionMatrix(addressableRows),
+      calibrationMetrics(addressableRows),
+      `addressable subset — ${offPage} off-page-only + ${synthetic} synthetic excluded`,
     );
   }
 

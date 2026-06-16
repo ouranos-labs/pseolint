@@ -40,6 +40,13 @@ export interface CorpusSite {
    * from the structurally-undetectable cases.
    */
   detectability?: "on-page" | "off-page-only";
+  /**
+   * `true` for hand-constructed fixtures (e.g. doorwayspam.example) that exist
+   * to assert a recall floor on a specific rule, NOT real-world sites. Synthetic
+   * sites are excluded from real-world recall/precision — catching one proves the
+   * rule fires, not that the engine tracks reality — but kept as a must-catch floor.
+   */
+  synthetic?: boolean;
   groundTruth: {
     status: Status;
     trafficClass: TrafficClass;
