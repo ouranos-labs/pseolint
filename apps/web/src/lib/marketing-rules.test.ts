@@ -180,18 +180,17 @@ describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
     expect(hits, `thin-content fired on rule pages:\n${describeFindings(hits)}`).toEqual([]);
   });
 
-  // content/unique-value is corpus-relative: it counts words that appear on NO
-  // other audited page. We hold every reference page to the engine's PRODUCTION
-  // floor (100 page-unique words) across the full rules+symptoms+tools corpus —
-  // the same bar a live audit applies. The per-page Sources notes (annotated
-  // bibliography, page-specific) are the main lever that carries each tightly
-  // adjacent glossary page over the line without boilerplate. A genuinely
-  // near-duplicate / entity-swapped page falls far below 100 and would fail here.
-  it("no reference page is thin on unique value (>= 100 page-unique words, full corpus)", () => {
-    const findings = uniqueValueRule(corpus, 100);
+  // content/unique-value is now a rarity DENSITY (normalized-IDF average), not an
+  // absolute count — corpus-size- and length-robust, so it no longer shuffles on
+  // a one-word margin. We hold every reference page above the engine's default
+  // passBelow floor across the full rules+symptoms+tools corpus. A genuinely
+  // near-duplicate / entity-swapped page scores far below and would fail here.
+  // Keep these thresholds in sync with DEFAULTS.uniqueValueDensity in the engine.
+  it("no reference page has low unique-content density (full corpus)", () => {
+    const findings = uniqueValueRule(corpus, { passBelow: 0.2, errorBelow: 0.12 });
     expect(
       findings,
-      `unique-value (<100) fired on reference pages:\n${describeFindings(findings)}`,
+      `unique-value (low density) fired on reference pages:\n${describeFindings(findings)}`,
     ).toEqual([]);
   });
 
