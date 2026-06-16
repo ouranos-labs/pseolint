@@ -75,6 +75,19 @@ describe("schema/consistency", () => {
     expect(findings[0].relatedUrls).toContain(b.url);
   });
 
+  test("no finding when every page emits the SAME multi-type set (regression: pseolint.dev FP)", () => {
+    // Each page legitimately carries Article + FAQPage + Organization blocks. The
+    // union has 3 types but every page's SET is identical → not an inconsistency.
+    const multi = [
+      { "@context": "https://schema.org", "@type": "TechArticle" },
+      { "@context": "https://schema.org", "@type": "FAQPage" },
+      { "@context": "https://schema.org", "@type": "Organization" },
+    ];
+    const a = page("https://example.dev/rules/x", { structureSignature: "sig-rule", jsonLd: multi });
+    const b = page("https://example.dev/rules/y", { structureSignature: "sig-rule", jsonLd: multi });
+    expect(schemaConsistencyRule([a, b])).toHaveLength(0);
+  });
+
   test("no finding when all pages use the same type", () => {
     const a = page("https://example.dev/a", {
       jsonLd: [{ "@context": "https://schema.org", "@type": "Article" }]

@@ -33,30 +33,33 @@ export function schemaConsistencyRule(pages: ParsedPage[]): RuleResult[] {
     clustersBySignature.get(sig)!.push({ url: page.url, types });
   }
 
-  // Within each cluster of ≥2 pages, check whether all pages use the same @type set.
+  // Within each cluster of ≥2 pages, fire only when pages carry DIFFERENT @type
+  // SETS. A single page legitimately emits several JSON-LD blocks (e.g. Article +
+  // FAQPage + Organization) — that multi-type set is not an inconsistency. The
+  // problem is two pages on the SAME template disagreeing on their type set
+  // (e.g. one Article, one NewsArticle). Comparing per-page set signatures (not
+  // the union) avoids the false positive where every page shares the same set.
+  const setSignature = (types: Set<string>): string => Array.from(types).sort().join("+");
   for (const members of clustersBySignature.values()) {
     if (members.length < 2) {
       continue;
     }
 
-    const allTypesInCluster = new Set<string>();
-    for (const { types } of members) {
-      for (const t of types) {
-        allTypesInCluster.add(t);
-      }
+    const distinctSetSignatures = new Set(members.map((m) => setSignature(m.types)));
+    if (distinctSetSignatures.size <= 1) {
+      continue; // all pages in this template cluster agree on their @type set
     }
 
-    if (allTypesInCluster.size <= 1) {
-      continue;
-    }
-
-    const typeList = Array.from(allTypesInCluster).sort().join(", ");
+    const variants = Array.from(distinctSetSignatures)
+      .sort()
+      .map((s) => `[${s.split("+").join(", ")}]`)
+      .join(" vs ");
     findings.push({
       ruleId: "schema/consistency",
       severity: "info",
-      message: `Template pages use mixed schema types (${typeList}). Consider using a consistent @type across template pages.`,
+      message: `Template pages disagree on schema @type (${variants}). Use a consistent @type across pages that share the same template structure.`,
       relatedUrls: members.map((m) => m.url),
-      fix: `Use a consistent @type across all pages that share the same template structure.`
+      fix: `Use a consistent @type (or set of @types) across all pages that share the same template structure.`
     });
   }
 
