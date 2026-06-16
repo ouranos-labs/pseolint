@@ -128,6 +128,18 @@ export default function AbusePage() {
         </p>
       </Section>
 
+      <Section title="A concrete case">
+        <p>
+          The owner of Caldecott Stoneworks emailed from the domain&apos;s verified DNS contact
+          asking that pseolint stop crawling caldecott-stoneworks.example after a staging
+          migration left half the catalog returning placeholder pages. The blocklist entry was
+          added within one business day; every subsequent audit of that host returned a 403
+          before any fetch, for every plan including Pro. A follow-up request seven weeks later,
+          re-verified from the same TXT record, lifted the block cleanly. No audit bodies,
+          thumbnails, or derived scores were retained for the domain while it was blocked.
+        </p>
+      </Section>
+
       <SourcesSection
         sources={[
           {

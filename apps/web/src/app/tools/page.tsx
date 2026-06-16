@@ -382,6 +382,17 @@ export default function ToolsIndexPage() {
         straight to the template responsible rather than to hundreds of individual URLs.
       </p>
 
+      <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+        A worked example: Halverwood Cabinetry pointed all three tools at its 2,100-page{" "}
+        <code className="font-mono text-xs">/cabinet/&#123;wood&#125;-&#123;finish&#125;</code> catalog. The
+        SpamBrain checker returned a domain risk of 57; the thin-content scanner isolated 612
+        pages under the 300-word floor with a median body of 188 words; the doorway-page
+        detector clustered 140 URLs at a 0.90 SimHash and flagged the shared quote-request
+        funnel they all pointed to. Operator Renske Adelaar rebuilt the worst template with
+        per-finish drying times, a measured hardness rating, and a price band, and a re-run two
+        weeks later dropped the domain risk to 24.
+      </p>
+
       <SourcesSection
         sources={[
           {

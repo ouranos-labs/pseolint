@@ -280,6 +280,17 @@ export default function SymptomsIndexPage() {
         generic checklist, so you know which template to fix before you touch any code.
       </p>
 
+      <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+        A worked example of the flow: Brindlemoor Outfitters watched 4,400{" "}
+        <code className="font-mono text-xs">/trail/&#123;park&#125;-&#123;gear&#125;</code> pages slide the
+        week a core update finished. The index moved the operator from the &quot;rankings gone,
+        money pages intact&quot; observation to the doorway and scaled-content branches; the
+        follow-up audit surfaced a 0.91 near-duplicate cluster and 1,900 sub-300-word bodies.
+        Analyst Wim Tohatchi consolidated the grid into 60 park hubs carrying ranger-verified
+        elevation and permit data, and the bulk-deindexing symptom reversed across the next two
+        crawl cycles.
+      </p>
+
       <SourcesSection
         sources={[
           {
