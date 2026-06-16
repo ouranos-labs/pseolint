@@ -1,6 +1,6 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
-const EEAT_HTML_PATTERNS = [
+const EEAT_TEXT_PATTERNS = [
   /last\s+updated/i,
   /last\s+modified/i,
   /reviewed\s+by/i,
@@ -8,23 +8,47 @@ const EEAT_HTML_PATTERNS = [
   /\breferences:/i
 ];
 
-function countSignalCategories(page: ParsedPage): number {
+/**
+ * Count how many of the 4 E-E-A-T signal categories the page satisfies.
+ *
+ * Categories:
+ *  1. About-page link — a same-host href containing /about
+ *  2. Author identity — any authorSignals field present
+ *  3. Published date — page.publishedDate set
+ *  4. Transparency text — "sources:", "references:", "last updated", etc.
+ *     in page.contentText (NOT raw HTML, to avoid footer/JS false positives)
+ *
+ * Exported so value-add can reuse this without duplicating logic.
+ */
+export function countSignalCategories(page: ParsedPage): number {
   let count = 0;
 
-  if (page.resolvedHrefs.some((href) => /\/about\b/i.test(href))) {
+  // 1. About-page: same-host link with /about in the path
+  const pageHost = (() => {
+    try { return new URL(page.url).host; } catch { return ""; }
+  })();
+  if (page.resolvedHrefs.some((href) => {
+    try {
+      const u = new URL(href);
+      return u.host === pageHost && /\/about\b/i.test(u.pathname);
+    } catch { return false; }
+  })) {
     count += 1;
   }
 
+  // 2. Author identity
   const { metaAuthor, schemaAuthor, bylineElement, relAuthorLink } = page.authorSignals;
   if (metaAuthor !== "" || schemaAuthor || bylineElement || relAuthorLink) {
     count += 1;
   }
 
+  // 3. Published date
   if (page.publishedDate) {
     count += 1;
   }
 
-  if (EEAT_HTML_PATTERNS.some((pattern) => pattern.test(page.html))) {
+  // 4. Transparency text — check contentText (parsed visible text), not raw HTML
+  if (EEAT_TEXT_PATTERNS.some((pattern) => pattern.test(page.contentText))) {
     count += 1;
   }
 

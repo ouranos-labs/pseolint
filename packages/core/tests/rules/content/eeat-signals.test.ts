@@ -49,40 +49,40 @@ describe("eeatSignalsRule", () => {
     expect(findings).toHaveLength(0);
   });
 
-  test("counts last-updated HTML pattern as a signal", () => {
+  test("counts last-updated contentText pattern as a signal", () => {
     const findings = eeatSignalsRule([
       page("https://example.com/q", {
-        html: "<p>Last Updated: March 2024</p>",
+        contentText: "Last Updated: March 2024",
         publishedDate: "2024-03-01"
       })
     ]);
     expect(findings).toHaveLength(0);
   });
 
-  test("counts reviewed-by HTML pattern as a signal", () => {
+  test("counts reviewed-by contentText pattern as a signal", () => {
     const findings = eeatSignalsRule([
       page("https://example.com/r", {
-        html: "<span>Reviewed by Dr. Smith</span>",
+        contentText: "Reviewed by Dr. Smith",
         authorSignals: { metaAuthor: "Author", schemaAuthor: false, bylineElement: false, relAuthorLink: false }
       })
     ]);
     expect(findings).toHaveLength(0);
   });
 
-  test("counts sources: HTML pattern as a signal", () => {
+  test("counts sources: contentText pattern as a signal", () => {
     const findings = eeatSignalsRule([
       page("https://example.com/s", {
-        html: "<h2>Sources:</h2><ul><li>CDC</li></ul>",
+        contentText: "Sources: CDC, WHO",
         publishedDate: "2024-01-01"
       })
     ]);
     expect(findings).toHaveLength(0);
   });
 
-  test("counts references: HTML pattern as a signal", () => {
+  test("counts references: contentText pattern as a signal", () => {
     const findings = eeatSignalsRule([
       page("https://example.com/t", {
-        html: "<h3>References:</h3>",
+        contentText: "References:",
         resolvedHrefs: ["https://example.com/about"]
       })
     ]);
@@ -104,9 +104,51 @@ describe("eeatSignalsRule", () => {
         authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
         resolvedHrefs: ["https://example.com/about"],
         publishedDate: "2024-01-01",
-        html: "<p>Last modified: Jan 2024</p> <h2>Sources:</h2>"
+        contentText: "Last modified: Jan 2024 Sources:"
       })
     ]);
+    expect(findings).toHaveLength(0);
+  });
+
+  // -------------------------------------------------------------------------
+  // NEW: scope signals to content, not raw HTML
+  // -------------------------------------------------------------------------
+
+  test("'last updated' only in footer/JS raw HTML (not contentText) — does NOT count as signal", () => {
+    // The raw HTML has "last updated" in a JS var and footer, but contentText is empty.
+    // After the fix (check contentText not html), this should NOT get the pattern credit.
+    const findings = eeatSignalsRule([
+      page("https://example.com/footer-only", {
+        html: '<script>var lastUpdated = "2024-01-01";</script><footer>Last modified: Jan 2024</footer>',
+        contentText: "",  // no main content text
+        publishedDate: "2024-03-01"  // provides 1 signal (publishedDate)
+      })
+    ]);
+    // Only publishedDate counts => 1 signal < 2 => should flag
+    expect(findings).toHaveLength(1);
+  });
+
+  test("outbound /about link to a different host does NOT count as the page's own about link", () => {
+    // An outbound link to https://otherdomain.com/about should NOT trigger the about-page signal
+    // for a page on https://example.com/. Only same-host /about links count.
+    const findings = eeatSignalsRule([
+      page("https://example.com/page", {
+        resolvedHrefs: ["https://otherdomain.com/about"],
+        publishedDate: "2024-01-01"
+      })
+    ]);
+    // Only publishedDate counts => 1 signal < 2 => should flag
+    expect(findings).toHaveLength(1);
+  });
+
+  test("same-host /about link counts as about-page signal", () => {
+    const findings = eeatSignalsRule([
+      page("https://example.com/page", {
+        resolvedHrefs: ["https://example.com/about"],
+        publishedDate: "2024-01-01"
+      })
+    ]);
+    // 2 signals (about + publishedDate) => passes
     expect(findings).toHaveLength(0);
   });
 });

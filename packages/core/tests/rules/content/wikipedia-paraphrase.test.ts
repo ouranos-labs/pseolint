@@ -14,6 +14,9 @@ vi.mock("../../../src/algorithms/wikipedia-paraphrase.js", async (importOriginal
 import { wikipediaParaphraseRate } from "../../../src/algorithms/wikipedia-paraphrase.js";
 const mockRate = vi.mocked(wikipediaParaphraseRate);
 
+// Generates content long enough to pass the minimum-length guard (~200 trigrams).
+const LONG_TEXT = "word ".repeat(210).trim();
+
 function page(url: string, contentText: string, extra: Partial<ParsedPage> = {}): ParsedPage {
   return {
     url,
@@ -39,9 +42,9 @@ describe("wikipediaParaphraseRule", () => {
     mockRate.mockReset();
   });
 
-  test("page with verbatim Wikipedia content (rate >= 0.4) fires one warning", () => {
+  test("page with high trigram overlap (rate >= 0.55) fires one warning", () => {
     mockRate.mockReturnValue(0.72);
-    const findings = wikipediaParaphraseRule([page("https://example.com/history", "some content")]);
+    const findings = wikipediaParaphraseRule([page("https://example.com/history", LONG_TEXT)]);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].confidence).toBe("low");
@@ -50,21 +53,21 @@ describe("wikipediaParaphraseRule", () => {
     expect(findings[0].message).toContain("72.0%");
   });
 
-  test("page with original content (rate < 0.4) does not fire", () => {
+  test("page with low overlap (rate < 0.55) does not fire", () => {
     mockRate.mockReturnValue(0.15);
-    const findings = wikipediaParaphraseRule([page("https://example.com/rates", "original content")]);
+    const findings = wikipediaParaphraseRule([page("https://example.com/rates", LONG_TEXT)]);
     expect(findings).toHaveLength(0);
   });
 
-  test("threshold boundary: rate=0.39 does not fire", () => {
-    mockRate.mockReturnValue(0.39);
-    const findings = wikipediaParaphraseRule([page("https://example.com/page", "some text")]);
+  test("threshold boundary: rate=0.54 does not fire", () => {
+    mockRate.mockReturnValue(0.54);
+    const findings = wikipediaParaphraseRule([page("https://example.com/page", LONG_TEXT)]);
     expect(findings).toHaveLength(0);
   });
 
-  test("threshold boundary: rate=0.41 fires", () => {
-    mockRate.mockReturnValue(0.41);
-    const findings = wikipediaParaphraseRule([page("https://example.com/page", "some text")]);
+  test("threshold boundary: rate=0.56 fires", () => {
+    mockRate.mockReturnValue(0.56);
+    const findings = wikipediaParaphraseRule([page("https://example.com/page", LONG_TEXT)]);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
   });
@@ -85,17 +88,47 @@ describe("wikipediaParaphraseRule", () => {
       .mockReturnValueOnce(0.65) // page 1 fires
       .mockReturnValueOnce(0.20); // page 2 doesn't fire
     const findings = wikipediaParaphraseRule([
-      page("https://example.com/a", "content a"),
-      page("https://example.com/b", "content b"),
+      page("https://example.com/a", LONG_TEXT),
+      page("https://example.com/b", LONG_TEXT),
     ]);
     expect(findings).toHaveLength(1);
     expect(findings[0].pageUrl).toBe("https://example.com/a");
   });
 
   test("fix message mentions helpful-content and SpamBrain", () => {
-    mockRate.mockReturnValue(0.5);
-    const findings = wikipediaParaphraseRule([page("https://example.com/p", "text")]);
+    mockRate.mockReturnValue(0.6);
+    const findings = wikipediaParaphraseRule([page("https://example.com/p", LONG_TEXT)]);
     expect(findings[0].fix).toContain("SpamBrain");
     expect(findings[0].fix).toContain("helpful-content");
+  });
+
+  // --- FP-reduction tests (new behaviour) ---
+
+  test("(a) short page (~40 words) does NOT fire even when bloom rate exceeds old threshold", () => {
+    // ~40 words → ~38 trigrams — below the minimum-length guard; bloom is never
+    // consulted for such pages (mockRate should not be called).
+    const shortText = "word ".repeat(40).trim();
+    const findings = wikipediaParaphraseRule([page("https://example.com/short", shortText)]);
+    expect(findings).toHaveLength(0);
+    expect(mockRate).not.toHaveBeenCalled();
+  });
+
+  test("(b) long page with >=55% overlap still fires at warning/low confidence", () => {
+    mockRate.mockReturnValue(0.58);
+    const findings = wikipediaParaphraseRule([page("https://example.com/long-overlap", LONG_TEXT)]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+    expect(findings[0].confidence).toBe("low");
+  });
+
+  test("(c) message uses corpus-overlap language, not plagiarism assertion", () => {
+    mockRate.mockReturnValue(0.60);
+    const findings = wikipediaParaphraseRule([page("https://example.com/overlap", LONG_TEXT)]);
+    expect(findings).toHaveLength(1);
+    // Must NOT assert plagiarism
+    expect(findings[0].message.toLowerCase()).not.toContain("plagiar");
+    // Must describe trigram overlap with a bundled corpus
+    expect(findings[0].message.toLowerCase()).toMatch(/trigram overlap/);
+    expect(findings[0].message.toLowerCase()).toMatch(/corpus/);
   });
 });

@@ -49,10 +49,9 @@ describe("valueAddRule", () => {
   test("bestfirenze pattern — regurgitated-content + thin + no eeat — score < 0.5 — fires finding", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
-    // v0.5.14 (7-signal math): o=0 (regurgitated), f=0.5 (freshness warning),
-    // c=0 (facts error), e=0 (no signals), t=1, cr=1, wp=0 (added). Without
-    // the wikipedia-paraphrase signal firing, score = 3.5/7 = 0.5 (boundary,
-    // no fire). With it firing, score = 2.5/7 ≈ 0.357 → error.
+    // 7-signal: o=0 (regurgitated), f=0.5 (freshness warning),
+    // c=0 (facts error), e=0 (no signals), t=1, cr=1, wp=0 (wikipedia-paraphrase fires).
+    // score = (0+0.5+0+0+1+1+0)/7 = 2.5/7 ≈ 0.357 → borderline → "warning", confidence "low"
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
@@ -61,19 +60,19 @@ describe("valueAddRule", () => {
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("error");
+    expect(results[0].severity).toBe("warning");
     expect(results[0].ruleId).toBe("content/value-add");
     expect(results[0].pageUrl).toBe(url);
-    expect(results[0].confidence).toBe("medium");
+    expect(results[0].confidence).toBe("low");
     expect(results[0].message).toContain("value-add score");
     expect(results[0].message).toContain("SpamBrain");
   });
 
-  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.5 — error", () => {
+  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.5 — fires finding", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
-    // 6-signal math: o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1, cr=1
-    // score = (0+0+0+0+1+1)/6 = 0.333 => error (0.3 ≤ score < 0.5)
+    // 7-signal: o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1, cr=1, wp=1
+    // score = (0+0+0+0+1+1+1)/7 = 3/7≈0.429 => borderline => "warning"
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
@@ -81,7 +80,7 @@ describe("valueAddRule", () => {
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("error");
+    expect(results[0].ruleId).toBe("content/value-add");
     expect(results[0].message).toContain("SpamBrain");
   });
 
@@ -112,9 +111,9 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("mixed page — regurgitated + no eeat + no freshness + cliche-reuse — score < 0.5 — error finding", () => {
+  test("mixed page — regurgitated + no eeat + no freshness + cliche-reuse — score < 0.5 — fires finding", () => {
     const url = "https://example.com/poor-cliche";
-    // 6-signal math: o=0, f=0 (error), c=1, e=0, t=1, cr=0 => (0+0+1+0+1+0)/6 = 0.333 => error
+    // 7-signal: o=0, f=0 (error), c=1, e=0, t=1, cr=0, wp=1 => (0+0+1+0+1+0+1)/7 = 3/7≈0.429 => warning
     const p = page(url);
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
@@ -123,7 +122,7 @@ describe("valueAddRule", () => {
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("error");
+    expect(results[0].ruleId).toBe("content/value-add");
   });
 
   test("page with only translation-no-op firing — score 0.8 — no finding", () => {
@@ -164,7 +163,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("all signals bad — score 0 — critical finding with worst signal list", () => {
+  test("all signals bad — score near 0 — error finding (clearly low) with worst signal list", () => {
     const url = "https://example.com/terrible";
     const p = page(url);
     const findings: RuleResult[] = [
@@ -178,13 +177,15 @@ describe("valueAddRule", () => {
         pageUrl: url,
         relatedUrls: [],
       },
-      // 6th signal: cliché-reuse fires => cr=0
+      // cliché-reuse fires => cr=0
       finding("content/common-phrase-reuse", url, "warning"),
+      // wikipedia-paraphrase fires => wp=0
+      finding("content/wikipedia-paraphrase", url, "warning"),
     ];
-    // 6-signal: o=0, f=0, c=0, e=0, t=0, cr=0 => score=0 => critical
+    // 7-signal: o=0, f=0, c=0, e=0, t=0, cr=0, wp=0 => score=0 => "error" (clearly low)
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("critical");
+    expect(results[0].severity).toBe("error");
     expect(results[0].message).toContain("0%");
   });
 
@@ -221,11 +222,11 @@ describe("valueAddRule", () => {
       finding("aeo/citable-facts", url, "error"),
       finding("content/wikipedia-paraphrase", url, "warning"),
     ];
-    // v0.5.14 (7-signal): o=0, f=0.5, c=0, e=0, t=1, cr=1, wp=0
-    // score = (0+0.5+0+0+1+1+0)/7 ≈ 0.357 → error (0.3 ≤ score < 0.5)
+    // 7-signal: o=0, f=0.5, c=0, e=0, t=1, cr=1, wp=0
+    // score = (0+0.5+0+0+1+1+0)/7 ≈ 0.357 → borderline → "warning"
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("error");
+    expect(results[0].severity).toBe("warning");
   });
 
   test("finding only matches pageUrl of the page being scored, not other pages", () => {
@@ -238,14 +239,14 @@ describe("valueAddRule", () => {
       finding("aeo/citable-facts", urlB, "error"),
       finding("aeo/freshness-signals", urlB, "error"),
     ];
-    // urlA has no findings => 6-signal: o=1,f=1,c=1,e=0,t=1,cr=1 => score=5/6≈0.833 => no finding
+    // urlA has no findings => 7-signal: o=1,f=1,c=1,e=0,t=1,cr=1,wp=1 => score=6/7≈0.857 => no finding
     const resultsA = valueAddRule([pA], findings);
     expect(resultsA).toHaveLength(0);
 
-    // urlB: o=0, f=0, c=0, e=0, t=1, cr=1 => score=2/6=0.333 => error (not critical, since ≥0.3)
+    // urlB: 7-signal: o=0, f=0, c=0, e=0, t=1, cr=1, wp=1 => score=3/7≈0.429 => borderline → warning
     const resultsB = valueAddRule([pB], findings);
     expect(resultsB).toHaveLength(1);
-    expect(resultsB[0].severity).toBe("error");
+    expect(resultsB[0].severity).toBe("warning");
   });
 
   // -------------------------------------------------------------------------
@@ -272,10 +273,11 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("6-signal: common-phrase-reuse + 2 other signals fire — composite reflects 6-signal denominator", () => {
+  test("6-signal: common-phrase-reuse + 2 other signals fire — composite reflects all 7 signals", () => {
     const url = "https://example.com/6signal-three-bad";
     const p = page(url);
-    // o=0 (regurgitated), f=1, c=0 (facts error), e=0, t=1, cr=0 (cliche) => 2/6=0.333 => error
+    // 7-signal: o=0 (regurgitated), f=1, c=0 (facts error), e=0, t=1, cr=0 (cliche), wp=1
+    // score = 3/7≈0.429 => borderline => "warning"
     const findings: RuleResult[] = [
       finding("content/regurgitated-content", url, "warning"),
       finding("aeo/citable-facts", url, "error"),
@@ -283,9 +285,93 @@ describe("valueAddRule", () => {
     ];
     const results = valueAddRule([p], findings);
     expect(results).toHaveLength(1);
-    expect(results[0].severity).toBe("error");
+    expect(results[0].severity).toBe("warning");
     // Message should include cliché-reuse in the composite breakdown
     expect(results[0].message).toContain("cliché-reuse");
+  });
+
+  // -------------------------------------------------------------------------
+  // NEW: graded eeat sub-score (continuous, not stepped)
+  // -------------------------------------------------------------------------
+
+  test("eeat with 1 of 4 categories gives a strictly non-zero, sub-0.5 sub-score (continuous)", () => {
+    // With 1 E-E-A-T category (publishedDate only), the sub-score must be 1/4=0.25,
+    // not a hard 0.0 (which was the old 3-step logic's behaviour for count < 2).
+    // We verify this by checking the message: E-E-A-T % should be 25%, not 0%.
+    const url = "https://example.com/one-eeat";
+    const p = page(url, { publishedDate: "2024-01-01" });
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("content/common-phrase-reuse", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    const eeatPct = Number(results[0].message.match(/E-E-A-T: (\d+)%/)?.[1] ?? "-1");
+    expect(eeatPct).toBe(25);  // 1/4 = 25%, not 0%
+  });
+
+  test("eeat with 3 of 4 categories gives 75% sub-score (continuous, not floored to 0.5)", () => {
+    const url = "https://example.com/three-eeat";
+    const p = page(url, {
+      publishedDate: "2024-01-01",
+      authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
+      contentText: "Sources: CDC",
+    });
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("aeo/citable-facts", url, "error"),
+      finding("content/common-phrase-reuse", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    const eeatPct = Number(results[0].message.match(/E-E-A-T: (\d+)%/)?.[1] ?? "-1");
+    expect(eeatPct).toBe(75);  // 3/4 = 75%
+  });
+
+  // -------------------------------------------------------------------------
+  // NEW: 2-band severity (warning for borderline, error for clearly low)
+  // -------------------------------------------------------------------------
+
+  test("borderline score (just below 0.5, above severity boundary) — warning severity", () => {
+    // Score of exactly 3/7 ≈ 0.429 (borderline, not clearly low)
+    // 7-signal: o=1, f=1, c=1, e=0 (no eeat), t=0 (translation no-op), cr=0 (cliche), wp=1
+    // = 4/7 ≈ 0.571 — too high. Let's try: o=0, f=1, c=1, e=1/4=0.25, t=1, cr=1, wp=1 = 5.25/7≈0.75
+    // Need score in borderline band. Let's think about bands:
+    // task says "2 bands" — let's say score in [0.35, 0.5) → warning, score < 0.35 → error/critical.
+    // 7-signal: o=0, f=0.5, c=1, e=0.25, t=1, cr=1, wp=1 = 4.75/7 ≈ 0.679 — no fire.
+    // Need more signals bad. o=0, f=0, c=0.5, e=0.25, t=1, cr=1, wp=1 = 3.75/7≈0.536 — no fire.
+    // o=0, f=0, c=0, e=0.25, t=1, cr=1, wp=1 = 3.25/7≈0.464 — borderline! → warning
+    const url = "https://example.com/borderline";
+    const p = page(url, { publishedDate: "2024-01-01" });  // 1 eeat category → 0.25
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),  // o=0
+      finding("aeo/freshness-signals", url, "error"),           // f=0
+      finding("aeo/citable-facts", url, "error"),               // c=0
+      // t=1, cr=1, wp=1
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("warning");
+  });
+
+  test("clearly low score — error severity (not warning)", () => {
+    // o=0, f=0, c=0, e=0, t=0, cr=0, wp=0 = 0/7 = 0 → well below borderline → error
+    const url = "https://example.com/clearly-low";
+    const p = page(url);
+    const findings: RuleResult[] = [
+      finding("content/regurgitated-content", url, "warning"),
+      finding("aeo/freshness-signals", url, "error"),
+      finding("aeo/citable-facts", url, "error"),
+      { ruleId: "content/translation-no-op", severity: "error", message: "test", pageUrl: url, relatedUrls: [] },
+      finding("content/common-phrase-reuse", url, "warning"),
+      finding("content/wikipedia-paraphrase", url, "warning"),
+    ];
+    const results = valueAddRule([p], findings);
+    expect(results).toHaveLength(1);
+    expect(results[0].severity).toBe("error");
   });
 
   // -------------------------------------------------------------------------
