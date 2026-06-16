@@ -15,7 +15,7 @@
   "background": {
     "service_worker": "dist/background.js"
   },
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab"],
   "host_permissions": ["https://www.google.com/search*"],
   "optional_host_permissions": ["https://*/*"],
   "content_scripts": [
