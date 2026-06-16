@@ -3,11 +3,23 @@
   "name": "pseolint",
   "version": "0.0.0",
   "description": "Template-level pSEO failure signals on the live SERP.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "pseolint — scan results"
+  },
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "dist/background.js"
   },
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["https://www.google.com/search*"],
+  "optional_host_permissions": ["https://*/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/search*"],
+      "js": ["dist/serp.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'none'"
   }

@@ -1,6 +1,6 @@
 # pseolint Browser Extension — Architecture
 
-**Package:** `packages/extension`
+**Location:** `apps/extension` (a workspace app — own UI/runtime/release channel, like `apps/web`; see §4)
 **Status:** Design — not yet implemented
 **License:** MIT (client) / hosted analysis remains AGPL-3.0 behind `apps/web`
 **Author intent:** Top-of-funnel acquisition surface, *not* a replacement for the CLI or SaaS.
@@ -38,7 +38,7 @@ The **SERP overlay** is the wedge: health badges drawn directly onto Google resu
 ## 3. Component model
 
 ```
-packages/extension/
+apps/extension/
 ├── manifest.json              # MV3, least-privilege (see §7)
 ├── src/
 │   ├── background/            # Service worker — orchestration only, no DOM
@@ -73,7 +73,7 @@ Rationale, in priority order:
 
 - **Security posture demands it.** §9 commits to pinning and minimising dependencies because every package in the bundle runs in users' *authenticated browsers under your name*. A UI framework is exactly the dependency that argument rejects. Adding React to a content script would contradict the security thesis the rest of this document rests on.
 - **The work doesn't need it.** The overlay is a handful of shadow-DOM badges built with `textContent` (§8) — tens of lines of DOM construction. There is no reconciliation, routing, or complex client state in the injected surface. A framework would be pure bundle weight and pure attack surface for zero functional gain.
-- **It matches the monorepo.** The repo is TypeScript-first, built with **Bun + Turbo** as a workspace. `packages/extension` is plain TS that slots into that toolchain with no new paradigm. The Tier-1 rules import directly from `@pseolint/core` (§6) — same language, same build, one rule implementation.
+- **It matches the monorepo.** The repo is TypeScript-first, built with **Bun + Turbo** as a workspace. `apps/extension` is plain JS/TS that slots into that toolchain with no new paradigm. The Tier-1 rules import directly from `@pseolint/core` (§6) — same language, same build, one rule implementation.
 - **Fail-closed rendering is simpler without a framework.** §8 requires the overlay to render nothing rather than guess when SERP layout is unrecognised. Imperative DOM construction makes "do nothing" trivial; a declarative framework adds a lifecycle you'd have to fight to get the same guarantee.
 
 ### The one sanctioned exception
@@ -232,7 +232,7 @@ A privileged extension with auto-update is a prime target; the documented attack
 
 - **Chrome Web Store account on hardware-key (FIDO2) 2FA.** Not TOTP, not SMS. This account is the crown jewel.
 - **Publish only from locked CI**, never from a laptop. Reproducible, signed builds; the diff between the source tag and the shipped bundle must be verifiable. Extends the existing `.github/workflows` + changesets pipeline.
-- **Pin and minimise dependencies.** Every package in the bundle runs in users' authenticated browsers under your name. Lockfile committed; CVE scanning (Dependabot/Snyk) scoped to `packages/extension`.
+- **Pin and minimise dependencies.** Every package in the bundle runs in users' authenticated browsers under your name. Lockfile committed; CVE scanning (Dependabot/Snyk) scoped to `apps/extension`.
 - **Write the credential-compromise runbook before launch:** how to pull the listing, notify users, roll a clean build. Having it pre-written is the difference between an incident and a catastrophe.
 
 ---
