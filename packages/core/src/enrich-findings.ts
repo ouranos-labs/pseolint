@@ -208,12 +208,14 @@ function groupableRuleMessage(ruleId: string, count: number): string {
 }
 
 function extractSortKey(ruleId: string, message: string): number {
+  // For unique-value: lower density = worse → sort ascending (lower first = worst first).
+  if (ruleId === "content/unique-value") {
+    const m = message.match(/density (\d+\.\d+)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
   const match = message.match(/\d+/);
   const num = match ? parseInt(match[0], 10) : 0;
-  // For unique-value: fewer unique words = worse = lower number → sort ascending (lower first = worst first)
-  // For link-depth: deeper = worse = higher number → sort descending (higher first = worst first)
-  // For others: no meaningful sort, return 0
-  if (ruleId === "content/unique-value") return num;
+  // For link-depth: deeper = worse = higher number → sort descending (higher first = worst first).
   if (ruleId === "links/link-depth") return -num;
   return 0;
 }
@@ -229,9 +231,9 @@ function buildGroupSummaryMessage(ruleId: string, count: number, worstFinding: R
 
 function extractWorstDetail(ruleId: string, finding: RuleResult): string {
   if (ruleId === "content/unique-value") {
-    // message contains "has only N unique words"
-    const match = finding.message.match(/has only (\d+ unique words)/);
-    return match ? match[1] : "";
+    // message contains "...unique-content density 0.123..."
+    const match = finding.message.match(/density (\d+\.\d+)/);
+    return match ? `density ${match[1]}` : "";
   }
   if (ruleId === "links/link-depth") {
     // parse depth from message

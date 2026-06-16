@@ -261,9 +261,9 @@ describe("enrichFindings — per-page grouping", () => {
     const findings: RuleResult[] = Array.from({ length: 10 }, (_, i) => ({
       ruleId: "content/unique-value",
       severity: "error" as const,
-      message: `https://a.com/${i} has only ${50 + i} unique words (min 100).`,
+      message: `https://a.com/${i} has low unique-content density ${(0.05 + i * 0.01).toFixed(3)} (floor 0.20).`,
       pageUrl: `https://a.com/${i}`,
-      fix: `Add ${50 - i} more words of content not found on any other page.`,
+      fix: `Raise originality density: add page-specific text that appears on no other page.`,
       ref: "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
     }));
     const pages = Array.from({ length: 10 }, (_, i) => makePage(`https://a.com/${i}`));
@@ -279,7 +279,7 @@ describe("enrichFindings — per-page grouping", () => {
     const findings: RuleResult[] = Array.from({ length: 3 }, (_, i) => ({
       ruleId: "content/unique-value",
       severity: "error" as const,
-      message: `https://a.com/${i} has only ${50 + i} unique words (min 100).`,
+      message: `https://a.com/${i} has low unique-content density ${(0.05 + i * 0.01).toFixed(3)} (floor 0.20).`,
       pageUrl: `https://a.com/${i}`,
     }));
     const pages = Array.from({ length: 3 }, (_, i) => makePage(`https://a.com/${i}`));
@@ -288,19 +288,21 @@ describe("enrichFindings — per-page grouping", () => {
     expect(uvFindings).toHaveLength(3);
   });
 
-  it("selects the worst page (fewest unique words) for content/unique-value", () => {
-    const findings: RuleResult[] = Array.from({ length: 5 }, (_, i) => ({
+  it("selects the worst page (lowest density) for content/unique-value", () => {
+    // Lowest density is at index 3 (not first in input) so a broken sort key fails.
+    const densities = [0.18, 0.15, 0.12, 0.05, 0.16];
+    const findings: RuleResult[] = densities.map((d, i) => ({
       ruleId: "content/unique-value",
       severity: "error" as const,
-      message: `https://a.com/${i} has only ${60 + i * 5} unique words (min 100).`,
+      message: `https://a.com/${i} has low unique-content density ${d.toFixed(3)} (floor 0.20).`,
       pageUrl: `https://a.com/${i}`,
     }));
     const pages = Array.from({ length: 5 }, (_, i) => makePage(`https://a.com/${i}`));
     const result = enrichFindings(findings, pages);
     const uvFindings = result.findings.filter((f) => f.ruleId === "content/unique-value");
     expect(uvFindings).toHaveLength(1);
-    // Worst = fewest unique words = index 0 (60 words)
-    expect(uvFindings[0].pageUrl).toBe("https://a.com/0");
+    // Worst = lowest density = index 3
+    expect(uvFindings[0].pageUrl).toBe("https://a.com/3");
   });
 
   it("groups links/orphan-pages findings when more than 3", () => {
