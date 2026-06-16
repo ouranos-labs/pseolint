@@ -56,7 +56,9 @@
           "properties": {
             "status": { "type": "string", "enum": ["winning", "stable", "declining", "penalized", "deindexed"] },
             "trafficClass": { "type": "string", "enum": ["very-high", "high", "medium", "low"] },
-            "evidence": { "type": "string" }
+            "evidence": { "type": "string" },
+            "source": { "type": "string", "description": "URL backing the evidence (traffic study, SEO case study, enforcement list)." },
+            "asOf": { "type": "string", "description": "ISO date the label was last verified. Labels decay; re-verify periodically." }
           }
         },
         "samplingHint": {

@@ -51,6 +51,10 @@ export interface CorpusSite {
     status: Status;
     trafficClass: TrafficClass;
     evidence: string;
+    /** URL backing the evidence (traffic study, SEO case study, enforcement list). */
+    source?: string;
+    /** ISO date the label was last verified — labels decay; re-verify periodically. */
+    asOf?: string;
   };
   samplingHint?: { sampleSize?: number; noRender?: boolean };
   pinnedUrls?: string[];
