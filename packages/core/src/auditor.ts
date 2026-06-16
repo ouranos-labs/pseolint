@@ -2708,7 +2708,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   // Site-wide rules (run once, outside group loop)
   if (sitemapUrlSet && sitemapUrlSet.size > 0 && auditMode !== "diff") {
-    const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet);
+    const sitemapFindings = sitemapCompletenessRule(parsedPages, sitemapUrlSet, {
+      sampled: isSampledAudit,
+      normalizeUrlOptions,
+    });
     pushAll(allFindings,sitemapFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
 
     if (robotsTxtContent) {

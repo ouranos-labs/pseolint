@@ -30,7 +30,7 @@ describe("sitemapCompletenessRule", () => {
 
     const missingFinding = findings.find((f) => f.message.includes("not in sitemap"));
     expect(missingFinding).toBeDefined();
-    expect(missingFinding!.severity).toBe("error");
+    expect(missingFinding!.severity).toBe("warning");
     expect(missingFinding!.ruleId).toBe("tech/sitemap-completeness");
     expect(missingFinding!.relatedUrls).toContain("https://example.com/b");
     expect(missingFinding!.relatedUrls).toContain("https://example.com/c");
@@ -176,5 +176,74 @@ describe("sitemapCompletenessRule", () => {
 
     // Should have a missing-from-sitemap finding but NOT a 404 finding
     expect(findings.every((f) => !f.message.includes("HTTP 404"))).toBe(true);
+  });
+
+  // FLAW 1: URL-normalization mismatch — page URLs are normalized (trailing slash
+  // stripped), but raw sitemap URLs keep their trailing slash → false "missing".
+  test("no false positive when sitemap uses trailing slashes but page URLs are normalized", () => {
+    // page.url is already normalized (no trailing slash), sitemap has trailing slash
+    const pages = [
+      page("https://example.com/a"),
+      page("https://example.com/b")
+    ];
+    const sitemapUrls = new Set([
+      "https://example.com/a/",
+      "https://example.com/b/"
+    ]);
+    const findings = sitemapCompletenessRule(pages, sitemapUrls);
+    const missingFinding = findings.find((f) => f.message.includes("not in sitemap"));
+    expect(missingFinding).toBeUndefined();
+  });
+
+  test("no false positive when sitemap URLs have query strings that pages have stripped", () => {
+    const pages = [page("https://example.com/product")];
+    const sitemapUrls = new Set(["https://example.com/product?ref=xml"]);
+    const findings = sitemapCompletenessRule(pages, sitemapUrls);
+    const missingFinding = findings.find((f) => f.message.includes("not in sitemap"));
+    expect(missingFinding).toBeUndefined();
+  });
+
+  // FLAW 2: severity should be "warning" (not "error") when sampled=true
+  test("missing-from-sitemap is warning on sampled crawl", () => {
+    const pages = [
+      page("https://example.com/a"),
+      page("https://example.com/b")
+    ];
+    const sitemapUrls = new Set(["https://example.com/a"]);
+    const findings = sitemapCompletenessRule(pages, sitemapUrls, { sampled: true });
+    const missingFinding = findings.find((f) => f.message.includes("not in sitemap"));
+    expect(missingFinding).toBeDefined();
+    expect(missingFinding!.severity).toBe("warning");
+  });
+
+  test("missing-from-sitemap is warning (not error) on non-sampled crawl", () => {
+    const pages = [
+      page("https://example.com/a"),
+      page("https://example.com/b")
+    ];
+    const sitemapUrls = new Set(["https://example.com/a"]);
+    const findings = sitemapCompletenessRule(pages, sitemapUrls);
+    const missingFinding = findings.find((f) => f.message.includes("not in sitemap"));
+    expect(missingFinding).toBeDefined();
+    expect(missingFinding!.severity).toBe("warning");
+  });
+
+  test("4xx-in-sitemap sub-check remains error regardless of sampled flag", () => {
+    const pages = [
+      page("https://example.com/gone", {
+        httpMeta: {
+          statusCode: 404,
+          finalUrl: "https://example.com/gone",
+          redirectChain: [],
+          xRobotsTag: "",
+          linkHeader: ""
+        }
+      })
+    ];
+    const sitemapUrls = new Set(["https://example.com/gone"]);
+    const findingsFull = sitemapCompletenessRule(pages, sitemapUrls, { sampled: false });
+    const findingsSampled = sitemapCompletenessRule(pages, sitemapUrls, { sampled: true });
+    expect(findingsFull.find((f) => f.message.includes("HTTP 404"))!.severity).toBe("error");
+    expect(findingsSampled.find((f) => f.message.includes("HTTP 404"))!.severity).toBe("error");
   });
 });
