@@ -52,7 +52,7 @@ describe("translationNoOpRule", () => {
     const findings = translationNoOpRule(pages);
     expect(findings).toHaveLength(1);
     expect(findings[0].ruleId).toBe("content/translation-no-op");
-    expect(findings[0].severity).toBe("error");
+    expect(findings[0].severity).toBe("warning");
     expect(findings[0].message).toContain("5 locale variants");
     expect(findings[0].message).toContain("/");
   });

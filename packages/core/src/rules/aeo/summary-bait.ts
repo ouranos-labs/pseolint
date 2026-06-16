@@ -138,9 +138,10 @@ export function summaryBaitRule(
 
     findings.push({
       ruleId: "aeo/summary-bait",
-      severity: "error",
-      // Always medium: this is a forecast — we measure what AI MIGHT do (cite without
-      // sending the click), not what it WILL do for any given page.
+      // Warning, not error: this is a forecast — we measure what AI MIGHT do (cite
+      // without sending the click), not what it WILL do for any given page. An
+      // error severity would overstate a probabilistic, page-shape signal.
+      severity: "warning",
       confidence: "medium",
       message:
         `${page.url} is optimized for summarization, not retention. ` +

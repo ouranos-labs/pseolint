@@ -38,7 +38,7 @@ describe("thinContentRule", () => {
     // Threshold 300, content 200 words → 200/300 = 66% → medium.
     const { findings } = thinContentRule([page("https://example.dev/a", words(200))], 300);
     expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe("error");
+    expect(findings[0].severity).toBe("warning");
     expect(findings[0].confidence).toBe("medium");
     // Medium-confidence finding includes the short-page-types caveat.
     expect(findings[0].message).toMatch(/legitimately short/i);

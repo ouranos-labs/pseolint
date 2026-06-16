@@ -96,7 +96,11 @@ export function translationNoOpRule(pages: ParsedPage[]): RuleResult[] {
 
     findings.push({
       ruleId: "content/translation-no-op",
-      severity: "error",
+      // Warning, not error: an untranslated locale variant is a real duplicate-
+      // content gap but a should-fix, not a ship-blocker — and multilingual sites
+      // can legitimately share some body text (disclaimers, spec tables).
+      severity: "warning",
+      confidence: "medium",
       message:
         `${members.length} locale variants of "${basePath}" share identical content ` +
         `(similarity ${simLabel}). Translate the body or consolidate to the canonical version.`,

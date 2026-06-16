@@ -37,7 +37,7 @@ describe("aeo/summary-bait", () => {
     const p = page("https://example.dev/ca-llc", { html, contentText: text });
     const findings = summaryBaitRule([p], STATE_MASK);
     expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe("error");
+    expect(findings[0].severity).toBe("warning");
     expect(findings[0].message).toMatch(/optimized for summarization/);
     // Summary-bait is always medium confidence — it's a forecast.
     expect(findings[0].confidence).toBe("medium");

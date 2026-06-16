@@ -29,7 +29,11 @@ export function thinContentRule(
 
     findings.push({
       ruleId: "spam/thin-content",
-      severity: "error",
+      // High confidence (far below the floor) is an error; the medium band — which
+      // the rule itself flags as "could legitimately be a short page" — is a
+      // warning, not a ship-blocker. The page still joins thinContentUrls either
+      // way so spam/doorway-pattern can stack on it.
+      severity: confidence === "high" ? "error" : "warning",
       confidence,
       message: `${page.url} has thin content (${words} words).${shortPageNote}`,
       fix: `Add at least ${minWords - words} more words of substantive content relevant to this page's specific topic.`

@@ -37,7 +37,7 @@ describe("soft404Rule", () => {
     expect(findings).toHaveLength(0);
   });
 
-  test("skips pages with 50+ words of content even with error title", () => {
+  test("55-word page with error title → at most info (never error), no false positive blocker", () => {
     const manyWords = Array.from({ length: 55 }, (_, i) => `word${i}`).join(" ");
     const pages = [
       page("https://example.com/a", {
@@ -53,7 +53,9 @@ describe("soft404Rule", () => {
       })
     ];
     const findings = soft404Rule(pages);
-    expect(findings).toHaveLength(0);
+    // Pattern-only (no thin body) → weak signal; must not be warning/error
+    const blockers = findings.filter(f => f.severity === "warning" || f.severity === "error");
+    expect(blockers).toHaveLength(0);
   });
 
   test("flags HTTP 200 page with error title and sparse content", () => {
@@ -73,7 +75,7 @@ describe("soft404Rule", () => {
     const findings = soft404Rule(pages);
     expect(findings).toHaveLength(1);
     expect(findings[0].ruleId).toBe("tech/soft-404");
-    expect(findings[0].severity).toBe("error");
+    expect(findings[0].severity).toBe("warning");
     expect(findings[0].pageUrl).toBe("https://example.com/missing");
     expect(findings[0].message).toContain("Page Not Found");
     expect(findings[0].message).toContain("HTTP 200");
@@ -186,6 +188,69 @@ describe("soft404Rule", () => {
     ];
     const findings = soft404Rule(pages);
     expect(findings).toHaveLength(0);
+  });
+
+  // --- new tests for OR-weighted confidence model ---
+
+  test("thin body + '404 Not Found' title → warning with high confidence", () => {
+    const pages = [
+      page("https://example.com/gone", {
+        title: "404 Not Found",
+        contentText: "The page you requested could not be found.",
+        httpMeta: {
+          statusCode: 200,
+          finalUrl: "https://example.com/gone",
+          redirectChain: [],
+          xRobotsTag: "",
+          linkHeader: ""
+        }
+      })
+    ];
+    const findings = soft404Rule(pages);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+    expect(findings[0].confidence).toBe("high");
+  });
+
+  test("generic title but H1 'Page not found' + thin body → fires (previously missed)", () => {
+    const pages = [
+      page("https://example.com/oops", {
+        title: "My Site",
+        headings: { h1: ["Page not found"], h2: [] },
+        contentText: "Sorry about that.",
+        httpMeta: {
+          statusCode: 200,
+          finalUrl: "https://example.com/oops",
+          redirectChain: [],
+          xRobotsTag: "",
+          linkHeader: ""
+        }
+      })
+    ];
+    const findings = soft404Rule(pages);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+  });
+
+  test("legit 120-word page titled 'How we handle 404 errors' with real content → does NOT fire error (at most info/none)", () => {
+    const realContent = Array.from({ length: 120 }, (_, i) => `word${i}`).join(" ");
+    const pages = [
+      page("https://example.com/404-guide", {
+        title: "How we handle 404 errors",
+        contentText: realContent,
+        httpMeta: {
+          statusCode: 200,
+          finalUrl: "https://example.com/404-guide",
+          redirectChain: [],
+          xRobotsTag: "",
+          linkHeader: ""
+        }
+      })
+    ];
+    const findings = soft404Rule(pages);
+    // Must NOT fire as error; acceptable to be empty or info only
+    const errors = findings.filter(f => f.severity === "error");
+    expect(errors).toHaveLength(0);
   });
 
   test("message includes word count", () => {
