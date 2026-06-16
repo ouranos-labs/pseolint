@@ -1,5 +1,5 @@
 ---
-"@pseolint/core": minor
+"@pseolint/core": patch
 ---
 
 content/unique-value now scores originality as a rarity **density** (normalized-IDF
