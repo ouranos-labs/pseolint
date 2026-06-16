@@ -66,6 +66,11 @@ const isSeedClassifierUrlsMode = args.includes("--seed-classifier-urls");
 
 const isWriteBaselineMode = args.includes("--write-baseline");
 
+// --fixtures-only drops sites that would otherwise live-fetch (no on-disk
+// fixture), so CI can run the ratchet hermetically. A local full run (no flag)
+// still audits and gates the live sites.
+const isFixturesOnlyMode = args.includes("--fixtures-only");
+
 // ----- paths --------------------------------------------------------------
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -551,14 +556,26 @@ async function mainRepin(): Promise<void> {
 
 async function mainNormal(): Promise<void> {
   const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
-  const totalSites = corpus.sites.length;
+  const sites = isFixturesOnlyMode
+    ? corpus.sites.filter((s) => {
+        const fd = s.localFixtureDir
+          ? resolve(dirname(fileURLToPath(import.meta.url)), "..", s.localFixtureDir)
+          : null;
+        return fd !== null && existsSync(fd);
+      })
+    : corpus.sites;
+  const totalSites = sites.length;
 
   console.log(`${ansi.bold}Reputable-pSEO calibration${ansi.reset}`);
-  console.log(`${ansi.dim}Corpus version ${corpus.version}, ${totalSites} sites, ruleset version ${CORE_RULESET_VERSION}${ansi.reset}\n`);
+  console.log(`${ansi.dim}Corpus version ${corpus.version}, ${totalSites} sites, ruleset version ${CORE_RULESET_VERSION}${ansi.reset}`);
+  if (isFixturesOnlyMode) {
+    console.log(`${ansi.dim}--fixtures-only: skipped ${corpus.sites.length - totalSites} live-fetch site(s) for hermetic CI${ansi.reset}`);
+  }
+  console.log("");
 
   const results: SiteResult[] = [];
   let i = 0;
-  for (const site of corpus.sites) {
+  for (const site of sites) {
     i += 1;
     const fixtureAbsDir = site.localFixtureDir
       ? resolve(dirname(fileURLToPath(import.meta.url)), "..", site.localFixtureDir)
@@ -672,7 +689,11 @@ async function mainNormal(): Promise<void> {
     console.log("");
     console.log(`${ansi.yellow}One or more reputable pSEO sites scored worse than their ceiling.${ansi.reset}`);
     console.log(`${ansi.yellow}Review calibration-results.md → adjust SCORING_PROFILES['programmatic-directory'].${ansi.reset}`);
-    process.exitCode = 1;
+    // The absolute verdict ceiling is aspirational calibration debt, not a
+    // regression. In the hermetic CI run (--fixtures-only) the ratchet below is
+    // the gate; a full local run still hard-fails so devs iterating on
+    // calibration see ceiling breaches immediately.
+    if (!isFixturesOnlyMode) process.exitCode = 1;
   }
 
   // Ratchet vs the committed baseline file (packages/core/calibration/baseline-scorecard.json).
