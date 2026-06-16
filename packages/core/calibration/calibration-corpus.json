@@ -16,9 +16,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "high",
-        "evidence": "Zapier's app/integration directory is the canonical pSEO success — 5,000+ heavily-templated pages, ranks #1 for 'X zapier integration' across major SaaS apps, surviving every Helpful Content System rebuild since 2022."
+        "evidence": "Still #1 for \"X zapier integration\" (live 2026) but traffic plateaued; no penalty.",
+        "source": "https://untalkedseo.com/breakdown/zapier/",
+        "asOf": "2025-05"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -5035,9 +5037,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "very-high",
-        "evidence": "G2 categories rank top-3 for nearly every 'best X software' query. Heavily templated, hundreds of category pages."
+        "evidence": "Category pages still top-3 (live 2026); G2's own report notes organic erosion to AI answers.",
+        "source": "https://learn.g2.com/g2-2026-ai-search-insight-report",
+        "asOf": "2026-06"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -5080,9 +5084,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "concerning",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "very-high",
-        "evidence": "Wise's currency-converter directory ranks #1 for thousands of 'X to Y exchange rate' queries — programmatic finance pages with strong primary-source data (live rates). 2026-05-06 ceiling raised caution→concerning: the v0.5.12 pinned URL set captures locale-hub pages (wise.com/au/, wise.com/de/, etc.) rather than actual /from-to currency-pair leaf pages. These hub pages share near-identical title tags and meta descriptions across locales, correctly triggering content/title-uniqueness and content/meta-uniqueness at error severity — both are real SEO signals on this URL set, not engine mis-calibration. The original caution ceiling was set against stochastic sampling that happened to hit currency-pair leaf pages; the pinned set exposes a real structural issue in the locale hub layer."
+        "evidence": "Still #1 for \"X to Y exchange rate\" (live 2026); no growth data found.",
+        "source": "https://wise.com/us/currency-converter/usd-to-eur-rate",
+        "asOf": "2026-06"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -10110,9 +10116,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
-        "trafficClass": "very-high",
-        "evidence": "NerdWallet's comparison directories are the dominant US finance-comparison destination."
+        "status": "declining",
+        "trafficClass": "high",
+        "evidence": "~23.6% organic loss (~6M visits), 16% YoY card-revenue drop from AI Overviews/core updates — the canonical pSEO-decline case.",
+        "source": "https://searchengineland.com/nerdwallet-organic-search-visibility-challenges-447884",
+        "asOf": "2024-11"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -15129,9 +15137,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "high",
-        "evidence": "Webflow templates directory ranks for 'webflow template X' queries; visually distinct per-page (preview thumbnails). Note: 2026-05-03 calibration round 4 showed `caution` is the appropriate ceiling — template gallery cards have ~150 words each and no per-template authors by design (the visual preview IS the content), so AEO/EEAT rules surface cosmetic findings even at info severity."
+        "evidence": "Pages still prominent for template queries (live 2026); third-party template blogs now crowd the SERP; rank ~flat.",
+        "source": "https://www.similarweb.com/website/webflow.com/",
+        "asOf": "2026-02"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -20150,7 +20160,9 @@
       "groundTruth": {
         "status": "winning",
         "trafficClass": "high",
-        "evidence": "Typeform's templates directory ranks for 'X form template' queries; mid-corpus pSEO."
+        "evidence": "#1 for form-template queries (live 2026); Semrush organic +2.87% MoM to ~666K (May 2026). Only confirmed still-winning site.",
+        "source": "https://www.semrush.com/website/typeform.com/overview/",
+        "asOf": "2026-05"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -25194,9 +25206,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "declining",
         "trafficClass": "medium",
-        "evidence": "B2B data-integration pSEO that ranks for 'segment X integration' across hundreds of source/destination pairs."
+        "evidence": "Integration catalog now 301s off segment.com to twilio.com — the pSEO pattern is migrating off-domain; URL premise dissolving.",
+        "source": "https://www.twilio.com/en-us/blog/products/sunsetting-legacy-segment-analytics-libraries",
+        "asOf": "2026-06"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -30240,9 +30254,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "declining",
         "trafficClass": "medium",
-        "evidence": "Modern AI-product pSEO; templates directory ranks for 'AI X writer'/'AI X generator' queries."
+        "evidence": "Absent from live top results for \"AI X writer/generator\" (Grammarly/HubSpot/Copy.ai dominate); ~755K visits Feb 2026, far below peak.",
+        "source": "https://bayelsawatch.com/jasper-ai-statistics/",
+        "asOf": "2026-02"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -31046,9 +31062,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "medium",
-        "evidence": "B2B fintech pSEO; category and use-case pages ranking for spend-management queries."
+        "evidence": "Category/use-case pages still rank live for spend-management queries; strong organic/AI presence, no clean growth curve.",
+        "source": "https://concurate.com/ramp-seo/",
+        "asOf": "2026-06"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -34793,9 +34811,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "high",
-        "evidence": "Numbeo is the long-running canonical cost-of-living-by-city pSEO directory; thousands of city pages, all ranking."
+        "evidence": "Ranks page-1 positions 4-6 (NOT #1 — outranked by Wise/Expatistan) for \"cost of living X\"; SimilarWeb +12% MoM, no penalty. \"All ranking #1\" was overstated.",
+        "source": "https://www.similarweb.com/website/numbeo.com/",
+        "asOf": "2026-05"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -34838,9 +34858,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "caution",
       "groundTruth": {
-        "status": "winning",
+        "status": "stable",
         "trafficClass": "medium",
-        "evidence": "Open-source data-integration pSEO; connectors directory ranks for 'X to Y data sync' queries."
+        "evidence": "Programmatic pages rank, but the ranking ones live at /how-to-sync/ not /connectors; Semrush -32% MoM dip vs SE Ranking +55% #1-rankings case study. URL example mislabeled.",
+        "source": "https://seranking.com/blog/airbyte-success-story/",
+        "asOf": "2026-03"
       },
       "samplingHint": {
         "sampleSize": 25,
@@ -39883,9 +39905,11 @@
       "expectedSiteType": "programmatic-directory",
       "expectedVerdictCeiling": "ready",
       "groundTruth": {
-        "status": "winning",
+        "status": "declining",
         "trafficClass": "medium",
-        "evidence": "Stripe Atlas state-by-state guides — programmatic legal-info content with Stripe-grade editorial polish."
+        "evidence": "stripe.com/atlas/states returns HTTP 404 — the audited URL pattern no longer exists; Stripe ranks legal queries via restructured /guides/atlas/ pages.",
+        "source": "https://stripe.com/atlas/states",
+        "asOf": "2026-06"
       },
       "samplingHint": {
         "sampleSize": 25,
