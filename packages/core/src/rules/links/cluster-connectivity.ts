@@ -29,9 +29,15 @@ function hasCrossClusterInbound(
  */
 export function clusterConnectivityRule(
   pages: ParsedPage[],
-  knownUrls: Set<string>
+  knownUrls: Set<string>,
+  /**
+   * 2026-06-16 calibration FP fix: cross-cluster links routinely target pages
+   * that were not fetched on a sampled crawl, so a "siloed cluster" verdict is
+   * unreliable. Only run on a full crawl.
+   */
+  sampled = false
 ): RuleResult[] {
-  if (pages.length < 2) {
+  if (sampled || pages.length < 2) {
     return [];
   }
 

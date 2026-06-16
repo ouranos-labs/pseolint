@@ -842,7 +842,7 @@ function runRulesOnPages(
 
   // Link rules — use the global link graph
   if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {
-    pushAll(findings, tag(orphanPagesRule(pages, inbound, rootUrl)));
+    pushAll(findings, tag(orphanPagesRule(pages, inbound, rootUrl, sampled)));
   }
 
   if (isEnabled("links/dead-ends") && modeOk("links/dead-ends")) {
@@ -856,7 +856,7 @@ function runRulesOnPages(
   }
 
   if (isEnabled("links/cluster-connectivity") && modeOk("links/cluster-connectivity")) {
-    pushAll(findings, tag(clusterConnectivityRule(pages, knownUrls)));
+    pushAll(findings, tag(clusterConnectivityRule(pages, knownUrls, sampled)));
   }
 
   if (isEnabled("links/host-section-divergence") && modeOk("links/host-section-divergence")) {
