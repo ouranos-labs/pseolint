@@ -14,7 +14,9 @@ const rulesSchema = z
     publicationVelocityMaxPerDay: z.number().optional(),
     boilerplateMaxRatio: z.number().optional(),
     templateDiversityMinUniqueRatio: z.number().optional(),
-    uniqueValueMinWords: z.number().optional(),
+    uniqueValueDensity: z
+      .object({ passBelow: z.number(), errorBelow: z.number() })
+      .optional(),
     metaUniquenessMinJaccard: z.number().optional(),
     linkDepthMaxClicks: z.number().optional(),
     hubPagesMinSiblings: z.number().optional(),
