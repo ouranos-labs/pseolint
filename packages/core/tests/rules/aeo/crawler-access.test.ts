@@ -124,4 +124,54 @@ describe("aeo/crawler-access rule", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");
   });
+
+  // RFC 9309 Allow-override tests
+  test("Disallow: / + Allow: / is NOT a block (WAF/default pattern)", () => {
+    const robots = "User-agent: *\nDisallow: /\nAllow: /\n";
+    const findings = crawlerAccessRule(robots, { crawlers: ["GPTBot"] });
+    expect(findings).toHaveLength(0);
+  });
+
+  test("Disallow: / + Allow: / on named agent is NOT a block", () => {
+    const robots = [
+      "User-agent: GPTBot",
+      "Disallow: /",
+      "Allow: /",
+    ].join("\n");
+    const findings = crawlerAccessRule(robots, { crawlers: ["GPTBot"] });
+    expect(findings).toHaveLength(0);
+  });
+
+  test("Disallow: / + Allow: /public/ is a PARTIAL block (warning, not error)", () => {
+    const robots = [
+      "User-agent: GPTBot",
+      "Disallow: /",
+      "Allow: /public/",
+    ].join("\n");
+    const findings = crawlerAccessRule(robots, { crawlers: ["GPTBot"] });
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+    expect(findings[0].message).toMatch(/partial/i);
+  });
+
+  test("Disallow: / alone (no Allow) still fires full block", () => {
+    const robots = "User-agent: GPTBot\nDisallow: /\n";
+    const findings = crawlerAccessRule(robots, { crawlers: ["GPTBot"] });
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+  });
+
+  test("wildcard Disallow: / + Allow: / does not block named crawlers", () => {
+    const robots = "User-agent: *\nDisallow: /\nAllow: /\n";
+    const findings = crawlerAccessRule(robots);
+    expect(findings).toHaveLength(0);
+  });
+
+  test("wildcard Disallow: / + Allow: /public/ is partial for crawlers with no own group", () => {
+    const robots = "User-agent: *\nDisallow: /\nAllow: /public/\n";
+    const findings = crawlerAccessRule(robots, { crawlers: ["GPTBot"] });
+    // GPTBot has no explicit group, inherits wildcard which is a partial block
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+  });
 });
