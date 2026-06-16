@@ -17,27 +17,27 @@ export function SourcesSection({
   if (!sources || sources.length === 0) return null;
   const resolved = resolveSources(sources);
   return (
-    <section className="mt-12">
+    <section className="mx-auto max-w-5xl px-5 mt-12">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
         Sources
       </h2>
       <ul className="space-y-3">
-        {resolved.map((s, i) => (
+        { resolved.map((s, i) => (
           <li
-            key={`${s.url}-${i}`}
+            key={ `${s.url}-${i}` }
             className="rounded-[18px] border border-border/60 bg-card/40 p-4 text-sm leading-relaxed"
           >
             <a
-              href={s.url}
+              href={ s.url }
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
             >
-              {s.title}
+              { s.title }
             </a>
-            <span className="text-muted-foreground"> — {s.note}</span>
+            <span className="text-muted-foreground"> — { s.note }</span>
           </li>
-        ))}
+        )) }
       </ul>
     </section>
   );

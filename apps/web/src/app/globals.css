@@ -88,6 +88,37 @@ body > * {
   color: hsl(var(--primary-foreground));
 }
 
+/* Subtle neo-neumorphism on colored CTAs: bright top inset + dark bottom inset over a faint drop.
+   Keyed on the fill+foreground class pairing every solid CTA shares (Button variants and the
+   hand-rolled bg-primary/bg-destructive links), so dots, /5 tints, and neutral surfaces are skipped.
+   ponytail: one unlayered rule instead of touching ~50 call sites; add a .cta class if a CTA ever
+   needs the edge without text-*-foreground. */
+.bg-primary.text-primary-foreground,
+.bg-destructive.text-destructive-foreground {
+  cursor: pointer;
+  /* include background-color so the existing hover:bg-90 still animates (unlayered rule replaces transition-colors) */
+  transition: box-shadow 150ms ease, background-color 150ms ease, transform 100ms ease;
+  box-shadow:
+    inset 0 1.5px 0 0 hsl(0 0% 100% / 0.2),
+    inset 0 -1.5px 0 0 hsl(0 0% 0% / 0.4),
+    0 1.5px 3px 0 hsl(0 0% 0% / 0.3);
+}
+
+.bg-primary.text-primary-foreground:hover,
+.bg-destructive.text-destructive-foreground:hover {
+  box-shadow:
+    inset 0 1.5px 0 0 hsl(0 0% 100% / 0.25),
+    inset 0 -1.5px 0 0 hsl(0 0% 0% / 0.45),
+    0 3px 8px 0 hsl(0 0% 0% / 0.38);
+}
+
+.bg-primary.text-primary-foreground:active,
+.bg-destructive.text-destructive-foreground:active {
+  box-shadow: none;
+  transform: translateY(0.5px);
+  transition: box-shadow 40ms ease, transform 40ms ease;
+}
+
 @keyframes slide-in-row {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
@@ -116,6 +147,28 @@ body > * {
 @media (prefers-reduced-motion: reduce) {
   .slide-in-row { animation: none; opacity: 1; transform: none; }
   .marquee-track { animation: none; }
+}
+
+/* Slight neuomorphism for layout containers and card links with a visible border */
+div.border,
+article.border,
+section.border,
+dl.border,
+details.border,
+a.border[class*="bg-"] {
+  box-shadow:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.05),
+    inset 0 -1.5px 0 0 hsl(0 0% 0% / 0.2),
+    0 4px 12px 0 hsl(0 0% 0% / 0.15);
+  transition: box-shadow 200ms ease, border-color 200ms ease, background-color 200ms ease, transform 200ms ease;
+}
+
+/* Elevate interactive card links slightly on hover */
+a.border[class*="bg-"]:hover {
+  box-shadow:
+    inset 0 1px 0 0 hsl(0 0% 100% / 0.08),
+    inset 0 -1.5px 0 0 hsl(0 0% 0% / 0.25),
+    0 6px 16px 0 hsl(0 0% 0% / 0.2);
 }
 
 * { scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
