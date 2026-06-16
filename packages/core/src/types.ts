@@ -461,7 +461,8 @@ export interface AuditOptions {
     publicationVelocityMaxPerDayCorpusFraction?: number;
     boilerplateMaxRatio?: number;
     templateDiversityMinUniqueRatio?: number;
-    uniqueValueMinWords?: number;
+    /** content/unique-value density floors. Default { passBelow: 0.20, errorBelow: 0.12 }. */
+    uniqueValueDensity?: { passBelow: number; errorBelow: number };
     metaUniquenessMinJaccard?: number;
     linkDepthMaxClicks?: number;
     templateCoverageMinPages?: number;

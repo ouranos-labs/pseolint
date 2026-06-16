@@ -115,7 +115,7 @@ const DEFAULTS = {
   publicationVelocityMaxPerDayCorpusFraction: 0.10,
   boilerplateMaxRatio: 0.7,
   templateDiversityMinUniqueRatio: 0.35,
-  uniqueValueMinWords: 100,
+  uniqueValueDensity: { passBelow: 0.20, errorBelow: 0.12 },
   metaUniquenessMinJaccard: 0.9,
   linkDepthMaxClicks: 3,
   templateCoverageMinPages: 5,
@@ -702,7 +702,7 @@ function runRulesOnPages(
     publicationVelocityMaxPerDayCorpusFraction: number;
     boilerplateMaxRatio: number;
     templateDiversityMinUniqueRatio: number;
-    uniqueValueMinWords: number;
+    uniqueValueDensity: { passBelow: number; errorBelow: number };
     metaUniquenessMinJaccard: number;
     linkDepthMaxClicks: number;
     templateCoverageMinPages: number;
@@ -793,7 +793,7 @@ function runRulesOnPages(
 
   // Content rules
   if (isEnabled("content/unique-value") && modeOk("content/unique-value")) {
-    pushAll(findings, tag(uniqueValueRule(pages, resolvedRules.uniqueValueMinWords)));
+    pushAll(findings, tag(uniqueValueRule(pages, resolvedRules.uniqueValueDensity)));
   }
 
   if (isEnabled("content/meta-uniqueness") && modeOk("content/meta-uniqueness")) {
@@ -2207,7 +2207,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     boilerplateMaxRatio: options?.rules?.boilerplateMaxRatio ?? DEFAULTS.boilerplateMaxRatio,
     templateDiversityMinUniqueRatio:
       options?.rules?.templateDiversityMinUniqueRatio ?? DEFAULTS.templateDiversityMinUniqueRatio,
-    uniqueValueMinWords: options?.rules?.uniqueValueMinWords ?? DEFAULTS.uniqueValueMinWords,
+    uniqueValueDensity: options?.rules?.uniqueValueDensity ?? DEFAULTS.uniqueValueDensity,
     metaUniquenessMinJaccard:
       options?.rules?.metaUniquenessMinJaccard ?? DEFAULTS.metaUniquenessMinJaccard,
     linkDepthMaxClicks: options?.rules?.linkDepthMaxClicks ?? DEFAULTS.linkDepthMaxClicks,
