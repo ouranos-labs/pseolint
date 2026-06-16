@@ -1,11 +1,15 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
+export interface UniqueValueThresholds {
+  /** Unique-content density below this fires (info). Default 0.20. */
+  passBelow: number;
+  /** Density below this escalates to error. Default 0.12. */
+  errorBelow: number;
+}
+
 function tokenize(text: string): string[] {
-  // Strip leading/trailing punctuation so "word", "word." and "(word)" count as
-  // the SAME token. Without this, surrounding punctuation spuriously inflated
-  // the "unique" count (a word that's shared but happens to carry a trailing
-  // comma on one page looked unique) — false precision in the shared/unique
-  // split this rule now surfaces.
+  // Lowercase, split on whitespace, strip edge punctuation so "word", "word."
+  // and "(word)" are one token.
   return text
     .toLowerCase()
     .split(/\s+/)
@@ -13,43 +17,55 @@ function tokenize(text: string): string[] {
     .filter(Boolean);
 }
 
-export function uniqueValueRule(pages: ParsedPage[], minUniqueWords: number): RuleResult[] {
-  const frequencies = new Map<string, number>();
-  const pageTokens = pages.map((page) => tokenize(page.contentText));
+/**
+ * Originality as a corpus-relative DENSITY, not an absolute count. Each distinct
+ * token is weighted by normalized IDF (ln(N/df)/ln(N)) — 1 if page-exclusive, ~0
+ * if on every page — and averaged over the page's distinct tokens. A near-
+ * duplicate / boilerplate page scores low regardless of corpus size or length; a
+ * large original page stays high. Continuous, so it doesn't shuffle at the margin.
+ * Volume is spam/thin-content's job; exact twins are spam/near-duplicate's.
+ */
+export function uniqueValueRule(
+  pages: ParsedPage[],
+  thresholds: UniqueValueThresholds,
+): RuleResult[] {
+  const { passBelow, errorBelow } = thresholds;
+  const N = pages.length;
+  const lnN = Math.log(N);
+  if (N <= 1 || lnN === 0) return []; // can't measure rarity against a single page
 
-  for (const tokens of pageTokens) {
-    for (const token of new Set(tokens)) {
-      frequencies.set(token, (frequencies.get(token) ?? 0) + 1);
-    }
+  const df = new Map<string, number>();
+  const pageDistinct = pages.map((p) => new Set(tokenize(p.contentText)));
+  for (const distinct of pageDistinct) {
+    for (const t of distinct) df.set(t, (df.get(t) ?? 0) + 1);
   }
 
   const findings: RuleResult[] = [];
-  pages.forEach((page, idx) => {
-    const distinct = new Set(pageTokens[idx]);
-    let uniqueCount = 0;
-    let sharedCount = 0;
-    for (const token of distinct) {
-      if ((frequencies.get(token) ?? 0) === 1) uniqueCount += 1;
-      else sharedCount += 1;
-    }
-    if (uniqueCount < minUniqueWords) {
-      const needed = minUniqueWords - uniqueCount;
-      findings.push({
-        ruleId: "content/unique-value",
-        severity: "error",
-        // Surface the shared-vs-unique split so the author can see that most of
-        // the page's words already appear elsewhere (the "name the overlap"
-        // signal) — not just a bare unique-word count.
-        message: `${page.url} has only ${uniqueCount} page-unique words (min ${minUniqueWords}); ${sharedCount} of its ${distinct.size} distinct words also appear on other pages.`,
-        pageUrl: page.url,
-        // Axis-aware guidance: the #1 trap on pSEO sites is adding real, useful,
-        // but per-axis-SHARED data (a role's regulations repeated across that
-        // role's documents; a state's statutes across its pages) which doesn't
-        // count. Spell that out so authors don't burn effort on it.
-        fix: `Add ~${needed} more words that appear on NO other page. Content repeated across pages on the same entity axis — boilerplate, shared legal/spec blocks, or per-axis data (e.g. a role's regulations across that role's documents, a state's statutes across its pages) — does NOT count toward uniqueness, even when it's useful. Only page-specific text (a unique lead, this record's distinct facts, page-specific examples) moves this metric.`
-      });
-    }
-  });
+  pages.forEach((page, i) => {
+    const distinct = pageDistinct[i];
+    if (distinct.size === 0) return; // empty page → thin-content handles it
+    let mass = 0;
+    for (const t of distinct) mass += Math.log(N / (df.get(t) ?? 1)) / lnN;
+    const density = mass / distinct.size;
+    if (density >= passBelow) return;
 
+    const severity = density < errorBelow ? "error" : "info";
+    const pct = (density * 100).toFixed(1);
+    findings.push({
+      ruleId: "content/unique-value",
+      severity,
+      message:
+        `${page.url} has low unique-content density ${density.toFixed(3)} ` +
+        `(${pct}% of its ${distinct.size} distinct words are page-distinctive; floor ${passBelow.toFixed(2)}). ` +
+        `Most of its vocabulary also appears on other pages.`,
+      pageUrl: page.url,
+      fix:
+        `Raise originality density: add page-specific text — a distinct lead, this ` +
+        `record's own facts, page-specific examples. Content repeated across pages on ` +
+        `the same axis (boilerplate, shared legal/spec blocks, per-axis data like a ` +
+        `role's regulations across that role's documents) is common vocabulary and ` +
+        `does NOT raise density, even when it is useful.`,
+    });
+  });
   return findings;
 }
