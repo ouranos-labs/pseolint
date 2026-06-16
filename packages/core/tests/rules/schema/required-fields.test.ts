@@ -129,6 +129,38 @@ describe("schema/required-fields", () => {
     expect(findings).toHaveLength(0);
   });
 
+  test("does NOT flag Article with author as a non-empty array (co-authored)", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "Test",
+        author: [
+          { "@type": "Person", name: "Alice" },
+          { "@type": "Person", name: "Bob" }
+        ],
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(0);
+  });
+
+  test("flags Article with author as an empty / all-junk array", () => {
+    const p = page("https://example.dev/a", {
+      jsonLd: [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: "Test",
+        author: [{ "@type": "Person" }, ""],
+        datePublished: "2025-01-01"
+      }]
+    });
+    const findings = requiredFieldsRule([p]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("author");
+  });
+
   test("flags Article with author as false (boolean)", () => {
     const p = page("https://example.dev/a", {
       jsonLd: [{

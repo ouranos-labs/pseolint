@@ -23,17 +23,22 @@ function isMissing(value: unknown): boolean {
 /**
  * Article `author` is valid when it is:
  *   - a non-empty string, OR
- *   - an object with a non-empty `name` property (Person/Organization)
+ *   - an object with a non-empty `name` property (Person/Organization), OR
+ *   - a non-empty array of the above (co-authored articles — Schema.org allows
+ *     `author` to be a list). Present if at least one element is a valid author.
  * Returns true when the author value is missing/junk.
  */
 function isAuthorMissing(value: unknown): boolean {
   if (value === undefined || value === null) return true;
   if (typeof value === "string") return value.trim() === "";
-  if (typeof value === "object" && !Array.isArray(value) && value !== null) {
+  if (Array.isArray(value)) {
+    return value.length === 0 || value.every((item) => isAuthorMissing(item));
+  }
+  if (typeof value === "object") {
     const obj = value as Record<string, unknown>;
     return typeof obj.name !== "string" || obj.name.trim() === "";
   }
-  // arrays, booleans, numbers — not a valid author shape
+  // booleans, numbers — not a valid author shape
   return true;
 }
 

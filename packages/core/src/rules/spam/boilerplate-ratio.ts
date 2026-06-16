@@ -28,12 +28,15 @@ export function boilerplateRatioRule(pages: ParsedPage[], maxRatio: number): Rul
     }
   }
 
-  // Continuous weight: fraction of pages that contain the block.
-  // A block on 80% of pages contributes weight 0.8; on 20% → 0.2.
-  // This removes the binary skeleton cliff entirely.
+  // Continuous weight, min-max normalized over document frequency: a block
+  // unique to ONE page is not boilerplate at all (weight 0); a block on EVERY
+  // page is full boilerplate (weight 1); mid-frequency blocks scale linearly
+  // between. (freq-1)/(N-1) — not freq/N — so unique content never inflates the
+  // ratio (which freq/N does, giving every block at least 1/N). N>=2 here, so
+  // N-1>=1: no division by zero. Removes the binary skeleton cliff entirely.
   const blockWeight = (block: string): number => {
     const freq = blockFrequency.get(block) ?? 0;
-    return freq / N;
+    return (freq - 1) / (N - 1);
   };
 
   const findings: RuleResult[] = [];

@@ -120,6 +120,18 @@ describe("boilerplateRatioRule — continuous weighting", () => {
     }
   });
 
+  // (d2) Single-page-unique content has ZERO boilerplate weight: a 2-page corpus
+  // of fully distinct pages must not fire even at a strict maxRatio. (freq-1)/(N-1)
+  // gives a block on 1/2 pages weight 0 — freq/N would have given it 0.5 and
+  // fired at maxRatio < 0.5.
+  test("all-unique 2-page corpus does not fire even at a strict threshold", () => {
+    const pages = [
+      page("a", "completely distinct material about alpha topic with no overlap whatsoever here"),
+      page("b", "entirely separate independent content about beta topic sharing nothing at all"),
+    ];
+    expect(boilerplateRatioRule(pages, 0.4).length).toBe(0);
+  });
+
   // (e) Legacy: <2 pages returns empty (unchanged)
   test("returns empty for fewer than 2 pages", () => {
     const findings = boilerplateRatioRule([page("a", "some content here for the page")], 0.7);
