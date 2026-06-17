@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { parseHtmlPage } from "./parser.js";
+import { renderPages } from "./renderer.js";
 import { pageSkipReason } from "./page-filter.js";
 import { mergeNormalizeUrlOptions, normalizeAuditUrl } from "./url-normalize.js";
 import { eeatSignalsRule } from "./rules/content/eeat-signals.js";
@@ -45,7 +47,8 @@ import { citableFactsRule } from "./rules/aeo/citable-facts.js";
 import { contentModularityRule } from "./rules/aeo/content-modularity.js";
 import { summaryBaitRule } from "./rules/aeo/summary-bait.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
-import { soft404Rule } from "./rules/tech/soft-404.js";
+import { soft404Rule, evaluateProbe } from "./rules/tech/soft-404.js";
+import { csrBailoutRule } from "./rules/tech/csr-bailout.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
@@ -614,20 +617,42 @@ function verdictForRisk(risk: number): Verdict {
  */
 const VERDICT_LADDER: Verdict[] = ["ready", "caution", "concerning", "critical"];
 
-function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | undefined): Verdict {
-  if (authorityScore === undefined) return verdict;
-  if (!Number.isFinite(authorityScore)) return verdict;
-  if (authorityScore < 0 || authorityScore > 100) return verdict;
+/**
+ * Shared bounded bidirectional verdict moderator. A 0-100 `score` shifts the
+ * verdict along {@link VERDICT_LADDER} by at most `cap` tiers:
+ *   - `score >= lenientAt` → soften (toward "ready"), clamped at index 0.
+ *   - `score <= strictAt`  → escalate (toward "critical"), clamped at the top.
+ *   - in between (or absent) → no shift.
+ * Absent evidence is a no-op: `undefined`/`null`/non-finite/out-of-[0,100]
+ * `score` returns the verdict unchanged (so a null content-effort or an
+ * unavailable authority provider never moves the verdict). Authority and
+ * content-effort are both callers (see {@link shiftVerdictForAuthority}).
+ */
+export function shiftVerdict(
+  verdict: Verdict,
+  o: { score: number | null | undefined; lenientAt: number; strictAt: number; cap: number },
+): Verdict {
+  if (o.score === undefined || o.score === null || !Number.isFinite(o.score) || o.score < 0 || o.score > 100) {
+    return verdict;
+  }
   const idx = VERDICT_LADDER.indexOf(verdict);
   if (idx < 0) return verdict;
-  if (authorityScore >= 80) {
-    return VERDICT_LADDER[Math.max(0, idx - 1)];
-  }
-  if (authorityScore <= 30) {
-    return VERDICT_LADDER[Math.min(VERDICT_LADDER.length - 1, idx + 1)];
-  }
+  if (o.score >= o.lenientAt) return VERDICT_LADDER[Math.max(0, idx - o.cap)];
+  if (o.score <= o.strictAt) return VERDICT_LADDER[Math.min(VERDICT_LADDER.length - 1, idx + o.cap)];
   return verdict;
 }
+
+/** Authority keeps its exact ±1 / 80 / 30 behavior via the shared moderator. */
+function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | undefined): Verdict {
+  return shiftVerdict(verdict, { score: authorityScore, lenientAt: 80, strictAt: 30, cap: 1 });
+}
+
+// content-effort moderation band — STARTING values; Task 7 tunes against the
+// ratchet. Derived from the gate data: reputable median effort ≈ 8.5, addressable
+// farms cluster ≤7, proprietary-data winners (numbeo/airbyte) ≈28.
+const EFFORT_STRICT_AT = 5; // very-low effort → escalate (farm cluster)
+const EFFORT_LENIENT_AT = 25; // high effort → soften (rescues proprietary-data winners e.g. numbeo)
+const EFFORT_CAP = 1;
 
 function gradeForPenalty(penalty: number): Grade {
   if (penalty <= 20) return "A";
@@ -882,6 +907,11 @@ function runRulesOnPages(
 
   if (isEnabled("tech/soft-404") && modeOk("tech/soft-404")) {
     pushAll(findings, tag(soft404Rule(pages)));
+  }
+
+  if (isEnabled("tech/csr-bailout") && modeOk("tech/csr-bailout")) {
+    // No-op unless --render populated page.renderedHtml (the rule guards internally).
+    pushAll(findings, tag(csrBailoutRule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
@@ -2562,6 +2592,36 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     return parsed;
   });
 
+  // --render: execute each page in a headless browser and attach the
+  // post-hydration DOM so tech/csr-bailout can diff raw vs rendered. Opt-in,
+  // Node-only (fails under bun). Degrades gracefully when no browser is available.
+  if (options?.render) {
+    try {
+      const rendered = await renderPages(
+        parsedPagesAll.map((p) => ({ url: p.url })),
+        null,
+        {
+          browserWsEndpoint: options.render.browserWsEndpoint,
+          concurrency,
+          timeoutMs: 30000,
+          analyticsMode: options.render.analyticsMode,
+          extraBlockedHosts: options.render.extraBlockedHosts,
+        },
+      );
+      const renderedByUrl = new Map(rendered.map((r) => [r.url, r.html]));
+      for (const p of parsedPagesAll) {
+        const html = renderedByUrl.get(p.url);
+        if (html) (p as { renderedHtml?: string }).renderedHtml = html;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `pseolint: --render failed (${err instanceof Error ? err.message : String(err)}). ` +
+        `Continuing without rendered DOM; tech/csr-bailout will be skipped.`,
+      );
+    }
+  }
+
   // v0.4.1 §page-filter: drop noindex'd pages and (when enabled) heuristically
   // detected auth pages BEFORE rule evaluation. The site owner's noindex is a
   // hard signal — they already opted out of SEO indexing, so auditing those
@@ -2910,7 +2970,62 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // The `risk` score is intentionally unchanged — §15.1 governs verdict only.
   const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), resolvedAuthorityScore);
   const templateVerdict = siteVerdictFromTemplates(siteTemplates);
-  const verdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
+  const baseVerdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
+
+  // 2026-06-17 SP1 — opt-in content-effort moderation. Like authority, this
+  // shifts only the user-facing verdict (never `risk`), one tier in either
+  // direction, and is a strict no-op when the signal is absent (null/undefined).
+  // Resolution: an injected `contentEffortScore` (calibration/tests, offline)
+  // wins; otherwise the LLM judge runs only when `contentEffort.enabled`. Any
+  // failure (no key, network, abort) fails safe to `undefined` → no shift.
+  let resolvedEffort: number | null | undefined = options?.contentEffortScore;
+  if (resolvedEffort === undefined && options?.contentEffort?.enabled) {
+    try {
+      const { judgeContentEffort, makeLlmGenerate } = await import(
+        "./algorithms/content-effort/judge.js"
+      );
+      const { model, modelId } = await createLanguageModel({
+        model: options.contentEffort.model ?? "claude-sonnet-4-6",
+      });
+      // Reuse the audit's own parsed pages + template clustering: map each
+      // template's audited URLs back to their parsed contentText. When no
+      // template qualified (small/unclear sites), fall back to ONE synthetic
+      // site-wide template over every audited page — mirrors the validation
+      // runner's buildTemplates (scripts/content-effort-validate.ts).
+      const contentByUrl = new Map(parsedPages.map((p) => [p.url, p.contentText ?? ""]));
+      const toSamples = (urls: string[]) =>
+        urls
+          .filter((u) => contentByUrl.has(u))
+          .map((u) => ({ url: u, contentText: contentByUrl.get(u) ?? "" }));
+      let effortSamples =
+        siteTemplates.length > 0
+          ? siteTemplates
+              .map((t) => ({ signature: t.signature, samplePages: toSamples(t.auditedUrls) }))
+              .filter((t) => t.samplePages.length > 0)
+          : [];
+      if (effortSamples.length === 0) {
+        const all = parsedPages.map((p) => ({ url: p.url, contentText: p.contentText ?? "" }));
+        effortSamples = all.length > 0 ? [{ signature: "site", samplePages: all }] : [];
+      }
+      const cacheDir =
+        options.contentEffort.cacheDir ?? join(tmpdir(), "pseolint-content-effort");
+      const judged = await judgeContentEffort(effortSamples, {
+        modelId,
+        cacheDir,
+        generate: makeLlmGenerate(model, options.signal),
+        signal: options.signal,
+      });
+      resolvedEffort = judged.siteEffort;
+    } catch {
+      resolvedEffort = undefined; // fail-safe: model/key unavailable → no moderation
+    }
+  }
+  const verdict = shiftVerdict(baseVerdict, {
+    score: resolvedEffort,
+    lenientAt: EFFORT_LENIENT_AT,
+    strictAt: EFFORT_STRICT_AT,
+    cap: EFFORT_CAP,
+  });
 
   const headline = buildHeadline(bucketCounts);
 
@@ -2953,6 +3068,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       : undefined,
     ...(resolvedAuthorityScore !== undefined
       ? { authority: { score: resolvedAuthorityScore, domain: resolvedAuthorityDomain ?? "" } }
+      : {}),
+    ...(resolvedEffort !== undefined && resolvedEffort !== null
+      ? { contentEffort: { score: resolvedEffort } }
       : {}),
   };
 
