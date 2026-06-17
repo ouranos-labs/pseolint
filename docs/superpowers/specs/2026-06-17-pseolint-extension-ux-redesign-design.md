@@ -55,6 +55,7 @@ Three surfaces, each earning its place. **No popup.**
   - a **results list**: host · verdict chip · "full audit ↗" link per flagged result;
   - top-level "Open full audit" funnel to the SaaS.
 - **Thin, not a dashboard (§2/§14):** no per-template breakdowns, trends, or charts — those are the SaaS (deep link), not a rebuild.
+- **§9 applies here too:** the side panel is an extension page (not injected), but it renders untrusted host/URL strings from the SERP — those go in via `textContent`, never `innerHTML`. CSP `script-src 'self'` already forbids inline/remote script.
 
 ### 4.3 Badges on results — the shared inline payoff
 - Self-contained, shadow-DOM, `textContent` never `innerHTML` (§9): **color** = severity, **label** = what, **hover/title** = why, **click** = full audit (Path B).
@@ -69,8 +70,9 @@ Three surfaces, each earning its place. **No popup.**
 ## 6. Permissions / manifest
 
 - **Add** `"side_panel": { "default_path": "sidepanel.html" }` + `"sidePanel"` permission.
-- **Drop** `action.default_popup` (keep `action` for the icon/title; toolbar opens the side panel).
-- **Keep** `activeTab` (side panel → content script messaging), `optional_host_permissions: ["https://*/*"]` (deep scan), `content_scripts` (google.com/search), CSP.
+- **Drop** `action.default_popup` (keep `action` for the icon/title; toolbar opens the side panel via `setPanelBehavior({openPanelOnActionClick:true})`).
+- **Keep** `optional_host_permissions: ["https://*/*"]` (deep scan, gesture-granted), the `https://www.google.com/search*` host permission, `content_scripts`, CSP. Messaging the SERP content script from the side panel is covered by the **google.com/search host permission** (`tabs.sendMessage` to that origin) — not `activeTab`.
+- **Re-audit `activeTab`:** with the popup gone, `activeTab` likely has no remaining caller (reach = content-script injection; SERP messaging = host permission; deep-scan fetch = optional host permission). Verify in implementation and **drop it if unused** (least-privilege, §7).
 - Net permission story stays least-privilege: the **default experience requests nothing**; broad host access is gesture-granted only when a user clicks Deep scan.
 
 ## 7. Visual design (produced in implementation via `frontend-design` + `ui-ux-pro-max`)
