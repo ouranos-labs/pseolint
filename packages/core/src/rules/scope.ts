@@ -47,6 +47,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "tech/robots-compliance": "corpus",
   "tech/robots-sitemap-presence": "corpus",
   "tech/og-completeness": "page",
+  "tech/csr-bailout": "page",
 
   // schema
   "schema/json-ld-valid": "page",

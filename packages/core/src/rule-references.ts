@@ -29,6 +29,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "tech/soft-404": "https://developers.google.com/search/docs/crawling-indexing/soft-404-errors",
   "tech/hreflang-consistency": "https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites",
   "tech/og-completeness": "https://ogp.me/",
+  "tech/csr-bailout": "https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics",
   "schema/json-ld-valid": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
   "schema/required-fields": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
   "schema/consistency": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",

@@ -852,5 +852,7 @@ export interface ParsedPage {
   };
   contentText: string;
   html: string;
+  /** Post-hydration DOM (page.content()) when audited with --render; absent in static mode. */
+  renderedHtml?: string;
   httpMeta?: HttpMeta;
 }
