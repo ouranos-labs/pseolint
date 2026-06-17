@@ -13,7 +13,11 @@ A pSEO failure class de-indexed ~5,000 paperforge.dev pages: the page's real val
 
 ## 2. Two audit findings that shape (and shrink) this design
 
-**Finding 1 — `--render` is a stub.** `renderPages()` (`renderer.ts:137`) is written but **never called**; `--render` only flips a `RenderMode` label (`auditor.ts:2269`). Every rule sees only raw, no-JS HTTP HTML. So the brief's raw-vs-rendered diff cannot run today.
+**Finding 1 — `--render` is unwired, but the renderer itself works.** `renderPages()` (`renderer.ts:137`) is fully written but **never called**; `--render` only flips a `RenderMode` label (`auditor.ts:2269`). Every rule sees only raw, no-JS HTTP HTML, so the brief's raw-vs-rendered diff cannot run *today*.
+
+**Verified 2026-06-17 (smoke test):** `renderPages()` works end-to-end under Node — a fixture with 0 raw `<input>` returned 1 `<input>` + 1 `<button>` post-JS via `page.content()`. It is unwired, not broken. Two operational prerequisites the Phase-2 work must own:
+- **Browser binary:** render needs the Chromium revision pinned to the installed `playwright-core` (`npx playwright install chromium-headless-shell`); the code emits a helpful error if it's missing.
+- **Node only, not bun:** under bun, launch hangs (CDP-over-pipe handshake times out — bun `child_process` lacks Playwright's pipe fds). pseolint runs under Node, so unaffected; document so nobody runs the auditor under bun expecting render.
 
 **Finding 2 — a standalone raw-only `tech/csr-bailout` rule fails YAGNI.** Two sub-cases:
 - *Empty shell* (framework + near-empty body): **already fires `spam/thin-content`** (`thin-content.ts:16` flags any page `< minWords`, default 300; a near-empty SPA shell fires at `error`/high). A new rule would double-report — the exact noise `enrich-findings` collapse and the v0.7.x FP work exist to remove.
@@ -109,6 +113,13 @@ Audit `https://paperforge.dev` (now fixed; 44 inputs in raw server HTML, edge ga
 - soft-404 probe of `/templates/<random>` must **not** fire (real 404 now).
 Both confirm no false-positive on a real, healthy programmatic directory in the calibration corpus.
 
-## 10. Out of scope (tracked, not built here) — the real CSR-bailout detection
-- Productionize `--render`: wire `renderPages()` into the pipeline, retain `renderedHtml` on `ParsedPage`, handle perf on large crawls. (Already on the scraper-refinement backlog as "JS-render auto-detect".)
-- Phase 2 `tech/csr-bailout` rule = raw-vs-rendered diff: `renderedInteractive >= 3 && (rawInteractive === 0 || rawInteractive/renderedInteractive <= 0.10)` → catches paperforge's partial shell at high confidence. This is the only honest home for that detection, and the only point at which introducing a new rule id is justified.
+## 10. Phase 2 — the real CSR-bailout detection (render diff)
+
+**Render is verified working (Finding 1), so this is glue, not infrastructure.** Remaining work, scoped small:
+1. Wire `renderPages()` into the auditor when `--render` is set: collect crawled URLs, call it, map each `{url, html}` back onto its `ParsedPage` as `renderedHtml` (re-parse with `parseHtmlPage` for `renderedContentText` / interactive counts).
+2. New `tech/csr-bailout` rule (the *only* point a new rule id is justified): when `renderedHtml` is present, diff raw vs rendered — `renderedInteractive >= 3 && (rawInteractive === 0 || rawInteractive/renderedInteractive <= 0.10)` → catches paperforge's partial shell at **high** confidence. Skip silently when `renderedHtml` absent (render off).
+3. Browser-prerequisite UX: surface the `playwright install` hint at audit start when `--render` is set and no browser/CDP endpoint is available (the renderer already throws the message; lift it to a pre-flight check).
+4. Tests: a renderer smoke test (none exists today — the 2026-06-17 throwaway proved the path; make it a permanent `tests/renderer.test.ts`) + golden raw/rendered `ParsedPage` pairs for the diff rule.
+5. Perf: headless render of large crawls is expensive; respect `--render`'s opt-in nature and the existing concurrency cap. Consider stratified sampling (render a per-cluster sample, not all N) — reuse `stratified-sample.ts`.
+
+**Decision deferred to the user:** whether Phase 2 is pulled into this body of work (render is proven and the glue is modest) or kept as a follow-up. Until decided, Phase 1 (§4–§5) ships independently and is not blocked by it.
