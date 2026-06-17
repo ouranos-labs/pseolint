@@ -36,6 +36,44 @@ egress (blocked here). Run it locally; commands in [§Do in local env](#do-in-lo
 After the `unique-value` entity-mask fix: **recall ~13%, AUC ~0.27, precision ~83%**
 (up from 0% / 0.21 / 67%). Dominant remaining confound: the scale handicap above.
 
+## Reproduce the starting point
+
+Confirm your env matches before changing anything:
+
+```
+git fetch && git checkout claude/pseolint-machine-language-xcnjss
+bun install            # also installs cheerio (parser dep); without it the audit throws
+bun scripts/calibration-corpus.ts --fixtures-only
+```
+
+Expect: `Audited 24 · Passed 23 · Failed 1` (numbeo over its ceiling) and an
+**"addressable subset"** calibration block reporting recall ~13% / AUC ~0.27. The run
+exits 1 (ratchet vs the stale committed baseline + the numbeo ceiling) — that is
+expected, not a setup failure. CI uses Bun 1.3.14; any recent Bun works. Unit tests:
+`cd packages/core && bunx vitest run tests/calibration/` — `score`/`scorecard` green;
+`reputable-corpus` soft-fails are pre-existing (see [§Gotchas](#gotchas)).
+
+**No PR is open** — the branch is pushed; open one when ready.
+
+## Where the code lives
+
+- Demotion table / scoring profiles — `packages/core/src/auditor.ts:194` (`SCORING_PROFILES`);
+  profile pick + 0.70 confidence gate at `:452` (`profileFor`).
+- `classifierUrls` → template detection — `auditor.ts:2642` (consume), `:2869` (`detectTemplates`).
+- Per-template uniformity signal — `packages/core/src/per-template-scoring.ts:215-217`
+  (`uniformityScore`, `topDriver`, `ruleFireRates`).
+- `unique-value` entity-mask fix — rule `packages/core/src/rules/content/unique-value.ts`;
+  call site `auditor.ts:796`.
+- Classifier scale thresholds — `packages/core/src/site-classifier.ts:410` (≥1000 →
+  `programmatic-directory`@0.9), `:420` (≥500 + top-3 cluster ≥0.7).
+- Calibration metrics / ratchet — `packages/core/calibration/score.ts:170`
+  (`calibrationMetrics`), `:222` (`perRuleFiringTable`), `:259` (`ratchet`).
+- Runner modes — `scripts/calibration-corpus.ts`: `--seed-classifier-urls` (dispatch `:1018`),
+  `--fixtures-only` (`:559`), `--write-baseline` (`:740`).
+- gzip sitemap decode — `packages/core/src/cache.ts` (`decodeBody`).
+
+
+
 ## What was done (commits on the branch)
 
 | commit | change |
@@ -56,9 +94,15 @@ After the `unique-value` entity-mask fix: **recall ~13%, AUC ~0.27, precision ~8
    ```
    - Should populate `classifierUrls` for the **live** farms (`popularnetworth`,
      `thehairpin`, `fresherslive`, `newsunzip`, `equityatlas`).
-   - ⚠️ It rewrites `classifierUrls` for **all** sites from live fetches. Review
-     `git diff` and keep only intended changes — the 8 reputable already have good
-     `classifierUrls`; don't regress them if a live fetch returns fewer/none.
+   - **Success target:** a farm needs enough clustering URLs to leave `small-marketing`.
+     The classifier flips to `programmatic-directory` at ≥1000 URLs (@0.9) or ≥500 with a
+     dominant template (top-3 cluster ≥0.7) — `site-classifier.ts:410,420`. Confirm by
+     re-running `--fixtures-only` and checking each farm's classified type in the per-site
+     output: today it prints `small-marketing`; you want `programmatic-directory`.
+   - ⚠️ It rewrites `classifierUrls` for **all** sites from live fetches. **Stage only the
+     farm hunks:** `git add -p packages/core/calibration/calibration-corpus.json` (accept the
+     policy-farm `classifierUrls` blocks), then `git checkout -p` to discard any
+     reputable/`subject` changes — so a flaky live fetch can't regress the verified 8.
 2. **Deindexed farms** (`zacjohnson`, `beingselfish`) have no live sitemap → capture
    their Wayback sitemap and set `classifierUrls` (or commit as fixtures). Offline
    fixture-internal-link harvest was tried and rejected: ~90% WordPress cruft
