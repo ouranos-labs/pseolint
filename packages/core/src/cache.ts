@@ -2,8 +2,24 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { gunzipSync } from "node:zlib";
 
 export const CACHE_ENTRY_SCHEMA_VERSION = 1;
+
+/**
+ * Decode a fetch Response body to text, transparently decompressing gzip
+ * *resources* (e.g. `sitemap.xml.gz`). fetch() auto-decompresses transport
+ * Content-Encoding but NOT a gzip file served as a resource, so res.text()
+ * would yield binary garbage. Response.text() always decodes as UTF-8
+ * regardless of charset, so the non-gzip branch is behaviour-preserving.
+ */
+async function decodeBody(res: Response): Promise<string> {
+  const u8 = new Uint8Array(await res.arrayBuffer());
+  if (u8.length > 2 && u8[0] === 0x1f && u8[1] === 0x8b) {
+    return gunzipSync(u8).toString("utf8");
+  }
+  return new TextDecoder().decode(u8);
+}
 
 export interface CacheEntry {
   schemaVersion: number;
@@ -290,7 +306,7 @@ async function cachedFetchInner(
         await writeCacheEntry(cache.dir, url, updated);
         return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [], _revalidated: true };
       }
-      const body = await res.text();
+      const body = await decodeBody(res);
       const headers = headersToObject(res.headers);
       if (isStoreableStatus(res.status)) {
         await writeCacheEntry(cache.dir, url, {
@@ -378,7 +394,7 @@ async function performFetch(
       // the Location header intact so callers can inspect it.
       if (!followRedirects) {
         const headers = headersToObject(res.headers);
-        const body = await res.text();
+        const body = await decodeBody(res);
         return { url: currentUrl, status, headers, body, fromCache: false, redirectChain };
       }
       const loc = res.headers.get("location");
@@ -404,7 +420,7 @@ async function performFetch(
       currentUrl = next;
       continue;
     }
-    const body = await res.text();
+    const body = await decodeBody(res);
     const headers = headersToObject(res.headers);
     if (cache && isStoreableStatus(status)) {
       await writeCacheEntry(cache.dir, currentUrl, {
