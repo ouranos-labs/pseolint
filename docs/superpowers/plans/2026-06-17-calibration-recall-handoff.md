@@ -169,6 +169,20 @@ works. Unit tests: `cd packages/core && bunx vitest run tests/calibration/` —
     misclassification (no scale signal from local fixtures), reproduced on fresh data → the engine
     classification path is the next lever. Still <0.5 AUC, but now a HONEST benchmark on real live
     farms instead of rotted fixtures.
+  - **✅ DONE 2026-06-17 — classifier-path data fix (zero engine-regression).** The fixture-dir
+    `classifierUrls` resolution (`auditor.ts:2639`) falls back to the ~25 loaded page URLs when no
+    override + no live sitemap → farms mis-class as `small-marketing`. Fix = seed `classifierUrls`
+    (the designed override) for the farms whose miss was a CLASSIFICATION ARTIFACT (scored lower in
+    fixtures-only than live): `fresherslike` (3135 urls) + `cookcraze` (1133). Both flip to
+    `programmatic-directory@0.9`; **cookcraze 39→62 (critical, now CAUGHT)**, fresherslike 13→35
+    (caution, → live's 41). **AUC 0.41→0.47, recall 27%→33% (TP 4→5).** Deliberately did NOT seed
+    already-caught farms (pure bloat) or newsunzip (established: no benefit — citation-bucket hard
+    case). Remaining misses (bestprosintown 15, wikibioworth 20, newsunzip-style) are now GENUINE
+    engine recall failures, not metric artifacts → data levers exhausted; next is real engine work.
+  - **Session arc: AUC 0.27 → 0.41 (corpus rebuild) → 0.47 (classifier-path seed).** The recall
+    metric is now honest and ~as-good-as-the-data-allows; further gains require the engine
+    (content-effort AUC 0.77 for the clean-AI residual, or a regression-risky demotion/weighting
+    redesign on the shared profiles).
   - **Implication (pre-rebuild): the OLD addressable corpus could not produce a trustworthy recall
     number, and corpus hygiene alone can't fix it** (under-sampled farms are dead; live farms already-sampled
     or timeout-capped; fixtures-only classification suppresses scores regardless). Two real paths:
