@@ -46,6 +46,8 @@ packages/mcp/mcp-publisher*
 .claude/worktrees/
 .claire/
 
-# content-effort STUB validation cache — throwaway local artifact from the
-# offline plumbing runner (PSEO_EFFORT_STUB=1); never commit.
+# content-effort per-page LLM cache — local runtime speed-cache. The durable,
+# committed corpus signal is calibration/content-effort-scores.json (the per-site
+# aggregate map); the per-page cache regenerates on demand and is never committed.
+packages/core/calibration/.effort-cache/
 packages/core/calibration/.effort-cache-stub/

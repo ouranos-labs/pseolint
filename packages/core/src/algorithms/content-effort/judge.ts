@@ -64,11 +64,28 @@ export async function judgeContentEffort(templates: TemplateSample[], opts: Judg
   return { perTemplate, siteEffort };
 }
 
-/** Production generate: structured-output judge (no tools → injection can at most return an in-range number). */
-export function makeLlmGenerate(model: LanguageModel, signal?: AbortSignal): (text: string) => Promise<number> {
+/** Per-call token usage (AI SDK v5 field names; tolerant of v4 promptTokens/completionTokens). */
+export interface JudgeUsage { inputTokens: number; outputTokens: number; }
+
+/**
+ * Production generate: structured-output judge. `generateObject` enforces the schema via a
+ * single FORCED tool, so a prompt injection in the page text can at most return an in-range
+ * number — it cannot add or redirect tools (the body sits inside the data fence; the system
+ * frames it as untrusted). `onUsage`, when provided, reports each call's token usage so a
+ * caller can enforce a hard cost ceiling — it may throw to abort the run mid-flight.
+ */
+export function makeLlmGenerate(
+  model: LanguageModel,
+  signal?: AbortSignal,
+  onUsage?: (u: JudgeUsage) => void,
+): (text: string) => Promise<number> {
   return async (contentText: string) => {
     const { system, user } = buildEffortPrompt(contentText);
     const out = await generateObject({ model, system, prompt: user, schema: effortSchema, maxOutputTokens: 200, abortSignal: signal });
+    if (onUsage) {
+      const u = (out.usage ?? {}) as Record<string, number | undefined>;
+      onUsage({ inputTokens: u.inputTokens ?? u.promptTokens ?? 0, outputTokens: u.outputTokens ?? u.completionTokens ?? 0 });
+    }
     return out.object.effort;
   };
 }

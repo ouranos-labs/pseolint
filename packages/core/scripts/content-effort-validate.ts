@@ -15,7 +15,7 @@
  * bucket) and a SEPARATE cache dir so it never touches the real LLM or the real
  * cache. The stub AUC is plumbing-only — a fake scorer — NOT the real signal.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { auditSource, parseHtmlPage, createLanguageModel } from "../src/index.js";
 import { judgeContentEffort, makeLlmGenerate, type TemplateSample } from "../src/algorithms/content-effort/judge.js";
@@ -29,6 +29,18 @@ const CORPUS_PATH = resolve(HERE, "..", "calibration", "calibration-corpus.json"
 const STUB = !!process.env.PSEO_EFFORT_STUB;
 const CACHE_DIR = resolve(HERE, "..", "calibration", STUB ? ".effort-cache-stub" : ".effort-cache");
 const STRUCTURAL_BASELINE = 0.47;
+
+// Cost guard: tally each call's REAL token usage × model rate and hard-abort if the running
+// total crosses the ceiling — so a thinking-token blow-up can never silently burn the balance
+// again. USD per 1M tokens (output includes thinking tokens). Unknown model → assume priciest.
+const MAX_USD = Number(process.env.PSEO_EFFORT_MAX_USD ?? 3);
+const RATES: Record<string, { in: number; out: number }> = {
+  "claude-opus-4-8": { in: 5, out: 25 },
+  "claude-sonnet-4-6": { in: 3, out: 15 },
+  "claude-haiku-4-5": { in: 1, out: 5 },
+};
+let spentUsd = 0;
+let calls = 0;
 
 /** Deterministic offline stub scorer: thin/repetitive text -> low, rich text -> higher. */
 function stubScore(text: string): number {
@@ -89,10 +101,20 @@ async function main() {
     modelId = "stub-distinct-length-v1";
     generate = async (text: string) => stubScore(text);
   } else {
-    const requested = process.env.PSEO_EFFORT_MODEL ?? "claude-opus-4-8";
+    const requested = process.env.PSEO_EFFORT_MODEL ?? "claude-sonnet-4-6";
     const { model, modelId: resolvedId } = await createLanguageModel({ model: requested });
     modelId = resolvedId;
-    generate = makeLlmGenerate(model);
+    const rate = RATES[modelId] ?? { in: 5, out: 25 }; // unknown model → assume priciest
+    generate = makeLlmGenerate(model, undefined, (u) => {
+      spentUsd += (u.inputTokens * rate.in + u.outputTokens * rate.out) / 1_000_000;
+      calls += 1;
+      if (spentUsd > MAX_USD) {
+        throw new Error(
+          `[cost-guard] ABORT: spent ~$${spentUsd.toFixed(2)} > ceiling $${MAX_USD} after ${calls} calls. ` +
+          `Raise PSEO_EFFORT_MAX_USD to continue. (Scores judged so far are cached, so a re-run resumes cheaply.)`,
+        );
+      }
+    });
   }
 
   console.log(`# content-effort validation (${STUB ? "STUB — offline, fake scorer" : "REAL LLM"}); model=${modelId}`);
@@ -123,6 +145,19 @@ async function main() {
       // Invert: lower effort = higher "risk", so feed (100 - effort) as the score.
       effortRows.push({ url: site.url, siteClass: cls, audit: scoredAudit(summary.verdict, 100 - siteEffort) });
     }
+  }
+
+  // Persist the per-site effort map as the durable, committed corpus signal (Task 7 reads this
+  // to feed contentEffortScore into calibration → fully offline/deterministic, no LLM, no spend).
+  // The per-page .effort-cache is a local runtime speed-cache (gitignored); THIS is the artifact.
+  if (!STUB) {
+    const scores: Record<string, number | null> = {};
+    for (const f of perFarm) scores[f.url] = f.effort;
+    writeFileSync(
+      resolve(HERE, "..", "calibration", "content-effort-scores.json"),
+      JSON.stringify({ model: modelId, asOf: process.env.PSEO_EFFORT_ASOF ?? "2026-06-17", scores }, null, 2) + "\n",
+      "utf-8",
+    );
   }
 
   const structural = calibrationMetrics(structuralRows);
@@ -156,6 +191,9 @@ async function main() {
     console.log("NOTE: STUB mode — the content-effort AUC above is PLUMBING-ONLY (a fake");
     console.log("      distinct-word-ratio scorer), NOT the real LLM signal. The real gate");
     console.log("      still needs ANTHROPIC_API_KEY: bun scripts/content-effort-validate.ts");
+  } else {
+    console.log("");
+    console.log(`# spent ~$${spentUsd.toFixed(2)} over ${calls} LLM calls (model ${modelId}, ceiling $${MAX_USD})`);
   }
 }
 
