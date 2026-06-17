@@ -8,14 +8,14 @@
     "512": "icons/icon-512.png"
   },
   "action": {
-    "default_popup": "popup.html",
-    "default_title": "pseolint — scan results",
+    "default_title": "pseolint — scan this SERP",
     "default_icon": { "128": "icons/icon-128.png" }
   },
+  "side_panel": { "default_path": "sidepanel.html" },
   "background": {
     "service_worker": "dist/background.js"
   },
-  "permissions": ["activeTab"],
+  "permissions": ["sidePanel"],
   "host_permissions": ["https://www.google.com/search*"],
   "optional_host_permissions": ["https://*/*"],
   "content_scripts": [

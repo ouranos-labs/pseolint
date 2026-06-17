@@ -1,0 +1,6 @@
+User-agent: *
+Disallow: /wp-admin/
+Disallow: /wp-content/themes/Newspaper
+Allow: /wp-admin/admin-ajax.php
+
+Sitemap: https://wikibioworth.com/sitemap_index.xml

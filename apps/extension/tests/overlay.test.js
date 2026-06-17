@@ -5,9 +5,10 @@ import assert from "node:assert";
 import { badgeView, mountBadge } from "../src/content/serp/overlay.js";
 
 function makeEl(tag, created) {
-  const el = { tag, className: "", style: {}, children: [], textSets: [],
+  const el = { tag, className: "", style: {}, children: [], textSets: [], attrs: {},
     attachShadow(opts) { el.shadowMode = opts.mode; el.shadow = makeEl("#root", created); return el.shadow; },
-    append(...n) { el.children.push(...n); } };
+    append(...n) { el.children.push(...n); },
+    setAttribute(k, v) { el.attrs[k] = v; } };
   Object.defineProperty(el, "textContent", { set(v) { el.textSets.push(v); }, get() { return el.textSets.at(-1); } });
   Object.defineProperty(el, "innerHTML", { set() { throw new Error("§9 violation: innerHTML used"); }, get() { return ""; } });
   created.push(el);
@@ -20,7 +21,8 @@ assert.strictEqual(badgeView(null), null, "no verdict");
 assert.strictEqual(badgeView({ level: "flag", label: "" }), null, "empty label");
 assert.strictEqual(badgeView({ level: "flag" }), null, "missing label");
 assert.strictEqual(badgeView({ level: "bogus", label: "x" }), null, "unknown level");
-assert.deepStrictEqual(badgeView({ level: "warn", label: "2 flags" }), { text: "2 flags", color: "#9a6700" });
+assert.deepStrictEqual(badgeView({ level: "warn", label: "2 flags" }), { text: "2 flags", color: "#fbb337" });
+assert.deepStrictEqual(badgeView({ level: "templated", label: "templated" }), { text: "templated", color: "#586474" }, "neutral templated level");
 
 // Fail closed → no badge AND nothing created.
 let doc = fakeDoc();
@@ -34,7 +36,7 @@ assert.ok(host, "host element returned");
 assert.strictEqual(host.shadowMode, "closed", "shadow root is closed");
 const badge = doc.created.find((e) => e.className === "b");
 assert.strictEqual(badge.textSets.at(-1), "3 flags", "label set via textContent");
-assert.strictEqual(badge.style.background, "#cf222e", "level colour applied");
+assert.strictEqual(badge.style.background, "#df3a3a", "level colour applied");
 assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
 
 // Clickable variant (Path B): href → an <a> badge, href set via property (not
