@@ -109,6 +109,9 @@ export function parseSignals(html, url, status) {
       h2: tagTexts(doc, /<h2\b[^>]*>([\s\S]*?)<\/h2>/gi),
     },
     httpMeta: { statusCode: status },
+    // AEO signal: JSON-LD structured data present (citation-friendly). Browser-safe
+    // proxy — core's full aeo/* rules use cheerio, so they stay in the SaaS audit.
+    hasSchema: /<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/i.test(doc),
     // Un-hydrated SPA shell: a raw fetch sees the empty pre-JS HTML, not the
     // rendered DOM Google indexes (§2). Mirror core's skipEmptyBody proxy —
     // body text under ~100 chars with scripts present — and fail closed (§9):

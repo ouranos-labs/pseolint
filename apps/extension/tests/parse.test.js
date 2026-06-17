@@ -40,4 +40,12 @@ assert.deepStrictEqual(hp.headings.h1, ["Top Widgets"], "h1 text extracted + col
 assert.deepStrictEqual(hp.headings.h2, ["Specs", "Pricing"], "all h2s extracted");
 assert.deepStrictEqual(p.headings.h1, [], "no h1 in the main fixture → empty array, not undefined");
 
+// hasSchema: JSON-LD presence (AEO signal).
+assert.strictEqual(p.hasSchema, false, "no json-ld in the main fixture");
+assert.strictEqual(
+  parseSignals('<html><head><script type="application/ld+json">{}</script></head><body>plenty of real words here to clear the shell threshold for the schema check to run</body></html>', "https://x.com", 200).hasSchema,
+  true,
+  "json-ld detected",
+);
+
 console.log("parse: all extraction checks passed");

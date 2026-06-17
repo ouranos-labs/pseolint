@@ -1,6 +1,6 @@
 // `node tests/teardown.test.js`
 import assert from "node:assert";
-import { contentBar, rowTags, saturation, teardown } from "../src/shared/teardown.js";
+import { contentBar, rowTags, saturation, teardown, takeaway } from "../src/shared/teardown.js";
 
 const R = [
   { url: "https://a.com/1", rank: 1, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [] },
@@ -31,5 +31,24 @@ assert.strictEqual(t.scanned, 4);
 assert.strictEqual(t.failed, 1);
 assert.strictEqual(t.opening.url, "https://dir.com/city/x", "weakest below-bar ranked result");
 assert.strictEqual(t.rows[0].rank, 1, "rows keep SERP rank order");
+
+// AEO: positive tag + count
+assert.deepStrictEqual(rowTags({ flags: [], aeoReady: true }), ["AEO"], "aeoReady → AEO tag");
+assert.strictEqual(
+  teardown([
+    { url: "https://a.com/1", rank: 1, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [], aeoReady: true },
+    { url: "https://a.com/2", rank: 2, ok: true, isLikelyShell: false, words: 1800, ogComplete: true, templated: false, flags: [], aeoReady: false },
+  ]).aeoReady,
+  1,
+  "counts aeoReady rows",
+);
+
+// takeaway: synthesized strategic verdict
+assert.match(takeaway(teardown(R)), /Beatable/, "thin leaders + saturation → beatable");
+const fortress = teardown([
+  { url: "https://a.com/1", rank: 1, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [], aeoReady: true },
+  { url: "https://a.com/2", rank: 2, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [], aeoReady: true },
+]);
+assert.match(takeaway(fortress), /Fortress/, "deep, clean, AEO-ready → fortress");
 
 console.log("teardown: all checks passed");

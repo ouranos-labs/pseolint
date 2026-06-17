@@ -82,4 +82,9 @@ const shellScan = scanPage(shell, "https://x.com", 200);
 assert.strictEqual(shellScan.isLikelyShell, true, "shell flagged");
 assert.deepStrictEqual(shellScan.flags, [], "shell → no flags (fail closed)");
 
+// aeoReady: schema + (FAQ heading or fact-led opener); browser-safe proxy.
+assert.strictEqual(cs.aeoReady, false, "clean page without schema → not AEO-ready");
+const aeoHtml = `<html><head><title>Pricing</title><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><h2>How long does filing take?</h2><main>The standard filing fee is $70 in 2025 for all corporate documents, and processing typically takes 5 business days unless expedited.</main></body></html>`;
+assert.strictEqual(scanPage(aeoHtml, "https://x.com", 200).aeoReady, true, "schema + faq/fact-led opener → AEO-ready");
+
 console.log("rules-client: all verdict checks passed");

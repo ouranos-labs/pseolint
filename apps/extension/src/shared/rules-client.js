@@ -40,8 +40,14 @@ export function scanPage(html, url, status) {
   const words = page.contentText ? page.contentText.split(/\s+/).filter(Boolean).length : 0;
   const ogComplete = !!(page.og.title && page.og.description && page.og.image);
   if (page.isLikelyShell) {
-    return { words, ogComplete, isLikelyShell: true, flags: [], verdict: null };
+    return { words, ogComplete, isLikelyShell: true, flags: [], verdict: null, aeoReady: false };
   }
+  // AEO-readiness proxy (browser-safe; the authoritative aeo/* audit is the SaaS):
+  // structured data present + either FAQ structure or a fact-led opening.
+  const faq = page.headings.h2.some((h) => h.includes("?"));
+  const opener = page.contentText.split(/\s+/).slice(0, 60).join(" ");
+  const factLed = /(\$[\d,]+|\d+(?:\.\d+)?\s*%|\b(?:19|20)\d{2}\b|\b\d+\s*(?:days?|weeks?|months?|years?|hours?|minutes?)\b)/i.test(opener);
+  const aeoReady = page.hasSchema && (faq || factLed);
   const findings = [
     ...ogCompletenessRule([page]),
     ...soft404Rule([page]),
@@ -50,7 +56,7 @@ export function scanPage(html, url, status) {
   const flags = findings
     .filter((f) => (f.confidence ?? "high") === "high")
     .map((f) => TAG[f.ruleId] ?? "flagged");
-  return { words, ogComplete, isLikelyShell: false, flags, verdict: toVerdict(findings) };
+  return { words, ogComplete, isLikelyShell: false, flags, verdict: toVerdict(findings), aeoReady };
 }
 
 // (rawHtml, url, httpStatus) → verdict | null. Back-compat thin wrapper.

@@ -31,7 +31,7 @@ async function analyze(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   // Default "unreached" signal set — every field the scorecard reads is present.
-  const miss = { url, ok: false, status: 0, words: 0, ogComplete: false, isLikelyShell: false, flags: [], verdict: null };
+  const miss = { url, ok: false, status: 0, words: 0, ogComplete: false, isLikelyShell: false, flags: [], verdict: null, aeoReady: false };
   try {
     const res = await fetch(url, {
       credentials: "omit", // never attach the user's cookies/session (§8)
