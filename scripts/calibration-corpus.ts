@@ -29,7 +29,6 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname, relative, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { gunzipSync } from "node:zlib";
 
 import { auditSource, cachedFetch } from "../packages/core/src/index.js";
 import type { CachedFetchOptions } from "../packages/core/src/index.js";
@@ -967,21 +966,6 @@ async function mainSeedClassifierUrls(): Promise<void> {
  * Fetch a sitemap URL and collect all loc entries, recursively expanding
  * sitemap-index entries. Caps at maxUrls total URLs.
  */
-/**
- * Fetch a sitemap as text, transparently decompressing gzipped sitemap files.
- * Big sites (the farms we want to scale-seed) commonly serve `sitemap.xml.gz`
- * as a gzip RESOURCE — fetch() does not auto-decompress those (only transport
- * Content-Encoding), so cachedFetch's res.text() would return binary garbage.
- * Detect the gzip magic bytes (1f 8b) on the raw buffer and gunzip.
- */
-async function fetchSitemapText(url: string): Promise<string> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
-  if (!res.ok) return "";
-  const buf = Buffer.from(await res.arrayBuffer());
-  const isGzip = buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b;
-  return (isGzip ? gunzipSync(buf) : buf).toString("utf8");
-}
-
 async function fetchSitemapUrls(sitemapUrl: string, maxUrls: number): Promise<string[]> {
   const visited = new Set<string>();
   const collected: string[] = [];
@@ -989,7 +973,9 @@ async function fetchSitemapUrls(sitemapUrl: string, maxUrls: number): Promise<st
   async function fetchOne(url: string): Promise<void> {
     if (visited.has(url) || collected.length >= maxUrls) return;
     visited.add(url);
-    const body = await fetchSitemapText(url);
+    // cachedFetch decompresses gzip sitemap resources (.xml.gz) centrally.
+    const res = await cachedFetch(url, { timeoutMs: 20_000, cache: null });
+    const body = res.body ?? "";
     if (!body.trim().startsWith("<")) return;
 
     const isSitemapIndex = /<sitemapindex/i.test(body);
