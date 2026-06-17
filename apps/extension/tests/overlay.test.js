@@ -21,6 +21,7 @@ assert.strictEqual(badgeView({ level: "flag", label: "" }), null, "empty label")
 assert.strictEqual(badgeView({ level: "flag" }), null, "missing label");
 assert.strictEqual(badgeView({ level: "bogus", label: "x" }), null, "unknown level");
 assert.deepStrictEqual(badgeView({ level: "warn", label: "2 flags" }), { text: "2 flags", color: "#9a6700" });
+assert.deepStrictEqual(badgeView({ level: "templated", label: "templated" }), { text: "templated", color: "#0969da" }, "neutral templated level");
 
 // Fail closed → no badge AND nothing created.
 let doc = fakeDoc();

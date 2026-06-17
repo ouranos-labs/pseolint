@@ -6,7 +6,7 @@
 //   - an unrecognised verdict renders nothing (fail closed). A missing badge is
 //     fine; a wrong one is credibility death (§6).
 
-const LEVELS = { ok: "#1a7f37", warn: "#9a6700", flag: "#cf222e" };
+const LEVELS = { ok: "#1a7f37", warn: "#9a6700", flag: "#cf222e", templated: "#0969da" };
 
 // Pure: verdict → { text, color }, or null when we must not badge.
 export function badgeView(verdict) {
