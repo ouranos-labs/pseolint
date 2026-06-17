@@ -27,18 +27,23 @@ function runLandscape() {
 // Tier 2 — opt-in deep scan (side panel asked). Fetch+judge via the SW, paint
 // risk badges, and return per-result {verdict, ok} so the panel can show coverage.
 async function deepScan() {
-  if (results.length === 0) results = detectResults(document);
+  if (results.length === 0) {
+    results = detectResults(document);
+    summary = analyzeLandscape(results);
+  }
+  const rankByUrl = new Map(results.map((r, i) => [r.url, i + 1]));
   const anchorByUrl = new Map(results.map((r) => [r.url, r.anchor]));
   const reply = await chrome.runtime.sendMessage({
     type: "pseolint:scan",
     urls: results.map((r) => r.url),
   });
   const out = [];
-  for (const { url, verdict, ok } of reply?.results ?? []) {
-    const anchor = anchorByUrl.get(url);
-    const badge = anchor && verdict && mountBadge(verdict, document, auditHref(url));
+  for (const s of reply?.results ?? []) {
+    const anchor = anchorByUrl.get(s.url);
+    const badge = anchor && s.verdict && mountBadge(s.verdict, document, auditHref(s.url));
     if (badge) anchor.insertAdjacentElement("afterend", badge);
-    out.push({ url, verdict, ok });
+    // Enrich the SW signal set with SERP context the panel needs.
+    out.push({ ...s, rank: rankByUrl.get(s.url), templated: summary.templatedUrls.has(s.url) });
   }
   return { results: out };
 }
