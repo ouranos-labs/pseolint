@@ -5,7 +5,6 @@ description: "Thousands of pages sharing one publish date is a bulk-generation t
 resource: https://pseolint.dev/rules/publication-velocity
 ruleId: "spam/publication-velocity"
 tags: [spam, "publication velocity SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Publication Velocity — When Your Publish Dates Betray Bulk Generation

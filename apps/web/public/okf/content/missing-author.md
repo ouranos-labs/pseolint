@@ -5,7 +5,6 @@ description: "A missing author E-E-A-T gap is a trust signal Google's raters not
 resource: https://pseolint.dev/rules/missing-author
 ruleId: "content/missing-author"
 tags: [content, "missing author E-E-A-T"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Missing Author — Why Anonymous pSEO Pages Fail E-E-A-T

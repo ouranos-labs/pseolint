@@ -5,7 +5,6 @@ description: "Meta descriptions identical after masking the entity are templated
 resource: https://pseolint.dev/rules/meta-uniqueness
 ruleId: "content/meta-uniqueness"
 tags: [content, "duplicate meta descriptions SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Meta Description Uniqueness — When Snippets Are Templated

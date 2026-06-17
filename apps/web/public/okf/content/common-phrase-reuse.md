@@ -5,7 +5,6 @@ description: "A page leaning on 'hidden gem', 'trusted by thousands' and 'discov
 resource: https://pseolint.dev/rules/common-phrase-reuse
 ruleId: "content/common-phrase-reuse"
 tags: [content, "pSEO marketing cliches SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Common Phrase Reuse — When pSEO Clichés Pile Up On One Page

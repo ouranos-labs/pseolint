@@ -5,7 +5,6 @@ description: "A dead-end page has zero outbound links to other crawled URLs, so 
 resource: https://pseolint.dev/rules/dead-ends
 ruleId: "links/dead-ends"
 tags: [links, "dead end pages SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Dead Ends — Pages With Zero Outbound Links to the Rest of Your Crawl

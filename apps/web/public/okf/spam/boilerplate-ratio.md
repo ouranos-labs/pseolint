@@ -5,7 +5,6 @@ description: "When 60% of every page is shared paragraphs, you have one page rep
 resource: https://pseolint.dev/rules/boilerplate-ratio
 ruleId: "spam/boilerplate-ratio"
 tags: [spam, "boilerplate content SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Boilerplate Ratio — When Shared Template Text Eats Your Pages

@@ -4,6 +4,7 @@ import type { ZodRawShapeCompat } from "@modelcontextprotocol/sdk/server/zod-com
 import { z } from "zod";
 import { createRequire } from "node:module";
 import { auditSource, formatConsole, formatJson, orchestrate, SCORED_CATEGORY_KEYS } from "@pseolint/core";
+import { RULE_KNOWLEDGE } from "./okf-knowledge.js";
 import type { AuditOptions, AuditSummary, FixManifest, FixEffort, ManifestValidationReport, RuleResult } from "@pseolint/core";
 
 /**
@@ -691,6 +692,64 @@ export function registerOrchestrateTool(server: McpServer): void {
   );
 }
 
+/**
+ * Expose pseolint's rule knowledge (Open Knowledge Format bundle, lean subset)
+ * as read-only MCP resources, keyed by ruleId so they line up 1:1 with the
+ * `ruleId` on audit findings. An agent can audit, then read `pseolint://rules/<id>`
+ * for what the rule detects and how to fix it — no web fetch, no extra tool.
+ */
+export function registerRuleKnowledge(server: McpServer): void {
+  const indexUri = "pseolint://rules";
+  server.registerResource(
+    "pseolint-rules-index",
+    indexUri,
+    {
+      title: "pseolint rule knowledge index",
+      description: "Index of pSEO audit rules with knowledge resources. Read pseolint://rules/<ruleId> (the same ruleId on audit findings) for detection + fix guidance.",
+      mimeType: "application/json",
+    },
+    (uri: URL) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "application/json",
+          text: JSON.stringify(
+            RULE_KNOWLEDGE.map((r) => ({ ruleId: r.ruleId, title: r.title, uri: `pseolint://rules/${r.ruleId}` })),
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
+  for (const rule of RULE_KNOWLEDGE) {
+    const uri = `pseolint://rules/${rule.ruleId}`;
+    server.registerResource(
+      `rule-${rule.ruleId}`,
+      uri,
+      {
+        title: rule.title,
+        description: rule.oneLiner,
+        mimeType: "text/markdown",
+      },
+      (u: URL) => ({
+        contents: [
+          {
+            uri: u.href,
+            mimeType: "text/markdown",
+            text:
+              `# ${rule.title}\n\n` +
+              `Rule \`${rule.ruleId}\` — ${rule.url}\n\n` +
+              `## What it detects\n${rule.whatItDetects}\n\n` +
+              `## How to fix\n${rule.howToFix.map((b) => `- ${b}`).join("\n")}\n`,
+          },
+        ],
+      }),
+    );
+  }
+}
+
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "pseolint",
@@ -698,6 +757,7 @@ export function createServer(): McpServer {
   });
   registerReadOnlyTools(server);
   registerOrchestrateTool(server);
+  registerRuleKnowledge(server);
   return server;
 }
 

@@ -5,7 +5,6 @@ description: "A directory of pages with no internal links in or out is a topic s
 resource: https://pseolint.dev/rules/cluster-connectivity
 ruleId: "links/cluster-connectivity"
 tags: [links, "internal linking topic silo"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Cluster Connectivity — When a Directory of Pages Becomes a Topic Silo

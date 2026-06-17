@@ -5,7 +5,6 @@ description: "Two pages at 90%+ similarity are one page on two URLs. How pseolin
 resource: https://pseolint.dev/rules/near-duplicate
 ruleId: "spam/near-duplicate"
 tags: [spam, "near-duplicate content SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Near-Duplicate Pages — SimHash, SpamBrain, and the Similarity Threshold

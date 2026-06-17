@@ -5,7 +5,6 @@ description: "AI engines favour pages that prove they are current. How aeo/fresh
 resource: https://pseolint.dev/rules/freshness-signals
 ruleId: "aeo/freshness-signals"
 tags: [aeo, "content freshness signals SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Freshness Signals — When a Page Gives AI Engines No Sign It Is Current

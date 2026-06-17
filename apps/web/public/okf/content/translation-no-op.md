@@ -5,7 +5,6 @@ description: "A /fr/ page identical to /en/ is a wasted hreflang, not a translat
 resource: https://pseolint.dev/rules/translation-no-op
 ruleId: "content/translation-no-op"
 tags: [content, "untranslated locale pages SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Translation No-Op — Locale Folders That Were Never Actually Translated

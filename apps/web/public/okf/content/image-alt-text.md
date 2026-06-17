@@ -5,7 +5,6 @@ description: "Content-bearing images missing alt text fail WCAG and lose Google 
 resource: https://pseolint.dev/rules/image-alt-text
 ruleId: "content/image-alt-text"
 tags: [content, "image alt text SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Image Alt Text — Catching Content Images That Ship With No Description

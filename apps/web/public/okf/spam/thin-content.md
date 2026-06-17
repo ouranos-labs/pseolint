@@ -5,7 +5,6 @@ description: "Thin content is the top reason pSEO sites get demoted. How the spa
 resource: https://pseolint.dev/rules/thin-content
 ruleId: "spam/thin-content"
 tags: [spam, "thin content SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Thin Content Detection — How Google Catches Low-Substance Pages

@@ -5,7 +5,6 @@ description: "Word count is not uniqueness. How content/unique-value scores each
 resource: https://pseolint.dev/rules/unique-value
 ruleId: "content/unique-value"
 tags: [content, "unique content value SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Unique Value — Originality as a Density, Not a Word Count

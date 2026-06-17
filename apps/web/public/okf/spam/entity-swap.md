@@ -5,7 +5,6 @@ description: "Entity-swap pages are identical once you mask the swapped city, ro
 resource: https://pseolint.dev/rules/entity-swap
 ruleId: "spam/entity-swap"
 tags: [spam, "entity swap pages SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Entity-Swap Pages — When Only the Noun Changes Between URLs

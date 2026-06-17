@@ -5,7 +5,6 @@ description: "Lifting names, reviews, and photos from the Google Places API with
 resource: https://pseolint.dev/rules/regurgitated-content
 ruleId: "content/regurgitated-content"
 tags: [content, "google places api regurgitation SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Regurgitated Content — When Your Directory Is Just the Google Places API Reskinned

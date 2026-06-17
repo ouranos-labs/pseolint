@@ -5,7 +5,6 @@ description: "Paraphrased Wikipedia content adds nothing original. How content/w
 resource: https://pseolint.dev/rules/wikipedia-paraphrase
 ruleId: "content/wikipedia-paraphrase"
 tags: [content, "paraphrased Wikipedia content SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Wikipedia Paraphrase — When Your Page Is Just the Encyclopedia, Reworded

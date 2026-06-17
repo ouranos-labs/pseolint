@@ -5,7 +5,6 @@ description: "A page with no author, date, about link, or sources looks anonymou
 resource: https://pseolint.dev/rules/eeat-signals
 ruleId: "content/eeat-signals"
 tags: [content, "E-E-A-T signals SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # E-E-A-T Signals — When a Page Carries No Evidence of Who Wrote It

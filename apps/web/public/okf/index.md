@@ -3,7 +3,6 @@ type: Knowledge Base
 title: "pseolint pSEO audit rules"
 description: "SpamBrain-mapped and AI-Overview rules pseolint checks programmatic-SEO sites against."
 resource: https://pseolint.dev
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # pseolint pSEO audit rules

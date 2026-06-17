@@ -5,7 +5,6 @@ description: "A page full of question-phrased H2s but no FAQPage JSON-LD leaves 
 resource: https://pseolint.dev/rules/faq-coverage
 ruleId: "aeo/faq-coverage"
 tags: [aeo, "FAQPage schema"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # FAQ Coverage — Question Content That Ships With No FAQPage Schema

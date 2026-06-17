@@ -5,7 +5,6 @@ description: "No single rule proves a page is worthless, but seven failing at on
 resource: https://pseolint.dev/rules/value-add
 ruleId: "content/value-add"
 tags: [content, "page value-add score SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Value-Add Score — The Composite That Reads Seven Other Rules

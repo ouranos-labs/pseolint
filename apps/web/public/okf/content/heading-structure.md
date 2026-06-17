@@ -5,7 +5,6 @@ description: "Pages with no H1 are a template bug; multiple H1s confuse the topi
 resource: https://pseolint.dev/rules/heading-structure
 ruleId: "content/heading-structure"
 tags: [content, "heading structure SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Heading Structure — Missing, Duplicate, and Unstructured Headings

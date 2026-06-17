@@ -5,7 +5,6 @@ description: "Your robots.txt decides whether GPTBot, ClaudeBot, and PerplexityB
 resource: https://pseolint.dev/rules/crawler-access
 ruleId: "aeo/crawler-access"
 tags: [aeo, "AI crawler robots.txt"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Crawler Access — Is Your robots.txt Blocking AI Answer Engines?

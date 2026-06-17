@@ -5,7 +5,6 @@ description: "llms.txt is a draft, low-adoption convention for pointing AI engin
 resource: https://pseolint.dev/rules/llms-txt
 ruleId: "aeo/llms-txt"
 tags: [aeo, "llms.txt file SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # llms.txt — A Draft Convention for Guiding AI Engines, Checked at Your Origin

@@ -5,7 +5,6 @@ description: "A template filling 8% of its keyword cells looks generated. How sp
 resource: https://pseolint.dev/rules/template-coverage
 ruleId: "spam/template-coverage"
 tags: [spam, "template coverage pSEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Template Coverage — How Sparse Keyword Matrices Expose pSEO

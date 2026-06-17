@@ -5,7 +5,6 @@ description: "Google's May 7, 2024 site-reputation-abuse policy targets sections
 resource: https://pseolint.dev/rules/host-section-divergence
 ruleId: "links/host-section-divergence"
 tags: [links, "site reputation abuse detection"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Site Reputation Abuse — Detecting Parasite Sections on a Trusted Host

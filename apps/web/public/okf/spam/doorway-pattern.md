@@ -5,7 +5,6 @@ description: "Doorway pages are against Google policy. The spam/doorway-pattern 
 resource: https://pseolint.dev/rules/doorway-pattern
 ruleId: "spam/doorway-pattern"
 tags: [spam, "doorway pages SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Doorway Pages — How Google Detects Templated Funnels

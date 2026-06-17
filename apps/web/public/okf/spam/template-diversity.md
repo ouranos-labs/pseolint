@@ -5,7 +5,6 @@ description: "If every page shares one HTML skeleton, SpamBrain reads your domai
 resource: https://pseolint.dev/rules/template-diversity
 ruleId: "spam/template-diversity"
 tags: [spam, "template diversity SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Template Diversity — Why HTML Structure Counts as a Spam Signal

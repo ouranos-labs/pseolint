@@ -5,7 +5,6 @@ description: "Two URLs in one directory built from the same slug words in a diff
 resource: https://pseolint.dev/rules/url-pattern
 ruleId: "cannibal/url-pattern"
 tags: [cannibal, "URL cannibalization"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # URL Pattern Cannibalization — When Two Slugs Are the Same Words Reordered

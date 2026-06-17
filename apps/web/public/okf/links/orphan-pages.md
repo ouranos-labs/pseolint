@@ -5,7 +5,6 @@ description: "Orphan pages have zero inbound internal links, so Googlebot can't 
 resource: https://pseolint.dev/rules/orphan-pages
 ruleId: "links/orphan-pages"
 tags: [links, "orphan pages SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Orphan Pages — URLs No Other Page Links To

@@ -5,7 +5,6 @@ description: "Pages buried more than 3 clicks from your homepage waste crawl bud
 resource: https://pseolint.dev/rules/link-depth
 ruleId: "links/link-depth"
 tags: [links, "link depth SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Link Depth — How Many Clicks From Home Before Googlebot Gives Up

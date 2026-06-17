@@ -5,7 +5,6 @@ description: "The page title is Google's strongest on-page signal. How content/t
 resource: https://pseolint.dev/rules/title-uniqueness
 ruleId: "content/title-uniqueness"
 tags: [content, "duplicate page titles SEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Title Uniqueness — Missing, Too-Short, and Duplicate Page Titles

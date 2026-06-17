@@ -5,7 +5,6 @@ description: "Answer-first taken too far. How aeo/summary-bait flags pages that 
 resource: https://pseolint.dev/rules/summary-bait
 ruleId: "aeo/summary-bait"
 tags: [aeo, "summary bait AEO"]
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # Summary Bait — When a Page Front-Loads Every Fact and Leaves the Body Hollow

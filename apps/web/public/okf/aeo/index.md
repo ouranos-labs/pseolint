@@ -3,7 +3,6 @@ type: Category
 title: "aeo rules"
 description: "pseolint aeo audit rules for programmatic SEO."
 resource: https://pseolint.dev/rules
-timestamp: 2026-06-17T06:42:03.371Z
 ---
 
 # aeo rules
