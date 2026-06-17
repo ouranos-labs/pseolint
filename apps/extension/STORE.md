@@ -8,8 +8,7 @@ behaviour.
 pseolint — pSEO risk on the SERP
 
 ## Short description (≤132 chars)
-See how programmatic a Google results page is — instantly, no permission. Deep
-scan flags thin, soft-404, and OG-missing pages right on the SERP.
+Competitive recon for any Google SERP: how programmatic it is, who's beatable, the content bar, and who's AI-Overview-ready. Free.
 
 ## Category
 Developer Tools
@@ -22,16 +21,16 @@ The moment you land on a results page, pseolint shows the **landscape**: how man
 of the results are templated and across how many hosts — with **no permission
 prompt and nothing fetched**. It reads only what's already on the page.
 
-Want the detail? Open the side panel and hit **Deep scan**. pseolint fetches each
-ranked result, checks it against a subset of the open-source pseolint rule engine,
-and draws a health badge on the risky ones:
+Want the detail? Open the side panel and hit **Deep scan** — pseolint fetches the
+ranked results and turns the SERP into a **competitive scorecard**:
 
-• **thin** — too little substantive content
-• **soft 404** — returns HTTP 200 but reads like an error page
-• **no OG tags** — missing the Open Graph metadata AI Overviews lean on
+• a one-line **strategic takeaway** (beatable? a fortress? an AEO gap?)
+• **saturation** + the **content bar** you'd need to clear
+• the **opening** — the weakest page that still ranks
+• per-result **depth bars + fact tags** (thin · soft-404 · no-OG · templated · AEO-ready)
+• set **your domain** to see exactly where you stand
 
-Badges are signals, not verdicts. Click one to open the full hosted audit for that
-site at pseolint.dev — template-level risk across the whole site.
+It's recon, not verdicts. The deep teardown — and how to win — lives at pseolint.dev.
 
 Built privacy-first: the default landscape needs no permission and fetches nothing;
 deep scan analyses pages **in your browser**, discards the content, and sends **no
@@ -44,6 +43,7 @@ sites suppressed.
 
 ## Permission justifications (per-permission, required at submission)
 - **sidePanel** — shows the deep-scan results panel.
+- **storage** — remembers the domain you optionally type to track your position (local only, never transmitted).
 - **Host access — www.google.com/search** — reads the results page and draws badges
   on it (the zero-permission landscape layer).
 - **Optional host access — https://\*/\*** — requested only when the user clicks

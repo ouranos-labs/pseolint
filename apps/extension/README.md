@@ -10,8 +10,11 @@ UX redesign spec: [`docs/superpowers/specs/2026-06-17-pseolint-extension-ux-rede
   reads only the visible page — no fetch, no prompt. Descriptive, not a verdict (§6).
 - **Tier 2 — deep scan (power).** The toolbar icon opens a **side panel**; clicking
   **Deep scan** grants host access for that scan, the service worker fetches each
-  ranked result, runs the Tier-1 rules locally, and paints risk badges + a coverage
-  list. Each badge / row links to the hosted full audit (`pseolint.dev/?prefill=`).
+  ranked result, and the panel renders a **competitive scorecard**: a one-line
+  strategic takeaway, saturation + content-bar headline, the "opening" (weakest
+  ranked page), per-result depth bars + fact tags (`thin`/`soft 404`/`no OG`/
+  `templated`/`AEO`), and — if you set **your domain** — where you stand. Risk
+  badges also paint inline on the SERP; every row links to the hosted full audit.
 
 ## Rules (imported from `@pseolint/core`)
 

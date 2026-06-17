@@ -37,7 +37,9 @@ Nothing is fetched until **you open the side panel (toolbar icon) and click
 
 - No analytics, telemetry, tracking, ads, or fingerprinting.
 - No collection of browsing history, personal information, form data, or credentials.
-- No data stored at rest (the extension uses no storage).
+- Nothing about your browsing is stored. The only stored value is the domain you
+  *optionally* type to track your own position — kept locally (`chrome.storage`)
+  and **never transmitted**.
 - It only ever reads the Google results page you're on, and — on deep scan — the
   ranked results you ask it to check. It cannot read your email, banking, or any
   other site, because it never holds standing access to them.
@@ -45,6 +47,7 @@ Nothing is fetched until **you open the side panel (toolbar icon) and click
 ## Permissions, and why
 
 - **`sidePanel`** — to show the results panel.
+- **`storage`** — to remember the domain you optionally track (local only, never sent).
 - **Host access to `https://www.google.com/search`** — to read the results page and
   draw badges on it.
 - **Optional host access (`https://*/*`), requested when you click Deep scan** — so
