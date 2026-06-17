@@ -51,27 +51,29 @@ judgeContentEffort(
   templates: { signature: string; samplePages: ParsedPage[] }[],
   opts: { model: LanguageModel; cache: EffortCache }
 ): Promise<{
-  perTemplate: Map<signature, { effort: number; originality: number; rationale: string }>; // 0–100
-  siteEffort: number; // aggregate (e.g. sample-weighted mean of per-template effort)
+  perTemplate: Map<signature, { effort: number }>; // 0–100
+  siteEffort: number; // aggregate of per-template effort
 }>
 ```
 
+- **One score, `effort`.** The 0.77 rode on content-effort; `originality` (a correlated second LLM score) and a per-page `rationale` string are deliberately *not* in SP1 — `rationale` is UX (SP3) and `originality` is unmeasured separable signal. Add either only when a consumer needs it and Phase 1 shows it earns its place. Keeps the zod schema and aggregation single-valued.
 - **Page selection:** reuse the v0.6 template clustering (`detectTemplates`, `auditor.ts`). Judge **1–3 representative pages per detected template, capped ~10 total**. Content-effort is essentially a per-template property, so this gives full template coverage at bounded cost.
-- **LLM call:** existing `createLanguageModel` (`packages/core/src/ai/adapters/`) + Vercel AI SDK `generateObject` with a zod schema `{ effort, originality, rationale }`. `effort: low` to control cost/latency.
-- **Aggregation:** per-template effort → site effort (sample-weighted; the lowest-effort large template dominates a mixed farm like newsunzip — validate the aggregation rule in Phase 1).
+- **LLM call:** existing `createLanguageModel` (`packages/core/src/ai/adapters/`) + Vercel AI SDK `generateObject` with a zod schema `{ effort: number }`. `effort: low` to control cost/latency.
+- **Aggregation:** per-template effort → site effort (sample-weighted; the lowest-effort large template should dominate a mixed farm like newsunzip — finalize the exact rule in Phase 1).
 
-### 2. Scoring integration — `shiftVerdictForContentEffort` (`auditor.ts`)
-Mirror the existing `shiftVerdictForAuthority` step:
-- **Bidirectional, bounded at ±2 verdict tiers:** low site-effort escalates risk/verdict, high softens.
-- **Band fit on the corpus in Phase 1**, not guessed (e.g. effort <10 → +2 tiers, <25 → +1, >60 → −1; exact cutoffs from the measured effort distribution of farms vs reputable).
+### 2. Scoring integration — generalize `shiftVerdictForAuthority`
+Don't write a parallel moderator. **Generalize the existing `shiftVerdictForAuthority`
+(`auditor.ts`) into one shared bounded-moderator helper** parameterized by direction and
+tier-cap; authority and content-effort are two callers of the same logic.
+- **Bidirectional, cap fit on the corpus in Phase 1** (start at the authority precedent of ±1; widen to ±2 only if Phase 1 shows ±1 is too weak against the at-chance structural base). Cutoffs come from the measured effort distribution of farms vs reputable, not guessed.
 - **No-op when the signal is absent** (feature off / no API key) — fail-safe, like the inert authority provider.
 - Content-effort never overrides the deterministic base; it is a capped moderator on top of it.
 
 ### 3. Determinism & caching — forced by Opus 4.8
-Opus 4.8 removes `temperature`/`top_p`/`top_k` (they 400) and runs adaptive thinking, so the spike's "pin temperature" determinism plan is unavailable. Instead:
-- **Content-hash cache:** `hash(normalizedPageText) → { effort, originality }`. Re-audits and the calibration ratchet read the cache → stable. First judgment is live; everything after is cached.
-- **Corpus determinism:** pin judged effort scores into the corpus fixtures (a `contentEffort` field per pinned page, or a sidecar keyed by content hash) — analogous to `classifierUrls`. Calibration runs then never call the LLM and are fully deterministic. A `--seed-content-effort` runner mode populates it (mirrors `--seed-classifier-urls`).
-- Cache layer: reuse/extend the existing cache infra (`packages/core/src/cache.ts`) or a dedicated effort cache; decided at implementation, keyed by content hash + model id.
+Opus 4.8 removes `temperature`/`top_p`/`top_k` (they 400) and runs adaptive thinking, so the spike's "pin temperature" determinism plan is unavailable. Determinism comes from **one** mechanism — a **persistent content-hash cache** — not two:
+- `hash(normalizedPageText + modelId) → effort`. First judgment is live; every re-audit and the calibration ratchet read the cache → stable.
+- **Calibration determinism falls out of the same cache:** fixtures are fixed content → same hash → cache hit, so calibration never calls the LLM live once the cache is warm. **Commit the cache entries for the corpus** (warm once, commit). No separate corpus `contentEffort` field and no `--seed-content-effort` runner mode — the cache is the single source of truth.
+- Cache layer: reuse/extend the existing cache infra (`packages/core/src/cache.ts`), keyed by content hash + model id.
 
 ### 4. Security — untrusted prose → LLM (first such path)
 Page text is the **first untrusted-prose→LLM input** in the codebase. Defense in depth:
@@ -98,7 +100,7 @@ Page text is the **first untrusted-prose→LLM input** in the codebase. Defense 
 
 ## Risks
 - **AUC may not reproduce on the larger corpus** (n was tiny at 0.77). Mitigated by the Phase 1 hard gate — we measure before we wire.
-- **Non-determinism** (Opus 4.8, no temp pin) — mitigated by content-hash caching + corpus pinning; calibration never calls the LLM live.
+- **Non-determinism** (Opus 4.8, no temp pin) — mitigated by the persistent content-hash cache (committed for the corpus); calibration never calls the LLM live once warm.
 - **Cost** — bounded by per-template sampling (~10 pages/audit) + caching + opt-in + Pro-gating (SP3).
 - **Prompt injection** — mitigated by structured output (no-tool judge) + delimiting + the injection test.
 - **Over-moderation** — the ±2-tier cap + bidirectional band keep content-effort from dominating; the deterministic base remains the floor.
