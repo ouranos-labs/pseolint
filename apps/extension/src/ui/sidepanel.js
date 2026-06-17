@@ -1,12 +1,15 @@
 // Power surface. Owns the deep-scan gesture + host-permission request (only valid
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
-import { teardown, takeaway } from "../shared/teardown.js";
+import { teardown, takeaway, userHost } from "../shared/teardown.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
 const NO_SERP = "Open a Google results page to analyze it.";
 const $ = (id) => document.getElementById(id);
+
+let lastResults = []; // cached so "your site" can re-render when the domain changes
+let myHost = ""; // the user's tracked domain (stored locally, never transmitted)
 
 async function activeTabId() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -51,7 +54,20 @@ const TAG_CLASS = { thin: "thin", "soft 404": "soft", "no OG tags": "og", templa
 
 // Render the SERP competitive scorecard from the teardown model. All untrusted
 // host strings via textContent (§9); facts on rows, framing only in the summary.
+// "Where do I stand?" — match the tracked domain against this SERP. Recon about
+// the live SERP (descriptive), not a deep audit of your site (that's the SaaS).
+function renderYourSite() {
+  const el = $("yoursite");
+  if (!myHost || lastResults.length === 0) { el.textContent = ""; return; }
+  const t = teardown(lastResults);
+  const mine = t.rows.find((r) => r.host === myHost);
+  el.textContent = mine
+    ? `Your site (${myHost}): #${mine.rank} · ${mine.words}w` + (mine.belowBar ? ` — below the ${t.bar}w bar` : " — clears the bar")
+    : `${myHost} isn't on this SERP — the field is open.`;
+}
+
 function render(results) {
+  lastResults = results;
   const list = $("results");
   list.textContent = "";
   $("headline").textContent = "";
@@ -116,7 +132,21 @@ function render(results) {
     list.append(li);
   }
   $("cta").hidden = false;
+  renderYourSite();
 }
 
 $("scan").addEventListener("click", deepScan);
+
+// Tracked domain: load from local storage, persist on edit, re-render the match.
+chrome.storage?.local?.get?.("domain").then((o) => {
+  myHost = userHost(o?.domain ?? "");
+  if (myHost) $("domain").value = myHost;
+  renderYourSite();
+}).catch(() => {});
+$("domain").addEventListener("input", (e) => {
+  myHost = userHost(e.target.value);
+  chrome.storage?.local?.set?.({ domain: myHost }).catch(() => {});
+  renderYourSite();
+});
+
 loadLandscape();

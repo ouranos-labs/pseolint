@@ -29,6 +29,13 @@
       #status { margin: 12px 0; min-height: 1.2em; color: var(--muted); font: 11.5px var(--mono); }
       #takeaway:not(:empty) { margin: 12px 0 8px; padding: 8px 10px; font: 600 12.5px/1.45 var(--sans);
         color: var(--fg); background: rgba(54,211,154,.08); border-left: 3px solid var(--primary); border-radius: 6px; }
+      #yoursite:not(:empty) { margin: 0 0 8px; padding: 8px 10px; font: 600 12.5px/1.45 var(--sans);
+        color: var(--fg); background: rgba(152,162,179,.10); border-left: 3px solid var(--muted); border-radius: 6px; }
+      .track { margin-top: 14px; display: flex; align-items: center; gap: 8px; }
+      .track label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+      .track input { flex: 1; min-width: 0; background: var(--surface); color: var(--fg); border: 1px solid var(--border);
+        border-radius: 8px; padding: 6px 8px; font: 12px var(--mono); }
+      .track input:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
       #headline { margin: 8px 0 4px; font: 12px var(--sans); color: var(--fg); }
       #headline b { font-family: var(--mono); color: var(--primary); }
       #opening { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
@@ -78,10 +85,15 @@
     <button id="scan">Deep scan this SERP</button>
     <p id="status" role="status" aria-live="polite"></p>
     <p id="takeaway"></p>
+    <p id="yoursite"></p>
     <p id="headline"></p>
     <p id="opening"></p>
     <ul id="results"></ul>
     <a id="cta" href="https://pseolint.dev" target="_blank" rel="noopener" hidden>Audit your own site →</a>
+    <div class="track">
+      <label for="domain">Your domain</label>
+      <input id="domain" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="yoursite.com" />
+    </div>
     <div class="legend">
       <span><i style="background:#df3a3a"></i> thin / soft-404</span>
       <span><i style="background:#fbb337"></i> no OG</span>

@@ -1,6 +1,12 @@
 // `node tests/teardown.test.js`
 import assert from "node:assert";
-import { contentBar, rowTags, saturation, teardown, takeaway } from "../src/shared/teardown.js";
+import { contentBar, rowTags, saturation, teardown, takeaway, userHost } from "../src/shared/teardown.js";
+
+// userHost: normalize user-typed domains for the "your site" match.
+assert.strictEqual(userHost("https://www.Example.com/path?q=1"), "example.com");
+assert.strictEqual(userHost("example.com"), "example.com");
+assert.strictEqual(userHost("  WWW.Foo.IO  "), "foo.io");
+assert.strictEqual(userHost(""), "");
 
 const R = [
   { url: "https://a.com/1", rank: 1, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [] },

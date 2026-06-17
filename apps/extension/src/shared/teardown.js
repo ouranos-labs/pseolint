@@ -10,6 +10,15 @@ const host = (url) => {
   }
 };
 
+// Normalize a user-typed domain ("https://www.X.com/path", "X.com") → "x.com".
+export function userHost(input) {
+  if (!input) return "";
+  return String(input).trim().toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/[/?#].*$/, "");
+}
+
 // median word count over results actually fetched + parsed (excl. fails/shells).
 export function contentBar(results) {
   const w = results.filter((r) => r.ok && !r.isLikelyShell).map((r) => r.words).sort((a, b) => a - b);
