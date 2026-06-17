@@ -1,7 +1,7 @@
 // Power surface. Owns the deep-scan gesture + host-permission request (only valid
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
-import { teardown } from "../shared/teardown.js";
+import { teardown, takeaway } from "../shared/teardown.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
@@ -47,7 +47,7 @@ async function deepScan() {
   $("scan").disabled = false;
 }
 
-const TAG_CLASS = { thin: "thin", "soft 404": "soft", "no OG tags": "og", templated: "templated" };
+const TAG_CLASS = { thin: "thin", "soft 404": "soft", "no OG tags": "og", templated: "templated", AEO: "aeo" };
 
 // Render the SERP competitive scorecard from the teardown model. All untrusted
 // host strings via textContent (§9); facts on rows, framing only in the summary.
@@ -55,6 +55,7 @@ function render(results) {
   const list = $("results");
   list.textContent = "";
   $("headline").textContent = "";
+  $("takeaway").textContent = "";
   $("opening").textContent = "";
   $("cta").hidden = true;
   if (results.length === 0) {
@@ -64,6 +65,7 @@ function render(results) {
   const t = teardown(results);
   const sat = t.saturation;
   $("status").textContent = `Scanned ${t.scanned}/${results.length}` + (t.failed ? ` · ${t.failed} failed` : "");
+  $("takeaway").textContent = takeaway(t); // the synthesized "so what"
 
   const headline = $("headline");
   headline.append(document.createTextNode("This SERP: "));
@@ -71,6 +73,7 @@ function render(results) {
   headline.append(document.createTextNode(" · content bar "));
   const barB = document.createElement("b"); barB.textContent = `${t.bar}w`; headline.append(barB);
   if (sat.topHost) headline.append(document.createTextNode(` · ${sat.topHost} ×${sat.topHostCount}`));
+  headline.append(document.createTextNode(` · ${t.aeoReady}/${t.scanned} AEO-ready`));
 
   if (t.opening) {
     const o = $("opening");

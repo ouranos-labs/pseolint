@@ -27,7 +27,9 @@
       button#scan:active { transform: translateY(.5px); box-shadow: none; }
       button#scan:disabled { opacity: .55; cursor: default; box-shadow: none; }
       #status { margin: 12px 0; min-height: 1.2em; color: var(--muted); font: 11.5px var(--mono); }
-      #headline { margin: 12px 0 4px; font: 12px var(--sans); color: var(--fg); }
+      #takeaway:not(:empty) { margin: 12px 0 8px; padding: 8px 10px; font: 600 12.5px/1.45 var(--sans);
+        color: var(--fg); background: rgba(54,211,154,.08); border-left: 3px solid var(--primary); border-radius: 6px; }
+      #headline { margin: 8px 0 4px; font: 12px var(--sans); color: var(--fg); }
       #headline b { font-family: var(--mono); color: var(--primary); }
       #opening { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
       #opening b { color: var(--fg); }
@@ -46,6 +48,7 @@
       .tag.thin, .tag.soft { background: var(--flag); }
       .tag.og { background: var(--warn); color: #3a2a06; }
       .tag.templated { background: var(--templated); }
+      .tag.aeo { background: var(--primary); color: var(--primary-fg); }
       .tag.strong { background: transparent; color: var(--primary); box-shadow: none; }
       li a { color: var(--primary); font-size: 11px; white-space: nowrap; text-decoration: none; }
       li a:hover { text-decoration: underline; }
@@ -74,6 +77,7 @@
     <p id="landscape">Open a Google results page to analyze it.</p>
     <button id="scan">Deep scan this SERP</button>
     <p id="status" role="status" aria-live="polite"></p>
+    <p id="takeaway"></p>
     <p id="headline"></p>
     <p id="opening"></p>
     <ul id="results"></ul>
@@ -82,7 +86,7 @@
       <span><i style="background:#df3a3a"></i> thin / soft-404</span>
       <span><i style="background:#fbb337"></i> no OG</span>
       <span><i style="background:#586474"></i> templated</span>
-      <span><i style="background:#36d39a"></i> strong</span>
+      <span><i style="background:#36d39a"></i> AEO-ready</span>
     </div>
     <footer>
       Flags, not verdicts. Deep scan fetches the results to check them — nothing about you is sent.
