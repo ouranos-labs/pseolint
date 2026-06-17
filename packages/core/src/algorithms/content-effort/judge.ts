@@ -1,6 +1,7 @@
 // judge.ts
+import { generateObject, type LanguageModel } from "ai";
 import type { ParsedPage } from "../../types.js";
-import { buildEffortPrompt } from "./schema.js";
+import { buildEffortPrompt, effortSchema } from "./schema.js";
 import { effortCacheKey, readEffortCache, writeEffortCache } from "./cache.js";
 
 export interface TemplateSample { signature: string; samplePages: Pick<ParsedPage, "url" | "contentText">[]; }
@@ -61,4 +62,13 @@ export async function judgeContentEffort(templates: TemplateSample[], opts: Judg
   const worstLarge = pool.reduce((min, w) => Math.min(min, w.effort), 100);
   const siteEffort = clamp(Math.min(wmean, (wmean + worstLarge) / 2));
   return { perTemplate, siteEffort };
+}
+
+/** Production generate: structured-output judge (no tools → injection can at most return an in-range number). */
+export function makeLlmGenerate(model: LanguageModel, signal?: AbortSignal): (text: string) => Promise<number> {
+  return async (contentText: string) => {
+    const { system, user } = buildEffortPrompt(contentText);
+    const out = await generateObject({ model, system, prompt: user, schema: effortSchema, maxOutputTokens: 200, abortSignal: signal });
+    return out.object.effort;
+  };
 }
