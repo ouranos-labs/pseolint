@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <style>
@@ -43,6 +43,12 @@
       .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
       footer { margin-top: 14px; color: var(--muted); font-size: 10.5px; line-height: 1.5; }
       footer a { color: var(--primary); text-decoration: none; }
+      /* a11y: visible keyboard focus on every interactive element */
+      button#scan:focus-visible, a:focus-visible {
+        outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+      @media (prefers-reduced-motion: reduce) {
+        button#scan { transition: none; }
+      }
     </style>
   </head>
   <body>
@@ -52,7 +58,7 @@
     </div>
     <p id="landscape">Open a Google results page to analyze it.</p>
     <button id="scan">Deep scan this SERP</button>
-    <p id="status"></p>
+    <p id="status" role="status" aria-live="polite"></p>
     <ul id="results"></ul>
     <div class="legend">
       <span><i style="background:#df3a3a"></i> risk</span>

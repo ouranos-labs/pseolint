@@ -5,9 +5,10 @@ import assert from "node:assert";
 import { badgeView, mountBadge } from "../src/content/serp/overlay.js";
 
 function makeEl(tag, created) {
-  const el = { tag, className: "", style: {}, children: [], textSets: [],
+  const el = { tag, className: "", style: {}, children: [], textSets: [], attrs: {},
     attachShadow(opts) { el.shadowMode = opts.mode; el.shadow = makeEl("#root", created); return el.shadow; },
-    append(...n) { el.children.push(...n); } };
+    append(...n) { el.children.push(...n); },
+    setAttribute(k, v) { el.attrs[k] = v; } };
   Object.defineProperty(el, "textContent", { set(v) { el.textSets.push(v); }, get() { return el.textSets.at(-1); } });
   Object.defineProperty(el, "innerHTML", { set() { throw new Error("§9 violation: innerHTML used"); }, get() { return ""; } });
   created.push(el);

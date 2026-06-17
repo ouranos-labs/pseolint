@@ -66,6 +66,7 @@ function render(results) {
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.textContent = "full audit ↗";
+    a.setAttribute("aria-label", `Open full pseolint audit for ${host.textContent}`);
     li.append(host, v, a);
     list.append(li);
   }

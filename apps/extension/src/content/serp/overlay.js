@@ -26,7 +26,8 @@ const STYLE =
   "letter-spacing:.02em;margin-left:6px;padding:1px 7px;border-radius:7px;vertical-align:middle;" +
   "text-decoration:none;cursor:pointer;" +
   // neo-neumorphism (apps/web CTA: bright top inset + dark bottom inset + drop)
-  "box-shadow:inset 0 1.5px 0 0 rgba(255,255,255,.2),inset 0 -1.5px 0 0 rgba(0,0,0,.4),0 1.5px 3px 0 rgba(0,0,0,.3)}";
+  "box-shadow:inset 0 1.5px 0 0 rgba(255,255,255,.2),inset 0 -1.5px 0 0 rgba(0,0,0,.4),0 1.5px 3px 0 rgba(0,0,0,.3)}" +
+  ".b:focus-visible{outline:2px solid #36d39a;outline-offset:2px}"; // a11y: keyboard focus ring
 
 // Build the shadow-host element for a verdict, or null (no badge). Glue only —
 // the decision lives in badgeView; this just plumbs it into a closed shadow root.
@@ -48,6 +49,8 @@ export function mountBadge(verdict, doc = document, href = null) {
   badge.style.background = view.color;
   badge.style.color = FG[verdict.level] ?? "#ffffff";
   badge.textContent = href ? `${view.text} ↗` : view.text; // label via textContent, never innerHTML
+  // a11y: the "↗" is decorative; give screen readers the meaning + action.
+  badge.setAttribute("aria-label", href ? `pseolint: ${view.text} — open full audit` : `pseolint: ${view.text}`);
   if (href) {
     badge.href = href;
     badge.target = "_blank";
