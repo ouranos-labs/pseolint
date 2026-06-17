@@ -25,6 +25,10 @@ export function GET(): Response {
 - [Boilerplate ratio rule](/rules/boilerplate-ratio)
 - [Template diversity rule](/rules/template-diversity)
 
+## Open Knowledge bundle
+
+- [OKF rule bundle](/okf/index.md): pseolint's rule knowledge as an Open Knowledge Format (OKF v0.1) bundle — one markdown file per rule with YAML frontmatter, cross-linked into a graph. Fetch /okf/<category>/<rule>.md directly, or browse /okf/index.md.
+
 ## Diagnostic content
 
 - [Symptom triage index](/symptoms): match observed Search Console symptoms to underlying SpamBrain causes.

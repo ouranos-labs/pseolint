@@ -3,7 +3,8 @@
  * Generate an Open Knowledge Format (OKF v0.1) bundle from pseolint's published
  * rule catalog (apps/web `MARKETING_RULES`). OKF is just a directory of markdown
  * files with YAML frontmatter, cross-linked into a graph — portable, git-shippable,
- * agent-consumable. See https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
+ * agent-consumable, and served statically at pseolint.dev/okf/. See
+ * https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing
  *
  * The source of truth stays `MARKETING_RULES`; this only reformats it. Re-run
  * (`bun run gen:okf`) after editing rules.
@@ -17,7 +18,10 @@ import { join } from "node:path";
 import { MARKETING_RULES } from "../apps/web/src/lib/marketing-rules.ts";
 import { resolveSources } from "../apps/web/src/lib/marketing-sources.ts";
 
-const OUT = join(import.meta.dir, "..", "docs", "okf");
+// Output into the web app's public/ so Next serves the bundle statically at
+// pseolint.dev/okf/... (per OKF: "just files, hostable") and it stays browsable
+// on GitHub. Single source of truth — no second copy.
+const OUT = join(import.meta.dir, "..", "apps", "web", "public", "okf");
 const SITE = "https://pseolint.dev";
 const NOW = new Date().toISOString();
 
