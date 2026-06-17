@@ -62,7 +62,14 @@ const snapshotFilter: string | undefined =
     : undefined;
 
 // v0.6.1: --seed-classifier-urls fetches live sitemaps and writes classifierUrls to corpus
-const isSeedClassifierUrlsMode = args.includes("--seed-classifier-urls");
+const seedFlagIdx = args.indexOf("--seed-classifier-urls");
+const isSeedClassifierUrlsMode = seedFlagIdx !== -1;
+// Optional substring filter (mirrors --repin): `--seed-classifier-urls fresherslive`
+// seeds only sites whose URL contains "fresherslive". If absent, all sites are seeded.
+const seedFilter: string | undefined =
+  isSeedClassifierUrlsMode && args[seedFlagIdx + 1] && !args[seedFlagIdx + 1].startsWith("--")
+    ? args[seedFlagIdx + 1]
+    : undefined;
 
 const isWriteBaselineMode = args.includes("--write-baseline");
 
@@ -914,7 +921,10 @@ async function mainSeedClassifierUrls(): Promise<void> {
 
   const MAX_CLASSIFIER_URLS = 5000;
 
-  for (const site of corpus.sites) {
+  const targets = seedFilter ? corpus.sites.filter((s) => s.url.includes(seedFilter)) : corpus.sites;
+  if (seedFilter) console.log(`${ansi.dim}Filter "${seedFilter}" → ${targets.length} site(s)${ansi.reset}\n`);
+
+  for (const site of targets) {
     process.stdout.write(`${site.url} ... `);
     try {
       const origin = new URL(site.url).origin;

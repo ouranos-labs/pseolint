@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /request-review/*
+Disallow: /*?uuid=
+Disallow: /api/
+Disallow: /business
+Disallow: /playground
+
+Sitemap: https://trustanalytica.org/sitemap.xml
