@@ -27,17 +27,31 @@
       button#scan:active { transform: translateY(.5px); box-shadow: none; }
       button#scan:disabled { opacity: .55; cursor: default; box-shadow: none; }
       #status { margin: 12px 0; min-height: 1.2em; color: var(--muted); font: 11.5px var(--mono); }
+      #headline { margin: 12px 0 4px; font: 12px var(--sans); color: var(--fg); }
+      #headline b { font-family: var(--mono); color: var(--primary); }
+      #opening { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+      #opening b { color: var(--fg); }
       ul { list-style: none; margin: 0; padding: 0; }
-      li { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--border); }
-      .host { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
-      .v { font: 600 10.5px var(--mono); letter-spacing: .02em; padding: 1px 7px; border-radius: 7px; color: #fff; flex: none;
-        box-shadow: inset 0 1.5px 0 0 rgba(255,255,255,.2), inset 0 -1.5px 0 0 rgba(0,0,0,.4), 0 1.5px 3px 0 rgba(0,0,0,.3); }
-      .v.flag { background: var(--flag); }
-      .v.warn { background: var(--warn); color: #3a2a06; }
-      .v.templated { background: var(--templated); }
-      li a { color: var(--primary); font-size: 11px; white-space: nowrap; text-decoration: none; flex: none; }
+      li { display: grid; grid-template-columns: 1.7em 1fr auto; align-items: center;
+        gap: 8px; padding: 7px 0; border-top: 1px solid var(--border); }
+      .rank { font: 11px var(--mono); color: var(--muted); text-align: right; }
+      .who { min-width: 0; }
+      .host { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+      .bar { height: 4px; margin-top: 4px; border-radius: 2px; background: var(--primary); opacity: .9; }
+      .bar.below { background: var(--warn); }
+      .meta { display: flex; align-items: center; gap: 6px; }
+      .w { font: 11px var(--mono); color: var(--muted); }
+      .tag { font: 600 9.5px var(--mono); letter-spacing: .02em; padding: 1px 5px; border-radius: 6px; color: #fff;
+        box-shadow: inset 0 1px 0 0 rgba(255,255,255,.18), 0 1px 2px 0 rgba(0,0,0,.3); }
+      .tag.thin, .tag.soft { background: var(--flag); }
+      .tag.og { background: var(--warn); color: #3a2a06; }
+      .tag.templated { background: var(--templated); }
+      .tag.strong { background: transparent; color: var(--primary); box-shadow: none; }
+      li a { color: var(--primary); font-size: 11px; white-space: nowrap; text-decoration: none; }
       li a:hover { text-decoration: underline; }
-      li.clean { color: var(--primary); font-size: 12px; padding: 12px 0; }
+      #cta { display: block; margin: 14px 0 2px; text-align: center; font: 600 13px var(--sans);
+        color: var(--primary-fg); background: var(--primary); padding: 9px; border-radius: 10px; text-decoration: none;
+        box-shadow: inset 0 1.5px 0 0 rgba(255,255,255,.2), inset 0 -1.5px 0 0 rgba(0,0,0,.4), 0 1.5px 3px 0 rgba(0,0,0,.3); }
       .legend { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
         display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 10.5px; }
       .legend span { display: inline-flex; align-items: center; gap: 5px; }
@@ -60,12 +74,15 @@
     <p id="landscape">Open a Google results page to analyze it.</p>
     <button id="scan">Deep scan this SERP</button>
     <p id="status" role="status" aria-live="polite"></p>
+    <p id="headline"></p>
+    <p id="opening"></p>
     <ul id="results"></ul>
+    <a id="cta" href="https://pseolint.dev" target="_blank" rel="noopener" hidden>Audit your own site →</a>
     <div class="legend">
-      <span><i style="background:#df3a3a"></i> risk</span>
-      <span><i style="background:#fbb337"></i> caution</span>
+      <span><i style="background:#df3a3a"></i> thin / soft-404</span>
+      <span><i style="background:#fbb337"></i> no OG</span>
       <span><i style="background:#586474"></i> templated</span>
-      <span>↗ full audit</span>
+      <span><i style="background:#36d39a"></i> strong</span>
     </div>
     <footer>
       Flags, not verdicts. Deep scan fetches the results to check them — nothing about you is sent.
