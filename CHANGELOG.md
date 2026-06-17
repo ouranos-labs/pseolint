@@ -2,6 +2,12 @@
 
 Changelog for `pseolint`, `@pseolint/core`, and `@pseolint/mcp`. All three packages version together.
 
+## Unreleased — Crawler-legibility detection
+
+- **`tech/csr-bailout` (new rule).** With `--render`, diffs the raw server HTML against the post-hydration DOM and flags pages whose interactive value (or substantive content) appears only after client-side JS — invisible to crawlers and Google's first indexing pass. High confidence when interactive elements are entirely absent from the server HTML; emits Next.js-specific remediation (wrap `useSearchParams()`/dynamic hooks in `<Suspense>`; keep `new Date()`/`Math.random()` out of client render paths under `cacheComponents`; verify with `next build && next start`, not `next dev`). Down-weighted to `info` on `small-marketing`. No-op without `--render`.
+- **`tech/soft-404` synthetic probe.** On programmatic directories, probes one invented (nonexistent) URL per template cluster; an HTTP 200 response is flagged as a soft-404 (otherwise crawlers index unbounded junk). One probe per cluster, capped, robots-respecting, fail-open.
+- **Render pipeline wired.** The previously-unused `renderPages()` (Playwright) is now invoked under `--render`, populating `ParsedPage.renderedHtml`. Node-only (not bun); requires a matching Chromium (`npx playwright install chromium-headless-shell`) or a CDP endpoint, and degrades gracefully to a static audit when neither is available.
+
 ## 0.7.0 — 2026-06-13 — Calibration & authority foundations
 
 The whole product line is realigned to a single **0.7.0** version (core, CLI, MCP, web, and the GitHub Action). The 0.6.x line was tracked in the per-package changelogs; this entry re-establishes the unified narrative.

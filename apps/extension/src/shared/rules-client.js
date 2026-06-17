@@ -32,15 +32,28 @@ export function toVerdict(findings) {
   return { level: blocking ? "flag" : "warn", label };
 }
 
-// (rawHtml, url, httpStatus) → verdict | null. Runs the real core rules over a
-// parsed-signal subset, then gates to high-confidence.
-export function verdictFor(html, url, status) {
+// Full per-page signal set for the SERP scorecard: word count, OG completeness,
+// shell flag, the high-confidence finding tags (`flags`), and the overall verdict.
+// Runs the real core rules over the parsed-signal subset (§6, one implementation).
+export function scanPage(html, url, status) {
   const page = parseSignals(html, url, status);
-  if (page.isLikelyShell) return null; // un-rendered SPA — can't judge, don't guess
+  const words = page.contentText ? page.contentText.split(/\s+/).filter(Boolean).length : 0;
+  const ogComplete = !!(page.og.title && page.og.description && page.og.image);
+  if (page.isLikelyShell) {
+    return { words, ogComplete, isLikelyShell: true, flags: [], verdict: null };
+  }
   const findings = [
     ...ogCompletenessRule([page]),
     ...soft404Rule([page]),
     ...thinContentRule([page], THIN_MIN_WORDS).findings,
   ];
-  return toVerdict(findings);
+  const flags = findings
+    .filter((f) => (f.confidence ?? "high") === "high")
+    .map((f) => TAG[f.ruleId] ?? "flagged");
+  return { words, ogComplete, isLikelyShell: false, flags, verdict: toVerdict(findings) };
+}
+
+// (rawHtml, url, httpStatus) → verdict | null. Back-compat thin wrapper.
+export function verdictFor(html, url, status) {
+  return scanPage(html, url, status).verdict;
 }

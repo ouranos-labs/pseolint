@@ -87,6 +87,20 @@ const RESULTS_JSON = resolve(__dirname, "calibration-results.json");
 const RESULTS_MD = resolve(__dirname, "calibration-results.md");
 const BASELINE_PATH = resolve(__dirname, "../packages/core/calibration/baseline-scorecard.json");
 
+// v0.7 content-effort: per-site effort scores (committed map written by the Phase-1
+// validation runner, packages/core/scripts/content-effort-validate.ts). Injected as
+// contentEffortScore so --fixtures-only calibration applies the content-effort verdict
+// moderator OFFLINE + deterministically (no LLM, no spend). Missing map / unseeded site
+// → no moderation (graceful no-op), so calibration still runs without the file.
+const EFFORT_SCORES: Record<string, number | null> = (() => {
+  try {
+    const p = resolve(__dirname, "../packages/core/calibration/content-effort-scores.json");
+    return (JSON.parse(readFileSync(p, "utf-8")) as { scores?: Record<string, number | null> }).scores ?? {};
+  } catch {
+    return {};
+  }
+})();
+
 // ----- output types -------------------------------------------------------
 
 interface SiteResult {
@@ -284,16 +298,21 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
       const classifierUrlsOverride = (target.classifierUrls?.length ?? 0) > 0
         ? target.classifierUrls
         : undefined;
+      // Inject the pre-computed content-effort score (offline moderation; no LLM).
+      const effortScore = EFFORT_SCORES[target.url];
+      const effortOpt = typeof effortScore === "number" ? { contentEffortScore: effortScore } : {};
       const summary = useFixtures
         ? await auditSource(fixtureAbsDir!, {
             signal: ctrl.signal,
             safeMode: "saas",
             ...(classifierUrlsOverride ? { classifierUrls: classifierUrlsOverride } : {}),
+            ...effortOpt,
           })
         : await auditSource(target.url, {
             signal: ctrl.signal,
             safeMode: "saas",
             ...(classifierUrlsOverride ? { classifierUrls: classifierUrlsOverride } : {}),
+            ...effortOpt,
             ...(hasPinned
               ? { pinnedUrls: target.pinnedUrls }
               : {

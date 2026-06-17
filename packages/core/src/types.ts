@@ -401,6 +401,8 @@ export interface AuditSummary {
   truncatedKind?: "backpressure" | "coverage";
   /** Resolved domain authority used to moderate the verdict (0–100), with sources. Absent when unavailable. */
   authority?: { score: number; domain: string };
+  /** Resolved content-effort score (0–100) used to moderate the verdict. Absent when not enabled or unavailable. */
+  contentEffort?: { score: number };
 }
 
 /**
@@ -592,6 +594,21 @@ export interface AuditOptions {
   openPageRankApiKey?: string;
   /** Custom authority provider (overrides the default OPR/CC composite). For tests + offline corpora. */
   authorityProvider?: import("./algorithms/authority/provider.js").AuthorityProvider;
+  /**
+   * Opt-in content-effort moderation (LLM judge). Off unless provided. When
+   * `enabled`, the auditor judges per-template content effort (0-100) via the
+   * configured model and lets it shift the verdict one tier in either direction
+   * (low effort → stricter, high effort → more lenient). The raw `risk` is
+   * never modified — only the user-facing verdict mapping. `model` defaults to
+   * `claude-sonnet-4-6`; `cacheDir` defaults to an OS-temp content-hash cache.
+   */
+  contentEffort?: { enabled: boolean; model?: string; cacheDir?: string };
+  /**
+   * Pre-resolved 0-100 site content-effort. Calibration/tests inject this to
+   * stay offline + deterministic; bypasses the LLM entirely (takes precedence
+   * over `contentEffort.enabled`). `null` = absent → moderator no-ops.
+   */
+  contentEffortScore?: number | null;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
   /**
@@ -852,5 +869,7 @@ export interface ParsedPage {
   };
   contentText: string;
   html: string;
+  /** Post-hydration DOM (page.content()) when audited with --render; absent in static mode. */
+  renderedHtml?: string;
   httpMeta?: HttpMeta;
 }

@@ -2,146 +2,130 @@
 
 **Date:** 2026-06-17
 **Status:** Approved design, pre-implementation
-**Origin:** `docs/case-studies/2026-06-paperforge-csr-bailout-detection-brief.md` (external handoff), re-scoped after codebase audit.
+**Origin:** `docs/case-studies/2026-06-paperforge-csr-bailout-detection-brief.md` (external handoff), re-scoped after codebase audits + a render smoke test.
 
 ## 1. Problem
 
 A pSEO failure class de-indexed ~5,000 paperforge.dev pages: the page's real value (an interactive tool) rendered only after client hydration, so it was absent from the HTML crawlers and Google's first pass see. Two adjacent failures share the meta-pattern **"the HTML Google indexes ≠ what the developer sees"**:
 
 - **CSR bailout / partial shell** — interactive value (and sometimes content) exists in the hydrated DOM but not the raw server HTML.
-- **Soft-404 on synthetic URLs** — unknown URLs return HTTP 200 with a not-found body (PPR streamed a 200 shell before `notFound()`), so crawlers index nonexistent pages.
+- **Soft-404 on synthetic URLs** — unknown URLs return HTTP 200 with a not-found/shell body (PPR streamed a 200 shell before `notFound()`), so crawlers index nonexistent pages.
 
-## 2. The constraint that shapes this design (audit finding)
+## 2. Audit findings that shape this design
 
-The brief assumed pseolint has a working `--render` mode producing a rendered DOM, and that the new rule diffs raw-vs-rendered. **It does not.** `renderPages()` (`packages/core/src/renderer.ts:137`) is written but **never called**; `--render` only flips a `RenderMode` label (`auditor.ts:2269`) for state-tracking. Every rule sees only raw, no-JS HTTP HTML (`ParsedPage.html` / `ParsedPage.contentText`, `types.ts`).
+**Finding 1 — `--render` is unwired, but the renderer works (verified).** `renderPages()` (`renderer.ts:137`) is fully written but **never called**; `--render` only flips a `RenderMode` label (`auditor.ts:2269`). **Smoke test 2026-06-17:** under Node, `renderPages()` rendered a fixture with 0 raw `<input>` into 1 `<input>` + 1 `<button>` post-JS via `page.content()`. It is unwired, not broken. Two prerequisites this work must own:
+- **Browser binary:** needs the Chromium revision pinned to the installed `playwright-core` (`npx playwright install chromium-headless-shell`); the renderer already throws a helpful message when it's missing.
+- **Node only, not bun:** under bun, launch hangs (CDP-over-pipe handshake times out — bun `child_process` lacks Playwright's pipe fds). pseolint runs under Node, so unaffected; documented so nobody runs the auditor under bun expecting render.
 
-A second audit finding constrains the rule's gate: `spam/doorway-pattern` (`rules/spam/doorway-pattern.ts:24-34`) documents the **2026-05-03 calibration finding** — healthy catalogs (Zapier, Segment, Wise) are by-design near-duplicate + entity-swap + identical-structure; structural sameness alone produced a flood of false criticals, so a content-quality gate was required.
-
-**Consequence:** the paperforge *partial* shell (prose present, interactive tool missing) is **not detectable from raw HTML at acceptable false-positive cost**:
-
-1. "Few interactive elements" fires on every healthy Next.js content page.
-2. "Near-identical cluster structure" is the exact catalog shape doorway-pattern guards against.
-3. "Text in the `self.__next_f` RSC payload but absent from body" does not work — a bailed *client* component's labels live in the JS bundle, not the RSC payload.
-
-The missing content lives in JS that only executes in a browser. Therefore the high-confidence partial-shell detection **requires render** and is deferred to Phase 2. Phase 1 ships only what raw HTML proves honestly, plus the synthetic-probe (which is independently valuable).
+**Finding 2 — raw HTML alone cannot detect the partial shell.** A standalone raw-only `tech/csr-bailout` rule fails YAGNI/FP: the empty-shell case already fires `spam/thin-content` (`thin-content.ts:16`, double-report); the partial-shell case (paperforge: substantial prose, tool missing) is indistinguishable from a healthy content/catalog page in raw HTML — "few interactive elements" fires on every Next.js content page, "near-identical cluster structure" is the catalog shape `spam/doorway-pattern` already guards against (`doorway-pattern.ts:24-34`, the 2026-05-03 calibration finding), and the missing content lives in JS bundles. **The honest signal is the raw-vs-rendered diff** — which Finding 1 proves is achievable.
 
 ## 3. Decisions (locked)
 
-- **Detection approach:** Hybrid — ship raw-detectable value now (confidence `medium`/`high` per signal), design the render-diff as a Phase-2 confidence/coverage upgrade. Do **not** productionize browser rendering in this work.
-- **Scope:** both crawler-legibility gaps in this spec — (1) new `tech/csr-bailout` rule, (2) `tech/soft-404` synthetic probe.
-- **Dropped from the brief:** the "content-bail" variant (raw 120 words → rendered 1,600). Without render it collapses into the existing `spam/thin-content` rule. The brief's `aeo/non-replicable-value` cross-reference retargets to `aeo/summary-bait` (the rule that absorbed it).
+- **The real CSR-bailout detection is the render diff** — a new `tech/csr-bailout` rule comparing raw vs rendered DOM. High confidence, catches paperforge's partial shell. Gated on `--render` (opt-in; default audits don't render).
+- **Wire `renderPages()` into the pipeline** (Finding 1 makes this glue, not infrastructure) and expose the rendered DOM to rules via `ParsedPage.renderedHtml`.
+- **Ship the soft-404 synthetic probe** (default-on; independently valuable; catches the 200-shell class).
+- **Dropped:** the raw-only thin-content CSR tweak (render supersedes it — render catches empty shells too, at higher confidence); the brief's `aeo/non-replicable-value` cross-ref (now `aeo/summary-bait`).
+- **Default-mode behavior:** with render off, empty shells still surface via the existing `spam/thin-content`; `tech/csr-bailout` simply no-ops (no `renderedHtml`).
 
-## 4. Component 1 — `tech/csr-bailout` (Phase 1: empty-shell, raw-only)
+## 4. Component 1 — wire render into the pipeline
 
-### 4.1 What it detects
-A page served by a client-side framework whose **server HTML body is essentially empty** — the classic blank-SSR SPA shell. Unambiguous and low-FP: no healthy catalog or content page has a near-empty body, so it cannot retrigger the doorway false-positive.
+### 4.1 ParsedPage
+Add `renderedHtml?: string` (`types.ts`). Present only for pages successfully rendered in `--render` mode; absent otherwise.
 
-### 4.2 Fire condition (all must hold)
+### 4.2 Auditor wiring (`auditor.ts`)
+After pages are crawled+parsed and before rules run, when `options.render` is set:
+1. Call `renderPages(pages.map(p => ({ url: p.url })), null, { concurrency, timeoutMs, analyticsMode, extraBlockedHosts })` — live-URL mode (`sourceDir = null`, no `localPath`). `analyticsMode`/`extraBlockedHosts` come from `options.render` (already plumbed from CLI, `cli.ts:484`). `concurrency` reuses the crawl concurrency; `timeoutMs` default `30000`.
+2. Match each `{url, html}` back to its `ParsedPage` by `url`; set `page.renderedHtml = html`. Pages the renderer skipped (failed/timeout) get no `renderedHtml` → the rule skips them.
+3. Pre-flight: when `--render` is set and neither a browser nor a CDP endpoint is available, surface the renderer's `playwright install` hint at audit start (lift the existing throw into a pre-flight check) instead of failing mid-crawl.
+
+### 4.3 Shared helper (`framework-detect.ts`, new, small)
+- `detectClientFrameworkFromHtml(html): "nextjs" | "react" | "vite" | "astro" | null` — body markers (nextjs: `self.__next_f` / `/_next/static/` / `id="__next"`; vite: `/@vite/` / module script; astro: `astro-island` / `/_astro/`; react: `id="root"` + bundled script). Used for the rule's framework-aware remediation.
+- `countInteractive(html): number` — cheerio (already a dep) `load(html)("input,select,textarea,button,form").length`. Used symmetrically on raw and rendered HTML.
+
+## 5. Component 2 — `tech/csr-bailout` rule (render diff)
+
+### 5.1 Logic (per page; `RULE_SCOPE` = `"page"`)
 ```
-hasClientFrameworkMarkers(page.html)         // see 4.3
-&& visibleWordCount(page.contentText) < csrShellMaxWords   // default 30
-&& interactiveCount(page) === 0              // input/textarea/select/button/form
-&& !isErrorPageShape(page)                   // don't double-fire with soft-404
+if (!page.renderedHtml) return;            // render off / page skipped → no-op
+rawI  = countInteractive(page.html)
+rendI = countInteractive(page.renderedHtml)
+rawW  = wordCount(stripText(page.html))
+rendW = wordCount(stripText(page.renderedHtml))
+
+interactiveBail = rendI >= MIN_INTERACTIVE            // 3
+  && (rawI === 0 || rawI / rendI <= RATIO_FLOOR)      // 0.10
+contentBail = (rendW - rawW) >= MIN_WORD_DELTA        // 250
+  && rawW / Math.max(rendW, 1) <= CONTENT_RATIO_FLOOR // 0.5
+if (interactiveBail || contentBail) FLAG
 ```
-- `interactiveCount` is read from the existing `page.structureSignature` tag-counts (`parser.ts:10`), summing `input|textarea|select|button|form`. No re-parse, no new `ParsedPage` field.
-- `isErrorPageShape` reuses the soft-404 not-found pattern check so a framework-rendered 404 shell is reported once, as soft-404, not twice.
+Thresholds are named constants with `ponytail:` comments; surface via the rules-options mechanism (like `thinContentMinWords`) only if users need to tune them — not on day one.
 
-### 4.3 Framework detection (new helper)
-`detectDevServer()` (`fetch-observer.ts:66`) only inspects HTTP *headers*. Add a body-based helper in a new focused module `packages/core/src/framework-detect.ts` — `detectClientFrameworkFromHtml(html): "nextjs" | "react" | "vite" | "astro" | null`:
-- **nextjs:** `self.__next_f` / `/_next/static/` / `id="__next"`
-- **react:** `id="root"` + a bundled `<script src=...>` and near-empty body
-- **vite:** `/@vite/` / `type="module"` chunk markers
-- **astro:** `astro-island` / `/_astro/`
-
-Returns `null` when no client-framework marker is present → rule never fires (plain SSR/static = what you see is what crawlers get).
-
-### 4.4 Emission
-```ts
-{
-  ruleId: "tech/csr-bailout",
-  severity: "warning",
-  confidence: "medium",                 // Phase-1 cap; Phase 2 render-diff upgrades to "high"
-  pageUrl: <url>,
-  relatedUrls: [<other shells in same cluster>],   // enrich-findings collapses per cluster
-  message: "...",
-  fix: "...",
-}
-```
-- **Scope:** `"page"` in `RULE_SCOPE` (per-page detectable; runs in diff audits). Cluster collapse is handled post-hoc by `enrich-findings`, same as `spam/doorway-pattern` (emit `pageUrl` + `relatedUrls`).
-- **Message:** "`<url>` is served by `<framework>` but its server HTML body is essentially empty (`N` words, 0 interactive elements). Crawlers that don't run JS — and Google's first indexing pass — see a blank shell. Common Next.js App Router causes: `useSearchParams()`/dynamic hooks without a `<Suspense>` boundary (wrap them in a `null`-rendering Suspense child); under `cacheComponents`/PPR, `new Date()`/`Math.random()`/`Date.now()` in a client component's render path drops it from the prerender (move to `useEffect`). **Verify with `next build && next start`, not `next dev` — dev SSR hides this.** Pages with prose but missing interactive value need pseolint `--render` to detect (Phase 2)." Framework-specific hint emitted only for the detected framework.
-
-### 4.5 Site-type weighting
-Add a `SCORING_PROFILES.severityOverrides` entry (`auditor.ts` ~194-427), the existing idiom — rule emits native `warning`; profiles remap per site type:
-- `programmatic-directory`: full weight (`warning`).
-- `small-marketing`: keep at `warning` (a marketing SPA rendering nothing to crawlers is genuinely bad) — do not down-weight the empty-shell case below `warning`.
-- `blog` / `docs`: `info` (content-light routes are plausibly intentional there).
-
-### 4.6 Thresholds (configurable via the `thinContentMinWords` mechanism)
-Declared in the rules options type (`types.ts`), defaulted in `DEFAULTS` (`auditor.ts:113`), resolved at `auditor.ts:2201`, passed positionally into the rule (as `spam/thin-content` does):
-- `csrShellMaxWords` (default `30`).
-- Interactive floor fixed at `0` (an empty shell has none; >0 means something rendered).
-
-### 4.7 Phase 2 (design-only, not built now)
-When a `renderedHtml` field later exists on `ParsedPage` (requires wiring `renderPages()` into the pipeline — out of scope here):
-- Compare raw vs rendered interactive counts and visible word counts.
-- Partial-shell detection: `renderedInteractive >= 3 && (rawInteractive === 0 || rawInteractive/renderedInteractive <= 0.10)` → catches paperforge.
-- Confirmed pages upgrade `confidence: medium → high`. This is the only place high-confidence partial-shell detection is honest.
-
-## 5. Component 2 — `tech/soft-404` synthetic probe (active)
-
-### 5.1 Gap
-`tech/soft-404` (`rules/tech/soft-404.ts`) only inspects already-crawled URLs. It never probes a synthetic invalid URL, so the PPR "200-shell for unknown slug" class (paperforge Bug 3) is invisible.
-
-### 5.2 Mechanism (auditor-side pipeline step)
-Rules are pure functions over `ParsedPage[]`; active fetching is a pipeline concern. Add a probe step in the auditor:
-1. `detectTemplates(discoveredUrls)` (`template-detection.ts:49`) → `TemplateCandidate[]` (`{signature, urls[], count, ratio}`).
-2. For each qualifying cluster (skip `_longtail`), take a representative `candidate.urls[0]`, replace its last path segment with a random nonexistent token (e.g. `pseolint-404-probe-<n>`), preserving the cluster prefix.
-3. GET each synthetic URL via the existing robots-respecting fetch path used by the crawler (`cachedFetch`), honoring the same rate-limit/robots/skip rules. One probe per cluster, hard-capped (default `cap = 25`); `log()` the cluster count probed and any cap hit (no silent truncation).
-4. Parse each 200 response with `parseHtmlPage` into a synthetic `ParsedPage`, tag it as probe-origin, and run the existing soft-404 detector on it. A 200 + not-found body/title pattern (or a near-identical shell of a real cluster page) → finding.
+### 5.2 Severity / confidence
+- `rawI === 0 && rendI >= MIN_INTERACTIVE` → `severity: warning`, `confidence: high` (unambiguous: interactive value entirely absent from server HTML).
+- Otherwise interactive-bail → `confidence: high`.
+- content-only bail → `confidence: medium` (some hydration-added text is benign).
 
 ### 5.3 Emission
-Reuse `ruleId: "tech/soft-404"`. Distinguish via message: "`<cluster>` returns HTTP 200 for nonexistent URLs (probed `<synthetic-url>`). Crawlers can index unlimited junk pages. Return a real 404 (edge gate / middleware) for unknown slugs." Severity `warning`, confidence `high` (a synthetic probe returning 200+not-found is direct evidence, not a heuristic).
+```ts
+{ ruleId: "tech/csr-bailout", severity: "warning", confidence,
+  pageUrl, relatedUrls: [...other bailed pages in cluster], message, fix }
+```
+- Cluster-collapse via `enrich-findings` (emit `pageUrl` + `relatedUrls`, same shape as `spam/doorway-pattern`) so a 5,600-page network produces one finding per cluster, not per page.
+- Message: "`<url>` exposes `<rendered>` interactive elements after hydration but `<raw>` in the server HTML — crawlers (and Google's first pass) see an incomplete/empty shell, making the page look thin or duplicate. Next.js causes: `useSearchParams()`/dynamic hooks without a `<Suspense>` boundary; under `cacheComponents`/PPR, `new Date()`/`Math.random()` in a client render path drops it from the prerender (move to `useEffect`). **Verify with `next build && next start`, not `next dev`.**" Framework hint only when `detectClientFrameworkFromHtml(page.html)` is `nextjs`.
 
-### 5.4 Gating
-- Only probe when the site classifies as `programmatic-directory` (where unbounded soft-404s matter and clusters are well-formed). Skip otherwise.
-- Respect `skipDetectedAuth` / `detectAuthPage` so we never probe behind auth.
-- Fail-open: a probe network error is logged and skipped, never emitted as a finding (don't punish a transient hiccup).
+### 5.4 Site-type weighting
+`SCORING_PROFILES.severityOverrides` (`auditor.ts` ~194-427): full weight on `programmatic-directory`; down-weight to `info` on `small-marketing` (a deliberately client-only marketing widget is lower-stakes) per the brief.
 
-## 6. False-positive guards (summary)
-- `csr-bailout` requires a **near-empty body** → healthy catalogs/content/directories (non-empty bodies) never fire. Framework-gated → static/SSR sites never fire.
-- `csr-bailout` defers to `soft-404` on error-page shapes (no double-fire).
-- soft-404 probe gated to `programmatic-directory`, auth-skipped, fail-open, capped + logged.
+### 5.5 Registration
+`scope.ts` (`"page"`), `rule-references.ts` (docs URL).
 
-## 7. Files touched
+## 6. Component 3 — `tech/soft-404` synthetic probe (active, default-on)
+
+### 6.1 Gap & signal
+`soft404Rule` (`soft-404.ts:27`) only inspects crawled URLs. For a *synthetic* URL we constructed to be nonexistent, the failure is simply: **it returned `200`** (a correct site returns `404`/`410`). No body-text match needed (unlike `soft404Rule`); body text only raises confidence.
+
+### 6.2 Mechanism (auditor-side; rules stay pure)
+1. `detectTemplates(discoveredUrls)` (`template-detection.ts:49`) → clusters with URL lists.
+2. Per qualifying cluster (skip `_longtail`): take `candidate.urls[0]`, replace its last path segment with a random nonexistent token (`pseolint-404-probe-<n>`), preserving the prefix.
+3. GET via the existing robots-respecting central fetch (`cachedFetch`), honoring rate-limit/robots/concurrency. One probe per cluster, hard-capped (default `25`); `log()` count probed + any cap hit.
+4. Evaluate (small exported helper in `soft-404.ts`, e.g. `evaluateProbe`): status `200` → finding (`confidence: high` if body matches `SOFT_404_PATTERNS` or is near-empty; else `medium`); `404`/`410`/`3xx` → no finding; network error → skip, logged (fail-open).
+
+### 6.3 Emission & gating
+- `ruleId: "tech/soft-404"` (no new id), `severity: warning`. Message names the cluster + probed URL + "return a real 404/410 for unknown slugs."
+- Gate to `programmatic-directory`; respect `skipDetectedAuth`/`detectAuthPage`; fail-open. Default-on within those gates (bounded footprint, standard SEO-audit behavior); an opt-out flag is trivial to add later, not built speculatively.
+
+## 7. False-positive guards (summary)
+- `tech/csr-bailout` fires only on a real raw-vs-rendered divergence (`MIN_INTERACTIVE` floor + ratio gate) → healthy SSR pages (raw ≈ rendered) never fire; render-off pages no-op.
+- soft-404 probe gated to `programmatic-directory`, auth-skipped, capped, logged, fail-open; a rare legit catch-all is itself an SEO smell (`medium` confidence covers it).
+
+## 8. Files touched
+- `packages/core/src/renderer.ts` — no logic change; possibly export a `RenderOptions` default. (Pre-flight check may live here or in auditor.)
+- `packages/core/src/framework-detect.ts` — **new**: `detectClientFrameworkFromHtml`, `countInteractive`.
+- `packages/core/src/types.ts` — `ParsedPage.renderedHtml?: string`.
+- `packages/core/src/auditor.ts` — render wiring (§4.2), invoke `csr-bailout`, soft-404 probe step, `SCORING_PROFILES` override, pre-flight browser check.
 - `packages/core/src/rules/tech/csr-bailout.ts` — **new** rule.
-- `packages/core/src/framework-detect.ts` — **new** module: `detectClientFrameworkFromHtml`.
-- `packages/core/src/rules/tech/soft-404.ts` — export the existing detector for reuse on probe responses (no behavior change to the crawled-URL path).
-- `packages/core/src/auditor.ts` — import + invoke `csr-bailout`; add the synthetic-probe pipeline step; add `SCORING_PROFILES` override; defaults + resolution for `csrShellMaxWords`.
-- `packages/core/src/rules/scope.ts` — register `tech/csr-bailout` as `"page"`.
-- `packages/core/src/rule-references.ts` — docs URL mapping for `tech/csr-bailout`.
-- `packages/core/src/types.ts` — `csrShellMaxWords` in the rules options type.
-- Tests + fixtures (§8).
-- `CHANGELOG.md` + any rule-count mentions (README / marketing / docs referencing the v0.7.x rule count).
+- `packages/core/src/rules/tech/soft-404.ts` — export `evaluateProbe` (no change to crawled-URL path).
+- `packages/core/src/rules/scope.ts` — register `tech/csr-bailout` (`"page"`).
+- `packages/core/src/rule-references.ts` — docs URL for `tech/csr-bailout`.
+- Tests + fixtures (§9).
+- `CHANGELOG.md` + rule-count mentions (README / docs referencing the v0.7.x rule count, since `tech/csr-bailout` is a new id).
 
-## 8. Tests / fixtures
-Under `packages/core/tests/rules/tech/csr-bailout/` (golden raw HTML; no rendered fixtures needed in Phase 1):
-1. `empty-shell-next/` — Next markers, body `<div id="__next"></div>` + scripts, ~5 words, 0 inputs → **FLAG** `warning`/`medium`.
-2. `healthy-ssr/` — Next markers, full prose + 44 inputs in raw → **no flag**.
-3. `content-directory-fp/` — Next markers, differentiated prose per page, 0 inputs, non-empty body → **no flag** (proves the empty-body guard; this is the paperforge partial-shell case Phase 1 deliberately does not catch).
-4. `static-no-framework/` — no framework markers, thin body → **never fires**.
-5. `error-shell/` — framework + empty body + not-found text → **no `csr-bailout`** (defers to soft-404).
+## 9. Tests / fixtures
+- `tests/renderer.test.ts` — **new**, permanent version of the 2026-06-17 smoke test: a fixture with 0 raw `<input>` renders to ≥1 post-JS (gated to skip cleanly when no browser is installed, so CI without Chromium doesn't fail).
+- `tests/rules/tech/csr-bailout.test.ts` — golden raw/rendered `ParsedPage` pairs:
+  1. `partial-shell` — raw 0 inputs, rendered 44 → FLAG `high` (paperforge pre-fix shape).
+  2. `healthy` — raw 44 inputs, rendered 44 → no flag (paperforge post-fix).
+  3. `content-bail` — raw ~120 words, rendered ~1600 → FLAG `medium`.
+  4. `render-off` — no `renderedHtml` → no-op.
+  5. `spa-marketing` — rendered 1 button (below `MIN_INTERACTIVE`) → no flag.
+- `tests/rules/tech/soft-404.test.ts` — probe cases: `probe-200-pattern` (200+not-found → high), `probe-200-shell` (200+empty, no pattern → high; proves status-first beats `soft404Rule`), `probe-real-404` (404 → none), `probe-non-programmatic` (skipped).
 
-Soft-404 probe tests (mock the fetch path):
-6. `probe-200-shell/` — synthetic URL returns 200 + not-found body → **FLAG** `tech/soft-404` `high`.
-7. `probe-real-404/` — synthetic URL returns 404 → **no flag**.
-8. `probe-non-programmatic/` — small-marketing site → probe skipped entirely.
+## 10. Live regression check (post-implementation)
+Audit `https://paperforge.dev` (now fixed; 44 inputs in raw server HTML, edge gate returns real 404):
+- `tech/csr-bailout --render` must **not** fire (raw ≈ rendered).
+- soft-404 probe of `/templates/<random>` must **not** fire (real 404 now).
+If a pre-fix snapshot can be hosted, it **should** fire `tech/csr-bailout` at high confidence — the truest end-to-end validation.
 
-## 9. Live regression check (post-implementation)
-Audit `https://paperforge.dev` (now fixed; 44 inputs in raw server HTML):
-- `tech/csr-bailout` must **not** fire (non-empty body + interactive present).
-- soft-404 probe of `/templates/<random>` must **not** fire (edge gate now returns real 404).
-Both confirm the fixes hold and the rules don't false-positive on a real, healthy programmatic directory in the calibration corpus.
-
-## 10. Out of scope (tracked, not built here)
-- Productionizing `--render` (wiring `renderPages()`, retaining `renderedHtml` on `ParsedPage`, perf). Required for Phase 2 partial-shell detection.
-- Phase 2 raw-vs-rendered diff for `tech/csr-bailout`.
+## 11. Out of scope / follow-ups
+- Render perf on very large crawls: `--render` is opt-in and concurrency-capped; consider stratified per-cluster render sampling (`stratified-sample.ts`) rather than rendering all N pages. Build only if real audits prove too slow.
+- Auto-detecting when `--render` is warranted (the scraper-backlog "JS-render auto-detect") — separate.

@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { soft404Rule } from "../../../src/rules/tech/soft-404.js";
 import type { ParsedPage } from "../../../src/types.js";
 
@@ -269,5 +269,26 @@ describe("soft404Rule", () => {
     ];
     const findings = soft404Rule(pages);
     expect(findings[0].message).toMatch(/\d+ words/);
+  });
+});
+
+import { evaluateProbe } from "../../../src/rules/tech/soft-404.js";
+
+describe("evaluateProbe (synthetic invalid URL)", () => {
+  it("flags 200 + not-found body at high confidence", () => {
+    const f = evaluateProbe("https://x.com/t/pseolint-404-probe-1", 200, "<h1>Page not found</h1>");
+    expect(f?.ruleId).toBe("tech/soft-404");
+    expect(f?.confidence).toBe("high");
+  });
+  it("flags 200 + near-empty shell at high confidence (no pattern)", () => {
+    const f = evaluateProbe("https://x.com/t/pseolint-404-probe-2", 200, "<div id=__next></div>");
+    expect(f?.confidence).toBe("high");
+  });
+  it("flags 200 + substantive body at medium confidence", () => {
+    const f = evaluateProbe("https://x.com/t/p", 200, "<p>" + "real content ".repeat(60) + "</p>");
+    expect(f?.confidence).toBe("medium");
+  });
+  it("does not flag a real 404", () => {
+    expect(evaluateProbe("https://x.com/t/p", 404, "<h1>not found</h1>")).toBeNull();
   });
 });

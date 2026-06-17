@@ -6,7 +6,7 @@
 // parsed and discarded inside this worker, it never crosses back to a content
 // script. Path B (sending a SignalSet to the hosted API) is a separate egress
 // added in build-seq step 5; this step makes no outbound call to pseolint.
-import { verdictFor } from "./shared/rules-client.js";
+import { scanPage } from "./shared/rules-client.js";
 
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_BYTES = 6_000_000; // skip absurdly large bodies (content-length guard)
@@ -30,6 +30,8 @@ chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() 
 async function analyze(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  // Default "unreached" signal set — every field the scorecard reads is present.
+  const miss = { url, ok: false, status: 0, words: 0, ogComplete: false, isLikelyShell: false, flags: [], verdict: null };
   try {
     const res = await fetch(url, {
       credentials: "omit", // never attach the user's cookies/session (§8)
@@ -37,17 +39,16 @@ async function analyze(url) {
       signal: controller.signal,
     });
     const contentType = res.headers.get("content-type") || "";
-    // ok = the page was reached; verdict may still be null (nothing to badge).
-    if (contentType && !HTML_TYPE.test(contentType)) return { url, verdict: null, ok: true };
-    // Size guard via content-length (best-effort; chunked bodies lack it — the
-    // 8s timeout is the backstop there). ponytail: a fully-streamed byte cap is
-    // the upgrade if hostile chunked bodies ever matter. We do NOT slice the
-    // body: a mid-<head> cut could sever an og/title tag → a FALSE "no OG" badge.
-    if (Number(res.headers.get("content-length")) > MAX_BYTES) return { url, verdict: null, ok: true };
+    // Reached but not analysable HTML → ok, no signals.
+    if (contentType && !HTML_TYPE.test(contentType)) return { ...miss, ok: true, status: res.status };
+    // Size guard via content-length (best-effort; chunked bodies lack it — the 8s
+    // timeout is the backstop). We do NOT slice the body: a mid-<head> cut could
+    // sever an og/title tag → a FALSE "no OG" signal.
+    if (Number(res.headers.get("content-length")) > MAX_BYTES) return { ...miss, ok: true, status: res.status };
     const html = await res.text();
-    return { url, verdict: verdictFor(html, res.url || url, res.status), ok: true };
+    return { url, ok: true, status: res.status, ...scanPage(html, res.url || url, res.status) };
   } catch {
-    return { url, verdict: null, ok: false }; // not reached → counts as unscanned
+    return miss; // not reached → counts as unscanned
   } finally {
     clearTimeout(timer);
   }
