@@ -1,56 +1,55 @@
 # pseolint extension — Privacy
 
-_Last updated: 2026-06-16_
+_Last updated: 2026-06-17_
 
-The pseolint browser extension is built to read as little as possible and to
-send nothing about you to anyone. This policy describes exactly what it does —
-and it matches the code (see `docs/extension-architecture.md` §8–§11).
+The pseolint browser extension reads as little as possible and sends nothing
+about you to anyone. This policy describes exactly what it does — and it matches
+the code (see `docs/extension-architecture.md` §8–§11).
 
-## What it does, and when
+## Default ("landscape") — automatic, no permission
 
-Nothing happens until **you click "Scan"** in the extension popup. There is no
-background activity, no automatic scanning, and no data collection.
+On a Google search results page, the extension reads only what's already on that
+page — the ranked result URLs — to show how *programmatic* the results are
+(a small "N of M results templated" chip plus neutral markers on clustered
+results). This runs automatically, makes **no network request**, asks for **no
+permission**, and collects nothing.
 
-When you click Scan on a Google search results page:
+## Deep scan ("risk") — only when you ask
 
-1. The extension reads the **ranked result URLs** from the page you're viewing.
-2. With the host access you grant on that click, the extension's service worker
-   **fetches each of those result pages directly from their own sites** — with
-   **no cookies and no session** attached (`credentials: "omit"`).
-3. Each page is analysed **entirely inside your browser**. The page's HTML is
-   parsed for a small set of SEO signals (title, Open Graph tags, word count,
-   HTTP status, headings), the result is turned into a coloured badge, and the
-   **page content is discarded**. None of it is stored or transmitted.
-4. A health badge is drawn next to each flagged result.
+Nothing is fetched until **you open the side panel (toolbar icon) and click
+"Deep scan."** That click grants host access for that scan only. Then:
+
+1. The service worker fetches each ranked result page directly from its own site,
+   with **no cookies and no session** (`credentials: "omit"`).
+2. Each page is analysed **entirely inside your browser** for a few SEO signals
+   (title, Open Graph tags, word count, HTTP status, headings); the result becomes
+   a coloured badge and the **page content is discarded** — never stored or sent.
+3. Risk badges appear on the results, and a summary list appears in the side panel.
 
 ## What leaves your browser
 
-- **To pseolint: nothing — unless you click a badge.** Clicking a badge opens
-  `https://pseolint.dev` in a new tab with that result's URL as a query
-  parameter, so the hosted tool can run a full audit. That is an ordinary page
-  navigation you initiate; pseolint.dev's own privacy policy then applies.
-- **To the analysed sites:** a normal page request (as if you visited the page),
-  with no cookies or credentials attached.
+- **To pseolint: nothing — unless you click a badge or audit link**, which opens
+  `https://pseolint.dev` in a new tab with that result's URL as a query parameter
+  (an ordinary navigation you initiate; pseolint.dev's privacy policy then applies).
+- **To the analysed sites (deep scan only):** a normal page request, no cookies.
 
 ## What it never does
 
 - No analytics, telemetry, tracking, ads, or fingerprinting.
-- No collection of browsing history, personal information, form data, or
-  credentials.
+- No collection of browsing history, personal information, form data, or credentials.
 - No data stored at rest (the extension uses no storage).
-- It never reads pages other than the Google results page you're on and the
-  ranked results you ask it to scan. It cannot read your email, banking, or any
-  other site, because it never requests standing access to them.
+- It only ever reads the Google results page you're on, and — on deep scan — the
+  ranked results you ask it to check. It cannot read your email, banking, or any
+  other site, because it never holds standing access to them.
 
 ## Permissions, and why
 
-- **`activeTab`** — so the popup can tell the results page you're viewing to
-  start the scan when you click. Scoped to the current tab, on your gesture.
-- **Host access to `https://www.google.com/search`** — to show badges on Google
-  results pages.
-- **Optional host access (`https://*/*`), requested on the Scan click** — so the
-  service worker can fetch the ranked result pages to analyse them. This is
-  granted **per scan by you**, not held as standing access.
+- **`sidePanel`** — to show the results panel.
+- **Host access to `https://www.google.com/search`** — to read the results page and
+  draw badges on it.
+- **Optional host access (`https://*/*`), requested when you click Deep scan** — so
+  the service worker can fetch the ranked result pages to analyse them. Granted
+  **per scan by you**, never held as standing access.
 
 ## Contact
 
