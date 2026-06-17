@@ -198,14 +198,17 @@ works. Unit tests: `cd packages/core && bunx vitest run tests/calibration/` —
   *and* legit catalogs — no separation. Refined cause: the rules that fire on the farm are
   **site/cluster-level, not template-attributed**, so within-template variance sees ~nothing.
   Gating demotions on uniformity can't work.
-- **✅ NEW LEVER (live-validated, n=6) — `content/title-uniqueness` fire-rate discriminates.**
-  Both farms fire it at **0.74–0.80** of pages; all 3 usable legit catalogs at **0.12–0.16**
-  (wise n=1, ignored). It is NOT demoted on `programmatic-directory`, fires at full severity
-  on newsunzip — *yet newsunzip still scores risk 20 ("ready")* because of bucket weighting.
-  The signal exists and separates; it's being wasted. `content/citation-coverage` partially
-  separates too (newsunzip 0.92, legit 0.16–0.48) but is noisier (fresherslive ~0).
-  **Validate on a broader site set before acting — could FP on legit sites with templated
-  titles.**
+- **❌ FALSIFIED 2026-06-17 — `content/title-uniqueness` (and every structural fire-rate) does
+  NOT separate.** An early n=6 live probe suggested title-uniqueness rate split 0.74–0.80 (farm)
+  vs 0.12–0.16 (legit) — but measuring the FULL addressable+reputable set on fixtures killed it:
+  legit catalogs **g2 (0.68)** and **numbeo (0.60)** fire title-uniqueness HIGHER than most farms
+  (newsunzip 0.60, popularnetworth 0.17, and zacjohnson/wikibioworth/cookcraze at 0.00), because
+  their titles genuinely ARE templated ("Cost of Living in {City}"). A ≥0.5 escalation would flag
+  g2+numbeo → regress the reputable side. Same overlap for `citation-coverage` (farm grokipedia
+  0.24 = legit ramp 0.24), `unique-value`, `near-duplicate`, `thin-content`. **No structural
+  signal fire-rate separates the addressable farms from reputable catalogs** — they are
+  structurally identical; only CONTENT QUALITY differs. (The proposed title-uniqueness escalation
+  was measured and rejected BEFORE implementation — it would have regressed g2/numbeo.)
 - **✅ NEW & important — profile-LENIENCY INVERSION (the core recall bug).** Verdicts are
   literally inverted: newsunzip (worst actor) = **risk 20 "ready"**; legit winners
   typeform/zapier/numbeo = **30/49/60**. Cause: the uniform spam farm classifies
