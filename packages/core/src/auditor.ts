@@ -2815,7 +2815,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         const probeUrl = rep.toString();
         const res = await cachedFetch(probeUrl, {
           timeoutMs,
-          cache: cacheConfig ?? undefined,
+          cache: cacheConfig,
           signal,
           onObservation: cacheStats.onObservation,
         });
