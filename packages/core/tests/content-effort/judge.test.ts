@@ -29,6 +29,39 @@ describe("judgeContentEffort", () => {
     expect(res.siteEffort).toBeLessThan(40);
   });
 
+  it("worst-large aggregation is order-independent (two equal-weight large templates)", async () => {
+    // Two large templates of equal weight, efforts 90 and 10. The lowest-effort
+    // large template must drive siteEffort regardless of array order (Bug 1).
+    const fakeScores: Record<string, number> = { "high effort body": 90, "low effort body": 10 };
+    const generate = async (text: string) => fakeScores[text.trim()] ?? 0;
+    const highFirst = [
+      { signature: "/high", samplePages: [page("a", "high effort body"), page("b", "high effort body")] },
+      { signature: "/low", samplePages: [page("c", "low effort body"), page("d", "low effort body")] },
+    ];
+    const lowFirst = [
+      { signature: "/low", samplePages: [page("c", "low effort body"), page("d", "low effort body")] },
+      { signature: "/high", samplePages: [page("a", "high effort body"), page("b", "high effort body")] },
+    ];
+    const dirA = mkdtempSync(join(tmpdir(), "eff-order-a-"));
+    const dirB = mkdtempSync(join(tmpdir(), "eff-order-b-"));
+    const resHighFirst = await judgeContentEffort(highFirst, { modelId: "fake", cacheDir: dirA, generate });
+    const resLowFirst = await judgeContentEffort(lowFirst, { modelId: "fake", cacheDir: dirB, generate });
+    expect(resHighFirst.siteEffort).toBe(resLowFirst.siteEffort);
+  });
+
+  it("returns siteEffort null and an empty map for no templates, without calling generate", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "eff-empty-"));
+    let calls = 0;
+    const res = await judgeContentEffort([], {
+      modelId: "fake",
+      cacheDir: dir,
+      generate: async () => { calls++; return 0; },
+    });
+    expect(res.siteEffort).toBeNull();
+    expect(res.perTemplate.size).toBe(0);
+    expect(calls).toBe(0); // no judgeable templates -> moderator no-ops, generate never called
+  });
+
   it("serves cached scores without re-calling generate", async () => {
     const dir = mkdtempSync(join(tmpdir(), "eff-judge2-"));
     let calls = 0;

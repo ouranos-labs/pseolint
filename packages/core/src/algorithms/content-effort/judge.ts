@@ -15,8 +15,13 @@ export interface JudgeOpts {
 }
 export interface ContentEffortResult {
   perTemplate: Map<string, { effort: number }>;
-  siteEffort: number;
+  siteEffort: number | null; // null = no judgeable templates → moderator no-ops
 }
+
+const DEFAULT_PER_TEMPLATE_CAP = 3;
+const DEFAULT_SITE_CAP = 10;
+/** A template counts as "large" once it holds at least this share of total weight. */
+const LARGE_TEMPLATE_SHARE = 0.2;
 
 async function scorePage(text: string, opts: JudgeOpts): Promise<number> {
   const key = effortCacheKey(text, opts.modelId);
@@ -29,8 +34,8 @@ async function scorePage(text: string, opts: JudgeOpts): Promise<number> {
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
 export async function judgeContentEffort(templates: TemplateSample[], opts: JudgeOpts): Promise<ContentEffortResult> {
-  const perTemplateCap = opts.perTemplateCap ?? 3;
-  const siteCap = opts.siteCap ?? 10;
+  const perTemplateCap = opts.perTemplateCap ?? DEFAULT_PER_TEMPLATE_CAP;
+  const siteCap = opts.siteCap ?? DEFAULT_SITE_CAP;
   const perTemplate = new Map<string, { effort: number }>();
   const weights: { effort: number; weight: number }[] = [];
   let budget = siteCap;
@@ -44,9 +49,16 @@ export async function judgeContentEffort(templates: TemplateSample[], opts: Judg
     perTemplate.set(t.signature, { effort });
     weights.push({ effort, weight: t.samplePages.length }); // weight by template size
   }
-  // Min-large-template dominates: weighted mean, then pull toward the worst large template.
-  const wmean = weights.reduce((a, w) => a + w.effort * w.weight, 0) / Math.max(1, weights.reduce((a, w) => a + w.weight, 0));
-  const worstLarge = weights.slice().sort((a, b) => b.weight - a.weight)[0]?.effort ?? wmean;
+  // No judgeable templates → ABSENT. Downstream (Task 6) no-ops on non-finite/undefined
+  // scores and treats null as absent, so the moderator stays fail-safe on no evidence.
+  if (weights.length === 0) return { perTemplate, siteEffort: null };
+  // Min-large-template dominates: weighted mean, then pull toward the worst large template
+  // (lowest effort among templates holding ≥LARGE_TEMPLATE_SHARE of total weight; order-independent).
+  const totalWeight = weights.reduce((a, w) => a + w.weight, 0);
+  const wmean = weights.reduce((a, w) => a + w.effort * w.weight, 0) / Math.max(1, totalWeight);
+  const large = weights.filter((w) => w.weight >= totalWeight * LARGE_TEMPLATE_SHARE);
+  const pool = large.length ? large : weights;
+  const worstLarge = pool.reduce((min, w) => Math.min(min, w.effort), 100);
   const siteEffort = clamp(Math.min(wmean, (wmean + worstLarge) / 2));
   return { perTemplate, siteEffort };
 }
