@@ -103,7 +103,7 @@ import {
 } from "./state.js";
 import { CORE_RULESET_VERSION } from "./ruleset-version.js";
 import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
-import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring } from "./template-detection.js";
+import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring, LONGTAIL_SIGNATURE } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 import { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
 import { CompositeAuthorityProvider } from "./algorithms/authority/provider.js";
@@ -2788,6 +2788,43 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (robotsTxtContent) {
     const crawlerFindings = crawlerAccessRule(robotsTxtContent);
     pushAll(allFindings,crawlerFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+  }
+
+  // tech/soft-404 synthetic probe: a URL we deliberately invent to be
+  // nonexistent should return 404/410. A 200 means the site soft-404s, letting
+  // crawlers index unlimited junk. Default-on for programmatic directories
+  // (clusters are well-formed there); one probe per cluster, capped, fail-open.
+  if (
+    auditMode !== "diff" &&
+    siteClassification.type === "programmatic-directory" &&
+    isRuleEnabled("tech/soft-404", undefined)
+  ) {
+    const PROBE_CAP = 25;
+    const probeClusters = detectTemplates(parsedPages.map((p) => p.url))
+      .filter((c) => c.signature !== LONGTAIL_SIGNATURE && c.urls.length > 0)
+      .slice(0, PROBE_CAP);
+    for (const cluster of probeClusters) {
+      try {
+        const rep = new URL(cluster.urls[0]);
+        const token = Math.abs(
+          [...cluster.signature].reduce((h, ch) => ((h << 5) - h + ch.charCodeAt(0)) | 0, 0),
+        );
+        const originalPath = rep.pathname;
+        rep.pathname = originalPath.replace(/\/[^/]+\/?$/, `/pseolint-404-probe-${token}`);
+        if (rep.pathname === originalPath) continue; // couldn't synthesize an invalid URL
+        const probeUrl = rep.toString();
+        const res = await cachedFetch(probeUrl, {
+          timeoutMs,
+          cache: cacheConfig ?? undefined,
+          signal,
+          onObservation: cacheStats.onObservation,
+        });
+        const finding = evaluateProbe(probeUrl, res.status, res.body ?? "");
+        if (finding) allFindings.push({ ...finding, ref: RULE_REFERENCES[finding.ruleId] });
+      } catch {
+        // fail-open: a probe network error never produces a finding.
+      }
+    }
   }
 
   // Data source comparison rules

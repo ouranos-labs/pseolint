@@ -58,7 +58,7 @@ judgeContentEffort(
 
 - **One score, `effort`.** The 0.77 rode on content-effort; `originality` (a correlated second LLM score) and a per-page `rationale` string are deliberately *not* in SP1 — `rationale` is UX (SP3) and `originality` is unmeasured separable signal. Add either only when a consumer needs it and Phase 1 shows it earns its place. Keeps the zod schema and aggregation single-valued.
 - **Page selection:** reuse the v0.6 template clustering (`detectTemplates`, `auditor.ts`). Judge **1–3 representative pages per detected template, capped ~10 total**. Content-effort is essentially a per-template property, so this gives full template coverage at bounded cost.
-- **LLM call:** existing `createLanguageModel` (`packages/core/src/ai/adapters/`) + Vercel AI SDK `generateObject` with a zod schema `{ effort: number }`. `effort: low` to control cost/latency.
+- **LLM call:** existing `createLanguageModel` (`packages/core/src/ai/adapters/`) + Vercel AI SDK `generateObject` with a zod schema `{ effort: number }`. **Plain call, no extended-thinking config** — the validated 0.77 spike used exactly this on Sonnet, and content-effort is a single-pass holistic judgment that doesn't benefit from deliberation (measured 2026-06-17: Sonnet plain-call ≈ 892 in / 24 out tokens, ~$0.003/page).
 - **Aggregation:** per-template effort → site effort (sample-weighted; the lowest-effort large template should dominate a mixed farm like newsunzip — finalize the exact rule in Phase 1).
 
 ### 2. Scoring integration — generalize `shiftVerdictForAuthority`
@@ -84,7 +84,11 @@ Page text is the **first untrusted-prose→LLM input** in the codebase. Defense 
 
 ### 5. Opt-in & configuration
 - Engine-only opt-in flag (mirror the existing `--ai`/triage pattern in `ai/`) + `ANTHROPIC_API_KEY` autodetect. **Default off.**
-- Model configurable; **default `claude-opus-4-8`**, judge runs at `effort: low`.
+- Model configurable; **default `claude-sonnet-4-6`** (the spike's validated model; a plain
+  `generateObject` call incurs no extended thinking). **NOT Opus 4.8** — its always-on adaptive
+  thinking emits thousands of $25/1M output tokens per page (~$0.20/page, ~66× pricier) and burned
+  ~$10 on the first gate attempt for zero quality gain on this task. A hard cost guard
+  (`PSEO_EFFORT_MAX_USD`, real per-call usage×rate, abort on ceiling) backs this up.
 - Fully inert when off: no LLM calls, no risk shift, zero behavior change for existing users.
 
 ### 6. Phase 1 — re-validation gate (do FIRST, before wiring §2)
