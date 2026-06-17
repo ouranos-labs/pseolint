@@ -15,6 +15,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "gen:okf": "bun scripts/gen-okf.ts",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish"
