@@ -21,6 +21,10 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log("pseolint extension installed");
 });
 
+// Toolbar icon opens the side panel directly (no popup). Optional chaining so a
+// browser without the API doesn't throw on worker startup.
+chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
+
 // Fetch one result and judge it. Fails CLOSED to no-badge on any error,
 // timeout, non-HTML response, or fetch the host permission didn't cover.
 async function analyze(url) {
