@@ -3,7 +3,7 @@
 // browser-safe export wiring resolves. `node tests/rules-client.test.js`
 // (requires @pseolint/core to be built — `dist/` — which it is in the workspace).
 import assert from "node:assert";
-import { toVerdict, verdictFor } from "../src/shared/rules-client.js";
+import { toVerdict, verdictFor, scanPage } from "../src/shared/rules-client.js";
 
 // --- toVerdict: severity → level, high-confidence gate (fail closed, §9) ---
 // Severities mirror core v0.7.1: thin-content(<150w)=error; og-missing &
@@ -64,5 +64,22 @@ assert.strictEqual(verdictFor(soft404, "https://x.com/gone", 200).level, "flag",
 // Un-hydrated SPA shell → never badge (can't see the rendered content).
 const shell = `<html><head><title>App</title></head><body><div id="root"></div><script src="/a.js"></script></body></html>`;
 assert.strictEqual(verdictFor(shell, "https://x.com", 200), null, "SPA shell → fail closed");
+
+// --- scanPage: full signal set (powers the SERP scorecard) ---
+const cs = scanPage(clean, "https://x.com", 200);
+assert.strictEqual(cs.ogComplete, true, "all og present");
+assert.strictEqual(cs.isLikelyShell, false);
+assert.ok(cs.words >= 300, `word count surfaced (${cs.words})`);
+assert.deepStrictEqual(cs.flags, [], "clean page → no flags");
+assert.strictEqual(cs.verdict, null, "clean page → no verdict");
+
+const thinScan = scanPage(soft404, "https://x.com/gone", 200);
+assert.strictEqual(thinScan.ogComplete, false, "missing og surfaced");
+assert.ok(thinScan.flags.includes("thin"), `thin flagged (${thinScan.flags})`);
+assert.strictEqual(thinScan.verdict.level, "flag", "thin → red verdict");
+
+const shellScan = scanPage(shell, "https://x.com", 200);
+assert.strictEqual(shellScan.isLikelyShell, true, "shell flagged");
+assert.deepStrictEqual(shellScan.flags, [], "shell → no flags (fail closed)");
 
 console.log("rules-client: all verdict checks passed");
