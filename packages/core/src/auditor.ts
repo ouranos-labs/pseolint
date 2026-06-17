@@ -201,6 +201,9 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "aeo/citable-facts":      "info",
       "aeo/answer-first":       "info",
       "aeo/summary-bait":       "warning",
+      // CSR-bailout on a small-marketing SPA is lower-stakes (a deliberately
+      // client-only marketing widget) — keep visible but don't tank the verdict.
+      "tech/csr-bailout":       "info",
       // 2026-05-03 calibration round 5: Segment integrations had 24 thin
       // pages (200-300 words is correct for a catalog record). thin-content
       // contributing capped 40 impact pushed integrity to its 100 cap → 30
