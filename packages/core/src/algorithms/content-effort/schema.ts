@@ -5,7 +5,8 @@ export const effortSchema = z.object({
 });
 export type EffortScore = z.infer<typeof effortSchema>;
 
-/** Unguessable fence so embedded "end of data" text can't break out. */
+/** Uncommon delimiter for the page-text region — defense-in-depth, not the primary control;
+ *  the real injection net is the structured-output, no-tool judge (see judge.ts). */
 export const DATA_FENCE = "<<<PSEO_PAGE_TEXT_8f3a>>>";
 
 const SYSTEM = [
