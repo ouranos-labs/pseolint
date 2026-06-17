@@ -24,7 +24,9 @@ const STYLE =
   ":host{all:initial}" +
   ".b{display:inline-flex;align-items:center;font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
   "letter-spacing:.02em;margin-left:6px;padding:1px 7px;border-radius:7px;vertical-align:middle;" +
-  "text-decoration:none;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.25)}";
+  "text-decoration:none;cursor:pointer;" +
+  // neo-neumorphism (apps/web CTA: bright top inset + dark bottom inset + drop)
+  "box-shadow:inset 0 1.5px 0 0 rgba(255,255,255,.2),inset 0 -1.5px 0 0 rgba(0,0,0,.4),0 1.5px 3px 0 rgba(0,0,0,.3)}";
 
 // Build the shadow-host element for a verdict, or null (no badge). Glue only —
 // the decision lives in badgeView; this just plumbs it into a closed shadow root.

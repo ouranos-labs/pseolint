@@ -11,7 +11,8 @@ export function mountChip(text, doc = document) {
     ":host{all:initial;position:fixed;bottom:18px;right:18px;z-index:2147483647}" +
     ".c{display:inline-flex;align-items:center;gap:7px;font:500 12px/1.4 ui-sans-serif,system-ui,sans-serif;" +
     "background:#14171c;color:#f1f4f8;border:1px solid #262b33;padding:7px 12px;border-radius:10px;" +
-    "box-shadow:0 8px 24px rgba(0,0,0,.4)}" +
+    // neo-neumorphism (apps/web card insets) + a floating drop, since it sits on Google
+    "box-shadow:inset 0 1px 0 0 rgba(255,255,255,.06),inset 0 -1.5px 0 0 rgba(0,0,0,.25),0 8px 24px 0 rgba(0,0,0,.4)}" +
     ".d{width:6px;height:6px;border-radius:50%;background:#36d39a;box-shadow:0 0 7px #36d39a;flex:none}";
   const chip = doc.createElement("div");
   chip.className = "c";
