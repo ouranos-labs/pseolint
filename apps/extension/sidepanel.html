@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font: 13px system-ui, sans-serif; margin: 0; padding: 14px; }
+      h1 { font-size: 13px; margin: 0 0 4px; }
+      .sub, #landscape { color: #555; margin: 0 0 10px; }
+      button { cursor: pointer; font: 13px system-ui, sans-serif; background: #1a1a1a;
+        color: #fff; border: 0; padding: 8px 12px; border-radius: 8px; width: 100%; }
+      button:disabled { opacity: .6; cursor: default; }
+      #status { color: #555; margin: 10px 0; min-height: 1.2em; }
+      ul { list-style: none; margin: 0; padding: 0; }
+      li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #eee; }
+      .host { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .v { font-size: 11px; padding: 1px 6px; border-radius: 10px; color: #fff; }
+      .v.flag { background: #cf222e; } .v.warn { background: #9a6700; } .v.templated { background: #0969da; }
+      a { color: #0969da; font-size: 11px; white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <h1>pseolint</h1>
+    <p id="landscape" class="sub">Open a Google results page to analyze it.</p>
+    <button id="scan">Deep scan this SERP</button>
+    <p id="status"></p>
+    <ul id="results"></ul>
+    <!-- external only: extension_pages CSP forbids inline scripts -->
+    <script src="dist/sidepanel.js"></script>
+  </body>
+</html>
