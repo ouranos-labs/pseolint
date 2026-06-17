@@ -17,8 +17,12 @@ async function loadLandscape() {
   try {
     const reply = await chrome.tabs.sendMessage(await activeTabId(), { type: "pseolint:landscape" });
     const s = reply?.summary;
-    $("landscape").textContent =
-      s && s.templated ? `${s.templated}/${s.total} results templated · ${s.hostCount} host(s)` : NO_SERP;
+    // Distinguish "not a SERP" (no summary) from "on a SERP, nothing templated".
+    $("landscape").textContent = !s
+      ? NO_SERP
+      : s.templated
+        ? `${s.templated}/${s.total} results templated · ${s.hostCount} host(s)`
+        : `${s.total} results · none look templated`;
   } catch {
     $("landscape").textContent = NO_SERP;
   }
@@ -45,10 +49,24 @@ async function deepScan() {
 
 function render(results) {
   const c = coverage(results);
-  $("status").textContent =
-    `Scanned ${c.scanned}/${c.total}${c.failed ? ` · ${c.failed} failed` : ""} · ${c.flagged} flagged`;
   const list = $("results");
   list.textContent = ""; // clear
+  if (c.total === 0) {
+    $("status").textContent = "No results found — open a Google results page.";
+    return;
+  }
+  $("status").textContent =
+    `Scanned ${c.scanned}/${c.total}` +
+    (c.failed ? ` · ${c.failed} failed` : "") +
+    (c.flagged ? ` · ${c.flagged} flagged` : " · all clear");
+  // Clean SERP is a real result, not a void — say so instead of an empty list.
+  if (c.flagged === 0) {
+    const li = document.createElement("li");
+    li.className = "clean";
+    li.textContent = "✓ No thin, soft-404, or missing-OG issues in these results.";
+    list.append(li);
+    return;
+  }
   for (const r of results.filter((x) => x.verdict)) {
     const li = document.createElement("li");
     const host = document.createElement("span");
