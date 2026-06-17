@@ -45,3 +45,7 @@ packages/mcp/mcp-publisher*
 # Native worktree dirs (EnterWorktree / stray variants)
 .claude/worktrees/
 .claire/
+
+# content-effort STUB validation cache — throwaway local artifact from the
+# offline plumbing runner (PSEO_EFFORT_STUB=1); never commit.
+packages/core/calibration/.effort-cache-stub/
