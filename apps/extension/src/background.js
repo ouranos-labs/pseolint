@@ -33,16 +33,17 @@ async function analyze(url) {
       signal: controller.signal,
     });
     const contentType = res.headers.get("content-type") || "";
-    if (contentType && !HTML_TYPE.test(contentType)) return { url, verdict: null };
+    // ok = the page was reached; verdict may still be null (nothing to badge).
+    if (contentType && !HTML_TYPE.test(contentType)) return { url, verdict: null, ok: true };
     // Size guard via content-length (best-effort; chunked bodies lack it — the
     // 8s timeout is the backstop there). ponytail: a fully-streamed byte cap is
     // the upgrade if hostile chunked bodies ever matter. We do NOT slice the
     // body: a mid-<head> cut could sever an og/title tag → a FALSE "no OG" badge.
-    if (Number(res.headers.get("content-length")) > MAX_BYTES) return { url, verdict: null };
+    if (Number(res.headers.get("content-length")) > MAX_BYTES) return { url, verdict: null, ok: true };
     const html = await res.text();
-    return { url, verdict: verdictFor(html, res.url || url, res.status) };
+    return { url, verdict: verdictFor(html, res.url || url, res.status), ok: true };
   } catch {
-    return { url, verdict: null };
+    return { url, verdict: null, ok: false }; // not reached → counts as unscanned
   } finally {
     clearTimeout(timer);
   }
