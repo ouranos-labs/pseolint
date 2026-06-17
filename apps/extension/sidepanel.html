@@ -3,27 +3,64 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      body { font: 13px system-ui, sans-serif; margin: 0; padding: 14px; }
-      h1 { font-size: 13px; margin: 0 0 4px; }
-      .sub, #landscape { color: #555; margin: 0 0 10px; }
-      button { cursor: pointer; font: 13px system-ui, sans-serif; background: #1a1a1a;
-        color: #fff; border: 0; padding: 8px 12px; border-radius: 8px; width: 100%; }
-      button:disabled { opacity: .6; cursor: default; }
-      #status { color: #555; margin: 10px 0; min-height: 1.2em; }
+      :root {
+        --bg: #14171c; --surface: #1f242b; --fg: #f1f4f8; --muted: #98a2b3;
+        --border: #262b33; --primary: #36d39a; --primary-fg: #06281d;
+        --flag: #df3a3a; --warn: #fbb337; --templated: #586474;
+        --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+        --sans: ui-sans-serif, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 13px/1.5 var(--sans); }
+      .brand { display: flex; align-items: center; gap: 8px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+      .wordmark { font-weight: 600; letter-spacing: -0.01em; }
+      .wordmark em { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 400; font-size: 12px; color: var(--muted); }
+      #landscape { margin: 12px 0 14px; color: var(--muted); font-size: 12px; }
+      button#scan { width: 100%; cursor: pointer; font: 600 13px var(--sans); color: var(--primary-fg);
+        background: var(--primary); border: 0; padding: 10px 12px; border-radius: 10px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.3);
+        transition: filter .15s ease, transform .05s ease; }
+      button#scan:hover { filter: brightness(1.06); }
+      button#scan:active { transform: translateY(.5px); }
+      button#scan:disabled { opacity: .55; cursor: default; }
+      #status { margin: 12px 0; min-height: 1.2em; color: var(--muted); font: 11.5px var(--mono); }
       ul { list-style: none; margin: 0; padding: 0; }
-      li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid #eee; }
-      .host { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .v { font-size: 11px; padding: 1px 6px; border-radius: 10px; color: #fff; }
-      .v.flag { background: #cf222e; } .v.warn { background: #9a6700; } .v.templated { background: #0969da; }
-      a { color: #0969da; font-size: 11px; white-space: nowrap; }
+      li { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-top: 1px solid var(--border); }
+      .host { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+      .v { font: 600 10.5px var(--mono); letter-spacing: .02em; padding: 1px 7px; border-radius: 7px; color: #fff; flex: none; }
+      .v.flag { background: var(--flag); }
+      .v.warn { background: var(--warn); color: #3a2a06; }
+      .v.templated { background: var(--templated); }
+      li a { color: var(--primary); font-size: 11px; white-space: nowrap; text-decoration: none; flex: none; }
+      li a:hover { text-decoration: underline; }
+      .legend { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+        display: flex; flex-wrap: wrap; gap: 10px; color: var(--muted); font-size: 10.5px; }
+      .legend span { display: inline-flex; align-items: center; gap: 5px; }
+      .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
+      footer { margin-top: 14px; color: var(--muted); font-size: 10.5px; line-height: 1.5; }
+      footer a { color: var(--primary); text-decoration: none; }
     </style>
   </head>
   <body>
-    <h1>pseolint</h1>
-    <p id="landscape" class="sub">Open a Google results page to analyze it.</p>
+    <div class="brand">
+      <span class="dot"></span>
+      <span class="wordmark">pseolint <em>SERP audit</em></span>
+    </div>
+    <p id="landscape">Open a Google results page to analyze it.</p>
     <button id="scan">Deep scan this SERP</button>
     <p id="status"></p>
     <ul id="results"></ul>
+    <div class="legend">
+      <span><i style="background:#df3a3a"></i> risk</span>
+      <span><i style="background:#fbb337"></i> caution</span>
+      <span><i style="background:#586474"></i> templated</span>
+      <span>↗ full audit</span>
+    </div>
+    <footer>
+      Flags, not verdicts. Deep scan fetches the results to check them — nothing about you is sent.
+      <a href="https://pseolint.dev" target="_blank" rel="noopener">pseolint.dev</a>
+    </footer>
     <!-- external only: extension_pages CSP forbids inline scripts -->
     <script src="dist/sidepanel.js"></script>
   </body>

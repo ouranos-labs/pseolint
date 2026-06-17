@@ -20,8 +20,8 @@ assert.strictEqual(badgeView(null), null, "no verdict");
 assert.strictEqual(badgeView({ level: "flag", label: "" }), null, "empty label");
 assert.strictEqual(badgeView({ level: "flag" }), null, "missing label");
 assert.strictEqual(badgeView({ level: "bogus", label: "x" }), null, "unknown level");
-assert.deepStrictEqual(badgeView({ level: "warn", label: "2 flags" }), { text: "2 flags", color: "#9a6700" });
-assert.deepStrictEqual(badgeView({ level: "templated", label: "templated" }), { text: "templated", color: "#0969da" }, "neutral templated level");
+assert.deepStrictEqual(badgeView({ level: "warn", label: "2 flags" }), { text: "2 flags", color: "#fbb337" });
+assert.deepStrictEqual(badgeView({ level: "templated", label: "templated" }), { text: "templated", color: "#586474" }, "neutral templated level");
 
 // Fail closed → no badge AND nothing created.
 let doc = fakeDoc();
@@ -35,7 +35,7 @@ assert.ok(host, "host element returned");
 assert.strictEqual(host.shadowMode, "closed", "shadow root is closed");
 const badge = doc.created.find((e) => e.className === "b");
 assert.strictEqual(badge.textSets.at(-1), "3 flags", "label set via textContent");
-assert.strictEqual(badge.style.background, "#cf222e", "level colour applied");
+assert.strictEqual(badge.style.background, "#df3a3a", "level colour applied");
 assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
 
 // Clickable variant (Path B): href → an <a> badge, href set via property (not
