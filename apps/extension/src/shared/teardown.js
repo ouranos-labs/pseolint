@@ -63,6 +63,11 @@ export function teardown(results) {
   const candidates = rows
     .filter((r) => r.belowBar && ((r.flags?.length ?? 0) > 0 || r.templated || r.words < bar * 0.6))
     .sort((a, b) => a.words - b.words || a.rank - b.rank);
+
+  const scannedSigs = fetched.map(r => r.structureSignature).filter(Boolean);
+  const uniqueSigs = new Set(scannedSigs).size;
+  const monotony = scannedSigs.length > 2 && (uniqueSigs / scannedSigs.length) < 0.50;
+
   return {
     bar,
     scanned: fetched.length,
@@ -73,6 +78,7 @@ export function teardown(results) {
     saturation: saturation(results),
     opening: candidates[0] ?? null,
     rows, // SERP-rank order (input order)
+    monotony,
   };
 }
 

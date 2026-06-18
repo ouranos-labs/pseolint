@@ -43,12 +43,17 @@ const longBody = "widget ".repeat(320); // > 300 words → thin-content stays si
 
 // Complete, substantive page → nothing to badge.
 const clean = `<html><head><title>Widgets</title>
+  <meta name="author" content="PSEOLINT Team">
+  <meta property="article:published_time" content="2026-06-18">
   <meta property="og:title" content="W"><meta property="og:description" content="D"><meta property="og:image" content="i.png">
   </head><body><main>${longBody}</main></body></html>`;
 assert.strictEqual(verdictFor(clean, "https://x.com", 200), null, "clean page → no badge");
 
 // Substantive page missing OG → amber, og-completeness only.
-const noOg = `<html><head><title>Widgets</title></head><body><main>${longBody}</main></body></html>`;
+const noOg = `<html><head><title>Widgets</title>
+  <meta name="author" content="PSEOLINT Team">
+  <meta property="article:published_time" content="2026-06-18">
+  </head><body><main>${longBody}</main></body></html>`;
 assert.deepStrictEqual(
   verdictFor(noOg, "https://x.com", 200),
   { level: "warn", label: "no OG tags" },

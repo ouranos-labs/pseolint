@@ -1,7 +1,7 @@
 // SERP content script. Tier 1 runs automatically on load (zero permission):
 // detect ranked results, mark templated clusters, show the landscape chip. Tier 2
 // (deep scan) is triggered by the side panel and reuses the service-worker fetch.
-import { detectResults } from "./detect.js";
+import { detectResults, scrapeAio } from "./detect.js";
 import { analyzeLandscape, landscapeChip } from "./landscape.js";
 import { mountBadge } from "./overlay.js";
 import { mountChip } from "./reach.js";
@@ -16,8 +16,10 @@ let summary = null;
 function runLandscape() {
   results = detectResults(document);
   summary = analyzeLandscape(results);
+  summary.aioCitations = scrapeAio(document);
   for (const { url, anchor } of results) {
     if (!summary.templatedUrls.has(url)) continue;
+    if (anchor.nextElementSibling?.getAttribute?.("data-pseolint") === "badge") continue;
     const badge = mountBadge({ level: "templated", label: "templated" }, document, auditHref(url));
     if (badge) anchor.insertAdjacentElement("afterend", badge);
   }
@@ -40,8 +42,13 @@ async function deepScan() {
   const out = [];
   for (const s of reply?.results ?? []) {
     const anchor = anchorByUrl.get(s.url);
-    const badge = anchor && s.verdict && mountBadge(s.verdict, document, auditHref(s.url));
-    if (badge) anchor.insertAdjacentElement("afterend", badge);
+    if (anchor && s.verdict) {
+      if (anchor.nextElementSibling?.getAttribute?.("data-pseolint") === "badge") {
+        anchor.nextElementSibling.remove();
+      }
+      const badge = mountBadge(s.verdict, document, auditHref(s.url));
+      if (badge) anchor.insertAdjacentElement("afterend", badge);
+    }
     // Enrich the SW signal set with SERP context the panel needs.
     out.push({ ...s, rank: rankByUrl.get(s.url), templated: summary.templatedUrls.has(s.url) });
   }
@@ -56,6 +63,7 @@ function serializeSummary(s) {
     templated: s.templatedUrls.size,
     hostCount: s.hostCount,
     clusters: s.clusters.map((c) => ({ host: c.host, pattern: c.pattern, count: c.count })),
+    aioCitations: s.aioCitations ?? [],
   };
 }
 
@@ -71,4 +79,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return undefined;
 });
 
+let observer = null;
+function startObserver() {
+  if (observer) observer.disconnect();
+  observer = new MutationObserver(() => {
+    const newResults = detectResults(document);
+    if (newResults.length > 0 && newResults.length !== results.length) {
+      runLandscape();
+      chrome.runtime.sendMessage({
+        type: "pseolint:landscape-updated",
+        summary: serializeSummary(summary)
+      }).catch(() => {});
+    }
+  });
+
+  const target = document.getElementById("search") || document.body;
+  if (target) {
+    observer.observe(target, { childList: true, subtree: true });
+  }
+}
+
 runLandscape();
+startObserver();

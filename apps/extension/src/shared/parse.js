@@ -84,6 +84,18 @@ function tagTexts(html, re) {
   return out;
 }
 
+function buildStructureSignature(html) {
+  const tags = Array.from(html.toLowerCase().matchAll(/<([a-z0-9-]+)(\s|>)/g)).map((m) => m[1]);
+  const counts = new Map();
+  for (const tag of tags) {
+    counts.set(tag, (counts.get(tag) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([tag, count]) => `${tag}:${count}`)
+    .join("|");
+}
+
 // → a ParsedPage SUBSET: exactly the fields the imported Tier-1 rules read
 // (og.*, httpMeta.statusCode, title, contentText, headings.h1, url). The rules
 // are pure JS after the type-only build, so a subset object is all they touch.
@@ -95,6 +107,22 @@ export function parseSignals(html, url, status) {
   // commented-out <nav> or paragraph would otherwise inflate the body text).
   const doc = html.replace(/<!--[\s\S]*?-->/g, "");
   const contentText = bodyText(doc);
+
+  const metaAuthor = metaContent(doc, "author");
+  let schemaAuthor = false;
+  for (const m of doc.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try {
+      const block = m[1].toLowerCase();
+      if (block.includes('"author"') || block.includes('"creator"') || block.includes('"publisher"')) {
+        schemaAuthor = true;
+      }
+    } catch {}
+  }
+
+  const publishedDate = metaContent(doc, "article:published_time") || 
+                        metaContent(doc, "datepublished") || 
+                        metaContent(doc, "pubdate");
+
   return {
     url,
     title: titleText(doc),
@@ -120,5 +148,12 @@ export function parseSignals(html, url, status) {
     // <script>, so "few words + a script" would suppress the very doorways we
     // want to flag. Char length separates "empty mount point" from "thin copy".)
     isLikelyShell: contentText.length < 100 && /<script/i.test(doc),
+    structureSignature: buildStructureSignature(html),
+    authorSignals: {
+      metaAuthor,
+      schemaAuthor,
+    },
+    publishedDate: publishedDate || undefined,
   };
 }
+

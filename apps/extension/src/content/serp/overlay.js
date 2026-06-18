@@ -39,6 +39,7 @@ export function mountBadge(verdict, doc = document, href = null) {
   if (!view) return null;
 
   const host = doc.createElement("span");
+  host.setAttribute("data-pseolint", "badge");
   const root = host.attachShadow({ mode: "closed" }); // host page can't reach in
 
   const style = doc.createElement("style");

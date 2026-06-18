@@ -65,3 +65,23 @@ function candidateAnchors(doc) {
 export function detectResults(doc = document) {
   return selectResults([...candidateAnchors(doc)]);
 }
+
+// Scrape citations in Google's AI Overview (SGE) container.
+export function scrapeAio(doc = document) {
+  const citations = [];
+  const container = doc.querySelector("div.Kevs9, #Odp5De");
+  if (container) {
+    const links = container.querySelectorAll("a[href]");
+    for (const a of links) {
+      const url = cleanResultUrl(a.href);
+      if (url) citations.push(url);
+    }
+  }
+  // Also scan inline badges like a.PMDqCb
+  for (const a of doc.querySelectorAll("a.PMDqCb")) {
+    const url = cleanResultUrl(a.href);
+    if (url) citations.push(url);
+  }
+  return Array.from(new Set(citations));
+}
+
