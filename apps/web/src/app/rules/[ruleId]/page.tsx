@@ -76,6 +76,13 @@ interface TechArticleJsonLd {
   keywords: string[];
   isPartOf: { "@type": "WebSite"; name: "pseolint"; url: string };
   publisher: { "@type": "Organization"; name: "Ouranos Labs"; url: string };
+  author: {
+    "@type": "Person";
+    name: string;
+    jobTitle: string;
+    knowsAbout: string[];
+    sameAs: string[];
+  };
 }
 
 interface FaqPageJsonLd {
@@ -99,7 +106,17 @@ function buildArticleJsonLd(rule: MarketingRule): TechArticleJsonLd {
     about: { "@type": "Thing", name: rule.primaryKeyword },
     keywords: [rule.primaryKeyword, rule.ruleId, "SpamBrain", "programmatic SEO"],
     isPartOf: { "@type": "WebSite", name: "pseolint", url: SITE_URL },
-    publisher: { "@type": "Organization", name: "Ouranos Labs", url: SITE_URL }
+    publisher: { "@type": "Organization", name: "Ouranos Labs", url: SITE_URL },
+    author: {
+      "@type": "Person",
+      name: "Philippe Kam",
+      jobTitle: "Lead SEO Engineer",
+      knowsAbout: ["Search Engine Optimization", "Template Engineering", "Web Crawlers"],
+      sameAs: [
+        "https://x.com/Pipolmpk",
+        "https://linkedin.com/in/philippekam"
+      ]
+    }
   };
 }
 

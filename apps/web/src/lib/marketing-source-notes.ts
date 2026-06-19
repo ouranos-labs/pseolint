@@ -487,6 +487,24 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
 };
 
 export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
+  "how-to-audit-programmatic-seo": [
+    {
+      "source": "helpfulContent",
+      "note": "Google's helpful-content system continuously triages template quality by evaluating searcher utility; programmatic site audits must focus on identifying templates where page-level details do not carry standalone value, as failure to clear this bar results in site-level classifier demotions."
+    },
+    {
+      "source": "scaledContent",
+      "note": "The March 5, 2024 update established that high-volume generation using entity-swap structures with minimal variation constitutes scaled content abuse; audits identify these patterns by mapping the SimHash distribution of generated paths before algorithmic filters trigger."
+    },
+    {
+      "source": "canonicalization",
+      "note": "Google's duplicate consolidation rules indicate that when pages share identical skeletons, the indexer ignores the rel=canonical tag and selects a single representative URL; audits verify tag alignment and uniqueness ratios to prevent cannibalization collapse."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "Crawl allocation is heavily throttled for sections showing low information density; auditing sitemap files ensures that unindexed or low-quality templates do not back up the crawler scheduler and delay the indexing of critical pages."
+    }
+  ],
   "lost-rankings-after-google-update": [
     {
       "source": "helpfulContent",

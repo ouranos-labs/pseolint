@@ -10,6 +10,27 @@ const REPORTS = [
       "How programmatic SEO sites are performing under SpamBrain in 2026 — failure rates by rule, by vertical, by tech stack, with year-over-year shifts after the March and May 2024 updates.",
     published: "2026-04-29",
   },
+  {
+    slug: "ai-overviews-seo-impact",
+    title: "AI Overviews & pSEO Traffic Impact",
+    pitch:
+      "How Google's AI Overviews change organic click distribution. Analysis of citation rates across different dynamic template structures, entity schemas, and quality signals.",
+    published: "2026-06-19",
+  },
+  {
+    slug: "programmatic-seo-case-study",
+    title: "Programmatic SEO Case Study: 50k Page Directory",
+    pitch:
+      "How a 50,000 page dynamic directory recovered from a Google SpamBrain doorway penalty. Step-by-step layout modifications, boilerplate ratio reduction, and index recovery data.",
+    published: "2026-06-19",
+  },
+  {
+    slug: "datasets-for-programmatic-seo",
+    title: "Public Datasets & Sources for pSEO",
+    pitch:
+      "Curated directory of public datasets, scraping methods, and data cleaning strategies for building high-quality programmatic pages.",
+    published: "2026-06-19",
+  },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {

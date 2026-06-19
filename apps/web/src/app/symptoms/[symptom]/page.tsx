@@ -71,7 +71,14 @@ interface ArticleSchema {
   isPartOf: { "@type": "WebSite"; name: string; url: string };
   publisher: { "@type": "Organization"; name: string; url: string };
   about: string;
-  author: { "@type": "Person"; name: string; url?: string };
+  author: {
+    "@type": "Person";
+    name: string;
+    jobTitle?: string;
+    knowsAbout?: string[];
+    sameAs?: string[];
+    url?: string;
+  };
   datePublished: string;
   dateModified?: string;
 }
@@ -110,7 +117,16 @@ function buildSchemas(entry: MarketingSymptom): {
     isPartOf: { "@type": "WebSite", name: ORG_NAME, url: ORG_URL },
     publisher: { "@type": "Organization", name: ORG_NAME, url: ORG_URL },
     about: entry.primaryKeyword,
-    author: { "@type": "Person", name: "pseolint Editorial Team", url: ORG_URL },
+    author: {
+      "@type": "Person",
+      name: "Philippe Kam",
+      jobTitle: "Lead SEO Engineer",
+      knowsAbout: ["Search Engine Optimization", "Template Engineering", "Web Crawlers"],
+      sameAs: [
+        "https://x.com/Pipolmpk",
+        "https://linkedin.com/in/philippekam"
+      ]
+    },
     datePublished: "2026-04-29",
     dateModified: new Date().toISOString().slice(0, 10),
   };
