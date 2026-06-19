@@ -36,6 +36,70 @@ export interface MarketingSymptom {
 
 const SYMPTOMS_BASE = [
   {
+    slug: "how-to-audit-programmatic-seo",
+    title: "How to audit programmatic SEO — uncover quality and template-level risks",
+    metaDescription:
+      "Learn how to audit programmatic SEO sites to find duplicate content, thin pages, and indexation risks. Run a pre-flight templates scan before Google demotes your search rankings.",
+    primaryKeyword: "how to audit programmatic seo",
+    oneLiner:
+      "Identify template-level structural weaknesses, duplicate signatures, and poor text density across thousands of generated pages before Googlebot deindexes them.",
+    whatYouSee:
+      "You notice a creeping decay in your indexation rate under Google Search Console's indexing reports, where newly published pages linger in 'Discovered — currently not indexed' for weeks. When inspecting individual pages, they appear technically valid but Google elects not to index them or chooses a sibling page as the canonical. Your third-party SEO tool indicates a decline in total keyword footprint despite the continuous generation of new pages. Crawl logs show Googlebot hitting your pages in brief spikes and then retracting, avoiding deep path segments. A manual inspection of the template reveals high visual boilerplate overlap (often exceeding 80%) where only a few variables differ across thousands of URLs, prompting search engine quality evaluators to classify the directory as doorway-like scaled content.",
+    likelyCauses: [
+      {
+        cause: "Over-reliance on simple entity-swapping without substantive unique value per page",
+        explanation:
+          "Generating thousands of pages by simply injecting a city name or product model into an identical sentence frame creates a thin content profile that fails Google's quality threshold. The pages may have unique nouns, but they lack distinct paragraphs, tables, or interactive tools that offer genuine utility to a searcher. Without these original signals, the entire template family gets flagged as a duplicate set of low-value doorways."
+      },
+      {
+        cause: "Boilerplate text dominating the total word count of generated templates",
+        explanation:
+          "If 80% or more of the text on a page is identical to other pages in the same directory (such as shared menus, footers, and stock CTAs), Googlebot treats the URL as near-duplicate boilerplate. The unique contribution per page is statistically insignificant compared to the recycled noise. To satisfy search crawlers, the unique-content ratio must be significantly increased or the pages consolidated into fewer, richer pages."
+      },
+      {
+        cause: "Canonical loops and conflicting indexation directives across template families",
+        explanation:
+          "Misconfigured CMS variables that point canonical tags to the homepage instead of the page's self URL, or serving conflicting robots directives, will disrupt indexing. If Googlebot receives self-referencing canonicals but finds the page bodies share 90%+ similarity with sibling pages, it will override the user's canonical instruction, selecting its own canonical and dropping the other pages from the index."
+      }
+    ],
+    diagnosticSteps: [
+      "Map your site's directory architecture and export the complete list of generated URLs from your XML sitemaps to verify coverage.",
+      "Segment Google Search Console's indexing report by path prefix to isolate which template families suffer from indexation collapse.",
+      "Run pseolint against a representative sample of 200 pages from the affected template to measure the exact boilerplate ratio and SimHash overlap.",
+      "Inspect five URLs using the URL Inspection tool in Google Search Console to check if Google has overridden your self-referencing canonical tags.",
+      "Analyze the structural similarity signature of your templates using a DOM skeleton hasher to ensure your site exceeds the 30% unique outline floor.",
+      "Prune your XML sitemaps to exclude any thin, unindexed pages that fail to provide unique value, ensuring Googlebot only crawls your highest-quality URLs."
+    ],
+    relatedRules: [
+      "thin-content",
+      "near-duplicate",
+      "doorway-pattern",
+      "boilerplate-ratio"
+    ],
+    caseStudy:
+      "A local directory site with 15,000 programmatic location pages experienced a 70% drop in indexed URLs over a three-month period. An audit revealed that 85% of each page was identical boilerplate text, and the unique location details were limited to a single sentence. The team implemented an audit strategy: they integrated real-time local business APIs to inject dynamic tables, user reviews, and custom maps into each page, reducing boilerplate ratio to 45%. Within 60 days of republishing the revised templates, Google re-indexed 82% of the pages, and organic search impressions recovered to pre-drop levels.",
+    faqs: [
+      {
+        q: "How do I determine if my programmatic pages are thin content?",
+        a: "Measure the word count of the unique text elements after removing all navigation, footers, and shared sidebar boilerplate. If the remaining page-specific text is less than 300 words, or if it constitutes less than 40% of the total page content, Google's SpamBrain classifier is highly likely to flag the template as thin content. A proper audit should always measure unique word density rather than raw HTML word counts."
+      },
+      {
+        q: "Why does Google index some of my template pages but not all of them?",
+        a: "Google operates on a crawl and index budget that scales with the perceived quality and authority of your domain. When a template starts publishing near-duplicate pages, Googlebot's scheduler will crawl a small sample, identify the low uniqueness ratio, and halt further crawling of similar URLs. The pages that were crawled first get indexed, while the remainder are permanently stuck in the Discovered but not indexed queue."
+      },
+      {
+        q: "Can I fix programmatic indexing issues by changing the canonical tag?",
+        a: "No. If the underlying content of your pages is structurally identical, setting a self-referential canonical tag will not force Google to index them. Google's parser evaluates content similarity using SimHash fingerprints; if two pages cross the 85% similarity threshold, Google will override your canonical tag and select a representative URL. You must either differentiate the content or consolidate the duplicate pages."
+      },
+      {
+        q: "What is the role of structured data schema in a programmatic audit?",
+        a: "Structured data schemas, such as FAQPage, Product, and HowTo JSON-LD, provide search engines with clean, machine-readable facts that are highly prized by AI overview engines. A programmatic audit must verify that every page carries a valid, nested schema that matches the page's visible content. Lacking structured data reduces your chances of earning rich snippets and AI citations, and signals lower production quality."
+      }
+    ],
+    recoveryTimeline:
+      "Recovery from a template-wide demotion depends heavily on the scale of your domain and the frequency of Googlebot crawls. For technical fixes like canonical repairs and robots.txt changes, you can expect indexation to normalize within 2 to 4 crawl cycles (typically 7 to 14 days). However, if the demotion was quality-driven due to thin content or boilerplate abuse, recovery requires Google to recrawl your updated templates and re-evaluate their site-wide quality score. This re-evaluation process is tied to Google's core algorithm updates, which occur every 60 to 90 days. During this time, keep your XML sitemaps clean and monitor the Discovered-to-Indexed ratio as your primary health indicator."
+  },
+  {
     slug: "lost-rankings-after-google-update",
     title: "Lost rankings after a Google update — diagnose what tripped SpamBrain",
     metaDescription:

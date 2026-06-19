@@ -504,3 +504,29 @@ export const mcpApiKeys = pgTable(
   },
   (t) => [index("mcp_api_key_user_idx").on(t.userId)],
 );
+
+export const serpScans = pgTable("serp_scans", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  query: text("query").notNull(),
+  searchUrl: text("search_url").notNull(),
+  totalResults: integer("total_results").notNull(),
+  templatedResults: integer("templated_results").notNull(),
+  aioCitations: jsonb("aio_citations").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const competitorPages = pgTable("competitor_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  scanId: uuid("scan_id").references(() => serpScans.id, { onDelete: "cascade" }),
+  url: text("url").notNull(),
+  rank: integer("rank").notNull(),
+  wordCount: integer("word_count").notNull(),
+  hasSchema: boolean("has_schema").notNull(),
+  isTitleRewritten: boolean("is_title_rewritten").notNull(),
+  isMetaDescIgnored: boolean("is_meta_desc_ignored").notNull(),
+  flags: jsonb("flags").$type<string[]>().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  scanIdx: index("competitor_page_scan_idx").on(t.scanId),
+}));
+

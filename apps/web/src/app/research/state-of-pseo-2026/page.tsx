@@ -244,9 +244,14 @@ export default function StateOfPseo2026Page(): React.ReactElement {
     url,
     mainEntityOfPage: url,
     author: {
-      "@type": "Organization",
-      name: "pseolint",
-      url: absoluteUrl("/"),
+      "@type": "Person",
+      name: "Philippe Kam",
+      jobTitle: "Lead SEO Architect",
+      knowsAbout: ["Search Engine Optimization", "Template Engineering", "Web Crawlers"],
+      sameAs: [
+        "https://x.com/Pipolmpk",
+        "https://linkedin.com/in/philippekam"
+      ]
     },
     publisher: {
       "@type": "Organization",

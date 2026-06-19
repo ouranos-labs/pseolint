@@ -42,21 +42,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   // Tools resist AI Overviews (interactive) — high priority for crawl + cite signals.
-  const tools: Entry[] = MARKETING_TOOLS.map((t) => ({
-    path: `/tools/${t.slug}`,
-    changeFrequency: "monthly",
-    priority: 0.9,
-  }));
+  const tools: Entry[] = [
+    ...MARKETING_TOOLS.map((t): Entry => ({
+      path: `/tools/${t.slug}`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    })),
+    { path: "/tools/nextjs-programmatic-seo", changeFrequency: "monthly", priority: 0.9 },
+    { path: "/tools/programmatic-seo-checklist", changeFrequency: "monthly", priority: 0.9 },
+  ];
 
   // Rule explainers — primary topical-authority surface.
-  const rules: Entry[] = MARKETING_RULES.map((r) => ({
-    path: `/rules/${r.slug}`,
-    changeFrequency: "monthly",
-    priority: 0.8,
-  }));
+  const rules: Entry[] = [
+    ...MARKETING_RULES.map((r): Entry => ({
+      path: `/rules/${r.slug}`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    })),
+    { path: "/rules/crawl-budget-optimization", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/rules/structured-data-at-scale", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/rules/webflow-vs-wordpress-pseo", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/rules/programmatic-seo-ai-content", changeFrequency: "monthly", priority: 0.8 },
+    { path: "/rules/internal-linking-silos", changeFrequency: "monthly", priority: 0.8 },
+  ];
 
   // Symptom diagnostic pages — bottom-funnel intent, evergreen.
-  const symptoms: Entry[] = MARKETING_SYMPTOMS.map((s) => ({
+  const symptoms: Entry[] = MARKETING_SYMPTOMS.map((s): Entry => ({
     path: `/symptoms/${s.slug}`,
     changeFrequency: "monthly",
     priority: 0.8,
@@ -65,6 +76,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Original-data report — link bait + LLM citation magnet.
   const research: Entry[] = [
     { path: "/research/state-of-pseo-2026", changeFrequency: "yearly", priority: 0.9 },
+    { path: "/research/ai-overviews-seo-impact", changeFrequency: "yearly", priority: 0.9 },
+    { path: "/research/programmatic-seo-case-study", changeFrequency: "yearly", priority: 0.9 },
+    { path: "/research/datasets-for-programmatic-seo", changeFrequency: "yearly", priority: 0.9 },
   ];
 
   return [...evergreen, ...indexes, ...tools, ...rules, ...symptoms, ...research].map((r) => ({
