@@ -185,6 +185,13 @@ export const monitoredDomains = pgTable("monitored_domain", {
    * user trade thoroughness for politeness without us second-guessing.
    */
   gentleAuditMode: boolean("gentle_audit_mode").notNull().default(false),
+  /**
+   * Bring-your-own domain authority (0-100, e.g. Moz DA / Ahrefs DR). When set,
+   * moderates the verdict one tier (engine's shiftVerdictForAuthority): >=80
+   * lenient, <=30 stricter. Null = unset → no shift. Persisted per-domain (a
+   * domain's authority is stable), not a per-audit input.
+   */
+  authorityScore: integer("authority_score"),
   /** Per-domain IndexNow API key (must be served at /[key].txt on the origin). */
   indexNowKey: text("indexnow_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

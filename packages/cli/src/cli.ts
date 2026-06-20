@@ -70,6 +70,8 @@ interface CliOptions {
   analytics?: string;
   blockHost?: string[];
   safeMode?: string;
+  /** v0.7.2 — bring-your-own domain authority 0-100; moderates the verdict one tier (see shiftVerdictForAuthority). */
+  authorityScore?: string;
   full: boolean;
   /** v0.4 §4.11: bypass site-classification rule suppression — run all rules. */
   strict?: boolean;
@@ -200,6 +202,7 @@ export async function runCli(
     .option("--mode <monitoring|fresh>", "v0.5+ change-driven monitoring mode. 'monitoring' applies the pre-fetch decision matrix (default when prior state exists). 'fresh' forces a full re-audit even with prior state.")
     .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: pseolint core's DEFAULT_AGE_FLOOR_DAYS, currently 7)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
+    .option("--authority-score <0-100>", "Your domain's authority/reputation (0-100). High authority (≥80) shifts the verdict one tier lenient; low (≤30) shifts one tier stricter — counters thin-but-authoritative false positives.")
     .option("--ai", "Enable AI triage of findings")
     .option(
       "--ai-provider <id>",
@@ -474,9 +477,21 @@ async function runAudit(
     return 1;
   }
 
+  let authorityScore: number | undefined;
+  if (opts.authorityScore !== undefined) {
+    const raw = opts.authorityScore.trim();
+    const n = Number(raw);
+    if (raw === "" || !Number.isInteger(n) || n < 0 || n > 100) {
+      console.error(`Error: --authority-score must be an integer 0-100, got "${opts.authorityScore}"`);
+      return 1;
+    }
+    authorityScore = n;
+  }
+
   // Load config file and merge with CLI flags
   const configFile = await loadConfig();
   const cliFlags: CliFlags = {
+    authorityScore,
     concurrency: opts.concurrency !== "5" ? Number(opts.concurrency) : undefined,
     timeout: opts.timeout !== "30000" ? Number(opts.timeout) : undefined,
     sampleSize: opts.sampleSize !== "0" ? Number(opts.sampleSize) : undefined,
@@ -788,7 +803,10 @@ async function runAudit(
   if (opts.output) {
     const { dirname } = await import("node:path");
     const { mkdir } = await import("node:fs/promises");
-    await mkdir(dirname(opts.output), { recursive: true });
+    const dir = dirname(opts.output);
+    if (dir && dir !== "." && dir !== "") {
+      await mkdir(dir, { recursive: true });
+    }
     await writeFile(opts.output, output, "utf-8");
     console.log(`Report written to ${opts.output}`);
   } else {
