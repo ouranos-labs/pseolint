@@ -34,6 +34,7 @@ import { WatchedPagesCard } from "./watched-pages-card";
 import { QuickIndexerCard } from "@/components/dashboard/quick-indexer-card";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
 import { RootCauses } from "@/components/report/root-causes";
+import { SeverityDemotions } from "@/components/report/severity-demotions";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -523,6 +524,9 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
               ) : null }
             </div>
           ) }
+
+          {/* Which rules the site-type profile softened (renders nothing when none). */}
+          <SeverityDemotions summary={ summary } />
 
           <div className="grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
             <div className="flex flex-col items-start">

@@ -27,6 +27,7 @@ import { getClaim } from "@/lib/leaderboard-claims";
 import { ClaimCta } from "@/components/report/claim-cta";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
 import { RootCauses } from "@/components/report/root-causes";
+import { SeverityDemotions } from "@/components/report/severity-demotions";
 
 export const runtime = "nodejs";
 
@@ -278,6 +279,11 @@ export default async function Page({
           populate `summary.triage`, so it renders nothing for them. */}
       { summary && isV04 && (summary as AuditSummaryV04).triage?.rootCauses?.length ? (
         <RootCauses triage={ (summary as AuditSummaryV04).triage! } />
+      ) : null }
+
+      {/* Which rules the site-type profile softened (renders nothing when none). */}
+      { summary && isV04 ? (
+        <SeverityDemotions summary={ summary as AuditSummaryV04 } />
       ) : null }
 
       <CoverageCallout pageCount={ row.pageCount ?? 0 } />
