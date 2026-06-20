@@ -1,6 +1,10 @@
 node_modules
 .turbo
 dist
+# The GitHub Action ships its ncc-bundled dist — consumers run the committed
+# dist/index.js via `uses:`, so it must be tracked despite the global `dist` rule.
+!packages/action/dist/
+!packages/action/dist/**
 .next
 coverage
 *.log

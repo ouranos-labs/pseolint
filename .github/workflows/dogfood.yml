@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Audit pseolint.dev with pseolint
-        uses: ouranos-labs/pseolint@action-v1
+        uses: ouranos-labs/pseolint/packages/action@action-v1
         with:
           source: https://pseolint.dev/sitemap.xml
           threshold: 40
