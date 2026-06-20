@@ -33,6 +33,7 @@ import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { WatchedPagesCard } from "./watched-pages-card";
 import { QuickIndexerCard } from "@/components/dashboard/quick-indexer-card";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
+import { RootCauses } from "@/components/report/root-causes";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -493,6 +494,36 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </div>
           ) }
 
+          {/* Engine moderator pills — content-effort + domain authority. Both
+              moderate the verdict; the public report already surfaces the
+              content-effort pill, so we mirror its styling exactly here and add
+              authority alongside. Each renders only when the engine resolved a
+              finite score (free/unavailable runs leave them absent). */}
+          { (Number.isFinite(summary.contentEffort?.score) || Number.isFinite(summary.authority?.score)) && (
+            <div className="-mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              { Number.isFinite(summary.contentEffort?.score) ? (
+                <div
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+                  title="AI-judged originality & effort (0-100). Higher = more original human work; moderates the verdict."
+                >
+                  <span className="font-mono">Content effort</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
+                </div>
+              ) : null }
+              { Number.isFinite(summary.authority?.score) ? (
+                <div
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+                  title="Resolved domain authority (0-100). Moderates the verdict by ±1 tier: higher authority eases it, lower tightens it."
+                >
+                  <span className="font-mono">Authority</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{ Math.round(summary.authority!.score) }/100</span>
+                </div>
+              ) : null }
+            </div>
+          ) }
+
           <div className="grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
             <div className="flex flex-col items-start">
               <div className="flex items-baseline gap-3">
@@ -561,6 +592,14 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           </div>
         </section>
       ) }
+
+      {/* 3.5 FIX THESE FIRST — AI triage root-causes. Sits right below the
+          headline (verdict) and above the detailed findings work surface so the
+          operator reads the prioritised plan first. Pro-only: rendered only when
+          the engine populated `summary.triage`. */}
+      { summary?.triage?.rootCauses?.length ? (
+        <RootCauses triage={ summary.triage } />
+      ) : null }
 
       {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads
           state-then-delta. Stronger Pro-justification per pixel than any

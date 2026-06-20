@@ -25,6 +25,8 @@ import { ReportCtaStrip } from "@/components/report/cta-strip";
 import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
 import { getClaim } from "@/lib/leaderboard-claims";
 import { ClaimCta } from "@/components/report/claim-cta";
+import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
+import { RootCauses } from "@/components/report/root-causes";
 
 export const runtime = "nodejs";
 
@@ -270,6 +272,14 @@ export default async function Page({
         />
       ) }
 
+      {/* AI triage root-causes — the "what to fix first" plan. Sits directly
+          below the verdict/hero so the operator reads the prioritised summary
+          before the detailed findings list. Pro-only: free/anon audits never
+          populate `summary.triage`, so it renders nothing for them. */}
+      { summary && isV04 && (summary as AuditSummaryV04).triage?.rootCauses?.length ? (
+        <RootCauses triage={ (summary as AuditSummaryV04).triage! } />
+      ) : null }
+
       <CoverageCallout pageCount={ row.pageCount ?? 0 } />
 
       { !session && ownedByAnon ? (
@@ -355,6 +365,22 @@ export default async function Page({
             </h2>
             <CategoryBreakdown summary={ summary } />
           </section>
+
+          {/* Per-template breakdown — mirrors the dashboard. Rendered when the
+              engine detected ≥2 templates, placed ABOVE the per-URL findings so
+              users see the template-level picture first, then drill down. Falls
+              back silently for legacy / single-template audits. */}
+          { isV04 && ((summary as AuditSummaryV04).templates?.length ?? 0) >= 2 ? (
+            <section className="mt-14">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Templates
+              </h2>
+              <TemplateGridClient
+                templates={ (summary as AuditSummaryV04).templates }
+                totalDiscoveredUrls={ summary.pageCount }
+              />
+            </section>
+          ) : null }
 
           <section className="mt-14">
             <div className="mb-4 flex items-baseline justify-between">
