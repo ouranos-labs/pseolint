@@ -340,6 +340,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         sampleSize: z.number().int().min(0).max(MAX_SAMPLE_SIZE).optional().default(0).describe(`Audit a random subset of N pages. 0 = all pages up to the MCP cap of ${MCP_SAMPLE_CAP}. Set explicitly to override the cap (up to ${MAX_SAMPLE_SIZE}).`),
         format: z.enum(["console", "json"]).optional().default("console").describe("Text-content format. Use 'json' for full machine-readable output, 'console' for a human-readable summary. structuredContent is always returned regardless."),
         authorityScore: z.number().int().min(0).max(100).optional().describe("Bring-your-own domain authority (0-100). >=80 shifts the verdict one tier lenient on established brands; <=30 shifts one tier stricter on newer/lower-authority operators. The raw risk number is never modified."),
+        contentEffort: z.boolean().optional().describe("Enable the AI content-effort signal: a 0-100 originality/effort score (judged from page text) that moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY in the server environment; no-ops safely without one. Default off; adds a few cents of LLM cost per audit."),
         sampleSeed: z.number().int().optional().describe("Integer seed for deterministic stratified sampling. Same seed + same sampleSize = same audit = same verdict, run after run."),
       }),
       outputSchema: zodShape({
@@ -365,7 +366,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ source, threshold, sampleSize, format, authorityScore, sampleSeed }) => {
+    async ({ source, threshold, sampleSize, format, authorityScore, contentEffort, sampleSeed }) => {
       try {
         // MCP audits run on user-supplied URLs inside AI-assistant environments
         // where the LLM may not vet the target. `safeMode: "saas"` flips on
@@ -374,6 +375,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         const options: AuditOptions = { safeMode: "saas" };
         options.sampleSize = sampleSize > 0 ? sampleSize : MCP_SAMPLE_CAP;
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
+        if (contentEffort) options.contentEffort = { enabled: true };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
 
         const summary = await auditSource(source, options);
@@ -454,6 +456,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         source: z.string().min(1).describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
         threshold: z.number().int().min(0).max(100).optional().default(40).describe("Risk threshold for the pass/fail verdict (default: 40)"),
         authorityScore: z.number().int().min(0).max(100).optional().describe("Bring-your-own domain authority (0-100). >=80 shifts the verdict one tier lenient; <=30 shifts one tier stricter. Raw risk unchanged."),
+        contentEffort: z.boolean().optional().describe("Enable the AI content-effort signal: a 0-100 originality/effort score (judged from page text) that moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY in the server environment; no-ops safely without one. Default off; adds a few cents of LLM cost per audit."),
         sampleSeed: z.number().int().optional().describe("Integer seed for deterministic stratified sampling. Same seed = same audit = same verdict."),
       }),
       outputSchema: zodShape({
@@ -475,10 +478,11 @@ export function registerReadOnlyTools(server: McpServer): void {
         openWorldHint: true,
       },
     },
-    async ({ source, threshold, authorityScore, sampleSeed }) => {
+    async ({ source, threshold, authorityScore, contentEffort, sampleSeed }) => {
       try {
         const options: AuditOptions = { sampleSize: MCP_SAMPLE_CAP, safeMode: "saas" };
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
+        if (contentEffort) options.contentEffort = { enabled: true };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
 
         const summary = await auditSource(source, options);
