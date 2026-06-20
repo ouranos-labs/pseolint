@@ -1,8 +1,8 @@
 # @pseolint/core
 
-> Programmatic SEO audit engine — 44 rules, surfaced per-template, on every monitored release.
+> Programmatic SEO audit engine — 48+ rules, surfaced per-template, on every monitored release.
 
-The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.0. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
+The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.3. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
 
 ## Install
 
@@ -34,16 +34,36 @@ for (const t of result.templates) {
 
 ## What It Checks
 
-44 rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
+48+ rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
 
 - **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern (cluster-collapsed since v0.5.2)
-- **Technical SEO** (9) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2)
+- **Technical SEO** (11) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2), plus two render/probe rules (v0.7.3):
+  - **`tech/csr-bailout`** — render-diff rule (requires the `--render` / `render` option). Diffs raw server HTML against the post-hydration DOM and flags pages whose substantive content or interactivity exists *only* after client-side JS — invisible to crawlers and to Google's first indexing pass. High confidence when interactive elements are entirely absent from the server HTML; demoted to info on small marketing sites; a no-op without render.
+  - **`tech/soft-404`** — synthetic-URL probe for programmatic directories. Probes one invented, nonexistent URL per template cluster; an HTTP `200` (instead of a `404`) means the directory will silently index unbounded junk pages. One probe per cluster, capped, robots-respecting, and fail-open. (The static `tech/soft-404` content-pattern check on real pages still runs alongside the probe.)
 - **AEO / AI Overview citability** (8, v0.3.0–v0.3.1) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, content modularity, **summary-bait** (pages optimized for summarization over retention)
 - **Content** (7) — unique value, meta uniqueness, author attribution, E-E-A-T signals, plus **title-uniqueness**, **heading-structure**, **image-alt-text** (all v0.5.2)
 - **Internal linking** (6) — orphan pages, dead ends, cluster connectivity, link depth, unreachable-from-root (sample-aware), **host-section-divergence** (v0.5.1, site-reputation-abuse detector)
 - **Structured data** (3) — JSON-LD validity, required fields, cross-page schema consistency
 - **Cannibalization** (1) — URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 due to high false-positive rates)
 - **Data binding** (2) — verify rendered pages expose values from a source dataset (missing or identical-across-pages bindings)
+
+## What's new in v0.7 — graded thresholds & fewer false positives
+
+The v0.7.1/v0.7.2 batch retired the binary thresholds that let a one-page change in crawl size flip a site's verdict, and tightened several rules to validate *quality*, not mere *presence*.
+
+> **BREAKING config rename.** `rules.uniqueValueMinWords` is gone — the `content/unique-value` rule moved from an absolute word count to a rarity-density score, configured via **`rules.uniqueValueDensity: { passBelow, errorBelow }`**. Anyone carrying the old key in `pseolint.config.*` must update it.
+
+- **Binary → continuous banded severity** — four rules no longer have a single pass/fail cliff; severity scales with how far the page is over the line, so a one-page crawl-size change can't flip the verdict: `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, `content/wikipedia-paraphrase`.
+- **Quality, not just presence** — four rules now inspect what's actually there:
+  - `schema/required-fields` — an empty / whitespace-only / nameless author now counts as *missing*, not present.
+  - `schema/json-ld-valid` — accepts an `@type` that is a string **or** an all-string array (multi-type nodes no longer false-positive).
+  - `tech/og-completeness` — whitespace-only tag values count as missing; severity is graded rather than all-or-nothing.
+  - `content/eeat-signals` — reads the visible `contentText` (not raw markup), and an about-link only counts when it's same-host.
+- **False-positive fixes + demotions:**
+  - `links/orphan-pages` & `links/cluster-connectivity` are suppressed on sampled crawls (a sampled graph can't distinguish a real orphan from sample shape).
+  - `tech/canonical-consistency` & `tech/sitemap-completeness` normalize URLs and collapse out-of-crawl-scope noise instead of flagging it.
+  - `aeo/crawler-access` honors robots `Allow` directives ([RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)) so an explicit allow no longer reads as a block.
+  - `schema/consistency` compares each page's own `@type` signature rather than the cluster-wide union, so multi-template sites no longer false-positive.
 
 ## What's new in v0.6 — audit-as-template
 
@@ -113,6 +133,7 @@ Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-tem
 
 - **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps: `content/title-uniqueness` (raw, not entity-masked — catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips `role="presentation"` / `aria-hidden="true"` / explicit `alt=""`), `tech/og-completeness` (the README-promised rule that finally ships).
 - **`AuditOptions.authorityScore`** (0-100) — bring-your-own-DA. ≥80 shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't). ≤30 shifts one tier stricter (newer/lower-authority operator). Raw `risk` number unchanged so CI gates stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`AuditOptions.contentEffort`** (`{ enabled: boolean; model?: string; cacheDir?: string }`, v0.7.3) — opt-in AI content-effort signal. When `enabled`, an LLM (default `claude-sonnet-4-6`, override via `model`) judges a 0-100 content originality/effort score from sampled page text (≤10 pages, content-hash cached under `cacheDir` or an OS-temp default) that moderates the verdict ±1 tier. Needs `ANTHROPIC_API_KEY` in the environment; fail-safe no-op (no verdict change) when the key is absent or the call fails. The resolved score is written to `summary.contentEffort.score`. Page text is passed as untrusted DATA (no URL/domain in the prompt; structured-output, no-tool judge — injection-resistant). The read-only counterpart on the result is **`AuditSummary.contentEffort`** (`{ score: number }`), present only when the signal ran and produced a score.
 - **`AuditOptions.sampleSeed`** — deterministic `mulberry32` PRNG plumbed through the stratified sampler. Repeated audits with the same seed pick the same pages and produce reproducible verdicts.
 - **`spam/doorway-pattern` cluster collapse** — emits in the same `pageUrl` + `relatedUrls[0]` shape as `spam/near-duplicate` and is registered in `CLUSTERABLE_RULES`. C(N,2) per-pair findings on entity-swap-heavy catalogs collapse into one cluster finding per template-tied group.
 - **Per-bucket info-severity cap** — a flood of info findings can't fill a category bucket on its own (capped at 50 separately from the 100 cap on warning+ findings).
@@ -393,6 +414,8 @@ Classify pages by glob and apply different rule subsets or threshold overrides p
 ### Rendering
 
 For client-rendered pages, install `playwright-core` and pass `render: { browserWsEndpoint }` to connect to an existing browser endpoint.
+
+Under the `render` option the auditor runs `renderPages()` (Playwright) to execute each sampled page in a headless browser and populate `ParsedPage.renderedHtml` with the post-hydration DOM, which the render-aware rules (`tech/csr-bailout`) diff against the raw server HTML. The render pass is **Node-only** (it does not run under Bun) and needs either a matching Chromium / `chromium-headless-shell` install (`npx playwright install chromium`) or a CDP endpoint (`render.browserWsEndpoint` or the `PSEOLINT_BROWSER_WS` env var). If no browser is available it **degrades gracefully** to a static audit — the run continues and render-aware rules are simply skipped.
 
 ## Peer dependencies
 

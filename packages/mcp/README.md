@@ -2,7 +2,7 @@
 
 > MCP server for pseolint — audit pSEO sites by template from AI coding assistants.
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.7.0 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.7.3 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
 All tools are namespaced with a `pseolint_` prefix (`pseolint_audit_site`, `pseolint_explain_score`, `pseolint_check_page_technical`, `pseolint_orchestrate_audit`) so they don't collide with other MCP servers, and each returns both human-readable text and machine-readable `structuredContent`.
 
@@ -91,7 +91,8 @@ Run a full pseolint audit on a URL or directory path. Returns the site-level ver
 - `threshold` — Score threshold for pass/fail (default: 40)
 - `sampleSize` — Audit a random subset of N pages (0 = all)
 - `format` — Output format: `console` or `json` (default: console)
-- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter.
+- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter. Raw `risk` number unchanged.
+- `contentEffort` (boolean, default false) — enable the AI content-effort signal: an LLM judges a 0-100 originality/effort score from sampled page text that moderates the verdict ±1 tier. Requires `ANTHROPIC_API_KEY` in the MCP server's environment; no-ops safely without one. Adds a few cents of LLM cost per audit.
 - `sampleSeed` — Integer seed for deterministic stratified sampling. Same seed = same audit = same verdict.
 
 **Returns (v0.6 shape):** `verdict`, `risk`, `categories`, `templates: Template[]`, `findings: RuleResult[]`. AI clients should iterate `templates` first — `topDriver.ruleId + fireRate` is the most actionable per-template signal. Use `findings` for per-URL drill-down.
@@ -105,7 +106,8 @@ Run an audit and get a human-readable explanation of what's driving the SpamBrai
 **Parameters:**
 - `source` (required) — URL or directory path to audit
 - `threshold` — Risk threshold for the pass/fail verdict (default: 40)
-- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter.
+- `authorityScore` — 0-100 domain authority hint. ≥80 shifts verdict one tier lenient; ≤30 shifts one tier stricter. Raw `risk` number unchanged.
+- `contentEffort` (boolean, default false) — enable the AI content-effort signal: an LLM judges a 0-100 originality/effort score from sampled page text that moderates the verdict ±1 tier. Requires `ANTHROPIC_API_KEY` in the MCP server's environment; no-ops safely without one. Adds a few cents of LLM cost per audit.
 - `sampleSeed` — Integer seed for deterministic stratified sampling.
 
 **Example prompt:** "Explain why my site's SpamBrain score is high"
@@ -118,6 +120,15 @@ Check a single page URL for per-page technical SEO issues (canonical, Open Graph
 - `url` (required) — Full URL of the page to check
 
 **Example prompt:** "Check https://yoursite.com/templates/california-llc for technical SEO issues"
+
+## Resources
+
+The server also exposes pseolint's rule knowledge as read-only [MCP resources](https://modelcontextprotocol.io), so an assistant can explain a finding without guessing or fetching the web. The resources are keyed by `ruleId`, the same identifier that appears on every audit finding (e.g. `spam/thin-content`), so they line up 1:1 with tool output.
+
+- **`pseolint://rules`** — a JSON index of every documented rule (`ruleId`, `title`, and the per-rule resource URI). Read this first to discover what's available.
+- **`pseolint://rules/<ruleId>`** — one Markdown resource per rule, e.g. `pseolint://rules/spam/thin-content`. Each contains the rule's link, a **What it detects** section, and a **How to fix** checklist.
+
+Typical flow: run `pseolint_audit_site`, take a `ruleId` off a finding, then read `pseolint://rules/<ruleId>` to ground the explanation and fix advice in pseolint's own rule documentation.
 
 ## Remote server (hosted, zero-install)
 
