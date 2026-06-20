@@ -15,10 +15,17 @@ import {
 } from "@/lib/audit-defaults";
 import { fetchOgMeta } from "@/lib/og-fetch";
 import { hashToInt } from "@/lib/seed";
+import { R2CacheBackend } from "@/lib/r2-cache-backend";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { trackServer } from "@/lib/analytics/track.server";
 
 const MAX_COST_USD = 0.50;
+/** HTTP cache TTL for entries without ETag/Last-Modified validators (matches the engine default). */
+const WEB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Ops kill-switch for the R2 HTTP cache — set PSEOLINT_R2_CACHE_DISABLED to turn it off without a deploy. */
+function r2CacheEnabled(): boolean {
+  return !process.env.PSEOLINT_R2_CACHE_DISABLED;
+}
 
 type RunStep = <T>(name: string, fn: () => Promise<T>) => Promise<T>;
 
@@ -57,6 +64,8 @@ async function loadAuditEnrichments(auditId: string): Promise<{
    * sample the same pages each run. Undefined for public one-shot audits.
    */
   sampleSeed?: number;
+  /** Canonical host when this is a monitored domain — gates the R2 cache. Undefined for one-shot/anon. */
+  monitoredHost?: string;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
@@ -92,8 +101,10 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let gentleAuditMode = false;
   let authorityScore: number | undefined;
   let sampleSeed: number | undefined;
+  let monitoredHost: string | undefined;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
+    monitoredHost = host;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
     authorityScore = domainRow[0].authorityScore ?? undefined;
     // Monitored domain → deterministic per-host sampling so re-audit / cron
@@ -115,7 +126,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed, monitoredHost };
 }
 
 /**
@@ -158,7 +169,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed, monitoredHost } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
 
@@ -176,6 +187,15 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     // moderates the verdict ±1 tier). Sampled (~≤10 pages) + cached in core, ~$0.03/audit.
     // Uses the platform ANTHROPIC_API_KEY env in core; no-ops safely if absent. Free = off.
     const contentEffort: AuditOptions["contentEffort"] | undefined = plan === "pro" ? { enabled: true } : undefined;
+
+    // R2-backed HTTP cache — only for monitored domains (re-audit / cron), where
+    // 304-revalidation across runs saves egress + spares the origin. One-shot /
+    // anon scans never repeat, so they stay uncached. Fail-safe in the backend;
+    // PSEOLINT_R2_CACHE_DISABLED is the ops kill-switch. cacheStats logged on completion.
+    const cache: AuditOptions["cache"] | undefined =
+      monitoredHost && r2CacheEnabled()
+        ? { backend: new R2CacheBackend(monitoredHost), ttlMs: WEB_CACHE_TTL_MS }
+        : undefined;
 
     // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
     // sample to 200 — easier on small origins and less likely to trip the
@@ -283,6 +303,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       authorityScore,
       ai,
       contentEffort,
+      cache,
     });
 
     // First attempt: configured profile (gentle if domain is opted in,
@@ -380,6 +401,22 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     pageCount: summary.pageCount,
     risk: summary.risk,
   });
+
+  // Cache hit-rate telemetry — via console (not the typed auditLog union) so we
+  // can measure whether the R2 cache earns its keep, then keep/kill via the
+  // switch. Present only on cached (monitored) runs.
+  if (summary.cacheStats) {
+    try {
+      console.log(JSON.stringify({
+        ts: new Date().toISOString(),
+        evt: "audit.cache_stats",
+        auditId, host,
+        hits: summary.cacheStats.hits,
+        total: summary.cacheStats.total,
+        bytesSavedEstimate: summary.cacheStats.bytesSavedEstimate,
+      }));
+    } catch { /* never let logging crash the audit */ }
+  }
 
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
