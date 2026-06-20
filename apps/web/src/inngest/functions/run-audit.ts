@@ -49,6 +49,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   dataRecords?: PageDataRecord[];
   ruleOverrides?: NonNullable<AuditOptions["rules"]>;
   gentleAuditMode: boolean;
+  authorityScore?: number;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
@@ -64,6 +65,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     db.select({
       id: monitoredDomains.id,
       gentleAuditMode: monitoredDomains.gentleAuditMode,
+      authorityScore: monitoredDomains.authorityScore,
     })
       .from(monitoredDomains)
       .where(and(
@@ -81,9 +83,11 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let dataRecords: PageDataRecord[] | undefined;
   let ruleOverrides: NonNullable<AuditOptions["rules"]> | undefined;
   let gentleAuditMode = false;
+  let authorityScore: number | undefined;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
+    authorityScore = domainRow[0].authorityScore ?? undefined;
     const [ds, rover] = await Promise.all([
       db.select({ records: domainDataSources.records }).from(domainDataSources).where(eq(domainDataSources.domainId, domainId)).limit(1),
       db.select({ overrides: domainRuleOverrides.overrides }).from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domainId)).limit(1),
@@ -100,7 +104,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore };
 }
 
 /**
@@ -143,7 +147,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
 
@@ -250,6 +254,8 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // `/portal` that URL patterns can't pre-declare.
       respectNoindex: true,
       skipDetectedAuth: true,
+      // Per-domain bring-your-own authority (Pro settings). Undefined = no shift.
+      authorityScore,
       ai,
     });
 

@@ -38,6 +38,15 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   // checked, so a missing field means "off".
   const gentleAuditMode = String(formData.get("gentleAuditMode") ?? "") === "on";
 
+  // Bring-your-own domain authority (0-100). Blank or out-of-range → null (unset
+  // = engine applies no verdict shift). Integer-only to match the engine band.
+  const authorityRaw = String(formData.get("authorityScore") ?? "").trim();
+  const authorityNum = Number(authorityRaw);
+  const authorityScore =
+    authorityRaw.length > 0 && Number.isInteger(authorityNum) && authorityNum >= 0 && authorityNum <= 100
+      ? authorityNum
+      : null;
+
   // GSC property URL: empty string means "unbind". Light shape check —
   // real validation is the next sync run, which will fail loudly if the
   // URL isn't one of the user's GSC properties or perms were revoked.
@@ -60,7 +69,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     ))
     .limit(1);
 
-  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode })
+  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode, authorityScore })
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),

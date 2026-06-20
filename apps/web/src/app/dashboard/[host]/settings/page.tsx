@@ -111,6 +111,17 @@ export default async function DomainSettings({
           <input name="alertEmail" type="email" defaultValue={domain.alertEmail ?? ""} className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
         </label>
 
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium">Domain authority (optional)</span>
+          <span className="text-xs text-muted-foreground">
+            Your domain&apos;s authority/reputation, 0–100 (e.g. Moz DA, Ahrefs DR).
+            High authority (≥80) relaxes the verdict one tier; low (≤30) tightens it
+            one tier — counters false positives on thin-but-trusted pages. The raw
+            risk score is never changed. Leave blank to skip.
+          </span>
+          <input name="authorityScore" type="number" min={0} max={100} defaultValue={domain.authorityScore ?? ""} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
+        </label>
+
         <label className="flex items-start gap-2.5">
           <input
             type="checkbox"

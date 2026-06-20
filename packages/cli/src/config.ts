@@ -62,6 +62,7 @@ const auditOptionsSchema = z.object({
   }).optional(),
   samplingStrategy: z.enum(["stratified", "random"]).optional(),
   maxPerTemplate: z.number().optional(),
+  authorityScore: z.number().int().min(0).max(100).optional(),
   safeMode: z.enum(["saas", "cli", "dev"]).optional(),
   autoDevPreset: z.boolean().optional(),
   backpressure: z.boolean().optional(),
@@ -171,6 +172,7 @@ export interface CliFlags {
   cache?: { dir?: string; ttlMs: number; maxBytes?: number };
   samplingStrategy?: "stratified" | "random";
   maxPerTemplate?: number;
+  authorityScore?: number;
   safeMode?: "saas" | "cli" | "dev";
   autoDevPreset?: boolean;
   backpressure?: boolean;
@@ -217,6 +219,7 @@ export function mergeOptions(
   if (cliFlags.cache !== undefined) result.cache = cliFlags.cache;
   if (cliFlags.samplingStrategy !== undefined) result.samplingStrategy = cliFlags.samplingStrategy;
   if (cliFlags.maxPerTemplate !== undefined) result.maxPerTemplate = cliFlags.maxPerTemplate;
+  if (cliFlags.authorityScore !== undefined) result.authorityScore = cliFlags.authorityScore;
   if (cliFlags.safeMode !== undefined) result.safeMode = cliFlags.safeMode;
   if (cliFlags.autoDevPreset !== undefined) result.autoDevPreset = cliFlags.autoDevPreset;
   if (cliFlags.backpressure !== undefined) result.backpressure = cliFlags.backpressure;
