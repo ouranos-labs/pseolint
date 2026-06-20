@@ -36,6 +36,10 @@
       "import": "./dist/rules/spam/thin-content.js",
       "types": "./dist/rules/spam/thin-content.d.ts"
     },
+    "./rules/scope": {
+      "import": "./dist/rules/scope.js",
+      "types": "./dist/rules/scope.d.ts"
+    },
     "./parser": {
       "import": "./dist/parser.js",
       "types": "./dist/parser.d.ts"

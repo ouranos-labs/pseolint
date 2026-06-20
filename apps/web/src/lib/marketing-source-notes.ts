@@ -11,7 +11,7 @@
  * URLs are NOT written here — only library keys (see marketing-sources.ts).
  * Generated/assembled from per-batch authoring; edit notes here directly.
  */
-import { SCORED_RULE_COUNT } from "@pseolint/core";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import type { MarketingSourceRef } from "./marketing-sources";
 
 export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {

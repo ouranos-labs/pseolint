@@ -1,4 +1,4 @@
-import { SCORED_RULE_COUNT } from "@pseolint/core";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { cn } from "@/lib/cn";
 
 export type RuleRingSeverity = "E" | "W" | "I";

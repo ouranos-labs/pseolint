@@ -9,7 +9,7 @@
  * find-replace duplication. Each entry is unique enough to pass our own
  * thin-content rules.
  */
-import { SCORED_RULE_COUNT } from "@pseolint/core";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import type { MarketingSourceRef } from "./marketing-sources";
 import { TOOL_SOURCES } from "./marketing-source-notes";
 import { TOOL_EXTRA, type MarketingExtra } from "./marketing-extra-content";

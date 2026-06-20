@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SCORED_RULE_COUNT } from "@pseolint/core";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 
