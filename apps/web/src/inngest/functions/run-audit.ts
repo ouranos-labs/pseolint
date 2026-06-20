@@ -259,6 +259,11 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // `/portal` that URL patterns can't pre-declare.
       respectNoindex: true,
       skipDetectedAuth: true,
+      // Cookie/legal/imprint + search-result pages aren't marketing surface;
+      // skipping them sharpens the findings to what actually ranks. Matches the
+      // AuditOptions doc comment for the hosted form.
+      skipBoilerplate: true,
+      skipSearchPages: true,
       // Per-domain bring-your-own authority (Pro settings). Undefined = no shift.
       authorityScore,
       ai,
