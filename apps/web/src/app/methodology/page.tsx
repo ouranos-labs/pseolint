@@ -606,12 +606,13 @@ export default function MethodologyPage(): React.ReactElement {
           engine because (a) it would make the tool dependent on paid SaaS,
           (b) the metrics differ across providers (Moz DA vs Ahrefs DR vs
           Semrush AS), and (c) Google uses signals none of those approximate
-          well. Future work includes a <em>bring-your-own-authority</em>{" "}
-          option (pass a normalized 0-100 authority score and have the
-          verdict ladder adjust accordingly) and proxy-signal detection
-          (domain age, internal-graph density, named editorial leadership)
-          for callers without external data — see <em>Future work</em>{" "}
-          below.
+          well. Instead, <em>bring-your-own-authority</em> ships today: pass a
+          normalized 0-100 authority score (the <code>--authority-score</code>{" "}
+          flag, the MCP parameter, or a per-domain Pro setting) and the verdict
+          ladder adjusts for your tier — the raw risk number is unchanged.
+          Still future work: proxy-signal detection (domain age, internal-graph
+          density, named editorial leadership) for callers without an authority
+          figure of their own.
         </p>
       </section>
 
