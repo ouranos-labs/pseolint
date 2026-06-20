@@ -56,7 +56,9 @@ const CHARACTER_LIMIT = envInt("PSEOLINT_MCP_CHAR_LIMIT", 25_000);
  * curated payload; the CLI carries the full manifest. Override with
  * PSEOLINT_MCP_JSON_CHAR_CAP.
  */
-const JSON_TEXT_CHAR_CAP = envInt("PSEOLINT_MCP_JSON_CHAR_CAP", 100_000);
+function getJsonTextCharCap(): number {
+  return envInt("PSEOLINT_MCP_JSON_CHAR_CAP", 100_000);
+}
 
 /**
  * Max findings embedded in `structuredContent.findings`. Distinct from
@@ -408,7 +410,7 @@ export function registerReadOnlyTools(server: McpServer): void {
           // Oversized payloads collapse to a valid-JSON envelope; the full set
           // lives in the CLI.
           text = formatJson(summary);
-          if (text.length > JSON_TEXT_CHAR_CAP) {
+          if (text.length > getJsonTextCharCap()) {
             // Compact envelope: drop the (large) findings array — they remain in
             // structuredContent (capped) and the CLI carries the full set — so
             // the envelope stays small regardless of finding volume.
