@@ -228,9 +228,15 @@ export interface CacheOptions {
    * Maximum total size of the cache directory in bytes. When exceeded after a
    * run, oldest-mtime entries are evicted until under the cap. Also sweeps
    * leftover `.tmp` files from crashed writes. `<= 0` disables size-based
-   * eviction. Default: 209_715_200 (200 MB).
+   * eviction. Default: 209_715_200 (200 MB). Filesystem backend only.
    */
   maxBytes?: number;
+  /**
+   * Custom storage backend; overrides `dir`. Lets a host persist the cache off
+   * the (ephemeral) filesystem — e.g. an R2-backed store on serverless. The
+   * backend manages its own retention, so `maxBytes` pruning does not apply.
+   */
+  backend?: import("./cache.js").CacheBackend;
 }
 
 /** Cache stats reported at end of audit. */

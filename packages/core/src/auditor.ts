@@ -2277,7 +2277,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const cacheStats: StatsWithObserver = { hits: 0, total: 0, bytesSavedEstimate: 0, onObservation };
   const cacheConfig: CacheConfig | null = options?.cache
     ? {
-        dir: options.cache.dir ?? ".pseolint/cache",
+        // A custom backend (e.g. R2) wins over the filesystem dir; only fall back
+        // to the default dir when no backend is supplied.
+        ...(options.cache.backend
+          ? { backend: options.cache.backend }
+          : { dir: options.cache.dir ?? ".pseolint/cache" }),
         ttlMs: options.cache.ttlMs ?? 7 * 24 * 60 * 60 * 1000,
       }
     : null;
