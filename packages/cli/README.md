@@ -4,6 +4,19 @@
 
 The CLI for **programmatic SEO auditing** — v0.7.0. Detects SpamBrain-risk patterns across large template-generated sites, now surfaced per-template instead of as a flat findings list.
 
+## What's new in v0.7.3 — your inputs, the AI's read
+
+Two ways to feed the verdict more than the crawl can see on its own:
+
+- **`--authority-score <0-100>`** — bring-your-own domain authority (Moz DA, Ahrefs DR, your own judgment). An established brand can absorb shapes a newer site can't, so a high score nudges the verdict one tier lenient and a low one nudges it stricter. Previously core/MCP-only; now a first-class CLI flag.
+- **`--content-effort`** — opt in to the AI content-effort signal: an LLM reads the actual page text and judges an originality/effort score that moderates the verdict ±1 tier. Distinct from `--ai` triage — this one feeds the verdict, not the root-cause summary. See [Content-effort signal](#content-effort-signal).
+
+## What's new in v0.7.0–v0.7.2 — render checks + fewer false positives
+
+- **`--render` is now wired to render-diff rules.** Under `--render` (Playwright, Node-only — needs `npx playwright install chromium-headless-shell`, or point at an existing browser with `--browser-ws <url>` for a remote CDP endpoint), two rules activate: `tech/csr-bailout` (flags content/interactivity that only appears after client JS runs — invisible to crawlers that don't execute scripts) and the render side of `tech/soft-404`. Both are no-ops without `--render`.
+- **Graded thresholds (v0.7.2).** Four rules — `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, and `content/wikipedia-paraphrase` — moved off hard binary cutoffs to continuous banded severity, so the verdict no longer flips on a one-page change in crawl size. Four schema/EEAT rules now validate quality rather than mere presence.
+- **False-positive elimination (v0.7.1).** Fewer false positives on sampled crawls, multi-template sites, and robots `Allow` directives. **Breaking config rename:** if you set `uniqueValueMinWords` in `pseolint.config.*`, it is now `uniqueValueDensity: { passBelow, errorBelow }`.
+
 ## What's new in v0.6 — audit-as-template
 
 - **Per-template verdict aggregation** — the worst template with ≥5% URL coverage drives the site headline. One broken `/listing/:slug` can't hide behind a clean `/category/:slug`.
@@ -19,7 +32,7 @@ Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-tem
 ## What's new in v0.5.2 — credibility layer
 
 - **4 new content-quality rules** addressing the blind-spot audit's tier-1 gaps: `content/title-uniqueness` (catches actually-duplicate titles — raw, not entity-masked, so catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""`), `tech/og-completeness` (the long-promised OG-tag rule that finally ships).
-- **`authorityScore`** (0-100, via the core API `AuditOptions` or the MCP `audit_site` tool — not a CLI flag) — bring-your-own domain authority. `>= 80` shifts the verdict one tier lenient (established brand can absorb shapes a newer site can't). `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`authorityScore`** (0-100, via the core API `AuditOptions`, the MCP `audit_site` tool, or — as of v0.7.3 — the `--authority-score <0-100>` CLI flag / `authorityScore` config key) — bring-your-own domain authority. `>= 80` shifts the verdict one tier lenient (established brand can absorb shapes a newer site can't). `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
 - **`sampleSeed`** (via the core API `AuditOptions` or the MCP `audit_site` tool — not a CLI flag) — deterministic stratified sampling. Same seed = same audit = same verdict, run after run. CI gates and calibration runs get reproducible results instead of bouncing across the verdict-ladder boundary.
 - **`spam/doorway-pattern` cluster collapse** — entity-swap-heavy catalogs no longer produce hundreds of per-pair findings; they collapse into one cluster line per template-tied group.
 - **Per-bucket info-severity cap** — info findings can't accumulate to tank a verdict on their own (capped at 50 per category bucket separately from the 100 cap on warning+).
@@ -136,9 +149,29 @@ Run `pseolint --explain` for the full list.
 --timeout <ms>            Per-request timeout (default: 30000)
 --sample-size <n>         Audit a random subset of N pages
 --ignore <patterns>       Comma-separated glob patterns to exclude
---render                  Render pages in a browser before auditing
---browser-ws <url>        CDP WebSocket endpoint for rendering
+--render                  Render pages in a browser before auditing. Required for
+                          the render-diff rules `tech/csr-bailout` and the render
+                          side of `tech/soft-404` (Node-only). Pairs with
+                          --browser-ws for a remote CDP endpoint.
+--browser-ws <url>        CDP WebSocket endpoint for rendering (remote browser)
 --no-crawl                Disable crawl-based page discovery
+
+Authority + content-effort signals (v0.7.3)
+--authority-score <0-100> Bring-your-own domain authority/reputation (e.g. Moz
+                          DA, Ahrefs DR). >= 80 shifts the verdict one tier
+                          lenient; <= 30 one tier stricter. The raw `risk`
+                          number is unchanged so --ci-threshold CI gates stay
+                          stable. Also settable via the `authorityScore` config
+                          key.
+--content-effort          Opt in to the AI content-effort signal. An LLM judges
+                          a 0-100 originality/effort score from page text
+                          (sampled to ≤10 pages, content-hash cached) that
+                          moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY;
+                          no-ops safely without one. Default off; ~$0.003/page on
+                          the default claude-sonnet-4-6.
+--content-effort-model <name>
+                          Override the content-effort model (default
+                          claude-sonnet-4-6).
 
 Template output (v0.6)
 --per-template            Render per-template cards (default: ON when ≥2 templates
@@ -187,9 +220,12 @@ Create `pseolint.config.ts` in your project root:
 
 ```typescript
 export default {
+  authorityScore: 80,                  // bring-your-own DA/DR (0-100); same as --authority-score
+  contentEffort: { enabled: true, model: 'claude-sonnet-4-6' }, // same as --content-effort[-model]
   rules: {
     nearDuplicateThreshold: 0.85,
     thinContentMinWords: 500,
+    uniqueValueDensity: { passBelow: 0.3, errorBelow: 0.1 }, // renamed from uniqueValueMinWords (v0.7.1)
   },
   pageGroups: {
     templates: {
@@ -200,6 +236,8 @@ export default {
   ignore: ['/api/**', '/admin/**'],
 };
 ```
+
+`authorityScore` and `contentEffort: { enabled, model }` are valid `pseolint.config.*` keys (the config-file equivalents of `--authority-score`, `--content-effort`, and `--content-effort-model`). **Breaking (v0.7.1):** the old `uniqueValueMinWords` rule key was renamed to `uniqueValueDensity: { passBelow, errorBelow }`.
 
 ## Caching and delta audits
 
@@ -390,6 +428,14 @@ Triage sends finding rule IDs, severities, messages, and (optional) page URLs to
 ### Failure modes (fail-open)
 
 Any error in the AI step (auth, rate-limit, network, unparseable response, missing SDK) skips triage with a stderr message. The audit completes normally — exit code, JSON output, and findings list are unchanged.
+
+## Content-effort signal
+
+A separate, opt-in LLM read — distinct from `--ai` triage. Where triage summarizes findings into root causes, the content-effort signal produces a 0-100 originality/effort score from the actual page text and uses it to moderate the verdict by ±1 tier. Enable it with `--content-effort`.
+
+Page text is sent as **data**, never as instructions: no URL or domain appears in the prompt, and the model runs as a structured-output judge against a strict schema, so a page can't inject directions into its own audit. Results are cached by content hash, so re-auditing unchanged pages is stable and free. The default model is `claude-sonnet-4-6`; override it with `--content-effort-model <name>`. Needs `ANTHROPIC_API_KEY` and no-ops safely without one.
+
+In the pseolint Pro web app, this signal runs automatically for Pro audits.
 
 ## Telemetry (local-only)
 

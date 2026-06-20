@@ -36,25 +36,48 @@ pseolint audits the graph — and since v0.6, it groups results by template befo
 
 Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md](./docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
+## What's new in v0.7 — render-aware checks, AI content-effort, and bring-your-own inputs
+
+### v0.7.3 (current)
+
+- **Render-aware crawl checks.** `--render` (Playwright, Node-only) now feeds two render-diff rules. `tech/csr-bailout` flags pages whose substantive content / interactivity appears only after client-side JS — invisible to crawlers and the first indexing pass. `tech/soft-404` probes one synthetic nonexistent URL per template cluster — an HTTP 200 means the directory will index unbounded junk. Both no-op without `--render` and outside programmatic directories.
+- **Bring-your-own authority.** `--authority-score <0-100>` CLI flag, the `authorityScore` config key, the MCP param, or a per-domain Pro-dashboard setting — `>= 80` shifts the verdict one tier lenient, `<= 30` one tier stricter. Raw `risk` unchanged so CI gates stay stable. The engine stays authority-blind by design.
+- **AI content-effort signal.** Opt-in `--content-effort` (needs `ANTHROPIC_API_KEY`) — an LLM reads sampled page text and scores 0-100 content originality/effort (cached by content hash), moderating the verdict ±1 tier. Distinct from `--ai` triage. Runs automatically for Pro web audits.
+- **MCP rule knowledge as resources** — plus the open knowledge bundle served at `/okf` and linked from `llms.txt`.
+
+### v0.7.2 — graded thresholds + presence-quality
+
+- Four rules moved from binary cliffs to continuous banded severity, so the verdict no longer flips on a one-page crawl-size change: `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, `content/wikipedia-paraphrase`. Four rules now validate quality, not mere presence: `schema/required-fields`, `schema/json-ld-valid` (accepts `@type` arrays), `tech/og-completeness`, `content/eeat-signals`. `schema/consistency` no longer false-positives on multi-template sites.
+
+### v0.7.1 — false-positive elimination
+
+- `content/unique-value` redesigned from absolute word count to rarity density. **Config change:** `rules.uniqueValueMinWords` → `rules.uniqueValueDensity: { passBelow, errorBelow }`. FP fixes + severity demotions across `links/orphan-pages` & `links/cluster-connectivity` (suppressed on sampled crawls), `tech/canonical-consistency` & `tech/sitemap-completeness` (URL normalization + crawl-scope awareness), and `aeo/crawler-access` (honors robots `Allow` per RFC 9309).
+
+### v0.7.0 — calibration & authority foundations
+
+- Pluggable authority-moderation scaffolding (fail-safe no-op by default), a `checkOriginHealth` pre-flight origin probe (so a crawl can't crush a fragile origin), and an internal score-vs-outcome calibration harness. The web `/limits` page documents the off-page-authority blind spot.
+
+Per-package READMEs ([`@pseolint/core`](packages/core/README.md), [`pseolint`](packages/cli/README.md), [`@pseolint/mcp`](packages/mcp/README.md)) carry the depth.
+
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 44 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
-- **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server. Lives in your repo and your PRs.
+- **SpamBrain + AI Overview.** 48+ rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server, browser extension (SERP competitive recon). Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
 - **Calibrated against reputable pSEO** (v0.5.2). Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
-- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). v0.5.2 adds `authorityScore` (0-100, via the core API or MCP — not a CLI flag) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
+- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
 - **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
-## What's new in v0.5.2 — credibility layer (v0.7.0 is current)
+## What's new in v0.5.2 — credibility layer (v0.7.3 is current)
 
 - **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
   - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
   - `content/heading-structure` — `<h1>` presence, single-`<h1>` discipline, and `<h2>` sub-structure on long pages.
   - `content/image-alt-text` — `<img>` tags missing `alt` (decorative images marked `role="presentation"` / `aria-hidden="true"` / explicit `alt=""` are skipped).
   - `tech/og-completeness` — the long-promised OG-tag rule that finally ships.
-- **`AuditOptions.authorityScore`** (0-100; core API or MCP `audit_site`, not a CLI flag) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
+- **`AuditOptions.authorityScore`** (0-100; core API, MCP `audit_site`, or — since v0.7.3 — the `--authority-score` CLI flag) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
 - **Calibration-driven scoring profile** — site-classifier-aware severity demotions for AEO + EEAT rules on catalog/template-driven sites. The `unclear` profile (low classifier confidence) now demotes structurally-incompatible rules conservatively rather than firing them at full strength. Result: reputable pSEO sites no longer false-positive into `concerning`.
 - **`spam/doorway-pattern` cluster collapse** — 276 per-pair findings on a heavy-template catalog now collapse to **one** cluster line in the report.
 - **`spam/doorway-pattern` content-quality gate** — requires thin-content OR identical-meta as the third signal; structural similarity alone (which all catalogs have) no longer constitutes a doorway finding.
@@ -216,7 +239,8 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 |------|---------------|----------|
 | `tech/canonical-consistency` | Missing, invalid, or conflicting canonical URLs (HTML + HTTP header) | Error |
 | `tech/sitemap-completeness` | Pages missing from sitemap, phantom 404s, redirecting sitemap URLs | Error |
-| `tech/soft-404` | HTTP 200 pages that look like error pages | Error |
+| `tech/csr-bailout` | Render-diff: substantive content / interactivity that appears only after client-side JS — invisible to crawlers and the first indexing pass (needs `--render`) | Warning |
+| `tech/soft-404` | HTTP 200 pages that look like error pages — plus a synthetic-URL probe that fetches one nonexistent URL per template cluster (a 200 means the directory will index unbounded junk; needs `--render`) | Error |
 | `tech/robots-compliance` | Sitemap URLs blocked by `robots.txt` (Disallow patterns matching listed pages) | Error |
 | `tech/robots-noindex-conflict` | Noindexed pages (meta or X-Robots-Tag) with inbound links | Warning |
 | `tech/canonical-noindex-conflict` | Noindex + canonical pointing elsewhere | Warning |
