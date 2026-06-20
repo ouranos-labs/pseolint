@@ -97,6 +97,8 @@ interface CliOptions {
   exitOnRegression: boolean;
   mode?: string;
   ageFloorDays?: number;
+  contentEffort?: boolean;
+  contentEffortModel?: string;
   ai?: boolean;
   aiProvider?: string;
   aiModel?: string;
@@ -203,6 +205,8 @@ export async function runCli(
     .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: pseolint core's DEFAULT_AGE_FLOOR_DAYS, currently 7)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--authority-score <0-100>", "Your domain's authority/reputation (0-100). High authority (≥80) shifts the verdict one tier lenient; low (≤30) shifts one tier stricter — counters thin-but-authoritative false positives.")
+    .option("--content-effort", "Enable the AI content-effort signal: a 0-100 originality/effort score (judged from page text) that moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY. Default off; adds a few cents of LLM cost per audit.")
+    .option("--content-effort-model <name>", "Model for the content-effort judge (default: claude-sonnet-4-6)")
     .option("--ai", "Enable AI triage of findings")
     .option(
       "--ai-provider <id>",
@@ -594,6 +598,10 @@ async function runAudit(
   } else if (opts.aiSuggest === false) {
     // allow suppressing the hint without enabling AI
     cliFlags.ai = { suggest: false };
+  }
+
+  if (opts.contentEffort) {
+    cliFlags.contentEffort = { enabled: true, model: opts.contentEffortModel };
   }
 
   const telemetryFeedback = opts.triageFeedback

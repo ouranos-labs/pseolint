@@ -95,6 +95,7 @@ const auditOptionsSchema = z.object({
       z.literal(false),
     ]).optional(),
   }).optional(),
+  contentEffort: z.object({ enabled: z.boolean().optional(), model: z.string().optional(), cacheDir: z.string().optional() }).optional(),
   telemetry: z.object({
     enabled: z.boolean().optional(),
     path: z.string().optional(),
@@ -197,6 +198,7 @@ export interface CliFlags {
     suggest?: boolean;
     cache?: { ttlMs?: number } | false;
   };
+  contentEffort?: { enabled?: boolean; model?: string; cacheDir?: string };
   telemetry?: {
     enabled?: boolean;
     path?: string;
@@ -254,6 +256,13 @@ export function mergeOptions(
       }
     }
     result.ai = merged;
+  }
+  if (cliFlags.contentEffort !== undefined) {
+    const merged: { enabled?: boolean; model?: string; cacheDir?: string } = { ...result.contentEffort };
+    if (cliFlags.contentEffort.enabled !== undefined) merged.enabled = cliFlags.contentEffort.enabled;
+    if (cliFlags.contentEffort.model !== undefined) merged.model = cliFlags.contentEffort.model;
+    if (cliFlags.contentEffort.cacheDir !== undefined) merged.cacheDir = cliFlags.contentEffort.cacheDir;
+    result.contentEffort = merged as AuditOptions["contentEffort"];
   }
   if (cliFlags.telemetry !== undefined) {
     const merged: NonNullable<AuditOptions["telemetry"]> = { ...result.telemetry };

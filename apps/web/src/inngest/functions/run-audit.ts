@@ -161,6 +161,11 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
         ? { enabled: true, maxCostUsd: MAX_COST_USD }
         : undefined;
 
+    // Pro-gated content-effort signal: the validated recall lever (0-100 originality/effort,
+    // moderates the verdict ±1 tier). Sampled (~≤10 pages) + cached in core, ~$0.03/audit.
+    // Uses the platform ANTHROPIC_API_KEY env in core; no-ops safely if absent. Free = off.
+    const contentEffort: AuditOptions["contentEffort"] | undefined = plan === "pro" ? { enabled: true } : undefined;
+
     // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
     // sample to 200 — easier on small origins and less likely to trip the
     // engine's BackpressureMonitor.
@@ -257,6 +262,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // Per-domain bring-your-own authority (Pro settings). Undefined = no shift.
       authorityScore,
       ai,
+      contentEffort,
     });
 
     // First attempt: configured profile (gentle if domain is opted in,

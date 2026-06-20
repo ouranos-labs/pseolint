@@ -475,7 +475,7 @@ function V04Hero({
       <div className="flex flex-col items-start justify-between gap-5">
         <div>
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Verdict</span>
-          <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border-strong bg-card px-3 py-1.5">
+          <div className="mt-2 ml-2 inline-flex items-center gap-2 rounded-full border border-border-strong bg-card px-3 py-1.5">
             <span className={ `inline-block h-2 w-2 rounded-full ${v.dot}` } />
             <span
               className={ `text-2xl tabular-nums ${v.tone}` }
@@ -505,6 +505,23 @@ function V04Hero({
                   return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs audited`;
                 })() }
               </span>
+            </div>
+          ) : null }
+          {/*
+            Pro-only content-effort pill — the AI-judged 0-100 originality/effort
+            score the engine writes to `summary.contentEffort.score` when the
+            Pro-gated signal runs (run-audit.ts). Free/anon audits never populate
+            it, so `Number.isFinite` is the gate: the pill simply renders nothing
+            for them (no upsell modal). Styled to match the site-type badge above.
+          */}
+          { Number.isFinite(summary.contentEffort?.score) ? (
+            <div
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+              title="AI-judged originality & effort (0-100). Higher = more original human work; moderates the verdict."
+            >
+              <span className="font-mono">Content effort</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
             </div>
           ) : null }
         </div>
