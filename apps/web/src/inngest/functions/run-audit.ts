@@ -14,6 +14,7 @@ import {
   detectFrameworkFromUrl,
 } from "@/lib/audit-defaults";
 import { fetchOgMeta } from "@/lib/og-fetch";
+import { hashToInt } from "@/lib/seed";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { trackServer } from "@/lib/analytics/track.server";
 
@@ -50,6 +51,12 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   ruleOverrides?: NonNullable<AuditOptions["rules"]>;
   gentleAuditMode: boolean;
   authorityScore?: number;
+  /**
+   * Stable per-domain sampling seed — set ONLY for monitored domains (a
+   * `monitoredDomains` row exists for this host), so re-audit / cron diffs
+   * sample the same pages each run. Undefined for public one-shot audits.
+   */
+  sampleSeed?: number;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
@@ -84,10 +91,14 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let ruleOverrides: NonNullable<AuditOptions["rules"]> | undefined;
   let gentleAuditMode = false;
   let authorityScore: number | undefined;
+  let sampleSeed: number | undefined;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
     authorityScore = domainRow[0].authorityScore ?? undefined;
+    // Monitored domain → deterministic per-host sampling so re-audit / cron
+    // diffs reflect real content change, not sampling variance.
+    sampleSeed = hashToInt(host);
     const [ds, rover] = await Promise.all([
       db.select({ records: domainDataSources.records }).from(domainDataSources).where(eq(domainDataSources.domainId, domainId)).limit(1),
       db.select({ overrides: domainRuleOverrides.overrides }).from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domainId)).limit(1),
@@ -104,7 +115,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed };
 }
 
 /**
@@ -147,7 +158,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
 
@@ -230,6 +241,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     const buildAuditCall = (opts: { sampleSize: number; concurrency: number | undefined }) => () =>
       auditSource(url, {
         sampleSize: opts.sampleSize,
+        // Monitored-domain audits pin a stable per-host seed so repeated runs
+        // sample the same pages (deterministic diffs). Undefined for public
+        // one-shots — the engine falls back to non-deterministic sampling.
+        ...(sampleSeed != null && { sampleSeed }),
         ...(opts.concurrency != null && { concurrency: opts.concurrency }),
         mode,
         state,
