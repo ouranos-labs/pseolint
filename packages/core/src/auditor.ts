@@ -3544,7 +3544,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     );
   }
 
-  if (cacheConfig && cacheMaxBytes > 0) {
+  // Size-cap pruning is filesystem-only; a custom backend (e.g. R2) manages its
+  // own retention (lifecycle rules), so this is gated on a `dir` being present.
+  if (cacheConfig?.dir && cacheMaxBytes > 0) {
     try {
       const pruneResult = await pruneCache(cacheConfig.dir, cacheMaxBytes);
       if (pruneResult.removedEntries > 0 || pruneResult.removedTmpFiles > 0) {

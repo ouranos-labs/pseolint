@@ -43,6 +43,18 @@ export function isRedirectPointer(entry: AnyCacheEntry): entry is RedirectPointe
   return "redirectsTo" in entry;
 }
 
+/**
+ * Pluggable cache storage. The default is {@link FilesystemCacheBackend}
+ * (dir-based); a host can supply its own (e.g. an R2-backed store) to persist
+ * the cache across ephemeral-filesystem runs. The freshness / revalidation /
+ * redirect / negative-cache logic in cachedFetch is backend-agnostic — a
+ * backend is dumb `get`/`set` storage and nothing more.
+ */
+export interface CacheBackend {
+  get(url: string): Promise<AnyCacheEntry | null>;
+  set(url: string, entry: AnyCacheEntry): Promise<void>;
+}
+
 export function cacheKeyFor(url: string): string {
   return createHash("sha256").update(url).digest("hex");
 }
@@ -104,6 +116,44 @@ export async function writeCacheEntry(
   await rename(tmpPath, finalPath);
 }
 
+/** Default cache backend — the original dir-based filesystem store. */
+export class FilesystemCacheBackend implements CacheBackend {
+  constructor(private readonly dir: string) {}
+  get(url: string): Promise<AnyCacheEntry | null> {
+    return readCacheEntry(this.dir, url);
+  }
+  set(url: string, entry: AnyCacheEntry): Promise<void> {
+    return writeCacheEntry(this.dir, url, entry);
+  }
+}
+
+/** Resolve the active backend for a cache config; a custom backend wins over `dir`. */
+function resolveBackend(cache: CacheConfig | null): CacheBackend | null {
+  if (!cache) return null;
+  if (cache.backend) return cache.backend;
+  if (cache.dir) return new FilesystemCacheBackend(cache.dir);
+  return null;
+}
+
+/** Cache reads are best-effort: a backend error is treated as a miss, never a failure. */
+async function safeGet(backend: CacheBackend, url: string): Promise<AnyCacheEntry | null> {
+  try {
+    return await backend.get(url);
+  } catch {
+    return null;
+  }
+}
+
+/** Cache writes are best-effort: a backend error is logged and swallowed (never aborts an audit). */
+async function safeSet(backend: CacheBackend, url: string, entry: AnyCacheEntry): Promise<void> {
+  try {
+    await backend.set(url, entry);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error(`pseolint: cache write failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 export const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 function isStoreableStatus(status: number): boolean {
@@ -127,7 +177,10 @@ export function shouldNegativeCache(status: number): boolean {
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface CacheConfig {
-  dir: string;
+  /** Filesystem cache dir — used by the default FilesystemCacheBackend when no `backend` is given. */
+  dir?: string;
+  /** Custom storage backend; overrides `dir` (e.g. an R2-backed store on ephemeral-fs serverless). */
+  backend?: CacheBackend;
   ttlMs: number;
 }
 
@@ -262,11 +315,15 @@ async function cachedFetchInner(
   if (!cache) {
     return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop, opts.followRedirects);
   }
+  const backend = resolveBackend(cache);
+  if (!backend) {
+    return performFetch(url, opts.timeoutMs, fetcher, cache, opts.signal, opts.validateHop, opts.followRedirects);
+  }
 
-  const existing = await readCacheEntry(cache.dir, url);
+  const existing = await safeGet(backend, url);
   if (existing && isRedirectPointer(existing)) {
     if (isCacheEntryFresh(existing.fetchedAt, cache.ttlMs)) {
-      const target = await readCacheEntry(cache.dir, existing.redirectsTo);
+      const target = await safeGet(backend, existing.redirectsTo);
       if (target && !isRedirectPointer(target)) {
         const targetTtl = shouldNegativeCache(target.status) ? NEGATIVE_CACHE_TTL_MS : cache.ttlMs;
         if (isCacheEntryFresh(target.fetchedAt, targetTtl)) {
@@ -303,13 +360,13 @@ async function cachedFetchInner(
       }
       if (res.status === 304) {
         const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
-        await writeCacheEntry(cache.dir, url, updated);
+        await safeSet(backend, url, updated);
         return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [], _revalidated: true };
       }
       const body = await decodeBody(res);
       const headers = headersToObject(res.headers);
       if (isStoreableStatus(res.status)) {
-        await writeCacheEntry(cache.dir, url, {
+        await safeSet(backend, url, {
           schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
           url, fetchedAt: new Date().toISOString(), status: res.status, headers, body,
         });
@@ -357,6 +414,7 @@ async function performFetch(
   validateHop?: (url: string) => Promise<void>,
   followRedirects: boolean = true,
 ): Promise<CachedFetchResult> {
+  const backend = resolveBackend(cache);
   const redirectChain: string[] = [];
   let currentUrl = url;
   let backoffRetried = false;
@@ -408,8 +466,8 @@ async function performFetch(
       if (redirectChain.includes(next)) {
         throw new Error(`cachedFetch: redirect loop detected at ${currentUrl} -> ${next}`);
       }
-      if (cache) {
-        await writeCacheEntry(cache.dir, currentUrl, {
+      if (backend) {
+        await safeSet(backend, currentUrl, {
           schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
           redirectsTo: next,
           fetchedAt: new Date().toISOString(),
@@ -422,8 +480,8 @@ async function performFetch(
     }
     const body = await decodeBody(res);
     const headers = headersToObject(res.headers);
-    if (cache && isStoreableStatus(status)) {
-      await writeCacheEntry(cache.dir, currentUrl, {
+    if (backend && isStoreableStatus(status)) {
+      await safeSet(backend, currentUrl, {
         schemaVersion: CACHE_ENTRY_SCHEMA_VERSION,
         url: currentUrl, fetchedAt: new Date().toISOString(), status, headers, body,
       });
