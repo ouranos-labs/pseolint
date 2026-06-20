@@ -52,7 +52,7 @@ export { answerFirstRule, extractFirstParagraph } from "./rules/aeo/answer-first
 export { citableFactsRule } from "./rules/aeo/citable-facts.js";
 export { contentModularityRule } from "./rules/aeo/content-modularity.js";
 export { summaryBaitRule } from "./rules/aeo/summary-bait.js";
-export { cachedFetch, cacheKeyFor, clearCache, getCacheSizeInfo, pruneCache, safeFetch, FilesystemCacheBackend } from "./cache.js";
+export { cachedFetch, cacheKeyFor, clearCache, getCacheSizeInfo, pruneCache, safeFetch, FilesystemCacheBackend, CACHE_ENTRY_SCHEMA_VERSION } from "./cache.js";
 export type { CacheConfig, CachedFetchOptions, CachedFetchResult, CacheEntry, CacheSizeInfo, PruneResult, CacheBackend, AnyCacheEntry, RedirectPointerEntry } from "./cache.js";
 export type { SafeMode } from "./types.js";
 export type { CacheOptions, CacheStats, SamplingStrategy, StateOptions } from "./types.js";
