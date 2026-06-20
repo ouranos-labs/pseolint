@@ -81,3 +81,13 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
 export function isRuleAllowedInDiff(ruleId: string): boolean {
   return (RULE_SCOPE[ruleId] ?? "corpus") === "page";
 }
+
+/**
+ * Canonical count of user-facing **scored** rules — every rule in `RULE_SCOPE`
+ * except internal `audit/*` diagnostics (which never enter the scored category
+ * buckets; see `auditor.ts` CATEGORY_MAP `audit: "audit"` with weight 0).
+ * Derived from the registry so the public "N rules" copy can't drift.
+ */
+export const SCORED_RULE_COUNT: number = Object.keys(RULE_SCOPE).filter(
+  (id) => !id.startsWith("audit/"),
+).length;

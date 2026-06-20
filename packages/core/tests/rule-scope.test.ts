@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { RULE_SCOPE, isRuleAllowedInDiff } from "../src/rules/scope.js";
+import { RULE_SCOPE, isRuleAllowedInDiff, SCORED_RULE_COUNT } from "../src/rules/scope.js";
 
 describe("rule scope map", () => {
   it("has a scope entry for every critical rule id", () => {
@@ -43,5 +43,12 @@ describe("rule scope map", () => {
     expect(isRuleAllowedInDiff("aeo/content-modularity")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/llms-txt")).toBe(false);
     expect(isRuleAllowedInDiff("aeo/crawler-access")).toBe(false);
+  });
+
+  it("SCORED_RULE_COUNT equals the non-audit rule set derived from RULE_SCOPE", () => {
+    const derived = Object.keys(RULE_SCOPE).filter((id) => !id.startsWith("audit/")).length;
+    expect(SCORED_RULE_COUNT).toBe(derived);
+    // Guard against a literal/typo drift: every audit/* id is excluded.
+    expect(SCORED_RULE_COUNT).toBe(Object.keys(RULE_SCOPE).length - 1);
   });
 });
