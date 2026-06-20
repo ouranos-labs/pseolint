@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 
@@ -199,7 +200,7 @@ export default function MethodologyPage(): React.ReactElement {
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Stratified-sample{" "}
               <strong className="text-foreground">K=10 URLs per template</strong> (monitoring
-              runs) or K=20 (manual re-audits). Run all 44 rules on each sample set. Compute
+              runs) or K=20 (manual re-audits). Run all {SCORED_RULE_COUNT} rules on each sample set. Compute
               per-template risk, verdict, and variance metric. Total fetches: T × K — typical
               T=8, K=10 = <strong className="text-foreground">80 fetches</strong> (vs 200
               in v0.5 flat sampling) with full template coverage.
@@ -246,7 +247,7 @@ export default function MethodologyPage(): React.ReactElement {
         │
         ▼ Phase 2 — Per-template deep audit (T × K fetches)
   for each template:
-    sample K=10 URLs  →  fetch + parse  →  run 44 rules
+    sample K=10 URLs  →  fetch + parse  →  run ${SCORED_RULE_COUNT} rules
     compute: risk, verdict, uniformityScore, topDriver
         │
         ▼ Aggregation

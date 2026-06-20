@@ -11,6 +11,7 @@
  * URLs are NOT written here — only library keys (see marketing-sources.ts).
  * Generated/assembled from per-batch authoring; edit notes here directly.
  */
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import type { MarketingSourceRef } from "./marketing-sources";
 
 export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
@@ -709,7 +710,7 @@ export const TOOL_SOURCES: Record<string, MarketingSourceRef[]> = {
   "spambrain-checker": [
     {
       "source": "spamPolicies",
-      "note": "Google's spam policies enumerate the named violation categories SpamBrain enforces; the checker maps all 44 inferred structural signals across spam/* rules to those categories, so every domain-level risk score entry traces to a documented enforcement clause rather than an opaque internal classifier weight."
+      "note": `Google's spam policies enumerate the named violation categories SpamBrain enforces; the checker maps all ${SCORED_RULE_COUNT} inferred structural signals across its rule set to those categories, so every domain-level risk score entry traces to a documented enforcement clause rather than an opaque internal classifier weight.`
     },
     {
       "source": "scaledContent",

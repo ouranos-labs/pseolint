@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
@@ -39,7 +40,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What do these free tools actually detect?",
-    a: "All three run the same open-source pseolint v0.6 engine — template-aware SpamBrain + AEO scoring. v0.6 audits by template, not by URL: it detects T templates on your site, samples K=10 URLs per template, runs 44 rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.",
+    a: `All three run the same open-source pseolint v0.6 engine — template-aware SpamBrain + AEO scoring. v0.6 audits by template, not by URL: it detects T templates on your site, samples K=10 URLs per template, runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
   },
   {
     q: "Why three separate tools instead of one full audit?",
@@ -232,7 +233,7 @@ export default function ToolsIndexPage() {
           templates, not your URLs.
         </p>
         <p>
-          The pseolint v0.7 engine ships 44 rules across spam, content, aeo, links,
+          The pseolint v0.7 engine ships {SCORED_RULE_COUNT} rules across spam, content, aeo, links,
           schema, tech, data, and cannibalization categories. Each rule&apos;s
           findings aggregate per template — you get one verdict per template
           cluster, not a flat per-URL list. The spam rules map directly to

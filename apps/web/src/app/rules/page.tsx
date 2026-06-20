@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { env } from "@/lib/env";
 
@@ -9,8 +10,7 @@ const PAGE_URL = `${SITE_URL.replace(/\/$/, "")}/rules`;
 
 export const metadata: Metadata = {
   title: "SpamBrain rules — what pseolint detects · pseolint",
-  description:
-    "44 SpamBrain + AEO rules across 8 categories. Each rule aggregates to a per-template verdict in v0.7. Five flagship rules written up in depth.",
+  description: `${SCORED_RULE_COUNT} SpamBrain + AEO rules across 8 categories. Each rule aggregates to a per-template verdict in v0.7. Five flagship rules written up in depth.`,
   alternates: { canonical: PAGE_URL },
   openGraph: {
     title: "SpamBrain rules — what pseolint detects",
@@ -132,7 +132,7 @@ export default function RulesIndexPage() {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base text-muted-foreground">
-        pseolint v0.7 runs 44 rules across 8 categories — spam-pattern
+        pseolint v0.7 runs {SCORED_RULE_COUNT} rules across 8 categories — spam-pattern
         detection (8 spam/*), AEO/answer-engine readiness (8 aeo/*), graph
         integrity (6 links/* including host-section-divergence, the May 2024
         site-reputation-abuse detector), technical SEO (9 tech/*), content
@@ -192,7 +192,7 @@ export default function RulesIndexPage() {
           In v0.7, the engine audits by template rather than by URL. Phase 1
           detects URL templates (filter ≥1% of URLs, ≥5 URLs, ≥2 survivors
           after deduplication). Phase 2 samples K=10 URLs per template and
-          runs all 44 rules. Each rule&apos;s output per template is
+          runs all {SCORED_RULE_COUNT} rules. Each rule&apos;s output per template is
           summarised as a{" "}
           <span className="font-medium text-foreground">uniformity score</span>{" "}
           (0–1) and a{" "}

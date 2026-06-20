@@ -9,6 +9,7 @@
  * find-replace duplication. Each entry is unique enough to pass our own
  * thin-content rules.
  */
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import type { MarketingSourceRef } from "./marketing-sources";
 import { TOOL_SOURCES } from "./marketing-source-notes";
 import { TOOL_EXTRA, type MarketingExtra } from "./marketing-extra-content";
@@ -53,8 +54,7 @@ const TOOLS_BASE = [
   {
     slug: "spambrain-checker",
     title: "Free SpamBrain checker for programmatic SEO sites",
-    metaDescription:
-      "Audit your site against 44 inferred SpamBrain signals in 60 seconds. No signup. Spot scaled-content, doorway, and reputation-abuse patterns before Google does.",
+    metaDescription: `Audit your site against ${SCORED_RULE_COUNT} inferred SpamBrain signals in 60 seconds. No signup. Spot scaled-content, doorway, and reputation-abuse patterns before Google does.`,
     shortPitch:
       "Scan any URL against the SpamBrain-adjacent rule set the team built after the March 2024 core update. No signup, runs in 60 seconds.",
     primaryKeyword: "spambrain checker",

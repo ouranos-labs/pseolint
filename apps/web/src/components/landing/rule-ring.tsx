@@ -1,3 +1,4 @@
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import { cn } from "@/lib/cn";
 
 export type RuleRingSeverity = "E" | "W" | "I";
@@ -12,11 +13,11 @@ export type RuleRingProps = {
 };
 
 export function RuleRing({
-  total = 44,
+  total = SCORED_RULE_COUNT,
   fired = [],
   size = 26,
   className,
-  title = "pseolint — 44 SpamBrain rules",
+  title = `pseolint — ${SCORED_RULE_COUNT} SpamBrain rules`,
 }: RuleRingProps) {
   const cx = size / 2;
   const cy = size / 2;

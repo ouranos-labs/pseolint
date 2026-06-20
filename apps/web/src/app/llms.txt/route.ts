@@ -1,3 +1,5 @@
+import { SCORED_RULE_COUNT } from "@pseolint/core";
+
 export const runtime = "nodejs";
 
 export function GET(): Response {
@@ -17,7 +19,7 @@ export function GET(): Response {
 
 ## Rule explainers
 
-- [SpamBrain rules index](/rules): 44 rules across 8 categories — SpamBrain + AEO + site-reputation-abuse detection + content-quality (title/heading/alt/OG), with classification-driven scoring.
+- [SpamBrain rules index](/rules): ${SCORED_RULE_COUNT} rules across 8 categories — SpamBrain + AEO + site-reputation-abuse detection + content-quality (title/heading/alt/OG), with classification-driven scoring.
 - [Calibration methodology](/methodology): how pseolint's verdicts are calibrated against in-production reputable pSEO sites, with dated snapshot results, the open-source corpus + runner, and the trade-offs we accepted.
 - [Thin content rule](/rules/thin-content)
 - [Doorway pattern rule](/rules/doorway-pattern)

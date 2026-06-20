@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core";
 import { env } from "@/lib/env";
 import { MetadataChecklist } from "./metadata-checklist";
 import { SourcesSection } from "@/components/marketing/sources-section";
@@ -292,7 +293,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       <div className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
         <p>
           Are your dynamic templates ready for Google&apos;s strict indexation requirements? Audit your site
-          against 44 inferred SpamBrain signals using our pre-flight tool.
+          against {SCORED_RULE_COUNT} inferred SpamBrain signals using our pre-flight tool.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
