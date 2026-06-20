@@ -225,7 +225,7 @@ export default async function Page({
         <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
       ) : null }
       { summaryTruncation(summary).truncated ? (
-        <TruncatedBanner reason={ summaryTruncation(summary).reason } />
+        <TruncatedBanner reason={ summaryTruncation(summary).reason } kind={ summaryTruncation(summary).kind } />
       ) : null }
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
@@ -450,12 +450,21 @@ function LegacyFormatBanner() {
 
 /**
  * Partial-coverage warning. Rendered above the hero when the engine flushed a
- * `truncated:true` report (backpressure watchdog aborted the crawl mid-flight
- * on a degraded origin). The findings shown are whatever was collected before
- * the abort, so the verdict, risk, and every count are LOWER bounds — surface
- * that loudly so a degraded audit isn't mistaken for a complete one.
+ * `truncated:true` report — either a backpressure abort (the watchdog stopped
+ * the crawl on a degraded origin) or a coverage shortfall (we reached far fewer
+ * URLs than the sitemap declares). The findings shown are whatever was collected,
+ * so the verdict, risk, and every count are LOWER bounds — surface that loudly so
+ * a partial audit isn't mistaken for a complete one. Copy branches on `kind`.
  */
-function TruncatedBanner({ reason }: { reason: string | null }) {
+function TruncatedBanner({ reason, kind }: { reason: string | null; kind: "coverage" | "backpressure" | null }) {
+  const cause =
+    kind === "coverage"
+      ? "pseolint couldn't reach all the URLs the sitemap declares"
+      : "the origin degraded under load, so pseolint stopped early to avoid overloading it";
+  const advice =
+    kind === "coverage"
+      ? "Check for a stale sitemap or unreachable pages, then re-audit for a complete picture."
+      : "Re-audit once the site is stable for a complete picture.";
   return (
     <div
       role="alert"
@@ -464,10 +473,9 @@ function TruncatedBanner({ reason }: { reason: string | null }) {
       <span aria-hidden className="text-base leading-none text-warning">⚠</span>
       <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
         <span className="font-semibold text-foreground">Partial audit.</span>{ " " }
-        The crawl was interrupted before it finished (the origin degraded under load, so
-        pseolint stopped early to avoid overloading it). Coverage is incomplete — treat the
-        verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.
-        Re-audit once the site is stable for a complete picture.
+        The crawl didn&apos;t finish ({ cause }). Coverage is incomplete — treat the
+        verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.{ " " }
+        { advice }
         { reason ? (
           <span className="mt-1 block font-mono text-[11px] text-muted-foreground/80">
             Reason: { reason }
@@ -873,7 +881,7 @@ function HowToRead({ pageCount }: { pageCount: number }) {
     },
     {
       label: "Server-rendered only",
-      body: "We read the HTML the server returns. Client-rendered content looks empty to us (Pro has browser rendering).",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us, so JS-heavy SPAs may under-report.",
     },
   ];
 
@@ -1078,12 +1086,15 @@ function safeParse<T>(raw: string): T | null {
 function summaryTruncation(summary: AnyAuditSummary | null): {
   truncated: boolean;
   reason: string | null;
+  kind: "coverage" | "backpressure" | null;
 } {
-  const s = summary as { truncated?: unknown; truncatedReason?: unknown } | null;
+  const s = summary as { truncated?: unknown; truncatedReason?: unknown; truncatedKind?: unknown } | null;
   const truncated = s?.truncated === true;
   const reason =
     truncated && typeof s?.truncatedReason === "string" && s.truncatedReason.trim().length > 0
       ? s.truncatedReason
       : null;
-  return { truncated, reason };
+  const kind =
+    s?.truncatedKind === "coverage" || s?.truncatedKind === "backpressure" ? s.truncatedKind : null;
+  return { truncated, reason, kind };
 }
