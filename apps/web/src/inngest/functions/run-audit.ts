@@ -7,6 +7,7 @@ import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { auditSource, checkOriginHealth, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
+import { env } from "@/lib/env";
 import { devFlags } from "@/lib/dev-flags";
 import { openSecret } from "@/lib/secret-box";
 import {
@@ -58,6 +59,8 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   ruleOverrides?: NonNullable<AuditOptions["rules"]>;
   gentleAuditMode: boolean;
   authorityScore?: number;
+  /** Per-domain render-mode opt-in (Pro). True → render JS-heavy pages in a browser. */
+  renderMode?: boolean;
   /**
    * Stable per-domain sampling seed — set ONLY for monitored domains (a
    * `monitoredDomains` row exists for this host), so re-audit / cron diffs
@@ -82,6 +85,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
       id: monitoredDomains.id,
       gentleAuditMode: monitoredDomains.gentleAuditMode,
       authorityScore: monitoredDomains.authorityScore,
+      renderMode: monitoredDomains.renderMode,
     })
       .from(monitoredDomains)
       .where(and(
@@ -100,6 +104,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let ruleOverrides: NonNullable<AuditOptions["rules"]> | undefined;
   let gentleAuditMode = false;
   let authorityScore: number | undefined;
+  let renderMode: boolean | undefined;
   let sampleSeed: number | undefined;
   let monitoredHost: string | undefined;
   if (domainRow.length > 0) {
@@ -107,6 +112,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     monitoredHost = host;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
     authorityScore = domainRow[0].authorityScore ?? undefined;
+    renderMode = domainRow[0].renderMode ?? undefined;
     // Monitored domain → deterministic per-host sampling so re-audit / cron
     // diffs reflect real content change, not sampling variance.
     sampleSeed = hashToInt(host);
@@ -126,7 +132,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed, monitoredHost };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost };
 }
 
 /**
@@ -169,9 +175,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, sampleSeed, monitoredHost } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
+
+  // Render is requested when EITHER the per-audit flag (Pro form) is set OR the
+  // per-domain render-mode opt-in (Pro settings) is on. It only *activates*
+  // below if PSEOLINT_BROWSER_WS is also configured — no endpoint → static
+  // fetch, so we never make a false "rendered" promise on a serverless host
+  // without a browser service.
+  const renderRequested = (input.render || renderMode === true);
 
   let summary: AuditSummary;
   try {
@@ -276,8 +289,15 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // this, a malicious caller could point us at AWS metadata
       // endpoints, RFC1918 networks, or arbitrarily-large tarballs.
       safeMode: "saas",
-      // Core's `render` is a config object; undefined = static fetch, any object = rendered.
-      render: render ? {} : undefined,
+      // Core's `render` is a config object; undefined = static fetch, any
+      // object = rendered. We route it through the operator's Browserless CDP
+      // endpoint (PSEOLINT_BROWSER_WS) rather than local Playwright, which
+      // doesn't exist on serverless. Fail-safe: render activates ONLY when both
+      // requested (Pro per-audit flag or per-domain opt-in) AND the endpoint is
+      // configured — no endpoint → static audit, no false "rendered" promise.
+      render: (renderRequested && env().PSEOLINT_BROWSER_WS)
+        ? { browserWsEndpoint: env().PSEOLINT_BROWSER_WS }
+        : undefined,
       rules: ruleOverrides,
       dataSource: dataRecords ? { records: dataRecords } : undefined,
       // Hosted audits run on user-submitted URLs — skip framework metadata,
