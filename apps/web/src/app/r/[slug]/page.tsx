@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04 } from "@/lib/audit-types";
 import { isV04Summary } from "@/lib/audit-types";
+import { FocusedLensCard } from "@/components/report/focused-lens-card";
+import { getMarketingTool } from "@/lib/marketing-tools";
 import { db } from "@/db";
 import { audits, monitoredDomains } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
@@ -117,6 +119,9 @@ export default async function Page({
   // crashes against the wrong shape.
   const summary: AnyAuditSummary | null = summaryRaw ? safeParse<AnyAuditSummary>(summaryRaw) : null;
   const isV04 = summary ? isV04Summary(summary) : false;
+  // Tool-originated audit → render a focused-lens result for that tool's ruleLens
+  // (the audit still ran the FULL rule set). null for homepage/dashboard audits.
+  const reportTool = row.tool ? (getMarketingTool(row.tool) ?? null) : null;
   // Hoisted: read the truncation envelope once (the defensive R2-JSON reader is
   // pure, but calling it three times in the JSX re-walks the blob needlessly).
   const truncation = summaryTruncation(summary);
@@ -277,6 +282,13 @@ export default async function Page({
         />
       ) }
 
+      {/* Focused-lens result — only for audits created from a /tools/[slug] entry
+          point. Surfaces the tool's ruleLens prominently (delivering the tool's
+          promise) + funnels to the complete report below. */}
+      { summary && isV04 && reportTool ? (
+        <FocusedLensCard tool={ reportTool } summary={ summary as AuditSummaryV04 } />
+      ) : null }
+
       {/* AI triage root-causes — the "what to fix first" plan. Sits directly
           below the verdict/hero so the operator reads the prioritised summary
           before the detailed findings list. Pro-only: free/anon audits never
@@ -391,7 +403,7 @@ export default async function Page({
             </section>
           ) : null }
 
-          <section className="mt-14">
+          <section id="findings" className="mt-14 scroll-mt-6">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 { isV04

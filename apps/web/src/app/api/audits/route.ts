@@ -20,6 +20,7 @@ import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits"
 import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { checkOriginHealth } from "@pseolint/core";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { getMarketingTool } from "@/lib/marketing-tools";
 import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
 import { trackServerAfter } from "@/lib/analytics/track.server";
 import type { AuditBlockReason } from "@/lib/analytics/events";
@@ -41,6 +42,8 @@ const BodySchema = z.object({
   force: z.boolean().optional(),
   /** Opt-in Playwright-rendered audit for JS-heavy sites (SPA, Webflow, Framer). */
   render: z.boolean().optional(),
+  /** Originating /tools/[slug] entry point — validated against the tool registry below. */
+  tool: z.string().optional(),
 });
 
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
@@ -409,9 +412,14 @@ export async function POST(req: Request): Promise<Response> {
 
   const requestedSampleSize = Math.min(pageCapFor(tier), SAMPLE_SIZE_CEILING);
 
+  // Only persist a tool slug that resolves in the registry — never trust the
+  // client's raw value (it drives the report's focused-lens view). The audit
+  // itself still runs the full rule set; `tool` only affects presentation.
+  const tool = body.data.tool && getMarketingTool(body.data.tool) ? body.data.tool : null;
+
   const [row] = await db.insert(audits).values({
     slug: publicSlug(), userId, anonSessionId, sourceUrl: url, status: "queued",
-    isPublic: plan !== "pro", expiresAt,
+    isPublic: plan !== "pro", expiresAt, tool,
   }).returning({ id: audits.id, slug: audits.slug });
 
   // Render is a Pro-only capability — gate it server-side so a non-Pro caller

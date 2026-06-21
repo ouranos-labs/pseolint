@@ -167,7 +167,7 @@ export function ToolForm({ tool }: ToolFormProps) {
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: normalized, turnstileToken: token }),
+        body: JSON.stringify({ url: normalized, turnstileToken: token, tool: tool.slug }),
       });
       if (res.ok) {
         const data = (await res.json()) as AuditResponse;

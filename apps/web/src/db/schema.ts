@@ -65,6 +65,13 @@ export const audits = pgTable("audit", {
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "expired">().notNull().default("queued"),
   isPublic: boolean("is_public").notNull().default(true),
   source: text("source").$type<"user" | "seed">().notNull().default("user"),
+  /**
+   * The /tools/[slug] entry point that created this audit, if any. The audit
+   * still runs the FULL rule set (so the report can funnel "we found N more"),
+   * this just lets the report render a focused lens view for that tool's
+   * `ruleLens`. Null for homepage / dashboard / API audits.
+   */
+  tool: text("tool"),
   risk: integer("risk"),
   /**
    * The engine's moderated user-facing verdict ("ready" | "caution" |
