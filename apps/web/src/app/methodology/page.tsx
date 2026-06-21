@@ -34,7 +34,7 @@ const METHODOLOGY_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How do v0.6 audits work?",
-    a: "v0.6 shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples K=10 URLs per template (K=20 on manual re-audits) and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
+    a: "v0.6 shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples pages across templates — up to 200 (free / monitoring) or 500 (manual re-audit) — and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
   },
   {
     q: "Does pseolint measure domain authority?",
@@ -198,12 +198,11 @@ export default function MethodologyPage(): React.ReactElement {
               Phase 2 — Per-template deep audit
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-              Stratified-sample{" "}
-              <strong className="text-foreground">K=10 URLs per template</strong> (monitoring
-              runs) or K=20 (manual re-audits). Run all {SCORED_RULE_COUNT} rules on each sample set. Compute
-              per-template risk, verdict, and variance metric. Total fetches: T × K — typical
-              T=8, K=10 = <strong className="text-foreground">80 fetches</strong> (vs 200
-              in v0.5 flat sampling) with full template coverage.
+              Stratified-sample pages{" "}
+              <strong className="text-foreground">across templates</strong> — up to 200
+              (free / scheduled monitoring) or 500 (manual re-audit). Run all {SCORED_RULE_COUNT} rules on each sample set. Compute
+              per-template risk, verdict, and variance metric. The page budget is spread across
+              templates so a dominant cluster can&apos;t crowd out coverage of the smaller ones.
             </p>
           </div>
           <div>
@@ -245,9 +244,9 @@ export default function MethodologyPage(): React.ReactElement {
         ▼
   Template[] { signature, totalUrls }
         │
-        ▼ Phase 2 — Per-template deep audit (T × K fetches)
+        ▼ Phase 2 — Per-template deep audit (stratified sample)
   for each template:
-    sample K=10 URLs  →  fetch + parse  →  run ${SCORED_RULE_COUNT} rules
+    sample (stratified)  →  fetch + parse  →  run ${SCORED_RULE_COUNT} rules
     compute: risk, verdict, uniformityScore, topDriver
         │
         ▼ Aggregation

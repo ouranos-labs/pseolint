@@ -11,7 +11,7 @@ type Interval = "monthly" | "yearly";
 
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
   { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
-  { feature: "Sampling model (web UI)", free: "K=10 per template, up to 200 pages", pro: "K=20 per template on re-audit (up to 500); K=10 per template on monitoring runs" },
+  { feature: "Sampling model (web UI)", free: "up to 200 pages, stratified across templates", pro: "up to 500 pages on manual re-audit, 200 per monitoring run, stratified across templates" },
   { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed); fires template_degraded alerts on regression" },
   { feature: "Per-template verdict", free: "Included (up to free-tier budget)", pro: "Included — shows which template is dragging your score down" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
@@ -29,7 +29,7 @@ type FAQ = { q: string; a: string };
 const FAQS: ReadonlyArray<FAQ> = [
   {
     q: "Is the free tier really unlimited?",
-    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages (K=10 per template) from the web UI — it detects your URL templates, samples 10 URLs per template, and produces a per-template verdict. The open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
+    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages from the web UI, stratified across your URL templates — it detects your templates and produces a per-template verdict. The open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
   },
   {
     q: "What happens if I cancel Pro?",
@@ -75,7 +75,7 @@ function buildFaqJsonLd(faqs: ReadonlyArray<FAQ>) {
 
 const PRO_FEATURES = [
   { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run. Every monitoring run detects templates, scores per template, and fires template_degraded alerts on regression." },
-  { title: "Per-template verdict — which template is broken", detail: "Every Pro audit tells you which template is dragging your site score down. K=20 per template on manual re-audits gives tighter variance estimates; K=10 per template on monitoring runs (typically 8 templates × 10 = 80 fetches)." },
+  { title: "Per-template verdict — which template is broken", detail: "Every Pro audit tells you which template is dragging your site score down. Manual re-audits sample up to 500 pages for tighter per-template variance estimates; monitoring runs sample up to 200, stratified across templates." },
   { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it. Per-template breakdowns so you know which template to fix first." },
   { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype — your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
@@ -214,10 +214,10 @@ function PricingInner() {
         <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
           Both tiers run the same template-aware SpamBrain and AEO engine from{ " " }
           <code className="font-mono text-xs">@pseolint/core 0.7.0</code> — v0.6
-          audits by template (T templates × K samples), produces one verdict per
+          audits by template (stratified across templates), produces one verdict per
           template cluster, and determines the site verdict from the worst template
           with ≥5% URL coverage. The difference between Free and Pro is what
-          happens around the audit: K=10 vs K=20 sample depth, monitoring,
+          happens around the audit: deeper 500-page re-audits, monitoring,
           template_degraded alerts, triage, integrations, retention, and overrides.
           The numbers below are the live limits enforced by the platform — quote them.
         </p>

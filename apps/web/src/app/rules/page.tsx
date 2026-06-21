@@ -191,7 +191,7 @@ export default function RulesIndexPage() {
         <p>
           In v0.7, the engine audits by template rather than by URL. Phase 1
           detects URL templates (filter ≥1% of URLs, ≥5 URLs, ≥2 survivors
-          after deduplication). Phase 2 samples K=10 URLs per template and
+          after deduplication). Phase 2 samples pages stratified across templates and
           runs all {SCORED_RULE_COUNT} rules. Each rule&apos;s output per template is
           summarised as a{" "}
           <span className="font-medium text-foreground">uniformity score</span>{" "}

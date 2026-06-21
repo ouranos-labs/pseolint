@@ -40,7 +40,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What do these free tools actually detect?",
-    a: `All three run the same open-source pseolint v0.6 engine — template-aware SpamBrain + AEO scoring. v0.6 audits by template, not by URL: it detects T templates on your site, samples K=10 URLs per template, runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
+    a: `All three run the same open-source pseolint v0.6 engine — template-aware SpamBrain + AEO scoring. v0.6 audits by template, not by URL: it detects the templates on your site, samples pages stratified across them (up to 200), runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
   },
   {
     q: "Why three separate tools instead of one full audit?",
@@ -104,7 +104,7 @@ export default function ToolsIndexPage() {
         <span className="text-foreground">v0.6 credibility layer:</span> the
         engine has been empirically calibrated against a curated corpus of
         reputable, in-production pSEO sites. v0.6 audits by template — it
-        detects your site&apos;s URL templates, samples K=10 URLs per template,
+        detects your site&apos;s URL templates, samples pages stratified across them,
         and produces one verdict per template cluster rather than a flat per-URL
         list. Verdicts are reproducible at a fixed sample-seed; findings cluster
         instead of dumping per-pair noise; severity demotions are auditable via{ " " }
@@ -178,7 +178,7 @@ export default function ToolsIndexPage() {
         </h2>
         <p>
           v0.6 audits by template, not by URL. After template detection
-          (Phase 1), the engine samples K=10 URLs per template and runs 32
+          (Phase 1), the engine samples pages stratified across templates and runs 32
           rules (Phase 2). Rules aggregate differently depending on their type:
         </p>
         <ul className="ml-4 list-disc space-y-1.5">
@@ -284,7 +284,7 @@ export default function ToolsIndexPage() {
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">pseolint (this site)</td>
                 <td className="px-4 py-3">$0/month</td>
-                <td className="px-4 py-3">K=10 per template, up to 200 pages, 3 audits/day per browser</td>
+                <td className="px-4 py-3">up to 200 pages, stratified across templates, 3 audits/day per browser</td>
                 <td className="px-4 py-3">Yes — template-aware v0.6 engine; per-template verdicts</td>
               </tr>
               <tr>
@@ -378,7 +378,7 @@ export default function ToolsIndexPage() {
         <code className="font-mono text-xs">spam/thin-content</code> and{" "}
         <code className="font-mono text-xs">content/boilerplate-ratio</code> rules per
         template, and the doorway-page detector maps to the site-reputation-abuse policy
-        enforced since May 7, 2024. Each tool samples K=10 URLs per detected template
+        enforced since May 7, 2024. Each tool samples pages stratified across detected templates
         and returns a per-template verdict — not a flat per-URL list — so triage goes
         straight to the template responsible rather than to hundreds of individual URLs.
       </p>

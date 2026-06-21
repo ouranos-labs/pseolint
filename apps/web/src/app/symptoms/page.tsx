@@ -129,8 +129,8 @@ export default function SymptomsIndexPage() {
         it looks like in Google Search Console, the few things that actually cause it, and
         the order to investigate. In v0.6, the audit tells you{" "}
         <span className="font-medium text-foreground">which template</span> is responsible
-        — not just which URLs. The free pseolint audit covers up to 200 pages (K=10 per
-        template) with 30-day retention at $0; comparable tools like Screaming Frog
+        — not just which URLs. The free pseolint audit covers up to 200 pages, stratified
+        across templates, with 30-day retention at $0; comparable tools like Screaming Frog
         ($259/year), Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for
         the same triage surface and do not produce per-template verdicts. When you&apos;ve
         matched the symptom, run a real audit on your domain to confirm.

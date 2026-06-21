@@ -210,10 +210,10 @@ export function TemplateBreakdownHero() {
             </div>
             <div className="px-5 py-4">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-primary/80">
-                v0.6 — K=10 per template
+                v0.6 — stratified sampling
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                3 templates × 10 samples = 30 fetches (vs 200). Each template
+                Pages are sampled stratified across templates (up to 200). Each template
                 gets its own verdict. The{" "}
                 <code className="font-mono text-[10px]">/listing/*</code> cluster
                 surfaces an 8/10 thin-content fire rate — unmistakable.{" "}

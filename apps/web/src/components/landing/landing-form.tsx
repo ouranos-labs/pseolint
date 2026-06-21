@@ -390,8 +390,8 @@ export function LandingForm() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
-                and AI Overview readiness. v0.6 audits by template — K=10 URLs sampled per
-                template, one verdict per template, site verdict = worst template above 5% coverage.
+                and AI Overview readiness. v0.6 audits by template — pages sampled stratified
+                across templates, one verdict per template, site verdict = worst template above 5% coverage.
                 Catches SpamBrain-classifier triggers from the March 27, 2026 core update, the
                 May 7, 2024 site-reputation-abuse policy, the March 5, 2024 scaled-content-abuse
                 update, and the AEO patterns that determine whether ChatGPT, Perplexity, and Google
@@ -545,16 +545,16 @@ export function LandingForm() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. K=10 URLs sampled per template, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. Pages are sampled stratified across templates, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
             </li>
             <li>
               <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
             </li>
             <li>
-              Free tier: up to 200 pages per audit (templates detected, K=10 per template), 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
+              Free tier: up to 200 pages per audit (stratified across detected templates), 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
             </li>
             <li>
-              Pro tier: <span className="text-foreground">$19</span> per month for per-domain template-aware monitoring — K=10 per template every monitoring run, cumulative coverage across all templates grows over time, <span className="text-foreground">50 audits</span> per day and unlimited trend history.
+              Pro tier: <span className="text-foreground">$19</span> per month for per-domain template-aware monitoring — up to 200 pages every monitoring run, stratified across templates, cumulative coverage grows over time, <span className="text-foreground">50 audits</span> per day and unlimited trend history.
             </li>
             <li>
               Detection maps to current Google policy, leading with what hit pSEO most recently: the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the 2022 SpamBrain rebuild that moved enforcement from manual review to silent classifier-time suppression.
@@ -830,7 +830,7 @@ const AUDIENCE = [
 
 const STATS = [
   { label: "Median audit time", value: "1 minute" },
-  { label: "K per template (Pro)", value: "10 URLs" },
+  { label: "Pages per re-audit (Pro)", value: "up to 500" },
   { label: "Pro plan", value: "$19 / month" },
   { label: "Anon retention", value: "24 hours" },
 ] as const;
