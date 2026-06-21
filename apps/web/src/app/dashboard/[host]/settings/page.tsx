@@ -140,6 +140,23 @@ export default async function DomainSettings({
           </span>
         </label>
 
+        <label className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            name="renderMode"
+            defaultChecked={domain.renderMode === true}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+          />
+          <span className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Render JS-heavy pages (browser)</span>
+            <span className="text-xs text-muted-foreground">
+              Render pages in a headless browser before auditing — needed for
+              JS-heavy / SPA sites (Webflow, Framer, client-rendered Next).
+              Slower + heavier; uses the configured browser service.
+            </span>
+          </span>
+        </label>
+
         <div className="flex flex-col gap-1">
           <div className="flex items-baseline justify-between gap-3">
             <label htmlFor="gscSiteUrl" className="text-sm font-medium">GSC property</label>

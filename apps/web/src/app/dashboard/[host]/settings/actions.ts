@@ -37,6 +37,9 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   // BackpressureMonitor mid-crawl. HTML form checkboxes only submit when
   // checked, so a missing field means "off".
   const gentleAuditMode = String(formData.get("gentleAuditMode") ?? "") === "on";
+  // Render JS-heavy pages in a headless browser before auditing (needs the
+  // PSEOLINT_BROWSER_WS endpoint configured; no-ops without it).
+  const renderMode = String(formData.get("renderMode") ?? "") === "on";
 
   // Bring-your-own domain authority (0-100). Blank or out-of-range → null (unset
   // = engine applies no verdict shift). Integer-only to match the engine band.
@@ -69,7 +72,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     ))
     .limit(1);
 
-  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode, authorityScore })
+  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode, authorityScore, renderMode })
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
