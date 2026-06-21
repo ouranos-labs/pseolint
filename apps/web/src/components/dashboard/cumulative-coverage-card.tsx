@@ -36,7 +36,7 @@ export function CumulativeCoverageCard({
         </span>
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Pro monitoring re-fetches up to 200 URLs per weekly cron tick, diff-aware.
+        Pro monitoring re-fetches up to 200 URLs per monitoring run, diff-aware.
         Unchanged URLs carry forward their findings without a re-fetch — the count
         above is what was actually fetched, summed across runs.
       </p>

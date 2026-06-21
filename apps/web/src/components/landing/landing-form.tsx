@@ -291,7 +291,7 @@ export function LandingForm() {
                 </Button>
 
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
-                  We fetch up to ~500 pages over a few minutes — if it&apos;s your site and it&apos;s cache-cold, warm it first.
+                  We fetch up to 50 pages anonymously (200 signed in) over a few minutes — if it&apos;s your site and it&apos;s cache-cold, warm it first.
                 </p>
 
                 { err && (

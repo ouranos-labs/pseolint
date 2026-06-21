@@ -108,7 +108,7 @@ export default async function DomainSettings({
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium">Cadence</span>
           <span className="text-xs text-muted-foreground">
-            Daily diff-audit at 04:00 UTC · weekly full re-audit on Sunday.
+            Diff-audit roughly every 24h · full re-audit every 7 days.
           </span>
         </div>
 

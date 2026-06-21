@@ -197,7 +197,15 @@ export default async function RulePage({ params }: PageProps) {
         <InlineAuditWidget
           headline={`Test your site for ${rule.title.toLowerCase()}`}
           cta="Run a SpamBrain check"
-          ruleHint={`We'll surface findings tagged with \`${rule.ruleId}\`.`}
+          // Pass the rule's tool so the report renders a focused-lens card —
+          // only then is a "spotlight this rule" promise actually delivered.
+          // A rule without a relatedTool falls back to a plain full audit.
+          tool={rule.relatedTool || undefined}
+          ruleHint={
+            rule.relatedTool
+              ? `Your report will spotlight the \`${rule.ruleId}\` lens, with a link to the full audit.`
+              : `Runs the full audit — look for \`${rule.ruleId}\` in the findings.`
+          }
         />
       </div>
 

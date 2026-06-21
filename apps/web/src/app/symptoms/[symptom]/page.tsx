@@ -202,7 +202,7 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
           <InlineAuditWidget
             headline="Diagnose your site"
             cta="Run a SpamBrain check"
-            ruleHint={`We'll highlight findings linked to: ${entry.relatedRules.join(", ")}.`}
+            ruleHint={`Runs the full pSEO audit — the rules most relevant to this symptom: ${entry.relatedRules.join(", ")}.`}
           />
         </div>
       </header>
