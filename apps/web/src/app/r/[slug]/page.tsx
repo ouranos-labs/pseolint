@@ -881,8 +881,8 @@ function HowToRead({ pageCount }: { pageCount: number }) {
       body: "Rules inferred from public SpamBrain guidance — a structured conversation, not Google's classifier.",
     },
     {
-      label: "Server-rendered only",
-      body: "We read the HTML the server returns. Client-rendered content looks empty to us, so JS-heavy SPAs may under-report.",
+      label: "Server-rendered by default",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us — Pro audits can render JS-heavy / SPA pages in a browser first.",
     },
   ];
 
