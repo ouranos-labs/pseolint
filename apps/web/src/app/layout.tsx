@@ -113,14 +113,19 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
-          <Link href="/tools" className={ navLinkClass }>Tools</Link>
-          <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
-          <Link href="/rules" className={ navLinkClass }>Rules</Link>
-          <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
-          <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
-          <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
+          {/* Marketing / acquisition links — only for signed-out visitors. Logged-in
+              users get a focused nav (Dashboard + account); all of these remain
+              reachable from the footer. */}
           { !signedIn && (
-            <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+            <>
+              <Link href="/tools" className={ navLinkClass }>Tools</Link>
+              <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
+              <Link href="/rules" className={ navLinkClass }>Rules</Link>
+              <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
+              <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
+              <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
+              <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+            </>
           ) }
           { signedIn && plan === "free" && (
             <TrackedLink
