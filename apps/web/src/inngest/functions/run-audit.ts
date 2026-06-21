@@ -14,6 +14,7 @@ import {
   resolveAuditIgnorePatterns,
   detectFrameworkFromUrl,
 } from "@/lib/audit-defaults";
+import { parseScanOptions, type ScanOptions } from "@/lib/scan-options";
 import { fetchOgMeta } from "@/lib/og-fetch";
 import { hashToInt } from "@/lib/seed";
 import { R2CacheBackend } from "@/lib/r2-cache-backend";
@@ -69,6 +70,13 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   sampleSeed?: number;
   /** Canonical host when this is a monitored domain — gates the R2 cache. Undefined for one-shot/anon. */
   monitoredHost?: string;
+  /**
+   * Validated, allowlisted advanced scan options (Pro per-domain). Only ever
+   * the 7 safe AuditOptions knobs — see lib/scan-options.ts. Undefined when
+   * unset or invalid. Spread FIRST into the auditSource opts so the fixed
+   * safety options (safeMode, respectNoindex, …) always win.
+   */
+  scanOptions?: ScanOptions;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
@@ -86,6 +94,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
       gentleAuditMode: monitoredDomains.gentleAuditMode,
       authorityScore: monitoredDomains.authorityScore,
       renderMode: monitoredDomains.renderMode,
+      scanOptions: monitoredDomains.scanOptions,
     })
       .from(monitoredDomains)
       .where(and(
@@ -107,12 +116,23 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let renderMode: boolean | undefined;
   let sampleSeed: number | undefined;
   let monitoredHost: string | undefined;
+  let scanOptions: ScanOptions | undefined;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
     monitoredHost = host;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
     authorityScore = domainRow[0].authorityScore ?? undefined;
     renderMode = domainRow[0].renderMode ?? undefined;
+    // Advanced scan options (Pro). Stored as JSON text; re-validated through the
+    // allowlist on every load (never trust the column) — parseScanOptions
+    // returns undefined on invalid/empty so a corrupt row can't widen the
+    // audit's powers. This is the validated object that gets spread FIRST in
+    // buildAuditCall.
+    if (domainRow[0].scanOptions) {
+      try {
+        scanOptions = parseScanOptions(JSON.parse(domainRow[0].scanOptions)) ?? undefined;
+      } catch { /* malformed JSON → no scan options */ }
+    }
     // Monitored domain → deterministic per-host sampling so re-audit / cron
     // diffs reflect real content change, not sampling variance.
     sampleSeed = hashToInt(host);
@@ -132,7 +152,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost, scanOptions };
 }
 
 /**
@@ -175,7 +195,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost, scanOptions } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
 
@@ -273,6 +293,19 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
 
     const buildAuditCall = (opts: { sampleSize: number; concurrency: number | undefined }) => () =>
       auditSource(url, {
+        // ┌─────────────────────────── SECURITY INVARIANT ───────────────────────────┐
+        // │ `scanOptions` is the Pro-configurable, allowlist-validated subset of      │
+        // │ AuditOptions (lib/scan-options.ts — only crawlDiscovery,                  │
+        // │ fillBudgetViaLinkDiscovery, samplingStrategy, maxPerTemplate, strict,     │
+        // │ pageGroups, entityPatterns). It is spread FIRST, on purpose. Every fixed  │
+        // │ safety / policy option below (safeMode:"saas", respectNoindex,            │
+        // │ skipDetectedAuth, skipBoilerplate, skipSearchPages, render, cache, ai,    │
+        // │ contentEffort, authorityScore, ignore, sampleSeed, mode, state, force)    │
+        // │ appears AFTER this spread, so it OVERRIDES anything in scanOptions even    │
+        // │ if the allowlist were somehow bypassed. DO NOT move any of those above    │
+        // │ this spread, and DO NOT change the spread to come last.                   │
+        // └──────────────────────────────────────────────────────────────────────────┘
+        ...scanOptions,
         sampleSize: opts.sampleSize,
         // Monitored-domain audits pin a stable per-host seed so repeated runs
         // sample the same pages (deterministic diffs). Undefined for public
