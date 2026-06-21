@@ -66,6 +66,14 @@ export const audits = pgTable("audit", {
   isPublic: boolean("is_public").notNull().default(true),
   source: text("source").$type<"user" | "seed">().notNull().default("user"),
   risk: integer("risk"),
+  /**
+   * The engine's moderated user-facing verdict ("ready" | "caution" |
+   * "concerning" | "critical"). Mirrors `AuditSummary.verdict` so the
+   * dashboard / portfolio / history surface the moderated signal directly
+   * instead of re-deriving it from the raw (unmoderated) `risk`. Nullable for
+   * backfill — legacy rows predate this column.
+   */
+  verdict: text("verdict").$type<"ready" | "caution" | "concerning" | "critical">(),
   pageCount: integer("page_count"),
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
@@ -157,6 +165,14 @@ export const monitoredDomains = pgTable("monitored_domain", {
   alertThreshold: integer("alert_threshold").notNull().default(10),
   lastAuditId: uuid("last_audit_id"),
   lastRisk: integer("last_risk"),
+  /**
+   * The engine's moderated verdict from the latest audit ("ready" | "caution"
+   * | "concerning" | "critical"). Mirrors `AuditSummary.verdict`, synced
+   * alongside `lastRisk`, so the portfolio strip / workspace header show the
+   * moderated signal rather than re-deriving it from `lastRisk`. Nullable for
+   * backfill.
+   */
+  lastVerdict: text("last_verdict").$type<"ready" | "caution" | "concerning" | "critical">(),
   lastRunAt: timestamp("last_run_at", { withTimezone: true }),
   lastFullRunAt: timestamp("last_full_run_at", { withTimezone: true }),
   nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,15 +1,36 @@
 "use client";
-import type { Template } from "@pseolint/core";
-import { gradeOf } from "@/lib/grade";
+import type { Template, Verdict } from "@pseolint/core";
 
 export interface TemplateCardProps {
   template: Template;
-  totalDiscoveredUrls: number;
+  /**
+   * Deprecated/unused: coverage is read off `template.totalDiscoveredUrls`
+   * (the correct per-cluster discovered count) rather than this prop, which
+   * callers historically set to the sampled page count. Kept optional so
+   * existing call sites compile while the prop is dropped.
+   */
+  totalDiscoveredUrls?: number;
   /** Called with the template signature when the card is clicked. */
   onDrillDown?: (signature: string) => void;
   /** Whether this template is the currently selected drill-down target. */
   selected?: boolean;
 }
+
+/**
+ * Engine verdict → letter + chip styling. Renders the canonical per-template
+ * `verdict` the engine assigned instead of re-deriving a grade from `risk`
+ * (which can disagree with the verdict). Letters map verdict→A/B/C/F so the
+ * chip stays compact; the full verdict word is in the title + aria-label.
+ */
+const VERDICT_STYLE: Record<
+  Verdict,
+  { letter: string; bg: string; text: string }
+> = {
+  ready: { letter: "A", bg: "bg-success/15", text: "text-success" },
+  caution: { letter: "B", bg: "bg-warning/10", text: "text-warning" },
+  concerning: { letter: "C", bg: "bg-warning/20", text: "text-warning" },
+  critical: { letter: "F", bg: "bg-destructive/15", text: "text-destructive" },
+};
 
 /** Uniformity bar colour: ≥0.7 green, ≥0.4 yellow, red below. */
 function uniformityColor(score: number): string {
@@ -27,24 +48,34 @@ function topDriverLine(template: Template): string | null {
   return `${fired}/${total} samples fail ${td.ruleId}`;
 }
 
-/** "234 / 8 200 URLs (2.9%)" */
-function coverageLine(template: Template, totalDiscoveredUrls: number): string {
-  const pct =
-    totalDiscoveredUrls > 0
-      ? ((template.totalUrls / totalDiscoveredUrls) * 100).toFixed(1)
-      : "—";
-  return `${template.totalUrls.toLocaleString()} / ${totalDiscoveredUrls.toLocaleString()} URLs (${pct}%)`;
+/**
+ * "234 / 8 200 URLs (2.9%)" — share of all discovered URLs this cluster
+ * represents. Denominator is the per-cluster `totalDiscoveredUrls` off the
+ * template itself (what the CLI formatter uses), never the sampled page count.
+ */
+function coverageLine(template: Template): string {
+  const denom =
+    template.totalDiscoveredUrls > 0
+      ? template.totalDiscoveredUrls
+      : template.totalUrls;
+  const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "—";
+  return `${template.totalUrls.toLocaleString()} / ${denom.toLocaleString()} URLs (${pct}%)`;
+}
+
+/** "12 / 234 sampled" — how many of the cluster's URLs were actually audited. */
+function sampledLine(template: Template): string {
+  return `${template.auditedUrls.length.toLocaleString()} / ${template.totalUrls.toLocaleString()} sampled`;
 }
 
 export function TemplateCard({
   template,
-  totalDiscoveredUrls,
   onDrillDown,
   selected = false,
 }: TemplateCardProps) {
-  const grade = gradeOf(template.risk);
+  const verdict = VERDICT_STYLE[template.verdict];
   const driver = topDriverLine(template);
-  const coverage = coverageLine(template, totalDiscoveredUrls);
+  const coverage = coverageLine(template);
+  const sampled = sampledLine(template);
   const uniformityScore = template.variance.uniformityScore;
   const uniformityPct = Math.round(uniformityScore * 100);
 
@@ -59,18 +90,21 @@ export function TemplateCard({
           : "border-border/60 hover:border-border hover:bg-card/60",
       ].join(" ")}
       aria-pressed={selected}
-      aria-label={`Template ${template.signature} — ${grade.band}`}
+      aria-label={`Template ${template.signature} — ${template.verdict}`}
     >
-      {/* Header row: signature + grade chip */}
+      {/* Header row: signature + verdict chip */}
       <div className="flex items-center justify-between gap-3">
-        <span className="font-mono text-sm font-semibold text-foreground truncate">
+        <span
+          className="font-mono text-sm font-semibold text-foreground truncate"
+          title={template.signature}
+        >
           {template.signature}
         </span>
         <span
-          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md font-mono text-sm font-bold ${grade.bg} ${grade.text}`}
-          title={`Grade ${grade.letter} · ${grade.band} · risk ${template.risk}`}
+          className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md font-mono text-sm font-bold ${verdict.bg} ${verdict.text}`}
+          title={`${template.verdict} · risk ${template.risk}`}
         >
-          {grade.letter}
+          {verdict.letter}
         </span>
       </div>
 
@@ -81,9 +115,12 @@ export function TemplateCard({
         </p>
       )}
 
-      {/* Coverage stat */}
+      {/* Coverage stat + sampling depth */}
       <p className="mt-1 font-mono text-[11px] text-muted-foreground/80 tabular-nums">
         {coverage}
+      </p>
+      <p className="mt-0.5 font-mono text-[11px] text-muted-foreground/60 tabular-nums">
+        {sampled}
       </p>
 
       {/* Uniformity bar */}
@@ -108,14 +145,18 @@ export function TemplateCard({
 
 export interface TemplateGridProps {
   templates: Template[];
-  totalDiscoveredUrls: number;
+  /**
+   * Deprecated/unused: per-cluster coverage is read off
+   * `template.totalDiscoveredUrls` inside each card. Kept optional so existing
+   * call sites compile while the prop is dropped.
+   */
+  totalDiscoveredUrls?: number;
   onDrillDown?: (signature: string) => void;
   selectedSignature?: string | null;
 }
 
 export function TemplateGrid({
   templates,
-  totalDiscoveredUrls,
   onDrillDown,
   selectedSignature,
 }: TemplateGridProps) {
@@ -129,7 +170,6 @@ export function TemplateGrid({
           <TemplateCard
             key={t.signature}
             template={t}
-            totalDiscoveredUrls={totalDiscoveredUrls}
             onDrillDown={onDrillDown}
             selected={selectedSignature === t.signature}
           />

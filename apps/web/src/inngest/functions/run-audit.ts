@@ -475,6 +475,9 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({
       status: "completed",
       risk: summary.risk,
+      // Mirror the engine's moderated verdict so the dashboard / portfolio /
+      // history surface the moderated signal, not just the raw risk.
+      verdict: summary.verdict ?? null,
       pageCount: summary.pageCount,
       findingCount,
       host,
@@ -509,7 +512,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   // alert-delta logic see the latest risk, not just the cron-run risk.
   // Without this, `Re-audit now` and the initial add-domain audit silently
   // diverge from `/r/[slug]` (which reads `audits.risk` directly).
-  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, completedAt));
+  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, summary.verdict ?? null, completedAt));
 
   // v0.5.3 — stamp lastAuditedAt on watched pages that were force-refetched
   // this run. Scoped to *this audit's* monitored_domain so we don't update
@@ -576,7 +579,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   return { ok: true as const, risk: summary.risk };
 }
 
-async function syncMonitoredDomain(auditId: string, risk: number, completedAt: Date): Promise<void> {
+async function syncMonitoredDomain(auditId: string, risk: number, verdict: AuditSummary["verdict"] | null, completedAt: Date): Promise<void> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
     .from(audits)
@@ -586,7 +589,7 @@ async function syncMonitoredDomain(auditId: string, risk: number, completedAt: D
   let host: string;
   try { host = new URL(audit.sourceUrl).host; } catch { return; }
   await db.update(monitoredDomains)
-    .set({ lastRisk: risk, lastAuditId: auditId, lastRunAt: completedAt })
+    .set({ lastRisk: risk, lastVerdict: verdict, lastAuditId: auditId, lastRunAt: completedAt })
     .where(and(
       eq(monitoredDomains.userId, audit.userId),
       eq(monitoredDomains.host, host),
