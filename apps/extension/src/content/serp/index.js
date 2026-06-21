@@ -42,6 +42,33 @@ async function deepScan() {
   const out = [];
   for (const s of reply?.results ?? []) {
     const anchor = anchorByUrl.get(s.url);
+    const rCtx = results.find((r) => r.url === s.url);
+
+    const extraFlags = [];
+    if (s.ok) {
+      if (s.liveTitle && rCtx?.serpTitle) {
+        const cleanLive = s.liveTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanSerp = rCtx.serpTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanLive && cleanSerp && !cleanLive.includes(cleanSerp) && !cleanSerp.includes(cleanLive)) {
+          extraFlags.push("title rewritten");
+        }
+      }
+      if (!s.liveDescription) {
+        extraFlags.push("no meta desc");
+      } else if (rCtx?.serpSnippet) {
+        const cleanLive = s.liveDescription.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanSerp = rCtx.serpSnippet.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanLive && cleanSerp && !cleanLive.includes(cleanSerp) && !cleanSerp.includes(cleanLive)) {
+          extraFlags.push("meta desc ignored");
+        }
+      }
+      if (!s.hasSchema) {
+        extraFlags.push("no schema");
+      }
+    }
+
+    s.flags = [...(s.flags ?? []), ...extraFlags];
+
     if (anchor && s.verdict) {
       if (anchor.nextElementSibling?.getAttribute?.("data-pseolint") === "badge") {
         anchor.nextElementSibling.remove();

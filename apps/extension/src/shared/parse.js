@@ -123,10 +123,13 @@ export function parseSignals(html, url, status) {
                         metaContent(doc, "datepublished") || 
                         metaContent(doc, "pubdate");
 
+  const metaDescription = metaContent(doc, "description");
+
   return {
     url,
     title: titleText(doc),
     contentText,
+    metaDescription,
     og: {
       title: metaContent(doc, "og:title"),
       description: metaContent(doc, "og:description"),

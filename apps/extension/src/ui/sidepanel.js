@@ -2,7 +2,6 @@
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
 import { teardown, takeaway, userHost } from "../shared/teardown.js";
-import { scanPage } from "../shared/rules-client.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
@@ -63,12 +62,21 @@ async function loadLandscape() {
   const url = tab?.url || "";
 
   if (!isGoogleSerp(url)) {
-    $("landscape").textContent = "Active page: " + (url ? new URL(url).hostname : "None");
+    $("landscape").textContent = NO_SERP;
     $("aio").style.display = "none";
-    $("scan").textContent = "Audit active page";
+    $("scan").disabled = true;
+    $("scan").textContent = "Deep scan this SERP";
+    $("status").textContent = "";
+    $("takeaway").textContent = "";
+    $("headline").textContent = "";
+    $("opening").textContent = "";
+    $("results").textContent = "";
+    $("cta").hidden = true;
+    $("serp-opportunities").style.display = "none";
     return;
   }
 
+  $("scan").disabled = false;
   $("scan").textContent = "Deep scan this SERP";
 
   try {
@@ -101,69 +109,6 @@ async function deepScan() {
   $("scan").disabled = false;
 }
 
-async function auditActivePage(tab) {
-  if (!tab || !tab.id) return;
-  $("scan").disabled = true;
-  $("status").textContent = "Auditing active tab DOM...";
-  
-  try {
-    const [{ result: html }] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: () => document.documentElement.outerHTML
-    });
-    
-    if (!html) {
-      $("status").textContent = "Failed to retrieve page HTML.";
-      $("scan").disabled = false;
-      return;
-    }
-    
-    const scan = scanPage(html, tab.url, 200);
-    
-    $("sa-url").textContent = tab.url;
-    $("sa-words").textContent = `${scan.words} words`;
-    $("sa-aeo").textContent = scan.aeoReady ? "Yes" : "No";
-    $("sa-og").textContent = scan.ogComplete ? "Complete" : "Missing / Incomplete";
-    $("sa-signature").textContent = scan.structureSignature || "N/A";
-    
-    const flagsContainer = $("sa-flags");
-    flagsContainer.textContent = "";
-    
-    if (scan.isLikelyShell) {
-      const tag = document.createElement("span");
-      tag.className = "tag templated";
-      tag.textContent = "likely SPA shell";
-      flagsContainer.append(tag);
-    }
-    
-    if (scan.flags && scan.flags.length > 0) {
-      for (const flag of scan.flags) {
-        const tag = document.createElement("span");
-        const cleanFlag = flag.toLowerCase();
-        let cls = "strong";
-        if (cleanFlag.includes("thin") || cleanFlag.includes("soft")) cls = "thin";
-        else if (cleanFlag.includes("og")) cls = "og";
-        else if (cleanFlag.includes("author") || cleanFlag.includes("date")) cls = "eeat";
-        
-        tag.className = `tag ${cls}`;
-        tag.textContent = flag;
-        flagsContainer.append(tag);
-      }
-    } else if (!scan.isLikelyShell) {
-      const tag = document.createElement("span");
-      tag.className = "tag strong";
-      tag.textContent = "no warning flags";
-      flagsContainer.append(tag);
-    }
-    
-    $("single-audit").style.display = "block";
-    $("status").textContent = "Audit complete!";
-  } catch (err) {
-    $("status").textContent = "Error auditing active page: " + err.message;
-  }
-  $("scan").disabled = false;
-}
-
 const TAG_CLASS = { 
   thin: "thin", 
   "soft 404": "soft", 
@@ -171,7 +116,11 @@ const TAG_CLASS = {
   templated: "templated", 
   AEO: "aeo",
   "no Author": "eeat",
-  "no Date": "eeat"
+  "no Date": "eeat",
+  "title rewritten": "opp",
+  "no meta desc": "opp",
+  "meta desc ignored": "opp",
+  "no schema": "opp"
 };
 
 // Render the SERP competitive scorecard from the teardown model. All untrusted
@@ -261,6 +210,57 @@ function render(results) {
     li.append(rank, who, meta);
     list.append(li);
   }
+
+  // Calculate opportunities
+  let titleRewritten = 0;
+  let noMetaDesc = 0;
+  let metaDescIgnored = 0;
+  let eeatGaps = 0;
+  let noSchema = 0;
+  let thinContent = 0;
+
+  for (const r of t.rows) {
+    if (!r.ok) continue;
+    if (r.tags.includes("title rewritten")) titleRewritten++;
+    if (r.tags.includes("no meta desc")) noMetaDesc++;
+    if (r.tags.includes("meta desc ignored")) metaDescIgnored++;
+    if (r.tags.includes("no Author") || r.tags.includes("no Date")) eeatGaps++;
+    if (r.tags.includes("no schema")) noSchema++;
+    if (r.tags.includes("thin")) thinContent++;
+  }
+
+  const oppList = $("opportunities-list");
+  oppList.textContent = "";
+  let oppsFound = false;
+
+  const addOpp = (label, count, desc) => {
+    if (count > 0) {
+      oppsFound = true;
+      const item = document.createElement("div");
+      item.className = "opportunity-item";
+      const bullet = document.createElement("span");
+      bullet.className = "opportunity-bullet";
+      bullet.textContent = "•";
+      const content = document.createElement("span");
+      content.innerHTML = `<b>${label}</b>: ${count} competitor(s) ${desc}`;
+      item.append(bullet, content);
+      oppList.append(item);
+    }
+  };
+
+  addOpp("Title Rewrites", titleRewritten, "have titles rewritten by Google (keyword/intent alignment gap).");
+  addOpp("Missing Meta Descriptions", noMetaDesc, "lack a meta description (direct CTR improvement gap).");
+  addOpp("Meta Description Ignored", metaDescIgnored, "have meta descriptions ignored/rewritten by Google (poor search relevance).");
+  addOpp("E-E-A-T Metadata Gaps", eeatGaps, "lack Author or publication Date signals (credibility gap).");
+  addOpp("No Structured Data", noSchema, "lack JSON-LD schema markup (rich snippets/AEO gap).");
+  addOpp("Thin Content Gaps", thinContent, "have thin content with low word counts (< 150 words).");
+
+  if (oppsFound) {
+    $("serp-opportunities").style.display = "block";
+  } else {
+    $("serp-opportunities").style.display = "none";
+  }
+
   $("cta").hidden = false;
   renderYourSite();
 }
@@ -269,8 +269,6 @@ async function handleScanClick() {
   const tab = await getActiveTab();
   if (isGoogleSerp(tab?.url)) {
     await deepScan();
-  } else {
-    await auditActivePage(tab);
   }
 }
 
@@ -290,29 +288,34 @@ $("domain").addEventListener("input", (e) => {
   loadLandscape();
 });
 
-async function autoAuditActivePage() {
+async function onTabChange() {
   const tab = await getActiveTab();
   const url = tab?.url || "";
-  if (url && !isGoogleSerp(url)) {
+  if (!isGoogleSerp(url)) {
+    $("landscape").textContent = NO_SERP;
+    $("aio").style.display = "none";
+    $("scan").disabled = true;
+    $("scan").textContent = "Deep scan this SERP";
+    $("status").textContent = "";
+    $("takeaway").textContent = "";
     $("headline").textContent = "";
     $("opening").textContent = "";
-    $("takeaway").textContent = "";
     $("results").textContent = "";
     $("cta").hidden = true;
-    await auditActivePage(tab);
+    $("serp-opportunities").style.display = "none";
   } else {
-    $("single-audit").style.display = "none";
+    $("scan").disabled = false;
+    $("scan").textContent = "Deep scan this SERP";
+    $("serp-opportunities").style.display = "none";
     await loadLandscape();
   }
 }
 
 // Auto-refresh panel state on active tab navigation/switching
-chrome.tabs?.onActivated?.addListener(() => {
-  autoAuditActivePage();
-});
+chrome.tabs?.onActivated?.addListener(onTabChange);
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "complete") {
-    autoAuditActivePage();
+    onTabChange();
   }
 });
 
@@ -323,4 +326,4 @@ chrome.runtime.onMessage?.addListener((msg) => {
   }
 });
 
-autoAuditActivePage();
+onTabChange();

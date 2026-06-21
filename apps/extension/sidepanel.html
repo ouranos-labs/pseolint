@@ -57,6 +57,7 @@
       .tag.templated { background: var(--templated); }
       .tag.aeo { background: var(--primary); color: var(--primary-fg); }
       .tag.eeat { background: #3b82f6; }
+      .tag.opp { background: #8b5cf6; }
       .tag.strong { background: transparent; color: var(--primary); box-shadow: none; }
       li a { color: var(--primary); font-size: 11px; white-space: nowrap; text-decoration: none; }
       li a:hover { text-decoration: underline; }
@@ -75,7 +76,7 @@
       @media (prefers-reduced-motion: reduce) {
         button#scan { transition: none; }
       }
-      #single-audit {
+      #serp-opportunities {
         display: none;
         margin-top: 14px;
         padding: 12px;
@@ -83,28 +84,23 @@
         border: 1px solid var(--border);
         border-radius: 10px;
       }
-      #single-audit h3 {
+      #serp-opportunities h3 {
         margin: 0 0 8px;
         font-size: 13px;
         font-weight: 600;
-        color: var(--primary);
+        color: #8b5cf6;
       }
-      .sa-row {
+      .opportunity-item {
         display: flex;
-        justify-content: space-between;
-        font-size: 12.5px;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 12px;
         padding: 4px 0;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        line-height: 1.4;
       }
-      .sa-row:last-child {
-        border-bottom: 0;
-      }
-      .sa-label {
-        color: var(--muted);
-      }
-      .sa-val {
-        font-family: var(--mono);
-        color: var(--fg);
+      .opportunity-bullet {
+        color: #8b5cf6;
+        font-weight: bold;
       }
     </style>
   </head>
@@ -117,22 +113,9 @@
     <div id="aio" style="margin: 0 0 10px; padding: 10px; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-radius: 6px; display: none; font-size: 11.5px;"></div>
     <button id="scan">Deep scan this SERP</button>
     <p id="status" role="status" aria-live="polite"></p>
-    <div id="single-audit">
-      <h3>Page Audit Findings</h3>
-      <div id="sa-url" style="font-family: var(--mono); font-size: 11px; margin-bottom: 10px; color: var(--muted); word-break: break-all;"></div>
-      <div style="display: flex; flex-direction: column; gap: 4px;">
-        <div class="sa-row"><span class="sa-label">Word Count:</span><span id="sa-words" class="sa-val">0</span></div>
-        <div class="sa-row"><span class="sa-label">AEO-Ready:</span><span id="sa-aeo" class="sa-val">No</span></div>
-        <div class="sa-row"><span class="sa-label">OG Tags:</span><span id="sa-og" class="sa-val">Missing</span></div>
-        <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
-          <span class="sa-label" style="font-size: 12.5px;">Structure Signature:</span>
-          <span id="sa-signature" style="font-family: var(--mono); font-size: 10px; color: var(--muted); word-break: break-all; background: rgba(0,0,0,0.2); padding: 4px 6px; border-radius: 6px; max-height: 80px; overflow-y: auto;"></span>
-        </div>
-        <div style="display: flex; flex-direction: column; gap: 4px; padding: 4px 0;">
-          <span class="sa-label" style="font-size: 12.5px;">Active Flags:</span>
-          <div id="sa-flags" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;"></div>
-        </div>
-      </div>
+    <div id="serp-opportunities">
+      <h3>SERP Optimization Gaps</h3>
+      <div id="opportunities-list"></div>
     </div>
     <p id="takeaway"></p>
     <p id="yoursite"></p>
@@ -150,6 +133,7 @@
       <span><i style="background:#586474"></i> templated</span>
       <span><i style="background:#36d39a"></i> AEO-ready</span>
       <span><i style="background:#3b82f6"></i> EEAT warning</span>
+      <span><i style="background:#8b5cf6"></i> opportunity</span>
     </div>
     <footer>
       Flags, not verdicts. Deep scan fetches the results to check them — nothing about you is sent.
