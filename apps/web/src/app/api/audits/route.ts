@@ -414,7 +414,10 @@ export async function POST(req: Request): Promise<Response> {
     isPublic: plan !== "pro", expiresAt,
   }).returning({ id: audits.id, slug: audits.slug });
 
-  const render = body.data.render ?? false;
+  // Render is a Pro-only capability — gate it server-side so a non-Pro caller
+  // can never enable it by hand-crafting the POST body. (The form already hides
+  // the toggle for non-Pro, but the client is not the trust boundary.)
+  const render = isProSession ? (body.data.render ?? false) : false;
   auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize, render });
 
   await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize, render } });
