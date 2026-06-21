@@ -203,6 +203,18 @@ export const monitoredDomains = pgTable("monitored_domain", {
   renderMode: boolean("render_mode"),
   /** Per-domain IndexNow API key (must be served at /[key].txt on the origin). */
   indexNowKey: text("indexnow_key"),
+  /**
+   * Per-domain advanced scan options (Pro). JSON-serialized, allowlisted subset
+   * of `AuditOptions` — see lib/scan-options.ts `ScanOptions`. Only the 7 safe
+   * engine knobs (crawlDiscovery, fillBudgetViaLinkDiscovery, samplingStrategy,
+   * maxPerTemplate, strict, pageGroups, entityPatterns) are ever stored here;
+   * the schema's `.strict()` and run-audit's spread order (validated override
+   * first, fixed safety opts after) keep this from becoming a way to disable
+   * safeMode / SSRF guard / robots / noindex / caps. Null = no overrides →
+   * engine defaults. Stored as text JSON for consistency with
+   * `domainRuleOverrides` / `domainDataSources`.
+   */
+  scanOptions: text("scan_options"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),
