@@ -192,6 +192,15 @@ export const monitoredDomains = pgTable("monitored_domain", {
    * domain's authority is stable), not a per-audit input.
    */
   authorityScore: integer("authority_score"),
+  /**
+   * Per-domain render-mode opt-in (Pro). When true, audits against this domain
+   * render each page in a headless browser (the operator's Browserless CDP
+   * endpoint, PSEOLINT_BROWSER_WS) before auditing — needed for JS-heavy / SPA
+   * sites (Webflow, Framer, client-rendered Next) whose server HTML looks empty
+   * to a static fetch. Null/false = static fetch. Nullable (no default) to
+   * mirror authorityScore: absence means "unset", not an active choice.
+   */
+  renderMode: boolean("render_mode"),
   /** Per-domain IndexNow API key (must be served at /[key].txt on the origin). */
   indexNowKey: text("indexnow_key"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
