@@ -10,10 +10,12 @@ import {
   updateDomainSettingsAction,
   removeDataSourceAction,
   updateRuleOverridesAction,
+  updateScanOptionsAction,
   updateSlackWebhookAction,
   testSlackWebhookAction,
   rebindGscPropertyAction,
 } from "./actions";
+import { parseScanOptions } from "@/lib/scan-options";
 import { DataSourceForm } from "./data-source-form";
 import { IndexNowDomainForm } from "@/components/dashboard/indexnow-domain-form";
 
@@ -65,6 +67,17 @@ export default async function DomainSettings({
 
   const [dataSource] = await db.select().from(domainDataSources).where(eq(domainDataSources.domainId, domain.id)).limit(1);
   const [ruleOverride] = await db.select().from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domain.id)).limit(1);
+
+  // Pre-fill the advanced scan-options controls from the stored (already
+  // allowlist-validated) JSON. Re-parse defensively so a corrupt column just
+  // renders empty controls rather than crashing the page. pageGroups /
+  // entityPatterns go back into their JSON textareas; the simple knobs map to
+  // checkboxes / select / number inputs.
+  const scanOpts = (() => {
+    if (!domain.scanOptions) return null;
+    try { return parseScanOptions(JSON.parse(domain.scanOptions)); }
+    catch { return null; }
+  })();
 
   // Suggested GSC match: when the domain is unbound but there is exactly
   // one high-confidence GSC property for this host, surface it as a
@@ -338,6 +351,141 @@ export default async function DomainSettings({
           />
           <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
             Save overrides
+          </button>
+        </form>
+      </section>
+
+      <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
+        <header>
+          <h2 className="text-sm font-medium">Advanced scan options</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Fine-tune how the engine discovers, samples, and groups your pages.
+            These map to the safe subset of <code className="font-mono">AuditOptions</code>;
+            safety settings (SSRF guard, robots, noindex, byte caps) are always
+            enforced and can&apos;t be changed here. Leave everything default to
+            use the standard crawl.
+          </p>
+        </header>
+        <form action={updateScanOptionsAction} className="flex flex-col gap-5">
+          <input type="hidden" name="domainHost" value={domain.host} />
+
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              name="crawlDiscovery"
+              defaultChecked={scanOpts?.crawlDiscovery === true}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+            />
+            <span className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Crawl link discovery</span>
+              <span className="text-xs text-muted-foreground">
+                Follow same-origin links to find pages beyond the sitemap.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              name="fillBudgetViaLinkDiscovery"
+              defaultChecked={scanOpts?.fillBudgetViaLinkDiscovery === true}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+            />
+            <span className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Top up sample via link discovery</span>
+              <span className="text-xs text-muted-foreground">
+                When the sitemap yields fewer pages than the sample budget,
+                follow links (one level deep) to fill it. Requires crawl link
+                discovery.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2.5">
+            <input
+              type="checkbox"
+              name="strict"
+              defaultChecked={scanOpts?.strict === true}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-border-strong accent-primary"
+            />
+            <span className="flex flex-col gap-1">
+              <span className="text-sm font-medium">Strict (run every rule)</span>
+              <span className="text-xs text-muted-foreground">
+                Keep site classification but run all rules regardless of detected
+                site type — no pSEO-only rules are suppressed.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Sampling strategy</span>
+            <span className="text-xs text-muted-foreground">
+              How pages are picked when the sample is smaller than the site.
+              Stratified spreads the sample across URL templates; random is a
+              flat draw.
+            </span>
+            <select
+              name="samplingStrategy"
+              defaultValue={scanOpts?.samplingStrategy ?? ""}
+              className="mt-1 w-48 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
+            >
+              <option value="">Default (stratified)</option>
+              <option value="stratified">Stratified</option>
+              <option value="random">Random</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Max samples per template</span>
+            <span className="text-xs text-muted-foreground">
+              Cap how many pages each detected URL-template cluster contributes.
+              Leave blank for no per-template cap.
+            </span>
+            <input
+              name="maxPerTemplate"
+              type="number"
+              min={1}
+              defaultValue={scanOpts?.maxPerTemplate ?? ""}
+              className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Page groups (advanced)</span>
+            <span className="text-xs text-muted-foreground">
+              JSON map of named groups → <code className="font-mono">{"{ match, rules?, overrides? }"}</code>.
+              <code className="ml-1 font-mono">match</code> is a glob (or array of globs) over the URL path;
+              <code className="ml-1 font-mono">rules</code> limits which rules run for the group;
+              <code className="ml-1 font-mono">overrides</code> sets per-rule thresholds. Leave blank to skip.
+            </span>
+            <textarea
+              name="pageGroupsJson"
+              rows={4}
+              defaultValue={scanOpts?.pageGroups ? JSON.stringify(scanOpts.pageGroups, null, 2) : ""}
+              placeholder={'{\n  "landing": { "match": "/lp/*", "rules": ["meta/title-too-long"] }\n}'}
+              className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium">Entity patterns (advanced)</span>
+            <span className="text-xs text-muted-foreground">
+              Custom entity-mask patterns merged with the defaults (US states, ZIP codes).
+              JSON array of <code className="font-mono">{"{ placeholder, pattern, flags? }"}</code> — used to
+              normalize templated tokens (e.g. city / SKU) when comparing pages for near-duplication.
+              Leave blank to skip.
+            </span>
+            <textarea
+              name="entityPatternsJson"
+              rows={4}
+              defaultValue={scanOpts?.entityPatterns ? JSON.stringify(scanOpts.entityPatterns, null, 2) : ""}
+              placeholder={'[\n  { "placeholder": "CITY", "pattern": "[A-Z][a-z]+", "flags": "g" }\n]'}
+              className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
+            />
+          </label>
+
+          <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+            Save scan options
           </button>
         </form>
       </section>
