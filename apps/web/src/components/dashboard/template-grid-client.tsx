@@ -22,7 +22,6 @@ function decodeHash(): string | null {
 
 export interface TemplateGridClientProps {
   templates: Template[];
-  totalDiscoveredUrls: number;
 }
 
 /**
@@ -30,10 +29,14 @@ export interface TemplateGridClientProps {
  * template grid. Reads the initial selection from `window.location.hash` so
  * the filter survives a reload. Exposes the selected signature via a custom
  * event (`template-selected`) so the FindingsPanel below it can filter.
+ *
+ * Per-cluster coverage is read off each `Template.totalDiscoveredUrls` inside
+ * the card — there is deliberately no site-level discovered-URL prop here (the
+ * old one was wired to `summary.pageCount`, the sampled count, producing wrong
+ * coverage denominators).
  */
 export function TemplateGridClient({
   templates,
-  totalDiscoveredUrls,
 }: TemplateGridClientProps) {
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -75,7 +78,6 @@ export function TemplateGridClient({
       )}
       <TemplateGrid
         templates={templates}
-        totalDiscoveredUrls={totalDiscoveredUrls}
         onDrillDown={handleDrillDown}
         selectedSignature={selected}
       />

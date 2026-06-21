@@ -6,6 +6,7 @@ import { fetchOgMeta } from "@/lib/og-fetch";
 import { GradeChip } from "@/components/audit/grade-chip";
 import { Sparkline, type TrendPoint } from "@/components/audit/sparkline";
 import { SiteThumbnail } from "@/components/audit/site-thumbnail";
+import { verdictStyle } from "@/lib/grade";
 
 type DomainRow = typeof monitoredDomains.$inferSelect;
 
@@ -161,6 +162,12 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
               >
                 Verify
               </Link>
+            ) : d.paused ? (
+              // A paused domain isn't being monitored — surface that instead of
+              // a green "Live" badge, which would imply active monitoring.
+              <span className="absolute right-3 top-3 z-10 inline-flex h-6 items-center justify-center rounded-[8px] border border-border/60 bg-secondary/80 px-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground shadow-sm">
+                Paused
+              </span>
             ) : (
               <span
                 className={`absolute right-3 top-3 z-10 inline-flex h-6 items-center justify-center rounded-[8px] bg-secondary/80 px-2 font-mono text-[10px] uppercase tracking-wider shadow-sm ${
@@ -200,7 +207,25 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
               >
                 {findingsCount} {findingsCount === 1 ? "finding" : "findings"}
               </Link>
-              <GradeChip risk={d.lastRisk} />
+              {/* Headline tier = the engine's MODERATED verdict (lastVerdict),
+                  not a tier re-derived from the raw lastRisk. The grade chip /
+                  numeric risk stays alongside as secondary detail. Render the
+                  verdict only once a run has produced one. */}
+              <div className="flex items-center gap-2">
+                {!noRunsYet && d.lastVerdict && (() => {
+                  const v = verdictStyle(d.lastVerdict);
+                  return (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}`}
+                      title="Engine verdict — moderated by domain authority & content-effort"
+                    >
+                      <span className={`inline-block h-1 w-1 rounded-full ${v.dot}`} />
+                      {v.label}
+                    </span>
+                  );
+                })()}
+                <GradeChip risk={d.lastRisk} />
+              </div>
             </div>
           </article>
         );

@@ -249,6 +249,84 @@ function sevBorderBg(sev: Severity): string {
   return "border-border/60 bg-card/60 text-muted-foreground";
 }
 
+// The engine attaches a `confidence` hint (high|medium|low|speculative) so the
+// UI can hedge a finding that's known to false-positive on the audited site
+// type. Only render a chip when the engine is hedging (low/speculative) — a
+// `high` (or omitted, which defaults to high) finding needs no caveat.
+function ConfidenceChip({ confidence }: { confidence?: RuleResult["confidence"] }) {
+  if (confidence !== "low" && confidence !== "speculative") return null;
+  const label = confidence === "speculative" ? "speculative" : "low confidence";
+  const title =
+    confidence === "speculative"
+      ? "Heuristic match — verify before acting."
+      : "May be a false positive on your site type.";
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 font-mono text-[10px] text-warning"
+      title={title}
+    >
+      {label}
+    </span>
+  );
+}
+
+// `context` carries the engine's richest evidence. Render it compactly: the
+// worst near-duplicate pair(s) for cluster findings, the boilerplate ratio for
+// contentBreakdown findings.
+function ContextEvidence({ context }: { context: NonNullable<RuleResult["context"]> }) {
+  if (context.type === "cluster") {
+    const worst = context.worstPairs.slice(0, 2);
+    return (
+      <div className="flex flex-col gap-2 rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Near-duplicate cluster</span>
+          <span className="font-mono text-[11px] text-muted-foreground">{context.clusterSize} pages</span>
+        </div>
+        {worst.length > 0 && (
+          <ul className="flex flex-col gap-1 font-mono text-[11px]">
+            {worst.map((p, i) => (
+              <li key={i} className="flex items-center gap-2">
+                <span className="truncate text-muted-foreground" title={p.left}>{pathOf(p.left)}</span>
+                <span className="text-muted-foreground/60">vs</span>
+                <span className="truncate text-muted-foreground" title={p.right}>{pathOf(p.right)}</span>
+                <span className="ml-auto shrink-0 text-warning">{Math.round(p.similarity * 100)}% similar</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
+  // contentBreakdown — surface the boilerplate ratio (shared / total words).
+  const ratio = context.totalWordCount > 0 ? Math.round((context.sharedWordCount / context.totalWordCount) * 100) : 0;
+  return (
+    <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
+      <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Boilerplate ratio</span>
+      <span className="font-mono text-[11px] text-muted-foreground">
+        <span className="text-warning">{ratio}%</span> ({context.sharedWordCount.toLocaleString()} of {context.totalWordCount.toLocaleString()} words shared)
+      </span>
+    </div>
+  );
+}
+
+// On carried-forward findings (monitoring mode skipped re-fetching the page),
+// surface staleness so re-verified vs stale findings are distinguishable.
+function CarriedForwardBadge({ lastVerifiedAt }: { lastVerifiedAt?: string }) {
+  let when = "";
+  if (lastVerifiedAt) {
+    const d = new Date(lastVerifiedAt);
+    if (!Number.isNaN(d.getTime())) when = ` · last verified ${d.toLocaleDateString()}`;
+  }
+  return (
+    <span
+      className="inline-flex w-fit items-center gap-1 rounded-full border border-border/60 bg-card/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
+      title="Not re-fetched this run — carried forward from a prior audit under monitoring mode."
+    >
+      carried forward{when}
+    </span>
+  );
+}
+
 function FindingGroup({ group }: { group: RuleGroup }) {
   const { ruleId, findings, representative } = group;
   const sev = representative.severity;
@@ -266,6 +344,7 @@ function FindingGroup({ group }: { group: RuleGroup }) {
           <span className={`inline-block h-1.5 w-1.5 rounded-full ${sevDot(sev)}`} />
           {SEVERITY_LABEL[sev]}
         </span>
+        <ConfidenceChip confidence={representative.confidence} />
         <span className="font-mono text-xs text-muted-foreground">{ruleId}</span>
         <span className="ml-auto font-mono text-xs text-muted-foreground">
           {findings.length} {findings.length === 1 ? "finding" : "findings"}
@@ -274,6 +353,10 @@ function FindingGroup({ group }: { group: RuleGroup }) {
 
       <div className="flex flex-col gap-4 px-6 py-5">
         <p className="text-sm text-foreground">{representative.message}</p>
+        {representative.context && <ContextEvidence context={representative.context} />}
+        {representative.carriedForward && (
+          <CarriedForwardBadge lastVerifiedAt={representative.lastVerifiedAt} />
+        )}
         {representative.pageUrl && (
           <a
             href={representative.pageUrl}

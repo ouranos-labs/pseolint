@@ -117,6 +117,9 @@ export default async function Page({
   // crashes against the wrong shape.
   const summary: AnyAuditSummary | null = summaryRaw ? safeParse<AnyAuditSummary>(summaryRaw) : null;
   const isV04 = summary ? isV04Summary(summary) : false;
+  // Hoisted: read the truncation envelope once (the defensive R2-JSON reader is
+  // pure, but calling it three times in the JSX re-walks the blob needlessly).
+  const truncation = summaryTruncation(summary);
 
   const domainHost = (() => { try { return new URL(row.sourceUrl).host; } catch { return null; } })();
   const originUrl = (() => {
@@ -225,8 +228,8 @@ export default async function Page({
       { eligible ? (
         <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
       ) : null }
-      { summaryTruncation(summary).truncated ? (
-        <TruncatedBanner reason={ summaryTruncation(summary).reason } kind={ summaryTruncation(summary).kind } />
+      { truncation.truncated ? (
+        <TruncatedBanner reason={ truncation.reason } kind={ truncation.kind } />
       ) : null }
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
@@ -384,7 +387,6 @@ export default async function Page({
               </h2>
               <TemplateGridClient
                 templates={ (summary as AuditSummaryV04).templates }
-                totalDiscoveredUrls={ summary.pageCount }
               />
             </section>
           ) : null }
@@ -536,14 +538,17 @@ function V04Hero({
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground">
               <span className="font-mono">Site type: { summary.siteClassification.type }</span>
               <span aria-hidden="true">·</span>
-              <span className="tabular-nums">{ Math.round(summary.siteClassification.confidence * 100) }% confidence</span>
+              <span className="tabular-nums">{ clampPct(Math.round(summary.siteClassification.confidence * 100)) }% confidence</span>
               <span aria-hidden="true">·</span>
               <span className="tabular-nums">
                 { (() => {
+                  // `sitemap-url-count` is the total URLs DISCOVERED (sitemap
+                  // scale — often thousands), NOT the count actually audited
+                  // (that's `pageCount`, surfaced via the Pages stat).
                   const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
                     | { kind: "sitemap-url-count"; value: number }
                     | undefined;
-                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs audited`;
+                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs discovered`;
                 })() }
               </span>
             </div>
@@ -564,6 +569,38 @@ function V04Hero({
               <span aria-hidden="true">·</span>
               <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
             </div>
+          ) : null }
+          {/*
+            Domain-authority pill — `summary.authority` ({score, domain}) is the
+            0-100 authority hint the engine uses to MODERATE the verdict (it
+            never touches the raw `risk`): >=80 shifts the verdict one tier more
+            lenient, <=30 one tier stricter, 31-79 no shift. Shown here so the
+            user can see the input behind a tier shift. Absent when authority
+            couldn't be resolved; `Number.isFinite` gates the render.
+          */}
+          { Number.isFinite(summary.authority?.score) ? (
+            <div
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+              title="Domain authority (0-100). >=80 shifts the verdict one tier more lenient; <=30 one tier stricter; 31-79 no shift. Never changes the raw risk."
+            >
+              <span className="font-mono">Authority</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">{ Math.round(summary.authority!.score) }/100</span>
+            </div>
+          ) : null }
+          {/*
+            Degeneration note — the engine emits a `degeneration-guard-tripped`
+            signal when it downgraded a small-marketing/blog classification to
+            `unclear` because the corpus looked degenerate (mostly thin pages or
+            duplicate-heavy titles). That suppresses site-type severity
+            demotions, so explain WHY the softer profile didn't apply.
+          */}
+          { summary.siteClassification?.signals.some((s) => s.kind === "degeneration-guard-tripped") ? (
+            <p className="mt-3 max-w-md text-[11px] leading-relaxed text-muted-foreground">
+              Site-type profiling was skipped — the sampled pages look degenerate
+              (mostly thin or near-duplicate), so severity demotions for the
+              detected site type were not applied.
+            </p>
           ) : null }
         </div>
 
@@ -1031,6 +1068,12 @@ function relTime(d: Date): string {
 
 function hoursUntil(d: Date): number {
   return Math.max(1, Math.round((d.getTime() - Date.now()) / 3_600_000));
+}
+
+/** Clamp a percentage from untrusted R2 JSON into the displayable [0,100]. */
+function clampPct(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, n));
 }
 
 function ExpiredState({ row }: { row: AuditRow }) {

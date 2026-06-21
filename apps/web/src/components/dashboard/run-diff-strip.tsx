@@ -173,7 +173,7 @@ function RecoveredDrawer({
             Verified gone
           </span>
           <span className="text-muted-foreground">
-            See {recoveredCount === 1 ? "the finding" : `the ${recoveredCount} findings`} pSEOLint confirmed fixed
+            {recoveredCount === 1 ? "1 finding" : `${recoveredCount} findings`} re-checked this run and no longer firing
           </span>
         </span>
         <span className="font-mono text-[11px] text-muted-foreground transition-transform group-open:rotate-90">
