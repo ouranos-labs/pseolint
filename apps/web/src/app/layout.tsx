@@ -10,6 +10,7 @@ import { getPlan } from "@/lib/plan";
 import { AccountMenu } from "@/components/dashboard/account-menu";
 import { env } from "@/lib/env";
 import { AnalyticsProvider } from "@/lib/analytics/op-transport.client";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const displaySerif = Instrument_Serif({
   subsets: ["latin"],
@@ -109,7 +110,7 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.7.0</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v{ENGINE_VERSION}</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 

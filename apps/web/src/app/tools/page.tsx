@@ -4,13 +4,14 @@ import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 export const metadata: Metadata = {
   title: "Free SEO tools for programmatic SEO · pseolint",
   description:
-    "Three free SEO tools backed by the open-source pseolint v0.6 engine: SpamBrain checker, thin-content scanner, doorway-page detector. No signup.",
+    "Three free SEO tools backed by the open-source pseolint engine: SpamBrain checker, thin-content scanner, doorway-page detector. No signup.",
   alternates: { canonical: `${SITE_URL}/tools` },
   openGraph: {
     title: "Free SEO tools for programmatic SEO sites",
@@ -24,7 +25,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Free SEO tools for programmatic SEO sites",
     description:
-      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware in v0.6 — no signup, runs in 60 seconds.",
+      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware — no signup, runs in 60 seconds.",
   },
 };
 
@@ -40,7 +41,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What do these free tools actually detect?",
-    a: `All three run the same open-source pseolint v0.6 engine — template-aware SpamBrain + AEO scoring. v0.6 audits by template, not by URL: it detects the templates on your site, samples pages stratified across them (up to 200), runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
+    a: `All three run the same open-source pseolint engine — template-aware SpamBrain + AEO scoring. It audits by template, not by URL: it detects the templates on your site, samples pages stratified across them (up to 200), runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
   },
   {
     q: "Why three separate tools instead of one full audit?",
@@ -48,7 +49,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is the engine open source?",
-    a: "Yes — MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core 0.7.0, CLI 0.7.0, MCP 0.7.0 as of June 2026). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
+    a: "Yes — MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core, CLI, and MCP server all published on npm). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
   },
 ];
 
@@ -94,16 +95,16 @@ export default function ToolsIndexPage() {
         Free SEO tools
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Three free SEO tools backed by the open-source pseolint engine v0.6 —
+        Three free SEO tools backed by the open-source pseolint engine —
         SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
         signup, runs in a 60-second median. Each tool now produces a
         per-template verdict, not a per-URL list. Pick a tool below; methodology
         and comparison table follow.
       </p>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        <span className="text-foreground">v0.6 credibility layer:</span> the
+        <span className="text-foreground">Credibility layer:</span> the
         engine has been empirically calibrated against a curated corpus of
-        reputable, in-production pSEO sites. v0.6 audits by template — it
+        reputable, in-production pSEO sites. It audits by template — it
         detects your site&apos;s URL templates, samples pages stratified across them,
         and produces one verdict per template cluster rather than a flat per-URL
         list. Verdicts are reproducible at a fixed sample-seed; findings cluster
@@ -177,7 +178,7 @@ export default function ToolsIndexPage() {
           How rules feed into per-template verdicts
         </h2>
         <p>
-          v0.6 audits by template, not by URL. After template detection
+          The engine audits by template, not by URL. After template detection
           (Phase 1), the engine samples pages stratified across templates and runs 32
           rules (Phase 2). Rules aggregate differently depending on their type:
         </p>
@@ -229,11 +230,11 @@ export default function ToolsIndexPage() {
           drives scaled-content-abuse demotions and powers site-reputation-abuse
           enforcement against parasite-SEO landing pages. If your site is
           templated, your audit needs to mirror how SpamBrain reasons about
-          templates — and that is exactly what v0.6 does: it audits your
+          templates — and that is exactly what pseolint does: it audits your
           templates, not your URLs.
         </p>
         <p>
-          The pseolint v0.7 engine ships {SCORED_RULE_COUNT} rules across spam, content, aeo, links,
+          The pseolint v{ENGINE_VERSION} engine ships {SCORED_RULE_COUNT} rules across spam, content, aeo, links,
           schema, tech, data, and cannibalization categories. Each rule&apos;s
           findings aggregate per template — you get one verdict per template
           cluster, not a flat per-URL list. The spam rules map directly to
@@ -285,7 +286,7 @@ export default function ToolsIndexPage() {
                 <td className="px-4 py-3 font-medium text-foreground">pseolint (this site)</td>
                 <td className="px-4 py-3">$0/month</td>
                 <td className="px-4 py-3">up to 200 pages, stratified across templates, 3 audits/day per browser</td>
-                <td className="px-4 py-3">Yes — template-aware v0.6 engine; per-template verdicts</td>
+                <td className="px-4 py-3">Yes — template-aware engine; per-template verdicts</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Ahrefs</td>
@@ -329,7 +330,7 @@ export default function ToolsIndexPage() {
           monitoring in v0.5.0 (May 1, 2026), shipped the{ " " }
           <code className="font-mono">links/host-section-divergence</code>
           { " " }site-reputation-abuse detector in v0.5.1 (May 3, 2026), the
-          v0.5.2 credibility layer (May 3, 2026), and the v0.6
+          v0.5.2 credibility layer (May 3, 2026), and the
           template-aware engine — auditing by template rather than by URL,
           producing one verdict per template cluster via{ " " }
           <code className="font-mono">siteVerdictFromTemplates</code>. Runs as

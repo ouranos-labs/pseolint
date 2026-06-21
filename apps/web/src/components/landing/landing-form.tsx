@@ -13,6 +13,7 @@ import { normalizeUserUrl } from "@/lib/normalize-url";
 import { scoreTone } from "@/lib/grade";
 import { LANDING_FAQ } from "@/lib/landing-faq";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const GITHUB_ACTION_YAML = `name: pSEO Lint
 on: [pull_request]
@@ -214,7 +215,7 @@ export function LandingForm() {
             <div className="flex flex-col gap-6">
               <div className="hidden items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground sm:flex">
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                Template-aware SpamBrain + AEO · v0.7.0
+                Template-aware SpamBrain + AEO · v{ENGINE_VERSION}
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-4xl">
@@ -390,7 +391,7 @@ export function LandingForm() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
-                and AI Overview readiness. v0.6 audits by template — pages sampled stratified
+                and AI Overview readiness. It audits by template — pages sampled stratified
                 across templates, one verdict per template, site verdict = worst template above 5% coverage.
                 Catches SpamBrain-classifier triggers from the March 27, 2026 core update, the
                 May 7, 2024 site-reputation-abuse policy, the March 5, 2024 scaled-content-abuse
@@ -545,7 +546,7 @@ export function LandingForm() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Template-aware SpamBrain + AEO scoring (v0.6)</span> — v0.6 pivots the unit of analysis from URL to template. Pages are sampled stratified across templates, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; <span className="text-foreground">v0.6</span> added per-template breakdown across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring</span> — the engine pivots the unit of analysis from URL to template. Pages are sampled stratified across templates, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; per-template breakdown landed across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
             </li>
             <li>
               <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.

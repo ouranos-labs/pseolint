@@ -8,7 +8,7 @@ const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
 const PAGE_TITLE = "SpamBrain symptoms — diagnose your site";
 const PAGE_DESCRIPTION =
-  "A triage list for programmatic-SEO sites that have been hit. Match the symptom in Search Console, then run a v0.6 template-aware audit to confirm.";
+  "A triage list for programmatic-SEO sites that have been hit. Match the symptom in Search Console, then run a template-aware audit to confirm.";
 const CANONICAL = `${SITE_URL}/symptoms`;
 
 export const metadata: Metadata = {
@@ -60,7 +60,7 @@ function jsonLdSafe(data: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I triage a SpamBrain hit on a programmatic-SEO site?",
-    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the v0.6 audit to confirm which template and which rules are actually firing. v0.6 identifies the specific template responsible — you don't need to triage hundreds of URLs to find the problem.",
+    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the audit to confirm which template and which rules are actually firing. The audit identifies the specific template responsible — you don't need to triage hundreds of URLs to find the problem.",
   },
   {
     q: "How long does recovery take after fixing the rule violations?",
@@ -127,7 +127,7 @@ export default function SymptomsIndexPage() {
         If your traffic chart looks wrong and you don&apos;t yet know why, start here. Each
         page below covers one specific failure mode we see on programmatic-SEO sites — what
         it looks like in Google Search Console, the few things that actually cause it, and
-        the order to investigate. In v0.6, the audit tells you{" "}
+        the order to investigate. The audit tells you{" "}
         <span className="font-medium text-foreground">which template</span> is responsible
         — not just which URLs. The free pseolint audit covers up to 200 pages, stratified
         across templates, with 30-day retention at $0; comparable tools like Screaming Frog
@@ -171,10 +171,10 @@ export default function SymptomsIndexPage() {
 
       <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
-          Template-level symptoms — the v0.6 failure modes
+          Template-level symptoms — the template-scoped failure modes
         </h2>
         <p>
-          v0.6 introduces three template-scoped symptom patterns that flat-URL
+          pseolint surfaces three template-scoped symptom patterns that flat-URL
           audits cannot surface:
         </p>
         <ul className="ml-4 list-disc space-y-2">
@@ -197,7 +197,7 @@ export default function SymptomsIndexPage() {
           </li>
           <li>
             <span className="font-medium text-foreground">One bad template among many.</span>{" "}
-            This is the v0.6-specific failure mode: a site with 8 healthy
+            This is the template-specific failure mode: a site with 8 healthy
             templates and 1 broken one gets a critical site verdict if the
             broken template covers ≥5% of URLs. The broken template is the
             &quot;top driver&quot; shown on the site summary. Flat-URL audits

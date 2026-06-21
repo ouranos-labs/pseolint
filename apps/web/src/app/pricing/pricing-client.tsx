@@ -6,6 +6,7 @@ import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
 import { SourcesSection } from "@/components/marketing/sources-section";
+import { ENGINE_VERSION } from "@/lib/version";
 
 type Interval = "monthly" | "yearly";
 
@@ -49,7 +50,7 @@ const FAQS: ReadonlyArray<FAQ> = [
   },
   {
     q: "Is there a self-hosted option?",
-    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published to npm as @pseolint/core 0.7.0, pseolint 0.7.0, and @pseolint/mcp 0.7.0. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same template-aware SpamBrain + AEO scoring that powers the hosted product, including per-template verdicts and siteVerdictFromTemplates. A --state flag persists per-URL fetch metadata so subsequent runs only re-audit URLs that actually changed.",
+    a: "Yes. The core engine, CLI, and MCP server are MIT-licensed and published as @pseolint/core, pseolint, and @pseolint/mcp on npm. Run npx pseolint <url> locally or wire the GitHub Action into CI — no data leaves your infrastructure, and you get the same template-aware SpamBrain + AEO scoring that powers the hosted product, including per-template verdicts and siteVerdictFromTemplates. A --state flag persists per-URL fetch metadata so subsequent runs only re-audit URLs that actually changed.",
   },
   {
     q: "What is the refund policy?",
@@ -213,7 +214,7 @@ function PricingInner() {
         </h2>
         <p className="mb-5 max-w-3xl text-sm text-muted-foreground">
           Both tiers run the same template-aware SpamBrain and AEO engine from{ " " }
-          <code className="font-mono text-xs">@pseolint/core 0.7.0</code> — v0.6
+          <code className="font-mono text-xs">@pseolint/core {ENGINE_VERSION}</code> — it
           audits by template (stratified across templates), produces one verdict per
           template cluster, and determines the site verdict from the worst template
           with ≥5% URL coverage. The difference between Free and Pro is what
@@ -276,10 +277,10 @@ function PricingInner() {
           <p>
             pseolint is OSS-first by design. The CLI, the rule engine, and the MCP server are
             MIT-licensed and free forever — published to npm as{ " " }
-            <code className="font-mono text-xs">@pseolint/core 0.7.0</code>,{ " " }
-            <code className="font-mono text-xs">pseolint 0.7.0</code>, and{ " " }
-            <code className="font-mono text-xs">@pseolint/mcp 0.7.0</code>. Anyone can audit a site
-            from a laptop, drop the GitHub Action into CI, or fork the rules. The v0.6
+            <code className="font-mono text-xs">@pseolint/core</code>,{ " " }
+            <code className="font-mono text-xs">pseolint</code>, and{ " " }
+            <code className="font-mono text-xs">@pseolint/mcp</code>. Anyone can audit a site
+            from a laptop, drop the GitHub Action into CI, or fork the rules. The
             template-aware engine — including per-template verdicts, uniformity scores, and
             <code className="font-mono text-xs"> siteVerdictFromTemplates</code> — is in the
             open-source core. That part of the product never goes behind a paywall.
