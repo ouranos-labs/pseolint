@@ -1,5 +1,18 @@
 # @pseolint/mcp
 
+## 0.7.4
+
+### Patch Changes
+
+- v0.7.4 — pluggable cache backend + internal refinements.
+
+  - **Pluggable HTTP cache backend (`@pseolint/core`).** The audit cache's storage now sits behind a `CacheBackend { get, set }` interface. The default `FilesystemCacheBackend` preserves the existing dir-based behaviour byte-for-byte (the CLI is unchanged), so a host can supply its own store — e.g. an R2-backed cache on ephemeral-filesystem serverless — via `AuditOptions.cache.backend`. New exports: `CacheBackend`, `FilesystemCacheBackend`, `AnyCacheEntry`, `RedirectPointerEntry`, `CACHE_ENTRY_SCHEMA_VERSION`. All fetch revalidation (ETag/304), redirect-pointer, and negative-cache logic stays backend-agnostic, and every backend call is fail-safe — a backend error degrades to a cache miss (read) or a logged no-op (write), never aborting an audit.
+  - **`./rules/scope` subpath export (`@pseolint/core`).** A dependency-light entry exposing `SCORED_RULE_COUNT`, `RULE_SCOPE`, and `isRuleAllowedInDiff` without pulling the full engine barrel — for consumers (browser/edge bundles) that only need rule-scope metadata.
+  - **MCP JSON char-cap is now read per call (`@pseolint/mcp`).** `PSEOLINT_MCP_JSON_CHAR_CAP` is resolved at request time instead of frozen at module load, so the oversized-payload envelope threshold can be tuned/tested without a restart. No protocol change.
+
+- Updated dependencies
+  - @pseolint/core@0.7.4
+
 ## 0.7.3
 
 ### Patch Changes

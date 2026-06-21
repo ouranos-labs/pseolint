@@ -21,14 +21,14 @@
     },
     "apps/extension": {
       "name": "@pseolint/extension",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "dependencies": {
         "@pseolint/core": "workspace:*",
       },
     },
     "apps/web": {
       "name": "@pseolint/web",
-      "version": "0.7.3",
+      "version": "0.7.4",
       "dependencies": {
         "@aws-sdk/client-s3": "^3.700.0",
         "@aws-sdk/s3-request-presigner": "^3.700.0",
@@ -86,7 +86,7 @@
     },
     "packages/action": {
       "name": "@pseolint/action",
-      "version": "0.7.3",
+      "version": "0.7.4",
       "dependencies": {
         "@actions/core": "^3.0.0",
         "@actions/github": "^9.1.0",
@@ -113,7 +113,7 @@
     },
     "packages/core": {
       "name": "@pseolint/core",
-      "version": "0.7.3",
+      "version": "0.7.4",
       "dependencies": {
         "ai": "^5.0.0",
         "cheerio": "^1.2.0",
@@ -148,13 +148,13 @@
     },
     "packages/mcp": {
       "name": "@pseolint/mcp",
-      "version": "0.7.3",
+      "version": "0.7.4",
       "bin": {
         "pseolint-mcp": "dist/bin.js",
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.29.0",
-        "@pseolint/core": "^0.7.3",
+        "@pseolint/core": "^0.7.4",
         "zod": "^4.3.6",
       },
     },
@@ -714,8 +714,6 @@
     "@pseolint/extension": ["@pseolint/extension@workspace:apps/extension"],
 
     "@pseolint/mcp": ["@pseolint/mcp@workspace:packages/mcp"],
-
-    "@pseolint/web": ["@pseolint/web@file:apps/web", { "dependencies": { "@aws-sdk/client-s3": "^3.700.0", "@aws-sdk/s3-request-presigner": "^3.700.0", "@modelcontextprotocol/sdk": "^1.29.0", "@openpanel/nextjs": "^1.5.1", "@openpanel/sdk": "^1.3.1", "@polar-sh/sdk": "^0.40.0", "@pseolint/core": "workspace:*", "@pseolint/mcp": "workspace:*", "@radix-ui/react-dialog": "^1.1.0", "@radix-ui/react-slot": "^1.1.0", "@radix-ui/react-toast": "^1.2.0", "@react-email/components": "^0.0.30", "@react-email/render": "^1.0.0", "@upstash/ratelimit": "^2.0.5", "@upstash/redis": "^1.34.3", "better-auth": "^1.3.0", "class-variance-authority": "^0.7.0", "clsx": "^2.1.0", "drizzle-orm": "^0.44.0", "geist": "^1.4.0", "google-auth-library": "^10.6.2", "inngest": "^3.44.0", "lucide-react": "^0.460.0", "mcp-handler": "^1.1.0", "nanoid": "^5.1.0", "next": "latest", "next-themes": "^0.4.0", "playwright-core": "^1.55.0", "postgres": "^3.4.9", "pseolint": "workspace:*", "react": "latest", "react-dom": "latest", "resend": "^4.8.0", "server-only": "^0.0.1", "sonner": "^1.7.0", "ssrf-req-filter": "^1.1.0", "tailwind-merge": "^2.6.0", "zod": "^4.3.6" }, "devDependencies": { "@emailens/cli": "^0.3.3", "@emailens/engine": "^0.9.1", "@playwright/test": "^1.55.0", "@tailwindcss/postcss": "^4.1.0", "@testing-library/react": "^16.1.0", "@types/node": "latest", "@types/react": "latest", "@types/react-dom": "latest", "drizzle-kit": "^0.31.10", "postcss": "^8.5.0", "tailwindcss": "^4.1.0", "vitest": "^4.1.4" } }],
 
     "@pseolint/web": ["@pseolint/web@workspace:apps/web"],
 
@@ -1879,8 +1877,6 @@
 
     "@pseolint/web/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
 
-    "@pseolint/web/@types/node": ["@types/node@26.0.0", "", { "dependencies": { "undici-types": "~8.3.0" } }, "sha512-vf2YFi1iY9lHGwNJMs01biZFbKJkrZR1T6/MlzjhJLPdntOHLhTrDSnSVcdtvjihi4VQNlrFRIxLsDBlQpAipA=="],
-
     "@react-email/components/@react-email/render": ["@react-email/render@1.0.3", "", { "dependencies": { "html-to-text": "9.0.5", "prettier": "3.3.3", "react-promise-suspense": "0.3.4" }, "peerDependencies": { "react": "^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^18.0 || ^19.0 || ^19.0.0-rc" } }, "sha512-VQ8g4SuIq/jWdfBTdTjb7B8Np0jj+OoD7VebfdHhLTZzVQKesR2aigpYqE/ZXmwj4juVxDm8T2b6WIIu48rPCg=="],
 
     "@rolldown/binding-wasm32-wasi/@emnapi/runtime": ["@emnapi/runtime@1.10.0", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA=="],
@@ -2042,8 +2038,6 @@
     "@esbuild-kit/core-utils/esbuild/@esbuild/win32-x64": ["@esbuild/win32-x64@0.18.20", "", { "os": "win32", "cpu": "x64" }, "sha512-kTdfRcSiDfQca/y9QIkng02avJ+NCaQvrMejlsB3RRv5sE9rRoeBPISaZpKxHELzRxZyLvNts1P27W3wV+8geQ=="],
 
     "@inngest/ai/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
-
-    "@pseolint/web/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 
     "@pseolint/web/@types/node/undici-types": ["undici-types@8.3.0", "", {}, "sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ=="],
 

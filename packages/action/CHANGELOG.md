@@ -1,5 +1,12 @@
 # @pseolint/action
 
+## 0.7.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @pseolint/core@0.7.4
+
 ## 0.7.3
 
 ### Patch Changes
