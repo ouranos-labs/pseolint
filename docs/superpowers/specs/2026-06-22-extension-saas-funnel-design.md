@@ -24,17 +24,18 @@ Spine: **Scout** (free extension snapshot) → **Win** (paid SaaS: audit/build t
 
 ### 1. Spine mapped to the panel's existing states
 - **Scout (sharpen, no new logic):** reframe the takeaway + `t.opening` rendering action-first — *"#3 ranks on a thin, no-OG page — that's your way in,"* not a flat description.
-- **Win (new primary CTA):** replaces the generic CTA. When `t.opening` exists, render *"Win this opening → audit the page that beats #N"*, carrying competitive context into the hand-off (§2).
-- **Hold (new secondary):** a quieter *"Watch this SERP"* below the Win CTA → deep-links to the existing add-domain/monitoring flow. Never competes visually with Win.
+- **Win (new primary CTA):** replaces the generic CTA. When `t.opening` exists, render the win CTA *adapted to the user's position* (§2) — climb / insert / set-domain — carrying competitive context into the hand-off.
+- **Hold (v1 = none in the extension):** pseolint's monitoring watches *domains* (audit-state), not SERP positions — so a "Watch this SERP" CTA would over-promise a rank-tracking feature that doesn't exist (§5). v1 is **scout → win**; "hold" is the SaaS's *existing* post-audit monitoring upsell (downstream, on the report), never a new extension CTA.
 
 ### 2. The Win bridge — deep-link contract (extension → SaaS)
-- Extension builds: `https://pseolint.dev/?prefill=<yourUrl>&from=serp&q=<keyword>&against=<opening-host>`
-  - `prefill` = the user's own target (their `userHost`-derived URL if set; else a one-field "paste your page" prompt before the CTA fires).
-  - `q` = the SERP query (read from the active tab's `?q=` on google.com/search).
-  - `against` = `t.opening.host` (the page to beat).
-  - `from=serp` = the funnel marker.
-- SaaS reads `from=serp` on the prefill landing and renders **one contextual banner**: *"You're chasing the '{q}' SERP — here's your gap to insert past {against}."* The report's existing fix-list is the answer. (Small SaaS change: parse 3 params → one banner component. No new pages, no auth change.)
-- All params are URL-encoded; the SaaS treats `q`/`against` as untrusted display strings (escape, length-cap) — they only render in the banner, never executed.
+- Extension builds: `https://pseolint.dev/?prefill=<target>&from=serp&q=<keyword>&against=<opening-host>`
+  - `target` (= `prefill`) depends on the user's position on this SERP:
+    - **climb** — `userHost` matches a ranked row → the user's *ranking page* (that row's URL); CTA "Climb past #N → audit your page."
+    - **insert** — `userHost` set but not ranking → the `userHost` *site root*; CTA "You're not on this SERP yet — audit your site to insert."
+    - **set-domain** — no `userHost` → the CTA prompts inline for the domain first (never prefill the opening's URL — that audits the competitor).
+  - `q` = the SERP query (active tab's `?q=` on google.com/search). `against` = `t.opening.host` (the page to beat). `from=serp` = the funnel marker.
+- SaaS reads `from=serp` on the prefill landing. For this case it does **not** auto-submit (unlike a plain prefill): it shows the prefilled target + **one contextual banner** — *"You're chasing the '{q}' SERP — audit to find your gap to insert past {against}"* — and an explicit **"Audit to win this SERP"** button. The deliberate click (vs auto-submit) puts the competitive context where the user decides and avoids threading params through the redirect chain. The report's existing fix-list is then the answer.
+- All params URL-encoded; the SaaS treats `q`/`against` as untrusted display strings (escape, length-cap) — banner-only, never executed.
 
 ### 3. Qualify — self-select pSEO-fit users
 When the SERP is heavily templated (`t.monotony` true / templated cluster detected), the Win CTA escalates its sub-copy: *"{N} near-identical pages already rank — this is a templated SERP. pseolint is built to fill these at scale without tripping SpamBrain."* Proves the insight **and** flags programmatic ambition → the moat. Non-templated SERPs get the plain Win CTA (no escalation).
@@ -48,10 +49,11 @@ When the SERP is heavily templated (`t.monotony` true / templated cluster detect
 - No new SaaS pages; reuse the `?prefill=` audit flow + add the banner.
 - No monitoring backend changes; "Watch this SERP" deep-links to the existing add-domain flow.
 - No render/fetch changes in the extension (the raw-HTML snapshot ceiling stays; the hosted audit is the sound path, which is exactly what Win sends them to).
+- No SERP/rank tracking. pseolint monitors *domains* (audit-state), not SERP positions — so v1 ships no "watch this SERP." A SERP-watch "hold" is a future spec, contingent on a rank-tracking capability that doesn't exist today.
 
 ## Data flow
 
-`Google SERP → content scripts (scout) → teardown model {opening, rows, monotony, keyword} → sidepanel render → Win CTA builds context deep-link → SaaS prefill landing reads from=serp/q/against → context banner + auto-audit → report fix-list (the "how to win") → (Hold) add-domain/monitoring`.
+`Google SERP → content scripts (scout) → teardown model {opening, rows, monotony, keyword} → sidepanel render → Win CTA builds context deep-link → SaaS prefill landing reads from=serp/q/against → context banner + deliberate "Audit to win" → report fix-list (the "how to win") → downstream: SaaS's existing account/monitoring upsell`.
 
 ## Error handling / edge cases
 
@@ -62,7 +64,7 @@ When the SERP is heavily templated (`t.monotony` true / templated cluster detect
 
 ## Testing
 
-- **Extension:** extend the existing no-framework assertion checks (`bun run test`) — the deep-link builder (correct params, encoding, the no-`userHost` and no-`opening` branches), and the templated-vs-plain CTA copy selection. Pin to the `teardown` model shape.
+- **Extension:** extend the existing no-framework assertion checks (`bun run test`) — the deep-link builder (correct params + encoding; the climb / insert / set-domain target selection; the no-`opening` branch) and the templated-vs-plain CTA copy selection. Pin to the `teardown` model shape.
 - **SaaS:** a small test for the banner param-parse (renders on `from=serp`, escapes `q`/`against`, degrades when absent).
 - **Manual:** load unpacked on a templated SERP (e.g. a `/city/service` query) → deep scan → Win CTA → confirm the landing banner + auto-audit.
 
