@@ -76,6 +76,9 @@ export function LandingForm() {
   // first paint so the CTA sits right under the input, while still solving in
   // the background well before submit.
   const [turnstileArmed, setTurnstileArmed] = useState(false);
+  // Competitive context from the extension's "win this SERP" hand-off (?from=serp).
+  // Display-only; React escapes q/against and we length-cap them. ponytail: cap 80.
+  const [serp, setSerp] = useState<{ q: string; against: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -88,6 +91,10 @@ export function LandingForm() {
         setTurnstileArmed(true);
       }
       if (params.get("force") === "1") setForce(true);
+      if (params.get("from") === "serp") {
+        const cap = (s: string | null) => (s ?? "").slice(0, 80);
+        setSerp({ q: cap(params.get("q")), against: cap(params.get("against")) });
+      }
     } catch { }
     try {
       if (window.localStorage.getItem(TOS_STORAGE_KEY) === "1") {
@@ -229,6 +236,19 @@ export function LandingForm() {
                 It also flags which pages can get cited in ChatGPT, Perplexity, and Google AI Overviews.
               </p>
 
+              { serp && (
+                <div className="rounded-[14px] border border-primary/30 bg-primary/5 p-3 text-sm">
+                  <p className="font-medium text-foreground">
+                    { serp.q ? `You're chasing the “${serp.q}” SERP.` : "You came from a SERP scout." }
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    { serp.against
+                      ? `Audit your page below to find your gap to insert past ${serp.against} — the report's fix-list is how you win it.`
+                      : "Audit your page below — the report's fix-list is how you win this SERP." }
+                  </p>
+                </div>
+              ) }
+
               <form onSubmit={ submit } className="flex flex-col gap-3">
                 <label htmlFor="url" className="sr-only">
                   Site URL
@@ -288,7 +308,7 @@ export function LandingForm() {
                   disabled={ submitting }
                   className="h-11 w-full font-semibold"
                 >
-                  { submitting ? "Starting audit…" : "Audit my site — free" }
+                  { submitting ? "Starting audit…" : serp ? "Audit to win this SERP" : "Audit my site — free" }
                 </Button>
 
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
