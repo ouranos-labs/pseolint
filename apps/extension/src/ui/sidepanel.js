@@ -1,7 +1,7 @@
 // Power surface. Owns the deep-scan gesture + host-permission request (only valid
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
-import { teardown, takeaway, userHost } from "../shared/teardown.js";
+import { teardown, takeaway, userHost, buildWin } from "../shared/teardown.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
@@ -10,10 +10,17 @@ const $ = (id) => document.getElementById(id);
 
 let lastResults = []; // cached so "your site" can re-render when the domain changes
 let myHost = ""; // the user's tracked domain (stored locally, never transmitted)
+let serpQuery = ""; // the current SERP's query (?q=), carried into the win deep-link
 
 function isGoogleSerp(url) {
   if (!url) return false;
   return /^https:\/\/(www\.)?google\.[a-z.]+\/search/i.test(url);
+}
+
+// The SERP query (?q=) — carried into the win-bridge deep-link so the SaaS can
+// frame the audit as "win the '<query>' SERP". "" when absent/unparseable.
+function serpKeyword(url) {
+  try { return new URL(url).searchParams.get("q") || ""; } catch { return ""; }
 }
 
 async function getActiveTab() {
@@ -72,6 +79,7 @@ async function loadLandscape() {
     $("opening").textContent = "";
     $("results").textContent = "";
     $("cta").hidden = true;
+    $("cta-sub").hidden = true;
     $("serp-opportunities").style.display = "none";
     return;
   }
@@ -91,6 +99,7 @@ async function loadLandscape() {
 async function deepScan() {
   const tab = await getActiveTab();
   if (!tab || !tab.id) return;
+  serpQuery = serpKeyword(tab.url);
   $("scan").disabled = true;
   $("status").textContent = "Requesting access…";
   const granted = await chrome.permissions.request(SCAN_PERMISSION).catch(() => false);
@@ -145,6 +154,7 @@ function render(results) {
   $("takeaway").textContent = "";
   $("opening").textContent = "";
   $("cta").hidden = true;
+  $("cta-sub").hidden = true;
   if (results.length === 0) {
     $("status").textContent = "No results found — open a Google results page.";
     return;
@@ -261,7 +271,27 @@ function render(results) {
     $("serp-opportunities").style.display = "none";
   }
 
-  $("cta").hidden = false;
+  // Win bridge — the primary conversion: point the hot "found an opening" moment
+  // at the hosted audit (the moat), adapted to the user's position on this SERP.
+  const win = buildWin(t, myHost, serpQuery);
+  const cta = $("cta");
+  const ctaSub = $("cta-sub");
+  if (win && win.mode === "set-domain") {
+    cta.textContent = win.primary;
+    cta.href = "https://pseolint.dev";
+    cta.dataset.prompt = "1"; // click focuses the domain input (handler below)
+  } else if (win) {
+    cta.textContent = win.primary;
+    cta.href = win.href;
+    delete cta.dataset.prompt;
+  } else { // no opening — generic fallback
+    cta.textContent = "Audit your own site →";
+    cta.href = "https://pseolint.dev";
+    delete cta.dataset.prompt;
+  }
+  ctaSub.textContent = win && win.sub ? win.sub : "";
+  ctaSub.hidden = !(win && win.sub);
+  cta.hidden = false;
   renderYourSite();
 }
 
@@ -273,6 +303,12 @@ async function handleScanClick() {
 }
 
 $("scan").addEventListener("click", handleScanClick);
+
+// In set-domain mode the win CTA prompts for the domain rather than navigating
+// (degrades to pseolint.dev if JS is disabled, since it keeps a real href).
+$("cta").addEventListener("click", (e) => {
+  if ($("cta").dataset.prompt) { e.preventDefault(); $("domain").focus(); }
+});
 
 // Tracked domain: load from local storage, persist on edit, re-render the match.
 chrome.storage?.local?.get?.("domain").then((o) => {
@@ -302,6 +338,7 @@ async function onTabChange() {
     $("opening").textContent = "";
     $("results").textContent = "";
     $("cta").hidden = true;
+    $("cta-sub").hidden = true;
     $("serp-opportunities").style.display = "none";
   } else {
     $("scan").disabled = false;
