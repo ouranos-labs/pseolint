@@ -132,6 +132,67 @@ function buildFaqJsonLd(rule: MarketingRule): FaqPageJsonLd {
   };
 }
 
+function getRuleArchetype(ruleId: string, slug: string): 'spam' | 'aeo' | 'tech' | 'links' | 'default' {
+  if (ruleId.startsWith("spam/")) return 'spam';
+  if (ruleId.startsWith("aeo/") || ruleId === "content/missing-author" || ruleId === "content/eeat-signals") return 'aeo';
+  if (ruleId.startsWith("links/")) return 'links';
+  if (
+    ruleId.startsWith("tech/") ||
+    ruleId.startsWith("schema/") ||
+    ruleId.startsWith("cannibal/") ||
+    slug.includes("meta") ||
+    slug.includes("heading") ||
+    slug.includes("title") ||
+    slug.includes("alt-text") ||
+    slug === "crawler-access" ||
+    slug === "llms-txt"
+  ) {
+    return 'tech';
+  }
+  return 'default';
+}
+
+function getTechCodeSnippet(slug: string): string {
+  if (slug === "llms-txt") {
+    return `# llms.txt
+# Directions for LLMs and crawler agents
+
+## Main Section
+- [pseolint](https://pseolint.dev): Learn about programmatic SEO audits.
+- [Rules Reference](https://pseolint.dev/rules): Explainer guides for SpamBrain.`;
+  }
+  if (slug === "crawler-access") {
+    return `// apps/web/src/app/robots.ts
+import { MetadataRoute } from 'next';
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: {
+      userAgent: '*',
+      allow: '/',
+      disallow: '/api/',
+    },
+    sitemap: 'https://pseolint.dev/sitemap.xml',
+  };
+}`;
+  }
+  return `// next.config.js
+module.exports = {
+  reactStrictMode: true,
+  // Custom headers for crawler optimization
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'index, follow' }
+        ]
+      }
+    ];
+  }
+};`;
+}
+
 export default async function RulePage({ params }: PageProps) {
   const { ruleId } = await params;
   const rule = findMarketingRule(ruleId);
@@ -142,6 +203,23 @@ export default async function RulePage({ params }: PageProps) {
   const articleJsonLd = buildArticleJsonLd(rule);
   const faqJsonLd = buildFaqJsonLd(rule);
   const related = getRelatedMarketingRules(rule.relatedRules);
+  const archetype = getRuleArchetype(rule.ruleId, rule.slug);
+
+  const faqElement = (
+    <Section title="Frequently asked questions">
+      <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+        {rule.faqs.map((faq, index) => (
+          <div
+            key={`${rule.slug}-faq-${index}`}
+            className="border-b border-border/60 px-5 py-5 last:border-b-0"
+          >
+            <dt className="text-sm font-semibold text-foreground">{faq.q}</dt>
+            <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{faq.a}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
@@ -178,6 +256,13 @@ export default async function RulePage({ params }: PageProps) {
 
       <p className="mt-4 max-w-2xl text-base text-foreground">{rule.oneLiner}</p>
 
+      {/* Archetype B: Answer-First Structure FAQ render at the top */}
+      {archetype === 'aeo' && (
+        <div className="mt-8">
+          {faqElement}
+        </div>
+      )}
+
       <div className="mt-7 flex flex-wrap gap-3">
         <Link
           href={`/tools/${rule.relatedTool}`}
@@ -209,6 +294,48 @@ export default async function RulePage({ params }: PageProps) {
         />
       </div>
 
+      {/* Archetype A: SpamBrain Policy Impact Alert */}
+      {archetype === 'spam' && (
+        <aside className="my-8 rounded-[22px] border border-amber-500/20 bg-amber-500/5 p-6 text-sm text-foreground">
+          <div className="flex gap-4">
+            <span className="text-xl">⚠️</span>
+            <div>
+              <h3 className="font-semibold text-amber-500">SpamBrain Policy Enforcement Alert</h3>
+              <p className="mt-2 text-muted-foreground">
+                This pattern is a primary signal for Google's automated SpamBrain classifier. High densities of this pattern trigger site-wide helpfulness demotions that typically require a 90-day recovery window.
+              </p>
+              <ul className="mt-3 list-disc pl-5 space-y-1 text-xs text-muted-foreground">
+                <li>Evaluated at the host and directory cluster level.</li>
+                <li>Directly impacts indexing priority and soft-404 thresholds.</li>
+                <li>Can escalate to manual action reviews.</li>
+              </ul>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      {/* Archetype B: Generative Citation Checklist */}
+      {archetype === 'aeo' && (
+        <article className="mt-10 rounded-[22px] border border-border/80 bg-card/30 p-6">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">Generative Citation Checklist</h3>
+          <p className="mt-1.5 text-xs text-muted-foreground">Optimize your content to trigger Google AI Overviews and answer engine summaries:</p>
+          <ul className="mt-4 space-y-3">
+            <li className="flex items-start gap-3">
+              <input type="checkbox" readOnly checked className="mt-1 accent-primary" />
+              <span className="text-sm text-foreground"><strong>Entity Grounding:</strong> Ensure the primary topic is declared with schema markup.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <input type="checkbox" readOnly checked className="mt-1 accent-primary" />
+              <span className="text-sm text-foreground"><strong>Answer-First Format:</strong> Place direct answers (under 300 characters) in paragraph tags directly under headings.</span>
+            </li>
+            <li className="flex items-start gap-3">
+              <input type="checkbox" readOnly checked className="mt-1 accent-primary" />
+              <span className="text-sm text-foreground"><strong>Authoritative Citations:</strong> Link to peer-reviewed sources or primary data sets to establish domain authority.</span>
+            </li>
+          </ul>
+        </article>
+      )}
+
       <Section title="What it detects">
         <Prose text={rule.whatItDetects} />
       </Section>
@@ -217,21 +344,127 @@ export default async function RulePage({ params }: PageProps) {
         <Prose text={rule.whyItMatters} />
       </Section>
 
-      <Section title="A page that fails">
-        {/* data-example: this is a quoted illustration, not the page's own voice.
-            pseolint's content-quality rules (common-phrase-reuse,
-            regurgitated-content) exclude [data-example] regions, so an explainer
-            that must *quote* a bad pattern isn't penalised for teaching it. */}
-        <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
-          <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
-        </div>
-      </Section>
+      {/* Archetype A fails/passes vs standard fails/passes */}
+      {archetype === 'spam' ? (
+        <section className="mt-12">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            Fail vs. Pass Comparison
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-destructive">Failing Pattern</h4>
+              <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
+            </div>
+            <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
+              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Passing Pattern</h4>
+              <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <>
+          <Section title="A page that fails">
+            <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
+              <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
+            </div>
+          </Section>
 
-      <Section title="A page that passes">
-        <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
-          <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
-        </div>
-      </Section>
+          <Section title="A page that passes">
+            <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
+              <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
+            </div>
+          </Section>
+        </>
+      )}
+
+      {/* Archetype C: Technical Configuration Panel & CLI Debug */}
+      {archetype === 'tech' && (
+        <>
+          <section className="mt-12 rounded-[22px] border border-border/70 bg-black/90 p-5 font-mono text-xs text-zinc-300">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
+              <span className="text-zinc-500">📄 configuration-example.js</span>
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+            </div>
+            <pre className="overflow-x-auto">
+              <code>{getTechCodeSnippet(rule.slug)}</code>
+            </pre>
+          </section>
+
+          <section className="mt-6 rounded-[18px] border border-zinc-800 bg-zinc-950 p-4 font-mono text-xs">
+            <p className="text-zinc-500"># Run local audit for this rule:</p>
+            <div className="mt-2 flex items-center gap-2 text-primary">
+              <span>$</span>
+              <code className="text-foreground">npx pseolint --rule={rule.ruleId}</code>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Archetype D: Internal Link Architecture SVG and Anchor Text Table */}
+      {archetype === 'links' && (
+        <>
+          <section className="mt-12 rounded-[22px] border border-border/60 bg-card/40 p-6">
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Internal Link Architecture</h3>
+            <div className="flex justify-center py-4 bg-background/50 rounded-xl">
+              <svg width="280" height="120" viewBox="0 0 280 120" className="text-foreground fill-none stroke-current stroke-2">
+                <circle cx="50" cy="30" r="16" className="stroke-primary fill-primary/10" />
+                <text x="50" y="34" className="stroke-none fill-foreground text-[10px] font-semibold text-center" textAnchor="middle">HUB</text>
+                
+                <circle cx="140" cy="30" r="16" className="stroke-primary fill-primary/10" />
+                <text x="140" y="34" className="stroke-none fill-foreground text-[10px] font-semibold" textAnchor="middle">SILO</text>
+                
+                <circle cx="230" cy="30" r="16" className="stroke-muted fill-muted/10" />
+                <text x="230" y="34" className="stroke-none fill-muted-foreground text-[10px] font-semibold" textAnchor="middle">ISLAND</text>
+                
+                <path d="M 66 30 L 124 30" className="stroke-primary" markerEnd="url(#arrow)" />
+                <path d="M 156 30 L 214 30" className="stroke-destructive stroke-dashed" />
+                <path d="M 140 46 L 140 84 C 140 94, 50 94, 50 46" className="stroke-primary" />
+                
+                <defs>
+                  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" className="fill-primary stroke-none" />
+                  </marker>
+                </defs>
+              </svg>
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground text-center">
+              A correctly structured link silo feeds authority to parent hubs while avoiding dead-end loops or orphan island pages.
+            </p>
+          </section>
+
+          <section className="mt-8">
+            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Recommended Anchor Text Distribution</h3>
+            <div className="overflow-hidden rounded-xl border border-border/60">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-muted/50 border-b border-border/60">
+                    <th className="p-3 font-semibold text-foreground">Anchor Type</th>
+                    <th className="p-3 font-semibold text-foreground">Optimal Ratio</th>
+                    <th className="p-3 font-semibold text-foreground">Example</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-border/60">
+                    <td className="p-3 font-medium text-foreground">Exact Match Keyword</td>
+                    <td className="p-3 text-muted-foreground">10% - 15%</td>
+                    <td className="p-3 font-mono text-muted-foreground">"thin content SEO"</td>
+                  </tr>
+                  <tr className="border-b border-border/60">
+                    <td className="p-3 font-medium text-foreground">Partial Match / LSI</td>
+                    <td className="p-3 text-muted-foreground">30% - 40%</td>
+                    <td className="p-3 font-mono text-muted-foreground">"learn about doorway patterns"</td>
+                  </tr>
+                  <tr>
+                    <td className="p-3 font-medium text-foreground">Branded / Generative</td>
+                    <td className="p-3 text-muted-foreground">Remaining</td>
+                    <td className="p-3 font-mono text-muted-foreground">"pseolint platform"</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
 
       <Section title="How to fix it">
         <ol className="space-y-3">
@@ -253,19 +486,8 @@ export default async function RulePage({ params }: PageProps) {
         <Prose text={rule.spamBrainContext} />
       </Section>
 
-      <Section title="Frequently asked questions">
-        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
-          {rule.faqs.map((faq, index) => (
-            <div
-              key={`${rule.slug}-faq-${index}`}
-              className="border-b border-border/60 px-5 py-5 last:border-b-0"
-            >
-              <dt className="text-sm font-semibold text-foreground">{faq.q}</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{faq.a}</dd>
-            </div>
-          ))}
-        </dl>
-      </Section>
+      {/* Render FAQ here only if it wasn't rendered at the top */}
+      {archetype !== 'aeo' && faqElement}
 
       <WorkedExampleSection title="How this shows up in practice" paragraphs={rule.extra ?? []} />
 

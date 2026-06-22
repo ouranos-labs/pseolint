@@ -166,6 +166,22 @@ function ldString(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
 
+function getSymptomArchetype(slug: string): 'recovery' | 'penalty' | 'tech' {
+  if (slug.includes("lost-rankings") || slug.includes("traffic-dropped-rankings") || slug.includes("thin-content-warning")) {
+    return "recovery";
+  }
+  if (
+    slug.includes("site-reputation-abuse") ||
+    slug.includes("deindexed") ||
+    slug.includes("manual-action") ||
+    slug.includes("scaled-content-abuse") ||
+    slug.includes("doorway-pages")
+  ) {
+    return "penalty";
+  }
+  return "tech";
+}
+
 export default async function SymptomPage({ params }: RouteParams): Promise<React.JSX.Element> {
   const { symptom } = await params;
   const entry = findSymptom(symptom);
@@ -174,6 +190,7 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
   const { article, faq, howTo } = buildSchemas(entry);
   const otherSymptoms = MARKETING_SYMPTOMS.filter((s) => s.slug !== entry.slug).slice(0, 4);
   const ldPayload = `${ldString(article)}\n${ldString(faq)}\n${ldString(howTo)}`;
+  const archetype = getSymptomArchetype(entry.slug);
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
@@ -198,6 +215,37 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
           {entry.title}
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground">{entry.oneLiner}</p>
+        
+        {/* Archetype B: GSC Manual Action Alert Box */}
+        {archetype === 'penalty' && (
+          <aside className="my-6 rounded-[18px] border border-red-500/30 bg-red-500/5 p-5">
+            <div className="flex items-start gap-4">
+              <span className="text-2xl text-red-500">🔴</span>
+              <div>
+                <h3 className="text-sm font-semibold text-red-500 uppercase tracking-wider">Search Console Manual Action</h3>
+                <p className="mt-2 text-sm text-foreground">
+                  <strong>Status:</strong> Active penalty on domain cluster.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Google's human review team has marked these pages as violating webmaster quality guidelines. Unlike algorithmic dampening, a manual action completely deindexes or severely suppresses the affected URLs.
+                </p>
+              </div>
+            </div>
+          </aside>
+        )}
+
+        {/* Archetype A: Priority Recovery Checklist */}
+        {archetype === 'recovery' && (
+          <div className="my-6 rounded-[18px] border border-primary/20 bg-primary/5 p-5 text-xs">
+            <h4 className="font-semibold text-primary uppercase tracking-wider mb-2">Priority Recovery Checklist</h4>
+            <ul className="space-y-1.5 text-muted-foreground list-disc pl-4">
+              <li>Identify and prune thin URLs (&lt; 300 words) to reclaim crawl budget.</li>
+              <li>Diversify page template layout signatures above 30%.</li>
+              <li>Resolve near-duplicate SimHash pairs matching &gt; 85% similarity.</li>
+            </ul>
+          </div>
+        )}
+
         <div className="mt-6">
           <InlineAuditWidget
             headline="Diagnose your site"
@@ -237,6 +285,43 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
         </ol>
       </Section>
 
+      {/* Archetype C: Diagnostic Script Box */}
+      {archetype === 'tech' && (
+        <section className="mt-8 rounded-[22px] border border-border/70 bg-black/95 p-5 font-mono text-xs text-zinc-300">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-3 mb-4">
+            <span className="text-zinc-500">💻 debug-crawlers.sh</span>
+            <span className="text-[10px] text-zinc-500">cURL commands</span>
+          </div>
+          <p className="text-zinc-500 mb-2"># Check index status, header canonicals and redirect loops:</p>
+          <pre className="overflow-x-auto text-primary">
+            <code>
+              {`# 1. Inspect HTTP response headers and X-Robots-Tag\ncurl -I -A "Googlebot" https://yourdomain.com/page-path\n\n# 2. Check sitemap location in robots.txt\ncurl -s https://yourdomain.com/robots.txt | grep -i sitemap\n\n# 3. Verify canonical header matches self-canonical URL\ncurl -s -D - https://yourdomain.com/page-path | grep -i "link: <"`}
+            </code>
+          </pre>
+        </section>
+      )}
+
+      {/* Archetype B: Reconsideration Checklist */}
+      {archetype === 'penalty' && (
+        <section className="mt-8 rounded-[22px] border border-border/60 bg-card/40 p-5">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">Reconsideration Request Process</h3>
+          <ol className="mt-4 space-y-4 text-xs text-muted-foreground">
+            <li className="flex gap-3">
+              <span className="font-mono text-primary font-bold">01.</span>
+              <span><strong>Thorough Cleanup:</strong> Completely delete, noindex, or rewrite the offending doorway/scaled content pages. Do not leave a single low-quality page behind.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-primary font-bold">02.</span>
+              <span><strong>Document the Fixes:</strong> Keep a precise log of every URL pruned or updated to show Google's reviewers you took significant action.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-mono text-primary font-bold">03.</span>
+              <span><strong>Submit Reconsideration:</strong> Write a candid message in Search Console detailing what went wrong, what you've deleted, and the measures put in place to prevent it recurring.</span>
+            </li>
+          </ol>
+        </section>
+      )}
+
       <Section title="Rules that detect this symptom">
         <p className="mb-4 text-xs text-muted-foreground">
           pseolint findings most strongly correlated with this pattern.
@@ -274,6 +359,34 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
           ))}
         </div>
       </Section>
+
+      {/* Archetype A: Algorithmic Recovery Curve Chart */}
+      {archetype === 'recovery' && (
+        <section className="mt-12 rounded-[22px] border border-border/60 bg-card/40 p-6">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Typical 90-Day Algorithmic Recovery Curve</h3>
+          <div className="relative h-48 w-full bg-background/50 rounded-xl p-4 flex items-end">
+            <svg viewBox="0 0 500 150" className="w-full h-full text-primary fill-none stroke-current stroke-2">
+              <line x1="0" y1="20" x2="500" y2="20" className="stroke-muted/20" strokeWidth="1" />
+              <line x1="0" y1="70" x2="500" y2="70" className="stroke-muted/20" strokeWidth="1" />
+              <line x1="0" y1="120" x2="500" y2="120" className="stroke-muted/20" strokeWidth="1" />
+              
+              <path d="M 0 30 L 100 40 L 120 130 L 250 130 L 320 80 L 450 35 L 500 30" className="stroke-primary" />
+              
+              <circle cx="120" cy="130" r="4" className="fill-destructive stroke-none" />
+              <text x="120" y="110" className="stroke-none fill-destructive text-[8px] font-sans" textAnchor="middle">Algorithm Update</text>
+              
+              <circle cx="250" cy="130" r="4" className="fill-emerald-500 stroke-none" />
+              <text x="250" y="110" className="stroke-none fill-emerald-500 text-[8px] font-sans" textAnchor="middle">Pruning & Fixes</text>
+              
+              <circle cx="450" cy="35" r="4" className="fill-primary stroke-none" />
+              <text x="450" y="20" className="stroke-none fill-primary text-[8px] font-sans" textAnchor="middle">Full Recovery</text>
+            </svg>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground text-center">
+            Algorithmic reassessment occurs in cycles, usually requiring 60 to 90 days after updates are fully rolled out and crawl budgets refresh.
+          </p>
+        </section>
+      )}
 
       <Section title="What recovery looks like">
         <p className="text-sm leading-relaxed text-muted-foreground">{entry.recoveryTimeline}</p>
