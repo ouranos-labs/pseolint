@@ -57,8 +57,9 @@ export function AuditForm() {
           className="h-3.5 w-3.5 accent-primary"
         />
         <span>
-          Rendered mode (JS-heavy sites — Webflow, Framer, React SPAs).
-          Slower but catches rendered content.
+          Rendered mode (Pro) — JS-heavy sites (Webflow, Framer, React SPAs).
+          Slower but catches rendered content. Free audits run static even if
+          this is ticked.
         </span>
       </label>
       {error && <span className="text-xs text-destructive">{error}</span>}

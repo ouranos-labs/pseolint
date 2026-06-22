@@ -27,12 +27,14 @@ import { ExportMenu } from "@/components/report/export-menu";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
 import { TileLegend } from "@/components/audit/tile-legend";
-import { gradeOf, scoreTone } from "@/lib/grade";
+import { gradeOf, scoreTone, verdictStyle } from "@/lib/grade";
 import { detectDnsProvider } from "@/lib/dns-provider";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
 import { WatchedPagesCard } from "./watched-pages-card";
 import { QuickIndexerCard } from "@/components/dashboard/quick-indexer-card";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
+import { RootCauses } from "@/components/report/root-causes";
+import { SeverityDemotions } from "@/components/report/severity-demotions";
 
 export default async function DomainWorkspace({ params }: { params: Promise<{ host: string }> }) {
   const session = await getOptionalSession();
@@ -273,7 +275,22 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     const latestCompletedAt = latestAudit.completedAt;
     const previousCompletedAt = completedRuns[1]?.completedAt ?? null;
     if (previousCompletedAt) {
-      const [newRows, [{ recoveredCount }], recoveredRows] = await withDbRetry(() => Promise.all([
+      // "Recovered" must mean the engine actually RE-CHECKED the page and the
+      // finding no longer fired — not merely that we didn't see it this run.
+      // On monitoring runs that skip pages, a carried-forward finding's
+      // lastSeenAt is frozen at its last real verification (mergeFindings skips
+      // carried-forward findings), so it lands in the recovered window despite
+      // never being re-verified. Counting it as "confirmed fixed" is a false
+      // claim. Exclude any signature the latest summary carried forward — for
+      // those we have no evidence of recovery.
+      const carriedForwardKeys = new Set<string>();
+      for (const [key, meta] of latestFindingsMap) {
+        if (meta.carriedForward) carriedForwardKeys.add(key);
+      }
+      const isCarriedForward = (ruleId: string, sig: string) =>
+        carriedForwardKeys.has(`${ruleId}::${sig}`);
+
+      const [newRows, recoveredCandidates] = await withDbRetry(() => Promise.all([
         db.select({
           ruleId: findingsState.ruleId,
           severity: findingsState.severityLatest,
@@ -285,17 +302,11 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             eq(findingsState.status, "open"),
             gte(findingsState.firstSeenAt, previousCompletedAt),
           )),
-        db.select({ recoveredCount: sql<number>`count(*)::int` })
-          .from(findingsState)
-          .where(and(
-            eq(findingsState.domainId, domain.id),
-            eq(findingsState.status, "open"),
-            gte(findingsState.lastSeenAt, previousCompletedAt),
-            lt(findingsState.lastSeenAt, latestCompletedAt),
-          )),
-        // Recovered rows for the drawer — bounded so the page stays cheap when
-        // a big chunk of issues drop off in one run. Anything beyond the cap
-        // is folded into a "+N more" affordance in the strip.
+        // Candidate recovered rows: open findings last seen in the prior-run
+        // window but not in the latest run. Bounded by the per-domain findings
+        // volume (already capped elsewhere); we fetch the candidates and
+        // filter carried-forward signatures in JS so the count and the drawer
+        // agree on the SAME honest definition.
         db.select({
           ruleId: findingsState.ruleId,
           severity: findingsState.severityLatest,
@@ -311,13 +322,17 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             gte(findingsState.lastSeenAt, previousCompletedAt),
             lt(findingsState.lastSeenAt, latestCompletedAt),
           ))
-          .orderBy(desc(findingsState.rankScore))
-          .limit(25),
+          .orderBy(desc(findingsState.rankScore)),
       ]));
+
+      const recoveredConfirmed = recoveredCandidates.filter(
+        (r) => !isCarriedForward(r.ruleId, r.templateSignature),
+      );
       runDiff = {
         newFindings: newRows,
-        recoveredCount,
-        recoveredFindings: recoveredRows,
+        recoveredCount: recoveredConfirmed.length,
+        // Drawer is bounded; the strip folds the remainder into a "+N more".
+        recoveredFindings: recoveredConfirmed.slice(0, 25),
         previousAt: previousCompletedAt,
       };
     }
@@ -493,12 +508,60 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </div>
           ) }
 
+          {/* Engine moderator pills — content-effort + domain authority. Both
+              moderate the verdict; the public report already surfaces the
+              content-effort pill, so we mirror its styling exactly here and add
+              authority alongside. Each renders only when the engine resolved a
+              finite score (free/unavailable runs leave them absent). */}
+          { (Number.isFinite(summary.contentEffort?.score) || Number.isFinite(summary.authority?.score)) && (
+            <div className="-mt-2 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+              { Number.isFinite(summary.contentEffort?.score) ? (
+                <div
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+                  title="AI-judged originality & effort (0-100). Higher = more original human work; moderates the verdict."
+                >
+                  <span className="font-mono">Content effort</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
+                </div>
+              ) : null }
+              { Number.isFinite(summary.authority?.score) ? (
+                <div
+                  className="inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+                  title="Resolved domain authority (0-100). Moderates the verdict by ±1 tier: higher authority eases it, lower tightens it."
+                >
+                  <span className="font-mono">Authority</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="tabular-nums">{ Math.round(summary.authority!.score) }/100</span>
+                </div>
+              ) : null }
+            </div>
+          ) }
+
+          {/* Which rules the site-type profile softened (renders nothing when none). */}
+          <SeverityDemotions summary={ summary } />
+
           <div className="grid gap-6 rounded-[28px] border border-border/70 bg-card/60 p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-center sm:gap-10 sm:p-8">
             <div className="flex flex-col items-start">
-              <div className="flex items-baseline gap-3">
+              {/* Headline tier = the engine's MODERATED verdict (authority +
+                  content-effort shift the verdict, never the raw risk). The
+                  raw risk is internal and never the headline — it stays below
+                  as a secondary detail chip. */}
+              { (() => {
+                const v = verdictStyle(summary.verdict);
+                return (
+                  <span
+                    className={ `inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-sm font-semibold uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}` }
+                    title="Engine verdict — moderated by domain authority & content-effort"
+                  >
+                    <span className={ `inline-block h-1.5 w-1.5 rounded-full ${v.dot}` } />
+                    { v.label }
+                  </span>
+                );
+              })() }
+              <div className="mt-3 flex items-baseline gap-3">
                 <span
-                  className={ `text-[64px] leading-[0.9] tabular-nums sm:text-[80px] md:text-[96px] ${scoreTone(latestAudit.risk ?? 0)}` }
-                  style={ { fontFamily: "var(--font-display)" } }
+                  className={ `font-mono text-2xl tabular-nums ${scoreTone(latestAudit.risk ?? 0)}` }
                 >
                   { latestAudit.risk ?? 0 }
                 </span>
@@ -506,7 +569,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                   const g = gradeOf(latestAudit.risk ?? 0);
                   return (
                     <span
-                      className={ `inline-flex h-10 w-10 items-center justify-center rounded-md font-mono text-lg font-bold ${g.bg} ${g.text}` }
+                      className={ `inline-flex h-7 w-7 items-center justify-center rounded-md font-mono text-sm font-bold ${g.bg} ${g.text}` }
                       title={ `Grade ${g.letter} · ${g.band}` }
                     >
                       { g.letter }
@@ -524,7 +587,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                 ) }
               </div>
               <span className="mt-1 text-[11px] uppercase tracking-wider text-muted-foreground">
-                Risk score · lower is safer
+                Risk score · internal detail · lower is safer
               </span>
             </div>
 
@@ -561,6 +624,14 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           </div>
         </section>
       ) }
+
+      {/* 3.5 FIX THESE FIRST — AI triage root-causes. Sits right below the
+          headline (verdict) and above the detailed findings work surface so the
+          operator reads the prioritised plan first. Pro-only: rendered only when
+          the engine populated `summary.triage`. */}
+      { summary?.triage?.rootCauses?.length ? (
+        <RootCauses triage={ summary.triage } />
+      ) : null }
 
       {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads
           state-then-delta. Stronger Pro-justification per pixel than any
@@ -618,7 +689,6 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       { summary && (summary.templates?.length ?? 0) >= 2 && (
         <TemplateGridClient
           templates={ summary.templates }
-          totalDiscoveredUrls={ summary.pageCount }
         />
       ) }
 

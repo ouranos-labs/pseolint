@@ -67,6 +67,14 @@ export function OriginReadinessCard({ summary }: { summary: AnyAuditSummary }) {
   };
   const v = verdictCopy[report.verdict];
 
+  // Crawl-funnel transparency: the report's whole framing is "sample, not
+  // census", so surface the discovered → audited → skipped funnel when we have
+  // it. `crawlStats` lives on the v0.4 `diagnostics` object only; legacy v0.3
+  // summaries lack it (don't render "discovered 0" for those). `skippedUrls`
+  // is a bare URL list with no per-URL reasons, so we can't build a reason
+  // rollup from it — we report `crawlStats.skipped` as the aggregate instead.
+  const crawlStats = v04 ? summary.diagnostics.crawlStats : undefined;
+
   const interpretation =
     report.verdict === "ready"
       ? "Your origin handled the crawl cleanly. Under Googlebot / AI-crawler bursts you should be fine."
@@ -93,6 +101,15 @@ export function OriginReadinessCard({ summary }: { summary: AnyAuditSummary }) {
         <Stat label="5xx rate" value={`${Math.round(report.serverErrorRatio * 100)}%`} />
         <Stat label="Cache assisted" value={`${Math.round(report.cacheAssistRatio * 100)}%`} />
       </dl>
+
+      {crawlStats && (
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-border/50 pt-3 text-[11px] text-muted-foreground">
+          <span className="uppercase tracking-wider">Crawl coverage</span>
+          <span className="font-mono tabular-nums text-foreground">
+            Discovered {crawlStats.discovered} · audited {crawlStats.fetched} · skipped {crawlStats.skipped}
+          </span>
+        </div>
+      )}
 
       <p className="mt-4 text-sm text-muted-foreground">{interpretation}</p>
 

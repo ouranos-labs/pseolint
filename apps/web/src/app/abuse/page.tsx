@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -46,7 +47,7 @@ export default function AbusePage() {
         </pre>
         <p className="mt-3 text-xs text-muted-foreground">
           The full UA string we send is{" "}
-          <code className="font-mono">Mozilla/5.0 (compatible; pseolint/0.7.0; +{SITE_URL}/bot)</code>.
+          <code className="font-mono">Mozilla/5.0 (compatible; pseolint/{ENGINE_VERSION}; +{SITE_URL}/bot)</code>.
           You can also block at your CDN/WAF by matching that token.
         </p>
       </Section>

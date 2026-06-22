@@ -528,7 +528,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm run build
-      - uses: ouranos-labs/pseolint@action-v1
+      - uses: ouranos-labs/pseolint/packages/action@action-v1
         with:
           source: ./out
           threshold: 40
@@ -549,10 +549,10 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 
 | Package | npm | Version | License |
 |---------|-----|---------|---------|
-| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.0 | MIT |
-| `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.0 | MIT |
-| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.0 | MIT |
-| `packages/action` | GitHub Action (`ouranos-labs/pseolint@action-v1`) | — | MIT |
+| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.3 | MIT |
+| `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.3 | MIT |
+| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.3 | MIT |
+| `packages/action` | GitHub Action (`ouranos-labs/pseolint/packages/action@action-v1`) | — | MIT |
 | `apps/web` | pseolint.dev | — | AGPL-3.0 |
 
 ## Development

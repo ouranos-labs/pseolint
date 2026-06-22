@@ -43,12 +43,19 @@ export type InlineAuditWidgetProps = {
   headline: string;
   cta: string;
   ruleHint?: string;
+  /**
+   * Optional tool slug. When set, it's sent to POST /api/audits so the report
+   * renders a FocusedLensCard scoped to that tool's ruleLens — the only way to
+   * deliver a "focused on X" promise. Omit it for a plain full audit.
+   */
+  tool?: string;
 };
 
 export function InlineAuditWidget({
   headline,
   cta,
   ruleHint,
+  tool,
 }: InlineAuditWidgetProps): React.JSX.Element {
   const router = useRouter();
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
@@ -115,7 +122,7 @@ export function InlineAuditWidget({
       const res = await fetch("/api/audits", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: normalized, turnstileToken: token }),
+        body: JSON.stringify({ url: normalized, turnstileToken: token, ...(tool ? { tool } : {}) }),
       });
       if (res.ok) {
         const data = (await res.json()) as AuditResponse;

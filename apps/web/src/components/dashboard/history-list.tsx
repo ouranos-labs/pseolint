@@ -3,12 +3,14 @@ import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { getPlan } from "@/lib/plan";
+import { verdictStyle, type Verdict } from "@/lib/grade";
 import { HistoryRowActions } from "./history-row-actions";
 
 type Row = {
   slug: string;
   sourceUrl: string;
   risk: number | null;
+  verdict: Verdict | null;
   findingCount: number | null;
   completedAt: Date | null;
   createdAt: Date;
@@ -47,6 +49,7 @@ export async function HistoryList({ userId }: { userId: string }) {
         slug: audits.slug,
         sourceUrl: audits.sourceUrl,
         risk: audits.risk,
+        verdict: audits.verdict,
         findingCount: audits.findingCount,
         completedAt: audits.completedAt,
         createdAt: audits.createdAt,
@@ -97,13 +100,34 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
           <span className="font-mono text-[11px] text-muted-foreground">
             {rows.length} {rows.length === 1 ? "run" : "runs"}
           </span>
-          {latest?.risk != null && (
-            <span className="font-mono text-xs tabular-nums text-foreground">
-              latest: {latest.risk}
-              {delta != null && (
-                <span className={delta >= 0 ? " text-destructive" : " text-primary"}>
-                  {" "}({delta >= 0 ? "+" : ""}{delta})
+          {/* Headline tier = the engine's MODERATED verdict, not a tier
+              re-derived from the raw risk. Risk stays as a secondary detail. */}
+          {latest && (
+            (() => {
+              const v = verdictStyle(latest.verdict);
+              return (
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}`}
+                  title="Engine verdict — moderated by domain authority & content-effort"
+                >
+                  <span className={`inline-block h-1 w-1 rounded-full ${v.dot}`} />
+                  {v.label}
                 </span>
+              );
+            })()
+          )}
+          {latest?.risk != null && (
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              risk: {latest.risk}
+              {delta != null && delta !== 0 && (
+                // Only a risk INCREASE is a regression (red). A flat run
+                // (delta 0) is neutral, not a regression — don't paint it red.
+                <span className={delta > 0 ? " text-destructive" : " text-primary"}>
+                  {" "}({delta > 0 ? "+" : ""}{delta})
+                </span>
+              )}
+              {delta === 0 && (
+                <span className="text-muted-foreground"> (±0)</span>
               )}
             </span>
           )}

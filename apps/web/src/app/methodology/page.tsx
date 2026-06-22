@@ -1,7 +1,9 @@
 import { type Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const LAST_CALIBRATED = "2026-05-03";
 const NEXT_REFRESH_TARGET = "2026-08-03"; // quarterly cadence
@@ -32,8 +34,8 @@ const METHODOLOGY_FAQ: { q: string; a: string }[] = [
     a: "pseolint adds predictive validity on top of face validity: it audits a curated corpus of in-production programmatic-SEO sites that demonstrably win in search, and treats any deviation between its verdict and a site's real-world ranking success as a bug in the engine, not the site. The corpus, runner, and regression tests are open-source and reproducible at a fixed sample seed.",
   },
   {
-    q: "How do v0.6 audits work?",
-    a: "v0.6 shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples K=10 URLs per template (K=20 on manual re-audits) and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
+    q: "How do audits work?",
+    a: "The engine shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples pages across templates — up to 200 (free / monitoring) or 500 (manual re-audit) — and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
   },
   {
     q: "Does pseolint measure domain authority?",
@@ -142,7 +144,7 @@ export default function MethodologyPage(): React.ReactElement {
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-        Methodology · v0.7.0 · for skeptical engineers
+        Methodology · v{ENGINE_VERSION} · for skeptical engineers
       </div>
 
       <h1
@@ -161,17 +163,17 @@ export default function MethodologyPage(): React.ReactElement {
         not in the site.
       </p>
 
-      {/* v0.6 audit pipeline overview — positioned near the top so engineers
+      {/* audit pipeline overview — positioned near the top so engineers
           understand the sampling model before reading the calibration data */}
       <section className="mt-10 rounded-[22px] border border-border/60 bg-card/40 p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
-          // v0.6 pipeline
+          // pipeline
         </p>
         <h2 className="mt-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
-          How v0.6 audits work — two-phase template pipeline
+          How audits work — two-phase template pipeline
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          v0.6 pivots the unit of analysis from URL to template. A 100k-URL directory
+          pseolint pivots the unit of analysis from URL to template. A 100k-URL directory
           no longer averages findings across a flat 200-URL sample — instead, each
           template cluster is audited independently and produces its own verdict.
         </p>
@@ -187,7 +189,7 @@ export default function MethodologyPage(): React.ReactElement {
               to clusters with <strong className="text-foreground">≥1% coverage</strong>{" "}
               of total discovered URLs and <strong className="text-foreground">≥5 URLs</strong>.
               Require <strong className="text-foreground">≥2 surviving templates</strong>{" "}
-              to activate the v0.6 path — single-template sites fall through to the
+              to activate the template path — single-template sites fall through to the
               legacy per-URL view (spec §15.3). Cost: ~T HTTP fetches (T = template count,
               typically 5–20). Cheap.
             </p>
@@ -197,12 +199,11 @@ export default function MethodologyPage(): React.ReactElement {
               Phase 2 — Per-template deep audit
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-              Stratified-sample{" "}
-              <strong className="text-foreground">K=10 URLs per template</strong> (monitoring
-              runs) or K=20 (manual re-audits). Run all 44 rules on each sample set. Compute
-              per-template risk, verdict, and variance metric. Total fetches: T × K — typical
-              T=8, K=10 = <strong className="text-foreground">80 fetches</strong> (vs 200
-              in v0.5 flat sampling) with full template coverage.
+              Stratified-sample pages{" "}
+              <strong className="text-foreground">across templates</strong> — up to 200
+              (free / scheduled monitoring) or 500 (manual re-audit). Run all {SCORED_RULE_COUNT} rules on each sample set. Compute
+              per-template risk, verdict, and variance metric. The page budget is spread across
+              templates so a dominant cluster can&apos;t crowd out coverage of the smaller ones.
             </p>
           </div>
           <div>
@@ -244,9 +245,9 @@ export default function MethodologyPage(): React.ReactElement {
         ▼
   Template[] { signature, totalUrls }
         │
-        ▼ Phase 2 — Per-template deep audit (T × K fetches)
+        ▼ Phase 2 — Per-template deep audit (stratified sample)
   for each template:
-    sample K=10 URLs  →  fetch + parse  →  run 44 rules
+    sample (stratified)  →  fetch + parse  →  run ${SCORED_RULE_COUNT} rules
     compute: risk, verdict, uniformityScore, topDriver
         │
         ▼ Aggregation
@@ -347,7 +348,7 @@ export default function MethodologyPage(): React.ReactElement {
               year: "numeric", month: "long", day: "numeric",
             })}
           </time>
-          {" "}· Engine: <code className="font-mono text-xs">v0.7.0</code>
+          {" "}· Engine: <code className="font-mono text-xs">v{ENGINE_VERSION}</code>
           {" "}· Ruleset version <code className="font-mono text-xs">12</code>
           {" "}· Sample seed <code className="font-mono text-xs">1729</code>
         </p>
@@ -605,12 +606,13 @@ export default function MethodologyPage(): React.ReactElement {
           engine because (a) it would make the tool dependent on paid SaaS,
           (b) the metrics differ across providers (Moz DA vs Ahrefs DR vs
           Semrush AS), and (c) Google uses signals none of those approximate
-          well. Future work includes a <em>bring-your-own-authority</em>{" "}
-          option (pass a normalized 0-100 authority score and have the
-          verdict ladder adjust accordingly) and proxy-signal detection
-          (domain age, internal-graph density, named editorial leadership)
-          for callers without external data — see <em>Future work</em>{" "}
-          below.
+          well. Instead, <em>bring-your-own-authority</em> ships today: pass a
+          normalized 0-100 authority score (the <code>--authority-score</code>{" "}
+          flag, the MCP parameter, or a per-domain Pro setting) and the verdict
+          ladder adjusts for your tier — the raw risk number is unchanged.
+          Still future work: proxy-signal detection (domain age, internal-graph
+          density, named editorial leadership) for callers without an authority
+          figure of their own.
         </p>
       </section>
 
@@ -625,7 +627,7 @@ export default function MethodologyPage(): React.ReactElement {
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {[
             { name: "Domain authority", status: "shipped", version: "v0.5.2", note: "--authority-score lets callers shift verdict for high/low-DA tiers." },
-            { name: "Core Web Vitals (LCP/INP/CLS)", status: "roadmap", version: "v0.6", note: "Needs render-time PerformanceObserver harness." },
+            { name: "Core Web Vitals (LCP/INP/CLS)", status: "roadmap", version: "planned", note: "Needs render-time PerformanceObserver harness." },
             { name: "Open Graph metadata", status: "shipped", version: "v0.5.2", note: "tech/og-completeness ships with the credibility layer." },
             { name: "Title tag uniqueness", status: "shipped", version: "v0.5.2", note: "content/title-uniqueness — raw, not entity-masked." },
             { name: "H1 structure", status: "shipped", version: "v0.5.2", note: "content/heading-structure — presence, single-H1, hierarchy." },

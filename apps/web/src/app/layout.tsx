@@ -10,6 +10,7 @@ import { getPlan } from "@/lib/plan";
 import { AccountMenu } from "@/components/dashboard/account-menu";
 import { env } from "@/lib/env";
 import { AnalyticsProvider } from "@/lib/analytics/op-transport.client";
+import { ENGINE_VERSION } from "@/lib/version";
 
 const displaySerif = Instrument_Serif({
   subsets: ["latin"],
@@ -109,18 +110,23 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
           <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
-          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v0.7.0</span>
+          <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v{ENGINE_VERSION}</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
-          <Link href="/tools" className={ navLinkClass }>Tools</Link>
-          <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
-          <Link href="/rules" className={ navLinkClass }>Rules</Link>
-          <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
-          <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
-          <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
+          {/* Marketing / acquisition links — only for signed-out visitors. Logged-in
+              users get a focused nav (Dashboard + account); all of these remain
+              reachable from the footer. */}
           { !signedIn && (
-            <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+            <>
+              <Link href="/tools" className={ navLinkClass }>Tools</Link>
+              <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
+              <Link href="/rules" className={ navLinkClass }>Rules</Link>
+              <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
+              <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
+              <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
+              <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+            </>
           ) }
           { signedIn && plan === "free" && (
             <TrackedLink

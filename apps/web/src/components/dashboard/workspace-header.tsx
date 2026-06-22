@@ -69,7 +69,7 @@ export function WorkspaceHeader({ domain }: {
       <ConfirmDialog
         open={removeOpen}
         title={`Stop monitoring ${domain.host}?`}
-        description={`We'll stop running daily diff-audits and weekly full re-audits. Your audit history is preserved — you can re-add the domain later.${err ? `\n\nError: ${err}` : ""}`}
+        description={`We'll stop the recurring diff-audits and full re-audits. Your audit history is preserved — you can re-add the domain later.${err ? `\n\nError: ${err}` : ""}`}
         confirmWord={domain.host}
         confirmLabel="Stop monitoring"
         danger

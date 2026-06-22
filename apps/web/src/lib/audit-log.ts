@@ -38,6 +38,7 @@ export type AuditLogEvent =
   | "settings.slack.test_sent"
   | "settings.slack.test_failed"
   | "settings.indexnow.updated"
+  | "settings.scan_options.updated"
   | "gsc.oauth.user_denied"
   | "gsc.oauth.state_invalid"
   | "gsc.oauth.state_mismatch"

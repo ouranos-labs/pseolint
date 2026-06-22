@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  serverExternalPackages: ["pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler"],
+  serverExternalPackages: ["pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler", "playwright-core"],
   experimental: { serverActions: { bodySizeLimit: "1mb" } },
   async rewrites() {
     return [{ source: "/mcp", destination: "/api/mcp" }];

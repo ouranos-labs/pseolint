@@ -7,17 +7,27 @@ import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { auditSource, checkOriginHealth, type AuditOptions, type AuditSummary, type StateOptions, type PageDataRecord } from "@pseolint/core";
 import { auditLog } from "@/lib/audit-log";
+import { env } from "@/lib/env";
 import { devFlags } from "@/lib/dev-flags";
 import { openSecret } from "@/lib/secret-box";
 import {
   resolveAuditIgnorePatterns,
   detectFrameworkFromUrl,
 } from "@/lib/audit-defaults";
+import { parseScanOptions, type ScanOptions } from "@/lib/scan-options";
 import { fetchOgMeta } from "@/lib/og-fetch";
+import { hashToInt } from "@/lib/seed";
+import { R2CacheBackend } from "@/lib/r2-cache-backend";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { trackServer } from "@/lib/analytics/track.server";
 
 const MAX_COST_USD = 0.50;
+/** HTTP cache TTL for entries without ETag/Last-Modified validators (matches the engine default). */
+const WEB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+/** Ops kill-switch for the R2 HTTP cache — set PSEOLINT_R2_CACHE_DISABLED to turn it off without a deploy. */
+function r2CacheEnabled(): boolean {
+  return !process.env.PSEOLINT_R2_CACHE_DISABLED;
+}
 
 type RunStep = <T>(name: string, fn: () => Promise<T>) => Promise<T>;
 
@@ -50,6 +60,23 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   ruleOverrides?: NonNullable<AuditOptions["rules"]>;
   gentleAuditMode: boolean;
   authorityScore?: number;
+  /** Per-domain render-mode opt-in (Pro). True → render JS-heavy pages in a browser. */
+  renderMode?: boolean;
+  /**
+   * Stable per-domain sampling seed — set ONLY for monitored domains (a
+   * `monitoredDomains` row exists for this host), so re-audit / cron diffs
+   * sample the same pages each run. Undefined for public one-shot audits.
+   */
+  sampleSeed?: number;
+  /** Canonical host when this is a monitored domain — gates the R2 cache. Undefined for one-shot/anon. */
+  monitoredHost?: string;
+  /**
+   * Validated, allowlisted advanced scan options (Pro per-domain). Only ever
+   * the 7 safe AuditOptions knobs — see lib/scan-options.ts. Undefined when
+   * unset or invalid. Spread FIRST into the auditSource opts so the fixed
+   * safety options (safeMode, respectNoindex, …) always win.
+   */
+  scanOptions?: ScanOptions;
 }> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
@@ -66,6 +93,8 @@ async function loadAuditEnrichments(auditId: string): Promise<{
       id: monitoredDomains.id,
       gentleAuditMode: monitoredDomains.gentleAuditMode,
       authorityScore: monitoredDomains.authorityScore,
+      renderMode: monitoredDomains.renderMode,
+      scanOptions: monitoredDomains.scanOptions,
     })
       .from(monitoredDomains)
       .where(and(
@@ -84,10 +113,29 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   let ruleOverrides: NonNullable<AuditOptions["rules"]> | undefined;
   let gentleAuditMode = false;
   let authorityScore: number | undefined;
+  let renderMode: boolean | undefined;
+  let sampleSeed: number | undefined;
+  let monitoredHost: string | undefined;
+  let scanOptions: ScanOptions | undefined;
   if (domainRow.length > 0) {
     const domainId = domainRow[0].id;
+    monitoredHost = host;
     gentleAuditMode = domainRow[0].gentleAuditMode === true;
     authorityScore = domainRow[0].authorityScore ?? undefined;
+    renderMode = domainRow[0].renderMode ?? undefined;
+    // Advanced scan options (Pro). Stored as JSON text; re-validated through the
+    // allowlist on every load (never trust the column) — parseScanOptions
+    // returns undefined on invalid/empty so a corrupt row can't widen the
+    // audit's powers. This is the validated object that gets spread FIRST in
+    // buildAuditCall.
+    if (domainRow[0].scanOptions) {
+      try {
+        scanOptions = parseScanOptions(JSON.parse(domainRow[0].scanOptions)) ?? undefined;
+      } catch { /* malformed JSON → no scan options */ }
+    }
+    // Monitored domain → deterministic per-host sampling so re-audit / cron
+    // diffs reflect real content change, not sampling variance.
+    sampleSeed = hashToInt(host);
     const [ds, rover] = await Promise.all([
       db.select({ records: domainDataSources.records }).from(domainDataSources).where(eq(domainDataSources.domainId, domainId)).limit(1),
       db.select({ overrides: domainRuleOverrides.overrides }).from(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domainId)).limit(1),
@@ -104,7 +152,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     ? { provider: keyRow[0].provider, model: keyRow[0].model, apiKey: openSecret(keyRow[0].apiKey) }
     : undefined;
 
-  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore };
+  return { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost, scanOptions };
 }
 
 /**
@@ -147,9 +195,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
   });
 
-  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore } = await runStep("load-enrichments", async () =>
+  const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost, scanOptions } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
   );
+
+  // Render is requested when EITHER the per-audit flag (Pro form) is set OR the
+  // per-domain render-mode opt-in (Pro settings) is on. It only *activates*
+  // below if PSEOLINT_BROWSER_WS is also configured — no endpoint → static
+  // fetch, so we never make a false "rendered" promise on a serverless host
+  // without a browser service.
+  const renderRequested = (input.render || renderMode === true);
 
   let summary: AuditSummary;
   try {
@@ -165,6 +220,15 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     // moderates the verdict ±1 tier). Sampled (~≤10 pages) + cached in core, ~$0.03/audit.
     // Uses the platform ANTHROPIC_API_KEY env in core; no-ops safely if absent. Free = off.
     const contentEffort: AuditOptions["contentEffort"] | undefined = plan === "pro" ? { enabled: true } : undefined;
+
+    // R2-backed HTTP cache — only for monitored domains (re-audit / cron), where
+    // 304-revalidation across runs saves egress + spares the origin. One-shot /
+    // anon scans never repeat, so they stay uncached. Fail-safe in the backend;
+    // PSEOLINT_R2_CACHE_DISABLED is the ops kill-switch. cacheStats logged on completion.
+    const cache: AuditOptions["cache"] | undefined =
+      monitoredHost && r2CacheEnabled()
+        ? { backend: new R2CacheBackend(monitoredHost), ttlMs: WEB_CACHE_TTL_MS }
+        : undefined;
 
     // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
     // sample to 200 — easier on small origins and less likely to trip the
@@ -229,7 +293,24 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
 
     const buildAuditCall = (opts: { sampleSize: number; concurrency: number | undefined }) => () =>
       auditSource(url, {
+        // ┌─────────────────────────── SECURITY INVARIANT ───────────────────────────┐
+        // │ `scanOptions` is the Pro-configurable, allowlist-validated subset of      │
+        // │ AuditOptions (lib/scan-options.ts — only crawlDiscovery,                  │
+        // │ fillBudgetViaLinkDiscovery, samplingStrategy, maxPerTemplate, strict,     │
+        // │ pageGroups, entityPatterns). It is spread FIRST, on purpose. Every fixed  │
+        // │ safety / policy option below (safeMode:"saas", respectNoindex,            │
+        // │ skipDetectedAuth, skipBoilerplate, skipSearchPages, render, cache, ai,    │
+        // │ contentEffort, authorityScore, ignore, sampleSeed, mode, state, force)    │
+        // │ appears AFTER this spread, so it OVERRIDES anything in scanOptions even    │
+        // │ if the allowlist were somehow bypassed. DO NOT move any of those above    │
+        // │ this spread, and DO NOT change the spread to come last.                   │
+        // └──────────────────────────────────────────────────────────────────────────┘
+        ...scanOptions,
         sampleSize: opts.sampleSize,
+        // Monitored-domain audits pin a stable per-host seed so repeated runs
+        // sample the same pages (deterministic diffs). Undefined for public
+        // one-shots — the engine falls back to non-deterministic sampling.
+        ...(sampleSeed != null && { sampleSeed }),
         ...(opts.concurrency != null && { concurrency: opts.concurrency }),
         mode,
         state,
@@ -241,8 +322,15 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // this, a malicious caller could point us at AWS metadata
       // endpoints, RFC1918 networks, or arbitrarily-large tarballs.
       safeMode: "saas",
-      // Core's `render` is a config object; undefined = static fetch, any object = rendered.
-      render: render ? {} : undefined,
+      // Core's `render` is a config object; undefined = static fetch, any
+      // object = rendered. We route it through the operator's Browserless CDP
+      // endpoint (PSEOLINT_BROWSER_WS) rather than local Playwright, which
+      // doesn't exist on serverless. Fail-safe: render activates ONLY when both
+      // requested (Pro per-audit flag or per-domain opt-in) AND the endpoint is
+      // configured — no endpoint → static audit, no false "rendered" promise.
+      render: (renderRequested && env().PSEOLINT_BROWSER_WS)
+        ? { browserWsEndpoint: env().PSEOLINT_BROWSER_WS }
+        : undefined,
       rules: ruleOverrides,
       dataSource: dataRecords ? { records: dataRecords } : undefined,
       // Hosted audits run on user-submitted URLs — skip framework metadata,
@@ -259,10 +347,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // `/portal` that URL patterns can't pre-declare.
       respectNoindex: true,
       skipDetectedAuth: true,
+      // Cookie/legal/imprint + search-result pages aren't marketing surface;
+      // skipping them sharpens the findings to what actually ranks. Matches the
+      // AuditOptions doc comment for the hosted form.
+      skipBoilerplate: true,
+      skipSearchPages: true,
       // Per-domain bring-your-own authority (Pro settings). Undefined = no shift.
       authorityScore,
       ai,
       contentEffort,
+      cache,
     });
 
     // First attempt: configured profile (gentle if domain is opted in,
@@ -361,10 +455,29 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     risk: summary.risk,
   });
 
+  // Cache hit-rate telemetry — via console (not the typed auditLog union) so we
+  // can measure whether the R2 cache earns its keep, then keep/kill via the
+  // switch. Present only on cached (monitored) runs.
+  if (summary.cacheStats) {
+    try {
+      console.log(JSON.stringify({
+        ts: new Date().toISOString(),
+        evt: "audit.cache_stats",
+        auditId, host,
+        hits: summary.cacheStats.hits,
+        total: summary.cacheStats.total,
+        bytesSavedEstimate: summary.cacheStats.bytesSavedEstimate,
+      }));
+    } catch { /* never let logging crash the audit */ }
+  }
+
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
       status: "completed",
       risk: summary.risk,
+      // Mirror the engine's moderated verdict so the dashboard / portfolio /
+      // history surface the moderated signal, not just the raw risk.
+      verdict: summary.verdict ?? null,
       pageCount: summary.pageCount,
       findingCount,
       host,
@@ -399,7 +512,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   // alert-delta logic see the latest risk, not just the cron-run risk.
   // Without this, `Re-audit now` and the initial add-domain audit silently
   // diverge from `/r/[slug]` (which reads `audits.risk` directly).
-  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, completedAt));
+  await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, summary.verdict ?? null, completedAt));
 
   // v0.5.3 — stamp lastAuditedAt on watched pages that were force-refetched
   // this run. Scoped to *this audit's* monitored_domain so we don't update
@@ -466,7 +579,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   return { ok: true as const, risk: summary.risk };
 }
 
-async function syncMonitoredDomain(auditId: string, risk: number, completedAt: Date): Promise<void> {
+async function syncMonitoredDomain(auditId: string, risk: number, verdict: AuditSummary["verdict"] | null, completedAt: Date): Promise<void> {
   const [audit] = await db
     .select({ userId: audits.userId, sourceUrl: audits.sourceUrl })
     .from(audits)
@@ -476,7 +589,7 @@ async function syncMonitoredDomain(auditId: string, risk: number, completedAt: D
   let host: string;
   try { host = new URL(audit.sourceUrl).host; } catch { return; }
   await db.update(monitoredDomains)
-    .set({ lastRisk: risk, lastAuditId: auditId, lastRunAt: completedAt })
+    .set({ lastRisk: risk, lastVerdict: verdict, lastAuditId: auditId, lastRunAt: completedAt })
     .where(and(
       eq(monitoredDomains.userId, audit.userId),
       eq(monitoredDomains.host, host),

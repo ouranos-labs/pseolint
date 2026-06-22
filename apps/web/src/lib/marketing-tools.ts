@@ -9,6 +9,8 @@
  * find-replace duplication. Each entry is unique enough to pass our own
  * thin-content rules.
  */
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
+import { ENGINE_VERSION } from "@/lib/version";
 import type { MarketingSourceRef } from "./marketing-sources";
 import { TOOL_SOURCES } from "./marketing-source-notes";
 import { TOOL_EXTRA, type MarketingExtra } from "./marketing-extra-content";
@@ -53,8 +55,7 @@ const TOOLS_BASE = [
   {
     slug: "spambrain-checker",
     title: "Free SpamBrain checker for programmatic SEO sites",
-    metaDescription:
-      "Audit your site against 44 inferred SpamBrain signals in 60 seconds. No signup. Spot scaled-content, doorway, and reputation-abuse patterns before Google does.",
+    metaDescription: `Audit your site against ${SCORED_RULE_COUNT} inferred SpamBrain signals in 60 seconds. No signup. Spot scaled-content, doorway, and reputation-abuse patterns before Google does.`,
     shortPitch:
       "Scan any URL against the SpamBrain-adjacent rule set the team built after the March 2024 core update. No signup, runs in 60 seconds.",
     primaryKeyword: "spambrain checker",
@@ -84,7 +85,7 @@ const TOOLS_BASE = [
       },
       {
         q: "Will running the audit hurt my site or get me penalized?",
-        a: "No. We send standard GET requests with a clearly identified user agent (pseolint/0.7.0 +https://pseolint.dev/bot), respect robots.txt and Crawl-delay, cap concurrency at 5, and stop at 50 pages or 50 MB total. Your analytics won't see the traffic and Search Console won't flag anything. Audits are read-only.",
+        a: `No. We send standard GET requests with a clearly identified user agent (pseolint/${ENGINE_VERSION} +https://pseolint.dev/bot), respect robots.txt and Crawl-delay, cap concurrency at 5, and stop at 50 pages or 50 MB total. Your analytics won't see the traffic and Search Console won't flag anything. Audits are read-only.`,
       },
       {
         q: "How is this different from a generic SEO crawler like Screaming Frog or Sitebulb?",
@@ -100,7 +101,7 @@ const TOOLS_BASE = [
       },
       {
         q: "Is the rule engine open source?",
-        a: "Yes. The full rule set lives at github.com/ouranos-labs/pseolint under the MIT license as the @pseolint/core package (v0.7.0) — you can run it locally with the CLI (`npm i -g pseolint@0.7.0`), audit your CI builds, or fork the rules. The hosted checker on this page is the same engine wrapped in a sampler and a UI.",
+        a: "Yes. The full rule set lives at github.com/ouranos-labs/pseolint under the MIT license as the @pseolint/core package — you can run it locally with the CLI (`npm i -g pseolint`), audit your CI builds, or fork the rules. The hosted checker on this page is the same engine wrapped in a sampler and a UI.",
       },
     ],
     related: ["thin-content-scanner", "doorway-page-detector"],
@@ -115,7 +116,7 @@ const TOOLS_BASE = [
     primaryKeyword: "thin content checker",
     ruleLens: "spam/thin-content",
     what:
-      "The thin-content scanner samples your sitemap, fetches up to 200 pages on the free tier (up to 500 on Pro manual re-audits at $19/month), and grades each against the substance heuristics SpamBrain appears to use: visible word count against pseolint's 300-word floor (configurable per archetype), lexical uniqueness compared to sibling pages, presence of original media or sourced data, and the ratio of unique to recycled phrasing. The check runs in a 60-second median window and is powered by @pseolint/core v0.7.0 (MIT-licensed at github.com/ouranos-labs/pseolint). It produces a per-page substance score plus a domain-wide breakdown of how much of your indexable surface area is below the practical threshold where Google starts ignoring or demoting pages.",
+      `The thin-content scanner samples your sitemap, fetches up to 200 pages on the free tier (up to 500 on Pro manual re-audits at $19/month), and grades each against the substance heuristics SpamBrain appears to use: visible word count against pseolint's 300-word floor (configurable per archetype), lexical uniqueness compared to sibling pages, presence of original media or sourced data, and the ratio of unique to recycled phrasing. The check runs in a 60-second median window and is powered by @pseolint/core v${ENGINE_VERSION} (MIT-licensed at github.com/ouranos-labs/pseolint). It produces a per-page substance score plus a domain-wide breakdown of how much of your indexable surface area is below the practical threshold where Google starts ignoring or demoting pages.`,
     why:
       "Thin content is the oldest cause of pSEO failure and the one most operators still get wrong. Helpful Content updates in 2022 and 2023 made it a ranking factor; the March 5, 2024 scaled content abuse update (https://developers.google.com/search/docs/essentials/spam-policies) made it a policy violation, and the May 7, 2024 site reputation policy extended that to third-party content on parasite subdomains. The cost has changed too — historically a thin page just didn't rank. Today, a critical mass of thin pages can pull your entire domain's quality signal down, which means your good pages stop ranking too. The pseolint scanner uses a 300-word default floor (configurable per archetype) and weights findings as info=5, warning=12, error=25 in the overall score. If your site has a long tail of auto-generated location pages, AI-spun product variants, or templated comparison articles, the question is no longer whether some are thin — it's whether enough of them are thin to taint the rest.",
     howItWorks: [
@@ -166,7 +167,7 @@ const TOOLS_BASE = [
     primaryKeyword: "doorway pages checker",
     ruleLens: "spam/doorway-pattern",
     what:
-      "The doorway-page detector identifies clusters of pages on your site that match the structural definition Google uses in its doorway policy (https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages): pages that exist primarily to rank for query variants and funnel users to the same destination, distinguished only by a swapped city, service modifier, or product noun. It crawls your sitemap (up to 200 pages free, up to 500 on Pro manual re-audits at $19/month), groups URLs by template, and compares the actual rendered content within each cluster using SimHash 64-bit signatures with a 0.85 near-duplicate threshold plus an entity-swap detector. The 60-second median run is powered by the MIT-licensed pseolint engine v0.7.0. You get a list of doorway-shaped clusters ranked by risk, with the option to see exactly which pages would survive a doorway-policy enforcement and which wouldn't.",
+      `The doorway-page detector identifies clusters of pages on your site that match the structural definition Google uses in its doorway policy (https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages): pages that exist primarily to rank for query variants and funnel users to the same destination, distinguished only by a swapped city, service modifier, or product noun. It crawls your sitemap (up to 200 pages free, up to 500 on Pro manual re-audits at $19/month), groups URLs by template, and compares the actual rendered content within each cluster using SimHash 64-bit signatures with a 0.85 near-duplicate threshold plus an entity-swap detector. The 60-second median run is powered by the MIT-licensed pseolint engine v${ENGINE_VERSION}. You get a list of doorway-shaped clusters ranked by risk, with the option to see exactly which pages would survive a doorway-policy enforcement and which wouldn't.`,
     why:
       "Google's doorway pages policy (https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages) was formalised in a March 16, 2015 Search Central post and has been on the books ever since. Enforcement accelerated sharply after SpamBrain was rebuilt on August 25, 2022 (the original classifier shipped in 2018) and then again after the March 5, 2024 scaled-content-abuse update extended doorway-style demotions to AI-spun funnels. The May 7, 2024 site-reputation-abuse policy then went after parasite hosting on otherwise reputable domains — high-profile manual actions hit subdomains operated by major media companies and affiliate networks within the first 30-day enforcement window. Manual actions for doorway pages are rare — what happens instead is algorithmic demotion of the entire cluster, sometimes the entire site, with no notification, and recovery typically takes a 90-day re-crawl window. Programmatic SEO is particularly exposed because the same cost-saving template that lets you ship 50,000 pages overnight is also the structural fingerprint the policy was written to demote. The detector exists to draw the line between programmatic-but-substantive (a template that genuinely varies useful information per page) and programmatic-but-doorway (a template where the only variation is the keyword you're trying to rank for).",
     howItWorks: [

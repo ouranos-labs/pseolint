@@ -1,5 +1,6 @@
 import { type Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 
@@ -51,7 +52,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What does the audit actually check?",
-    a: "pseolint runs 44 rules mapped to documented Google SpamBrain signals (thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, scaled-content density, site-reputation abuse) plus answer-engine-optimization checks for AI Overviews, Perplexity, and ChatGPT search. It audits by template, returning a per-template verdict and a 0–100 risk score, not a flat per-URL list.",
+    a: `pseolint runs ${SCORED_RULE_COUNT} rules mapped to documented Google SpamBrain signals (thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, scaled-content density, site-reputation abuse) plus answer-engine-optimization checks for AI Overviews, Perplexity, and ChatGPT search. It audits by template, returning a per-template verdict and a 0–100 risk score, not a flat per-URL list.`,
   },
   {
     q: "Is it safe to point it at any URL?",
@@ -279,7 +280,7 @@ export default function McpServerPage() {
         JSON, a score-explanation tool that surfaces quick wins ranked by severity,
         a per-page technical check covering canonical tags, Open Graph, and JSON-LD,
         and an AI-orchestrated audit (stdio only) that produces a paste-able fix
-        manifest. All tools run the same 44-rule engine as the web UI — no separate
+        manifest. All tools run the same {SCORED_RULE_COUNT}-rule engine as the web UI — no separate
         install or account required for the remote endpoint.
       </p>
 

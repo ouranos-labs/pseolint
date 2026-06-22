@@ -92,6 +92,12 @@ const envSchema = z.object({
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   R2_BUCKET: z.string().min(1),
   R2_PUBLIC_BASE_URL: z.string().url().optional(),
+  // Browserless / headless-Chrome CDP WebSocket endpoint (e.g.
+  // wss://chrome.example:3000?token=…). When set, Pro render-mode audits route
+  // the engine's `render` through this remote browser. Optional → unset means
+  // render stays off (static fetch) even when requested, so there's no false
+  // promise on environments without a browser service.
+  PSEOLINT_BROWSER_WS: z.string().min(1).optional(),
   POLAR_ACCESS_TOKEN: z.string().min(1).optional(),
   POLAR_WEBHOOK_SECRET: z.string().min(1).optional(),
   POLAR_MONTHLY_PRODUCT_ID: z.string().min(1).optional(),

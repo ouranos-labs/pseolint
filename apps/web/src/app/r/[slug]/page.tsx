@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04 } from "@/lib/audit-types";
 import { isV04Summary } from "@/lib/audit-types";
+import { FocusedLensCard } from "@/components/report/focused-lens-card";
+import { getMarketingTool } from "@/lib/marketing-tools";
 import { db } from "@/db";
 import { audits, monitoredDomains } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
@@ -25,6 +27,10 @@ import { ReportCtaStrip } from "@/components/report/cta-strip";
 import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
 import { getClaim } from "@/lib/leaderboard-claims";
 import { ClaimCta } from "@/components/report/claim-cta";
+import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
+import { RootCauses } from "@/components/report/root-causes";
+import { summaryTruncation } from "@/lib/truncation";
+import { SeverityDemotions } from "@/components/report/severity-demotions";
 
 export const runtime = "nodejs";
 
@@ -113,6 +119,12 @@ export default async function Page({
   // crashes against the wrong shape.
   const summary: AnyAuditSummary | null = summaryRaw ? safeParse<AnyAuditSummary>(summaryRaw) : null;
   const isV04 = summary ? isV04Summary(summary) : false;
+  // Tool-originated audit → render a focused-lens result for that tool's ruleLens
+  // (the audit still ran the FULL rule set). null for homepage/dashboard audits.
+  const reportTool = row.tool ? (getMarketingTool(row.tool) ?? null) : null;
+  // Hoisted: read the truncation envelope once (the defensive R2-JSON reader is
+  // pure, but calling it three times in the JSX re-walks the blob needlessly).
+  const truncation = summaryTruncation(summary);
 
   const domainHost = (() => { try { return new URL(row.sourceUrl).host; } catch { return null; } })();
   const originUrl = (() => {
@@ -221,8 +233,8 @@ export default async function Page({
       { eligible ? (
         <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
       ) : null }
-      { summaryTruncation(summary).truncated ? (
-        <TruncatedBanner reason={ summaryTruncation(summary).reason } />
+      { truncation.truncated ? (
+        <TruncatedBanner reason={ truncation.reason } kind={ truncation.kind } />
       ) : null }
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
@@ -269,6 +281,26 @@ export default async function Page({
           cleanPages={ cleanPages }
         />
       ) }
+
+      {/* Focused-lens result — only for audits created from a /tools/[slug] entry
+          point. Surfaces the tool's ruleLens prominently (delivering the tool's
+          promise) + funnels to the complete report below. */}
+      { summary && isV04 && reportTool ? (
+        <FocusedLensCard tool={ reportTool } summary={ summary as AuditSummaryV04 } />
+      ) : null }
+
+      {/* AI triage root-causes — the "what to fix first" plan. Sits directly
+          below the verdict/hero so the operator reads the prioritised summary
+          before the detailed findings list. Pro-only: free/anon audits never
+          populate `summary.triage`, so it renders nothing for them. */}
+      { summary && isV04 && (summary as AuditSummaryV04).triage?.rootCauses?.length ? (
+        <RootCauses triage={ (summary as AuditSummaryV04).triage! } />
+      ) : null }
+
+      {/* Which rules the site-type profile softened (renders nothing when none). */}
+      { summary && isV04 ? (
+        <SeverityDemotions summary={ summary as AuditSummaryV04 } />
+      ) : null }
 
       <CoverageCallout pageCount={ row.pageCount ?? 0 } />
 
@@ -356,7 +388,22 @@ export default async function Page({
             <CategoryBreakdown summary={ summary } />
           </section>
 
-          <section className="mt-14">
+          {/* Per-template breakdown — mirrors the dashboard. Rendered when the
+              engine detected ≥2 templates, placed ABOVE the per-URL findings so
+              users see the template-level picture first, then drill down. Falls
+              back silently for legacy / single-template audits. */}
+          { isV04 && ((summary as AuditSummaryV04).templates?.length ?? 0) >= 2 ? (
+            <section className="mt-14">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Templates
+              </h2>
+              <TemplateGridClient
+                templates={ (summary as AuditSummaryV04).templates }
+              />
+            </section>
+          ) : null }
+
+          <section id="findings" className="mt-14 scroll-mt-6">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 { isV04
@@ -418,12 +465,21 @@ function LegacyFormatBanner() {
 
 /**
  * Partial-coverage warning. Rendered above the hero when the engine flushed a
- * `truncated:true` report (backpressure watchdog aborted the crawl mid-flight
- * on a degraded origin). The findings shown are whatever was collected before
- * the abort, so the verdict, risk, and every count are LOWER bounds — surface
- * that loudly so a degraded audit isn't mistaken for a complete one.
+ * `truncated:true` report — either a backpressure abort (the watchdog stopped
+ * the crawl on a degraded origin) or a coverage shortfall (we reached far fewer
+ * URLs than the sitemap declares). The findings shown are whatever was collected,
+ * so the verdict, risk, and every count are LOWER bounds — surface that loudly so
+ * a partial audit isn't mistaken for a complete one. Copy branches on `kind`.
  */
-function TruncatedBanner({ reason }: { reason: string | null }) {
+function TruncatedBanner({ reason, kind }: { reason: string | null; kind: "coverage" | "backpressure" | null }) {
+  const cause =
+    kind === "coverage"
+      ? "pseolint couldn't reach all the URLs the sitemap declares"
+      : "the origin degraded under load, so pseolint stopped early to avoid overloading it";
+  const advice =
+    kind === "coverage"
+      ? "Check for a stale sitemap or unreachable pages, then re-audit for a complete picture."
+      : "Re-audit once the site is stable for a complete picture.";
   return (
     <div
       role="alert"
@@ -432,10 +488,9 @@ function TruncatedBanner({ reason }: { reason: string | null }) {
       <span aria-hidden className="text-base leading-none text-warning">⚠</span>
       <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
         <span className="font-semibold text-foreground">Partial audit.</span>{ " " }
-        The crawl was interrupted before it finished (the origin degraded under load, so
-        pseolint stopped early to avoid overloading it). Coverage is incomplete — treat the
-        verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.
-        Re-audit once the site is stable for a complete picture.
+        The crawl didn&apos;t finish ({ cause }). Coverage is incomplete — treat the
+        verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.{ " " }
+        { advice }
         { reason ? (
           <span className="mt-1 block font-mono text-[11px] text-muted-foreground/80">
             Reason: { reason }
@@ -495,14 +550,17 @@ function V04Hero({
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground">
               <span className="font-mono">Site type: { summary.siteClassification.type }</span>
               <span aria-hidden="true">·</span>
-              <span className="tabular-nums">{ Math.round(summary.siteClassification.confidence * 100) }% confidence</span>
+              <span className="tabular-nums">{ clampPct(Math.round(summary.siteClassification.confidence * 100)) }% confidence</span>
               <span aria-hidden="true">·</span>
               <span className="tabular-nums">
                 { (() => {
+                  // `sitemap-url-count` is the total URLs DISCOVERED (sitemap
+                  // scale — often thousands), NOT the count actually audited
+                  // (that's `pageCount`, surfaced via the Pages stat).
                   const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
                     | { kind: "sitemap-url-count"; value: number }
                     | undefined;
-                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs audited`;
+                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs discovered`;
                 })() }
               </span>
             </div>
@@ -523,6 +581,38 @@ function V04Hero({
               <span aria-hidden="true">·</span>
               <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
             </div>
+          ) : null }
+          {/*
+            Domain-authority pill — `summary.authority` ({score, domain}) is the
+            0-100 authority hint the engine uses to MODERATE the verdict (it
+            never touches the raw `risk`): >=80 shifts the verdict one tier more
+            lenient, <=30 one tier stricter, 31-79 no shift. Shown here so the
+            user can see the input behind a tier shift. Absent when authority
+            couldn't be resolved; `Number.isFinite` gates the render.
+          */}
+          { Number.isFinite(summary.authority?.score) ? (
+            <div
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
+              title="Domain authority (0-100). >=80 shifts the verdict one tier more lenient; <=30 one tier stricter; 31-79 no shift. Never changes the raw risk."
+            >
+              <span className="font-mono">Authority</span>
+              <span aria-hidden="true">·</span>
+              <span className="tabular-nums">{ Math.round(summary.authority!.score) }/100</span>
+            </div>
+          ) : null }
+          {/*
+            Degeneration note — the engine emits a `degeneration-guard-tripped`
+            signal when it downgraded a small-marketing/blog classification to
+            `unclear` because the corpus looked degenerate (mostly thin pages or
+            duplicate-heavy titles). That suppresses site-type severity
+            demotions, so explain WHY the softer profile didn't apply.
+          */}
+          { summary.siteClassification?.signals.some((s) => s.kind === "degeneration-guard-tripped") ? (
+            <p className="mt-3 max-w-md text-[11px] leading-relaxed text-muted-foreground">
+              Site-type profiling was skipped — the sampled pages look degenerate
+              (mostly thin or near-duplicate), so severity demotions for the
+              detected site type were not applied.
+            </p>
           ) : null }
         </div>
 
@@ -840,8 +930,8 @@ function HowToRead({ pageCount }: { pageCount: number }) {
       body: "Rules inferred from public SpamBrain guidance — a structured conversation, not Google's classifier.",
     },
     {
-      label: "Server-rendered only",
-      body: "We read the HTML the server returns. Client-rendered content looks empty to us (Pro has browser rendering).",
+      label: "Server-rendered by default",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us — Pro audits can render JS-heavy / SPA pages in a browser first.",
     },
   ];
 
@@ -992,6 +1082,12 @@ function hoursUntil(d: Date): number {
   return Math.max(1, Math.round((d.getTime() - Date.now()) / 3_600_000));
 }
 
+/** Clamp a percentage from untrusted R2 JSON into the displayable [0,100]. */
+function clampPct(n: number): number {
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, n));
+}
+
 function ExpiredState({ row }: { row: AuditRow }) {
   const host = hostOf(row.sourceUrl);
   return (
@@ -1036,22 +1132,5 @@ function safeParse<T>(raw: string): T | null {
   }
 }
 
-/**
- * Read the core engine's `truncated` / `truncatedReason` partial-coverage flags
- * off whatever summary shape we parsed from R2. The field lives on the current
- * `AuditSummary` (v0.4+); legacy v0.3 blobs never carry it, so this returns
- * `{ truncated: false }` for them. Read defensively (the blob is untrusted
- * JSON), so we duck-type rather than trust the static union.
- */
-function summaryTruncation(summary: AnyAuditSummary | null): {
-  truncated: boolean;
-  reason: string | null;
-} {
-  const s = summary as { truncated?: unknown; truncatedReason?: unknown } | null;
-  const truncated = s?.truncated === true;
-  const reason =
-    truncated && typeof s?.truncatedReason === "string" && s.truncatedReason.trim().length > 0
-      ? s.truncatedReason
-      : null;
-  return { truncated, reason };
-}
+// summaryTruncation (the defensive R2-JSON reader) lives in @/lib/truncation —
+// pure + unit-tested there.

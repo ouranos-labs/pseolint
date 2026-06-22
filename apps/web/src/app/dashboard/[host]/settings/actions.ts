@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, domainDataSources, domainRuleOverrides, integrations } from "@/db/schema";
+import { parseScanOptions } from "@/lib/scan-options";
 import { requireSession } from "@/lib/session";
 import { validateSlackWebhookUrl, sendSlackAlert } from "@/lib/slack-notify";
 import { listSites, pickBestGscProperty } from "@/lib/gsc";
@@ -37,6 +38,9 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   // BackpressureMonitor mid-crawl. HTML form checkboxes only submit when
   // checked, so a missing field means "off".
   const gentleAuditMode = String(formData.get("gentleAuditMode") ?? "") === "on";
+  // Render JS-heavy pages in a headless browser before auditing (needs the
+  // PSEOLINT_BROWSER_WS endpoint configured; no-ops without it).
+  const renderMode = String(formData.get("renderMode") ?? "") === "on";
 
   // Bring-your-own domain authority (0-100). Blank or out-of-range → null (unset
   // = engine applies no verdict shift). Integer-only to match the engine band.
@@ -69,7 +73,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     ))
     .limit(1);
 
-  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode, authorityScore })
+  await db.update(monitoredDomains).set({ alertThreshold, alertEmail, gscSiteUrl, gentleAuditMode, authorityScore, renderMode })
     .where(and(
       eq(monitoredDomains.host, host),
       eq(monitoredDomains.userId, session.user.id),
@@ -308,4 +312,90 @@ export async function updateIndexNowKeyAction(formData: FormData): Promise<void>
 
   auditLog("settings.indexnow.updated", { userId: session.user.id, host, configured: indexNowKey !== null });
   revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+}
+
+/**
+ * Assemble the "Advanced scan options" form (friendly knobs + two JSON
+ * textareas) into ONE object, validate it through the allowlist
+ * (`parseScanOptions`), and persist the JSON to `monitoredDomains.scanOptions`.
+ *
+ * SECURITY: this never trusts the form. Everything is funneled through
+ * `parseScanOptions`, whose `.strict()` schema accepts ONLY the 7 safe knobs —
+ * no safeMode / SSRF / robots / cache / render / ai / authority lever can be
+ * smuggled in here. An empty/all-default submission clears the column.
+ */
+export async function updateScanOptionsAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const host = String(formData.get("domainHost") ?? "");
+  if (!host) throw new Error("missing domain host");
+
+  const domainId = await ownDomainId(session.user.id, host);
+  if (!domainId) throw new Error("not found");
+
+  // Friendly knobs. Checkboxes only submit when checked, so absence = off; we
+  // only set a boolean key when the box is checked (true) so "everything off"
+  // collapses to no stored options rather than a row full of `false`.
+  const raw: Record<string, unknown> = {};
+  if (String(formData.get("crawlDiscovery") ?? "") === "on") raw.crawlDiscovery = true;
+  if (String(formData.get("fillBudgetViaLinkDiscovery") ?? "") === "on") raw.fillBudgetViaLinkDiscovery = true;
+  if (String(formData.get("strict") ?? "") === "on") raw.strict = true;
+
+  const sampling = String(formData.get("samplingStrategy") ?? "").trim();
+  if (sampling === "stratified" || sampling === "random") raw.samplingStrategy = sampling;
+
+  const maxPerTemplateRaw = String(formData.get("maxPerTemplate") ?? "").trim();
+  if (maxPerTemplateRaw.length > 0) {
+    const n = Number(maxPerTemplateRaw);
+    // Defer range/int validation to the allowlist schema; just don't feed it NaN.
+    if (Number.isFinite(n)) raw.maxPerTemplate = n;
+  }
+
+  // Two advanced JSON textareas. Parse each independently so we can point the
+  // user at the exact field that failed (mirrors updateRuleOverridesAction).
+  const pageGroupsJson = String(formData.get("pageGroupsJson") ?? "").trim();
+  if (pageGroupsJson.length > 0) {
+    try { raw.pageGroups = JSON.parse(pageGroupsJson); }
+    catch { throw new Error("Page groups: invalid JSON"); }
+  }
+  const entityPatternsJson = String(formData.get("entityPatternsJson") ?? "").trim();
+  if (entityPatternsJson.length > 0) {
+    try { raw.entityPatterns = JSON.parse(entityPatternsJson); }
+    catch { throw new Error("Entity patterns: invalid JSON"); }
+  }
+
+  // Nothing set → clear the column (back to engine defaults).
+  if (Object.keys(raw).length === 0) {
+    await db.update(monitoredDomains).set({ scanOptions: null })
+      .where(and(
+        eq(monitoredDomains.host, host),
+        eq(monitoredDomains.userId, session.user.id),
+        isNull(monitoredDomains.removedAt),
+      ));
+    auditLog("settings.scan_options.updated", { userId: session.user.id, host, configured: false });
+    revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+    redirect(`/dashboard/${encodeURIComponent(host)}/settings?saved=1`);
+  }
+
+  // The allowlist is the gate. Anything outside the 7 safe fields, or a bad
+  // shape/type, fails here — we reject rather than silently strip so the user
+  // knows their input didn't take.
+  const validated = parseScanOptions(raw);
+  if (!validated) {
+    throw new Error(
+      "Invalid advanced scan options — only crawlDiscovery, fillBudgetViaLinkDiscovery, " +
+      "samplingStrategy, maxPerTemplate, strict, pageGroups, and entityPatterns are allowed, " +
+      "and each must match its expected shape (e.g. maxPerTemplate must be a whole number ≥ 1).",
+    );
+  }
+
+  await db.update(monitoredDomains).set({ scanOptions: JSON.stringify(validated) })
+    .where(and(
+      eq(monitoredDomains.host, host),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ));
+
+  auditLog("settings.scan_options.updated", { userId: session.user.id, host, configured: true });
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  redirect(`/dashboard/${encodeURIComponent(host)}/settings?saved=1`);
 }

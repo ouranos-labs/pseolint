@@ -5,6 +5,7 @@ import { monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { disconnectGsc } from "@/lib/gsc";
 import { auditLog } from "@/lib/audit-log";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,6 @@ export async function POST(): Promise<Response> {
     .where(eq(monitoredDomains.userId, session.user.id));
 
   auditLog("gsc.oauth.disconnected", { userId: session.user.id });
-  const url = new URL("/dashboard/integrations?gsc=disconnected", process.env.BETTER_AUTH_URL ?? "http://localhost:3000");
+  const url = new URL("/dashboard/integrations?gsc=disconnected", env().BETTER_AUTH_URL);
   return NextResponse.redirect(url, { status: 303 });
 }

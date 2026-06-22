@@ -2,10 +2,10 @@ import type { Template } from "@pseolint/core";
 import { TemplateCard } from "@/components/audit/template-card";
 
 /**
- * v0.6 visual centerpiece: shows the audit-as-template paradigm with 3 live
+ * Audit-as-template visual centerpiece: shows the paradigm with 3 live
  * TemplateCard instances backed by realistic mock data. No interactivity —
  * this is a static marketing surface. The annotation and comparison footer
- * explain the aggregation logic (spec §15.1) and the v0.5→v0.6 sampling shift.
+ * explain the aggregation logic (spec §15.1) and the v0.5→stratified sampling shift.
  */
 
 const TOTAL_DISCOVERED = 8432; // sum of the three mock templates
@@ -127,10 +127,10 @@ export function TemplateBreakdownHero() {
         {/* Heading */}
         <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
-          v0.6 — audit-as-template
+          Audit-as-template
         </div>
         <h2 className="max-w-2xl text-balance text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
-          v0.6 audits your site by template.{" "}
+          pseolint audits your site by template.{" "}
           <span
             style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
           >
@@ -173,7 +173,7 @@ export function TemplateBreakdownHero() {
           </p>
         </div>
 
-        {/* v0.5 vs v0.6 comparison footer */}
+        {/* v0.5 (flat) vs current (stratified) comparison footer */}
         <div className="mt-6 overflow-hidden rounded-[18px] border border-border/60 bg-card/40">
           <div className="flex items-center border-b border-border/60 px-5 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -210,10 +210,10 @@ export function TemplateBreakdownHero() {
             </div>
             <div className="px-5 py-4">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-primary/80">
-                v0.6 — K=10 per template
+                Stratified sampling — by template
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                3 templates × 10 samples = 30 fetches (vs 200). Each template
+                Pages are sampled stratified across templates (up to 200). Each template
                 gets its own verdict. The{" "}
                 <code className="font-mono text-[10px]">/listing/*</code> cluster
                 surfaces an 8/10 thin-content fire rate — unmistakable.{" "}

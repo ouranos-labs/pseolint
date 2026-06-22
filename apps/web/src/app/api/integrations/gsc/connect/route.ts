@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOptionalSession } from "@/lib/session";
 import { buildAuthorizeUrl, gscOAuthConfig, packState } from "@/lib/gsc";
+import { env } from "@/lib/env";
 
 export const runtime = "nodejs";
 
@@ -13,7 +14,7 @@ export async function GET(): Promise<Response> {
   const session = await getOptionalSession();
   if (!session) {
     return NextResponse.redirect(
-      new URL("/signin?callbackUrl=/dashboard/integrations", process.env.BETTER_AUTH_URL ?? "http://localhost:3000"),
+      new URL("/signin?callbackUrl=/dashboard/integrations", env().BETTER_AUTH_URL),
     );
   }
   try {

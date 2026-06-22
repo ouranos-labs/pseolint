@@ -21,6 +21,19 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
   const oldest = completedRuns[0]?.completedAt ?? null;
   const newest = completedRuns[completedRuns.length - 1]?.completedAt ?? null;
 
+  // Delta must compare each completed run against the previous COMPLETED run,
+  // not the previous array element — a failed/queued run in between carries a
+  // null risk and would otherwise null out (or mis-attribute) the delta.
+  // Precompute risk-vs-prior-completed per slug.
+  const deltaBySlug = new Map<string, number | null>();
+  let prevCompletedRisk: number | null = null;
+  for (const r of ordered) {
+    if (r.status === "completed" && r.risk != null) {
+      deltaBySlug.set(r.slug, prevCompletedRisk != null ? r.risk - prevCompletedRisk : null);
+      prevCompletedRisk = r.risk;
+    }
+  }
+
   const toggleSelected = (slug: string) => {
     setSelectedSlugs((prev) => {
       if (prev.includes(slug)) {
@@ -86,10 +99,11 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
       ) : (
         <>
           <ol className="mt-4 flex flex-wrap items-end gap-1.5">
-            {ordered.map((r, idx) => {
-              const prevRisk = ordered[idx - 1]?.risk ?? null;
-              const delta =
-                r.risk != null && prevRisk != null ? r.risk - prevRisk : null;
+            {ordered.map((r) => {
+              // Delta vs the previous COMPLETED run (skips failed/queued runs
+              // with null risk) — see deltaBySlug above. Non-completed runs
+              // have no entry and render with the neutral/not-completed hue.
+              const delta = deltaBySlug.get(r.slug) ?? null;
 
               // Lower risk is safer (less SpamBrain exposure). So delta < 0 = improvement = green;
               // delta > 0 = regression = red. The previous version had this inverted.

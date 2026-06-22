@@ -65,7 +65,22 @@ export const audits = pgTable("audit", {
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "expired">().notNull().default("queued"),
   isPublic: boolean("is_public").notNull().default(true),
   source: text("source").$type<"user" | "seed">().notNull().default("user"),
+  /**
+   * The /tools/[slug] entry point that created this audit, if any. The audit
+   * still runs the FULL rule set (so the report can funnel "we found N more"),
+   * this just lets the report render a focused lens view for that tool's
+   * `ruleLens`. Null for homepage / dashboard / API audits.
+   */
+  tool: text("tool"),
   risk: integer("risk"),
+  /**
+   * The engine's moderated user-facing verdict ("ready" | "caution" |
+   * "concerning" | "critical"). Mirrors `AuditSummary.verdict` so the
+   * dashboard / portfolio / history surface the moderated signal directly
+   * instead of re-deriving it from the raw (unmoderated) `risk`. Nullable for
+   * backfill — legacy rows predate this column.
+   */
+  verdict: text("verdict").$type<"ready" | "caution" | "concerning" | "critical">(),
   pageCount: integer("page_count"),
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
@@ -157,6 +172,14 @@ export const monitoredDomains = pgTable("monitored_domain", {
   alertThreshold: integer("alert_threshold").notNull().default(10),
   lastAuditId: uuid("last_audit_id"),
   lastRisk: integer("last_risk"),
+  /**
+   * The engine's moderated verdict from the latest audit ("ready" | "caution"
+   * | "concerning" | "critical"). Mirrors `AuditSummary.verdict`, synced
+   * alongside `lastRisk`, so the portfolio strip / workspace header show the
+   * moderated signal rather than re-deriving it from `lastRisk`. Nullable for
+   * backfill.
+   */
+  lastVerdict: text("last_verdict").$type<"ready" | "caution" | "concerning" | "critical">(),
   lastRunAt: timestamp("last_run_at", { withTimezone: true }),
   lastFullRunAt: timestamp("last_full_run_at", { withTimezone: true }),
   nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull().defaultNow(),
@@ -192,8 +215,29 @@ export const monitoredDomains = pgTable("monitored_domain", {
    * domain's authority is stable), not a per-audit input.
    */
   authorityScore: integer("authority_score"),
+  /**
+   * Per-domain render-mode opt-in (Pro). When true, audits against this domain
+   * render each page in a headless browser (the operator's Browserless CDP
+   * endpoint, PSEOLINT_BROWSER_WS) before auditing — needed for JS-heavy / SPA
+   * sites (Webflow, Framer, client-rendered Next) whose server HTML looks empty
+   * to a static fetch. Null/false = static fetch. Nullable (no default) to
+   * mirror authorityScore: absence means "unset", not an active choice.
+   */
+  renderMode: boolean("render_mode"),
   /** Per-domain IndexNow API key (must be served at /[key].txt on the origin). */
   indexNowKey: text("indexnow_key"),
+  /**
+   * Per-domain advanced scan options (Pro). JSON-serialized, allowlisted subset
+   * of `AuditOptions` — see lib/scan-options.ts `ScanOptions`. Only the 7 safe
+   * engine knobs (crawlDiscovery, fillBudgetViaLinkDiscovery, samplingStrategy,
+   * maxPerTemplate, strict, pageGroups, entityPatterns) are ever stored here;
+   * the schema's `.strict()` and run-audit's spread order (validated override
+   * first, fixed safety opts after) keep this from becoming a way to disable
+   * safeMode / SSRF guard / robots / noindex / caps. Null = no overrides →
+   * engine defaults. Stored as text JSON for consistency with
+   * `domainRuleOverrides` / `domainDataSources`.
+   */
+  scanOptions: text("scan_options"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   userIdx: index("monitored_user_idx").on(t.userId),

@@ -1,5 +1,12 @@
 # @pseolint/extension
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies
+  - @pseolint/core@0.7.4
+
 ## 0.0.2
 
 ### Patch Changes
