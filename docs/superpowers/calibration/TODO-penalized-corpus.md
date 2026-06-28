@@ -54,12 +54,43 @@ above* — anything cleaner is a miss / false negative on our side).
 
 ---
 
-## The wiring (I can do this once the labels exist)
+## The wiring already exists — this is a DATA task, not a code task
 
-- [ ] Add `penalized-pseo-corpus.json` + a `*.schema.json` (mirror the reputable pair, `expectedVerdictFloor`).
-- [ ] Extend the calibration runner to score the floor side and emit a **confusion matrix**: precision / recall / F1 (reputable corpus = the true-negative side, this = the true-positive side).
-- [ ] Add the two-sided regression gate to CI (the one-sided reputable gate already exists).
-- [ ] Add a `/methodology` confusion-matrix section that publishes the number — including today's ~56% recall. Publishing it is on-brand with `/limits`, and the corpus *is* the moat.
+Re-checked the repo: the two-sided harness is already built. Don't rebuild it.
+
+- ✅ Schema + types are two-sided: `class` (reputable | policy-violating | subject),
+  `expectedVerdictFloor`, `visiblePolicies`, `detectability` (on-page | off-page-only),
+  `synthetic` — `calibration-corpus.schema.json` / `corpus-types.ts`.
+- ✅ Metrics exist: `packages/core/calibration/score.ts` has `confusionMatrix`
+  (precision/recall/F1), `calibrationMetrics` (Mann-Whitney AUC, class separation,
+  per-band penalty rate), `perClassRiskStats`, and the `ratchet` (HARD gate: a
+  policy-violating verdict dropping vs baseline = recall regression).
+- ✅ Runner prints the scorecard + writes `baseline-scorecard.json`
+  (`scripts/calibration-corpus.ts`); the reputable ceiling is gated in
+  `tests/calibration/reputable-corpus.test.ts`.
+- ✅ ~6 real policy-violating entries already in the corpus (zacjohnson 8.2M→0,
+  healthyceleb, fresherslive, beingselfish) + 2 synthetic must-catch fixtures.
+
+**What's actually missing is corpus depth (~6 → 30–50).** Pre-seeded that:
+`packages/core/calibration/seed-todo.json` (a staging file the runner does NOT
+read) now holds 15 web-sourced draft entries — 12 on-page-detectable AI farms
+(causal.app, equityatlas, newsunzip, popularbio, …) and 3 off-page-only parasite
+cases (CNN/USA Today/Forbes coupons, tracked but not recall targets).
+
+### Promote workflow (per seed entry)
+- [ ] Verify live status (many are dead → use Wayback for the fixture).
+- [ ] Capture a fixture under `packages/core/calibration/fixtures/<slug>/` + set
+      `pinnedUrls` and `localFixtureDir` so the recall gate runs hermetically.
+- [ ] Set `asOf`; confirm `expectedSiteType` + `expectedVerdictFloor` against a real audit.
+- [ ] Move the entry from `seed-todo.json` into `calibration-corpus.json` `sites`, drop the `todo` field.
+- [ ] Run `bun run scripts/calibration-corpus.ts`, eyeball recall/AUC, commit the refreshed `baseline-scorecard.json`.
+
+### Two small code follow-ups (optional)
+- [ ] `confusionMatrix` currently counts every `policy-violating` site as a positive —
+      exclude `detectability: "off-page-only"` from the **addressable**-recall denominator
+      (parasite SEO is undetectable on-page by construction, so it shouldn't drag the number).
+- [ ] Publish the result on `/methodology` (confusion matrix + today's ~56% recall).
+      On-brand with `/limits`; the corpus *is* the moat.
 
 ## References
 - Existing reputable corpus: `packages/core/calibration/calibration-corpus.json`

@@ -1,0 +1,293 @@
+{
+  "$schema": "./calibration-corpus.schema.json",
+  "version": "seed-1",
+  "rationale": "STAGING QUEUE — NOT READ BY THE CALIBRATION RUNNER. Pre-seeded real policy-violating candidates (web-search sourced, 2026-06) to grow the recall corpus from ~6 toward the 30-50 target. Each entry is a DRAFT: before promoting into calibration-corpus.json's `sites` array it needs (1) live-status re-check, (2) a captured fixture under packages/core/calibration/fixtures/<slug>/ + pinnedUrls (so calibration is hermetic), (3) asOf set, (4) expectedSiteType/expectedVerdictFloor confirmed against an actual audit. The `todo` field on each entry lists what's missing. Promotion workflow + rationale: docs/superpowers/calibration/TODO-penalized-corpus.md. Wiring already exists (packages/core/calibration/score.ts: confusionMatrix/AUC/ratchet); this is data, not code.",
+  "sites": [
+    {
+      "url": "https://causal.app/",
+      "vertical": "ai-seo-heist-blog",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse", "regurgitated-content"],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "The canonical 'SEO heist' case: ~1,800 AI-generated articles (Byword) scaled to ~1M monthly visits, then lost ~99.52% of organic traffic in the 2024 HCU/spam enforcement. Strongest on-page-detectable recall target in the seed.",
+        "source": "https://www.gsqi.com/marketing-blog/deindexed-and-delayed-manual-action-case-study/",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "verify current live state (may have pruned the AI blog); capture fixture + pin 6-12 representative /blog AI-article URLs from Wayback ~Jan-2024; confirm floor=critical against an audit"
+    },
+    {
+      "url": "https://equityatlas.org/",
+      "vertical": "ai-finance-networth-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "Named in Originality.ai March-2024 manual-action list with >1M organic visitors/month before deindexing; AI finance/net-worth farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin representative URLs (Wayback if dead); confirm content type and floor"
+    },
+    {
+      "url": "https://newsunzip.com/",
+      "vertical": "ai-celebrity-bio-news-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse", "thin-content"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; AI celebrity-bio / news farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "verify live status; capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://popularbio.com/",
+      "vertical": "ai-celebrity-bio-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated celebrity-bio pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://popularnetworth.com/",
+      "vertical": "ai-networth-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated [Name] net-worth pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://networthpost.org/",
+      "vertical": "ai-networth-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; net-worth content farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://bioofy.com/",
+      "vertical": "ai-celebrity-bio-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated bio pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://filmifeed.com/",
+      "vertical": "ai-celebrity-film-bio-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; film/celebrity bio farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://tvguidetime.com/",
+      "vertical": "ai-tv-celebrity-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; TV/celebrity content farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://godownsize.com/",
+      "vertical": "ai-dimensions-howto-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list (GoDownSize); '[appliance] dimensions' how-to farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "verify live status (may have recovered); capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://thesocialtalks.com/",
+      "vertical": "ai-news-magazine-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; AI news/magazine farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://istaunch.com/",
+      "vertical": "ai-social-howto-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": ["scaled-content-abuse", "thin-content"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated social-media how-to / username-generator pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://www.cnn.com/cnn-underscored/coupons",
+      "vertical": "parasite-coupons",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": ["site-reputation-abuse"],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "May-7-2024 site-reputation-abuse manual action: CNN Underscored coupons section delisted (reportedly down to ~10 indexed URLs). TRACKING-ONLY — parasite/host-reputation abuse is off-page by construction; an on-page audit cannot detect it, so exclude from addressable-recall denominator.",
+        "source": "https://searchengineland.com/google-begins-enforcement-of-site-reputation-abuse-policy-with-portions-of-sites-being-delisted-440294",
+        "asOf": "2024-05"
+      },
+      "pinnedUrls": [],
+      "todo": "confirm current URL/state; this is off-page-only — keep as a tracked blind-spot example, NOT a recall target. Runner follow-up: exclude detectability=off-page-only from addressable recall."
+    },
+    {
+      "url": "https://www.forbes.com/advisor/",
+      "vertical": "parasite-advisor-folder",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": ["site-reputation-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "very-high",
+        "evidence": "Site-reputation-abuse enforcement (2024): Forbes Advisor folders penalized/deindexed, including the health section. TRACKING-ONLY (off-page-only blind spot).",
+        "source": "https://www.searchenginejournal.com/google-strengthens-policy-against-site-reputation-abuse/533018/",
+        "asOf": "2024-05"
+      },
+      "pinnedUrls": [],
+      "todo": "off-page-only — tracked blind-spot example, not a recall target; verify which folders are penalized"
+    },
+    {
+      "url": "https://www.usatoday.com/coupons/",
+      "vertical": "parasite-coupons",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": ["site-reputation-abuse"],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "high",
+        "evidence": "Among major publishers hit by the May-2024 site-reputation-abuse manual actions for hosting third-party coupon/promotional content. TRACKING-ONLY (off-page-only blind spot).",
+        "source": "https://www.searchenginejournal.com/google-strengthens-policy-against-site-reputation-abuse/533018/",
+        "asOf": "2024-05"
+      },
+      "pinnedUrls": [],
+      "todo": "confirm exact coupons URL/state; off-page-only — tracked, not a recall target"
+    }
+  ],
+  "excluded": {
+    "reason": "Named in sources but not seeded yet — need a citable URL with a content-type + an enforcement/traffic source before drafting an entry.",
+    "candidates": [
+      "qmunicatemagazine.com",
+      "hnbgu.net",
+      "bognor.news",
+      "chipperbird.com",
+      "juliangoldie.com (SEO personality — risk of mislabel; verify before adding)",
+      "latimes.com/coupon-codes (parasite, off-page-only)",
+      "wsj.com/buyside (parasite, off-page-only)",
+      "fortune.com/recommends (parasite, off-page-only)",
+      "outlookindia.com supplement reviews (parasite, off-page-only)",
+      "datanyze.com (HCU -96% — verify programmatic vs editorial before labeling)"
+    ],
+    "futureWork": "Promote verified entries into calibration-corpus.json; capture fixtures so the recall gate runs hermetically; then commit a refreshed baseline-scorecard.json."
+  }
+}
