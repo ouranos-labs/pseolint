@@ -656,6 +656,26 @@ function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | und
 const EFFORT_STRICT_AT = 5; // very-low effort → escalate (farm cluster)
 const EFFORT_LENIENT_AT = 25; // high effort → soften (rescues proprietary-data winners e.g. numbeo)
 const EFFORT_CAP = 1;
+// v0.7.4 — promote content-effort from a ±1 nudge to a recall DRIVER for the
+// "verbose AI farm" archetype that defeats every structural/content rule
+// (rich, entity-distinct prose → thin/unique-value/near-duplicate all stay
+// quiet; see docs/superpowers/specs/2026-06-29-recall-leak-structural-rules-suppressed.md).
+// The calibration data shows a clean gap: the lowest reputable effort is ~4
+// (wise) while leaking farms sit at 1–3 (popularnetworth 1, healthyceleb 2,
+// equityatlas 2, bestprosintown 3). So effort ≤3 is a "no-reputable zone" where
+// a 2-tier escalation can flag a farm on its own WITHOUT touching a winner.
+// Stays a verdict moderator (raw `risk` is untouched → CI gates keyed to risk
+// remain deterministic and LLM-free).
+const EFFORT_VERY_LOW_AT = 3;
+const EFFORT_VERY_LOW_CAP = 2;
+
+export function shiftVerdictForEffort(verdict: Verdict, score: number | null | undefined): Verdict {
+  if (typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= EFFORT_VERY_LOW_AT) {
+    // lenientAt:101 disables the soften arm here (a ≤3 score can't be ≥101).
+    return shiftVerdict(verdict, { score, lenientAt: 101, strictAt: EFFORT_VERY_LOW_AT, cap: EFFORT_VERY_LOW_CAP });
+  }
+  return shiftVerdict(verdict, { score, lenientAt: EFFORT_LENIENT_AT, strictAt: EFFORT_STRICT_AT, cap: EFFORT_CAP });
+}
 
 function gradeForPenalty(penalty: number): Grade {
   if (penalty <= 20) return "A";
@@ -3064,12 +3084,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       resolvedEffort = undefined; // fail-safe: model/key unavailable → no moderation
     }
   }
-  const verdict = shiftVerdict(baseVerdict, {
-    score: resolvedEffort,
-    lenientAt: EFFORT_LENIENT_AT,
-    strictAt: EFFORT_STRICT_AT,
-    cap: EFFORT_CAP,
-  });
+  const verdict = shiftVerdictForEffort(baseVerdict, resolvedEffort);
 
   const headline = buildHeadline(bucketCounts);
 

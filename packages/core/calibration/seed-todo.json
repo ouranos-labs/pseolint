@@ -1,0 +1,504 @@
+{
+  "$schema": "./calibration-corpus.schema.json",
+  "version": "seed-2",
+  "rationale": "STAGING QUEUE \u2014 NOT READ BY THE CALIBRATION RUNNER. Web-sourced (2026-06) policy-violating + matched-reputable candidates to grow the recall corpus toward 30-50 ACROSS ARCHETYPES (not a celeb-farm monoculture) with spam-vs-legit pairs per vertical. Every entry is a DRAFT: before promoting into calibration-corpus.json `sites` it needs (1) live-status re-check (many are dead/pruned -> use a Wayback fixture captured at PENALTY TIME, not the recovered live site), (2) fixture under packages/core/calibration/fixtures/<slug>/ + pinnedUrls, (3) asOf/source confirmed, (4) expectedVerdict* confirmed against a real audit. The `todo` on each lists what's missing. Several reputable counterparts are sourced from marketing listicles \u2014 upgrade to Ahrefs/Sistrix primary before relying. Anonymized enforcement events (no nameable domain) are in `excluded` as leads, NOT fabricated into sites. Promotion workflow: docs/superpowers/calibration/TODO-penalized-corpus.md. NOTE: the June 24-26 2026 spam update (3 days old) hit exactly the location/doorway/faceted archetypes below; named casualties from it are still being sourced and will be appended.",
+  "sites": [
+    {
+      "url": "https://causal.app/",
+      "vertical": "saas-finance-seo-heist",
+      "archetype": "seo-heist",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "regurgitated-content"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "very-high",
+        "evidence": "Canonical 'SEO heist': ~1,800 articles AI-cloned from competitor Exceljet's sitemap (Byword), peaked ~610k weekly visits Oct 2023, then Ahrefs logged -99.52%; offending posts 301'd to homepage.",
+        "source": "https://ahrefs.com/blog/biggest-traffic-losers/",
+        "asOf": "2024-12"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Wayback fixture of a /blog AI article captured Oct-Nov 2023 pre-redirect; the live site has pruned the AI blog so a live audit won't see the violation"
+    },
+    {
+      "url": "https://www.datanyze.com/companies/",
+      "vertical": "b2b-sales-data-directory",
+      "archetype": "comparison-directory",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "thin-content",
+        "templated-no-added-value"
+      ],
+      "groundTruth": {
+        "status": "declining",
+        "trafficClass": "very-high",
+        "evidence": "Lost ~95-96% of organic traffic in 2024 (~464k monthly pageviews), 80%+ of the loss in the programmatic /companies and /people subfolders (templated company/people stubs); reranked far lower rather than fully deindexed.",
+        "source": "https://ahrefs.com/blog/biggest-traffic-losers/",
+        "asOf": "2024-08"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Wayback fixture of a /companies/ or /people/ stub at penalty time; confirm whether folders were later pruned/noindexed"
+    },
+    {
+      "url": "https://get-invoice.com/",
+      "vertical": "saas-fintech-invoicing-ai-farm",
+      "archetype": "scaled-content",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "thin-content"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "low",
+        "evidence": "First-party post-mortem: ~22,000 AI-generated pages on a weak domain went from ~130 clicks/day to zero on Feb 28 2025; indexed pages collapsed 20,000+ -> 1 over six months. Recovered only via rebrand to a new domain \u2014 a recent (2025) 'recovery-via-rebrand' edge case.",
+        "source": "https://tailride.so/blog/google-penalty-22000-ai-pages",
+        "asOf": "2025-02"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Confirm get-invoice.com is parked/301'd and deindexed; capture Wayback fixture of the AI pages pre-Feb-2025"
+    },
+    {
+      "url": "https://izoate.com/",
+      "vertical": "digital-marketing-blog",
+      "archetype": "thin-content",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "thin-content",
+        "eeat-deficiency"
+      ],
+      "groundTruth": {
+        "status": "declining",
+        "trafficClass": "medium",
+        "evidence": "~89% traffic drop March 2025 core update for low-value/E-E-A-T-deficient content; owner posted the loss in Google Search Central. Recent (2025) entry.",
+        "source": "https://support.google.com/webmasters/thread/317789154",
+        "asOf": "2025-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "Verify the 89% figure against the owner's GSC thread directly; confirm whether content is programmatic/AI vs merely thin before keeping"
+    },
+    {
+      "url": "https://oldtimemusic.com/",
+      "vertical": "music-facts-ai-farm",
+      "archetype": "glossary",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "mass-AI-generation"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "~2.5M-page templated 'meaning of [song]' AI farm named by SEJ as deindexed in the March 2024 update (later partially reindexed).",
+        "source": "https://www.searchenginejournal.com/googles-march-2024-core-update-impact-hundreds-of-websites-deindexed/510981/",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "Confirm archetype (song-meaning glossary) + current index state on a Wayback capture"
+    },
+    {
+      "url": "https://historyfact.in/",
+      "vertical": "history-gk-ai-farm-india",
+      "archetype": "non-english-farm",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "undisclosed-ai-content",
+        "anonymous-operator",
+        "low-editorial-oversight"
+      ],
+      "groundTruth": {
+        "status": "declining",
+        "trafficClass": "low",
+        "evidence": "NewsGuard-named anonymously-operated AI 'unreliable AI news' site (India/.in) with an incompletely-generated About page. NOTE: NewsGuard proves AI-farm status, NOT a Google enforcement action.",
+        "source": "https://www.newsguardtech.com/special-reports/newsbots-ai-generated-news-websites-proliferating/",
+        "asOf": "2024-01"
+      },
+      "pinnedUrls": [],
+      "confidence": "low",
+      "todo": "AI-farm confirmed but Google enforcement UNCONFIRMED \u2014 verify index/visibility status before treating as a penalized label; otherwise demote to a pure thin-content fixture"
+    },
+    {
+      "url": "https://www.latimes.com/coupon-codes",
+      "vertical": "parasite-coupons",
+      "archetype": "coupon-aggregator",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": [
+        "site-reputation-abuse"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "Leased third-party coupon subfolder; ~100% visibility loss in Google's May 5-8 2024 site-reputation-abuse enforcement. TRACKING-ONLY (off-page-only blind spot, undetectable on-page).",
+        "source": "https://pressgazette.co.uk/platforms/google-dealt-blow-to-publisher-shopping-revenue-on-eve-of-black-friday-site-reputation-abuse-update/",
+        "asOf": "2024-05"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "off-page-only \u2014 tracked blind-spot example, NOT a recall target; confirm /coupon-codes path live vs pruned"
+    },
+    {
+      "url": "https://www.wsj.com/buyside/",
+      "vertical": "parasite-reviews-coupons",
+      "archetype": "coupon-aggregator",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": [
+        "site-reputation-abuse"
+      ],
+      "groundTruth": {
+        "status": "declining",
+        "trafficClass": "high",
+        "evidence": "WSJ Buy Side caught by the Nov 2024 reinterpreted site-reputation-abuse policy (penalizes regardless of first-party oversight). TRACKING-ONLY (off-page-only blind spot).",
+        "source": "https://pressgazette.co.uk/platforms/google-dealt-blow-to-publisher-shopping-revenue-on-eve-of-black-friday-site-reputation-abuse-update/",
+        "asOf": "2024-11"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "off-page-only \u2014 tracked, not a recall target; confirm whether fully deindexed or only declined"
+    },
+    {
+      "url": "https://cointelegraph.com/",
+      "vertical": "crypto-news-igaming-section",
+      "archetype": "site-section-reputation-abuse",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "off-page-only",
+      "visiblePolicies": [
+        "site-reputation-abuse",
+        "third-party-igaming"
+      ],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "very-high",
+        "evidence": "Suspected manual penalty ~Oct 6 2025 (two weeks after the Sept 2025 spam update); Ahrefs ~98% traffic decline; site removed its entire iGaming section. Recent (2025), and a nuance case: a reputable main site with a policy-violating SECTION.",
+        "source": "https://theholycoins.com/news/cointelegraph-traffic-drop-and-igaming-section-removal-suggest-a-possible-manual-google-penalty",
+        "asOf": "2025-10"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "Niche-blog source \u2014 corroborate the manual-action claim with a tier-1 analyst; off-page-only; label is section-specific not whole-site"
+    },
+    {
+      "url": "https://www.reddit.com/",
+      "vertical": "ugc-forum-machine-translation",
+      "archetype": "translation-no-op",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "HARD CASE / over-flag guard: Reddit machine-translates English threads into 35+ languages (tens of millions of URLs) \u2014 the textbook translation-no-op pattern \u2014 yet is NOT penalized and is surging. Tests that pseolint doesn't over-flag tolerated AI translation. Google has stated AI translation is not inherently spam.",
+        "source": "https://www.gsqi.com/marketing-blog/auto-translating-content-google-scaled-content-abuse/",
+        "asOf": "2025-06"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Calibration tension: archetype-positive but outcome-negative. Keep as a PRECISION test (engine should NOT flag this critical); revisit if Google later enforces"
+    },
+    {
+      "url": "https://es.gizmodo.com/",
+      "vertical": "tech-media-ai-translation",
+      "archetype": "translation-no-op",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "high",
+        "evidence": "HARD CASE / over-flag guard: Gizmodo en Espanol machine-translated ~7,000 English articles into Spanish (AI-translation labels disclosed on-page), visibility surging in Spain/Mexico despite the no-op pattern. Disclosed translation that still ranks.",
+        "source": "https://www.gsqi.com/marketing-blog/auto-translating-content-google-scaled-content-abuse/",
+        "asOf": "2025-06"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Pair with reddit to bound the false-positive rate on translation-no-op; confirm AI-translation disclosure still present"
+    },
+    {
+      "url": "https://www.yelp.com/",
+      "vertical": "local-business-directory",
+      "archetype": "location-directory",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT for the location-doorway vertical: city/business-type pages templated at scale but populated with genuine per-location data (real reviews, ratings, photos); ~135M+ monthly visits, stable rankings.",
+        "source": "https://www.bestfirms.org/post/programmatic-seo-examples-15-pages-that-actually-work",
+        "asOf": "2026-06"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Upgrade source to an Ahrefs/Sistrix visibility pull confirming stable status; this is the spam-vs-legit contrast for local directories"
+    },
+    {
+      "url": "https://www.tripadvisor.com/",
+      "vertical": "travel-things-to-do-directory",
+      "archetype": "location-directory",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT: 'Things to do in [city]' / 'Restaurants in [city]' pages from a real reviews+listings database. Same '[X] in [city]' archetype as doorway spam but backed by genuine UGC.",
+        "source": "https://www.bestfirms.org/post/programmatic-seo-examples-15-pages-that-actually-work",
+        "asOf": "2026-06"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "TripAdvisor took HCU-era volatility \u2014 verify current stability with Sistrix; upgrade source to primary data"
+    },
+    {
+      "url": "https://www.zillow.com/homes/",
+      "vertical": "real-estate-marketplace",
+      "archetype": "marketplace",
+      "expectedSiteType": "ecommerce",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT for programmatic eComm/marketplace: millions of templated property/location pages, each with genuine unique inventory (listings, prices, photos, Zestimate); ranks strongly on hyper-local long-tail.",
+        "source": "https://www.bestfirms.org/post/programmatic-seo-examples-15-pages-that-actually-work",
+        "asOf": "2026-06"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Upgrade source to an Ahrefs/Sistrix Zillow visibility report confirming winning status"
+    },
+    {
+      "url": "https://www.wikipedia.org/",
+      "vertical": "encyclopedia-glossary",
+      "archetype": "glossary",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "stable",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT for the glossary/'what is [term]' vertical: human-edited, sourced, transparent revision history \u2014 the legit counterpart to AI definition farms.",
+        "source": "https://www.amsive.com/insights/seo/google-march-2026-core-update-winners-losers-analysis/",
+        "asOf": "2025-12"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Consider Investopedia as an alternate finance-glossary control; pick a representative article URL set to pin"
+    },
+    {
+      "url": "https://www.nytimes.com/wirecutter/",
+      "vertical": "product-reviews-comparison",
+      "archetype": "comparison",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT for the comparison/'[X] vs [Y]' vertical: first-hand testing, named expert authors, strong E-E-A-T; ~10M+ monthly organic visits. The legit counterpart to AI 'vs' farms.",
+        "source": "https://foundationinc.co/lab/wirecutter-reviews-seo-moat",
+        "asOf": "2025-01"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Confirm post-2025/2026-core-update stability; the editorial review process is the distinguishing signal vs comparison spam"
+    },
+    {
+      "url": "https://www.canva.com/",
+      "vertical": "design-saas-multilingual",
+      "archetype": "translation-localization",
+      "expectedSiteType": "programmatic-directory",
+      "class": "reputable",
+      "expectedVerdictCeiling": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [],
+      "groundTruth": {
+        "status": "winning",
+        "trafficClass": "very-high",
+        "evidence": "MATCHED LEGIT for translation-no-op: localizes per dialect (/fr_fr/, /es_mx/) with market-specific templates/media + correct hreflang; ~62% multilingual organic traffic. Genuine per-locale differentiation vs translation-no-op.",
+        "source": "https://ahrefs.com/blog/multilingual-seo/",
+        "asOf": "2025-01"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Verify es_mx vs es_es pages genuinely differ (true dialect localization) to keep as a clean reputable contrast"
+    },
+    {
+      "url": "https://popularbio.com/",
+      "vertical": "ai-celebrity-bio-farm",
+      "archetype": "glossary",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "encyclopedia-paraphrase"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "high",
+        "evidence": "'Who is / bio' AI farm named in Originality.ai's March 2024 manual-action list; est. 220k-530k traffic before deindex.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Confirm current index status (some siblings reappeared); Wayback fixture at penalty time"
+    },
+    {
+      "url": "https://networthpost.org/",
+      "vertical": "ai-networth-glossary-farm",
+      "archetype": "glossary",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "critical",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "templated-no-added-value"
+      ],
+      "groundTruth": {
+        "status": "deindexed",
+        "trafficClass": "medium",
+        "evidence": "Net-worth definition AI farm in Originality.ai's March 2024 manual-action list; est. 120k-350k traffic before deindex.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "high",
+      "todo": "Confirm domain still dead/parked; Wayback fixture pre-March-2024"
+    },
+    {
+      "url": "https://bioofy.com/",
+      "vertical": "ai-celebrity-bio-farm",
+      "archetype": "glossary",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse"
+      ],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated bio pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://godownsize.com/",
+      "vertical": "ai-dimensions-howto-farm",
+      "archetype": "scaled-content",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse"
+      ],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list (GoDownSize); '[appliance] dimensions' how-to farm.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "verify live status (may have recovered); capture fixture + pin URLs; confirm floor"
+    },
+    {
+      "url": "https://istaunch.com/",
+      "vertical": "ai-social-howto-farm",
+      "archetype": "scaled-content",
+      "expectedSiteType": "programmatic-directory",
+      "class": "policy-violating",
+      "expectedVerdictFloor": "concerning",
+      "detectability": "on-page",
+      "visiblePolicies": [
+        "scaled-content-abuse",
+        "thin-content"
+      ],
+      "groundTruth": {
+        "status": "penalized",
+        "trafficClass": "medium",
+        "evidence": "Named in Originality.ai March-2024 manual-action list; templated social how-to / username-generator pages at scale.",
+        "source": "https://originality.ai/blog/google-march-2024-manual-action-ai-update-list",
+        "asOf": "2024-03"
+      },
+      "pinnedUrls": [],
+      "confidence": "med",
+      "todo": "capture fixture + pin URLs; confirm floor"
+    }
+  ],
+  "excluded": {
+    "reason": "Documented enforcement events / cases with NO nameable domain (anonymized by the author) or too-weak sourcing \u2014 kept as leads, NOT fabricated into sites. Promote only if a concrete domain + fixture can be sourced.",
+    "candidates": [
+      "GSQI Dec-2024 spam-update case studies \u2014 Case 3 (~5M-URL scaled directory) + Case 5 (140-160K doorway URLs, AI text at page bottom); author blinds all domains: https://www.gsqi.com/marketing-blog/google-december-2024-spam-update-case-studies/",
+      "GSQI Apr-2026 deindex+manual-action case \u2014 ~20K-URL YMYL site, programmatic + AI pockets, root cause a hijacked subdomain (good HARD NEGATIVE: looks like scaled-content but isn't); anonymized: https://www.gsqi.com/marketing-blog/deindexed-and-delayed-manual-action-case-study/",
+      "Search Engine Land Oct-2023: 200+ service-area-business sites had '[service] in [city]' location pages deindexed en masse \u2014 cohort anonymized: https://searchengineland.com/location-pages-google-october-spam-update-390016",
+      "'50,000 hotels in [city]' travel doorway case (98% deindexed in 3 months) \u2014 anonymized in every source; do NOT assign a domain",
+      "Faceted-nav index-bloat case (<200k products -> 500M+ crawlable facet URLs, ~50% traffic loss) \u2014 anonymized aggregate: https://searchengineland.com/how-much-is-too-much-faceted-navigation-and-seo-298474",
+      "Originality.ai full 1,446-site March-2024 manual-action list \u2014 request the underlying domain list for more non-English exemplars with traffic numbers",
+      "contently.com (-97%) \u2014 abused UGC portfolio subdomains, not editorial pSEO; weak archetype fit, decide before adding",
+      "miamiherald.com/coupons, thesun.co.uk/shopping \u2014 parasite coupon subfolders (off-page-only), med/weak sourcing; corroborate with a tier-1 source before adding",
+      "wavefunction.info \u2014 NewsGuard AI farm (China-operated, English); likely dead, NOT a confirmed Google action",
+      "tailride.so \u2014 the RECOVERED rebrand of the get-invoice.com penalty (already seeded under its penalized domain); not a separate violation",
+      "ALREADY GATED (removed from seed as duplicates): https://newsunzip.com/, https://popularnetworth.com/, https://equityatlas.org/, https://www.cnn.com/cnn-underscored/coupons, https://www.forbes.com/advisor/, https://www.usatoday.com/coupons/"
+    ],
+    "futureWork": "Append named casualties of the June 24-26 2026 spam update once post-mortems publish (sourcing in progress). Then capture fixtures and promote verified entries into calibration-corpus.json; commit a refreshed baseline-scorecard.json."
+  }
+}

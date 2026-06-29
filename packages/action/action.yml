@@ -30,5 +30,5 @@ outputs:
   truncated-reason:
     description: "Human-readable reason the crawl was truncated. Empty string when not truncated."
 runs:
-  using: "node20"
+  using: "node24"
   main: "dist/index.js"
