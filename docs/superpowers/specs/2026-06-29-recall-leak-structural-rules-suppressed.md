@@ -86,3 +86,22 @@ Why they don't fire on verbose AI farms:
 3. Accept the ceiling and **report addressable recall honestly** on `/methodology` (the two-sided harness already computes it) rather than chase on-page detection of well-built farms.
 
 Recommended next move is (3) + scoping (1) as a deliberate product bet — not further rule re-gating, which this experiment shows won't move the number.
+
+## RESOLVED (2026-06-29): option 1 shipped — content-effort as a recall driver
+
+Implemented option 1 with a surgical, FP-safe change (`auditor.ts`):
+
+- The calibration data has a clean gap — lowest reputable content-effort ≈ 4 (wise), leaking AI farms sit at 1–3 (popularnetworth 1, healthyceleb 2, equityatlas 2). So **effort ≤ 3 is a "no-reputable zone."**
+- `shiftVerdictForEffort` now escalates **2 tiers** when effort ≤ 3 (a farm flags on its own: `healthyceleb` ready→concerning), while keeping the conservative ±1 nudge for effort 4–5 (protects `wise`≈4) and the −1 soften for effort ≥ 25 (`numbeo`).
+- Raw `risk` is untouched — content-effort remains a *verdict* moderator, so CI gates keyed to `risk` stay deterministic and LLM-free.
+
+**Measured (calibration harness, cached effort scores, no LLM call):**
+
+| | precision | recall | FP | reputable ceilings |
+|---|-----------|--------|----|--------------------|
+| before | 91% | 67% | 1 | all hold |
+| after  | 92% | **80%** | 1 | **all hold (0 breaches)** |
+
+Addressable recall **67% → 80%**, precision held, **zero** new false positives. Remaining misses (`newsunzip` effort 4, `thehairpin` 12, `wikibioworth` 9) sit above the ≤3 safe zone and overlap reputable territory — correctly uncatchable without FP. Unit-tested in `tests/content-effort/effort-moderation.test.ts`.
+
+**Caveat (the honest limit):** this lift only materializes when `--content-effort` is enabled (the LLM judge runs, or cached scores are supplied) — i.e. Pro web audits and opt-in CLI runs. Free/default audits without a key still sit at the baseline recall; the structural ceiling documented above is unchanged for them.
