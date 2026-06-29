@@ -161,3 +161,16 @@ rule that decides whether you did, runs it on the real crawl, ranks the
 remediation, and gates regressions in CI. Same strategy surface, plus the only
 part that's load-bearing: the proof. You don't need a separate audit skill —
 this is the audit skill.
+
+## Works with
+
+- **`aeo` skill** — once pages exist, optimize them to get *cited in AI answers*
+  (AI Overviews, ChatGPT, Perplexity). It binds each AEO guideline to a pseolint
+  `aeo/*` rule, same as this skill does for the spam/content/tech families.
+- **pseolint engine** — the verify/fix/gate half runs on the MCP server
+  (`@pseolint/mcp`), CLI (`npx pseolint`), and CI Action (`@pseolint/action`).
+- **OKF rule bundle** (`/okf`) + **`/methodology`** — open knowledge + current
+  thresholds behind every rule named above.
+- **Upstream strategy** — for audience research, keyword strategy, and content
+  planning that precede template design, pair this with a content-strategy skill;
+  this skill owns the build → audit → fix → gate half, not the market research.

@@ -1,0 +1,24 @@
+{
+  "name": "pseolint-skills",
+  "owner": {
+    "name": "Ouranos Labs",
+    "url": "https://pseolint.dev"
+  },
+  "metadata": {
+    "description": "SEO skills with teeth: every guideline maps to a runnable pseolint rule. Programmatic SEO (design → audit → fix → gate) and answer-engine optimization (AEO/GEO), backed by 40+ executable checks.",
+    "version": "0.1.0",
+    "repository": "https://github.com/ouranos-labs/pseolint"
+  },
+  "plugins": [
+    {
+      "name": "pseolint",
+      "source": "./skills/pseolint",
+      "description": "Full-lifecycle programmatic SEO — design, build, audit, fix, and gate template pages at scale without earning a thin-content / SpamBrain penalty. 12 playbooks, each bound to the pseolint rules that gate it."
+    },
+    {
+      "name": "aeo",
+      "source": "./skills/aeo",
+      "description": "Answer-engine optimization (AEO/GEO): make pages that get cited in AI Overviews, ChatGPT, and Perplexity. Each guideline binds to a runnable pseolint aeo/* rule."
+    }
+  ]
+}
