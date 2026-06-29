@@ -19,6 +19,23 @@ The only tool purpose-built for **programmatic SEO compliance**. v0.7 shifts the
 npx pseolint http://localhost:3000
 ```
 
+## Skills for Claude & coding agents (new)
+
+Design pages that pass *before* you crawl them. The [`skills/`](skills/) suite gives
+Claude (and any agent that supports the `skills` / Claude Code plugin format)
+programmatic-SEO and **answer-engine optimization (AEO / GEO)** guidance where
+every recommendation is bound to a runnable pseolint rule:
+
+```bash
+npx skills add ouranos-labs/pseolint --skill pseolint aeo
+```
+
+- **`pseolint`** — full-lifecycle programmatic SEO: design → build → audit → fix → gate.
+- **`aeo`** — get cited in AI Overviews / ChatGPT / Perplexity, not just ranked.
+
+Unlike prose checklists, these have teeth: the design-time advice ends in
+`npx pseolint` pass/fail. See [`skills/README.md`](skills/README.md).
+
 ## Why this exists
 
 Programmatic SEO works — when it works. The gap between "1,000 indexed pages" and "1,000 pages that survive a SpamBrain pass" is where most pSEO sites die. The Helpful Content Update made that gap permanent.
