@@ -67,3 +67,22 @@ This trades recall against the reputable ceilings and is a change to a calibrate
 
 ## Note on the headline metric
 Full-corpus recall (57%) is structurally capped: 6 of the 23 policy-violating sites are `detectability: off-page-only` (parasite / site-reputation abuse) that an on-page audit **cannot** detect by construction. The **addressable** recall (67%, those excluded) is the number to optimize and publish.
+
+## Experiment result (2026-06-29): un-suppression ALONE is insufficient
+
+Tested the simplest version of the proposed fix: removed `spam/template-diversity` and `spam/entity-swap` from `PSEO_ONLY_RULE_IDS` so they run on the directory class, then re-ran the harness.
+
+**Result: no change.** Recall stayed full 57% / addressable 67%, FP stayed 1, no reputable ceiling moved. The rules *ran and did not fire* on the farms. Reverted (zero benefit, and the suppression protects reputable sites beyond this 6-site corpus).
+
+Why they don't fire on verbose AI farms:
+- `spam/entity-swap` masks entities then simhashes — it needs (a) supplied **entity patterns** (none in this corpus → low coverage → at most a low-confidence warning) and (b) a **rigid** template so masked pages are near-identical. AI farms generate genuinely varied prose per entity, so masked similarity stays below threshold.
+- `spam/template-diversity` needs enough pages sharing a DOM skeleton; the ~5-page pinned fixtures don't reliably trip it.
+
+**Conclusion:** catching a *well-built, verbose* AI content farm from on-page signals alone is not solved by re-enabling existing rules. Every current rule — content **and** structural — is defeated either by the prose being rich/varied or by the rule needing inputs (entity patterns, large samples) the audit doesn't have. This is a genuine capability ceiling consistent with the `/limits` disclaimer ("we can't see off-page signals; the score is a heuristic"), not a quick calibration bug.
+
+**What a real fix would require (all larger, separate efforts):**
+1. A **prose-level AI/template-origin signal** robust to lexical variation (the `--content-effort` LLM judge is the existing seed of this — but it's opt-in/paid and only moderates the verdict ±1 tier; making it a first-class recall driver is a product decision).
+2. **Entity-pattern inference** so `spam/entity-swap` can run without hand-supplied patterns (auto-derive candidate entities from URL slugs / titles).
+3. Accept the ceiling and **report addressable recall honestly** on `/methodology` (the two-sided harness already computes it) rather than chase on-page detection of well-built farms.
+
+Recommended next move is (3) + scoping (1) as a deliberate product bet — not further rule re-gating, which this experiment shows won't move the number.
