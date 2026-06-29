@@ -16,6 +16,10 @@ import { WorkedExampleSection } from "@/components/marketing/worked-example-sect
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? env().BETTER_AUTH_URL ?? "https://pseolint.dev";
 
+// Section publish date for the rule-knowledge pages (matches the /symptoms
+// cohort). dateModified is stamped at build time, so a redeploy refreshes it.
+const RULES_PUBLISHED = "2026-04-29";
+
 function ruleUrl(slug: string): string {
   return `${SITE_URL.replace(/\/$/, "")}/rules/${slug}`;
 }
@@ -74,6 +78,8 @@ interface TechArticleJsonLd {
   inLanguage: "en";
   about: { "@type": "Thing"; name: string };
   keywords: string[];
+  datePublished: string;
+  dateModified: string;
   isPartOf: { "@type": "WebSite"; name: "pseolint"; url: string };
   publisher: { "@type": "Organization"; name: "Ouranos Labs"; url: string };
   author: {
@@ -105,6 +111,11 @@ function buildArticleJsonLd(rule: MarketingRule): TechArticleJsonLd {
     inLanguage: "en",
     about: { "@type": "Thing", name: rule.primaryKeyword },
     keywords: [rule.primaryKeyword, rule.ruleId, "SpamBrain", "programmatic SEO"],
+    // Freshness signals — mirrors the /symptoms template, which already emits
+    // both. Their absence here fired aeo/freshness-signals across all rule
+    // pages (surfaced dogfooding the pseolint skill against our own pSEO).
+    datePublished: RULES_PUBLISHED,
+    dateModified: new Date().toISOString().slice(0, 10),
     isPartOf: { "@type": "WebSite", name: "pseolint", url: SITE_URL },
     publisher: { "@type": "Organization", name: "Ouranos Labs", url: SITE_URL },
     author: {
