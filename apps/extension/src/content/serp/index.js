@@ -19,9 +19,13 @@ function runLandscape() {
   summary.aioCitations = scrapeAio(document);
   for (const { url, anchor } of results) {
     if (!summary.templatedUrls.has(url)) continue;
-    if (anchor.nextElementSibling?.getAttribute?.("data-pseolint") === "badge") continue;
+    // Insert INSIDE the title <h3> (untransformed, away from the result action-row
+    // / kebab menu), not as a sibling of the result link where the badge collided
+    // with the ⋮ and inherited that row's flipped transform.
+    const title = anchor.querySelector("h3") || anchor;
+    if (title.querySelector('[data-pseolint="badge"]')) continue;
     const badge = mountBadge({ level: "templated", label: "templated" }, document, auditHref(url));
-    if (badge) anchor.insertAdjacentElement("afterend", badge);
+    if (badge) title.append(badge);
   }
   mountChip(landscapeChip(summary));
 }
@@ -70,11 +74,11 @@ async function deepScan() {
     s.flags = [...(s.flags ?? []), ...extraFlags];
 
     if (anchor && s.verdict) {
-      if (anchor.nextElementSibling?.getAttribute?.("data-pseolint") === "badge") {
-        anchor.nextElementSibling.remove();
-      }
+      const title = anchor.querySelector("h3") || anchor;
+      const existing = title.querySelector('[data-pseolint="badge"]');
+      if (existing) existing.remove(); // replace the Tier-1 templated badge with the risk verdict
       const badge = mountBadge(s.verdict, document, auditHref(s.url));
-      if (badge) anchor.insertAdjacentElement("afterend", badge);
+      if (badge) title.append(badge);
     }
     // Enrich the SW signal set with SERP context the panel needs.
     out.push({ ...s, rank: rankByUrl.get(s.url), templated: summary.templatedUrls.has(s.url) });

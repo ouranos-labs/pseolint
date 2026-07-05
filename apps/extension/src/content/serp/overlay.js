@@ -21,9 +21,11 @@ export function badgeView(verdict) {
 }
 
 const STYLE =
-  ":host{all:initial}" +
+  ":host{all:initial;direction:ltr}" +
   ".b{display:inline-flex;align-items:center;font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;" +
   "letter-spacing:.02em;margin-left:6px;padding:1px 7px;border-radius:7px;vertical-align:middle;" +
+  // defensive: never inherit a flipped/RTL/vertical context from the host page.
+  "direction:ltr;unicode-bidi:isolate;writing-mode:horizontal-tb;transform:none;" +
   "text-decoration:none;cursor:pointer;" +
   // neo-neumorphism (apps/web CTA: bright top inset + dark bottom inset + drop)
   "box-shadow:inset 0 1.5px 0 0 rgba(255,255,255,.2),inset 0 -1.5px 0 0 rgba(0,0,0,.4),0 1.5px 3px 0 rgba(0,0,0,.3)}" +
@@ -31,9 +33,10 @@ const STYLE =
 
 // Build the shadow-host element for a verdict, or null (no badge). Glue only —
 // the decision lives in badgeView; this just plumbs it into a closed shadow root.
-// When `href` is given the badge is a link to the hosted full audit (Path B, §5):
-// it's OUR constructed URL (never page-derived) set via .href, not innerHTML, so
-// the §9 injection-safety contract holds.
+// The badge is ALWAYS a <span> (never an <a>): it's inserted inside the result's
+// <h3>, which lives inside the result <a>, so an <a> badge would nest illegally.
+// With `href`, a click handler opens OUR constructed audit URL (never page-derived)
+// via window.open, preventing the surrounding result link from firing (§5/§9).
 export function mountBadge(verdict, doc = document, href = null) {
   const view = badgeView(verdict);
   if (!view) return null;
@@ -45,7 +48,7 @@ export function mountBadge(verdict, doc = document, href = null) {
   const style = doc.createElement("style");
   style.textContent = STYLE; // our own static CSS, no interpolation
 
-  const badge = doc.createElement(href ? "a" : "span");
+  const badge = doc.createElement("span");
   badge.className = "b";
   badge.style.background = view.color;
   badge.style.color = FG[verdict.level] ?? "#ffffff";
@@ -53,10 +56,12 @@ export function mountBadge(verdict, doc = document, href = null) {
   // a11y: the "↗" is decorative; give screen readers the meaning + action.
   badge.setAttribute("aria-label", href ? `pseolint: ${view.text} — open full audit` : `pseolint: ${view.text}`);
   if (href) {
-    badge.href = href;
-    badge.target = "_blank";
-    badge.rel = "noopener noreferrer";
+    badge.setAttribute("role", "link");
+    badge.setAttribute("tabindex", "0");
     badge.title = "Open the full pseolint audit";
+    const open = (e) => { e.preventDefault(); e.stopPropagation(); window.open(href, "_blank", "noopener,noreferrer"); };
+    badge.addEventListener("click", open);
+    badge.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") open(e); });
   }
 
   root.append(style, badge);
