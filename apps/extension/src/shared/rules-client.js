@@ -19,6 +19,10 @@ const TAG = {
   "tech/og-completeness": "no OG tags",
   "tech/soft-404": "soft 404",
   "spam/thin-content": "thin",
+  "eeat/missing-author": "no Author",
+  "eeat/missing-date": "no Date",
+  "opp/title-rewritten": "title rewritten",
+  "opp/no-meta-desc": "no meta desc",
 };
 
 // findings → { level, label } for overlay.badgeView, or null = do not badge.
@@ -40,7 +44,19 @@ export function scanPage(html, url, status) {
   const words = page.contentText ? page.contentText.split(/\s+/).filter(Boolean).length : 0;
   const ogComplete = !!(page.og.title && page.og.description && page.og.image);
   if (page.isLikelyShell) {
-    return { words, ogComplete, isLikelyShell: true, flags: [], verdict: null, aeoReady: false };
+    return {
+      words,
+      ogComplete,
+      isLikelyShell: true,
+      flags: [],
+      verdict: null,
+      aeoReady: false,
+      structureSignature: page.structureSignature,
+      liveTitle: page.title,
+      liveDescription: page.metaDescription,
+      liveDate: page.publishedDate,
+      hasSchema: page.hasSchema,
+    };
   }
   // AEO-readiness proxy (browser-safe; the authoritative aeo/* audit is the SaaS):
   // structured data present + either FAQ structure or a fact-led opening.
@@ -53,10 +69,35 @@ export function scanPage(html, url, status) {
     ...soft404Rule([page]),
     ...thinContentRule([page], THIN_MIN_WORDS).findings,
   ];
+
+  const hasAuthor = !!(page.authorSignals?.metaAuthor || page.authorSignals?.schemaAuthor);
+  const hasDate = !!page.publishedDate;
+  if (!hasAuthor) {
+    findings.push({ ruleId: "eeat/missing-author", severity: "warning", confidence: "high" });
+  }
+  if (!hasDate) {
+    findings.push({ ruleId: "eeat/missing-date", severity: "warning", confidence: "high" });
+  }
+
   const flags = findings
     .filter((f) => (f.confidence ?? "high") === "high")
     .map((f) => TAG[f.ruleId] ?? "flagged");
-  return { words, ogComplete, isLikelyShell: false, flags, verdict: toVerdict(findings), aeoReady };
+
+  const metaDescription = page.metaDescription || page.og.description;
+
+  return {
+    words,
+    ogComplete,
+    isLikelyShell: false,
+    flags,
+    verdict: toVerdict(findings),
+    aeoReady,
+    structureSignature: page.structureSignature,
+    liveTitle: page.title,
+    liveDescription: metaDescription,
+    liveDate: page.publishedDate,
+    hasSchema: page.hasSchema,
+  };
 }
 
 // (rawHtml, url, httpStatus) → verdict | null. Back-compat thin wrapper.

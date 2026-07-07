@@ -1,7 +1,7 @@
 // SERP content script. Tier 1 runs automatically on load (zero permission):
 // detect ranked results, mark templated clusters, show the landscape chip. Tier 2
 // (deep scan) is triggered by the side panel and reuses the service-worker fetch.
-import { detectResults } from "./detect.js";
+import { detectResults, scrapeAio } from "./detect.js";
 import { analyzeLandscape, landscapeChip } from "./landscape.js";
 import { mountBadge } from "./overlay.js";
 import { mountChip } from "./reach.js";
@@ -16,10 +16,16 @@ let summary = null;
 function runLandscape() {
   results = detectResults(document);
   summary = analyzeLandscape(results);
+  summary.aioCitations = scrapeAio(document);
   for (const { url, anchor } of results) {
     if (!summary.templatedUrls.has(url)) continue;
+    // Insert INSIDE the title <h3> (untransformed, away from the result action-row
+    // / kebab menu), not as a sibling of the result link where the badge collided
+    // with the ⋮ and inherited that row's flipped transform.
+    const title = anchor.querySelector("h3") || anchor;
+    if (title.querySelector('[data-pseolint="badge"]')) continue;
     const badge = mountBadge({ level: "templated", label: "templated" }, document, auditHref(url));
-    if (badge) anchor.insertAdjacentElement("afterend", badge);
+    if (badge) title.append(badge);
   }
   mountChip(landscapeChip(summary));
 }
@@ -40,8 +46,40 @@ async function deepScan() {
   const out = [];
   for (const s of reply?.results ?? []) {
     const anchor = anchorByUrl.get(s.url);
-    const badge = anchor && s.verdict && mountBadge(s.verdict, document, auditHref(s.url));
-    if (badge) anchor.insertAdjacentElement("afterend", badge);
+    const rCtx = results.find((r) => r.url === s.url);
+
+    const extraFlags = [];
+    if (s.ok) {
+      if (s.liveTitle && rCtx?.serpTitle) {
+        const cleanLive = s.liveTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanSerp = rCtx.serpTitle.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanLive && cleanSerp && !cleanLive.includes(cleanSerp) && !cleanSerp.includes(cleanLive)) {
+          extraFlags.push("title rewritten");
+        }
+      }
+      if (!s.liveDescription) {
+        extraFlags.push("no meta desc");
+      } else if (rCtx?.serpSnippet) {
+        const cleanLive = s.liveDescription.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanSerp = rCtx.serpSnippet.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (cleanLive && cleanSerp && !cleanLive.includes(cleanSerp) && !cleanSerp.includes(cleanLive)) {
+          extraFlags.push("meta desc ignored");
+        }
+      }
+      if (!s.hasSchema) {
+        extraFlags.push("no schema");
+      }
+    }
+
+    s.flags = [...(s.flags ?? []), ...extraFlags];
+
+    if (anchor && s.verdict) {
+      const title = anchor.querySelector("h3") || anchor;
+      const existing = title.querySelector('[data-pseolint="badge"]');
+      if (existing) existing.remove(); // replace the Tier-1 templated badge with the risk verdict
+      const badge = mountBadge(s.verdict, document, auditHref(s.url));
+      if (badge) title.append(badge);
+    }
     // Enrich the SW signal set with SERP context the panel needs.
     out.push({ ...s, rank: rankByUrl.get(s.url), templated: summary.templatedUrls.has(s.url) });
   }
@@ -56,6 +94,7 @@ function serializeSummary(s) {
     templated: s.templatedUrls.size,
     hostCount: s.hostCount,
     clusters: s.clusters.map((c) => ({ host: c.host, pattern: c.pattern, count: c.count })),
+    aioCitations: s.aioCitations ?? [],
   };
 }
 
@@ -71,4 +110,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return undefined;
 });
 
+let observer = null;
+function startObserver() {
+  if (observer) observer.disconnect();
+  observer = new MutationObserver(() => {
+    const newResults = detectResults(document);
+    if (newResults.length > 0 && newResults.length !== results.length) {
+      runLandscape();
+      chrome.runtime.sendMessage({
+        type: "pseolint:landscape-updated",
+        summary: serializeSummary(summary)
+      }).catch(() => {});
+    }
+  });
+
+  const target = document.getElementById("search") || document.body;
+  if (target) {
+    observer.observe(target, { childList: true, subtree: true });
+  }
+}
+
 runLandscape();
+startObserver();

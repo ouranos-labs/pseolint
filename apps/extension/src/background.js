@@ -61,3 +61,90 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   );
   return true; // keep the message channel open for the async response
 });
+
+// WebSocket Bridge connection to local MCP server
+let bridgeSocket = null;
+let reconnectTimer = null;
+
+function connectToMcpBridge() {
+  if (bridgeSocket) {
+    try {
+      bridgeSocket.close();
+    } catch {}
+    bridgeSocket = null;
+  }
+
+  bridgeSocket = new WebSocket("ws://localhost:4000");
+
+  bridgeSocket.onopen = () => {
+    if (reconnectTimer) {
+      clearInterval(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  bridgeSocket.onmessage = async (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      const { id, type, payload } = msg;
+
+      if (type === "pseolint:mcp-get-landscape") {
+        const tab = await getActiveTab();
+        if (!tab || !tab.id) {
+          bridgeSocket.send(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
+          return;
+        }
+        try {
+          const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:landscape" });
+          bridgeSocket.send(JSON.stringify({ id, payload: { summary: reply?.summary, url: tab.url } }));
+        } catch (err) {
+          bridgeSocket.send(JSON.stringify({ id, payload: { error: `Failed to query tab: ${err.message}` } }));
+        }
+      } else if (type === "pseolint:mcp-deep-scan") {
+        const tab = await getActiveTab();
+        if (!tab || !tab.id) {
+          bridgeSocket.send(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
+          return;
+        }
+        try {
+          const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:deep-scan" });
+          bridgeSocket.send(JSON.stringify({ id, payload: { results: reply?.results, url: tab.url } }));
+        } catch (err) {
+          bridgeSocket.send(JSON.stringify({ id, payload: { error: `Failed to run deep scan on tab: ${err.message}` } }));
+        }
+      }
+    } catch (err) {
+      console.error("Error handling message from MCP bridge:", err);
+    }
+  };
+
+  bridgeSocket.onclose = () => {
+    bridgeSocket = null;
+    scheduleReconnect();
+  };
+
+  bridgeSocket.onerror = () => {
+    bridgeSocket = null;
+    scheduleReconnect();
+  };
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer) return;
+  reconnectTimer = setInterval(() => {
+    if (!bridgeSocket) {
+      connectToMcpBridge();
+    }
+  }, 5000);
+}
+
+async function getActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab;
+}
+
+// The mcp bridge (LLM / terminal driving) is a DEV-only egress to ws://localhost:4000.
+// Excluded from the production/store build via the PSEOLINT_MCP_BRIDGE compile flag
+// (default OFF — the `typeof` guard also fails safe if the flag is undefined);
+// `bun run build:dev` sets it true to drive the extension locally.
+if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) connectToMcpBridge();

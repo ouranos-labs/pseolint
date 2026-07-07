@@ -1,7 +1,7 @@
 // Power surface. Owns the deep-scan gesture + host-permission request (only valid
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
-import { teardown, takeaway, userHost } from "../shared/teardown.js";
+import { teardown, takeaway, userHost, buildWin } from "../shared/teardown.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
@@ -10,28 +10,96 @@ const $ = (id) => document.getElementById(id);
 
 let lastResults = []; // cached so "your site" can re-render when the domain changes
 let myHost = ""; // the user's tracked domain (stored locally, never transmitted)
+let serpQuery = ""; // the current SERP's query (?q=), carried into the win deep-link
 
-async function activeTabId() {
+function isGoogleSerp(url) {
+  if (!url) return false;
+  return /^https:\/\/(www\.)?google\.[a-z.]+\/search/i.test(url);
+}
+
+// The SERP query (?q=) — carried into the win-bridge deep-link so the SaaS can
+// frame the audit as "win the '<query>' SERP". "" when absent/unparseable.
+function serpKeyword(url) {
+  try { return new URL(url).searchParams.get("q") || ""; } catch { return ""; }
+}
+
+async function getActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab?.id;
+  return tab;
+}
+
+function renderLandscapeSummary(s) {
+  // Distinguish "not a SERP" (no summary) from "on a SERP, nothing templated".
+  $("landscape").textContent = !s
+    ? NO_SERP
+    : s.templated
+      ? `${s.templated}/${s.total} results templated · ${s.hostCount} host(s)`
+      : `${s.total} results · none look templated`;
+
+  // AI Overview (SGE) citation checks
+  const aioEl = $("aio");
+  if (s && s.aioCitations && s.aioCitations.length > 0) {
+    aioEl.style.display = "block";
+    const count = s.aioCitations.length;
+    
+    const hostClean = myHost ? myHost.toLowerCase() : "";
+    const isCited = s.aioCitations.some(url => {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "").toLowerCase() === hostClean;
+      } catch {
+        return url.toLowerCase().includes(hostClean);
+      }
+    });
+    
+    if (hostClean) {
+      aioEl.innerHTML = `<b>AI Overview:</b> ${count} source(s) cited. <br/>` + 
+        (isCited 
+          ? `<span style="color:var(--primary); font-weight:bold;">✓ Your site (${myHost}) is cited in SGE!</span>` 
+          : `<span style="color:var(--warn); font-weight:bold;">✗ Your site (${myHost}) is NOT cited. Gap detected.</span>`);
+    } else {
+      aioEl.innerHTML = `<b>AI Overview:</b> ${count} source(s) cited.`;
+    }
+  } else {
+    aioEl.style.display = "none";
+  }
 }
 
 async function loadLandscape() {
+  const tab = await getActiveTab();
+  const url = tab?.url || "";
+
+  if (!isGoogleSerp(url)) {
+    $("landscape").textContent = NO_SERP;
+    $("aio").style.display = "none";
+    $("scan").disabled = true;
+    $("scan").textContent = "Deep scan this SERP";
+    $("status").textContent = "";
+    $("takeaway").textContent = "";
+    $("headline").textContent = "";
+    $("opening").textContent = "";
+    $("results").textContent = "";
+    $("cta").hidden = true;
+    $("cta-sub").hidden = true;
+    $("serp-opportunities").style.display = "none";
+    return;
+  }
+
+  $("scan").disabled = false;
+  $("scan").textContent = "Deep scan this SERP";
+
   try {
-    const reply = await chrome.tabs.sendMessage(await activeTabId(), { type: "pseolint:landscape" });
-    const s = reply?.summary;
-    // Distinguish "not a SERP" (no summary) from "on a SERP, nothing templated".
-    $("landscape").textContent = !s
-      ? NO_SERP
-      : s.templated
-        ? `${s.templated}/${s.total} results templated · ${s.hostCount} host(s)`
-        : `${s.total} results · none look templated`;
+    const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:landscape" });
+    renderLandscapeSummary(reply?.summary);
   } catch {
     $("landscape").textContent = NO_SERP;
+    $("aio").style.display = "none";
   }
 }
 
 async function deepScan() {
+  const tab = await getActiveTab();
+  if (!tab || !tab.id) return;
+  serpQuery = serpKeyword(tab.url);
   $("scan").disabled = true;
   $("status").textContent = "Requesting access…";
   const granted = await chrome.permissions.request(SCAN_PERMISSION).catch(() => false);
@@ -42,7 +110,7 @@ async function deepScan() {
   }
   $("status").textContent = "Scanning…";
   try {
-    const reply = await chrome.tabs.sendMessage(await activeTabId(), { type: "pseolint:deep-scan" });
+    const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:deep-scan" });
     render(reply?.results ?? []);
   } catch {
     $("status").textContent = NO_SERP;
@@ -50,7 +118,19 @@ async function deepScan() {
   $("scan").disabled = false;
 }
 
-const TAG_CLASS = { thin: "thin", "soft 404": "soft", "no OG tags": "og", templated: "templated", AEO: "aeo" };
+const TAG_CLASS = { 
+  thin: "thin", 
+  "soft 404": "soft", 
+  "no OG tags": "og", 
+  templated: "templated", 
+  AEO: "aeo",
+  "no Author": "eeat",
+  "no Date": "eeat",
+  "title rewritten": "opp",
+  "no meta desc": "opp",
+  "meta desc ignored": "opp",
+  "no schema": "opp"
+};
 
 // Render the SERP competitive scorecard from the teardown model. All untrusted
 // host strings via textContent (§9); facts on rows, framing only in the summary.
@@ -74,6 +154,7 @@ function render(results) {
   $("takeaway").textContent = "";
   $("opening").textContent = "";
   $("cta").hidden = true;
+  $("cta-sub").hidden = true;
   if (results.length === 0) {
     $("status").textContent = "No results found — open a Google results page.";
     return;
@@ -81,7 +162,7 @@ function render(results) {
   const t = teardown(results);
   const sat = t.saturation;
   $("status").textContent = `Scanned ${t.scanned}/${results.length}` + (t.failed ? ` · ${t.failed} failed` : "");
-  $("takeaway").textContent = takeaway(t); // the synthesized "so what"
+  $("takeaway").textContent = takeaway(t) + (t.monotony ? " [Warning: High Layout Monotony on SERP - templates overlap heavily]" : ""); // the synthesized "so what"
 
   const headline = $("headline");
   headline.append(document.createTextNode("This SERP: "));
@@ -90,6 +171,14 @@ function render(results) {
   const barB = document.createElement("b"); barB.textContent = `${t.bar}w`; headline.append(barB);
   if (sat.topHost) headline.append(document.createTextNode(` · ${sat.topHost} ×${sat.topHostCount}`));
   headline.append(document.createTextNode(` · ${t.aeoReady}/${t.scanned} AEO-ready`));
+  if (t.monotony) {
+    const monB = document.createElement("span");
+    monB.style.color = "var(--warn)";
+    monB.style.marginLeft = "8px";
+    monB.style.fontWeight = "bold";
+    monB.textContent = "⚠ Structural Monotony";
+    headline.append(monB);
+  }
 
   if (t.opening) {
     const o = $("opening");
@@ -131,22 +220,147 @@ function render(results) {
     li.append(rank, who, meta);
     list.append(li);
   }
-  $("cta").hidden = false;
+
+  // Calculate opportunities
+  let titleRewritten = 0;
+  let noMetaDesc = 0;
+  let metaDescIgnored = 0;
+  let eeatGaps = 0;
+  let noSchema = 0;
+  let thinContent = 0;
+
+  for (const r of t.rows) {
+    if (!r.ok) continue;
+    if (r.tags.includes("title rewritten")) titleRewritten++;
+    if (r.tags.includes("no meta desc")) noMetaDesc++;
+    if (r.tags.includes("meta desc ignored")) metaDescIgnored++;
+    if (r.tags.includes("no Author") || r.tags.includes("no Date")) eeatGaps++;
+    if (r.tags.includes("no schema")) noSchema++;
+    if (r.tags.includes("thin")) thinContent++;
+  }
+
+  const oppList = $("opportunities-list");
+  oppList.textContent = "";
+  let oppsFound = false;
+
+  const addOpp = (label, count, desc) => {
+    if (count > 0) {
+      oppsFound = true;
+      const item = document.createElement("div");
+      item.className = "opportunity-item";
+      const bullet = document.createElement("span");
+      bullet.className = "opportunity-bullet";
+      bullet.textContent = "•";
+      const content = document.createElement("span");
+      content.innerHTML = `<b>${label}</b>: ${count} competitor(s) ${desc}`;
+      item.append(bullet, content);
+      oppList.append(item);
+    }
+  };
+
+  addOpp("Title Rewrites", titleRewritten, "have titles rewritten by Google (keyword/intent alignment gap).");
+  addOpp("Missing Meta Descriptions", noMetaDesc, "lack a meta description (direct CTR improvement gap).");
+  addOpp("Meta Description Ignored", metaDescIgnored, "have meta descriptions ignored/rewritten by Google (poor search relevance).");
+  addOpp("E-E-A-T Metadata Gaps", eeatGaps, "lack Author or publication Date signals (credibility gap).");
+  addOpp("No Structured Data", noSchema, "lack JSON-LD schema markup (rich snippets/AEO gap).");
+  addOpp("Thin Content Gaps", thinContent, "have thin content with low word counts (< 150 words).");
+
+  if (oppsFound) {
+    $("serp-opportunities").style.display = "block";
+  } else {
+    $("serp-opportunities").style.display = "none";
+  }
+
+  // Win bridge — the primary conversion: point the hot "found an opening" moment
+  // at the hosted audit (the moat), adapted to the user's position on this SERP.
+  const win = buildWin(t, myHost, serpQuery);
+  const cta = $("cta");
+  const ctaSub = $("cta-sub");
+  if (win && win.mode === "set-domain") {
+    cta.textContent = win.primary;
+    cta.href = "https://pseolint.dev";
+    cta.dataset.prompt = "1"; // click focuses the domain input (handler below)
+  } else if (win) {
+    cta.textContent = win.primary;
+    cta.href = win.href;
+    delete cta.dataset.prompt;
+  } else { // no opening — generic fallback
+    cta.textContent = "Audit your own site →";
+    cta.href = "https://pseolint.dev";
+    delete cta.dataset.prompt;
+  }
+  ctaSub.textContent = win && win.sub ? win.sub : "";
+  ctaSub.hidden = !(win && win.sub);
+  cta.hidden = false;
   renderYourSite();
 }
 
-$("scan").addEventListener("click", deepScan);
+async function handleScanClick() {
+  const tab = await getActiveTab();
+  if (isGoogleSerp(tab?.url)) {
+    await deepScan();
+  }
+}
+
+$("scan").addEventListener("click", handleScanClick);
+
+// In set-domain mode the win CTA prompts for the domain rather than navigating
+// (degrades to pseolint.dev if JS is disabled, since it keeps a real href).
+$("cta").addEventListener("click", (e) => {
+  if ($("cta").dataset.prompt) { e.preventDefault(); $("domain").focus(); }
+});
 
 // Tracked domain: load from local storage, persist on edit, re-render the match.
 chrome.storage?.local?.get?.("domain").then((o) => {
   myHost = userHost(o?.domain ?? "");
   if (myHost) $("domain").value = myHost;
   renderYourSite();
+  loadLandscape();
 }).catch(() => {});
 $("domain").addEventListener("input", (e) => {
   myHost = userHost(e.target.value);
   chrome.storage?.local?.set?.({ domain: myHost }).catch(() => {});
   renderYourSite();
+  loadLandscape();
 });
 
-loadLandscape();
+async function onTabChange() {
+  const tab = await getActiveTab();
+  const url = tab?.url || "";
+  if (!isGoogleSerp(url)) {
+    $("landscape").textContent = NO_SERP;
+    $("aio").style.display = "none";
+    $("scan").disabled = true;
+    $("scan").textContent = "Deep scan this SERP";
+    $("status").textContent = "";
+    $("takeaway").textContent = "";
+    $("headline").textContent = "";
+    $("opening").textContent = "";
+    $("results").textContent = "";
+    $("cta").hidden = true;
+    $("cta-sub").hidden = true;
+    $("serp-opportunities").style.display = "none";
+  } else {
+    $("scan").disabled = false;
+    $("scan").textContent = "Deep scan this SERP";
+    $("serp-opportunities").style.display = "none";
+    await loadLandscape();
+  }
+}
+
+// Auto-refresh panel state on active tab navigation/switching
+chrome.tabs?.onActivated?.addListener(onTabChange);
+chrome.tabs?.onUpdated?.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "complete") {
+    onTabChange();
+  }
+});
+
+// Live message listener for observed SERP DOM changes
+chrome.runtime.onMessage?.addListener((msg) => {
+  if (msg?.type === "pseolint:landscape-updated") {
+    renderLandscapeSummary(msg.summary);
+  }
+});
+
+onTabChange();

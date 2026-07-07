@@ -57,8 +57,9 @@ sites suppressed.
 - Data sold to third parties: **No.**
 - Data used for purposes unrelated to core function: **No.**
 - Default landscape layer: no network requests at all.
-- The only egress is user-initiated: clicking a badge opens pseolint.dev with the
-  clicked result URL as a query parameter (a normal navigation).
+- The only egress is user-initiated: clicking a badge opens pseolint.dev with
+  public SERP context as query parameters — the clicked result URL, the search
+  query, and the top-ranked competitor's host (a normal navigation).
 - Privacy policy URL: (host `PRIVACY.md` at e.g. https://pseolint.dev/privacy/extension)
 
 ## Assets

@@ -1,5 +1,18 @@
 # @pseolint/extension
 
+## 0.1.0
+
+### Minor Changes
+
+- Scout→Win funnel: SERP badges are now clickable and open the pseolint.dev audit
+  pre-filled with position-adapted context (target URL, search query, top
+  competitor) so the free extension hands off cleanly to the paid audit.
+- Fixed badge rendering: verdict badges now mount inside the result `<h3>` title
+  (previously collided with the ⋮ action menu and inherited a flipped transform).
+- The dev-only MCP bridge (`ws://localhost:4000`, for driving the extension from a
+  terminal/LLM) is compile-stripped from production builds via `--define`; `bun run
+  build` ships no localhost egress, `bun run build:dev` enables it locally.
+
 ## 0.0.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 // `node tests/teardown.test.js`
 import assert from "node:assert";
-import { contentBar, rowTags, saturation, teardown, takeaway, userHost } from "../src/shared/teardown.js";
+import { contentBar, rowTags, saturation, teardown, takeaway, userHost, buildWin } from "../src/shared/teardown.js";
 
 // userHost: normalize user-typed domains for the "your site" match.
 assert.strictEqual(userHost("https://www.Example.com/path?q=1"), "example.com");
@@ -56,5 +56,22 @@ const fortress = teardown([
   { url: "https://a.com/2", rank: 2, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [], aeoReady: true },
 ]);
 assert.match(takeaway(fortress), /Fortress/, "deep, clean, AEO-ready → fortress");
+
+// buildWin: the win-bridge deep-link, adapted to the user's SERP position.
+// t.opening = dir.com #3 (thin/templated); R has a.com at #1-2, 2/5 templated.
+assert.strictEqual(buildWin(t, "", "x").mode, "set-domain", "no host → prompt mode");
+assert.ok(!buildWin(t, "", "x").href, "set-domain carries no deep-link");
+const climb = buildWin(t, "a.com", "best plumbers");
+assert.match(climb.primary, /climb past #3/, "ranking host → climb copy");
+assert.match(climb.href, /prefill=https%3A%2F%2Fa\.com%2F1&from=serp&against=dir\.com&q=best\+plumbers/, "climb: ranking-page URL + context, encoded");
+const insert = buildWin(t, "mysite.com", "");
+assert.match(insert.primary, /insert/, "absent host → insert copy");
+assert.match(insert.href, /prefill=https%3A%2F%2Fmysite\.com%2F&from=serp&against=dir\.com$/, "insert: site root, q omitted when query empty");
+assert.match(climb.sub, /near-identical pages already rank/, "templated SERP → qualify sub-copy");
+assert.strictEqual(
+  buildWin(teardown([{ url: "https://a.com/1", rank: 1, ok: true, isLikelyShell: false, words: 2000, ogComplete: true, templated: false, flags: [] }]), "a.com", ""),
+  null,
+  "no opening → null (generic CTA fallback)",
+);
 
 console.log("teardown: all checks passed");

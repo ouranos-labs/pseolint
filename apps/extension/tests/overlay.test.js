@@ -5,10 +5,11 @@ import assert from "node:assert";
 import { badgeView, mountBadge } from "../src/content/serp/overlay.js";
 
 function makeEl(tag, created) {
-  const el = { tag, className: "", style: {}, children: [], textSets: [], attrs: {},
+  const el = { tag, className: "", style: {}, children: [], textSets: [], attrs: {}, listeners: {},
     attachShadow(opts) { el.shadowMode = opts.mode; el.shadow = makeEl("#root", created); return el.shadow; },
     append(...n) { el.children.push(...n); },
-    setAttribute(k, v) { el.attrs[k] = v; } };
+    setAttribute(k, v) { el.attrs[k] = v; },
+    addEventListener(type, fn) { el.listeners[type] = fn; } };
   Object.defineProperty(el, "textContent", { set(v) { el.textSets.push(v); }, get() { return el.textSets.at(-1); } });
   Object.defineProperty(el, "innerHTML", { set() { throw new Error("§9 violation: innerHTML used"); }, get() { return ""; } });
   created.push(el);
@@ -39,16 +40,20 @@ assert.strictEqual(badge.textSets.at(-1), "3 flags", "label set via textContent"
 assert.strictEqual(badge.style.background, "#df3a3a", "level colour applied");
 assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
 
-// Clickable variant (Path B): href → an <a> badge, href set via property (not
-// innerHTML), opens a new tab, label still via textContent (+ ↗ hint).
+// Clickable variant (Path B): href → a SPAN badge (never an <a> — it nests inside
+// the result's <h3>/<a>) with a click handler that opens the audit URL, label via
+// textContent (+ ↗ hint), role=link for a11y.
 doc = fakeDoc();
+let opened = null;
+globalThis.window = { open: (u) => { opened = u; } };
 const linked = mountBadge({ level: "warn", label: "thin" }, doc, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com");
-const a = doc.created.find((e) => e.tag === "a" && e.className === "b");
-assert.ok(a, "badge is an anchor when href given");
-assert.strictEqual(a.href, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com", "audit href set");
-assert.strictEqual(a.target, "_blank", "opens a new tab");
-assert.strictEqual(a.rel, "noopener noreferrer", "rel hardened");
-assert.strictEqual(a.textSets.at(-1), "thin ↗", "label via textContent with hint");
+const span = doc.created.find((e) => e.tag === "span" && e.className === "b");
+assert.ok(span, "clickable badge is a span (nests legally inside the result link)");
+assert.strictEqual(span.attrs.role, "link", "role=link for a11y");
+assert.strictEqual(span.textSets.at(-1), "thin ↗", "label via textContent with ↗ hint");
+assert.ok(span.listeners.click, "click handler registered");
+span.listeners.click({ preventDefault() {}, stopPropagation() {} });
+assert.strictEqual(opened, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com", "click opens the audit URL, not the result");
 assert.ok(linked, "host returned for clickable badge");
 
 console.log("overlay: all safety checks passed");

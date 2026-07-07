@@ -40,12 +40,38 @@ export function selectResults(anchors) {
   const byUrl = new Map();
   for (const a of anchors) {
     const url = cleanResultUrl(a.href);
-    if (url && !byUrl.has(url)) byUrl.set(url, a);
+    if (!url || byUrl.has(url)) continue;
+
+    const h3 = typeof a.querySelector === "function" ? a.querySelector("h3") : null;
+    const serpTitle = h3 ? h3.textContent.trim() : "";
+
+    // Find snippet text (Google uses .VwiC3b, or search in siblings of the container)
+    const gContainer = typeof a.closest === "function" ? a.closest(".g, .tF23ub") : null;
+    const snippetEl = gContainer ? gContainer.querySelector(".VwiC3b, .yXK7c, .MUbCcc") : null;
+    let serpSnippet = snippetEl ? snippetEl.textContent.trim() : "";
+
+    // Extract date from snippet if present (e.g., "Oct 12, 2025 — ...")
+    let serpDate = "";
+    const dateMatch = serpSnippet.match(/^([^—–]+)\s*[—–]\s*/);
+    if (dateMatch) {
+      const dateText = dateMatch[1].trim();
+      if (/\b(\d+|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(dateText)) {
+        serpDate = dateText;
+        serpSnippet = serpSnippet.replace(/^[^—–]+[—–]\s*/, "");
+      }
+    }
+
+    byUrl.set(url, {
+      url,
+      anchor: a,
+      serpTitle,
+      serpSnippet,
+      serpDate
+    });
   }
   // Empty OR implausibly large = the layout isn't what we think. Fail closed
-  // (§9) rather than badge a misparsed page — a missing overlay is fine.
   if (byUrl.size === 0 || byUrl.size > MAX_RESULTS) return [];
-  return Array.from(byUrl, ([url, anchor]) => ({ url, anchor }));
+  return Array.from(byUrl.values());
 }
 
 // Collect result anchors two ways and union them, so one selector drifting
@@ -65,3 +91,23 @@ function candidateAnchors(doc) {
 export function detectResults(doc = document) {
   return selectResults([...candidateAnchors(doc)]);
 }
+
+// Scrape citations in Google's AI Overview (SGE) container.
+export function scrapeAio(doc = document) {
+  const citations = [];
+  const container = doc.querySelector("div.Kevs9, #Odp5De");
+  if (container) {
+    const links = container.querySelectorAll("a[href]");
+    for (const a of links) {
+      const url = cleanResultUrl(a.href);
+      if (url) citations.push(url);
+    }
+  }
+  // Also scan inline badges like a.PMDqCb
+  for (const a of doc.querySelectorAll("a.PMDqCb")) {
+    const url = cleanResultUrl(a.href);
+    if (url) citations.push(url);
+  }
+  return Array.from(new Set(citations));
+}
+

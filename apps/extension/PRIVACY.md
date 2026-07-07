@@ -29,8 +29,10 @@ Nothing is fetched until **you open the side panel (toolbar icon) and click
 ## What leaves your browser
 
 - **To pseolint: nothing — unless you click a badge or audit link**, which opens
-  `https://pseolint.dev` in a new tab with that result's URL as a query parameter
-  (an ordinary navigation you initiate; pseolint.dev's privacy policy then applies).
+  `https://pseolint.dev` in a new tab, passing as query parameters only public
+  context read from the results page you're on: that result's URL, your search
+  query, and the top-ranked competitor's host (an ordinary navigation you
+  initiate; pseolint.dev's privacy policy then applies).
 - **To the analysed sites (deep scan only):** a normal page request, no cookies.
 
 ## What it never does
