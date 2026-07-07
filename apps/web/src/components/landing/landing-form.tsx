@@ -243,8 +243,8 @@ export function LandingForm() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     { serp.against
-                      ? `Audit your page below to find your gap to insert past ${serp.against} — the report's fix-list is how you win it.`
-                      : "Audit your page below — the report's fix-list is how you win this SERP." }
+                      ? `Audit your page free below — then pseolint watches your whole site for the gaps that keep ${serp.against} ahead, continuously and grounded in Search Console.`
+                      : "Audit your page free below — then pseolint watches your whole site for these risks, continuously and grounded in Search Console." }
                   </p>
                 </div>
               ) }
