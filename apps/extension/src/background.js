@@ -143,5 +143,8 @@ async function getActiveTab() {
   return tab;
 }
 
-// Initial connection
-connectToMcpBridge();
+// The mcp bridge (LLM / terminal driving) is a DEV-only egress to ws://localhost:4000.
+// Excluded from the production/store build via the PSEOLINT_MCP_BRIDGE compile flag
+// (default OFF — the `typeof` guard also fails safe if the flag is undefined);
+// `bun run build:dev` sets it true to drive the extension locally.
+if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) connectToMcpBridge();

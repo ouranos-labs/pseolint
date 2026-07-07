@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "pseolint",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Template-level pSEO failure signals on the live SERP.",
   "icons": {
     "128": "icons/icon-128.png",
