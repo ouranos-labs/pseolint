@@ -108,8 +108,8 @@ export function buildWin(t, myHost, serpQuery) {
   const sat = t.saturation;
   const templated = t.monotony || (sat.total > 0 && sat.templated / sat.total >= 0.4);
   const sub = templated
-    ? `${sat.templated} near-identical pages already rank — pseolint fills templated SERPs at scale without tripping SpamBrain.`
-    : `The full audit shows exactly what to fix to outrank #${t.opening.rank}.`;
+    ? `${sat.templated} near-identical pages already rank — pseolint monitors your whole site so you scale templated pages without tripping SpamBrain.`
+    : `This SERP is a snapshot — pseolint watches your whole site for these risks, continuously and grounded in Search Console.`;
 
   const mine = myHost ? t.rows.find((r) => r.host === myHost) : null;
   let target, primary;
