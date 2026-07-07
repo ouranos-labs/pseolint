@@ -10,6 +10,32 @@ const SKIP_HOST = /(^|\.)(google\.[a-z.]+|gstatic\.com|googleusercontent\.com|yo
 // selector matched something that isn't the results list — bail (§9).
 const MAX_RESULTS = 30;
 
+// Which /search page are we on? The overlay is WEB-results only — a badge on an
+// Images strip or a Shopping grid is a wrong verdict, and a wrong verdict is
+// credibility death (§6). So this is an ALLOWLIST, not a blocklist: the "All" page
+// carries no vertical selector — no `tbm` (classic UI) and either no `udm` or
+// `udm=14` ("Web", new UI). ANY other value is a vertical → dormant. A new vertical
+// Google invents is therefore excluded by default (dormant = safe; a missed badge
+// beats a wrong one), and pagination (&start=) / query params don't matter.
+const GOOGLE_HOST = /(^|\.)google\.[a-z.]+$/i;
+
+// Any Google results page, including verticals (used to show a "switch to All" hint).
+export function isGoogleSearch(url) {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  return GOOGLE_HOST.test(u.hostname) && u.pathname === "/search";
+}
+
+// The scannable Web ("All") results page only — false on Images/News/Video/Shopping/…
+export function isWebSerp(url) {
+  if (!isGoogleSearch(url)) return false;
+  const u = new URL(url);
+  if (u.searchParams.get("tbm")) return false; // any tbm = a vertical (All has none)
+  const udm = u.searchParams.get("udm");
+  if (udm && udm !== "14") return false; // only udm=14 (Web) is a text-results view
+  return true;
+}
+
 // A raw result href → a clean external http(s) URL, or null to drop it.
 // Handles both the modern direct href and the older /url?q=<real> wrapper.
 export function cleanResultUrl(href) {

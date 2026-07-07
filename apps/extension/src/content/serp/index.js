@@ -1,7 +1,7 @@
 // SERP content script. Tier 1 runs automatically on load (zero permission):
 // detect ranked results, mark templated clusters, show the landscape chip. Tier 2
 // (deep scan) is triggered by the side panel and reuses the service-worker fetch.
-import { detectResults, scrapeAio } from "./detect.js";
+import { detectResults, isWebSerp, scrapeAio } from "./detect.js";
 import { analyzeLandscape, landscapeChip } from "./landscape.js";
 import { mountBadge } from "./overlay.js";
 import { mountChip } from "./reach.js";
@@ -11,6 +11,22 @@ const auditHref = (url) => AUDIT_PREFILL + encodeURIComponent(url);
 
 let results = []; // [{ url, anchor }]
 let summary = null;
+let lastHref = location.href; // SPA-nav sentinel: query/vertical/page changes move it
+
+// Wipe every mark we've drawn back to a clean page — badges in the titles and the
+// fixed landscape chip — and drop cached state. Called on SPA navigation (new
+// query, vertical switch, pagination) and when we land on a non-web vertical.
+function clearOverlay() {
+  for (const el of document.querySelectorAll('[data-pseolint="badge"],[data-pseolint="chip"]')) el.remove();
+  results = [];
+  summary = null;
+}
+
+// Tell the side panel the landscape moved. `reset` (a real navigation) makes the
+// panel drop its now-stale deep-scan scorecard; a plain update just re-renders.
+function pushLandscape(reset) {
+  chrome.runtime.sendMessage({ type: "pseolint:landscape-updated", summary: serializeSummary(summary), reset: !!reset }).catch(() => {});
+}
 
 // Tier 1 — auto, zero permission.
 function runLandscape() {
@@ -114,21 +130,29 @@ let observer = null;
 function startObserver() {
   if (observer) observer.disconnect();
   observer = new MutationObserver(() => {
-    const newResults = detectResults(document);
-    if (newResults.length > 0 && newResults.length !== results.length) {
+    // SPA navigation: a new query, a vertical switch (All→Images) and pagination
+    // all change the URL without a reload. Reset to a clean page, then re-detect
+    // only if we're back on web results. This one check subsumes stale badges,
+    // a stale chip, and the old query's scorecard in the panel.
+    if (location.href !== lastHref) {
+      lastHref = location.href;
+      clearOverlay();
+      if (isWebSerp(location.href)) runLandscape();
+      pushLandscape(true); // reset=true → panel drops the old scorecard
+      return;
+    }
+    // Same page: results streamed in after document_idle, or their count changed.
+    if (!isWebSerp(location.href)) return;
+    const n = detectResults(document).length;
+    if (n > 0 && n !== results.length) {
       runLandscape();
-      chrome.runtime.sendMessage({
-        type: "pseolint:landscape-updated",
-        summary: serializeSummary(summary)
-      }).catch(() => {});
+      pushLandscape(false);
     }
   });
-
-  const target = document.getElementById("search") || document.body;
-  if (target) {
-    observer.observe(target, { childList: true, subtree: true });
-  }
+  // Observe body (never replaced) so a full #search container swap on SPA nav is
+  // still seen; the callback is a cheap URL compare until something actually moves.
+  observer.observe(document.body, { childList: true, subtree: true });
 }
 
-runLandscape();
+if (isWebSerp(location.href)) runLandscape();
 startObserver();

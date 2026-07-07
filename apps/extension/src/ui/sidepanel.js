@@ -1,20 +1,28 @@
 // Power surface. Owns the deep-scan gesture + host-permission request (only valid
 // from an extension page), shows live coverage + a flagged-results list. Talks to
 // the active SERP tab's content script (covered by the google.com/search host perm).
+import { isGoogleSearch, isWebSerp } from "../content/serp/detect.js";
 import { teardown, takeaway, userHost, buildWin } from "../shared/teardown.js";
 
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
 const NO_SERP = "Open a Google results page to analyze it.";
+const NOT_WEB = "Switch to the All tab — pseolint reads Web results.";
 const $ = (id) => document.getElementById(id);
 
 let lastResults = []; // cached so "your site" can re-render when the domain changes
 let myHost = ""; // the user's tracked domain (stored locally, never transmitted)
 let serpQuery = ""; // the current SERP's query (?q=), carried into the win deep-link
 
-function isGoogleSerp(url) {
-  if (!url) return false;
-  return /^https:\/\/(www\.)?google\.[a-z.]+\/search/i.test(url);
+// Wipe the deep-scan scorecard (takeaway/headline/opening/results/cta/opps). Called
+// when we leave a SERP or the user navigates to a new query — the old teardown is
+// stale. Landscape summary + scan button are handled by the caller.
+function clearScorecard() {
+  lastResults = [];
+  for (const id of ["status", "takeaway", "headline", "opening", "results"]) $(id).textContent = "";
+  $("cta").hidden = true;
+  $("cta-sub").hidden = true;
+  $("serp-opportunities").style.display = "none";
 }
 
 // The SERP query (?q=) — carried into the win-bridge deep-link so the SaaS can
@@ -64,29 +72,26 @@ function renderLandscapeSummary(s) {
   }
 }
 
+// Not a scannable Web SERP → dormant. Distinguish a Google vertical (Images/News,
+// "switch to All") from not-a-SERP-at-all, and clear the scorecard either way.
+function showNotScannable(url) {
+  $("landscape").textContent = isGoogleSearch(url) ? NOT_WEB : NO_SERP;
+  $("aio").style.display = "none";
+  $("scan").disabled = true;
+  $("scan").textContent = "Deep scan this SERP";
+  clearScorecard();
+}
+
+// Refresh the landscape summary (only). Does NOT touch the scorecard, so editing
+// the tracked domain while viewing results doesn't wipe them; navigation clears
+// the scorecard separately via onTabChange.
 async function loadLandscape() {
   const tab = await getActiveTab();
   const url = tab?.url || "";
-
-  if (!isGoogleSerp(url)) {
-    $("landscape").textContent = NO_SERP;
-    $("aio").style.display = "none";
-    $("scan").disabled = true;
-    $("scan").textContent = "Deep scan this SERP";
-    $("status").textContent = "";
-    $("takeaway").textContent = "";
-    $("headline").textContent = "";
-    $("opening").textContent = "";
-    $("results").textContent = "";
-    $("cta").hidden = true;
-    $("cta-sub").hidden = true;
-    $("serp-opportunities").style.display = "none";
-    return;
-  }
+  if (!isWebSerp(url)) { showNotScannable(url); return; }
 
   $("scan").disabled = false;
   $("scan").textContent = "Deep scan this SERP";
-
   try {
     const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:landscape" });
     renderLandscapeSummary(reply?.summary);
@@ -297,7 +302,7 @@ function render(results) {
 
 async function handleScanClick() {
   const tab = await getActiveTab();
-  if (isGoogleSerp(tab?.url)) {
+  if (isWebSerp(tab?.url)) {
     await deepScan();
   }
 }
@@ -324,43 +329,36 @@ $("domain").addEventListener("input", (e) => {
   loadLandscape();
 });
 
+// A tab switch or a navigation makes the previous SERP's deep-scan stale — clear
+// the scorecard, then re-derive landscape state from the (new) active tab.
 async function onTabChange() {
-  const tab = await getActiveTab();
-  const url = tab?.url || "";
-  if (!isGoogleSerp(url)) {
-    $("landscape").textContent = NO_SERP;
-    $("aio").style.display = "none";
-    $("scan").disabled = true;
-    $("scan").textContent = "Deep scan this SERP";
-    $("status").textContent = "";
-    $("takeaway").textContent = "";
-    $("headline").textContent = "";
-    $("opening").textContent = "";
-    $("results").textContent = "";
-    $("cta").hidden = true;
-    $("cta-sub").hidden = true;
-    $("serp-opportunities").style.display = "none";
-  } else {
-    $("scan").disabled = false;
-    $("scan").textContent = "Deep scan this SERP";
-    $("serp-opportunities").style.display = "none";
-    await loadLandscape();
-  }
+  clearScorecard();
+  await loadLandscape();
 }
 
-// Auto-refresh panel state on active tab navigation/switching
+// Auto-refresh on active tab switching AND navigation. changeInfo.url catches SPA
+// query/vertical changes on the Google SERP that never reach status:"complete".
+// onUpdated fires for EVERY tab, so ignore updates to any tab but the one the panel
+// is showing — otherwise a background tab's load wipes the current scorecard.
 chrome.tabs?.onActivated?.addListener(onTabChange);
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo) => {
-  if (changeInfo.status === "complete") {
-    onTabChange();
-  }
+  if (!(changeInfo.status === "complete" || changeInfo.url)) return;
+  getActiveTab().then((tab) => { if (tab?.id === tabId) onTabChange(); });
 });
 
-// Live message listener for observed SERP DOM changes
-chrome.runtime.onMessage?.addListener((msg) => {
-  if (msg?.type === "pseolint:landscape-updated") {
-    renderLandscapeSummary(msg.summary);
-  }
+// Live updates pushed by the SERP content script. runtime.sendMessage is an
+// extension-wide BROADCAST, so a background Google tab's content script reaches
+// this listener too — gate on sender.tab being the active tab before acting, or a
+// background tab's nav would clear the scorecard the user is looking at. `reset`
+// (a real navigation) re-derives full state (vertical hint + drops the stale
+// scorecard); a plain update refreshes the summary only.
+chrome.runtime.onMessage?.addListener((msg, sender) => {
+  if (msg?.type !== "pseolint:landscape-updated") return;
+  getActiveTab().then((tab) => {
+    if (!sender.tab || sender.tab.id !== tab?.id) return; // ignore background tabs
+    if (msg.reset) onTabChange();
+    else renderLandscapeSummary(msg.summary);
+  });
 });
 
 onTabChange();
