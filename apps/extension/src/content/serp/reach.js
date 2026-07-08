@@ -3,8 +3,12 @@
 // or null (no chip). Brand-aligned (pseolint.dev dark surface + emerald dot) but
 // deliberately restrained — it sits on Google's page.
 export function mountChip(text, doc = document) {
+  // Single chip, ever: drop any prior one first so re-runs don't stack duplicates
+  // and an empty text (nothing templated / reset) just clears it.
+  for (const old of doc.querySelectorAll('[data-pseolint="chip"]')) old.remove();
   if (!text) return null;
   const host = doc.createElement("div");
+  host.setAttribute("data-pseolint", "chip");
   const root = host.attachShadow({ mode: "closed" });
   const style = doc.createElement("style");
   style.textContent =

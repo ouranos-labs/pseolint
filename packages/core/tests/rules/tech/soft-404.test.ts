@@ -272,7 +272,7 @@ describe("soft404Rule", () => {
   });
 });
 
-import { evaluateProbe } from "../../../src/rules/tech/soft-404.js";
+import { evaluateProbe } from "../../../src/rules/tech/soft-404-probe.js";
 
 describe("evaluateProbe (synthetic invalid URL)", () => {
   it("flags 200 + not-found body at high confidence", () => {
