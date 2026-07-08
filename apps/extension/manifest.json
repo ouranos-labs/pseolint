@@ -1,21 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "pseolint",
-  "version": "0.1.0",
-  "description": "Template-level pSEO failure signals on the live SERP.",
+  "name": "pseolint: Programmatic SEO & SERP Auditor",
+  "version": "1.0.0",
+  "description": "Audit any Google SERP for programmatic-SEO risk: templated & doorway pages, thin content, soft 404s, AI Overview gaps.",
   "icons": {
     "128": "icons/icon-128.png",
     "512": "icons/icon-512.png"
   },
   "action": {
-    "default_title": "pseolint — scan this SERP",
+    "default_title": "pseolint: scan this SERP",
     "default_icon": { "128": "icons/icon-128.png" }
   },
   "side_panel": { "default_path": "sidepanel.html" },
   "background": {
     "service_worker": "dist/background.js"
   },
-  "permissions": ["sidePanel", "storage", "scripting", "activeTab"],
+  "permissions": ["sidePanel", "storage", "activeTab"],
   "host_permissions": ["https://www.google.com/search*"],
   "optional_host_permissions": ["https://*/*"],
   "content_scripts": [
