@@ -55,3 +55,12 @@ packages/mcp/mcp-publisher*
 # aggregate map); the per-page cache regenerates on demand and is never committed.
 packages/core/calibration/.effort-cache/
 packages/core/calibration/.effort-cache-stub/
+
+# graphify knowledge-graph output — regenerable AST snapshot, not source
+graphify-out/
+
+.chrome-user-data/
+
+# Organic SERP scanning bridge outputs
+serp-analysis-results.json
+serp_opportunity_report.md

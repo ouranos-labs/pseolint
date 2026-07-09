@@ -111,6 +111,14 @@ function serializeSummary(s) {
     hostCount: s.hostCount,
     clusters: s.clusters.map((c) => ({ host: c.host, pattern: c.pattern, count: c.count })),
     aioCitations: s.aioCitations ?? [],
+    results: (results || []).map((r, i) => ({
+      rank: i + 1,
+      url: r.url,
+      title: r.serpTitle,
+      snippet: r.serpSnippet,
+      date: r.serpDate,
+      templated: s.templatedUrls.has(r.url)
+    }))
   };
 }
 
@@ -156,3 +164,9 @@ function startObserver() {
 
 if (isWebSerp(location.href)) runLandscape();
 startObserver();
+
+// Keep background service worker alive/reconnected to the bridge by pinging it.
+// Content scripts run in the page and do not suspend.
+setInterval(() => {
+  chrome.runtime.sendMessage({ type: "pseolint:ping" }).catch(() => {});
+}, 5000);

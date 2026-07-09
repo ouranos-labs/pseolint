@@ -55,6 +55,12 @@ async function analyze(url) {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === "pseolint:ping") {
+    if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) {
+      connectToMcpBridge();
+    }
+    return undefined;
+  }
   if (msg?.type !== "pseolint:scan" || !Array.isArray(msg.urls)) return undefined;
   Promise.all(msg.urls.slice(0, MAX_URLS).map(analyze)).then((results) =>
     sendResponse({ results }),
@@ -64,22 +70,34 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // WebSocket Bridge connection to local MCP server
 let bridgeSocket = null;
-let reconnectTimer = null;
+
+// Responses buffered while bridgeSocket is closed (SW suspended mid-handler).
+// Flushed as soon as the socket reopens on the next alarm.
+const responseQueue = [];
+
+function sendOrQueue(data) {
+  if (bridgeSocket && bridgeSocket.readyState === WebSocket.OPEN) {
+    try { bridgeSocket.send(data); return; } catch {}
+  }
+  // Socket gone — queue and reconnect; the alarm will also reconnect within 5s.
+  responseQueue.push(data);
+  connectToMcpBridge();
+}
 
 function connectToMcpBridge() {
+  if (bridgeSocket && (bridgeSocket.readyState === WebSocket.OPEN || bridgeSocket.readyState === WebSocket.CONNECTING)) return;
   if (bridgeSocket) {
-    try {
-      bridgeSocket.close();
-    } catch {}
+    try { bridgeSocket.close(); } catch {}
     bridgeSocket = null;
   }
 
   bridgeSocket = new WebSocket("ws://localhost:4000");
 
   bridgeSocket.onopen = () => {
-    if (reconnectTimer) {
-      clearInterval(reconnectTimer);
-      reconnectTimer = null;
+    console.log("pseolint: MCP bridge connected");
+    // Flush any responses that were buffered while the socket was closed.
+    for (const msg of responseQueue.splice(0)) {
+      try { bridgeSocket.send(msg); } catch { responseQueue.unshift(msg); break; }
     }
   };
 
@@ -91,27 +109,37 @@ function connectToMcpBridge() {
       if (type === "pseolint:mcp-get-landscape") {
         const tab = await getActiveTab();
         if (!tab || !tab.id) {
-          bridgeSocket.send(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
+          sendOrQueue(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
           return;
         }
         try {
           const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:landscape" });
-          bridgeSocket.send(JSON.stringify({ id, payload: { summary: reply?.summary, url: tab.url } }));
+          // SW may have been suspended during the await — use sendOrQueue.
+          sendOrQueue(JSON.stringify({ id, payload: { summary: reply?.summary, url: tab.url } }));
         } catch (err) {
-          bridgeSocket.send(JSON.stringify({ id, payload: { error: `Failed to query tab: ${err.message}` } }));
+          sendOrQueue(JSON.stringify({ id, payload: { error: `Failed to query tab: ${err.message}` } }));
         }
       } else if (type === "pseolint:mcp-deep-scan") {
         const tab = await getActiveTab();
         if (!tab || !tab.id) {
-          bridgeSocket.send(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
+          sendOrQueue(JSON.stringify({ id, payload: { error: "No active search tab found. Make sure a Google SERP is open." } }));
           return;
         }
         try {
           const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:deep-scan" });
-          bridgeSocket.send(JSON.stringify({ id, payload: { results: reply?.results, url: tab.url } }));
+          sendOrQueue(JSON.stringify({ id, payload: { results: reply?.results, url: tab.url } }));
         } catch (err) {
-          bridgeSocket.send(JSON.stringify({ id, payload: { error: `Failed to run deep scan on tab: ${err.message}` } }));
+          sendOrQueue(JSON.stringify({ id, payload: { error: `Failed to run deep scan on tab: ${err.message}` } }));
         }
+      } else if (type === "pseolint:mcp-navigate") {
+        const tab = await getActiveTab();
+        if (!tab || !tab.id) {
+          sendOrQueue(JSON.stringify({ id, payload: { error: "No active tab found." } }));
+          return;
+        }
+        chrome.tabs.update(tab.id, { url: payload.url }, () => {
+          sendOrQueue(JSON.stringify({ id, payload: { success: true } }));
+        });
       }
     } catch (err) {
       console.error("Error handling message from MCP bridge:", err);
@@ -119,23 +147,11 @@ function connectToMcpBridge() {
   };
 
   bridgeSocket.onclose = () => {
+    console.log("pseolint: MCP bridge disconnected");
     bridgeSocket = null;
-    scheduleReconnect();
   };
 
-  bridgeSocket.onerror = () => {
-    bridgeSocket = null;
-    scheduleReconnect();
-  };
-}
-
-function scheduleReconnect() {
-  if (reconnectTimer) return;
-  reconnectTimer = setInterval(() => {
-    if (!bridgeSocket) {
-      connectToMcpBridge();
-    }
-  }, 5000);
+  bridgeSocket.onerror = () => { bridgeSocket = null; };
 }
 
 async function getActiveTab() {
@@ -147,4 +163,14 @@ async function getActiveTab() {
 // Excluded from the production/store build via the PSEOLINT_MCP_BRIDGE compile flag
 // (default OFF — the `typeof` guard also fails safe if the flag is undefined);
 // `bun run build:dev` sets it true to drive the extension locally.
-if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) connectToMcpBridge();
+if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) {
+  // Use chrome.alarms for the reconnect loop — unlike setInterval, alarms
+  // WAKE the MV3 service worker after Chrome suspends it, making reconnection reliable.
+  chrome.alarms.create("mcp-bridge-keepalive", { periodInMinutes: 1 / 12 }); // every 5s
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "mcp-bridge-keepalive") {
+      connectToMcpBridge();
+    }
+  });
+  connectToMcpBridge(); // connect immediately on startup too
+}
