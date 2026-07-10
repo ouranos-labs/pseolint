@@ -210,6 +210,7 @@ function SiteFooter({ lastUpdated }: { lastUpdated: string }) {
           </FooterColumn>
           <FooterColumn title="Product">
             <Link href="/pricing" className="hover:text-foreground">Pricing</Link>
+            <Link href="/changelog" className="hover:text-foreground">Changelog</Link>
             <Link href="/limits" className="hover:text-foreground">Limits</Link>
             <Link href="/abuse" className="hover:text-foreground">Report abuse</Link>
             <Link href="/privacy" className="hover:text-foreground">Privacy</Link>

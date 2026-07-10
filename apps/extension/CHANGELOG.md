@@ -1,5 +1,13 @@
 # @pseolint/extension
 
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [0966c22]
+- Updated dependencies [6231a7e]
+  - @pseolint/core@0.7.5
+
 ## 1.0.0
 
 First public Chrome Web Store release.
@@ -16,7 +24,7 @@ First public Chrome Web Store release.
   (previously collided with the ⋮ action menu and inherited a flipped transform).
 - The dev-only MCP bridge (`ws://localhost:4000`, for driving the extension from a
   terminal/LLM) is compile-stripped from production builds via `--define`; `bun run
-  build` ships no localhost egress, `bun run build:dev` enables it locally.
+build` ships no localhost egress, `bun run build:dev` enables it locally.
 - Removed a bundle leak: the service worker no longer includes the cheerio HTML
   parser (the server-only soft-404 probe moved to its own core module), keeping the
   extension truly dependency-free.

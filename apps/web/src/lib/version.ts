@@ -8,4 +8,4 @@
  * but unpublished bump), so install commands in copy are intentionally UNPINNED
  * (`npx pseolint`, `npm i -g pseolint`) rather than citing a version.
  */
-export const ENGINE_VERSION = "0.7.4";
+export const ENGINE_VERSION = "0.7.5";

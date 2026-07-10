@@ -55,7 +55,12 @@ Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-temp
 
 ## What's new in v0.7 — render-aware checks, AI content-effort, and bring-your-own inputs
 
-### v0.7.3 (current)
+### v0.7.5 (current)
+
+- **Content-effort promoted to a recall driver.** With `--content-effort` on, a very low AI effort score (≤3 — below the lowest reputable site in the calibration corpus) now escalates the verdict two tiers, catching verbose AI content farms that defeat the thin-content / unique-value / near-duplicate rules with rich, entity-distinct prose. Effort 4–5 keeps the conservative ±1 nudge and ≥25 keeps the −1 soften; raw `risk` is untouched (verdict-only), so CI gates stay deterministic. Lifts addressable recall 67%→80% on the calibration corpus with no new false positives.
+- **Internal.** The cheerio-dependent soft-404 probe moved to its own core module so the browser extension imports the rule parser-free (behaviour-neutral for audits).
+
+### v0.7.3
 
 - **Render-aware crawl checks.** `--render` (Playwright, Node-only) now feeds two render-diff rules. `tech/csr-bailout` flags pages whose substantive content / interactivity appears only after client-side JS — invisible to crawlers and the first indexing pass. `tech/soft-404` probes one synthetic nonexistent URL per template cluster — an HTTP 200 means the directory will index unbounded junk. Both no-op without `--render` and outside programmatic directories.
 - **Bring-your-own authority.** `--authority-score <0-100>` CLI flag, the `authorityScore` config key, the MCP param, or a per-domain Pro-dashboard setting — `>= 80` shifts the verdict one tier lenient, `<= 30` one tier stricter. Raw `risk` unchanged so CI gates stay stable. The engine stays authority-blind by design.
@@ -87,7 +92,7 @@ Per-package READMEs ([`@pseolint/core`](packages/core/README.md), [`pseolint`](p
 - **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
 - **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
-## What's new in v0.5.2 — credibility layer (v0.7.3 is current)
+## What's new in v0.5.2 — credibility layer (v0.7.5 is current)
 
 - **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
   - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
@@ -566,9 +571,9 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 
 | Package | npm | Version | License |
 |---------|-----|---------|---------|
-| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.3 | MIT |
+| `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.5 | MIT |
 | `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.3 | MIT |
-| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.3 | MIT |
+| `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.4 | MIT |
 | `packages/action` | GitHub Action (`ouranos-labs/pseolint/packages/action@action-v1`) | — | MIT |
 | `apps/web` | pseolint.dev | — | AGPL-3.0 |
 

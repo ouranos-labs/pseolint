@@ -2,7 +2,7 @@
 
 > Programmatic SEO audit engine — 48+ rules, surfaced per-template, on every monitored release.
 
-The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.3. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
+The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.5. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
 
 ## Install
 

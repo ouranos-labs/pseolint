@@ -1,5 +1,12 @@
 # @pseolint/core
 
+## 0.7.5
+
+### Patch Changes
+
+- 0966c22: content-effort is now a recall driver, not just a ±1 nudge. When the AI content-effort score is very low (≤3 — below the lowest reputable site in the calibration corpus), the verdict escalates two tiers, so a verbose AI content farm (which defeats the thin-content/unique-value/near-duplicate rules by writing rich, entity-distinct prose) gets flagged on the effort signal alone. Effort 4–5 keeps the conservative ±1 escalation and ≥25 keeps the −1 soften, so reputable low-content directories are unaffected. Raw `risk` is untouched (verdict-only moderation), so CI gates stay deterministic. On the calibration corpus this lifts addressable recall 67%→80% with no new false positives. Only active when `--content-effort` is enabled.
+- 6231a7e: Internal: split the cheerio-dependent soft-404 probe (`evaluateProbe`) into its own module (`rules/tech/soft-404-probe.ts`) so `soft404Rule` and the `./rules/tech/soft-404` subpath stay parser-free — letting the browser extension import the rule without pulling cheerio into the service-worker bundle. Behaviour-neutral (audit output unchanged); `evaluateProbe` is still called internally by the auditor and remains covered by tests. The only externally-visible change is that `evaluateProbe` is no longer re-exported from the package root (it had no external consumers).
+
 ## 0.7.4
 
 ### Patch Changes

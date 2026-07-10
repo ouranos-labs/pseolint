@@ -2,7 +2,7 @@
 
 > MCP server for pseolint — audit pSEO sites by template from AI coding assistants.
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.7.3 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that exposes [pseolint](https://www.npmjs.com/package/pseolint) v0.7.5 auditing tools to AI coding assistants like Claude Code, Claude Desktop, Cursor, and Windsurf.
 
 All tools are namespaced with a `pseolint_` prefix (`pseolint_audit_site`, `pseolint_explain_score`, `pseolint_check_page_technical`, `pseolint_orchestrate_audit`) so they don't collide with other MCP servers, and each returns both human-readable text and machine-readable `structuredContent`.
 
