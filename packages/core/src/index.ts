@@ -118,6 +118,8 @@ export type {
   PatchDiff,
   ManifestDiff,
 } from "./ai/manifest/index.js";
+export { renderManifest, applyEditToContent } from "./ai/apply/render-manifest.js";
+export type { TemplateMapping, FileEdit, ChecklistItem, RenderedManifest } from "./ai/apply/render-manifest.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";
