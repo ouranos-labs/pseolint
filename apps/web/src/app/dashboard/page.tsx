@@ -63,7 +63,7 @@ export default async function DashboardHome({
         <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
           <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            An LLM drives 25 audit tools and produces concrete fix patches — H1 rewrites, JSON-LD blocks, robots.txt diffs. Owner-private manifest with copy-paste UI. Costs $1-3 per audit.
+            An LLM drives 26 audit tools and produces concrete fix patches — H1 rewrites, JSON-LD blocks, robots.txt diffs, AEO citation-lift FAQs. Owner-private manifest with copy-paste UI. Costs $1-3 per audit.
           </p>
           <StartOrchestratorButton />
         </section>
@@ -94,13 +94,6 @@ export default async function DashboardHome({
         <AddDomainCard variant="compact" />
       </div>
       <PortfolioStrip domains={domains} userId={session.user.id} />
-      <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
-        <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
-        <p className="mb-3 text-xs text-muted-foreground">
-          Generate a fix manifest with concrete copy-paste patches. Pro budget cap defaults to $3/session.
-        </p>
-        <StartOrchestratorButton />
-      </section>
       <CrossDomainFixQueue userId={session.user.id} />
     </div>
   );
