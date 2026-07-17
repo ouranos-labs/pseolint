@@ -85,6 +85,8 @@ export const audits = pgTable("audit", {
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
   triageCostUsd: numeric("triage_cost_usd", { precision: 10, scale: 4 }),
+  /** Tier 2: inferred pSEO archetype (from triage) as a queryable signal. Nullable. */
+  archetype: text("archetype"),
   /**
    * v0.4 §4.11 — pre-flight site classification snapshot. Mirrors the
    * `summary.siteClassification` field on AuditSummary so the dashboard /
