@@ -25,8 +25,24 @@ const rootCauseSchema = z.object({
   relatedFindingIds: z.array(z.string()).describe("IDs (from the input `findings[].id`) of findings attributed to this root cause. Use only IDs that appear in the input."),
 });
 
+const ARCHETYPES = [
+  "directory",
+  "comparison",
+  "location-pages",
+  "glossary",
+  "aggregator",
+  "programmatic-blog",
+  "other",
+] as const;
+
 const triagePayloadSchema = z.object({
-  rootCauses: z.array(rootCauseSchema).min(1).max(5).describe("1 to 5 root causes, ranked by SEO impact (highest first)."),
+  archetype: z
+    .enum(ARCHETYPES)
+    .describe("Inferred programmatic-SEO archetype of the site — the lens root causes are prioritized for."),
+  archetypeRationale: z
+    .string()
+    .describe("One sentence: why this archetype, from the findings/rule-mix/page-count."),
+  rootCauses: z.array(rootCauseSchema).min(1).max(5).describe("1 to 5 root causes, ranked by SEO impact FOR THIS ARCHETYPE (highest first)."),
   narrative: z.string().optional().describe("1-2 sentence overall summary. Optional — if output is tight, prioritize rootCauses and omit this."),
 });
 
@@ -170,6 +186,8 @@ export async function triageFindings(
   const result: TriageResult = {
     rootCauses: generated.object.rootCauses,
     narrative: generated.object.narrative,
+    archetype: generated.object.archetype,
+    archetypeRationale: generated.object.archetypeRationale,
     modelUsed: options.modelId,
     providerId: options.providerId,
     tokenUsage: usage,

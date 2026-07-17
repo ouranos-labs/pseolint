@@ -24,9 +24,12 @@ export function RootCauses({
   const ranked = [...triage.rootCauses].sort((a, b) => a.fixOrder - b.fixOrder);
   if (ranked.length === 0) return null;
 
-  // Brief handed to the orchestrator: the narrative (if any) followed by the
-  // ranked root causes, one numbered line each with their affected rule ids.
+  const archetypeLabel = triage.archetype ? triage.archetype.replace(/-/g, " ") : null;
+
+  // Brief handed to the orchestrator: the inferred site archetype (so the run
+  // is strategy-aware too), then the narrative, then the ranked root causes.
   const brief = [
+    triage.archetype ? `Site archetype: ${triage.archetype}${triage.archetypeRationale ? ` — ${triage.archetypeRationale}` : ""}` : null,
     triage.narrative,
     ...ranked.map((rc, i) => `${i + 1}. ${rc.label} — rules: ${rc.affectedRuleIds.join(", ")}`),
   ]
@@ -47,6 +50,18 @@ export function RootCauses({
         </h2>
         <span className="font-mono text-[11px] text-muted-foreground">AI triage</span>
       </div>
+
+      {archetypeLabel && (
+        <div className="mb-3 flex items-baseline gap-2 text-xs">
+          <span className="text-muted-foreground">Strategy:</span>
+          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono capitalize text-primary">
+            {archetypeLabel}
+          </span>
+          {triage.archetypeRationale && (
+            <span className="text-muted-foreground/80">{triage.archetypeRationale}</span>
+          )}
+        </div>
+      )}
 
       {triage.narrative && (
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
