@@ -1,4 +1,5 @@
 import type { Severity } from "../types.js";
+import type { Archetype } from "../algorithms/archetype.js";
 
 export interface TokenUsage {
   input: number;
@@ -23,7 +24,7 @@ export interface TriageResult {
    * Inferred programmatic-SEO archetype the root causes were prioritized for.
    * Optional: absent on triage results cached before prompt v1.2.0.
    */
-  archetype?: "directory" | "comparison" | "location-pages" | "glossary" | "aggregator" | "programmatic-blog" | "other";
+  archetype?: Archetype;
   /** One-line justification for {@link archetype}. */
   archetypeRationale?: string;
   modelUsed: string;

@@ -64,6 +64,8 @@ describe("auditSource + telemetry (integration)", () => {
     const mockModel = new MockModel({
       doGenerate: async () =>
         okResponse({
+          archetype: "programmatic-blog",
+          archetypeRationale: "Thin templated pages.",
           rootCauses: [
             {
               label: "Example root cause",

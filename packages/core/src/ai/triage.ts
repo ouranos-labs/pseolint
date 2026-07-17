@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { generateObject, type LanguageModel } from "ai";
 import { z } from "zod";
 import type { RuleResult, AuditSummary } from "../types.js";
+import { ARCHETYPES } from "../algorithms/archetype.js";
 import type { TriageResult } from "./types.js";
 import {
   PROMPT_VERSION,
@@ -24,16 +25,6 @@ const rootCauseSchema = z.object({
   rationale: z.string().min(1).describe("1-2 sentences: why this matters and how to fix it."),
   relatedFindingIds: z.array(z.string()).describe("IDs (from the input `findings[].id`) of findings attributed to this root cause. Use only IDs that appear in the input."),
 });
-
-const ARCHETYPES = [
-  "directory",
-  "comparison",
-  "location-pages",
-  "glossary",
-  "aggregator",
-  "programmatic-blog",
-  "other",
-] as const;
 
 const triagePayloadSchema = z.object({
   archetype: z
