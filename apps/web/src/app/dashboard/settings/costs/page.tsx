@@ -72,7 +72,7 @@ export default async function CostDashboard() {
           </div>
 
           <div className="rounded-[18px] border border-border/60 p-5">
-            <h2 className="mb-3 text-sm font-medium text-foreground">v0.4 audits + AI triage</h2>
+            <h2 className="mb-3 text-sm font-medium text-foreground">Audits + AI triage</h2>
             <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
               <dt className="text-muted-foreground">Audits run</dt>
               <dd className="font-mono tabular-nums text-foreground">{auditAgg?.auditCount ?? 0}</dd>
@@ -102,6 +102,21 @@ export default async function CostDashboard() {
           </div>
         </div>
       )}
+
+      <div className="rounded-[18px] border border-border/60 p-5">
+        <h2 className="mb-3 text-sm font-medium text-foreground">Plan limits</h2>
+        {/* Mirrors api/orchestrate/route.ts — Pro: $3 default / $10 max per session, 50 runs/day. */}
+        <dl className="grid grid-cols-[1fr_auto] gap-y-3 text-sm">
+          <dt className="text-muted-foreground">Per-session cost cap</dt>
+          <dd className="font-mono tabular-nums text-foreground">$3 default · $10 max</dd>
+          <dt className="text-muted-foreground">Orchestrator runs / day</dt>
+          <dd className="font-mono tabular-nums text-foreground">50</dd>
+        </dl>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Each run stops at its cap; the daily limit guards against runaway spend. Raise a cap per run with the
+          budget option on the API.
+        </p>
+      </div>
 
       <p className="text-xs text-muted-foreground">
         Managed-AI calls are billed by pseolint; BYO-key calls are billed directly by your provider and

@@ -10,6 +10,8 @@ export type OrchestratorCompleteEmailProps = {
   validPatchCount: number;
   totalPatchCount: number;
   spentUsd: number;
+  /** Session USD cap this run was bounded by — shown alongside spend for context. */
+  budgetUsd: number;
   durationSeconds: number;
   /**
    * Terminal status — "completed" sends the success template; "failed"
@@ -103,7 +105,7 @@ export default function OrchestratorCompleteEmail(props: OrchestratorCompleteEma
 
           <Section style={{ marginTop: 16 }}>
             <Text style={{ margin: 0, color: "#6b7280", fontSize: 12 }}>
-              Cost: ${props.spentUsd.toFixed(3)} · Duration: {props.durationSeconds.toFixed(0)}s
+              Cost: ${props.spentUsd.toFixed(3)} of ${props.budgetUsd.toFixed(2)} cap · Duration: {props.durationSeconds.toFixed(0)}s
             </Text>
           </Section>
 

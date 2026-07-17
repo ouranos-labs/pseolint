@@ -250,6 +250,7 @@ export const runOrchestratorSession = inngest.createFunction(
           validPatchCount: result.validation?.validPatches ?? 0,
           totalPatchCount: result.validation?.totalPatches ?? 0,
           spentUsd: result.sessionResult.usage.estimatedUsd,
+          budgetUsd: Number(sessionRow.budgetUsd),
           durationSeconds: result.sessionResult.usage.elapsedMs / 1000,
           terminalStatus,
           errorMessage: result.sessionResult.error ?? null,
