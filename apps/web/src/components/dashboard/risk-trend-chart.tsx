@@ -9,7 +9,10 @@ interface TrendPoint {
 
 interface RiskTrendChartProps {
   runs: TrendPoint[];
-  /** Optional alert-threshold line — score-drop magnitude that triggers an email. */
+  /**
+   * Alert threshold: the run-to-run risk RISE (delta) that trips an alert.
+   * Marks the runs that breached it — it is NOT an absolute score level.
+   */
   alertThreshold?: number | null;
 }
 
@@ -72,8 +75,17 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
   // Dot tone: latest run's score band (mirrors the big risk number on the hero).
   const latestTone = scoreFill(latest.risk);
 
-  const showThreshold = typeof alertThreshold === "number" && alertThreshold > 0 && alertThreshold <= Y_MAX;
-  const yThreshold = showThreshold ? y(alertThreshold!) : null;
+  // The threshold is a run-to-run RISE delta, not an absolute level. Mark the
+  // transitions where risk rose by >= threshold — those tripped the risk-rise
+  // alert. (New error/critical findings also fire alerts; this chart only knows
+  // scores, so it shows the risk-rise part.)
+  const th = typeof alertThreshold === "number" && alertThreshold > 0 ? alertThreshold : null;
+  const breachIdx = new Set<number>();
+  if (th != null) {
+    for (let i = 1; i < completed.length; i += 1) {
+      if (completed[i].risk - completed[i - 1].risk >= th) breachIdx.add(i);
+    }
+  }
 
   return (
     <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
@@ -114,30 +126,6 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
           </g>
         ))}
 
-        {/* Alert threshold — horizontal warning rule. Lets the user see when past
-            runs would have triggered an email. */}
-        {yThreshold != null && (
-          <g>
-            <line
-              x1={PAD_X}
-              x2={W - PAD_X}
-              y1={yThreshold}
-              y2={yThreshold}
-              className="stroke-warning/60"
-              strokeDasharray="4 3"
-              strokeWidth="1"
-            />
-            <text
-              x={W - PAD_X}
-              y={yThreshold - 4}
-              textAnchor="end"
-              className="fill-warning font-mono text-[9px] uppercase tracking-wider"
-            >
-              alert · {alertThreshold}
-            </text>
-          </g>
-        )}
-
         {/* Area fill — uses the same tone as the latest run's score band. */}
         <g className={latestTone}>
           <path d={areaPath} fill="url(#risk-area)" />
@@ -158,6 +146,16 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
                 className={isLast ? "" : "opacity-70"}
               />
               {isLast && <circle cx={x(p.t)} cy={y(p.risk)} r={7} fill="currentColor" opacity="0.18" />}
+              {breachIdx.has(i) && (
+                <circle
+                  cx={x(p.t)}
+                  cy={y(p.risk)}
+                  r={6}
+                  fill="none"
+                  className="stroke-warning"
+                  strokeWidth="1.5"
+                />
+              )}
             </g>
           );
         })}
@@ -179,6 +177,12 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
           {fmtDate(tMax)}
         </text>
       </svg>
+
+      {th != null && (
+        <p className="mt-2 font-mono text-[10px] text-muted-foreground">
+          <span className="text-warning">◯</span> risk rose ≥ Δ{th} vs. the prior run — tripped a risk-rise alert
+        </p>
+      )}
     </section>
   );
 }
