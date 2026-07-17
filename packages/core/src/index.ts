@@ -118,6 +118,15 @@ export type {
   PatchDiff,
   ManifestDiff,
 } from "./ai/manifest/index.js";
+export {
+  generateCitationBlock,
+  draftToPageChanges,
+  faqToHtml,
+  faqToJsonLd,
+  makeCitationGenerate,
+  citationSchema,
+} from "./algorithms/citation-lift/index.js";
+export type { CitationDraft, CitationInput, CitationGenOpts } from "./algorithms/citation-lift/index.js";
 export { renderManifest, applyEditToContent } from "./ai/apply/render-manifest.js";
 export type { TemplateMapping, FileEdit, ChecklistItem, RenderedManifest } from "./ai/apply/render-manifest.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
