@@ -32,7 +32,11 @@ const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
     pkg: "@ai-sdk/anthropic",
     factoryName: "createAnthropic",
     envVar: "ANTHROPIC_API_KEY",
-    defaultModel: "claude-sonnet-4-6",
+    // General default for triage + orchestrator (not calibration-sensitive).
+    // The content-effort JUDGE is pinned separately — see CONTENT_EFFORT_MODEL
+    // in auditor.ts — because its verdict thresholds are tuned to one model's
+    // score distribution and can't move without a re-calibration run.
+    defaultModel: "claude-sonnet-5",
     kind: "cloud-apikey",
   },
   openai: {
