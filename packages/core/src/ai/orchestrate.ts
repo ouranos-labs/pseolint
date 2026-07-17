@@ -23,6 +23,12 @@ export interface OrchestrateOptions {
   ai?: AiOptions;
   /** Override default budget caps. Merge with `DEFAULT_BUDGET`. */
   budget?: Partial<BudgetCaps>;
+  /**
+   * Optional operator focus note appended to the system prompt — e.g. a prior
+   * triage's root causes. Scopes the run toward a known diagnosis instead of
+   * re-deriving everything blind. Truncated to keep the prompt bounded.
+   */
+  brief?: string;
   /** Optional path for durable NDJSON session log. */
   ndjsonPath?: string;
   /** Optional event sink — SSE/R2 fanout in the web app, console.log in the CLI. */
@@ -84,6 +90,7 @@ export async function orchestrate(opts: OrchestrateOptions): Promise<Orchestrate
     providerId: resolved.providerId,
     modelId: resolved.modelId,
     budget: opts.budget,
+    brief: opts.brief,
     ndjsonPath: opts.ndjsonPath,
     onEvent: opts.onEvent,
     signal: opts.signal,

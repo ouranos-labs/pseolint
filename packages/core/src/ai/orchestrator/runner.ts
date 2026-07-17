@@ -31,6 +31,8 @@ export interface RunOrchestratorOptions {
   modelId: string;
   /** Override default budget caps. Defaults from DEFAULT_BUDGET. */
   budget?: Partial<BudgetCaps>;
+  /** Optional operator focus note appended to the system prompt (e.g. triage root causes). */
+  brief?: string;
   /** Optional path for durable NDJSON session log. */
   ndjsonPath?: string;
   /** Optional event sink (e.g. SSE / R2 fanout). */
@@ -93,7 +95,7 @@ export async function runOrchestrator(opts: RunOrchestratorOptions): Promise<Ses
   // its tool-call input — the AI SDK ferries the rest through normally.
   aiTools[FINISH_TOOL_NAME] = finishAuditTool.toAiTool();
 
-  const systemPrompt = buildSystemPrompt(session.caps);
+  const systemPrompt = buildSystemPrompt(session.caps, opts.brief);
 
   let stopReason: StopReason = "no_finish_called";
   let modelError: string | undefined;
