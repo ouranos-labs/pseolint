@@ -106,6 +106,7 @@ export const runOrchestratorSession = inngest.createFunction(
       const r = await orchestrate({
         domain: sessionRow.domain,
         userId: sessionRow.userId,
+        brief: sessionRow.brief ?? undefined,
         ai: aiKey
           ? { provider: aiKey.provider, model: aiKey.model ?? undefined, apiKey: aiKey.apiKey }
           : undefined,

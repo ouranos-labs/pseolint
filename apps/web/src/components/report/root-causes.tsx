@@ -1,4 +1,5 @@
 import type { Severity, TriageResult } from "@pseolint/core";
+import { GenerateFixesButton } from "./generate-fixes-button";
 
 /**
  * AI triage root-causes — the "what to fix first" summary.
@@ -13,9 +14,24 @@ import type { Severity, TriageResult } from "@pseolint/core";
  * report. Rendered nowhere unless `triage.rootCauses` is non-empty — the
  * caller gates on that.
  */
-export function RootCauses({ triage }: { triage: TriageResult }) {
+export function RootCauses({
+  triage,
+  generateFixes,
+}: {
+  triage: TriageResult;
+  generateFixes?: { domain: string };
+}) {
   const ranked = [...triage.rootCauses].sort((a, b) => a.fixOrder - b.fixOrder);
   if (ranked.length === 0) return null;
+
+  // Brief handed to the orchestrator: the narrative (if any) followed by the
+  // ranked root causes, one numbered line each with their affected rule ids.
+  const brief = [
+    triage.narrative,
+    ...ranked.map((rc, i) => `${i + 1}. ${rc.label} — rules: ${rc.affectedRuleIds.join(", ")}`),
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return (
     <section
@@ -78,6 +94,8 @@ export function RootCauses({ triage }: { triage: TriageResult }) {
           </li>
         ))}
       </ol>
+
+      {generateFixes && <GenerateFixesButton domain={generateFixes.domain} brief={brief} />}
     </section>
   );
 }

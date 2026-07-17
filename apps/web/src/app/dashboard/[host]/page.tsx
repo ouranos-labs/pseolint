@@ -630,7 +630,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           operator reads the prioritised plan first. Pro-only: rendered only when
           the engine populated `summary.triage`. */}
       { summary?.triage?.rootCauses?.length ? (
-        <RootCauses triage={ summary.triage } />
+        <RootCauses triage={ summary.triage } generateFixes={ { domain: domain.sourceUrl } } />
       ) : null }
 
       {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads

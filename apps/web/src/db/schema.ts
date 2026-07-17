@@ -483,6 +483,8 @@ export const orchestratorSessions = pgTable("orchestrator_session", {
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "aborted">().notNull().default("queued"),
   /** StopReason from `@pseolint/core` — completed | tool_call_limit | usd_limit | etc. */
   reason: text("reason"),
+  /** Optional focus note from AI triage, appended to the orchestrator system prompt. */
+  brief: text("brief"),
   /** Hard USD cap configured for this session. Mirrors BudgetCaps.maxSessionUsd. */
   budgetUsd: numeric("budget_usd", { precision: 10, scale: 4 }).notNull(),
   /** Actual USD spent (LLM tokens + external probe APIs). */
