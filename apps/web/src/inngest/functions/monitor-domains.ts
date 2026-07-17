@@ -206,23 +206,6 @@ async function runOneMonitor(monitoredDomainId: string) {
     })
     .where(eq(monitoredDomains.id, d.id));
 
-  // Alert flow: compare against previous audit before merging findings_state.
-  // Task 11 will add an alert-gate that reads findings_state; for now this runs unchanged.
-  if (d.lastAuditId) {
-    await maybeAlert({
-      monitoredDomainId: d.id,
-      userId: d.userId,
-      alertEmail: d.alertEmail,
-      sourceUrl: d.sourceUrl,
-      threshold: d.alertThreshold,
-      previousAuditId: d.lastAuditId,
-      previousRisk: d.lastRisk ?? null,
-      currentAuditId: audit.id,
-      currentAuditSlug: audit.slug,
-      currentRisk: result.risk,
-    });
-  }
-
   // Merge the fresh findings into the persistent findings_state table so the fix
   // queue stays up-to-date. Placed after the alert flow so alerts fire on the
   // pre-merge snapshot (Task 11 can change this ordering if needed).
@@ -267,6 +250,7 @@ async function runOneMonitor(monitoredDomainId: string) {
       domainId: d.id,
       prevRisk: d.lastRisk ?? null,
       currentRisk: result.risk,
+      threshold: d.alertThreshold,
       newCombinations: newOnes.map((r) => ({
         ruleId: r.ruleId,
         templateSignature: r.templateSignature,
@@ -274,10 +258,24 @@ async function runOneMonitor(monitoredDomainId: string) {
       })),
     });
     if (gate.shouldAlert) {
+      const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
+      // Record the alert in history — written even without an email recipient,
+      // mirroring the pre-gate maybeAlert behaviour it replaced.
+      const [alertRow] = await db
+        .insert(monitoringAlerts)
+        .values({
+          monitoredDomainId: d.id,
+          auditId: audit.id,
+          previousAuditId: d.lastAuditId ?? null,
+          previousRisk: d.lastRisk ?? null,
+          currentRisk: result.risk,
+          newRuleIds,
+        })
+        .returning({ id: monitoringAlerts.id });
+
       const email = await resolveRecipient(d.userId, d.alertEmail);
       if (email) {
         try {
-          const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
           await sendMonitoringAlertEmail({
             to: email,
             sourceUrl: d.sourceUrl,
@@ -305,7 +303,11 @@ async function runOneMonitor(monitoredDomainId: string) {
               });
             }
           }
-          // Email succeeded — now write dedup rows so we don't re-send this week.
+          // Email succeeded — stamp delivery, then write dedup rows.
+          await db
+            .update(monitoringAlerts)
+            .set({ deliveredAt: new Date() })
+            .where(eq(monitoringAlerts.id, alertRow.id));
           const week = isoWeekOf(new Date());
           for (const f of gate.firingCombinations) {
             await db
@@ -330,63 +332,6 @@ function withJitter(date: Date): Date {
   return new Date(date.getTime() + jitterMs);
 }
 
-async function maybeAlert(input: {
-  monitoredDomainId: string;
-  userId: string;
-  alertEmail: string | null;
-  sourceUrl: string;
-  threshold: number;
-  previousAuditId: string;
-  previousRisk: number | null;
-  currentAuditId: string;
-  currentAuditSlug: string;
-  currentRisk: number;
-}): Promise<void> {
-  const [prevSummary, currSummary] = await Promise.all([
-    loadSummary(input.previousAuditId),
-    loadSummary(input.currentAuditId),
-  ]);
-  const newRuleIds = diffNewRuleIds(prevSummary, currSummary);
-  const hasNewError = newRuleIds.some((id) => {
-    const f = summaryFindings(currSummary).find((r) => r.ruleId === id);
-    return f?.severity === "error" || f?.severity === "critical";
-  });
-  // v0.4: alert when risk RISES (current - prev > 0). Lower risk = better.
-  const riskDelta = input.currentRisk - (input.previousRisk ?? input.currentRisk);
-  const shouldAlert = riskDelta >= input.threshold || hasNewError;
-  if (!shouldAlert) return;
-
-  const [alert] = await db
-    .insert(monitoringAlerts)
-    .values({
-      monitoredDomainId: input.monitoredDomainId,
-      auditId: input.currentAuditId,
-      previousAuditId: input.previousAuditId,
-      previousRisk: input.previousRisk,
-      currentRisk: input.currentRisk,
-      newRuleIds,
-    })
-    .returning({ id: monitoringAlerts.id });
-
-  const email = await resolveRecipient(input.userId, input.alertEmail);
-  if (!email) return;
-
-  await sendMonitoringAlertEmail({
-    to: email,
-    sourceUrl: input.sourceUrl,
-    previousRisk: input.previousRisk,
-    currentRisk: input.currentRisk,
-    newRuleIds,
-    currSummary,
-    reportSlug: input.currentAuditSlug,
-  });
-
-  await db
-    .update(monitoringAlerts)
-    .set({ deliveredAt: new Date() })
-    .where(eq(monitoringAlerts.id, alert.id));
-}
-
 async function loadSummary(auditId: string): Promise<AuditSummary | null> {
   const raw = await fetchSummaryJson(summaryKey(auditId));
   if (!raw) return null;
@@ -395,13 +340,6 @@ async function loadSummary(auditId: string): Promise<AuditSummary | null> {
   } catch {
     return null;
   }
-}
-
-function diffNewRuleIds(prev: AuditSummary | null, curr: AuditSummary | null): string[] {
-  if (!curr) return [];
-  const prevIds = new Set(summaryFindings(prev).map((f) => f.ruleId));
-  const currIds = new Set(summaryFindings(curr).map((f) => f.ruleId));
-  return Array.from(currIds).filter((id) => !prevIds.has(id));
 }
 
 /** v0.4: AuditSummary no longer exposes a flat `findings` array — re-flatten from issues buckets. */

@@ -16,6 +16,12 @@ export interface AlertEvalInput {
   domainId: string;
   prevRisk: number | null;
   currentRisk: number;
+  /**
+   * Run-to-run risk RISE that trips a risk_rise alert (the domain's
+   * alertThreshold setting). Falls back to DEFAULT_RISK_RISE_THRESHOLD when
+   * unset/invalid.
+   */
+  threshold?: number | null;
   newCombinations: Array<{ ruleId: string; templateSignature: string; severity: Severity }>;
 }
 
@@ -25,14 +31,17 @@ export interface AlertEvalResult {
   firingCombinations: Array<{ ruleId: string; templateSignature: string }>;
 }
 
-const RISK_RISE_THRESHOLD = 10;
+export const DEFAULT_RISK_RISE_THRESHOLD = 10;
 
 export async function evaluateAlertGate(input: AlertEvalInput): Promise<AlertEvalResult> {
   const reasons: AlertEvalResult["reasons"] = [];
   const firing: AlertEvalResult["firingCombinations"] = [];
 
-  // v0.4: alert when risk RISES (current - prev >= threshold). Lower risk = better.
-  if (input.prevRisk !== null && (input.currentRisk - input.prevRisk) >= RISK_RISE_THRESHOLD) {
+  // Alert when risk RISES (current - prev >= threshold). Lower risk = better.
+  // Honors the domain's alertThreshold setting; falls back to the default.
+  const threshold =
+    input.threshold != null && input.threshold > 0 ? input.threshold : DEFAULT_RISK_RISE_THRESHOLD;
+  if (input.prevRisk !== null && (input.currentRisk - input.prevRisk) >= threshold) {
     reasons.push("risk_rise");
   }
 
