@@ -280,7 +280,7 @@ export async function runCli(
     .command("orchestrate <domain>")
     .description("Run the AI-orchestrated auditor against a domain. Produces a fix manifest, validates every patch, prints a structured diff summary.")
     .option("--ai-provider <id>", "AI provider (anthropic | openai | google | ollama). Default: env-var auto-detect.")
-    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-7. Default: provider's default.")
+    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-8. Default: provider's default.")
     .option("--ai-key <key>", "API key (or use the provider's env var).")
     .option("--max-cost <usd>", "Max session USD cap. Default $5.", parseFloat)
     .option("--max-tool-calls <n>", "Max tool calls per session. Default 100.", (v) => parseInt(v, 10))

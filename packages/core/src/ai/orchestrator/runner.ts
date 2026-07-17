@@ -27,7 +27,7 @@ export interface RunOrchestratorOptions {
   model: LanguageModel;
   /** Provider id for cost estimation (e.g. "anthropic"). */
   providerId: string;
-  /** Model id for cost estimation (e.g. "claude-opus-4-7"). */
+  /** Model id for cost estimation (e.g. "claude-opus-4-8"). */
   modelId: string;
   /** Override default budget caps. Defaults from DEFAULT_BUDGET. */
   budget?: Partial<BudgetCaps>;
