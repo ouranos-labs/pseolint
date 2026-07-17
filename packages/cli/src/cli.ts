@@ -358,6 +358,24 @@ export async function runCli(
     });
 
   program
+    .command("apply <manifest>")
+    .description("Apply a fix manifest's deterministic edits into the local working tree and print the human checklist. Reads .pseolint/templates.json for the template→source mapping. Review + commit the diff yourself.")
+    .option("--repo <dir>", "Repo root to apply edits into. Default: current directory.", ".")
+    .option("--mapping <path>", "Template→source mapping JSON. Default: <repo>/.pseolint/templates.json")
+    .option("--dry-run", "Print what would change without writing.")
+    .option("--no-color", "Disable colored output.")
+    .action(async (manifest: string, o: { repo: string; mapping?: string; dryRun?: boolean; color?: boolean }) => {
+      const { runApplyCommand } = await import("./commands/apply.js");
+      exitCode = await runApplyCommand({
+        manifestPath: manifest,
+        repo: o.repo,
+        mappingPath: o.mapping,
+        dryRun: o.dryRun,
+        noColor: o.color === false,
+      });
+    });
+
+  program
     .command("upload <report>")
     .description("Upload an audit JSON report to the pseolint Pro ingestion endpoint")
     .option("--token <token>", "API token (or PSEOLINT_TOKEN env var)")
