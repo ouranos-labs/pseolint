@@ -57,9 +57,6 @@ export { validateJsonLdTool } from "./validate-jsonld.js";
 export { querySerpTool } from "./query-serp.js";
 export { askAiEngineTool } from "./ask-ai-engine.js";
 
-// Fix generators
-export { generateCitationLiftTool } from "./generate-citation-lift.js";
-
 import { fetchPageTool } from "./fetch-page.js";
 import { fetchSitemapTool } from "./fetch-sitemap.js";
 import { parsePageTool } from "./parse-page.js";
@@ -85,7 +82,6 @@ import { checkIndexabilityTool } from "./check-indexability.js";
 import { validateJsonLdTool } from "./validate-jsonld.js";
 import { querySerpTool } from "./query-serp.js";
 import { askAiEngineTool } from "./ask-ai-engine.js";
-import { generateCitationLiftTool } from "./generate-citation-lift.js";
 
 /**
  * The full orchestrator tool registry, keyed by tool name.
@@ -133,9 +129,6 @@ export const orchestratorTools = {
   // External probes
   query_serp: querySerpTool,
   ask_ai_engine: askAiEngineTool,
-
-  // Fix generators
-  generate_citation_lift: generateCitationLiftTool,
 } as const;
 
 export type OrchestratorToolName = keyof typeof orchestratorTools;

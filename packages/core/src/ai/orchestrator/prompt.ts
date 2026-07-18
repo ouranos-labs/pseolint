@@ -49,7 +49,6 @@ export function buildSystemPrompt(caps: BudgetCaps, brief?: string): string {
     `- robots_txt, sitemap_xml, canonical_strategy — domain-level`,
     `Use template-level patches when an issue spans 80%+ of a cluster. Per-page patches don't scale.`,
     `For add_jsonld, validate_jsonld lists exactly which Schema.org properties are missing per declared @type — use that to populate the block.`,
-    `For weak AEO citability (failing answer-first / citable-facts), call generate_citation_lift with the page's target query — it returns ready-made add_faq_block + add_jsonld changes; drop them straight into the page's patch instead of hand-writing the FAQ.`,
     ``,
     `## Tool-use rules`,
     `- Findings carry confidence (high|medium|low|speculative). Don't propose structural rewrites on low/speculative evidence alone — corroborate with another tool first.`,

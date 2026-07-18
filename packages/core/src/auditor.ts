@@ -107,7 +107,6 @@ import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./s
 import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring, LONGTAIL_SIGNATURE } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 import { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
-import { archetypeRuleProfile, hasStructuralSimilarityDriver, type Archetype } from "./algorithms/archetype.js";
 import { CompositeAuthorityProvider } from "./algorithms/authority/provider.js";
 import { OpenPageRankProvider } from "./algorithms/authority/openpagerank.js";
 import { registrableDomain } from "./algorithms/fact-extraction.js";
@@ -687,43 +686,6 @@ export function shiftVerdictForEffort(verdict: Verdict, score: number | null | u
     return shiftVerdict(verdict, { score, lenientAt: 101, strictAt: EFFORT_VERY_LOW_AT, cap: EFFORT_VERY_LOW_CAP });
   }
   return shiftVerdict(verdict, { score, lenientAt: EFFORT_LENIENT_AT, strictAt: EFFORT_STRICT_AT, cap: EFFORT_CAP });
-}
-
-// Tier 3 — intent-aware verdict moderation. GATED (default off) pending a
-// calibration run: it introduces a NEW verdict shift, so enabling it on
-// uncalibrated data could regress the reputable-pSEO corpus. Verdict-ONLY and
-// SOFTEN-ONLY — never escalates (effort/authority own escalation), never
-// touches raw `risk`. The archetype comes from the LLM triage; the effort
-// score and top driver are existing signals.
-//
-// Rationale: a cluster-tolerant archetype (directory / location-pages /
-// aggregator) whose worst driver is the spam family (near-duplicate /
-// entity-swap) is often structurally similar BY DESIGN, not spammy — but only
-// when content effort shows genuine differentiation. Below the farm floor,
-// effort has already escalated the verdict, so we require effort above it.
-const INTENT_MIN_EFFORT = 10; // above the farm zone (leaking farms sit 1–3)
-
-export function shiftVerdictForIntent(
-  verdict: Verdict,
-  opts: {
-    archetype: Archetype | null | undefined;
-    effortScore: number | null | undefined;
-    /** Did near-duplicate / entity-swap fire? (see hasStructuralSimilarityDriver) */
-    structuralDriver: boolean;
-  },
-): Verdict {
-  if (!opts.archetype) return verdict;
-  const profile = archetypeRuleProfile(opts.archetype);
-  const genuineEffort =
-    typeof opts.effortScore === "number" &&
-    Number.isFinite(opts.effortScore) &&
-    opts.effortScore >= INTENT_MIN_EFFORT;
-  if (profile.clusterTolerant && opts.structuralDriver && genuineEffort) {
-    // Force a single-tier soften via the shared moderator (score 100 ≥ lenientAt 100).
-    // strictAt:-1 disables the escalate arm — intent never makes a verdict worse.
-    return shiftVerdict(verdict, { score: 100, lenientAt: 100, strictAt: -1, cap: 1 });
-  }
-  return verdict;
 }
 
 function gradeForPenalty(penalty: number): Grade {
@@ -3537,19 +3499,6 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       // No resolved model — providerId/modelId blank.
       triageAttempt = { providerId: options.ai.provider ?? "", modelId: options.ai.model ?? "", skipReason: reason };
     }
-  }
-
-  // Tier 3 (gated, default off): re-shift the FINAL verdict for pSEO intent
-  // using the archetype triage just inferred. Runs here because the archetype
-  // isn't available until triage completes. Verdict-only — raw `summary.risk`
-  // is never read or written by this pass.
-  const resolvedArchetype = summary.triage?.archetype ?? options?.archetype;
-  if (options?.intentModeration && resolvedArchetype) {
-    summary.verdict = shiftVerdictForIntent(summary.verdict, {
-      archetype: resolvedArchetype,
-      effortScore: resolvedEffort,
-      structuralDriver: hasStructuralSimilarityDriver(enrichedFindings),
-    });
   }
 
   if (options?.telemetry?.enabled) {

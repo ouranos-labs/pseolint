@@ -15,23 +15,14 @@ const draft = (score: number, q = "What is X?"): CitationDraft => ({
 });
 
 describe("generateCitationBlock", () => {
-  it("keeps the highest-scoring draft across attempts", async () => {
-    const scores = [40, 82, 55];
-    let i = 0;
-    const best = await generateCitationBlock(
-      { query: "q", contentText: "text", attempts: 3 },
-      { generate: async () => draft(scores[i++]) },
-    );
-    expect(best.score).toBe(82);
-  });
-
-  it("calls generate exactly once by default", async () => {
+  it("calls generate exactly once and returns its draft", async () => {
     let calls = 0;
-    await generateCitationBlock(
+    const out = await generateCitationBlock(
       { query: "q", contentText: "text" },
       { generate: async () => { calls++; return draft(50); } },
     );
     expect(calls).toBe(1);
+    expect(out.score).toBe(50);
   });
 });
 

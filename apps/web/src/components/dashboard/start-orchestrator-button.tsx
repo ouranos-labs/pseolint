@@ -60,7 +60,7 @@ export function StartOrchestratorButton() {
       <div>
         <p className="text-sm font-medium text-foreground">AI-orchestrated audit</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          An LLM drives 26 audit tools and produces concrete fix patches (H1 rewrites, JSON-LD blocks, robots.txt diffs, AEO citation-lift FAQs). Costs $1-3 per audit on managed Anthropic.
+          An LLM drives 25 audit tools and produces concrete fix patches (H1 rewrites, JSON-LD blocks, robots.txt diffs). Costs $1-3 per audit on managed Anthropic.
         </p>
       </div>
       <input

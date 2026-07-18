@@ -11,13 +11,15 @@ import { z } from "zod";
  * fix-to-PR rail as everything else.
  *
  * Honest boundary: `ask_ai_engine` measures whether a *published* URL gets
- * cited — it cannot score an unpublished draft. So this loop scores drafts
- * with an LLM judge (a proxy for citability), not the live probe. The real
- * probe is the bookend: run it before to find the gap (are we cited? who is?),
- * and after the PR ships to confirm the lift. `attempts > 1` is best-of-N on
- * the proxy score.
- * ponytail: single-shot (attempts=1) by default; raise attempts only when the
- * proxy score plateaus and the extra LLM calls are worth it.
+ * cited — it cannot score an unpublished draft. So the score here is an LLM
+ * judge's PROXY for citability, not the live probe. The real probe is the
+ * bookend: run it before to find the gap (are we cited? who is?), and after
+ * the fix ships to confirm the lift.
+ *
+ * ponytail: single-shot. This is a reusable building block for the fix-to-PR
+ * rail — it has no production consumer yet (the orchestrator tool that used it
+ * was pulled as premature). Validate the proxy against the live probe before
+ * wiring it back in.
  */
 
 export interface CitationDraft {
@@ -44,8 +46,6 @@ export interface CitationInput {
   query: string;
   /** The page's current main text (fenced as untrusted in the prompt). */
   contentText: string;
-  /** Best-of-N drafts by proxy score. Default 1. */
-  attempts?: number;
 }
 
 export interface CitationGenOpts {
@@ -54,21 +54,12 @@ export interface CitationGenOpts {
   signal?: AbortSignal;
 }
 
-/** Generate a citation-lift draft, keeping the highest-scoring of `attempts` tries. */
+/** Generate a single citation-lift draft. */
 export async function generateCitationBlock(
   input: CitationInput,
   opts: CitationGenOpts,
 ): Promise<CitationDraft> {
-  const attempts = Math.max(1, input.attempts ?? 1);
-  let best: CitationDraft | null = null;
-  for (let i = 0; i < attempts; i += 1) {
-    if (opts.signal?.aborted) break;
-    const draft = await opts.generate(input.query, input.contentText);
-    if (!best || draft.score > best.score) best = draft;
-  }
-  // generate() is called at least once (attempts >= 1); best is non-null unless aborted pre-call.
-  if (!best) throw new Error("citation-lift: aborted before any draft");
-  return best;
+  return opts.generate(input.query, input.contentText);
 }
 
 function escapeHtml(s: string): string {

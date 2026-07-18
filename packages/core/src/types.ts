@@ -1,5 +1,3 @@
-import type { Archetype } from "./algorithms/archetype.js";
-
 export type Severity = "info" | "warning" | "error" | "critical";
 
 /**
@@ -617,21 +615,6 @@ export interface AuditOptions {
    * over `contentEffort.enabled`). `null` = absent → moderator no-ops.
    */
   contentEffortScore?: number | null;
-  /**
-   * Tier-3 intent-aware verdict moderation (GATED, default off). When true and
-   * triage inferred an archetype, the final verdict may soften one tier for a
-   * cluster-tolerant strategy driven by structural (spam-family) similarity
-   * with genuine content effort. Verdict-only, soften-only; raw `risk` is never
-   * touched. Off by default because enabling it uncalibrated could regress the
-   * reputable-pSEO corpus — see docs before turning on in production.
-   */
-  intentModeration?: boolean;
-  /**
-   * Pre-resolved archetype. Calibration/tests inject this to exercise
-   * intent moderation offline (bypasses the triage LLM); production reads the
-   * archetype from triage. Mirrors `contentEffortScore`.
-   */
-  archetype?: Archetype;
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
   /**
