@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="132" viewBox="0 0 820 132" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+  <rect x="0.5" y="0.5" width="819" height="131" rx="14" fill="#0d1117" stroke="#30363d"/>
+  <!-- green check badge, left of the wordmark -->
+  <circle cx="311" cy="58" r="17" fill="#3fb950" fill-opacity="0.15" stroke="#3fb950" stroke-width="1.5"/>
+  <path d="M303 58 l6 6 l10 -12" fill="none" stroke="#3fb950" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- wordmark (anchored middle, nudged right to clear the badge) -->
+  <text x="454" y="72" font-size="44" font-weight="700" fill="#e6edf3" text-anchor="middle" letter-spacing="0.5">pseolint</text>
+  <!-- tagline -->
+  <text x="410" y="104" font-size="15" fill="#8b949e" text-anchor="middle">Audit your pSEO site by template, not by URL.</text>
+</svg>

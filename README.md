@@ -1,15 +1,22 @@
-# pSEO Lint
+<p align="center">
+  <img src="docs/assets/logo.svg" alt="pSEO Lint — audit your pSEO site by template, not by URL" width="720" />
+</p>
 
-> Audit your pSEO site by template, not by URL.
+<p align="center">
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm" alt="npm" /></a>
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/npm/dm/pseolint?color=cb3837" alt="Downloads" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/pseolint?color=blue" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/node/v/pseolint?color=339933&logo=node.js" alt="Node" /></a>
+  <a href="https://github.com/ouranos-labs/pseolint"><img src="https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social" alt="GitHub stars" /></a>
+  <a href="https://pseolint.dev/leaderboard"><img src="https://pseolint.dev/api/badge/pseolint.dev" alt="pseolint.dev dogfood" /></a>
+</p>
 
-[![npm](https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm)](https://www.npmjs.com/package/pseolint)
-[![Downloads](https://img.shields.io/npm/dm/pseolint?color=cb3837)](https://www.npmjs.com/package/pseolint)
-[![License](https://img.shields.io/npm/l/pseolint?color=blue)](./LICENSE)
-[![Node](https://img.shields.io/node/v/pseolint?color=339933&logo=node.js)](https://www.npmjs.com/package/pseolint)
-[![GitHub stars](https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social)](https://github.com/ouranos-labs/pseolint)
-[![pseolint.dev dogfood](https://pseolint.dev/api/badge/pseolint.dev)](https://pseolint.dev/leaderboard)
-
-**[Methodology](https://pseolint.dev/methodology)** · **[Leaderboard](https://pseolint.dev/leaderboard)** · **[Report a bug](https://github.com/ouranos-labs/pseolint/issues/new)** · **[Skills for agents](skills/README.md)**
+<p align="center">
+  <strong><a href="https://pseolint.dev/methodology">Methodology</a></strong> ·
+  <strong><a href="https://pseolint.dev/leaderboard">Leaderboard</a></strong> ·
+  <strong><a href="https://github.com/ouranos-labs/pseolint/issues/new">Report a bug</a></strong> ·
+  <strong><a href="skills/README.md">Skills for agents</a></strong>
+</p>
 
 <p align="center">
   <img src="docs/assets/demo.svg" alt="pseolint auditing pseolint.dev: verdict READY, all four categories graded A, with a per-template breakdown of /rules/:slug, /tools/:slug, and long-tail pages" width="820" />
