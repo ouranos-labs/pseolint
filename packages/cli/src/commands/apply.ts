@@ -34,6 +34,8 @@ export type ApplyResult =
   | { ok: false; error: string; hint?: string }
   | {
       ok: true;
+      /** The audited domain (drives the PR branch/title in `--pr`). */
+      domain: string;
       /** Repo-relative paths written (empty on dry-run-would-write is still populated). */
       changedFiles: string[];
       /** Count of edits successfully applied. */
@@ -152,7 +154,14 @@ export async function applyManifest(opts: ApplyCliOptions): Promise<ApplyResult>
     }
   }
 
-  return { ok: true, changedFiles, applied, checklist: [...checklist, ...demoted], dryRun: opts.dryRun ?? false };
+  return {
+    ok: true,
+    domain: parsed.data.domain,
+    changedFiles,
+    applied,
+    checklist: [...checklist, ...demoted],
+    dryRun: opts.dryRun ?? false,
+  };
 }
 
 /**
