@@ -9,6 +9,8 @@
 [![GitHub stars](https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social)](https://github.com/ouranos-labs/pseolint)
 [![pseolint.dev dogfood](https://pseolint.dev/api/badge/pseolint.dev)](https://pseolint.dev/leaderboard)
 
+**[Methodology](https://pseolint.dev/methodology)** · **[Leaderboard](https://pseolint.dev/leaderboard)** · **[Report a bug](https://github.com/ouranos-labs/pseolint/issues/new)** · **[Skills for agents](skills/README.md)**
+
 <p align="center">
   <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
 </p>
@@ -18,6 +20,22 @@ The only tool purpose-built for **programmatic SEO compliance**. It shifts the u
 ```bash
 npx pseolint http://localhost:3000
 ```
+
+<details>
+<summary><strong>Table of contents</strong></summary>
+
+- [Why this exists](#why-this-exists)
+- [How pseolint differs](#how-pseolint-differs)
+- [Quick Start](#quick-start)
+- [What It Checks](#what-it-checks) — the 44 rules
+- [CLI Options](#cli-options)
+- [GitHub Action](#github-action)
+- [Fix rail — from audit to pull request](#fix-rail--from-audit-to-pull-request)
+- [Skills for Claude & coding agents](#skills-for-claude--coding-agents-new)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+
+</details>
 
 ## Skills for Claude & coding agents (new)
 
@@ -573,6 +591,18 @@ bun install
 bun run build
 bun run test     # 1,203 tests across 126 files (core)
 ```
+
+## Roadmap
+
+- **AI-inferred template mapping** — today `apply --pr` needs a hand-authored `.pseolint/templates.json`; infer route→source automatically.
+- **Closing blind spots** — Core Web Vitals, schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md).
+- **Web "Open PR" button** — the fix rail runs from the CLI/Action today; a hosted one-click flow is deferred until the GitHub-App auth is justified.
+
+Found a false positive or a missing check? [Open an issue](https://github.com/ouranos-labs/pseolint/issues) — corpus-backed bug reports move the calibration.
+
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the dev loop, and [`skills/`](skills/README.md) if you want to teach an agent to design pass-first pages. If pseolint saved you a SpamBrain headache, a ⭐ helps others find it.
 
 ## License
 
