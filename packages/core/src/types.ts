@@ -671,29 +671,29 @@ export interface AuditOptions {
    */
   respectNoindex?: boolean;
   /**
-   * When true, pages heuristically detected as auth surfaces (login / signup /
-   * password reset) are excluded from rule evaluation. Detection requires 2+
-   * signals: `<input type="password">` in a < 200-word body, title matching
-   * the auth-page regex (case-insensitive, after stripping brand suffix), or
-   * H1 matching the same regex. Default: false (CLI runs unchanged; the
-   * hosted web form turns this on so end-user audits aren't polluted by auth
-   * pages at unconventional URLs like `/account` or `/portal`).
+   * When true (default), pages heuristically detected as auth surfaces (login /
+   * signup / password reset) are excluded from rule evaluation. Detection
+   * requires 2+ signals: `<input type="password">` in a < 200-word body, title
+   * matching the auth-page regex (case-insensitive, after stripping brand
+   * suffix), or H1 matching the same regex. The 2-signal threshold keeps the
+   * false-positive rate ~0 on the calibration corpus. Set to false (CLI:
+   * `--no-skip-detected-auth`) to audit auth pages anyway.
    */
   skipDetectedAuth?: boolean;
   /**
-   * When true, skip pages that look like cookie / legal / consent / imprint
-   * boilerplate (title, H1, or URL path matches well-known compliance-page
-   * patterns). These exist for legal compliance and are never SEO targets —
-   * auditing them produces routine findings the user already knows about.
-   * Default: false on the CLI; the hosted web form turns this on.
+   * When true (default), skip pages that look like cookie / legal / consent /
+   * imprint boilerplate (title, H1, or URL path matches well-known
+   * compliance-page patterns). These exist for legal compliance and are never
+   * SEO targets — auditing them produces routine findings the user already
+   * knows about. Set to false (CLI: `--no-skip-boilerplate`) to audit them.
    */
   skipBoilerplate?: boolean;
   /**
-   * When true, skip pages with search-result URL hallmarks (query parameter
-   * `q` / `query` / `search` / `s` / `keyword`, or path starting with
+   * When true (default), skip pages with search-result URL hallmarks (query
+   * parameter `q` / `query` / `search` / `s` / `keyword`, or path starting with
    * `/search`). Per Google's own SEO guidance these should be noindex'd but
-   * many sites don't tag them; auditing them generates noise. Default: false
-   * on the CLI.
+   * many sites don't tag them; auditing them generates noise. Set to false
+   * (CLI: `--no-skip-search-pages`) to audit them.
    */
   skipSearchPages?: boolean;
   /**
@@ -701,7 +701,8 @@ export interface AuditOptions {
    * < 100 chars, script tags present, no substantive noscript fallback).
    * These fail every content rule but the underlying problem is server-side
    * rendering, not content quality. Use --render mode instead. Default: false
-   * on the CLI.
+   * (opt-in via `--skip-empty-body`) — its lone corpus hit is a listing
+   * homepage the parser under-extracts, a borderline false positive.
    */
   skipEmptyBody?: boolean;
   /**

@@ -37,18 +37,19 @@ const OFF = {
   skipSearchPages: false,
   skipEmptyBody: false,
 };
-// The three real surfaces. Defaults mirror auditor.ts / run-audit.ts / cli.ts.
+// Defaults mirror auditor.ts. Since v0.7.x the engine/CLI/web all default to
+// noindex+auth+boilerplate+search; skipEmptyBody stays opt-in.
 const CONFIGS = {
-  "cli-default (noindex only)": { ...OFF, respectNoindex: true },
-  "web-default (noindex+auth+boilerplate+search)": {
+  "noindex-only (--no-skip-* everything)": { ...OFF, respectNoindex: true },
+  "default (engine/cli/web: noindex+auth+boilerplate+search)": {
     ...OFF, respectNoindex: true, skipDetectedAuth: true, skipBoilerplate: true, skipSearchPages: true,
   },
-  "all-on (upper bound)": {
+  "all-on (default + --skip-empty-body)": {
     respectNoindex: true, skipDetectedAuth: true, skipBoilerplate: true, skipSearchPages: true, skipEmptyBody: true,
   },
 } as const;
 // The all-on config drives the per-page skip listing (widest net).
-const SKIP_OPTS = CONFIGS["all-on (upper bound)"];
+const SKIP_OPTS = CONFIGS["all-on (default + --skip-empty-body)"];
 
 /** filename -> real URL, from the dir's _manifest.json (inverted). */
 function loadManifest(dir: string): Map<string, string> {
