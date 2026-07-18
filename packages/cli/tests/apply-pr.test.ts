@@ -92,6 +92,9 @@ describe("runApplyPrCommand", () => {
     expect(code).toBe(0);
     const verbs = gitLog.map((a) => a[0]);
     expect(verbs).toEqual(["status", "remote", "rev-parse", "checkout", "add", "commit", "push"]);
+    // The clean-tree gate must ignore untracked files (e.g. the manifest itself),
+    // else the documented orchestrate --manifest-out … && apply … --pr flow refuses.
+    expect(gitLog[0]).toEqual(["status", "--porcelain", "--untracked-files=no"]);
     expect(gitLog.find((a) => a[0] === "checkout")).toEqual(["checkout", "-B", "pseolint/fix-example-com"]);
     expect(gitLog.find((a) => a[0] === "push")).toContain("--force-with-lease");
   });

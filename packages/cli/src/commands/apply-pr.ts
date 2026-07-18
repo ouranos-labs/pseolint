@@ -109,16 +109,19 @@ export async function runApplyPrCommand(opts: ApplyPrOptions, deps: PrDeps = { g
   const repoRoot = resolve(opts.repo);
   const { git, api } = deps;
 
-  // Guardrail: the working tree must be clean before we write, so the only dirty
-  // files afterward are ours. (Ours-only diffing is fragile; a clean-tree gate is honest.)
+  // Guardrail: refuse if there are uncommitted changes to *tracked* files — those
+  // could get swept into our commit. Untracked files (the manifest itself, build
+  // output) are ignored: we only `git add` the specific files we edit, so they
+  // can't leak into the PR. Without -uno this refused on an untracked manifest.json,
+  // breaking the documented `orchestrate --manifest-out … && apply … --pr` flow.
   let status: string;
   try {
-    status = await git(["status", "--porcelain"], repoRoot);
+    status = await git(["status", "--porcelain", "--untracked-files=no"], repoRoot);
   } catch (e) {
     return fail(`not a git repo (or git unavailable): ${(e as Error).message}`);
   }
   if (status.length > 0) {
-    return fail(`working tree is dirty — commit or stash first, then re-run --pr:\n${status}`);
+    return fail(`tracked files have uncommitted changes — commit or stash first, then re-run --pr:\n${status}`);
   }
 
   // Apply the edits.
