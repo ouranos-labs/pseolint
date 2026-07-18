@@ -1,23 +1,48 @@
-# pSEO Lint
-
-> Audit your pSEO site by template, not by URL.
-
-[![npm](https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm)](https://www.npmjs.com/package/pseolint)
-[![Downloads](https://img.shields.io/npm/dm/pseolint?color=cb3837)](https://www.npmjs.com/package/pseolint)
-[![License](https://img.shields.io/npm/l/pseolint?color=blue)](./LICENSE)
-[![Node](https://img.shields.io/node/v/pseolint?color=339933&logo=node.js)](https://www.npmjs.com/package/pseolint)
-[![GitHub stars](https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social)](https://github.com/ouranos-labs/pseolint)
-[![pseolint.dev dogfood](https://pseolint.dev/api/badge/pseolint.dev)](https://pseolint.dev/leaderboard)
-
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
+  <img src="docs/assets/logo.svg" alt="pSEO Lint — audit your pSEO site by template, not by URL" width="720" />
 </p>
 
-The only tool purpose-built for **programmatic SEO compliance**. v0.7 shifts the unit of analysis from URL to template: when you run an audit on a 10,000-URL pSEO directory, pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. Fix one template, fix N pages.
+<p align="center">
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/npm/v/pseolint?color=cb3837&logo=npm" alt="npm" /></a>
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/npm/dm/pseolint?color=cb3837" alt="Downloads" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/npm/l/pseolint?color=blue" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/node/v/pseolint?color=339933&logo=node.js" alt="Node" /></a>
+  <a href="https://github.com/ouranos-labs/pseolint"><img src="https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social" alt="GitHub stars" /></a>
+  <a href="https://pseolint.dev/leaderboard"><img src="https://pseolint.dev/api/badge/pseolint.dev" alt="pseolint.dev dogfood" /></a>
+</p>
+
+<p align="center">
+  <strong><a href="https://pseolint.dev/methodology">Methodology</a></strong> ·
+  <strong><a href="https://pseolint.dev/leaderboard">Leaderboard</a></strong> ·
+  <strong><a href="https://github.com/ouranos-labs/pseolint/issues/new">Report a bug</a></strong> ·
+  <strong><a href="skills/README.md">Skills for agents</a></strong>
+</p>
+
+<p align="center">
+  <img src="docs/assets/demo.svg" alt="pseolint auditing pseolint.dev: verdict READY, all four categories graded A, with a per-template breakdown of /rules/:slug, /tools/:slug, and long-tail pages" width="820" />
+</p>
+
+The only tool purpose-built for **programmatic SEO compliance**. It shifts the unit of analysis from URL to template: point it at a 10,000-URL pSEO directory and pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. **Fix one template, fix N pages.**
 
 ```bash
 npx pseolint http://localhost:3000
 ```
+
+<details>
+<summary><strong>Table of contents</strong></summary>
+
+- [Why this exists](#why-this-exists)
+- [How pseolint differs](#how-pseolint-differs)
+- [Quick Start](#quick-start)
+- [What It Checks](#what-it-checks) — the 44 rules
+- [CLI Options](#cli-options)
+- [GitHub Action](#github-action)
+- [Fix rail — from audit to pull request](#fix-rail--from-audit-to-pull-request)
+- [Skills for Claude & coding agents](#skills-for-claude--coding-agents-new)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+
+</details>
 
 ## Skills for Claude & coding agents (new)
 
@@ -42,86 +67,34 @@ Programmatic SEO works — when it works. The gap between "1,000 indexed pages" 
 
 Existing SEO tools (Screaming Frog, Sitebulb, Ahrefs Site Audit) were built for editorially-curated sites. They check pages one at a time. But the SpamBrain risks of pSEO are *between* pages: doorway clusters, near-duplicates, entity-swap templates, thin-content propagation. You can't catch them with per-page rules.
 
-pseolint audits the graph — and since v0.6, it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
+pseolint audits the graph — it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
 
-## What's new in v0.6 — audit-as-template
+### How it compares
 
-- **Per-template verdict aggregation.** The worst template with ≥5% URL coverage drives the site-level headline. One broken `/listing/:slug` template can no longer hide behind a clean `/category/:slug` template.
-- **Per-template variance metric.** Each template reports a `uniformityScore` (how consistently the same problems appear across sampled pages) and a `topDriver` (the rule that fires most across samples). "8/10 samples fail `spam/thin-content`" is a first-class signal, not a buried detail.
-- **Two-phase pipeline.** Phase 1 clusters the sitemap into templates (cheap: ~T fetches). Phase 2 runs a deep audit on K pages per template. Typical budget: ~80 fetches on a 100k-URL site vs. 200 in v0.5 — and the 80 cover every template.
-- **Backwards compatible.** Per-URL `findings` flat list preserved. `templates` is additive on `AuditResult`.
+|  | pseolint | Screaming Frog | Ahrefs Site Audit | Sitebulb |
+|---|:---:|:---:|:---:|:---:|
+| Unit of analysis | **template cluster** | URL | URL | URL |
+| Near-duplicate / doorway / entity-swap detection | ✅ | partial | — | — |
+| SpamBrain-policy risk verdict | ✅ | — | — | — |
+| AEO / AI-Overview citability checks | ✅ | — | — | — |
+| AI fix → pull request | ✅ | — | — | — |
+| CLI · GitHub Action · MCP server | ✅ | desktop | SaaS | desktop |
+| Open source | ✅ MIT | — | — | — |
 
-Design rationale: [docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md](./docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
-
-## What's new in v0.7 — render-aware checks, AI content-effort, and bring-your-own inputs
-
-### v0.7.5 (current)
-
-- **Content-effort promoted to a recall driver.** With `--content-effort` on, a very low AI effort score (≤3 — below the lowest reputable site in the calibration corpus) now escalates the verdict two tiers, catching verbose AI content farms that defeat the thin-content / unique-value / near-duplicate rules with rich, entity-distinct prose. Effort 4–5 keeps the conservative ±1 nudge and ≥25 keeps the −1 soften; raw `risk` is untouched (verdict-only), so CI gates stay deterministic. Lifts addressable recall 67%→80% on the calibration corpus with no new false positives.
-- **Internal.** The cheerio-dependent soft-404 probe moved to its own core module so the browser extension imports the rule parser-free (behaviour-neutral for audits).
-
-### v0.7.3
-
-- **Render-aware crawl checks.** `--render` (Playwright, Node-only) now feeds two render-diff rules. `tech/csr-bailout` flags pages whose substantive content / interactivity appears only after client-side JS — invisible to crawlers and the first indexing pass. `tech/soft-404` probes one synthetic nonexistent URL per template cluster — an HTTP 200 means the directory will index unbounded junk. Both no-op without `--render` and outside programmatic directories.
-- **Bring-your-own authority.** `--authority-score <0-100>` CLI flag, the `authorityScore` config key, the MCP param, or a per-domain Pro-dashboard setting — `>= 80` shifts the verdict one tier lenient, `<= 30` one tier stricter. Raw `risk` unchanged so CI gates stay stable. The engine stays authority-blind by design.
-- **AI content-effort signal.** Opt-in `--content-effort` (needs `ANTHROPIC_API_KEY`) — an LLM reads sampled page text and scores 0-100 content originality/effort (cached by content hash), moderating the verdict ±1 tier. Distinct from `--ai` triage. Runs automatically for Pro web audits.
-- **MCP rule knowledge as resources** — plus the open knowledge bundle served at `/okf` and linked from `llms.txt`.
-
-### v0.7.2 — graded thresholds + presence-quality
-
-- Four rules moved from binary cliffs to continuous banded severity, so the verdict no longer flips on a one-page crawl-size change: `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, `content/wikipedia-paraphrase`. Four rules now validate quality, not mere presence: `schema/required-fields`, `schema/json-ld-valid` (accepts `@type` arrays), `tech/og-completeness`, `content/eeat-signals`. `schema/consistency` no longer false-positives on multi-template sites.
-
-### v0.7.1 — false-positive elimination
-
-- `content/unique-value` redesigned from absolute word count to rarity density. **Config change:** `rules.uniqueValueMinWords` → `rules.uniqueValueDensity: { passBelow, errorBelow }`. FP fixes + severity demotions across `links/orphan-pages` & `links/cluster-connectivity` (suppressed on sampled crawls), `tech/canonical-consistency` & `tech/sitemap-completeness` (URL normalization + crawl-scope awareness), and `aeo/crawler-access` (honors robots `Allow` per RFC 9309).
-
-### v0.7.0 — calibration & authority foundations
-
-- Pluggable authority-moderation scaffolding (fail-safe no-op by default), a `checkOriginHealth` pre-flight origin probe (so a crawl can't crush a fragile origin), and an internal score-vs-outcome calibration harness. The web `/limits` page documents the off-page-authority blind spot.
-
-Per-package READMEs ([`@pseolint/core`](packages/core/README.md), [`pseolint`](packages/cli/README.md), [`@pseolint/mcp`](packages/mcp/README.md)) carry the depth.
+The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, backlink data, log-file analysis). pseolint is the specialist for the one thing they weren't built for: **programmatic-SEO compliance at the template level.**
 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 48+ rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 44 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server, browser extension (SERP competitive recon). Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
-- **Calibrated against reputable pSEO** (v0.5.2). Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
+- **Calibrated against reputable pSEO.** Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
 - **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
-- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO (alt-text, dimensions), Open Graph completeness, title-tag uniqueness, H1 structure, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
+- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: Core Web Vitals (LCP/INP/CLS), image SEO dimensions, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
-## What's new in v0.5.2 — credibility layer (v0.7.5 is current)
-
-- **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps:
-  - `content/title-uniqueness` — empty/missing titles, very-short or excessive-length titles, and pages sharing the exact title (raw, not entity-masked, so catalog templates with per-record entity values still pass).
-  - `content/heading-structure` — `<h1>` presence, single-`<h1>` discipline, and `<h2>` sub-structure on long pages.
-  - `content/image-alt-text` — `<img>` tags missing `alt` (decorative images marked `role="presentation"` / `aria-hidden="true"` / explicit `alt=""` are skipped).
-  - `tech/og-completeness` — the long-promised OG-tag rule that finally ships.
-- **`AuditOptions.authorityScore`** (0-100; core API, MCP `audit_site`, or — since v0.7.3 — the `--authority-score` CLI flag) — bring-your-own domain authority. `>= 80` shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
-- **Calibration-driven scoring profile** — site-classifier-aware severity demotions for AEO + EEAT rules on catalog/template-driven sites. The `unclear` profile (low classifier confidence) now demotes structurally-incompatible rules conservatively rather than firing them at full strength. Result: reputable pSEO sites no longer false-positive into `concerning`.
-- **`spam/doorway-pattern` cluster collapse** — 276 per-pair findings on a heavy-template catalog now collapse to **one** cluster line in the report.
-- **`spam/doorway-pattern` content-quality gate** — requires thin-content OR identical-meta as the third signal; structural similarity alone (which all catalogs have) no longer constitutes a doorway finding.
-- **Sample-seed determinism** — `AuditOptions.sampleSeed` (mulberry32 PRNG) makes verdicts reproducible across runs for CI gates and calibration.
-- **Info-severity bucket cap** — cumulative info contribution caps at 50 per category bucket separately from warning+ at 100. A flood of info findings can no longer tank the verdict on its own.
-- **`tech/hreflang-consistency`** — sample-size-aware reciprocity check; defensive parsing.
-- **`normalizeAuditUrl` defensive at the source** — single malformed `<link>` no longer aborts an audit.
-- **`BackpressureMonitor` thresholds raised** — gate fits real production CDNs (`4×` baseline, `8000ms` p95) instead of tripping on normal load variance.
-- **`links/unreachable-from-root` skips on partial-sample audits** — sampling artifact, not real graph isolation.
-- **Markdown formatter collapses informational findings** behind `<details>` so PR comments don't drown actionable items in 100+ info bullets.
-
-The full per-round iteration story is in [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md), including a transparent **trade-offs** section documenting what got more lenient (borderline-quality sites that classify as `unclear` may now score one verdict-ladder rung lower than before — `caution → ready` on `wordpress.com` and `expatistan` in the dogfood corpus).
-
-## What's new in v0.3.x
-
-- **AEO rule category (v0.3.0)** — 8 rules that detect AI Overview invisibility: `llms-txt`, `crawler-access` (blocks for GPTBot/ClaudeBot/PerplexityBot/etc.), `freshness-signals`, `faq-coverage`, `answer-first`, `citable-facts`, `content-modularity`, `summary-bait`. Scoring re-weighted; new `AEO: AI Overview Readiness` console section.
-- **Render-mode analytics blocking (v0.3.1)** — rendered audits previously fired every GA/Plausible/PostHog/Mixpanel/Hotjar/Sentry beacon on every page. Now blocks ~40 analytics hosts by default. `--analytics` / `--block-host` flags, `allow-first-party` option.
-- **SSRF guard + AbortSignal + robots honour (v0.3.2)** — DNS-validated private-range check on every fetched URL, integer/hex-IP bypass protection, redirect re-validation, honoured target `robots.txt` Disallow directives (with UA-specific parsing), clean `ctrl-C` / programmatic cancel via `AbortSignal`, new public API: `validateTargetHost`, `SSRFError`, `DnsResolutionError`.
-- **`safeMode` preset + `safeFetch` (v0.3.3)** — one-knob safety posture for hosts. `safeMode: "saas"` flips guardSsrf + tightens caps + keeps robots honour on; `safeMode: "cli"` keeps local-friendly defaults. `safeFetch(url)` is an SSRF-safe fetch for non-audit use cases. `maxCrawlDiscovered` ceiling caps link-discovery fan-out. `followRedirects: false` option.
-- **Diff-mode audits (v0.3.0)** — `mode: "diff"` skips corpus-scoped rules so daily re-audits of changed pages don't re-run clustering / link-graph / sitemap checks.
-
-See [CHANGELOG.md](./CHANGELOG.md) for the full list.
+Full version history — calibration rounds, per-rule changes, safety hardening — is in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Quick Start
 
@@ -558,6 +531,61 @@ jobs:
 
 Posts a score summary as a PR comment and fails the check if score exceeds the threshold.
 
+## Fix rail — from audit to pull request
+
+The AI orchestrator produces a **fix manifest** (validated patches). `pseolint apply` writes the deterministic ones (meta titles, H1s, `robots.txt`, `sitemap.xml`) straight into your source tree; generative or unmatched patches are demoted to a checklist for a human. `--pr` takes the next step: commit those edits to a tool-owned branch and open a PR.
+
+```bash
+# 1. Audit → manifest
+pseolint orchestrate https://example.com --max-cost 3 --manifest-out manifest.json
+
+# 2. Apply deterministic edits into your working tree (review the diff, commit yourself)
+pseolint apply manifest.json
+
+# 3. …or apply + commit + open a GitHub PR in one step
+pseolint apply manifest.json --pr --token "$GITHUB_TOKEN"
+```
+
+### Mapping (`.pseolint/templates.json`)
+
+Audited routes don't know your source layout, so you map them once (route pattern → source file). Domain-level patches use the special `robots.txt` / `sitemap.xml` keys:
+
+```json
+{
+  "/listing/:slug": "app/listing/[slug]/page.tsx",
+  "/category/:slug": "app/category/[slug]/page.tsx",
+  "robots.txt": "public/robots.txt",
+  "sitemap.xml": "app/sitemap.ts"
+}
+```
+
+Route keys accept `:seg` / `[seg]` / `*` wildcards. A patch with no matching entry — or a literal that can't be found in an interpolated template like `Best in ${city}` — lands in the checklist (or the PR body) instead of silently corrupting source.
+
+### In CI
+
+`apply --pr` uses `git` + one GitHub API call — no extra dependency. Give the workflow write permissions and let `actions/checkout` configure the push token:
+
+```yaml
+name: pSEO fix PR
+on: { workflow_dispatch: {} }
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions: { contents: write, pull-requests: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm run build
+      - run: npx pseolint orchestrate http://localhost:3000 --max-cost 3 --manifest-out manifest.json
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+      - run: npx pseolint apply manifest.json --pr
+        env: { GITHUB_TOKEN: '${{ github.token }}' }
+```
+
+Re-running updates the same `pseolint/fix-<domain>` branch (force-with-lease, tool-owned branch only) — it never spams new PRs. It no-ops cleanly when there's nothing deterministic to apply.
+
 ## Output Formats
 
 ```bash
@@ -584,6 +612,18 @@ bun install
 bun run build
 bun run test     # 1,203 tests across 126 files (core)
 ```
+
+## Roadmap
+
+- **AI-inferred template mapping** — today `apply --pr` needs a hand-authored `.pseolint/templates.json`; infer route→source automatically.
+- **Closing blind spots** — Core Web Vitals, schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md).
+- **Web "Open PR" button** — the fix rail runs from the CLI/Action today; a hosted one-click flow is deferred until the GitHub-App auth is justified.
+
+Found a false positive or a missing check? [Open an issue](https://github.com/ouranos-labs/pseolint/issues) — corpus-backed bug reports move the calibration.
+
+## Contributing
+
+Issues and PRs welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for the dev loop, and [`skills/`](skills/README.md) if you want to teach an agent to design pass-first pages. If pseolint saved you a SpamBrain headache, a ⭐ helps others find it.
 
 ## License
 

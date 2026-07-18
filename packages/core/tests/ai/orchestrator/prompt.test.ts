@@ -33,4 +33,23 @@ describe("buildSystemPrompt", () => {
     const p = buildSystemPrompt(DEFAULT_BUDGET);
     expect(p).toContain("template-level");
   });
+
+  it("omits the operator-focus section when no brief is given", () => {
+    expect(buildSystemPrompt(DEFAULT_BUDGET)).not.toContain("Operator focus");
+  });
+
+  it("appends the brief as an operator-focus section, truncated and last", () => {
+    const brief = "1. Near-duplicate cluster on /listing (spam/near-duplicate)";
+    const p = buildSystemPrompt(DEFAULT_BUDGET, brief);
+    expect(p).toContain("## Operator focus");
+    expect(p).toContain(brief);
+    // Appended after the stable prefix so caching holds: it's past the finish_audit line.
+    expect(p.indexOf("## Operator focus")).toBeGreaterThan(p.indexOf("finish_audit"));
+  });
+
+  it("truncates an oversized brief to keep the prompt bounded", () => {
+    const p = buildSystemPrompt(DEFAULT_BUDGET, "x".repeat(5000));
+    expect(p).toContain("x".repeat(2000));
+    expect(p).not.toContain("x".repeat(2001));
+  });
 });

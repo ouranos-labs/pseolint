@@ -13,7 +13,21 @@ import type { BudgetCaps } from "./types.js";
  * numbers vary per session, but they're at the bottom and don't break
  * higher-prefix cache hits.
  */
-export function buildSystemPrompt(caps: BudgetCaps): string {
+/** Cap the operator brief so it can't blow the prompt budget or dominate the run. */
+const MAX_BRIEF_CHARS = 2000;
+
+export function buildSystemPrompt(caps: BudgetCaps, brief?: string): string {
+  const trimmed = brief?.trim();
+  // Appended LAST (after the stable prefix + budget) so the varying brief never
+  // shifts the cached prompt prefix — mirrors why budget numbers sit at the end.
+  const briefSection = trimmed
+    ? [
+        ``,
+        `## Operator focus`,
+        `A prior diagnosis flagged these root causes. Confirm and fix them first, then cover other templates as budget allows:`,
+        trimmed.slice(0, MAX_BRIEF_CHARS),
+      ]
+    : [];
   return [
     `You are pseolint's SEO audit orchestrator. Drive deterministic tools to produce a fix manifest with concrete, paste-able patches — not just a list of findings.`,
     ``,
@@ -49,5 +63,6 @@ export function buildSystemPrompt(caps: BudgetCaps): string {
     ``,
     `## Output`,
     `Call finish_audit(manifest) exactly once to terminate. Without it, the session ends with no manifest. Empty patch arrays are fine when nothing's actionable — don't invent patches.`,
+    ...briefSection,
   ].join("\n");
 }

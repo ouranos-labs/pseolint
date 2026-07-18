@@ -35,6 +35,8 @@ describe("auditSource + AI triage (integration)", () => {
       doGenerate: async () => {
         calls += 1;
         return okResponse({
+          archetype: "programmatic-blog",
+          archetypeRationale: "Thin templated pages.",
           rootCauses: [
             {
               label: "Example root cause",

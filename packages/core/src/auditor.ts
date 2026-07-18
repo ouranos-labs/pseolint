@@ -651,6 +651,16 @@ function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | und
   return shiftVerdict(verdict, { score: authorityScore, lenientAt: 80, strictAt: 30, cap: 1 });
 }
 
+// Content-effort JUDGE model — PINNED, not the provider default. The moderation
+// thresholds below (3 / 5 / 25) are calibrated to THIS model's 0-100 score
+// distribution (reputable median ≈ 8.5, farms ≤3). Bumping it requires a
+// re-calibration run — regenerate the committed score map and confirm the
+// reputable/farm gap still separates cleanly:
+//   PSEO_EFFORT_MODEL=<new-model> bun run packages/core/scripts/content-effort-validate.ts
+//   bun run scripts/calibration-corpus.ts   # verdict ceilings must still pass
+// Only then move this constant. See docs/superpowers/specs/2026-07-17-sonnet-5-default-bump.md.
+const CONTENT_EFFORT_MODEL = "claude-sonnet-4-6";
+
 // content-effort moderation band — STARTING values; Task 7 tunes against the
 // ratchet. Derived from the gate data: reputable median effort ≈ 8.5, addressable
 // farms cluster ≤7, proprietary-data winners (numbeo/airbyte) ≈28.
@@ -3050,7 +3060,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         "./algorithms/content-effort/judge.js"
       );
       const { model, modelId } = await createLanguageModel({
-        model: options.contentEffort.model ?? "claude-sonnet-4-6",
+        model: options.contentEffort.model ?? CONTENT_EFFORT_MODEL,
       });
       // Reuse the audit's own parsed pages + template clustering: map each
       // template's audited URLs back to their parsed contentText. When no

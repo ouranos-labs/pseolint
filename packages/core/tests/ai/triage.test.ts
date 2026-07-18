@@ -7,6 +7,8 @@ import { MockModel, okResponse } from "../helpers/mock-model.js";
 import type { RuleResult } from "../../src/types.js";
 
 const validBody = (ids: string[]) => ({
+  archetype: "programmatic-blog",
+  archetypeRationale: "Thin-content findings across many similar pages.",
   rootCauses: [{
     label: "Templating problem",
     findingsCount: ids.length,
@@ -57,6 +59,8 @@ describe("triageFindings", () => {
     expect(skipReason).toBeUndefined();
     expect(result).toBeDefined();
     expect(result!.rootCauses).toHaveLength(1);
+    expect(result!.archetype).toBe("programmatic-blog");
+    expect(result!.archetypeRationale).toBeTruthy();
     expect(result!.providerId).toBe("anthropic");
     expect(result!.cacheHit).toBe(false);
     expect(result!.promptVersion).toMatch(/^\d+\.\d+\.\d+$/);
@@ -89,6 +93,8 @@ describe("triageFindings", () => {
   it("skips with reason when LLM references unknown finding ids", async () => {
     const model = new MockModel({
       doGenerate: async () => okResponse({
+        archetype: "other",
+        archetypeRationale: "r",
         rootCauses: [{
           label: "x",
           findingsCount: 1,

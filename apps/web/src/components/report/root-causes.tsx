@@ -1,4 +1,5 @@
 import type { Severity, TriageResult } from "@pseolint/core";
+import { GenerateFixesButton } from "./generate-fixes-button";
 
 /**
  * AI triage root-causes — the "what to fix first" summary.
@@ -13,9 +14,27 @@ import type { Severity, TriageResult } from "@pseolint/core";
  * report. Rendered nowhere unless `triage.rootCauses` is non-empty — the
  * caller gates on that.
  */
-export function RootCauses({ triage }: { triage: TriageResult }) {
+export function RootCauses({
+  triage,
+  generateFixes,
+}: {
+  triage: TriageResult;
+  generateFixes?: { domain: string };
+}) {
   const ranked = [...triage.rootCauses].sort((a, b) => a.fixOrder - b.fixOrder);
   if (ranked.length === 0) return null;
+
+  const archetypeLabel = triage.archetype ? triage.archetype.replace(/-/g, " ") : null;
+
+  // Brief handed to the orchestrator: the inferred site archetype (so the run
+  // is strategy-aware too), then the narrative, then the ranked root causes.
+  const brief = [
+    triage.archetype ? `Site archetype: ${triage.archetype}${triage.archetypeRationale ? ` — ${triage.archetypeRationale}` : ""}` : null,
+    triage.narrative,
+    ...ranked.map((rc, i) => `${i + 1}. ${rc.label} — rules: ${rc.affectedRuleIds.join(", ")}`),
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return (
     <section
@@ -31,6 +50,18 @@ export function RootCauses({ triage }: { triage: TriageResult }) {
         </h2>
         <span className="font-mono text-[11px] text-muted-foreground">AI triage</span>
       </div>
+
+      {archetypeLabel && (
+        <div className="mb-3 flex items-baseline gap-2 text-xs">
+          <span className="text-muted-foreground">Strategy:</span>
+          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 font-mono capitalize text-primary">
+            {archetypeLabel}
+          </span>
+          {triage.archetypeRationale && (
+            <span className="text-muted-foreground/80">{triage.archetypeRationale}</span>
+          )}
+        </div>
+      )}
 
       {triage.narrative && (
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -78,6 +109,8 @@ export function RootCauses({ triage }: { triage: TriageResult }) {
           </li>
         ))}
       </ol>
+
+      {generateFixes && <GenerateFixesButton domain={generateFixes.domain} brief={brief} />}
     </section>
   );
 }

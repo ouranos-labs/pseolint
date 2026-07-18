@@ -85,6 +85,8 @@ export const audits = pgTable("audit", {
   findingCount: integer("finding_count"),
   triageRootCauseCount: integer("triage_root_cause_count"),
   triageCostUsd: numeric("triage_cost_usd", { precision: 10, scale: 4 }),
+  /** Tier 2: inferred pSEO archetype (from triage) as a queryable signal. Nullable. */
+  archetype: text("archetype"),
   /**
    * v0.4 §4.11 — pre-flight site classification snapshot. Mirrors the
    * `summary.siteClassification` field on AuditSummary so the dashboard /
@@ -483,6 +485,8 @@ export const orchestratorSessions = pgTable("orchestrator_session", {
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "aborted">().notNull().default("queued"),
   /** StopReason from `@pseolint/core` — completed | tool_call_limit | usd_limit | etc. */
   reason: text("reason"),
+  /** Optional focus note from AI triage, appended to the orchestrator system prompt. */
+  brief: text("brief"),
   /** Hard USD cap configured for this session. Mirrors BudgetCaps.maxSessionUsd. */
   budgetUsd: numeric("budget_usd", { precision: 10, scale: 4 }).notNull(),
   /** Actual USD spent (LLM tokens + external probe APIs). */

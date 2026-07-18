@@ -280,7 +280,7 @@ export async function runCli(
     .command("orchestrate <domain>")
     .description("Run the AI-orchestrated auditor against a domain. Produces a fix manifest, validates every patch, prints a structured diff summary.")
     .option("--ai-provider <id>", "AI provider (anthropic | openai | google | ollama). Default: env-var auto-detect.")
-    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-7. Default: provider's default.")
+    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-8. Default: provider's default.")
     .option("--ai-key <key>", "API key (or use the provider's env var).")
     .option("--max-cost <usd>", "Max session USD cap. Default $5.", parseFloat)
     .option("--max-tool-calls <n>", "Max tool calls per session. Default 100.", (v) => parseInt(v, 10))
@@ -356,6 +356,56 @@ export async function runCli(
         noColor: o.color === false,
       });
     });
+
+  program
+    .command("apply <manifest>")
+    .description("Apply a fix manifest's deterministic edits into the local working tree and print the human checklist. Reads .pseolint/templates.json for the template→source mapping. Review + commit the diff yourself.")
+    .option("--repo <dir>", "Repo root to apply edits into. Default: current directory.", ".")
+    .option("--mapping <path>", "Template→source mapping JSON. Default: <repo>/.pseolint/templates.json")
+    .option("--dry-run", "Print what would change without writing.")
+    .option("--pr", "Commit the edits to a pseolint/fix-* branch and open a GitHub PR (needs --token or GITHUB_TOKEN).")
+    .option("--token <token>", "GitHub token for --pr (or GITHUB_TOKEN env var).")
+    .option("--repo-slug <owner/repo>", "owner/repo for --pr. Default: derived from origin remote.")
+    .option("--base <branch>", "PR base branch for --pr. Default: origin's default branch.")
+    .option("--branch <branch>", "Head branch for --pr. Default: pseolint/fix-<domain>.")
+    .option("--no-color", "Disable colored output.")
+    .action(
+      async (
+        manifest: string,
+        o: {
+          repo: string;
+          mapping?: string;
+          dryRun?: boolean;
+          pr?: boolean;
+          token?: string;
+          repoSlug?: string;
+          base?: string;
+          branch?: string;
+          color?: boolean;
+        },
+      ) => {
+        const common = {
+          manifestPath: manifest,
+          repo: o.repo,
+          mappingPath: o.mapping,
+          dryRun: o.dryRun,
+          noColor: o.color === false,
+        };
+        if (o.pr) {
+          const { runApplyPrCommand } = await import("./commands/apply-pr.js");
+          exitCode = await runApplyPrCommand({
+            ...common,
+            token: o.token,
+            repoSlug: o.repoSlug,
+            base: o.base,
+            branch: o.branch,
+          });
+        } else {
+          const { runApplyCommand } = await import("./commands/apply.js");
+          exitCode = await runApplyCommand(common);
+        }
+      },
+    );
 
   program
     .command("upload <report>")

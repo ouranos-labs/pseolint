@@ -2,65 +2,17 @@
 
 > Find the broken template before SpamBrain does.
 
-The CLI for **programmatic SEO auditing** — v0.7.5. Detects SpamBrain-risk patterns across large template-generated sites, now surfaced per-template instead of as a flat findings list.
+The CLI for **programmatic SEO auditing**. Detects SpamBrain-risk patterns across large template-generated sites, surfaced per-template instead of as a flat findings list.
 
-## What's new in v0.7.3 — your inputs, the AI's read
+## Highlights
 
-Two ways to feed the verdict more than the crawl can see on its own:
+- **Per-template audit.** Clusters the sitemap into templates (`/listing/:slug`, `/category/:slug`), deep-audits K pages each, and reports a verdict + variance per template. One broken template can't hide behind a clean one. `--template <sig>` drills in; `--legacy-flat` opts out.
+- **Verdict + grades.** A single verdict (`ready` / `caution` / `concerning` / `critical`) plus four category grades, gated in CI with `--ci-threshold`. The raw 0-100 `risk` stays available for trend/alert tuning.
+- **AI orchestrator → fix PRs.** `pseolint orchestrate` drives an LLM through 25 deterministic tools into a schema-validated **fix manifest**; `pseolint apply --pr` writes the deterministic edits and opens a GitHub PR. See [the fix rail](../../README.md#fix-rail--from-audit-to-pull-request).
+- **AI triage** (`--ai`) collapses hundreds of findings into ranked root causes; **`--content-effort`** and **`--authority-score`** let an LLM read and your own authority signal moderate the verdict ±1 tier (raw `risk` untouched, so CI gates stay deterministic).
+- **Render-aware** (`--render`): `tech/csr-bailout` + `tech/soft-404` catch content that only exists after client JS. **Change-driven monitoring** re-fetches only what changed (~95% fewer fetches on steady state).
 
-- **`--authority-score <0-100>`** — bring-your-own domain authority (Moz DA, Ahrefs DR, your own judgment). An established brand can absorb shapes a newer site can't, so a high score nudges the verdict one tier lenient and a low one nudges it stricter. Previously core/MCP-only; now a first-class CLI flag.
-- **`--content-effort`** — opt in to the AI content-effort signal: an LLM reads the actual page text and judges an originality/effort score that moderates the verdict ±1 tier. Distinct from `--ai` triage — this one feeds the verdict, not the root-cause summary. See [Content-effort signal](#content-effort-signal).
-
-## What's new in v0.7.0–v0.7.2 — render checks + fewer false positives
-
-- **`--render` is now wired to render-diff rules.** Under `--render` (Playwright, Node-only — needs `npx playwright install chromium-headless-shell`, or point at an existing browser with `--browser-ws <url>` for a remote CDP endpoint), two rules activate: `tech/csr-bailout` (flags content/interactivity that only appears after client JS runs — invisible to crawlers that don't execute scripts) and the render side of `tech/soft-404`. Both are no-ops without `--render`.
-- **Graded thresholds (v0.7.2).** Four rules — `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, and `content/wikipedia-paraphrase` — moved off hard binary cutoffs to continuous banded severity, so the verdict no longer flips on a one-page change in crawl size. Four schema/EEAT rules now validate quality rather than mere presence.
-- **False-positive elimination (v0.7.1).** Fewer false positives on sampled crawls, multi-template sites, and robots `Allow` directives. **Breaking config rename:** if you set `uniqueValueMinWords` in `pseolint.config.*`, it is now `uniqueValueDensity: { passBelow, errorBelow }`.
-
-## What's new in v0.6 — audit-as-template
-
-- **Per-template verdict aggregation** — the worst template with ≥5% URL coverage drives the site headline. One broken `/listing/:slug` can't hide behind a clean `/category/:slug`.
-- **Per-template variance metric** — uniformity score + top-driver rule per template. "8/10 samples fail `spam/thin-content`" is printed directly on the template card.
-- **Two-phase pipeline** — phase 1 clusters the sitemap (~T fetches); phase 2 deep-audits K pages per template. Typical budget: ~80 fetches on a 100k-URL site vs. 200 in v0.5.
-- **`--per-template`** (default ON) — renders template cards above the findings list.
-- **`--template <signature>`** — drill into one template's findings, useful in CI.
-- **`--legacy-flat`** — opt out; get the v0.5-style flat list.
-- **Backwards compatible** — `--format json` still includes `findings`; `templates` is additive.
-
-Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md`](../../docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
-
-## What's new in v0.5.2 — credibility layer
-
-- **4 new content-quality rules** addressing the blind-spot audit's tier-1 gaps: `content/title-uniqueness` (catches actually-duplicate titles — raw, not entity-masked, so catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""`), `tech/og-completeness` (the long-promised OG-tag rule that finally ships).
-- **`authorityScore`** (0-100, via the core API `AuditOptions`, the MCP `audit_site` tool, or — as of v0.7.3 — the `--authority-score <0-100>` CLI flag / `authorityScore` config key) — bring-your-own domain authority. `>= 80` shifts the verdict one tier lenient (established brand can absorb shapes a newer site can't). `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates that key off `--ci-threshold` stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
-- **`sampleSeed`** (via the core API `AuditOptions` or the MCP `audit_site` tool — not a CLI flag) — deterministic stratified sampling. Same seed = same audit = same verdict, run after run. CI gates and calibration runs get reproducible results instead of bouncing across the verdict-ladder boundary.
-- **`spam/doorway-pattern` cluster collapse** — entity-swap-heavy catalogs no longer produce hundreds of per-pair findings; they collapse into one cluster line per template-tied group.
-- **Per-bucket info-severity cap** — info findings can't accumulate to tank a verdict on their own (capped at 50 per category bucket separately from the 100 cap on warning+).
-- **Console formatter** shows `Demoted N rules (X, Y, Z) — <site type> profile; pass --strict to disable` so the engine's reasoning is visible. Markdown formatter collapses info findings under `<details>` so PR comments stay actionable.
-- **Calibrated against reputable in-production pSEO sites.** The full 9-round iteration story (with trade-offs honestly documented) and the blind-spot audit (what we still don't detect) live at [pseolint.dev/methodology](https://pseolint.dev/methodology).
-
-## What's new in v0.5
-
-**AI orchestrator (`pseolint orchestrate <domain>`).** Drives an LLM through 25 deterministic tools and produces a **fix manifest** with concrete copy-paste patches (rewritten H1s, JSON-LD blocks, robots.txt diffs, internal-link suggestions). Every patch passes a deterministic schema validator before reaching the manifest — the LLM can't ship a malformed JSON-LD block or unsafe HTML.
-
-```bash
-export ANTHROPIC_API_KEY=sk-...
-pseolint orchestrate https://example.com \
-  --max-cost 3 \
-  --manifest-out manifest.json
-```
-
-Live event stream to stdout, three exit codes (0 clean / 1 didn't finish / 2 some patches dropped). See `pseolint orchestrate --help` for full options.
-
-**Change-driven monitoring** also ships in v0.5. When prior state exists, the auditor decides which URLs to fetch *before* the network round-trip using a 7-reason matrix (new / age / ruleset / recheck / lastmod / GSC / no-signal). Sites with reliable sitemap `<lastmod>` (Next.js, WordPress/Yoast, Astro) typically see ~95% fewer fetches on steady-state monitoring runs. `--since` is an alias for `--mode=monitoring`. New: `--mode=monitoring|fresh` and `--age-floor-days=N`. State schema bumped to v2 (existing `.pseolint/state.json` files trigger one baseline re-audit). See `docs/superpowers/specs/2026-05-01-change-driven-monitoring-design.md`.
-
-## What's new in v0.4
-
-v0.4 reshapes the audit output around a single **verdict** (`ready` / `caution` / `concerning` / `critical`) plus four category grades (`Integrity`, `Discoverability`, `Citation`, `Data`). The old numeric "SpamBrain Risk Score" is no longer the headline — it remains internally as `risk` for CI threshold tuning, trends, and alert gates, but operators ship on verdict, not on a number that needs a translation table.
-
-By default the console output prints the verdict, four grades, and the top 3 fixes. Use `--explain` for the full bucketed list. CI gates use verdict severity (`--ci-threshold`) instead of a numeric risk threshold; the legacy `--threshold` flag is deprecated for one release.
-
-See `docs/superpowers/specs/2026-04-29-pseolint-v0.4-engine-redesign.md` for the full design rationale.
+Full version history is in [CHANGELOG.md](../../CHANGELOG.md).
 
 ## Install
 

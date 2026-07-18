@@ -5,7 +5,7 @@ import type { AuditSummary } from "@pseolint/core";
 import { inferUrlTemplate } from "@pseolint/core";
 import { db } from "@/db";
 import { withDbRetry } from "@/lib/db-retry";
-import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages, indexingRequests } from "@/db/schema";
+import { monitoredDomains, audits, findingsState, integrations, gscPageMetrics, watchedPages, indexingRequests, fixManifests, orchestratorSessions } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
@@ -51,6 +51,25 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       isNull(monitoredDomains.removedAt),
     )).limit(1));
   if (!domain) notFound();
+
+  // Latest fix manifest this user generated for this domain — the funnel's
+  // back-link, so "Generate fixes" results are findable later. Matched via the
+  // session, which stored the exact sourceUrl the CTA sent.
+  const [latestManifest] = await withDbRetry(() =>
+    db
+      .select({
+        slug: fixManifests.slug,
+        verdict: fixManifests.verdict,
+        createdAt: fixManifests.createdAt,
+        pagePatchCount: fixManifests.pagePatchCount,
+        templatePatchCount: fixManifests.templatePatchCount,
+      })
+      .from(fixManifests)
+      .innerJoin(orchestratorSessions, eq(fixManifests.sessionId, orchestratorSessions.id))
+      .where(and(eq(orchestratorSessions.userId, session.user.id), eq(orchestratorSessions.domain, domain.sourceUrl)))
+      .orderBy(desc(fixManifests.createdAt))
+      .limit(1),
+  );
 
   const since = new Date(Date.now() - 30 * 24 * 3600 * 1000);
   const [
@@ -630,7 +649,20 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           operator reads the prioritised plan first. Pro-only: rendered only when
           the engine populated `summary.triage`. */}
       { summary?.triage?.rootCauses?.length ? (
-        <RootCauses triage={ summary.triage } />
+        <RootCauses triage={ summary.triage } generateFixes={ { domain: domain.sourceUrl } } />
+      ) : null }
+
+      { latestManifest ? (
+        <Link
+          href={ `/m/${latestManifest.slug}` }
+          className="mt-3 inline-flex items-center gap-2 rounded-[12px] border border-border/60 bg-card/40 px-3 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <span aria-hidden>✨</span>
+          Latest fix manifest · { latestManifest.verdict } ·{" "}
+          { latestManifest.pagePatchCount + latestManifest.templatePatchCount } patches ·{" "}
+          { new Date(latestManifest.createdAt).toLocaleDateString() }
+          <span aria-hidden>→</span>
+        </Link>
       ) : null }
 
       {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads

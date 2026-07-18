@@ -48,7 +48,7 @@ describe("createLanguageModel", () => {
 
   it("uses default anthropic model when model unspecified", async () => {
     const r = await createLanguageModel({ provider: "anthropic", apiKey: "k" });
-    expect(r.modelId).toBe("claude-sonnet-4-6");
+    expect(r.modelId).toBe("claude-sonnet-5");
   });
 
   it("uses default ollama model when model unspecified", async () => {

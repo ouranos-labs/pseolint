@@ -18,6 +18,7 @@ const requestSchema = z.object({
    * client can't talk us into a $50 audit.
    */
   budgetUsd: z.number().positive().max(10).optional(),
+  brief: z.string().max(4000).optional(),
 });
 
 const TIER_DEFAULT_BUDGET = { free: 1, pro: 3 };
@@ -89,6 +90,7 @@ export async function POST(req: Request): Promise<Response> {
       userId: session.user.id,
       domain: parsed.data.domain,
       status: "queued",
+      brief: parsed.data.brief ?? null,
       budgetUsd: String(budgetUsd.toFixed(4)),
     })
     .returning({ id: orchestratorSessions.id });

@@ -6,6 +6,8 @@ export * from "./algorithms/simhash.js";
 export * from "./algorithms/entity-mask.js";
 export * from "./algorithms/fact-extraction.js";
 export { deriveEntityPatterns } from "./algorithms/auto-entity-mask.js";
+export { ARCHETYPES } from "./algorithms/archetype.js";
+export type { Archetype } from "./algorithms/archetype.js";
 export * from "./rules/spam/near-duplicate.js";
 export * from "./rules/spam/entity-swap.js";
 export * from "./rules/spam/thin-content.js";
@@ -118,6 +120,17 @@ export type {
   PatchDiff,
   ManifestDiff,
 } from "./ai/manifest/index.js";
+export {
+  generateCitationBlock,
+  draftToPageChanges,
+  faqToHtml,
+  faqToJsonLd,
+  makeCitationGenerate,
+  citationSchema,
+} from "./algorithms/citation-lift/index.js";
+export type { CitationDraft, CitationInput, CitationGenOpts } from "./algorithms/citation-lift/index.js";
+export { renderManifest, applyEditToContent } from "./ai/apply/render-manifest.js";
+export type { TemplateMapping, FileEdit, ChecklistItem, RenderedManifest } from "./ai/apply/render-manifest.js";
 export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";
