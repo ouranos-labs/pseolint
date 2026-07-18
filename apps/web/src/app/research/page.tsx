@@ -4,6 +4,13 @@ import { env } from "@/lib/env";
 
 const REPORTS = [
   {
+    slug: "pseo-audit-benchmark-2026",
+    title: "We Audited 20 Production pSEO Sites",
+    pitch:
+      "Measured results from a live pseolint crawl of 20 programmatic-SEO sites. Only 3 scored ready; 80% ship no llms.txt and 75% fail citation coverage. Full per-site verdicts and the rules that fired most.",
+    published: "2026-07-18",
+  },
+  {
     slug: "state-of-pseo-2026",
     title: "State of pSEO 2026",
     pitch:
