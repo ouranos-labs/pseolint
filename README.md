@@ -12,7 +12,7 @@
 **[Methodology](https://pseolint.dev/methodology)** · **[Leaderboard](https://pseolint.dev/leaderboard)** · **[Report a bug](https://github.com/ouranos-labs/pseolint/issues/new)** · **[Skills for agents](skills/README.md)**
 
 <p align="center">
-  <img src="docs/assets/demo.gif" alt="pseolint auditing a live site and reporting an 82/100 SpamBrain Risk Score" width="800" />
+  <img src="docs/assets/demo.svg" alt="pseolint auditing pseolint.dev: verdict READY, all four categories graded A, with a per-template breakdown of /rules/:slug, /tools/:slug, and long-tail pages" width="820" />
 </p>
 
 The only tool purpose-built for **programmatic SEO compliance**. It shifts the unit of analysis from URL to template: point it at a 10,000-URL pSEO directory and pseolint identifies the template clusters (e.g. `/listing/:slug`, `/category/:slug`), samples K pages from each, and produces a per-template verdict + variance metric. **Fix one template, fix N pages.**
@@ -61,6 +61,20 @@ Programmatic SEO works — when it works. The gap between "1,000 indexed pages" 
 Existing SEO tools (Screaming Frog, Sitebulb, Ahrefs Site Audit) were built for editorially-curated sites. They check pages one at a time. But the SpamBrain risks of pSEO are *between* pages: doorway clusters, near-duplicates, entity-swap templates, thin-content propagation. You can't catch them with per-page rules.
 
 pseolint audits the graph — it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
+
+### How it compares
+
+|  | pseolint | Screaming Frog | Ahrefs Site Audit | Sitebulb |
+|---|:---:|:---:|:---:|:---:|
+| Unit of analysis | **template cluster** | URL | URL | URL |
+| Near-duplicate / doorway / entity-swap detection | ✅ | partial | — | — |
+| SpamBrain-policy risk verdict | ✅ | — | — | — |
+| AEO / AI-Overview citability checks | ✅ | — | — | — |
+| AI fix → pull request | ✅ | — | — | — |
+| CLI · GitHub Action · MCP server | ✅ | desktop | SaaS | desktop |
+| Open source | ✅ MIT | — | — | — |
+
+The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, backlink data, log-file analysis). pseolint is the specialist for the one thing they weren't built for: **programmatic-SEO compliance at the template level.**
 
 ## How pseolint differs
 
