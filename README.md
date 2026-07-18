@@ -558,6 +558,61 @@ jobs:
 
 Posts a score summary as a PR comment and fails the check if score exceeds the threshold.
 
+## Fix rail — from audit to pull request
+
+The AI orchestrator produces a **fix manifest** (validated patches). `pseolint apply` writes the deterministic ones (meta titles, H1s, `robots.txt`, `sitemap.xml`) straight into your source tree; generative or unmatched patches are demoted to a checklist for a human. `--pr` takes the next step: commit those edits to a tool-owned branch and open a PR.
+
+```bash
+# 1. Audit → manifest
+pseolint orchestrate https://example.com --max-cost 3 --manifest-out manifest.json
+
+# 2. Apply deterministic edits into your working tree (review the diff, commit yourself)
+pseolint apply manifest.json
+
+# 3. …or apply + commit + open a GitHub PR in one step
+pseolint apply manifest.json --pr --token "$GITHUB_TOKEN"
+```
+
+### Mapping (`.pseolint/templates.json`)
+
+Audited routes don't know your source layout, so you map them once (route pattern → source file). Domain-level patches use the special `robots.txt` / `sitemap.xml` keys:
+
+```json
+{
+  "/listing/:slug": "app/listing/[slug]/page.tsx",
+  "/category/:slug": "app/category/[slug]/page.tsx",
+  "robots.txt": "public/robots.txt",
+  "sitemap.xml": "app/sitemap.ts"
+}
+```
+
+Route keys accept `:seg` / `[seg]` / `*` wildcards. A patch with no matching entry — or a literal that can't be found in an interpolated template like `Best in ${city}` — lands in the checklist (or the PR body) instead of silently corrupting source.
+
+### In CI
+
+`apply --pr` uses `git` + one GitHub API call — no extra dependency. Give the workflow write permissions and let `actions/checkout` configure the push token:
+
+```yaml
+name: pSEO fix PR
+on: { workflow_dispatch: {} }
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    permissions: { contents: write, pull-requests: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm run build
+      - run: npx pseolint orchestrate http://localhost:3000 --max-cost 3 --manifest-out manifest.json
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+      - run: npx pseolint apply manifest.json --pr
+        env: { GITHUB_TOKEN: '${{ github.token }}' }
+```
+
+Re-running updates the same `pseolint/fix-<domain>` branch (force-with-lease, tool-owned branch only) — it never spams new PRs. It no-ops cleanly when there's nothing deterministic to apply.
+
 ## Output Formats
 
 ```bash
