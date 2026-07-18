@@ -4,6 +4,13 @@ import { env } from "@/lib/env";
 
 const REPORTS = [
   {
+    slug: "programmatic-seo-vs-doorway-pages",
+    title: "Programmatic SEO vs. Doorway Pages",
+    pitch:
+      "The line between a catalog that ranks and a doorway that gets deindexed isn't scale — it's three specific signals. How SpamBrain draws it, a catalog-or-doorway self-test, and the exact pseolint checks that tell you which side you're on.",
+    published: "2026-07-18",
+  },
+  {
     slug: "pseo-audit-benchmark-2026",
     title: "We Audited 20 Production pSEO Sites",
     pitch:
