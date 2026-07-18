@@ -1,10 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="820" height="132" viewBox="0 0 820 132" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
-  <rect x="0.5" y="0.5" width="819" height="131" rx="14" fill="#0d1117" stroke="#30363d"/>
-  <!-- green check badge, left of the wordmark -->
-  <circle cx="311" cy="58" r="17" fill="#3fb950" fill-opacity="0.15" stroke="#3fb950" stroke-width="1.5"/>
-  <path d="M303 58 l6 6 l10 -12" fill="none" stroke="#3fb950" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- wordmark (anchored middle, nudged right to clear the badge) -->
-  <text x="454" y="72" font-size="44" font-weight="700" fill="#e6edf3" text-anchor="middle" letter-spacing="0.5">pseolint</text>
-  <!-- tagline -->
-  <text x="410" y="104" font-size="15" fill="#8b949e" text-anchor="middle">Audit your pSEO site by template, not by URL.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="140" viewBox="0 0 720 140" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace">
+  <rect x="0.5" y="0.5" width="719" height="139" rx="16" fill="hsl(222,14%,9%)" stroke="hsl(215,14%,20%)"/>
+  <rect x="241.30" y="28.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(0.0 244.00 34.00)"/>
+  <rect x="250.62" y="29.83" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(15.0 253.32 35.23)"/>
+  <rect x="259.30" y="33.42" width="5.40" height="10.80" rx="2.70" fill="hsl(158,64%,52%)" opacity="1.0" transform="rotate(30.0 262.00 38.82)"/>
+  <rect x="266.76" y="39.14" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(45.0 269.46 44.54)"/>
+  <rect x="272.48" y="46.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(60.0 275.18 52.00)"/>
+  <rect x="276.07" y="55.28" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(75.0 278.77 60.68)"/>
+  <rect x="277.30" y="64.60" width="5.40" height="10.80" rx="2.70" fill="hsl(158,64%,52%)" opacity="1.0" transform="rotate(90.0 280.00 70.00)"/>
+  <rect x="276.07" y="73.92" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(105.0 278.77 79.32)"/>
+  <rect x="272.48" y="82.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(120.0 275.18 88.00)"/>
+  <rect x="266.76" y="90.06" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(135.0 269.46 95.46)"/>
+  <rect x="259.30" y="95.78" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(150.0 262.00 101.18)"/>
+  <rect x="250.62" y="99.37" width="5.40" height="10.80" rx="2.70" fill="hsl(158,64%,52%)" opacity="1.0" transform="rotate(165.0 253.32 104.77)"/>
+  <rect x="241.30" y="100.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(180.0 244.00 106.00)"/>
+  <rect x="231.98" y="99.37" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(195.0 234.68 104.77)"/>
+  <rect x="223.30" y="95.78" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(210.0 226.00 101.18)"/>
+  <rect x="215.84" y="90.06" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(225.0 218.54 95.46)"/>
+  <rect x="210.12" y="82.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(240.0 212.82 88.00)"/>
+  <rect x="206.53" y="73.92" width="5.40" height="10.80" rx="2.70" fill="hsl(158,64%,52%)" opacity="1.0" transform="rotate(255.0 209.23 79.32)"/>
+  <rect x="205.30" y="64.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(270.0 208.00 70.00)"/>
+  <rect x="206.53" y="55.28" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(285.0 209.23 60.68)"/>
+  <rect x="210.12" y="46.60" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(300.0 212.82 52.00)"/>
+  <rect x="215.84" y="39.14" width="5.40" height="10.80" rx="2.70" fill="hsl(158,64%,52%)" opacity="1.0" transform="rotate(315.0 218.54 44.54)"/>
+  <rect x="223.30" y="33.42" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(330.0 226.00 38.82)"/>
+  <rect x="231.98" y="29.83" width="5.40" height="10.80" rx="2.70" fill="hsl(215,14%,65%)" opacity="0.35" transform="rotate(345.0 234.68 35.23)"/>
+  <text x="315.0" y="68.0" font-size="46" font-weight="700" letter-spacing="0.5" fill="hsl(210,20%,96%)">pseolint</text>
+  <text x="317.0" y="96.0" font-size="15" fill="hsl(215,14%,65%)">Audit your pSEO site by template, not by URL.</text>
 </svg>
