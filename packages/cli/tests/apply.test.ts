@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runApplyCommand } from "../src/commands/apply.js";
+import { runApplyCommand, applyManifest } from "../src/commands/apply.js";
 
 const MANIFEST = {
   manifest: {
@@ -66,5 +66,24 @@ describe("runApplyCommand", () => {
     await rm(join(tmp, ".pseolint/templates.json"));
     const code = await runApplyCommand({ manifestPath: join(tmp, "manifest.json"), repo: tmp, noColor: true });
     expect(code).toBe(1);
+  });
+
+  it("applyManifest returns the applied edit + demoted miss for the PR opener to consume", async () => {
+    const r = await applyManifest({ manifestPath: join(tmp, "manifest.json"), repo: tmp });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.applied).toBe(1); // title literal applied
+    expect(r.changedFiles).toEqual(["app/listing/[slug]/page.tsx"]);
+    expect(r.checklist.some((c) => c.kind === "unmapped")).toBe(true); // interpolated H1 demoted
+    expect(r.dryRun).toBe(false);
+  });
+
+  it("applyManifest surfaces a bad mapping as ok:false with a hint", async () => {
+    await rm(join(tmp, ".pseolint/templates.json"));
+    const r = await applyManifest({ manifestPath: join(tmp, "manifest.json"), repo: tmp });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toContain("cannot read mapping");
+    expect(r.hint).toBeTruthy();
   });
 });

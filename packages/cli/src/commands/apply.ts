@@ -29,6 +29,20 @@ export interface ApplyCliOptions {
   noColor?: boolean;
 }
 
+/** Result of applying a manifest — consumed by the printer and (Slice 2) the PR opener. */
+export type ApplyResult =
+  | { ok: false; error: string; hint?: string }
+  | {
+      ok: true;
+      /** Repo-relative paths written (empty on dry-run-would-write is still populated). */
+      changedFiles: string[];
+      /** Count of edits successfully applied. */
+      applied: number;
+      /** Everything a human still has to do: manifest checklist + demoted misses. */
+      checklist: ChecklistItem[];
+      dryRun: boolean;
+    };
+
 function paint(s: string, color: string, strip: boolean): string {
   return strip ? s : `${color}${s}${RESET}`;
 }
@@ -45,15 +59,12 @@ function safeResolve(repoRoot: string, p: string): string | null {
 }
 
 /**
- * `pseolint apply` — write a fix manifest's deterministic edits into the local
- * working tree and print the human checklist. No GitHub, no network: this is
- * the manifest→source rail exercised standalone (review the diff with `git`,
- * commit it yourself). Interpolated-template misses demote to the checklist
- * rather than corrupting source.
+ * Apply a fix manifest's deterministic edits into a working tree. Pure of any
+ * printing/exit — returns a structured result so both the CLI printer and the
+ * PR opener (`apply --pr`) can consume it. Interpolated-template misses demote
+ * to the checklist rather than corrupting source. No GitHub, no network.
  */
-export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
-  const strip = opts.noColor ?? !process.stdout.isTTY;
-  const out = process.stdout;
+export async function applyManifest(opts: ApplyCliOptions): Promise<ApplyResult> {
   const repoRoot = resolve(opts.repo);
   const mappingPath = opts.mappingPath ?? resolve(repoRoot, ".pseolint/templates.json");
 
@@ -62,15 +73,13 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
   try {
     raw = await readJson(opts.manifestPath);
   } catch (e) {
-    out.write(paint(`✗ cannot read manifest ${opts.manifestPath}: ${(e as Error).message}\n`, RED, strip));
-    return 1;
+    return { ok: false, error: `cannot read manifest ${opts.manifestPath}: ${(e as Error).message}` };
   }
   const candidate =
     raw && typeof raw === "object" && "manifest" in raw ? (raw as { manifest: unknown }).manifest : raw;
   const parsed = manifestSchema.safeParse(candidate);
   if (!parsed.success) {
-    out.write(paint(`✗ ${opts.manifestPath} is not a valid manifest: ${parsed.error.issues[0]?.message}\n`, RED, strip));
-    return 1;
+    return { ok: false, error: `${opts.manifestPath} is not a valid manifest: ${parsed.error.issues[0]?.message}` };
   }
 
   // 2. Load the template→source mapping.
@@ -80,9 +89,11 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
     if (!m || typeof m !== "object" || Array.isArray(m)) throw new Error("must be a JSON object of route → path");
     mapping = m as TemplateMapping;
   } catch (e) {
-    out.write(paint(`✗ cannot read mapping ${mappingPath}: ${(e as Error).message}\n`, RED, strip));
-    out.write(paint(`  create it, e.g. { "/listing/:slug": "app/listing/[slug]/page.tsx" }\n`, DIM, strip));
-    return 1;
+    return {
+      ok: false,
+      error: `cannot read mapping ${mappingPath}: ${(e as Error).message}`,
+      hint: `create it, e.g. { "/listing/:slug": "app/listing/[slug]/page.tsx" }`,
+    };
   }
 
   // 3. Render into applicable edits + checklist.
@@ -96,7 +107,7 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
     byPath.set(e.path, list);
   }
 
-  let appliedCount = 0;
+  let applied = 0;
   const changedFiles: string[] = [];
   const demoted: ChecklistItem[] = [];
 
@@ -125,7 +136,7 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
       if (r.applied) {
         working = r.content;
         fileTouched = true;
-        appliedCount += 1;
+        applied += 1;
       } else {
         // Literal absent — almost always an interpolated template. Hand it to the human.
         demoted.push(editToChecklist(e, `literal not found in ${relPath} (interpolated template?)`));
@@ -141,16 +152,35 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
     }
   }
 
-  // 5. Report.
-  const verb = opts.dryRun ? "would apply" : "applied";
+  return { ok: true, changedFiles, applied, checklist: [...checklist, ...demoted], dryRun: opts.dryRun ?? false };
+}
+
+/**
+ * `pseolint apply` — run {@link applyManifest} and render the result to stdout,
+ * returning a process exit code. The human reviews + commits the diff.
+ */
+export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
+  const strip = opts.noColor ?? !process.stdout.isTTY;
+  const out = process.stdout;
+
+  const result = await applyManifest(opts);
+  if (!result.ok) {
+    out.write(paint(`✗ ${result.error}\n`, RED, strip));
+    if (result.hint) out.write(paint(`  ${result.hint}\n`, DIM, strip));
+    return 1;
+  }
+
+  const { changedFiles, applied: appliedCount, checklist: allChecklist, dryRun } = result;
+
+  // Report.
+  const verb = dryRun ? "would apply" : "applied";
   out.write(paint(`── Edits ───────────────────────────────\n`, BOLD, strip));
   out.write(`  ${verb} ${appliedCount} edit${appliedCount === 1 ? "" : "s"} across ${changedFiles.length} file${changedFiles.length === 1 ? "" : "s"}\n`);
-  for (const f of changedFiles) out.write(paint(`    ${opts.dryRun ? "~" : "✓"} ${f}\n`, GREEN, strip));
-  if (opts.dryRun && changedFiles.length > 0) {
+  for (const f of changedFiles) out.write(paint(`    ${dryRun ? "~" : "✓"} ${f}\n`, GREEN, strip));
+  if (dryRun && changedFiles.length > 0) {
     out.write(paint(`  (dry run — nothing written; re-run without --dry-run to apply)\n`, DIM, strip));
   }
 
-  const allChecklist = [...checklist, ...demoted];
   if (allChecklist.length > 0) {
     out.write("\n" + paint(`── Checklist (${allChecklist.length} — needs a human) ──\n`, BOLD, strip));
     for (const c of allChecklist) {
