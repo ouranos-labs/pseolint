@@ -57,9 +57,16 @@ export interface RenderOptions {
   extraBlockedHosts?: readonly string[];
 }
 
+interface WebVitals {
+  lcp: number | null;
+  cls: number | null;
+  ttfb: number | null;
+}
+
 interface RenderedPage {
   url: string;
   html: string;
+  webVitals?: WebVitals;
 }
 
 const MIME_TYPES: Record<string, string> = {
@@ -168,7 +175,27 @@ export async function renderPages(
   });
   await context.addInitScript(() => {
     // @ts-ignore -- evaluated in the browser, window is the page's window
-    (window as unknown as Record<string, unknown>).__pseolint_audit = true;
+    const w = window as unknown as Record<string, unknown>;
+    w.__pseolint_audit = true;
+    // Core Web Vitals: install observers BEFORE page scripts run so no entries
+    // are missed. LCP takes the last (largest) entry; CLS sums layout shifts
+    // that weren't triggered by user input. Both use buffered:true so entries
+    // dispatched before the observer attaches are still delivered.
+    w.__pseolint_vitals = { lcp: null, cls: 0 };
+    const v = w.__pseolint_vitals as { lcp: number | null; cls: number };
+    try {
+      // @ts-ignore -- PerformanceObserver is a browser global
+      new PerformanceObserver((list: { getEntries: () => Array<{ startTime: number }> }) => {
+        const entries = list.getEntries();
+        if (entries.length) v.lcp = entries[entries.length - 1].startTime;
+      }).observe({ type: "largest-contentful-paint", buffered: true });
+      // @ts-ignore -- browser global
+      new PerformanceObserver((list: { getEntries: () => Array<{ value: number; hadRecentInput: boolean }> }) => {
+        for (const e of list.getEntries()) if (!e.hadRecentInput) v.cls += e.value;
+      }).observe({ type: "layout-shift", buffered: true });
+    } catch {
+      // Older/headless Chromium without these entry types — vitals stay at defaults.
+    }
   });
 
   const analyticsMode: AnalyticsMode = options.analyticsMode ?? "block";
@@ -252,7 +279,17 @@ export async function renderPages(
           timeout: options.timeoutMs,
         });
         const html = await page.content();
-        results.push({ url: entry.url, html });
+        // Read the vitals the init-script observers accumulated, plus TTFB from
+        // navigation timing. Best-effort: a page that closed the isolate or has
+        // no navigation entry yields null fields rather than failing the render.
+        const webVitals: WebVitals = await page.evaluate(() => {
+          // @ts-ignore -- browser globals
+          const v = (window.__pseolint_vitals ?? { lcp: null, cls: null }) as { lcp: number | null; cls: number | null };
+          // @ts-ignore -- browser global
+          const nav = performance.getEntriesByType("navigation")[0] as { responseStart?: number } | undefined;
+          return { lcp: v.lcp, cls: v.cls, ttfb: nav?.responseStart ?? null };
+        }).catch(() => ({ lcp: null, cls: null, ttfb: null }));
+        results.push({ url: entry.url, html, webVitals });
       } catch {
         // Skip pages that fail to render
       } finally {

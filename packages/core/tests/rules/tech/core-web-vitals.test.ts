@@ -1,0 +1,39 @@
+import { describe, it, expect } from "vitest";
+import { coreWebVitalsRule } from "../../../src/rules/tech/core-web-vitals.js";
+import type { ParsedPage } from "../../../src/types.js";
+
+function page(p: Partial<ParsedPage> & { url: string }): ParsedPage {
+  return { contentText: "", title: "", html: "", url: p.url, ...p } as ParsedPage;
+}
+
+describe("core-web-vitals", () => {
+  it("flags poor LCP", () => {
+    const out = coreWebVitalsRule([page({ url: "https://x.com/a", webVitals: { lcp: 6000, cls: 0.02, ttfb: 200 } })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].ruleId).toBe("tech/core-web-vitals");
+    expect(out[0].message).toMatch(/LCP 6000ms/);
+  });
+
+  it("flags poor CLS", () => {
+    const out = coreWebVitalsRule([page({ url: "https://x.com/b", webVitals: { lcp: 1200, cls: 0.4, ttfb: 100 } })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toMatch(/CLS 0\.400/);
+  });
+
+  it("does not flag good vitals", () => {
+    expect(coreWebVitalsRule([page({ url: "https://x.com/c", webVitals: { lcp: 2000, cls: 0.05, ttfb: 80 } })])).toHaveLength(0);
+  });
+
+  it("does not flag the needs-improvement tier (between good and poor)", () => {
+    // LCP 3000ms and CLS 0.15 are both "needs improvement", not "poor" — reported, not flagged.
+    expect(coreWebVitalsRule([page({ url: "https://x.com/d", webVitals: { lcp: 3000, cls: 0.15, ttfb: 90 } })])).toHaveLength(0);
+  });
+
+  it("no-ops when webVitals is absent (render off)", () => {
+    expect(coreWebVitalsRule([page({ url: "https://x.com/e" })])).toHaveLength(0);
+  });
+
+  it("tolerates null metric fields", () => {
+    expect(coreWebVitalsRule([page({ url: "https://x.com/f", webVitals: { lcp: null, cls: null, ttfb: null } })])).toHaveLength(0);
+  });
+});

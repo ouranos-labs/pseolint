@@ -878,5 +878,23 @@ export interface ParsedPage {
   html: string;
   /** Post-hydration DOM (page.content()) when audited with --render; absent in static mode. */
   renderedHtml?: string;
+  /**
+   * Core Web Vitals captured during --render. Absent in static mode.
+   * ponytail: lab snapshot under headless Chromium (LCP/CLS to networkidle),
+   * NOT real-user field data (CrUX). Catches gross regressions, not the exact
+   * number Google scores. INP is omitted — it needs real interaction a passive
+   * crawl can't produce. Upgrade path: ingest CrUX/PageSpeed field data if
+   * callers need the number Search Console shows.
+   */
+  webVitals?: WebVitals;
   httpMeta?: HttpMeta;
+}
+
+export interface WebVitals {
+  /** Largest Contentful Paint, ms. null when no LCP entry was observed. */
+  lcp: number | null;
+  /** Cumulative Layout Shift, unitless. Accumulated up to networkidle. */
+  cls: number | null;
+  /** Time to First Byte, ms (navigation timing responseStart). */
+  ttfb: number | null;
 }
