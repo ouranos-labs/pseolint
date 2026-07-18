@@ -4,10 +4,17 @@ import { env } from "@/lib/env";
 
 const REPORTS = [
   {
+    slug: "llms-txt-programmatic-seo",
+    title: "llms.txt for Programmatic Sites",
+    pitch:
+      "80% of production pSEO sites ship no llms.txt, the widest and cheapest answer-engine gap in the wild. What the file is, what belongs in it, the mistake that cancels it, and how to verify yours in one command.",
+    published: "2026-07-18",
+  },
+  {
     slug: "programmatic-seo-vs-doorway-pages",
     title: "Programmatic SEO vs. Doorway Pages",
     pitch:
-      "The line between a catalog that ranks and a doorway that gets deindexed isn't scale — it's three specific signals. How SpamBrain draws it, a catalog-or-doorway self-test, and the exact pseolint checks that tell you which side you're on.",
+      "The line between a catalog that ranks and a doorway that gets deindexed isn't scale, it's three specific signals. How SpamBrain draws it, a catalog-or-doorway self-test, and the exact pseolint checks that tell you which side you're on.",
     published: "2026-07-18",
   },
   {
@@ -21,7 +28,7 @@ const REPORTS = [
     slug: "state-of-pseo-2026",
     title: "State of pSEO 2026",
     pitch:
-      "How programmatic SEO sites are performing under SpamBrain in 2026 — failure rates by rule, by vertical, by tech stack, with year-over-year shifts after the March and May 2024 updates.",
+      "How programmatic SEO sites are performing under SpamBrain in 2026, failure rates by rule, by vertical, by tech stack, with year-over-year shifts after the March and May 2024 updates.",
     published: "2026-04-29",
   },
   {
@@ -50,7 +57,7 @@ const REPORTS = [
 export async function generateMetadata(): Promise<Metadata> {
   const base = env().BETTER_AUTH_URL.replace(/\/$/, "");
   const url = `${base}/research`;
-  const title = "Research — pseolint";
+  const title = "Research · pseolint";
   const description =
     "Original research on programmatic SEO, SpamBrain enforcement patterns, and what separates pSEO sites that survive Google's spam updates from those that don't.";
   return {
@@ -74,7 +81,7 @@ export default function ResearchIndexPage() {
       <h1 className="text-4xl font-semibold tracking-tight text-foreground">Research</h1>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
         Original data drops from the pseolint corpus. Each report is built from real audit
-        results and intended to be cited — by other SEO blogs, by language models, and by
+        results and intended to be cited, by other SEO blogs, by language models, and by
         practitioners trying to make sense of how Google&apos;s SpamBrain ranks programmatic
         sites in {new Date().getFullYear()}.
       </p>

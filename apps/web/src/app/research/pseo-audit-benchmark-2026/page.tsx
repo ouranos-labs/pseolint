@@ -7,7 +7,7 @@ const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/pseo-audit-benchmark-2026";
 const REPORT_TITLE = "We Audited 20 Production pSEO Sites: What Actually Fails";
 // Title tag stays ≤60 chars for SERP display.
-const REPORT_TITLE_TAG = "20 pSEO Sites Audited — What Fails · pseolint";
+const REPORT_TITLE_TAG = "20 pSEO Sites Audited: What Fails · pseolint";
 const REPORT_DESCRIPTION =
   "We ran pseolint against 20 live programmatic-SEO sites, ~25 pages each. Only 3 scored ready; 80% ship no llms.txt and 75% fail citation coverage. Full per-site results, CC BY 4.0.";
 const SITES_AUDITED = 20;
@@ -41,7 +41,7 @@ export function generateMetadata(): Metadata {
           url: absoluteUrl("/opengraph-image"),
           width: 1200,
           height: 630,
-          alt: "pseolint benchmark — 20 production pSEO sites audited",
+          alt: "pseolint benchmark: 20 production pSEO sites audited",
         },
       ],
     },
@@ -59,23 +59,23 @@ type Faq = { q: string; a: string };
 const FAQS: ReadonlyArray<Faq> = [
   {
     q: "What did the benchmark actually measure?",
-    a: "Each of the 20 sites was crawled live with pseolint v0.7.5 in July 2026, sampling up to 25 pages per site (stratified across the site's URL templates). pseolint scored each site on its 48-rule engine and produced a site-level verdict (ready, caution, concerning, or critical) plus a 0-100 risk number. No manual grading — the numbers below are the tool's raw output aggregated across sites.",
+    a: "Each of the 20 sites was crawled live with pseolint v0.7.5 in July 2026, sampling up to 25 pages per site (stratified across the site's URL templates). pseolint scored each site on its 48-rule engine and produced a site-level verdict (ready, caution, concerning, or critical) plus a 0-100 risk number. No manual grading, the numbers below are the tool's raw output aggregated across sites.",
   },
   {
     q: "What was the most common failure across production pSEO sites?",
-    a: "It was not spam — it was answer-engine invisibility. 80% of audited sites ship no llms.txt file, and 75% fail the citation-coverage rule (pages assert facts without citing a verifiable source). Classic spam patterns like near-duplicate content (40%) and doorway patterns (20%) were real but less prevalent than the AEO gaps.",
+    a: "It was not spam, it was answer-engine invisibility. 80% of audited sites ship no llms.txt file, and 75% fail the citation-coverage rule (pages assert facts without citing a verifiable source). Classic spam patterns like near-duplicate content (40%) and doorway patterns (20%) were real but less prevalent than the AEO gaps.",
   },
   {
     q: "How many sites passed clean?",
-    a: "Only 3 of 20 (15%) scored ready. 8 (40%) scored caution and 9 (45%) scored concerning. The median risk score was 38 on a 0-100 scale. Even large, authoritative publishers landed in caution or concerning — because pseolint scores page and template shape, not brand.",
+    a: "Only 3 of 20 (15%) scored ready. 8 (40%) scored caution and 9 (45%) scored concerning. The median risk score was 38 on a 0-100 scale. Even large, authoritative publishers landed in caution or concerning, because pseolint scores page and template shape, not brand.",
   },
   {
     q: "Why do well-known brands score concerning?",
-    a: "pseolint is authority-blind by design. It measures the static content and link graph it can see — not backlinks, domain age, or brand trust. A concerning verdict on a major publisher means the template shape carries the same risk signals Google's SpamBrain targets; an established brand can often absorb a shape a newer site cannot. That is exactly why pseolint exposes an --authority-score flag to shift the verdict ladder for your tier. Treat these verdicts as a directional, authority-blind minimum, not a claim that a site is penalized.",
+    a: "pseolint is authority-blind by design. It measures the static content and link graph it can see, not backlinks, domain age, or brand trust. A concerning verdict on a major publisher means the template shape carries the same risk signals Google's SpamBrain targets; an established brand can often absorb a shape a newer site cannot. That is exactly why pseolint exposes an --authority-score flag to shift the verdict ladder for your tier. Treat these verdicts as a directional, authority-blind minimum, not a claim that a site is penalized.",
   },
   {
     q: "Is this a representative sample of the whole web?",
-    a: "No. It is a fixed, curated corpus of programmatic and directory-style sites, and it is the crawlable subset — of 32 real target URLs, 12 could not be fetched headless (bot walls or HTTP/2-only origins) and were excluded. Read the numbers as a benchmark of common pSEO shapes, not a population estimate. The corpus and method are open so anyone can reproduce or extend them.",
+    a: "No. It is a fixed, curated corpus of programmatic and directory-style sites, and it is the crawlable subset, of 32 real target URLs, 12 could not be fetched headless (bot walls or HTTP/2-only origins) and were excluded. Read the numbers as a benchmark of common pSEO shapes, not a population estimate. The corpus and method are open so anyone can reproduce or extend them.",
   },
   {
     q: "How do I check my own site against these rules?",
@@ -105,7 +105,7 @@ const TOP_RULES: ReadonlyArray<{
     pct: "75%",
     sites: "15 / 20",
     description:
-      "Pages assert facts with no link to a verifiable primary source — 157 findings across the corpus, the single largest finding volume. The strongest predictor of low AI-citation eligibility in the set.",
+      "Pages assert facts with no link to a verifiable primary source: 157 findings across the corpus, the single largest finding volume. The strongest predictor of low AI-citation eligibility in the set.",
   },
   {
     id: "spam/near-duplicate",
@@ -121,7 +121,7 @@ const TOP_RULES: ReadonlyArray<{
     pct: "30%",
     sites: "6 / 20",
     description:
-      "Missing, over-short, or slot-swap titles shared across many pages — a duplicate-intent signal even when bodies differ.",
+      "Missing, over-short, or slot-swap titles shared across many pages, a duplicate-intent signal even when bodies differ.",
   },
   {
     id: "aeo/crawler-access",
@@ -137,7 +137,7 @@ const TOP_RULES: ReadonlyArray<{
     pct: "20%",
     sites: "4 / 20",
     description:
-      "Structural-similarity clusters that also trip a content-quality signal (thin body or identical meta) — the third-signal gate that separates a real catalog from a doorway.",
+      "Structural-similarity clusters that also trip a content-quality signal (thin body or identical meta), the third-signal gate that separates a real catalog from a doorway.",
   },
 ];
 
@@ -272,12 +272,12 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
         className="mt-3 text-balance text-3xl tracking-tight sm:text-4xl lg:text-5xl"
         style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
       >
-        We Audited 20 Production pSEO Sites — Here&apos;s What Actually Fails
+        We Audited 20 Production pSEO Sites: Here&apos;s What Actually Fails
       </h1>
       <p className="mt-3 max-w-2xl text-base text-muted-foreground">
         Twenty live programmatic-SEO and directory sites, each crawled with pseolint v0.7.5 and
         sampled across its URL templates. Only three scored <em>ready</em>. The most common gap
-        wasn&apos;t spam — it was answer-engine invisibility.
+        wasn&apos;t spam, it was answer-engine invisibility.
       </p>
 
       <aside
@@ -289,7 +289,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
         <p className="mt-2 text-muted-foreground">
           These are <strong>measured</strong> results, not modeled estimates: raw pseolint output
           from a July 2026 crawl of a fixed corpus, {PAGES_PER_SITE} pages sampled per site. It is a
-          benchmark of common pSEO <em>shapes</em>, not a population estimate — and it is the
+          benchmark of common pSEO <em>shapes</em>, not a population estimate, and it is the
           crawlable subset (12 of 32 target URLs could not be fetched headless and were excluded).
           pseolint is authority-blind: verdicts score page and template shape, not brand or
           backlinks. Read them as a directional minimum.
@@ -309,7 +309,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
           </Finding>
           <Finding n={2}>
             <strong>80% ship no llms.txt</strong> (16/20) and <strong>75% fail citation coverage</strong>{" "}
-            (15/20, 157 findings) — the two most common failures in the set, both AEO gaps.
+            (15/20, 157 findings), the two most common failures in the set, both AEO gaps.
           </Finding>
           <Finding n={3}>
             Classic spam signals were real but rarer: near-duplicate clusters on 40% of sites,
@@ -317,7 +317,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
           </Finding>
           <Finding n={4}>
             <strong>25% block at least one AI crawler</strong> in robots.txt (GPTBot, ClaudeBot,
-            PerplexityBot, or Bytespider) — self-inflicted removal from that engine&apos;s citation
+            PerplexityBot, or Bytespider), self-inflicted removal from that engine&apos;s citation
             pool.
           </Finding>
           <Finding n={5}>
@@ -326,7 +326,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
           </Finding>
           <Finding n={6}>
             Brand did not rescue shape: major publishers and funded SaaS sites landed in{" "}
-            <em>concerning</em> alongside thin directories — pseolint scores the template, not the
+            <em>concerning</em> alongside thin directories, pseolint scores the template, not the
             domain.
           </Finding>
         </ol>
@@ -384,7 +384,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
 
       <Section title="Every site, worst-first" id="per-site">
         <p>
-          The full corpus, sorted by risk score. Verdicts are authority-blind — a{" "}
+          The full corpus, sorted by risk score. Verdicts are authority-blind, a{" "}
           <em>concerning</em> here means the template shape carries risk signals, not that the site
           is penalized. An established brand can absorb a shape a new site can&apos;t.
         </p>
@@ -412,7 +412,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
           Risk is a 0-100 composite; 60 is the per-category contribution cap, so several sites share
-          it. Site classification is pseolint&apos;s own detector — <code>unclear</code> means the
+          it. Site classification is pseolint&apos;s own detector, <code>unclear</code> means the
           template signal was below the confidence threshold, which itself triggers conservative rule
           demotion.
         </p>
@@ -429,8 +429,8 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
             pages. Lowest-effort, highest-prevalence gap in the set.
           </Fix>
           <Fix n={2} title="Add one cited primary fact per template (75% fail citation coverage)">
-            Attach a verifiable, sourced fact to the template — a price, a dated statistic, a linked
-            reference — so each generated page anchors to something a reader (and an LLM) can trust.
+            Attach a verifiable, sourced fact to the template, a price, a dated statistic, a linked
+            reference, so each generated page anchors to something a reader (and an LLM) can trust.
           </Fix>
           <Fix n={3} title="Unblock the AI crawlers you meant to allow (25% block one)">
             Audit robots.txt for blanket <code>Disallow: /</code> on GPTBot / ClaudeBot /
@@ -438,7 +438,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
           </Fix>
           <Fix n={4} title="Break near-duplicate clusters before scaling (40%)">
             Raise cross-page lexical variance with real per-record differentiation, not synonym
-            swaps — the structural fix that moves a template out of doorway range.
+            swaps, the structural fix that moves a template out of doorway range.
           </Fix>
         </ol>
       </Section>
@@ -451,7 +451,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
           corpus is pseolint&apos;s open calibration corpus; 12 of 32 real targets could not be
           fetched in a headless environment (bot walls or HTTP/2-only origins) and were excluded, so
           this is the crawlable subset. Two synthetic honeypot entries were also excluded. Re-run it
-          yourself — same command, same rules, same numbers.
+          yourself, same command, same rules, same numbers.
         </p>
       </Section>
 
@@ -468,7 +468,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
 
       <Section title="Cite this benchmark" id="cite">
         <p>
-          Published under CC BY 4.0 — quote, excerpt, and reuse with attribution. Please link the
+          Published under CC BY 4.0, quote, excerpt, and reuse with attribution. Please link the
           canonical URL; we keep it updated as the corpus grows.
         </p>
         <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-muted-foreground">APA</h3>
@@ -477,7 +477,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
         </pre>
         <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-muted-foreground">Markdown link</h3>
         <pre className="mt-2 overflow-x-auto rounded-[18px] border border-border/70 bg-card/60 p-4 text-xs leading-relaxed text-foreground">
-{`[We Audited 20 Production pSEO Sites — pseolint](${url})`}
+{`[We Audited 20 Production pSEO Sites · pseolint](${url})`}
         </pre>
       </Section>
 
@@ -495,7 +495,7 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
         sources={[
           {
             source: "llmsTxt",
-            note: "The llms.txt proposal underpins the most common gap in this benchmark — 80% of audited sites ship no such index for answer engines.",
+            note: "The llms.txt proposal underpins the most common gap in this benchmark, 80% of audited sites ship no such index for answer engines.",
           },
           {
             source: "aiFeatures",
