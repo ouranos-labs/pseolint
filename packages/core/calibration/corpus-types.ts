@@ -1,4 +1,5 @@
 import type { Verdict } from "../src/types.js";
+import type { Archetype } from "../src/algorithms/archetype.js";
 
 export type SiteClass =
   | "reputable"        // gated: verdict must be <= expectedVerdictCeiling
@@ -27,6 +28,13 @@ export interface CorpusSite {
   class: SiteClass;
   /** Reputable only: engine verdict must be <= this (hard gate). */
   expectedVerdictCeiling?: Verdict;
+  /**
+   * pSEO archetype label for tier-3 intent-moderation calibration. Optional —
+   * when unset, the intent calibrator derives it from `expectedSiteType`
+   * (programmatic-directory → directory). Set explicitly to distinguish
+   * location-pages / aggregator from a plain directory.
+   */
+  archetype?: Archetype;
   /** Policy-violating only: ASPIRATIONAL target — verdict should be >= this. NOT a CI gate. */
   expectedVerdictFloor?: Verdict;
   /** Policy-violating only: named spam policies the site visibly violates. */
