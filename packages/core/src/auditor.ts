@@ -2155,9 +2155,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
   const respectNoindex = options?.respectNoindex ?? true;
-  const skipDetectedAuth = options?.skipDetectedAuth ?? false;
-  const skipBoilerplate = options?.skipBoilerplate ?? false;
-  const skipSearchPages = options?.skipSearchPages ?? false;
+  // v0.7.x — auth / boilerplate / search-result skipping default ON. These
+  // pages are never SEO targets, so auditing them only adds noise; the
+  // calibration FP-rate over the fixture corpus is ~0 (see calibration/fp-rate.ts).
+  // `skipEmptyBody` stays OFF by default — its one corpus hit is a listing
+  // homepage the parser under-extracts, a borderline false positive.
+  const skipDetectedAuth = options?.skipDetectedAuth ?? true;
+  const skipBoilerplate = options?.skipBoilerplate ?? true;
+  const skipSearchPages = options?.skipSearchPages ?? true;
   const skipEmptyBody = options?.skipEmptyBody ?? false;
   // v0.5.12: when pinnedUrls is non-empty, sampleSize is irrelevant — the
   // pinned list IS the sample. Force to 0 so the post-fetch sampling step

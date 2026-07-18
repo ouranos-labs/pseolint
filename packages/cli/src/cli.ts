@@ -186,9 +186,9 @@ export async function runCli(
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-respect-noindex", "Audit pages marked noindex (via meta robots or X-Robots-Tag) instead of skipping them")
-    .option("--skip-detected-auth", "Heuristically detect login/signup/password-reset pages and skip them from rule evaluation")
-    .option("--skip-boilerplate", "Skip cookie/legal/consent/imprint pages")
-    .option("--skip-search-pages", "Skip pages with search-result URL hallmarks (?q=, /search, etc.)")
+    .option("--no-skip-detected-auth", "Audit heuristically-detected login/signup/password-reset pages instead of skipping them")
+    .option("--no-skip-boilerplate", "Audit cookie/legal/consent/imprint pages instead of skipping them")
+    .option("--no-skip-search-pages", "Audit pages with search-result URL hallmarks (?q=, /search, etc.) instead of skipping them")
     .option("--skip-empty-body", "Skip un-hydrated SPA shells (script-driven pages with empty body)")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
@@ -568,9 +568,9 @@ async function runAudit(
     backpressure: opts.backpressure === false ? false : undefined,
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
     respectNoindex: opts.respectNoindex === false ? false : undefined,
-    skipDetectedAuth: opts.skipDetectedAuth === true ? true : undefined,
-    skipBoilerplate: opts.skipBoilerplate === true ? true : undefined,
-    skipSearchPages: opts.skipSearchPages === true ? true : undefined,
+    skipDetectedAuth: opts.skipDetectedAuth === false ? false : undefined,
+    skipBoilerplate: opts.skipBoilerplate === false ? false : undefined,
+    skipSearchPages: opts.skipSearchPages === false ? false : undefined,
     skipEmptyBody: opts.skipEmptyBody === true ? true : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
     strict: opts.strict === true ? true : undefined,
