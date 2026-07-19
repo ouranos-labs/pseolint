@@ -608,8 +608,14 @@ export interface AuditOptions {
    */
   crux?: {
     apiKey: string;
-    /** Cap on per-URL CrUX lookups; pages beyond it inherit origin-level field data. Default 150. */
+    /** Cap on per-URL CrUX lookups; pages beyond it inherit origin-level field data. Default 150; 0 = unlimited. */
     maxUrlLookups?: number;
+    /**
+     * Which CrUX form factor to query. Google indexes mobile-first, so `"phone"`
+     * is the ranking-relevant view; `"all"` (default) is the aggregate across
+     * devices and can mask a poor mobile experience.
+     */
+    formFactor?: "phone" | "desktop" | "all";
   };
   /** Custom authority provider (overrides the default OPR/CC composite). For tests + offline corpora. */
   authorityProvider?: import("./algorithms/authority/provider.js").AuthorityProvider;

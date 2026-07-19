@@ -7,17 +7,18 @@ function page(p: Partial<ParsedPage> & { url: string }): ParsedPage {
 }
 
 describe("core-web-vitals", () => {
-  it("flags poor LCP", () => {
+  it("flags poor LCP from the lab render", () => {
     const out = coreWebVitalsRule([page({ url: "https://x.com/a", webVitals: { lcp: 6000, cls: 0.02, ttfb: 200 } })]);
     expect(out).toHaveLength(1);
     expect(out[0].ruleId).toBe("tech/core-web-vitals");
-    expect(out[0].message).toMatch(/LCP 6000ms/);
+    expect(out[0].message).toMatch(/LCP 6000ms .*lab/);
+    expect(out[0].confidence).toBe("medium");
   });
 
-  it("flags poor CLS", () => {
+  it("flags poor CLS from the lab render", () => {
     const out = coreWebVitalsRule([page({ url: "https://x.com/b", webVitals: { lcp: 1200, cls: 0.4, ttfb: 100 } })]);
     expect(out).toHaveLength(1);
-    expect(out[0].message).toMatch(/CLS 0\.400/);
+    expect(out[0].message).toMatch(/CLS 0\.400 .*lab/);
   });
 
   it("does not flag good vitals", () => {
@@ -25,11 +26,10 @@ describe("core-web-vitals", () => {
   });
 
   it("does not flag the needs-improvement tier (between good and poor)", () => {
-    // LCP 3000ms and CLS 0.15 are both "needs improvement", not "poor" — reported, not flagged.
     expect(coreWebVitalsRule([page({ url: "https://x.com/d", webVitals: { lcp: 3000, cls: 0.15, ttfb: 90 } })])).toHaveLength(0);
   });
 
-  it("no-ops when webVitals is absent (render off)", () => {
+  it("no-ops when neither source is present (render off, no key)", () => {
     expect(coreWebVitalsRule([page({ url: "https://x.com/e" })])).toHaveLength(0);
   });
 
@@ -37,27 +37,60 @@ describe("core-web-vitals", () => {
     expect(coreWebVitalsRule([page({ url: "https://x.com/f", webVitals: { lcp: null, cls: null, ttfb: null } })])).toHaveLength(0);
   });
 
-  it("flags poor INP from field data (field-only metric)", () => {
+  it("flags poor INP from per-URL field data at high confidence (field-only metric)", () => {
     const out = coreWebVitalsRule([page({ url: "https://x.com/g", fieldVitals: { lcp: 1800, cls: 0.02, inp: 640, source: "url" } })]);
     expect(out).toHaveLength(1);
-    expect(out[0].message).toMatch(/INP 640ms/);
-    expect(out[0].message).toMatch(/real-user p75/);
+    expect(out[0].message).toMatch(/INP 640ms .*real-user p75/);
     expect(out[0].confidence).toBe("high");
   });
 
-  it("prefers field data over lab when both present", () => {
-    // Lab says poor LCP; field says LCP is fine → field wins, no finding.
+  it("prefers per-URL field over lab for the same metric", () => {
+    // field says LCP is bad (real-user), lab says fine → field wins, flagged high.
     const out = coreWebVitalsRule([page({
       url: "https://x.com/h",
-      webVitals: { lcp: 9000, cls: 0.9, ttfb: 100 },
-      fieldVitals: { lcp: 2000, cls: 0.05, inp: 150, source: "url" },
+      webVitals: { lcp: 1000, cls: 0.01, ttfb: 50 },
+      fieldVitals: { lcp: 9000, cls: 0.01, inp: 100, source: "url" },
     })]);
-    expect(out).toHaveLength(0);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toMatch(/LCP 9000ms .*real-user p75/);
+    expect(out[0].confidence).toBe("high");
   });
 
-  it("labels origin-level field data as a site-level fallback", () => {
-    const out = coreWebVitalsRule([page({ url: "https://x.com/i", fieldVitals: { lcp: 5000, cls: 0.05, inp: 150, source: "origin" } })]);
+  it("falls back to the lab metric when field lacks it (no coverage regression)", () => {
+    // field has good LCP but NO CLS; lab shows a bad CLS → CLS must still flag (from lab).
+    const out = coreWebVitalsRule([page({
+      url: "https://x.com/i",
+      webVitals: { lcp: 1500, cls: 0.5, ttfb: 60 },
+      fieldVitals: { lcp: 2000, cls: null, inp: 150, source: "url" },
+    })]);
     expect(out).toHaveLength(1);
-    expect(out[0].message).toMatch(/origin-level/);
+    expect(out[0].message).toMatch(/CLS 0\.500 .*lab/);
+    expect(out[0].message).not.toMatch(/LCP/); // field LCP was good
+  });
+
+  it("collapses origin-level field findings into one per origin", () => {
+    const out = coreWebVitalsRule([
+      page({ url: "https://x.com/p1", fieldVitals: { lcp: 5200, cls: 0.05, inp: 150, source: "origin" } }),
+      page({ url: "https://x.com/p2", fieldVitals: { lcp: 5200, cls: 0.05, inp: 150, source: "origin" } }),
+      page({ url: "https://x.com/p3", fieldVitals: { lcp: 5200, cls: 0.05, inp: 150, source: "origin" } }),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].pageUrl).toBe("https://x.com");
+    expect(out[0].message).toMatch(/site-level/);
+    expect(out[0].message).toMatch(/3 audited pages/);
+    expect(out[0].confidence).toBe("medium"); // origin aggregate → not high
+  });
+
+  it("keeps a mixed origin-field + lab finding per-page (not collapsed)", () => {
+    // origin field CLS is poor AND lab LCP is poor → page-specific lab metric present → per-page.
+    const out = coreWebVitalsRule([page({
+      url: "https://x.com/mixed",
+      webVitals: { lcp: 8000, cls: 0.01, ttfb: 100 },
+      fieldVitals: { lcp: null, cls: 0.4, inp: 100, source: "origin" },
+    })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].pageUrl).toBe("https://x.com/mixed");
+    expect(out[0].message).toMatch(/LCP 8000ms .*lab/);
+    expect(out[0].message).toMatch(/CLS 0\.400 .*origin p75/);
   });
 });

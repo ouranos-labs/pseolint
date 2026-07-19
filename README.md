@@ -521,14 +521,23 @@ npx pseolint https://yoursite.com --render
 # Field: real-user p75 LCP/CLS/INP from the Chrome UX Report (the numbers Google
 # ranks on, and the only source of INP). Free key: https://developer.chrome.com/docs/crux/api
 CRUX_API_KEY=... npx pseolint https://yoursite.com          # or --crux-api-key <key>
+
+# Query the mobile field data specifically (Google indexes mobile-first)
+CRUX_API_KEY=... npx pseolint https://yoursite.com --crux-form-factor phone
 ```
 
-When a CrUX key is set, `tech/core-web-vitals` scores against **field data** and falls
-back to the lab render only where CrUX has no data. CrUX only covers URLs/origins with
-enough real traffic, so low-traffic pSEO pages get their **origin-level** field vitals
-as a fallback; per-URL lookups are capped at 150 (`--crux-max-lookups <n>` to raise).
-The CrUX endpoint is a fixed Google host — no external-authority dependency on your
-own content, consistent with pseolint's offline-runnable design.
+Selection is **per-metric**: when a CrUX key is set, `tech/core-web-vitals` uses field
+data for each of LCP/CLS/INP and falls back to the lab render for any metric CrUX
+lacks — so enabling field data never drops a signal the lab render already had.
+
+CrUX only covers URLs/origins with enough real traffic, so low-traffic pSEO pages get
+their **origin-level** field vitals as a fallback. A site-wide origin reading collapses
+into **one** finding (not one per page). Per-URL lookups are pooled and capped at 150
+(`--crux-max-lookups <n>`, or `0` for unlimited); if the cap forces origin-level
+fallback, or CrUX rate-limits (429) / rejects the key (401/403), pseolint says so rather
+than silently reporting "no data". The CrUX endpoint is a fixed Google host — no
+external-authority dependency on your own content, consistent with pseolint's
+offline-runnable design.
 
 ## GitHub Action
 

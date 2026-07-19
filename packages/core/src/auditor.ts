@@ -2685,11 +2685,24 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         options.crux.apiKey,
         {
           maxUrlLookups: options.crux.maxUrlLookups,
+          formFactor: options.crux.formFactor,
+          concurrency,
           onCapped: (skipped) => {
             // eslint-disable-next-line no-console
             console.error(
-              `pseolint: CrUX per-URL lookups capped; ${skipped} page(s) got origin-level ` +
-              `field data only. Raise --crux-max-lookups for per-URL precision.`,
+              `pseolint: CrUX per-URL lookups capped; ${skipped} page(s) beyond the cap use ` +
+              `origin-level field data. Raise --crux-max-lookups (or set 0 for unlimited) for per-URL precision.`,
+            );
+          },
+          onHttpError: (statuses) => {
+            const rateLimited = statuses.includes(429);
+            const badKey = statuses.includes(401) || statuses.includes(403);
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX returned operational error(s) [${statuses.join(", ")}]` +
+              (rateLimited ? " — rate-limited (429); some pages fell back to lab/no field data." : "") +
+              (badKey ? " — key rejected (401/403); check CRUX_API_KEY." : "") +
+              (!rateLimited && !badKey ? " — some field data may be missing." : ""),
             );
           },
         },

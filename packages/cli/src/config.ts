@@ -96,7 +96,7 @@ const auditOptionsSchema = z.object({
     ]).optional(),
   }).optional(),
   contentEffort: z.object({ enabled: z.boolean().optional(), model: z.string().optional(), cacheDir: z.string().optional() }).optional(),
-  crux: z.object({ apiKey: z.string(), maxUrlLookups: z.number().optional() }).optional(),
+  crux: z.object({ apiKey: z.string(), maxUrlLookups: z.number().optional(), formFactor: z.enum(["phone", "desktop", "all"]).optional() }).optional(),
   telemetry: z.object({
     enabled: z.boolean().optional(),
     path: z.string().optional(),
@@ -200,7 +200,7 @@ export interface CliFlags {
     cache?: { ttlMs?: number } | false;
   };
   contentEffort?: { enabled?: boolean; model?: string; cacheDir?: string };
-  crux?: { apiKey: string; maxUrlLookups?: number };
+  crux?: { apiKey: string; maxUrlLookups?: number; formFactor?: "phone" | "desktop" | "all" };
   telemetry?: {
     enabled?: boolean;
     path?: string;
