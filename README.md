@@ -92,7 +92,7 @@ The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, 
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
 - **Calibrated against reputable pSEO.** Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
 - **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
-- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: field Core Web Vitals or INP (the `tech/core-web-vitals` rule measures LCP/CLS from a headless-Chromium lab render under `--render`, which catches gross regressions but is not CrUX field data; INP needs real interaction a passive crawl can't produce), image SEO dimensions, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
+- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: image SEO dimensions, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
 
 Full version history — calibration rounds, per-rule changes, safety hardening — is in [CHANGELOG.md](./CHANGELOG.md).
 
@@ -235,7 +235,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | `tech/canonical-consistency` | Missing, invalid, or conflicting canonical URLs (HTML + HTTP header) | Error |
 | `tech/sitemap-completeness` | Pages missing from sitemap, phantom 404s, redirecting sitemap URLs | Error |
 | `tech/csr-bailout` | Render-diff: substantive content / interactivity that appears only after client-side JS — invisible to crawlers and the first indexing pass (needs `--render`) | Warning |
-| `tech/core-web-vitals` | LCP / CLS in Google's "poor" tier (LCP >4s, CLS >0.25). Lab measurement under headless Chromium — a directional signal, not CrUX field data (needs `--render`) | Warning |
+| `tech/core-web-vitals` | Core Web Vitals in Google's "poor" tier. Default: lab LCP/CLS from a headless-Chromium render (needs `--render`). With a free CrUX API key (`--crux-api-key`), uses real-user field p75 for LCP/CLS **and INP** — the numbers Google ranks on | Warning |
 | `tech/soft-404` | HTTP 200 pages that look like error pages — plus a synthetic-URL probe that fetches one nonexistent URL per template cluster (a 200 means the directory will index unbounded junk; needs `--render`) | Error |
 | `tech/robots-compliance` | Sitemap URLs blocked by `robots.txt` (Disallow patterns matching listed pages) | Error |
 | `tech/robots-noindex-conflict` | Noindexed pages (meta or X-Robots-Tag) with inbound links | Warning |
@@ -510,6 +510,26 @@ npx pseolint https://yoursite.com --render
 
 Works with any CDP-compatible browser. Remote endpoints must use `wss://`.
 
+## Core Web Vitals
+
+Two sources, both opt-in:
+
+```bash
+# Lab: measure LCP + CLS from a headless-Chromium render. Zero external calls.
+npx pseolint https://yoursite.com --render
+
+# Field: real-user p75 LCP/CLS/INP from the Chrome UX Report (the numbers Google
+# ranks on, and the only source of INP). Free key: https://developer.chrome.com/docs/crux/api
+CRUX_API_KEY=... npx pseolint https://yoursite.com          # or --crux-api-key <key>
+```
+
+When a CrUX key is set, `tech/core-web-vitals` scores against **field data** and falls
+back to the lab render only where CrUX has no data. CrUX only covers URLs/origins with
+enough real traffic, so low-traffic pSEO pages get their **origin-level** field vitals
+as a fallback; per-URL lookups are capped at 150 (`--crux-max-lookups <n>` to raise).
+The CrUX endpoint is a fixed Google host — no external-authority dependency on your
+own content, consistent with pseolint's offline-runnable design.
+
 ## GitHub Action
 
 ```yaml
@@ -617,7 +637,7 @@ bun run test     # 1,203 tests across 126 files (core)
 ## Roadmap
 
 - **AI-inferred template mapping** — today `apply --pr` needs a hand-authored `.pseolint/templates.json`; infer route→source automatically.
-- **Closing blind spots** — Core Web Vitals, schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md).
+- **Closing blind spots** — schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md). (Core Web Vitals landed: lab LCP/CLS via `--render`, real-user field p75 + INP via `--crux-api-key`.)
 - **Web "Open PR" button** — the fix rail runs from the CLI/Action today; a hosted one-click flow is deferred until the GitHub-App auth is justified.
 
 Found a false positive or a missing check? [Open an issue](https://github.com/ouranos-labs/pseolint/issues) — corpus-backed bug reports move the calibration.

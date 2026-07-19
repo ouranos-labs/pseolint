@@ -51,6 +51,7 @@ import { soft404Rule } from "./rules/tech/soft-404.js";
 import { evaluateProbe } from "./rules/tech/soft-404-probe.js";
 import { csrBailoutRule } from "./rules/tech/csr-bailout.js";
 import { coreWebVitalsRule } from "./rules/tech/core-web-vitals.js";
+import { fetchCruxFieldVitals } from "./crux.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
@@ -2669,6 +2670,39 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       console.error(
         `pseolint: --render failed (${err instanceof Error ? err.message : String(err)}). ` +
         `Continuing without rendered DOM; tech/csr-bailout will be skipped.`,
+      );
+    }
+  }
+
+  // CrUX field data: fetch real-user p75 CWV (LCP/CLS/INP) and attach to pages
+  // so tech/core-web-vitals can score against the number Google ranks on rather
+  // than the lab render. Opt-in (key required), best-effort — any failure leaves
+  // fieldVitals unset and the rule falls back to lab vitals.
+  if (options?.crux?.apiKey) {
+    try {
+      const fieldByUrl = await fetchCruxFieldVitals(
+        parsedPagesAll.map((p) => p.url),
+        options.crux.apiKey,
+        {
+          maxUrlLookups: options.crux.maxUrlLookups,
+          onCapped: (skipped) => {
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX per-URL lookups capped; ${skipped} page(s) got origin-level ` +
+              `field data only. Raise --crux-max-lookups for per-URL precision.`,
+            );
+          },
+        },
+      );
+      for (const p of parsedPagesAll) {
+        const fv = fieldByUrl.get(p.url);
+        if (fv) (p as { fieldVitals?: ParsedPage["fieldVitals"] }).fieldVitals = fv;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `pseolint: CrUX field-data fetch failed (${err instanceof Error ? err.message : String(err)}). ` +
+        `Continuing with lab vitals only.`,
       );
     }
   }

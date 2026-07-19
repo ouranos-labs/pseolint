@@ -36,4 +36,28 @@ describe("core-web-vitals", () => {
   it("tolerates null metric fields", () => {
     expect(coreWebVitalsRule([page({ url: "https://x.com/f", webVitals: { lcp: null, cls: null, ttfb: null } })])).toHaveLength(0);
   });
+
+  it("flags poor INP from field data (field-only metric)", () => {
+    const out = coreWebVitalsRule([page({ url: "https://x.com/g", fieldVitals: { lcp: 1800, cls: 0.02, inp: 640, source: "url" } })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toMatch(/INP 640ms/);
+    expect(out[0].message).toMatch(/real-user p75/);
+    expect(out[0].confidence).toBe("high");
+  });
+
+  it("prefers field data over lab when both present", () => {
+    // Lab says poor LCP; field says LCP is fine → field wins, no finding.
+    const out = coreWebVitalsRule([page({
+      url: "https://x.com/h",
+      webVitals: { lcp: 9000, cls: 0.9, ttfb: 100 },
+      fieldVitals: { lcp: 2000, cls: 0.05, inp: 150, source: "url" },
+    })]);
+    expect(out).toHaveLength(0);
+  });
+
+  it("labels origin-level field data as a site-level fallback", () => {
+    const out = coreWebVitalsRule([page({ url: "https://x.com/i", fieldVitals: { lcp: 5000, cls: 0.05, inp: 150, source: "origin" } })]);
+    expect(out).toHaveLength(1);
+    expect(out[0].message).toMatch(/origin-level/);
+  });
 });
