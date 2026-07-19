@@ -50,6 +50,8 @@ import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { evaluateProbe } from "./rules/tech/soft-404-probe.js";
 import { csrBailoutRule } from "./rules/tech/csr-bailout.js";
+import { coreWebVitalsRule } from "./rules/tech/core-web-vitals.js";
+import { fetchCruxFieldVitals } from "./crux.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
@@ -540,6 +542,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // treated as 350× the impact.
   "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
   "tech/og-completeness":                { baseImpact: 4,  perInstance: 1, maxImpact: 20 },
+  "tech/core-web-vitals":                { baseImpact: 5,  perInstance: 1, maxImpact: 25 },
 
   // Links
   "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
@@ -946,6 +949,11 @@ function runRulesOnPages(
   if (isEnabled("tech/csr-bailout") && modeOk("tech/csr-bailout")) {
     // No-op unless --render populated page.renderedHtml (the rule guards internally).
     pushAll(findings, tag(csrBailoutRule(pages)));
+  }
+
+  if (isEnabled("tech/core-web-vitals") && modeOk("tech/core-web-vitals")) {
+    // No-op unless --render populated page.webVitals (the rule guards internally).
+    pushAll(findings, tag(coreWebVitalsRule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
@@ -2651,16 +2659,63 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
           extraBlockedHosts: options.render.extraBlockedHosts,
         },
       );
-      const renderedByUrl = new Map(rendered.map((r) => [r.url, r.html]));
+      const renderedByUrl = new Map(rendered.map((r) => [r.url, r]));
       for (const p of parsedPagesAll) {
-        const html = renderedByUrl.get(p.url);
-        if (html) (p as { renderedHtml?: string }).renderedHtml = html;
+        const r = renderedByUrl.get(p.url);
+        if (r?.html) (p as { renderedHtml?: string }).renderedHtml = r.html;
+        if (r?.webVitals) (p as { webVitals?: ParsedPage["webVitals"] }).webVitals = r.webVitals;
       }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(
         `pseolint: --render failed (${err instanceof Error ? err.message : String(err)}). ` +
         `Continuing without rendered DOM; tech/csr-bailout will be skipped.`,
+      );
+    }
+  }
+
+  // CrUX field data: fetch real-user p75 CWV (LCP/CLS/INP) and attach to pages
+  // so tech/core-web-vitals can score against the number Google ranks on rather
+  // than the lab render. Opt-in (key required), best-effort — any failure leaves
+  // fieldVitals unset and the rule falls back to lab vitals.
+  if (options?.crux?.apiKey) {
+    try {
+      const fieldByUrl = await fetchCruxFieldVitals(
+        parsedPagesAll.map((p) => p.url),
+        options.crux.apiKey,
+        {
+          maxUrlLookups: options.crux.maxUrlLookups,
+          formFactor: options.crux.formFactor,
+          concurrency,
+          onCapped: (skipped) => {
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX per-URL lookups capped; ${skipped} page(s) beyond the cap use ` +
+              `origin-level field data. Raise --crux-max-lookups (or set 0 for unlimited) for per-URL precision.`,
+            );
+          },
+          onHttpError: (statuses) => {
+            const rateLimited = statuses.includes(429);
+            const badKey = statuses.includes(401) || statuses.includes(403);
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX returned operational error(s) [${statuses.join(", ")}]` +
+              (rateLimited ? " — rate-limited (429); some pages fell back to lab/no field data." : "") +
+              (badKey ? " — key rejected (401/403); check CRUX_API_KEY." : "") +
+              (!rateLimited && !badKey ? " — some field data may be missing." : ""),
+            );
+          },
+        },
+      );
+      for (const p of parsedPagesAll) {
+        const fv = fieldByUrl.get(p.url);
+        if (fv) (p as { fieldVitals?: ParsedPage["fieldVitals"] }).fieldVitals = fv;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `pseolint: CrUX field-data fetch failed (${err instanceof Error ? err.message : String(err)}). ` +
+        `Continuing with lab vitals only.`,
       );
     }
   }

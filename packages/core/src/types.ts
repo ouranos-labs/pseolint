@@ -598,6 +598,25 @@ export interface AuditOptions {
   authorityScore?: number;
   /** OpenPageRank API key; enables live authority lookup when authorityScore is not supplied. */
   openPageRankApiKey?: string;
+  /**
+   * Opt-in Chrome UX Report field data for Core Web Vitals. When `apiKey` is
+   * set (free CrUX key), the auditor fetches real-user p75 LCP/CLS/INP and the
+   * tech/core-web-vitals rule scores against it instead of the lab `--render`
+   * measurement — this is the number Google ranks on, and the only source of
+   * INP. Off unless a key is provided. Queries stay on Google's fixed CrUX
+   * endpoint (no SSRF surface).
+   */
+  crux?: {
+    apiKey: string;
+    /** Cap on per-URL CrUX lookups; pages beyond it inherit origin-level field data. Default 150; 0 = unlimited. */
+    maxUrlLookups?: number;
+    /**
+     * Which CrUX form factor to query. Google indexes mobile-first, so `"phone"`
+     * is the ranking-relevant view; `"all"` (default) is the aggregate across
+     * devices and can mask a poor mobile experience.
+     */
+    formFactor?: "phone" | "desktop" | "all";
+  };
   /** Custom authority provider (overrides the default OPR/CC composite). For tests + offline corpora. */
   authorityProvider?: import("./algorithms/authority/provider.js").AuthorityProvider;
   /**
@@ -878,5 +897,48 @@ export interface ParsedPage {
   html: string;
   /** Post-hydration DOM (page.content()) when audited with --render; absent in static mode. */
   renderedHtml?: string;
+  /**
+   * Core Web Vitals captured during --render. Absent in static mode.
+   * ponytail: lab snapshot under headless Chromium (LCP/CLS to networkidle),
+   * NOT real-user field data (CrUX). Catches gross regressions, not the exact
+   * number Google scores. INP is omitted — it needs real interaction a passive
+   * crawl can't produce. Upgrade path: ingest CrUX/PageSpeed field data if
+   * callers need the number Search Console shows.
+   */
+  webVitals?: WebVitals;
+  /**
+   * Real-user Core Web Vitals from CrUX. Absent unless a CrUX API key is
+   * supplied (`crux` option / `--crux-api-key`). When present, the
+   * tech/core-web-vitals rule prefers this over the lab `webVitals` — it's the
+   * field data Google ranks on, and it's the only source of INP.
+   */
+  fieldVitals?: FieldVitals;
   httpMeta?: HttpMeta;
+}
+
+export interface WebVitals {
+  /** Largest Contentful Paint, ms. null when no LCP entry was observed. */
+  lcp: number | null;
+  /** Cumulative Layout Shift, unitless. Accumulated up to networkidle. */
+  cls: number | null;
+  /** Time to First Byte, ms (navigation timing responseStart). */
+  ttfb: number | null;
+}
+
+/**
+ * Real-user Core Web Vitals from the Chrome UX Report (CrUX) — the p75 values
+ * Google actually ranks on, including INP (unmeasurable in a passive crawl).
+ * Populated only when a CrUX API key is supplied. `source` distinguishes a
+ * precise per-URL reading from an origin-level fallback (used when the specific
+ * URL has too little traffic to have its own field data).
+ */
+export interface FieldVitals {
+  /** p75 Largest Contentful Paint, ms. null when CrUX has no LCP for this key. */
+  lcp: number | null;
+  /** p75 Cumulative Layout Shift, unitless. */
+  cls: number | null;
+  /** p75 Interaction to Next Paint, ms. */
+  inp: number | null;
+  /** "url" = this exact URL's field data; "origin" = site-level fallback. */
+  source: "url" | "origin";
 }

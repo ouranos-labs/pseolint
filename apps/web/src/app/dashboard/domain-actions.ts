@@ -33,6 +33,41 @@ function originOf(rawUrl: string): { host: string; origin: string } {
   return { host: u.host, origin: `${u.protocol}//${u.host}` };
 }
 
+/**
+ * Enqueue an audit job, converting an Inngest failure into a graceful result
+ * instead of an uncaught throw. A bare `await inngest.send(...)` in a server
+ * action rejects the action → HTTP 500 (and leaves the just-inserted `queued`
+ * audit row orphaned forever). On failure we mark that row `failed` so it
+ * doesn't sit as a perpetual "queued", and return false so callers can decide
+ * whether the enqueue was essential (re-audit) or best-effort (first add).
+ */
+type AuditRequestData = {
+  url: string;
+  plan: "free" | "pro";
+  sampleSize: number;
+  render?: boolean;
+  mode?: "full" | "diff";
+  force?: { urls?: string[] };
+};
+
+async function enqueueAudit(
+  auditId: string,
+  data: AuditRequestData,
+  ctx: { userId: string; host: string },
+): Promise<boolean> {
+  try {
+    await inngest.send({ name: "audit/requested", data: { auditId, ...data } });
+    return true;
+  } catch (e) {
+    auditLog("audit.enqueue.failed", { auditId, userId: ctx.userId, host: ctx.host, err: e instanceof Error ? e.message : String(e) });
+    await db.update(audits)
+      .set({ status: "failed", errorMessage: "Failed to queue audit job" })
+      .where(eq(audits.id, auditId))
+      .catch(() => { /* row-mark is best-effort; the return value is the signal */ });
+    return false;
+  }
+}
+
 export async function addDomainAction(
   rawUrl: string,
 ): Promise<{ ok: true; host: string; auditId: string } | { ok: false; error: string }> {
@@ -141,13 +176,13 @@ export async function addDomainAction(
     }
   }
 
-  await inngest.send({
-    name: "audit/requested",
-    data: {
-      auditId: audit.id, url: origin, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full",
-      ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
-    },
-  });
+  // Best-effort kickoff: the domain is already saved and the weekly cron will
+  // audit it regardless, so an enqueue failure must NOT fail the add (or 500).
+  await enqueueAudit(
+    audit.id,
+    { url: origin, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full", ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }) },
+    { userId: session.user.id, host },
+  );
 
   return { ok: true, host, auditId: audit.id };
 }
@@ -208,13 +243,14 @@ export async function reAuditNowAction(
   // always re-fetch them, not just weekly cron runs.
   const watchedUrls = await loadWatchedUrlsForDomain(dom.id);
 
-  await inngest.send({
-    name: "audit/requested",
-    data: {
-      auditId: audit.id, url: dom.sourceUrl, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full",
-      ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
-    },
-  });
+  // Re-audit's whole point is to run now — a failed enqueue must surface as an
+  // error (and mark the orphaned row failed), not 500 or falsely report success.
+  const queued = await enqueueAudit(
+    audit.id,
+    { url: dom.sourceUrl, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full", ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }) },
+    { userId: session.user.id, host: domainHost },
+  );
+  if (!queued) return { ok: false, error: "Couldn't queue the audit — please try again in a moment." };
 
   return { ok: true, auditId: audit.id };
 }
@@ -387,17 +423,13 @@ export async function addWatchedPage(
         status: "queued", expiresAt, isPublic: false,
       }).returning({ id: audits.id });
 
-      await inngest.send({
-        name: "audit/requested",
-        data: {
-          auditId: audit.id,
-          url: dom.sourceUrl,
-          plan: "pro",
-          sampleSize: PRO_REAUDIT_SAMPLE_SIZE,
-          mode: "full",
-          force: { urls: [normalized] },
-        },
-      });
+      // Best-effort: the watched page is already saved; a queue failure here
+      // must not roll the whole add back to an error.
+      await enqueueAudit(
+        audit.id,
+        { url: dom.sourceUrl, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full", force: { urls: [normalized] } },
+        { userId: session.user.id, host: dom.host },
+      );
     }
 
     revalidatePath(`/dashboard/${encodeURIComponent(dom.host)}`);
