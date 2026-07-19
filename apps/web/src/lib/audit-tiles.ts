@@ -1,14 +1,24 @@
-import type { AuditSummary, Severity as CoreSeverity } from "@pseolint/core";
+import type { AuditSummary, RuleResult, Severity as CoreSeverity } from "@pseolint/core";
 import type { TileState, TileMeta } from "@/components/landing/tile-grid";
 
 const RANK: Record<CoreSeverity, number> = { info: 1, warning: 2, error: 3, critical: 4 };
 
-function flattenIssues(summary: AuditSummary) {
-  return [
-    ...summary.issues.blockers,
-    ...summary.issues.shouldFix,
-    ...summary.issues.informational,
-  ];
+// Storage holds blobs from multiple engine versions. Legacy v0.3 summaries have
+// no bucketed `issues` object — they carry a flat `findings` array — so reading
+// `summary.issues.blockers` unconditionally threw and took the whole dashboard
+// route to the error boundary for any host whose latest audit was pre-v0.4.
+function flattenIssues(summary: AuditSummary): RuleResult[] {
+  const issues = summary.issues as AuditSummary["issues"] | undefined;
+  if (issues) {
+    return [...(issues.blockers ?? []), ...(issues.shouldFix ?? []), ...(issues.informational ?? [])];
+  }
+  return (summary as { findings?: RuleResult[] }).findings ?? [];
+}
+
+/** pageCount is required in every summary shape, but guard non-numeric legacy blobs
+ *  so `new Array(total)` can't hit `RangeError: Invalid array length` on NaN. */
+function pageCountOf(summary: AuditSummary): number {
+  return typeof summary.pageCount === "number" && Number.isFinite(summary.pageCount) ? summary.pageCount : 0;
 }
 
 export function worstSeverityPerPage(summary: AuditSummary): Map<string, CoreSeverity> {
@@ -22,7 +32,7 @@ export function worstSeverityPerPage(summary: AuditSummary): Map<string, CoreSev
 }
 
 export function summaryToTileStates(summary: AuditSummary, max = 200): TileState[] {
-  const total = Math.min(Math.max(summary.pageCount, 0), max);
+  const total = Math.min(Math.max(pageCountOf(summary), 0), max);
   if (total === 0) return [];
   const perPage = worstSeverityPerPage(summary);
   const severities = Array.from(perPage.values()).sort((a, b) => RANK[b] - RANK[a]);
@@ -44,7 +54,7 @@ export function summaryToTileMeta(
   host?: string,
   max = 200,
 ): TileMeta[] {
-  const total = Math.min(Math.max(summary.pageCount, 0), max);
+  const total = Math.min(Math.max(pageCountOf(summary), 0), max);
   if (total === 0) return [];
   const perPage = worstSeverityPerPage(summary);
   const dirtySorted = Array.from(perPage.entries())
@@ -93,7 +103,7 @@ export function severityCounts(summary: AuditSummary): {
 
 export function cleanPageCount(summary: AuditSummary): number {
   const withFindings = worstSeverityPerPage(summary).size;
-  return Math.max(0, summary.pageCount - withFindings);
+  return Math.max(0, pageCountOf(summary) - withFindings);
 }
 
 /**
@@ -120,7 +130,7 @@ export function pagesByWorstSeverity(summary: AuditSummary): {
     blockers,
     shouldFix,
     info,
-    clean: Math.max(0, summary.pageCount - wp.size),
+    clean: Math.max(0, pageCountOf(summary) - wp.size),
   };
 }
 
