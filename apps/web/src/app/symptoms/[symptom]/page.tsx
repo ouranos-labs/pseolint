@@ -175,7 +175,8 @@ function getSymptomArchetype(slug: string): 'recovery' | 'penalty' | 'tech' {
     slug.includes("deindexed") ||
     slug.includes("manual-action") ||
     slug.includes("scaled-content-abuse") ||
-    slug.includes("doorway-pages")
+    slug.includes("doorway-pages") ||
+    slug.includes("expired-domain-abuse")
   ) {
     return "penalty";
   }

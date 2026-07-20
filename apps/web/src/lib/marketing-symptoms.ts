@@ -908,6 +908,70 @@ const SYMPTOMS_BASE = [
     recoveryTimeline:
       "There is no manual-action clock here because there is no manual action — recovery is gated entirely by Google re-crawling and re-clustering your pages, which moves at crawl-budget pace. For pages you genuinely differentiate, expect Google to re-evaluate over the next one to three crawl cycles (roughly two to six weeks for a healthy host) and to start honoring your declared canonical once the bodies are distinct enough to read as separate documents; the indexed-as-declared ratio in Search Console is your leading indicator. For pages you consolidate on purpose, cleanup is faster and more predictable: once 301s or aligned canonicals are in place, the duplicate cluster shrinks within a crawl cycle or two and the surviving URL absorbs the impressions. Do not expect the \"Duplicate\" bucket to empty overnight — it drains URL by URL — and resist re-requesting indexing on individual pages, since the pace at which Google re-includes your differentiated pages is itself the quality verdict you are waiting on.",
   },
+  {
+    slug: "expired-domain-abuse",
+    title: "Expired domain abuse — when a bought domain's legacy authority becomes the liability",
+    metaDescription:
+      "Google's expired-domain-abuse policy demotes sites that repurpose an aged domain's residual authority for unrelated content. How to detect the topical mismatch and recover.",
+    primaryKeyword: "expired domain abuse",
+    oneLiner:
+      "You bought an aged domain (or 301'd one into your site) to inherit its backlink authority, ranked fast, then watched Google collapse it once the mismatch between the domain's history and its new content was scored.",
+    whatYouSee:
+      "You acquired a domain with an established backlink profile — a defunct local newspaper, a shuttered SaaS, a lapsed nonprofit — and rebuilt it with programmatic content in a completely different niche. For six to ten weeks it ranked far above what a fresh domain could earn, riding residual link equity and historical trust. Then, typically anchored to a spam-update rollout (Google named expired domain abuse as one of three new spam policies in the March 5, 2024 spam update, which finished rolling out on April 19, 2024 after 44 days), rankings collapse across the new template set while the legacy pages Google still remembers behave inconsistently. In Search Console you may see a manual action citing 'Expired domain abuse', or — more often — silent algorithmic suppression: impressions on the new content fall to near zero, the cached authority signals stop transferring, and third-party trackers show the domain reverting to the visibility its new content alone would merit.",
+    likelyCauses: [
+      {
+        cause: "Repurposing a domain's legacy authority for content unrelated to its history",
+        explanation:
+          "The core violation. Google compares the topical and link-graph fingerprint of the domain's archived history against its current content. When a former photography-equipment blog reappears as a payday-loan directory, the inherited backlinks point at a subject the current pages never cover, and the mismatch reads as an attempt to launder authority rather than earn it.",
+      },
+      {
+        cause: "Skipping the new-domain trust ramp by migrating a programmatic template set onto an aged shell",
+        explanation:
+          "Some operators move an entire /city/{service} grid onto a purchased domain specifically to bypass the months of slow trust-building a fresh domain endures. The template itself may already be borderline thin or doorway-shaped; layering it onto borrowed authority accelerates the ranking but also concentrates every scaled-content and doorway signal onto a domain now under expired-domain scrutiny.",
+      },
+      {
+        cause: "Funnelling equity through a 301 redirect from an unrelated expired domain",
+        explanation:
+          "Rather than rebuilding on the old domain, the operator 301-redirects a topically-unrelated expired domain into a money site to pass PageRank. Google discounts redirects whose source and target share no topical or link-graph continuity, and a cluster of such redirects pointing into one host is itself a spam signal.",
+      },
+    ],
+    diagnosticSteps: [
+      "Pull the domain's history in the Wayback Machine and record its former primary topic, then compare it against your current content's primary topic — a categorical mismatch is the single strongest expired-domain-abuse signal.",
+      "Export the referring domains from your backlink tool and label each by the subject it links about; if the majority of legacy links are topically unrelated to your current pages, the inherited authority is the liability, not the asset.",
+      "Run pseolint's host-section-divergence rule to quantify how far the new content section diverges from any legacy section still on the host across links, topic, template, and authorship.",
+      "Audit every 301 redirect pointing into the domain and verify the source domain's former topic matches the target — discount or remove redirects with no topical continuity.",
+      "Check Search Console → Manual actions for an explicit 'Expired domain abuse' citation, and the Security & Manual Actions history for prior enforcement on the domain before you acquired it.",
+      "Measure the unique, substantive value of the new pages independent of the domain's authority — if the same content on a fresh domain would not rank, the authority is doing work the content cannot sustain, which is exactly what the policy targets.",
+    ],
+    relatedRules: [
+      "host-section-divergence",
+      "thin-content",
+      "unique-value",
+      "eeat-signals",
+    ],
+    caseStudy:
+      "Kestrelbank Analytics acquired a lapsed personal-finance newsletter domain with 1,900 referring domains built over a decade of genuine editorial coverage, and rebuilt it as a 4,200-page directory of crypto-exchange comparisons — a topic the newsletter had never touched. For nine weeks the directory ranked in the top five for mid-tail exchange queries, far above its content quality, on the strength of the finance-newsletter backlinks. When the March 2024 spam update finished rolling out, Google's expired-domain classifier scored the crypto directory against the newsletter's archived history, found no topical or link-graph continuity, and suppressed the entire new template set; visibility fell 94% in eleven days. There was no recovery path that preserved the play — the value was always the borrowed authority, which the policy is designed to neutralize. The domain was eventually rebuilt around genuine, independently-linkable exchange-security research authored under a named analyst, at which point it began earning the rankings its own content merited.",
+    faqs: [
+      {
+        q: "Is buying an expired domain against Google's guidelines?",
+        a: "No — acquiring an expired domain is not itself a violation. The policy targets a specific intent: buying a domain primarily because its residual authority can boost content that would not otherwise rank. If you buy a lapsed domain to continue or genuinely extend its former purpose, you are inside the rules. The line is topical and editorial continuity — whether the new content earns the authority it inherits or merely borrows it.",
+      },
+      {
+        q: "How does Google know a domain changed hands and topic?",
+        a: "Google has crawled and indexed most domains for years, so it holds an archived fingerprint of each domain's historical topics, link graph, and content patterns. When a domain's current content diverges categorically from that fingerprint while retaining the old backlink profile, the discontinuity is detectable without any registrar signal. The Wayback Machine you use to check history is a rough proxy for what Google already stores internally.",
+      },
+      {
+        q: "Can a disavow file fix expired domain abuse?",
+        a: "Rarely, and not as a primary fix. Disavowing the legacy backlinks removes the borrowed authority — which usually collapses whatever ranking remained, because the authority was doing the work. The durable fix is to make the content independently valuable and topically coherent so it earns rankings without leaning on the inherited link graph. Disavow is a tool for toxic links, not for laundered-authority mismatch.",
+      },
+      {
+        q: "How is expired domain abuse different from site reputation abuse?",
+        a: "Site reputation abuse is about hosting third-party or off-topic content under a reputable site's existing authority (the parasite pattern), enforced at the subfolder level. Expired domain abuse is about acquiring a whole domain to inherit its authority for unrelated content. Both exploit accumulated trust the current content did not earn; pseolint's host-section-divergence rule detects the structural signature common to both — a section of a host whose links, topic, and template diverge from the rest.",
+      },
+    ],
+    recoveryTimeline:
+      "Recovery from expired domain abuse is harder than most demotions because the play's entire value — the borrowed authority — is exactly what Google has decided to stop crediting. If the content on the new domain is genuinely useful and merely topically discontinuous with the domain's past, the path is to rebuild topical and editorial continuity: publish substantive, independently-linkable content in the domain's actual current subject, add named authorship and E-E-A-T signals, and let Google recrawl and re-fingerprint the domain over one to two core-update cycles (typically 60 to 120 days). If the content only ever ranked because of the inherited authority, there is no recovery that preserves the original strategy — treat the domain as a fresh property and earn rankings its own content can sustain. Removing topically-unrelated 301 redirects into the domain should be immediate; that signal is discounted quickly once the redirects are gone.",
+  },
 ];
 
 /** Merge per-slug authoritative sources onto each base entry. */

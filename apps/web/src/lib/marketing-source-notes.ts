@@ -488,6 +488,24 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
 };
 
 export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
+  "expired-domain-abuse": [
+    {
+      "source": "spamPolicies",
+      "note": "Google named expired domain abuse as one of three new spam policies in the March 5, 2024 spam update; the policy text defines the violation as buying an expired domain primarily to boost the ranking of low-value content by exploiting the domain's residual reputation — the exact intent this page's diagnostics test for."
+    },
+    {
+      "source": "helpfulContent",
+      "note": "The helpful-content framing asks whether a page earns its ranking on its own merit; expired-domain-abuse recovery hinges on making the new content independently valuable rather than dependent on inherited authority, which is why the final diagnostic tests whether the same content would rank on a fresh domain."
+    },
+    {
+      "source": "redirects",
+      "note": "Google's redirects guidance underpins the 301-continuity check — equity passed through a redirect whose source and target share no topical or link-graph continuity is discounted, so a cluster of unrelated expired-domain redirects into one host is both ineffective and a spam signal."
+    },
+    {
+      "source": "searchEssentials",
+      "note": "Search Essentials establishes that ranking should reflect content quality and relevance; the expired-domain classifier operationalises this by scoring current content against the domain's archived topical fingerprint, flagging the categorical mismatch this page teaches operators to detect."
+    }
+  ],
   "how-to-audit-programmatic-seo": [
     {
       "source": "helpfulContent",

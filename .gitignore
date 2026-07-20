@@ -64,3 +64,10 @@ graphify-out/
 # Organic SERP scanning bridge outputs
 serp-analysis-results.json
 serp_opportunity_report.md
+
+scripts/automate-serp.mjs
+scripts/compile-seo-report.mjs
+scripts/deep-audit-competitors.mjs
+
+docs/growth/pseolint-serp-strategy.md
+pseolint-serp-report.md
