@@ -8,7 +8,7 @@ const REPORT_PATH = "/research/state-of-pseo-2026";
 const REPORT_TITLE = "State of pSEO 2026: SpamBrain Risk Across Programmatic SEO";
 // Title tag is assembled as `${REPORT_TITLE} · pseolint research` (78 chars).
 // Trimmed title tag uses a shorter form to stay ≤60 chars for SERP display.
-const REPORT_TITLE_TAG = "State of pSEO 2026 — SpamBrain risk · pseolint";
+const REPORT_TITLE_TAG = "State of pSEO 2026: SpamBrain risk · pseolint";
 const REPORT_DESCRIPTION =
   "Modeled estimates of programmatic-SEO health in 2026: failure rates across 8 SpamBrain rules, vertical and tech-stack breakdowns. CC BY 4.0.";
 const SAMPLE_WINDOW = "January 1, 2026 to April 20, 2026";
@@ -43,7 +43,7 @@ export function generateMetadata(): Metadata {
           url: absoluteUrl("/opengraph-image"),
           width: 1200,
           height: 630,
-          alt: "State of pSEO 2026 — pseolint research report",
+          alt: "State of pSEO 2026 · pseolint research report",
         },
       ],
     },
@@ -61,11 +61,11 @@ type Faq = { q: string; a: string };
 const FAQS: ReadonlyArray<Faq> = [
   {
     q: "What is programmatic SEO (pSEO)?",
-    a: "Programmatic SEO is the practice of generating large numbers of landing pages from a structured dataset and a shared template — for example, one page per city, per integration, or per product comparison. Done well, it scales informational coverage; done poorly, it produces near-duplicate, low-utility pages that Google's SpamBrain classifier targets as scaled content abuse.",
+    a: "Programmatic SEO is the practice of generating large numbers of landing pages from a structured dataset and a shared template, for example, one page per city, per integration, or per product comparison. Done well, it scales informational coverage; done poorly, it produces near-duplicate, low-utility pages that Google's SpamBrain classifier targets as scaled content abuse.",
   },
   {
     q: "What is SpamBrain and why does it matter for pSEO in 2026?",
-    a: "SpamBrain is Google's AI-based spam-detection system. Since the March 2024 core update folded scaled content abuse into the main spam policy, SpamBrain has become the primary mechanism through which low-utility programmatic pages are demoted or deindexed. The March 27, 2026 core update tightened these signals further on date-stacked corpora and sparse high-dimension template matrices — the two patterns most common in unmaintained pSEO programs. In 2026, the dominant cause of pSEO traffic loss is not a manual action — it is silent classification by SpamBrain.",
+    a: "SpamBrain is Google's AI-based spam-detection system. Since the March 2024 core update folded scaled content abuse into the main spam policy, SpamBrain has become the primary mechanism through which low-utility programmatic pages are demoted or deindexed. The March 27, 2026 core update tightened these signals further on date-stacked corpora and sparse high-dimension template matrices, the two patterns most common in unmaintained pSEO programs. In 2026, the dominant cause of pSEO traffic loss is not a manual action: it is silent classification by SpamBrain.",
   },
   {
     q: "How many audited pSEO sites fail at least one SpamBrain-aligned rule in 2026?",
@@ -73,7 +73,7 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: "Which CMS or framework correlates with the worst pSEO health?",
-    a: "Webflow-hosted pSEO templates show the highest median template-uniqueness failure rate in the corpus, largely because Webflow's CMS encourages a single Collection Page that maps fields one-to-one onto the page — producing structurally identical pages with low cross-page lexical variance. WordPress sites built on table-driven plugins show similar patterns. Custom Next.js implementations have the widest variance: the best are excellent, the worst are generated bulk content.",
+    a: "Webflow-hosted pSEO templates show the highest median template-uniqueness failure rate in the corpus, largely because Webflow's CMS encourages a single Collection Page that maps fields one-to-one onto the page, producing structurally identical pages with low cross-page lexical variance. WordPress sites built on table-driven plugins show similar patterns. Custom Next.js implementations have the widest variance: the best are excellent, the worst are generated bulk content.",
   },
   {
     q: "Did the May 2024 site-reputation-abuse update change pSEO behavior?",
@@ -81,7 +81,7 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: "What single change most reduces SpamBrain risk for a pSEO site?",
-    a: "Adding a genuine primary-source data field per page — such as a verifiable price, a parsed regulation citation, or an aggregated metric — moves more pages out of the high-risk band than any other single intervention observed in the corpus. It is also the change most often skipped because it requires owning or licensing a dataset.",
+    a: "Adding a genuine primary-source data field per page, such as a verifiable price, a parsed regulation citation, or an aggregated metric, moves more pages out of the high-risk band than any other single intervention observed in the corpus. It is also the change most often skipped because it requires owning or licensing a dataset.",
   },
   {
     q: "Are AI-written pSEO pages automatically penalized?",
@@ -111,7 +111,7 @@ const TOP_FAILED_RULES: ReadonlyArray<{
     name: "Missing primary-source data",
     range: "41% to 46%",
     description:
-      "No structured field on the page references a primary source — no price, no citation, no first-party metric. The page is a synthesis with no anchor.",
+      "No structured field on the page references a primary source, no price, no citation, no first-party metric. The page is a synthesis with no anchor.",
   },
   {
     id: "thin-body",
@@ -178,7 +178,7 @@ const PASSING_PATTERNS: ReadonlyArray<{ title: string; detail: string }> = [
   {
     title: "One verifiable primary fact per page",
     detail:
-      "Passing sites attach at least one fact per page that is sourced from a dataset they own, license, or compute — a price, a regulation citation, an aggregated metric, a verified quote. The fact appears in the body, not just in schema markup.",
+      "Passing sites attach at least one fact per page that is sourced from a dataset they own, license, or compute, a price, a regulation citation, an aggregated metric, a verified quote. The fact appears in the body, not just in schema markup.",
   },
   {
     title: "Cross-page lexical variance above 35 percent",
@@ -188,7 +188,7 @@ const PASSING_PATTERNS: ReadonlyArray<{ title: string; detail: string }> = [
   {
     title: "Author entities resolve to real people",
     detail:
-      "Passing sites use author bylines that link to a real, verifiable entity — a LinkedIn profile, a published bibliography, or a documented organizational role. The author is reachable and has a verifiable history of work in the topic area.",
+      "Passing sites use author bylines that link to a real, verifiable entity, a LinkedIn profile, a published bibliography, or a documented organizational role. The author is reachable and has a verifiable history of work in the topic area.",
   },
   {
     title: "Index pruning, not just index growth",
@@ -198,12 +198,12 @@ const PASSING_PATTERNS: ReadonlyArray<{ title: string; detail: string }> = [
   {
     title: "First-party freshness signals",
     detail:
-      "Passing sites show evidence of recent, page-level updates — a changelog, a last-verified-on date that resolves to a recent ISO timestamp, or a delta against a prior snapshot. Static pSEO pages with stale dates fail at twice the rate of pages updated within 90 days.",
+      "Passing sites show evidence of recent, page-level updates, a changelog, a last-verified-on date that resolves to a recent ISO timestamp, or a delta against a prior snapshot. Static pSEO pages with stale dates fail at twice the rate of pages updated within 90 days.",
   },
   {
     title: "Schema that matches body content",
     detail:
-      "Passing sites publish JSON-LD whose values are present in the rendered body. Schema-only claims — ratings, prices, FAQs that appear nowhere on the page — correlate strongly with manual-action risk and rich-result loss.",
+      "Passing sites publish JSON-LD whose values are present in the rendered body. Schema-only claims, ratings, prices, FAQs that appear nowhere on the page, correlate strongly with manual-action risk and rich-result loss.",
   },
 ];
 
@@ -226,7 +226,7 @@ const PREDICTIONS: ReadonlyArray<{ title: string; detail: string }> = [
   {
     title: "Answer-engine citation will diverge from classical ranking",
     detail:
-      "By the end of 2026, the set of pSEO pages cited by Claude, ChatGPT, and Perplexity will increasingly diverge from the set ranking on Google. The signal answer engines use — verifiable, structured, original facts — is a stricter superset of what classical SEO rewards.",
+      "By the end of 2026, the set of pSEO pages cited by Claude, ChatGPT, and Perplexity will increasingly diverge from the set ranking on Google. The signal answer engines use, verifiable, structured, original facts, is a stricter superset of what classical SEO rewards.",
   },
 ];
 
@@ -275,7 +275,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
     "@context": "https://schema.org",
     "@type": "Dataset",
     name: "pseolint pSEO audit corpus, Q1 2026",
-    description: `Aggregated, anonymized audit results from ${SAMPLE_SIZE_TEXT} — programmatic-SEO sites audited via pseolint between ${SAMPLE_WINDOW}, covering ${PAGES_SAMPLED_TEXT}. Failure rates are reported as modeled estimates per SpamBrain-aligned rule, per vertical, and per tech stack, synthesized from the audit corpus, public Google guidance, and observed enforcement patterns.`,
+    description: `Aggregated, anonymized audit results from ${SAMPLE_SIZE_TEXT}, programmatic-SEO sites audited via pseolint between ${SAMPLE_WINDOW}, covering ${PAGES_SAMPLED_TEXT}. Failure rates are reported as modeled estimates per SpamBrain-aligned rule, per vertical, and per tech stack, synthesized from the audit corpus, public Google guidance, and observed enforcement patterns.`,
     url,
     creator: {
       "@type": "Organization",
@@ -389,7 +389,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           pseolint v1 launched in April 2026 with limited public-audit history. The figures below
           are modeled estimates synthesized from the audit corpus available at the time of writing,
           public Google guidance, and observed enforcement patterns from the 2024 to 2026 spam
-          updates — not a longitudinal proprietary dataset. Treat directional claims as
+          updates, not a longitudinal proprietary dataset. Treat directional claims as
           well-grounded and point estimates as best-fit ranges. We will reissue with audited numbers
           as the corpus matures.
         </p>
@@ -408,7 +408,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           </Finding>
           <Finding n={2}>
             Template-uniqueness collapse is the single most common failure, observed on roughly
-            half of all audited sites — a structural, not editorial, problem.
+            half of all audited sites, a structural, not editorial, problem.
           </Finding>
           <Finding n={3}>
             SaaS comparison sites are the worst-performing vertical, with 71 to 76 percent of
@@ -425,11 +425,11 @@ export default function StateOfPseo2026Page(): React.ReactElement {
             running on a borrowed-authority host has fallen from an estimated 20 to 24 percent to
             roughly 8 to 10 percent. pseolint v0.5.1 (May 3, 2026) ships a graph-aware detector
             (`links/host-section-divergence`) that flags first-party sections behaving like rented
-            inventory — the same pattern enforcement is expected to extend to.
+            inventory, the same pattern enforcement is expected to extend to.
           </Finding>
           <Finding n={6}>
             The strongest single predictor of passing the corpus rules is the presence of a
-            verifiable primary-source data field per page — not authorship, length, or schema
+            verifiable primary-source data field per page, not authorship, length, or schema
             volume.
           </Finding>
           <Finding n={7}>
@@ -561,8 +561,8 @@ export default function StateOfPseo2026Page(): React.ReactElement {
         <p className="mt-2">
           Webflow CMS Collection Pages dominate the high-uniqueness-failure tail of the corpus.
           Roughly 62 to 67 percent of audited Webflow-hosted pSEO sites fail the
-          template-uniqueness rule, the highest single platform failure rate observed. The platform is not the cause —
-          the workflow is. Sites that intervene with per-row text overrides clear the rule
+          template-uniqueness rule, the highest single platform failure rate observed. The platform is not the cause.
+          The workflow is. Sites that intervene with per-row text overrides clear the rule
           consistently.
         </p>
         <h3 className="mt-6 text-base font-semibold text-foreground">WordPress</h3>
@@ -595,8 +595,8 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           corpus differs from the 2024 reference set in three measurable ways.
         </p>
         <p className="mt-4">
-          First, the share of audited sites running on rented authority — subdomains and
-          subdirectories on high-authority hosts — has fallen from an estimated 20 to 24 percent
+          First, the share of audited sites running on rented authority, subdomains and
+          subdirectories on high-authority hosts, has fallen from an estimated 20 to 24 percent
           in early 2024 to roughly 8 to 10 percent by April 2026. This is the clearest behavioral response
           to the May 2024 site-reputation-abuse update.
         </p>
@@ -607,7 +607,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           rich-result loss and likely a future SpamBrain signal.
         </p>
         <p className="mt-4">
-          Third, AI-assisted writing is now the majority practice — an estimated 68 to 74 percent
+          Third, AI-assisted writing is now the majority practice, an estimated 68 to 74 percent
           of audited pSEO sites show statistical signatures of LLM-generated body copy on at least
           one sampled page. This number was in the range of 25 to 32 percent in early 2024. The corpus does not
           show that AI authorship causes failure; it shows that AI authorship without original
@@ -619,7 +619,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
         <p>
           Sites in the corpus that pass all eight rules share a small number of structural
           patterns. They are not always the largest sites, the oldest sites, or the most expensive
-          sites — but they consistently do the following.
+          sites, but they consistently do the following.
         </p>
         <ol className="mt-5 grid gap-3">
           {PASSING_PATTERNS.map((p, i) => (
@@ -641,7 +641,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
         <p>
           Predictions are grounded in the observed direction of Google&apos;s public guidance,
           enforcement patterns since 2024, and the signal weighting visible in answer-engine
-          citation behavior. They are predictions, not forecasts — read as probability shifts, not
+          citation behavior. They are predictions, not forecasts: read as probability shifts, not
           point estimates.
         </p>
         <ol className="mt-5 grid gap-3">
@@ -677,7 +677,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
       <Section title="Cite this report" id="cite">
         <p>
           This report is published under CC BY 4.0. You may quote, excerpt, and reuse it for any
-          purpose with attribution. Please use the canonical URL when linking — it is the version
+          purpose with attribution. Please use the canonical URL when linking: it is the version
           we will keep updated as the underlying corpus grows.
         </p>
 
@@ -707,7 +707,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           Markdown link
         </h3>
         <pre className="mt-2 overflow-x-auto rounded-[18px] border border-border/70 bg-card/60 p-4 text-xs leading-relaxed text-foreground">
-{`[State of pSEO 2026 — pseolint](${url})`}
+{`[State of pSEO 2026 · pseolint](${url})`}
         </pre>
       </Section>
 
@@ -731,7 +731,7 @@ export default function StateOfPseo2026Page(): React.ReactElement {
           },
           {
             source: "helpfulContent",
-            note: "The helpful-content criteria — originality, primary-source data, user-first intent — map directly to the passing patterns (primary-source fact per page, cross-page lexical variance) identified in this report's corpus.",
+            note: "The helpful-content criteria, originality, primary-source data, user-first intent, map directly to the passing patterns (primary-source fact per page, cross-page lexical variance) identified in this report's corpus.",
           },
           {
             source: "spamPolicies",

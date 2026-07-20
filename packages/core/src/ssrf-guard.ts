@@ -229,6 +229,18 @@ export async function validateTargetHost(
   if (v4.status === "fulfilled") for (const a of v4.value) addrs.push({ kind: "v4", addr: a });
   if (v6.status === "fulfilled") for (const a of v6.value) addrs.push({ kind: "v6", addr: a });
 
+  if (addrs.length === 0 && !options.resolver) {
+    try {
+      const lookedUp = await dns.lookup(hostname, { all: true });
+      for (const item of lookedUp) {
+        if (item.family === 4) addrs.push({ kind: "v4", addr: item.address });
+        else if (item.family === 6) addrs.push({ kind: "v6", addr: item.address });
+      }
+    } catch {
+      // Fallback lookup failed as well
+    }
+  }
+
   if (addrs.length === 0) {
     throw new DnsResolutionError(hostname);
   }

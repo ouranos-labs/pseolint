@@ -50,6 +50,8 @@ import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { evaluateProbe } from "./rules/tech/soft-404-probe.js";
 import { csrBailoutRule } from "./rules/tech/csr-bailout.js";
+import { coreWebVitalsRule } from "./rules/tech/core-web-vitals.js";
+import { fetchCruxFieldVitals } from "./crux.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
 import { schemaConsistencyRule } from "./rules/schema/consistency.js";
@@ -540,6 +542,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // treated as 350× the impact.
   "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
   "tech/og-completeness":                { baseImpact: 4,  perInstance: 1, maxImpact: 20 },
+  "tech/core-web-vitals":                { baseImpact: 5,  perInstance: 1, maxImpact: 25 },
 
   // Links
   "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
@@ -650,6 +653,16 @@ export function shiftVerdict(
 function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | undefined): Verdict {
   return shiftVerdict(verdict, { score: authorityScore, lenientAt: 80, strictAt: 30, cap: 1 });
 }
+
+// Content-effort JUDGE model — PINNED, not the provider default. The moderation
+// thresholds below (3 / 5 / 25) are calibrated to THIS model's 0-100 score
+// distribution (reputable median ≈ 8.5, farms ≤3). Bumping it requires a
+// re-calibration run — regenerate the committed score map and confirm the
+// reputable/farm gap still separates cleanly:
+//   PSEO_EFFORT_MODEL=<new-model> bun run packages/core/scripts/content-effort-validate.ts
+//   bun run scripts/calibration-corpus.ts   # verdict ceilings must still pass
+// Only then move this constant. See docs/superpowers/specs/2026-07-17-sonnet-5-default-bump.md.
+const CONTENT_EFFORT_MODEL = "claude-sonnet-4-6";
 
 // content-effort moderation band — STARTING values; Task 7 tunes against the
 // ratchet. Derived from the gate data: reputable median effort ≈ 8.5, addressable
@@ -936,6 +949,11 @@ function runRulesOnPages(
   if (isEnabled("tech/csr-bailout") && modeOk("tech/csr-bailout")) {
     // No-op unless --render populated page.renderedHtml (the rule guards internally).
     pushAll(findings, tag(csrBailoutRule(pages)));
+  }
+
+  if (isEnabled("tech/core-web-vitals") && modeOk("tech/core-web-vitals")) {
+    // No-op unless --render populated page.webVitals (the rule guards internally).
+    pushAll(findings, tag(coreWebVitalsRule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
@@ -1739,7 +1757,8 @@ async function loadPagesFromSource(
       const fetched = await fetchTextStrict(source, timeoutMs, cache, stats, signal, validateHop);
       text = fetched.text;
       contentType = fetched.contentType;
-    } catch {
+    } catch (err: unknown) {
+      const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
       // Sitemap URL returned non-200 — fallback to crawl from origin homepage
       if (source.includes("sitemap")) {
         try {
@@ -1748,11 +1767,12 @@ async function loadPagesFromSource(
           text = fallback.text;
           contentType = fallback.contentType;
           sourceStatus = -1; // flag that we fell back
-        } catch {
-          throw new Error(`Failed to fetch source URL: ${source} (and fallback to origin failed)`);
+        } catch (fallbackErr: unknown) {
+          const fallbackDetail = fallbackErr instanceof Error && fallbackErr.message ? `: ${fallbackErr.message}` : "";
+          throw new Error(`Failed to fetch source URL: ${source} (and fallback to origin failed${fallbackDetail})`, { cause: fallbackErr });
         }
       } else {
-        throw new Error(`Failed to fetch source URL: ${source} — verify the URL is correct and returns a valid response.`);
+        throw new Error(`Failed to fetch source URL: ${source}${detail} — verify the URL is correct and returns a valid response.`, { cause: err });
       }
     }
 
@@ -2145,9 +2165,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
   const respectNoindex = options?.respectNoindex ?? true;
-  const skipDetectedAuth = options?.skipDetectedAuth ?? false;
-  const skipBoilerplate = options?.skipBoilerplate ?? false;
-  const skipSearchPages = options?.skipSearchPages ?? false;
+  // v0.7.x — auth / boilerplate / search-result skipping default ON. These
+  // pages are never SEO targets, so auditing them only adds noise; the
+  // calibration FP-rate over the fixture corpus is ~0 (see calibration/fp-rate.ts).
+  // `skipEmptyBody` stays OFF by default — its one corpus hit is a listing
+  // homepage the parser under-extracts, a borderline false positive.
+  const skipDetectedAuth = options?.skipDetectedAuth ?? true;
+  const skipBoilerplate = options?.skipBoilerplate ?? true;
+  const skipSearchPages = options?.skipSearchPages ?? true;
   const skipEmptyBody = options?.skipEmptyBody ?? false;
   // v0.5.12: when pinnedUrls is non-empty, sampleSize is irrelevant — the
   // pinned list IS the sample. Force to 0 so the post-fetch sampling step
@@ -2636,16 +2661,63 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
           extraBlockedHosts: options.render.extraBlockedHosts,
         },
       );
-      const renderedByUrl = new Map(rendered.map((r) => [r.url, r.html]));
+      const renderedByUrl = new Map(rendered.map((r) => [r.url, r]));
       for (const p of parsedPagesAll) {
-        const html = renderedByUrl.get(p.url);
-        if (html) (p as { renderedHtml?: string }).renderedHtml = html;
+        const r = renderedByUrl.get(p.url);
+        if (r?.html) (p as { renderedHtml?: string }).renderedHtml = r.html;
+        if (r?.webVitals) (p as { webVitals?: ParsedPage["webVitals"] }).webVitals = r.webVitals;
       }
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(
         `pseolint: --render failed (${err instanceof Error ? err.message : String(err)}). ` +
         `Continuing without rendered DOM; tech/csr-bailout will be skipped.`,
+      );
+    }
+  }
+
+  // CrUX field data: fetch real-user p75 CWV (LCP/CLS/INP) and attach to pages
+  // so tech/core-web-vitals can score against the number Google ranks on rather
+  // than the lab render. Opt-in (key required), best-effort — any failure leaves
+  // fieldVitals unset and the rule falls back to lab vitals.
+  if (options?.crux?.apiKey) {
+    try {
+      const fieldByUrl = await fetchCruxFieldVitals(
+        parsedPagesAll.map((p) => p.url),
+        options.crux.apiKey,
+        {
+          maxUrlLookups: options.crux.maxUrlLookups,
+          formFactor: options.crux.formFactor,
+          concurrency,
+          onCapped: (skipped) => {
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX per-URL lookups capped; ${skipped} page(s) beyond the cap use ` +
+              `origin-level field data. Raise --crux-max-lookups (or set 0 for unlimited) for per-URL precision.`,
+            );
+          },
+          onHttpError: (statuses) => {
+            const rateLimited = statuses.includes(429);
+            const badKey = statuses.includes(401) || statuses.includes(403);
+            // eslint-disable-next-line no-console
+            console.error(
+              `pseolint: CrUX returned operational error(s) [${statuses.join(", ")}]` +
+              (rateLimited ? " — rate-limited (429); some pages fell back to lab/no field data." : "") +
+              (badKey ? " — key rejected (401/403); check CRUX_API_KEY." : "") +
+              (!rateLimited && !badKey ? " — some field data may be missing." : ""),
+            );
+          },
+        },
+      );
+      for (const p of parsedPagesAll) {
+        const fv = fieldByUrl.get(p.url);
+        if (fv) (p as { fieldVitals?: ParsedPage["fieldVitals"] }).fieldVitals = fv;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `pseolint: CrUX field-data fetch failed (${err instanceof Error ? err.message : String(err)}). ` +
+        `Continuing with lab vitals only.`,
       );
     }
   }
@@ -3050,7 +3122,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         "./algorithms/content-effort/judge.js"
       );
       const { model, modelId } = await createLanguageModel({
-        model: options.contentEffort.model ?? "claude-sonnet-4-6",
+        model: options.contentEffort.model ?? CONTENT_EFFORT_MODEL,
       });
       // Reuse the audit's own parsed pages + template clustering: map each
       // template's audited URLs back to their parsed contentText. When no

@@ -151,6 +151,25 @@ export default async function Page({
         </dl>
       </div>
 
+      {ownedByUser && row.session && (
+        <dl className="mt-4 flex flex-wrap gap-x-8 gap-y-2 rounded-[18px] border border-border/60 bg-card/40 px-6 py-4 text-sm">
+          <Stat
+            label="Cost"
+            value={`$${Number(row.session.spentUsd).toFixed(3)}`}
+            sub={`of $${Number(row.session.budgetUsd).toFixed(2)} cap`}
+          />
+          <Stat label="Tool calls" value={row.session.toolCallCount} />
+          <Stat
+            label="Tokens"
+            value={`${fmtTokens(row.session.inputTokens)} / ${fmtTokens(row.session.outputTokens)}`}
+            sub="in / out"
+          />
+          {row.session.durationMs != null && (
+            <Stat label="Duration" value={`${Math.round(row.session.durationMs / 1000)}s`} />
+          )}
+        </dl>
+      )}
+
       {ownedByUser && (
         <div className="mt-6">
           <ManifestVisibilityToggle slug={slug} initialIsPublic={row.manifest.isPublic} />
@@ -383,6 +402,13 @@ function gradeTone(grade: string): { tone: string; border: string; bg: string } 
   if (grade === "C") return { tone: "text-warning", border: "border-warning/30", bg: "bg-warning/5" };
   if (grade === "D") return { tone: "text-warning", border: "border-warning/50", bg: "bg-warning/10" };
   return { tone: "text-destructive", border: "border-destructive/40", bg: "bg-destructive/5" };
+}
+
+/** Compact token count: 12345 → "12.3K", 1_200_000 → "1.2M". */
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 function Stat({ label, value, sub, tone = "text-foreground" }: {

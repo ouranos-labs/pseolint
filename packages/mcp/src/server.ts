@@ -378,6 +378,10 @@ export function registerReadOnlyTools(server: McpServer): void {
         options.sampleSize = sampleSize > 0 ? sampleSize : MCP_SAMPLE_CAP;
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
         if (contentEffort) options.contentEffort = { enabled: true };
+        // CrUX field CWV: auto-enabled when the hosted operator sets CRUX_API_KEY
+        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY —
+        // no key travels through tool args). No-ops safely without it.
+        if (process.env.CRUX_API_KEY) options.crux = { apiKey: process.env.CRUX_API_KEY };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
 
         const summary = await auditSource(source, options);
@@ -485,6 +489,10 @@ export function registerReadOnlyTools(server: McpServer): void {
         const options: AuditOptions = { sampleSize: MCP_SAMPLE_CAP, safeMode: "saas" };
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
         if (contentEffort) options.contentEffort = { enabled: true };
+        // CrUX field CWV: auto-enabled when the hosted operator sets CRUX_API_KEY
+        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY —
+        // no key travels through tool args). No-ops safely without it.
+        if (process.env.CRUX_API_KEY) options.crux = { apiKey: process.env.CRUX_API_KEY };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
 
         const summary = await auditSource(source, options);

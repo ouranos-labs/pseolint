@@ -97,6 +97,9 @@ interface CliOptions {
   exitOnRegression: boolean;
   mode?: string;
   ageFloorDays?: number;
+  cruxApiKey?: string;
+  cruxMaxLookups?: string;
+  cruxFormFactor?: string;
   contentEffort?: boolean;
   contentEffortModel?: string;
   ai?: boolean;
@@ -186,9 +189,9 @@ export async function runCli(
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-respect-noindex", "Audit pages marked noindex (via meta robots or X-Robots-Tag) instead of skipping them")
-    .option("--skip-detected-auth", "Heuristically detect login/signup/password-reset pages and skip them from rule evaluation")
-    .option("--skip-boilerplate", "Skip cookie/legal/consent/imprint pages")
-    .option("--skip-search-pages", "Skip pages with search-result URL hallmarks (?q=, /search, etc.)")
+    .option("--no-skip-detected-auth", "Audit heuristically-detected login/signup/password-reset pages instead of skipping them")
+    .option("--no-skip-boilerplate", "Audit cookie/legal/consent/imprint pages instead of skipping them")
+    .option("--no-skip-search-pages", "Audit pages with search-result URL hallmarks (?q=, /search, etc.) instead of skipping them")
     .option("--skip-empty-body", "Skip un-hydrated SPA shells (script-driven pages with empty body)")
     .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
@@ -205,6 +208,9 @@ export async function runCli(
     .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: pseolint core's DEFAULT_AGE_FLOOR_DAYS, currently 7)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
     .option("--authority-score <0-100>", "Your domain's authority/reputation (0-100). High authority (≥80) shifts the verdict one tier lenient; low (≤30) shifts one tier stricter — counters thin-but-authoritative false positives.")
+    .option("--crux-api-key <key>", "Chrome UX Report API key (or set CRUX_API_KEY). Enables real-user field Core Web Vitals (p75 LCP/CLS/INP) for tech/core-web-vitals — the numbers Google ranks on, incl. INP. Free key; queries only Google's CrUX endpoint.")
+    .option("--crux-max-lookups <n>", "Cap on per-URL CrUX lookups; pages beyond it use origin-level field data (default: 150; 0 = unlimited).")
+    .option("--crux-form-factor <phone|desktop|all>", "CrUX form factor: phone (mobile-first, ranking-relevant) | desktop | all (default: all).")
     .option("--content-effort", "Enable the AI content-effort signal: a 0-100 originality/effort score (judged from page text) that moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY. Default off; adds a few cents of LLM cost per audit.")
     .option("--content-effort-model <name>", "Model for the content-effort judge (default: claude-sonnet-4-6)")
     .option("--ai", "Enable AI triage of findings")
@@ -280,7 +286,7 @@ export async function runCli(
     .command("orchestrate <domain>")
     .description("Run the AI-orchestrated auditor against a domain. Produces a fix manifest, validates every patch, prints a structured diff summary.")
     .option("--ai-provider <id>", "AI provider (anthropic | openai | google | ollama). Default: env-var auto-detect.")
-    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-7. Default: provider's default.")
+    .option("--ai-model <id>", "Model id, e.g. claude-opus-4-8. Default: provider's default.")
     .option("--ai-key <key>", "API key (or use the provider's env var).")
     .option("--max-cost <usd>", "Max session USD cap. Default $5.", parseFloat)
     .option("--max-tool-calls <n>", "Max tool calls per session. Default 100.", (v) => parseInt(v, 10))
@@ -356,6 +362,56 @@ export async function runCli(
         noColor: o.color === false,
       });
     });
+
+  program
+    .command("apply <manifest>")
+    .description("Apply a fix manifest's deterministic edits into the local working tree and print the human checklist. Reads .pseolint/templates.json for the template→source mapping. Review + commit the diff yourself.")
+    .option("--repo <dir>", "Repo root to apply edits into. Default: current directory.", ".")
+    .option("--mapping <path>", "Template→source mapping JSON. Default: <repo>/.pseolint/templates.json")
+    .option("--dry-run", "Print what would change without writing.")
+    .option("--pr", "Commit the edits to a pseolint/fix-* branch and open a GitHub PR (needs --token or GITHUB_TOKEN).")
+    .option("--token <token>", "GitHub token for --pr (or GITHUB_TOKEN env var).")
+    .option("--repo-slug <owner/repo>", "owner/repo for --pr. Default: derived from origin remote.")
+    .option("--base <branch>", "PR base branch for --pr. Default: origin's default branch.")
+    .option("--branch <branch>", "Head branch for --pr. Default: pseolint/fix-<domain>.")
+    .option("--no-color", "Disable colored output.")
+    .action(
+      async (
+        manifest: string,
+        o: {
+          repo: string;
+          mapping?: string;
+          dryRun?: boolean;
+          pr?: boolean;
+          token?: string;
+          repoSlug?: string;
+          base?: string;
+          branch?: string;
+          color?: boolean;
+        },
+      ) => {
+        const common = {
+          manifestPath: manifest,
+          repo: o.repo,
+          mappingPath: o.mapping,
+          dryRun: o.dryRun,
+          noColor: o.color === false,
+        };
+        if (o.pr) {
+          const { runApplyPrCommand } = await import("./commands/apply-pr.js");
+          exitCode = await runApplyPrCommand({
+            ...common,
+            token: o.token,
+            repoSlug: o.repoSlug,
+            base: o.base,
+            branch: o.branch,
+          });
+        } else {
+          const { runApplyCommand } = await import("./commands/apply.js");
+          exitCode = await runApplyCommand(common);
+        }
+      },
+    );
 
   program
     .command("upload <report>")
@@ -518,9 +574,9 @@ async function runAudit(
     backpressure: opts.backpressure === false ? false : undefined,
     respectRobotsTxt: opts.respectRobots === false ? false : undefined,
     respectNoindex: opts.respectNoindex === false ? false : undefined,
-    skipDetectedAuth: opts.skipDetectedAuth === true ? true : undefined,
-    skipBoilerplate: opts.skipBoilerplate === true ? true : undefined,
-    skipSearchPages: opts.skipSearchPages === true ? true : undefined,
+    skipDetectedAuth: opts.skipDetectedAuth === false ? false : undefined,
+    skipBoilerplate: opts.skipBoilerplate === false ? false : undefined,
+    skipSearchPages: opts.skipSearchPages === false ? false : undefined,
     skipEmptyBody: opts.skipEmptyBody === true ? true : undefined,
     followRedirects: opts.followRedirects === false ? false : undefined,
     strict: opts.strict === true ? true : undefined,
@@ -602,6 +658,18 @@ async function runAudit(
 
   if (opts.contentEffort) {
     cliFlags.contentEffort = { enabled: true, model: opts.contentEffortModel };
+  }
+
+  const cruxApiKey = opts.cruxApiKey ?? process.env.CRUX_API_KEY;
+  if (cruxApiKey) {
+    // Number("0") === 0 flows through so the core can treat 0 as "unlimited".
+    const maxLookups = opts.cruxMaxLookups !== undefined ? Number(opts.cruxMaxLookups) : undefined;
+    const ff = opts.cruxFormFactor;
+    cliFlags.crux = {
+      apiKey: cruxApiKey,
+      ...(maxLookups !== undefined && Number.isFinite(maxLookups) ? { maxUrlLookups: maxLookups } : {}),
+      ...(ff === "phone" || ff === "desktop" || ff === "all" ? { formFactor: ff } : {}),
+    };
   }
 
   const telemetryFeedback = opts.triageFeedback

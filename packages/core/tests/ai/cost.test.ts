@@ -10,7 +10,13 @@ describe("estimateCostUsd", () => {
 
   it("computes Haiku pricing", () => {
     const cost = estimateCostUsd("anthropic", "claude-haiku-4-5-20251001", { input: 1_000_000, output: 0 });
-    expect(cost).toBeCloseTo(0.8, 2);
+    expect(cost).toBeCloseTo(1.0, 2);
+  });
+
+  it("computes Opus pricing", () => {
+    // 1M input @ $5 + 1M output @ $25 = $30
+    const cost = estimateCostUsd("anthropic", "claude-opus-4-8", { input: 1_000_000, output: 1_000_000 });
+    expect(cost).toBeCloseTo(30, 2);
   });
 
   it("returns undefined for unknown model", () => {

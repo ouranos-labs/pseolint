@@ -127,10 +127,14 @@ export function OrchestratorProgress({
           <Stat
             label="Cost"
             value={`$${display.spentUsd.toFixed(3)}`}
-            sub={`of $${display.budgetUsd.toFixed(2)}`}
+            sub={display.budgetUsd > 0 ? `of $${display.budgetUsd.toFixed(2)} cap` : "cap loading…"}
           />
           <Stat label="Duration" value={`${elapsedSec.toFixed(1)}s`} />
-          <Stat label="Tokens" value={`${(display.inputTokens / 1000).toFixed(1)}K in`} sub={`${display.outputTokens} out`} />
+          <Stat
+            label="Tokens"
+            value={`${fmtTokens(display.inputTokens)} / ${fmtTokens(display.outputTokens)}`}
+            sub="in / out"
+          />
         </dl>
       </div>
 
@@ -234,6 +238,13 @@ function statusDot(s: SessionStatus["status"]): string {
     case "failed": return "bg-destructive";
     case "aborted": return "bg-muted-foreground";
   }
+}
+
+/** Compact token count: 12345 → "12.3K", 1_200_000 → "1.2M". */
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
 }
 
 function Stat({ label, value, sub }: { label: string; value: string | number; sub?: string }) {

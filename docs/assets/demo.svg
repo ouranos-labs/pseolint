@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1043" height="530" viewBox="0 0 1043 530" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="14">
+<rect width="1043" height="530" rx="10" fill="#0d1117"/>
+<rect width="1043" height="34" rx="10" fill="#161b22"/>
+<rect y="24" width="1043" height="10" fill="#161b22"/>
+<circle cx="18" cy="17" r="5" fill="#ff5f56"/><circle cx="34" cy="17" r="5" fill="#ffbd2e"/><circle cx="50" cy="17" r="5" fill="#27c93f"/>
+<text x="522" y="21" fill="#8b949e" text-anchor="middle" font-size="12">pseolint — auditing pseolint.dev</text>
+<text y="66.0"><tspan x="22.0"  fill="#c9d1d9" opacity="0.6">$</tspan><tspan x="30.4"  fill="#c9d1d9" >&#160;</tspan><tspan x="38.8" font-weight="600" fill="#c9d1d9" >npx&#160;pseolint&#160;https://pseolint.dev</tspan></text>
+<text y="106.0"><tspan x="22.0"  fill="#3fb950" >✓</tspan><tspan x="30.4"  fill="#c9d1d9" >&#160;Discovered&#160;12&#160;content&#160;pages</tspan></text>
+<text y="126.0"><tspan x="22.0"  fill="#3fb950" >✓</tspan><tspan x="30.4"  fill="#c9d1d9" >&#160;Site&#160;type:&#160;programmatic-directory&#160;(confidence&#160;70%,&#160;50&#160;URLs,&#160;/rules/:slug&#160;covers&#160;62%)</tspan></text>
+<text y="146.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;All&#160;32&#160;rules&#160;applied.</tspan></text>
+<text y="166.0"><tspan x="22.0"  fill="#3fb950" >✓</tspan><tspan x="30.4"  fill="#c9d1d9" >&#160;Demoted&#160;2&#160;rules&#160;(`aeo/citable-facts`,&#160;`spam/thin-content`)&#160;—&#160;programmatic-directory&#160;profile;&#160;pass&#160;--strict&#160;to&#160;disable</tspan></text>
+<text y="206.0"><tspan x="22.0" font-weight="600" fill="#c9d1d9" >Verdict:</tspan><tspan x="89.2"  fill="#c9d1d9" >&#160;</tspan><tspan x="97.6"  fill="#3fb950" >READY&#160;✓</tspan></text>
+<text y="226.0"><tspan x="22.0"  fill="#c9d1d9" opacity="0.6">Audited&#160;as&#160;programmatic-directory&#160;(70%&#160;confidence).</tspan></text>
+<text y="246.0"><tspan x="22.0"  fill="#c9d1d9" >Integrity&#160;</tspan><tspan x="106.0"  fill="#3fb950" >A</tspan><tspan x="114.4"  fill="#c9d1d9" >&#160;·&#160;Discoverability&#160;</tspan><tspan x="274.0"  fill="#3fb950" >A</tspan><tspan x="282.4"  fill="#c9d1d9" >&#160;·&#160;Citation&#160;</tspan><tspan x="383.2"  fill="#3fb950" >A</tspan><tspan x="391.6"  fill="#c9d1d9" >&#160;·&#160;Data&#160;</tspan><tspan x="458.8"  fill="#3fb950" >A</tspan></text>
+<text y="286.0"><tspan x="22.0" font-weight="600" fill="#c9d1d9" >Per-template&#160;breakdown&#160;(3&#160;templates):</tspan></text>
+<text y="326.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8" font-weight="600" fill="#c9d1d9" >/rules/:slug</tspan><tspan x="139.6"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="156.4"  fill="#3fb950" >READY</tspan><tspan x="198.4"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="215.2"  fill="#3fb950" >A</tspan></text>
+<text y="346.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8"  fill="#c9d1d9" opacity="0.6">31/31&#160;URLs&#160;(62.0%)</tspan><tspan x="190.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="206.8"  fill="#c9d1d9" opacity="0.6">uniformity&#160;61%</tspan></text>
+<text y="366.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;6/31&#160;samples&#160;fail&#160;`aeo/citable-facts`</tspan></text>
+<text y="406.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8" font-weight="600" fill="#c9d1d9" >/tools/:slug</tspan><tspan x="139.6"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="156.4"  fill="#3fb950" >READY</tspan><tspan x="198.4"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="215.2"  fill="#3fb950" >A</tspan></text>
+<text y="426.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8"  fill="#c9d1d9" opacity="0.6">5/5&#160;URLs&#160;(10.0%)</tspan><tspan x="173.2"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="190.0"  fill="#c9d1d9" opacity="0.6">uniformity&#160;100%</tspan></text>
+<text y="466.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8" font-weight="600" fill="#c9d1d9" >_longtail</tspan><tspan x="114.4"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="131.2"  fill="#3fb950" >READY</tspan><tspan x="173.2"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="190.0"  fill="#3fb950" >A</tspan></text>
+<text y="486.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="38.8"  fill="#c9d1d9" opacity="0.6">14/14&#160;URLs&#160;(28.0%)</tspan><tspan x="190.0"  fill="#c9d1d9" >&#160;&#160;</tspan><tspan x="206.8"  fill="#c9d1d9" opacity="0.6">uniformity&#160;68%</tspan></text>
+<text y="506.0"><tspan x="22.0"  fill="#c9d1d9" >&#160;&#160;2/14&#160;samples&#160;fail&#160;`aeo/citable-facts`</tspan></text>
+</svg>

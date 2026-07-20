@@ -96,6 +96,7 @@ const auditOptionsSchema = z.object({
     ]).optional(),
   }).optional(),
   contentEffort: z.object({ enabled: z.boolean().optional(), model: z.string().optional(), cacheDir: z.string().optional() }).optional(),
+  crux: z.object({ apiKey: z.string(), maxUrlLookups: z.number().optional(), formFactor: z.enum(["phone", "desktop", "all"]).optional() }).optional(),
   telemetry: z.object({
     enabled: z.boolean().optional(),
     path: z.string().optional(),
@@ -199,6 +200,7 @@ export interface CliFlags {
     cache?: { ttlMs?: number } | false;
   };
   contentEffort?: { enabled?: boolean; model?: string; cacheDir?: string };
+  crux?: { apiKey: string; maxUrlLookups?: number; formFactor?: "phone" | "desktop" | "all" };
   telemetry?: {
     enabled?: boolean;
     path?: string;
@@ -257,6 +259,7 @@ export function mergeOptions(
     }
     result.ai = merged;
   }
+  if (cliFlags.crux !== undefined) result.crux = cliFlags.crux;
   if (cliFlags.contentEffort !== undefined) {
     const merged: { enabled?: boolean; model?: string; cacheDir?: string } = { ...result.contentEffort };
     if (cliFlags.contentEffort.enabled !== undefined) merged.enabled = cliFlags.contentEffort.enabled;

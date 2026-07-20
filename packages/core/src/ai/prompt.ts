@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { RuleResult, Severity } from "../types.js";
 
-export const PROMPT_VERSION = "1.1.0";
+export const PROMPT_VERSION = "1.2.0";
 export const MAX_FINDINGS_IN_PROMPT = 200;
 
 const SEVERITY_ORDER: Record<Severity, number> = { info: 0, warning: 1, error: 2, critical: 3 };
@@ -13,6 +13,12 @@ Findings fall into two distinct threat families — treat them as separate root 
 - AI Overview invisibility: aeo/* — these make pages uncitable in AI answer engines (ChatGPT, Perplexity, Gemini, AI Overviews). Sites not cited lose ~68% of traffic vs ~12% for cited sites.
 
 When both families are present, produce at least one root cause from each. Label AEO root causes clearly (e.g. "AI Overviews: ...") so the user can tell them apart from penalty risks.
+
+Strategy-aware prioritization: first infer the site's programmatic-SEO archetype from the findings, rule mix, and page count (archetype + one-line archetypeRationale). Then rank root causes by what matters MOST for THAT archetype — the same finding carries different weight by strategy:
+- location-pages / directory: near-duplicate and entity-swap across the cluster are the primary penalty risk; a little boilerplate is expected, so don't over-rank generic thin-content.
+- comparison / aggregator: data freshness, unique-value, and citable-facts dominate; stale or undifferentiated tables are the real problem.
+- glossary / programmatic-blog: thin-content, answer-first, and AEO citability dominate; each page must stand alone.
+This only re-orders and re-frames — never drop or downrank a genuine finding to fit the archetype.
 
 Rules:
 - Emit rootCauses FIRST, then narrative — do not reverse this order.

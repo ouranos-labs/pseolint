@@ -598,6 +598,25 @@ export interface AuditOptions {
   authorityScore?: number;
   /** OpenPageRank API key; enables live authority lookup when authorityScore is not supplied. */
   openPageRankApiKey?: string;
+  /**
+   * Opt-in Chrome UX Report field data for Core Web Vitals. When `apiKey` is
+   * set (free CrUX key), the auditor fetches real-user p75 LCP/CLS/INP and the
+   * tech/core-web-vitals rule scores against it instead of the lab `--render`
+   * measurement — this is the number Google ranks on, and the only source of
+   * INP. Off unless a key is provided. Queries stay on Google's fixed CrUX
+   * endpoint (no SSRF surface).
+   */
+  crux?: {
+    apiKey: string;
+    /** Cap on per-URL CrUX lookups; pages beyond it inherit origin-level field data. Default 150; 0 = unlimited. */
+    maxUrlLookups?: number;
+    /**
+     * Which CrUX form factor to query. Google indexes mobile-first, so `"phone"`
+     * is the ranking-relevant view; `"all"` (default) is the aggregate across
+     * devices and can mask a poor mobile experience.
+     */
+    formFactor?: "phone" | "desktop" | "all";
+  };
   /** Custom authority provider (overrides the default OPR/CC composite). For tests + offline corpora. */
   authorityProvider?: import("./algorithms/authority/provider.js").AuthorityProvider;
   /**
@@ -671,29 +690,29 @@ export interface AuditOptions {
    */
   respectNoindex?: boolean;
   /**
-   * When true, pages heuristically detected as auth surfaces (login / signup /
-   * password reset) are excluded from rule evaluation. Detection requires 2+
-   * signals: `<input type="password">` in a < 200-word body, title matching
-   * the auth-page regex (case-insensitive, after stripping brand suffix), or
-   * H1 matching the same regex. Default: false (CLI runs unchanged; the
-   * hosted web form turns this on so end-user audits aren't polluted by auth
-   * pages at unconventional URLs like `/account` or `/portal`).
+   * When true (default), pages heuristically detected as auth surfaces (login /
+   * signup / password reset) are excluded from rule evaluation. Detection
+   * requires 2+ signals: `<input type="password">` in a < 200-word body, title
+   * matching the auth-page regex (case-insensitive, after stripping brand
+   * suffix), or H1 matching the same regex. The 2-signal threshold keeps the
+   * false-positive rate ~0 on the calibration corpus. Set to false (CLI:
+   * `--no-skip-detected-auth`) to audit auth pages anyway.
    */
   skipDetectedAuth?: boolean;
   /**
-   * When true, skip pages that look like cookie / legal / consent / imprint
-   * boilerplate (title, H1, or URL path matches well-known compliance-page
-   * patterns). These exist for legal compliance and are never SEO targets —
-   * auditing them produces routine findings the user already knows about.
-   * Default: false on the CLI; the hosted web form turns this on.
+   * When true (default), skip pages that look like cookie / legal / consent /
+   * imprint boilerplate (title, H1, or URL path matches well-known
+   * compliance-page patterns). These exist for legal compliance and are never
+   * SEO targets — auditing them produces routine findings the user already
+   * knows about. Set to false (CLI: `--no-skip-boilerplate`) to audit them.
    */
   skipBoilerplate?: boolean;
   /**
-   * When true, skip pages with search-result URL hallmarks (query parameter
-   * `q` / `query` / `search` / `s` / `keyword`, or path starting with
+   * When true (default), skip pages with search-result URL hallmarks (query
+   * parameter `q` / `query` / `search` / `s` / `keyword`, or path starting with
    * `/search`). Per Google's own SEO guidance these should be noindex'd but
-   * many sites don't tag them; auditing them generates noise. Default: false
-   * on the CLI.
+   * many sites don't tag them; auditing them generates noise. Set to false
+   * (CLI: `--no-skip-search-pages`) to audit them.
    */
   skipSearchPages?: boolean;
   /**
@@ -701,7 +720,8 @@ export interface AuditOptions {
    * < 100 chars, script tags present, no substantive noscript fallback).
    * These fail every content rule but the underlying problem is server-side
    * rendering, not content quality. Use --render mode instead. Default: false
-   * on the CLI.
+   * (opt-in via `--skip-empty-body`) — its lone corpus hit is a listing
+   * homepage the parser under-extracts, a borderline false positive.
    */
   skipEmptyBody?: boolean;
   /**
@@ -877,5 +897,48 @@ export interface ParsedPage {
   html: string;
   /** Post-hydration DOM (page.content()) when audited with --render; absent in static mode. */
   renderedHtml?: string;
+  /**
+   * Core Web Vitals captured during --render. Absent in static mode.
+   * ponytail: lab snapshot under headless Chromium (LCP/CLS to networkidle),
+   * NOT real-user field data (CrUX). Catches gross regressions, not the exact
+   * number Google scores. INP is omitted — it needs real interaction a passive
+   * crawl can't produce. Upgrade path: ingest CrUX/PageSpeed field data if
+   * callers need the number Search Console shows.
+   */
+  webVitals?: WebVitals;
+  /**
+   * Real-user Core Web Vitals from CrUX. Absent unless a CrUX API key is
+   * supplied (`crux` option / `--crux-api-key`). When present, the
+   * tech/core-web-vitals rule prefers this over the lab `webVitals` — it's the
+   * field data Google ranks on, and it's the only source of INP.
+   */
+  fieldVitals?: FieldVitals;
   httpMeta?: HttpMeta;
+}
+
+export interface WebVitals {
+  /** Largest Contentful Paint, ms. null when no LCP entry was observed. */
+  lcp: number | null;
+  /** Cumulative Layout Shift, unitless. Accumulated up to networkidle. */
+  cls: number | null;
+  /** Time to First Byte, ms (navigation timing responseStart). */
+  ttfb: number | null;
+}
+
+/**
+ * Real-user Core Web Vitals from the Chrome UX Report (CrUX) — the p75 values
+ * Google actually ranks on, including INP (unmeasurable in a passive crawl).
+ * Populated only when a CrUX API key is supplied. `source` distinguishes a
+ * precise per-URL reading from an origin-level fallback (used when the specific
+ * URL has too little traffic to have its own field data).
+ */
+export interface FieldVitals {
+  /** p75 Largest Contentful Paint, ms. null when CrUX has no LCP for this key. */
+  lcp: number | null;
+  /** p75 Cumulative Layout Shift, unitless. */
+  cls: number | null;
+  /** p75 Interaction to Next Paint, ms. */
+  inp: number | null;
+  /** "url" = this exact URL's field data; "origin" = site-level fallback. */
+  source: "url" | "origin";
 }
