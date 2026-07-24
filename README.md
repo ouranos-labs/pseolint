@@ -8,6 +8,7 @@
   <a href="./LICENSE"><img src="https://img.shields.io/npm/l/pseolint?color=blue" alt="License" /></a>
   <a href="https://www.npmjs.com/package/pseolint"><img src="https://img.shields.io/node/v/pseolint?color=339933&logo=node.js" alt="Node" /></a>
   <a href="https://github.com/ouranos-labs/pseolint"><img src="https://img.shields.io/github/stars/ouranos-labs/pseolint?style=social" alt="GitHub stars" /></a>
+  <a href="https://glama.ai/mcp/servers/ouranos-labs/pseolint"><img src="https://glama.ai/mcp/servers/ouranos-labs/pseolint/badges/score.svg" alt="ouranos-labs/pseolint MCP server" /></a>
   <a href="https://pseolint.dev/leaderboard"><img src="https://pseolint.dev/api/badge/pseolint.dev" alt="pseolint.dev dogfood" /></a>
 </p>
 
