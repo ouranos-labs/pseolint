@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -19,7 +19,7 @@ import { mergeFindings } from "@/lib/findings-state";
 import { evaluateAlertGate, isoWeekOf } from "@/lib/alert-gate";
 import { publicSlug } from "@/lib/slug";
 import { env } from "@/lib/env";
-import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
+import { loadWatchedUrlsForDomain, selectDueDomains } from "@/lib/monitoring";
 import { detectDegradedTemplates, fireDegradedEvents } from "@/lib/template-degraded";
 
 const MAX_DOMAINS_PER_TICK = 20;
@@ -37,18 +37,10 @@ export const monitorDomains = inngest.createFunction(
     }
     auditLog("monitor.cron.start", {});
 
+    // Eligibility (including the ownership gate) lives in selectDueDomains so
+    // it can be tested against a real DB — see monitor-eligibility.test.ts.
     const due = await step.run("fetch-due", async () =>
-      db
-        .select()
-        .from(monitoredDomains)
-        .where(and(
-          eq(monitoredDomains.paused, false),
-          lte(monitoredDomains.nextRunAt, new Date()),
-          isNull(monitoredDomains.removedAt),
-          // Only audit domains whose ownership has been proven via DNS TXT.
-          isNotNull(monitoredDomains.verifiedAt),
-        ))
-        .limit(MAX_DOMAINS_PER_TICK * 3),
+      selectDueDomains(MAX_DOMAINS_PER_TICK * 3),
     );
 
     // Per-host throttle: at most one audit per host per cron tick (hourly).

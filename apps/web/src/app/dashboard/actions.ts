@@ -8,6 +8,7 @@ import { assertSafeUrl } from "@/lib/ssrf";
 import { publicSlug } from "@/lib/slug";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { autoBindGscPropertiesForUser } from "@/lib/gsc";
+import { generateVerificationToken } from "@/lib/domain-verify";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -35,6 +36,10 @@ export async function addMonitoredDomain(rawUrl: string): Promise<ActionResult> 
       host,
       cadence: "weekly",
       nextRunAt: new Date(Date.now() + jitterMs),
+      // Required for the row to be verifiable at all: the auto-verify cron only
+      // polls rows that carry a token, and the workspace verify banner renders
+      // it. The monitoring cron ignores the domain until `verifiedAt` is set.
+      verificationToken: generateVerificationToken(),
     });
   } catch (e) {
     const msg = (e as Error).message ?? "";

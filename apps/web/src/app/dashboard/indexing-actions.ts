@@ -51,6 +51,14 @@ export async function requestIndexingAction(args: {
 
   if (!domain) throw new Error("Domain not found");
 
+  // 1a. Ownership proof. Google and Bing enforce this on their side too (an
+  // unowned property yields PERMISSION_DENIED / a rejected IndexNow key), but
+  // submitting a stranger's URLs on their behalf shouldn't depend on a third
+  // party for the block.
+  if (!domain.verifiedAt) {
+    return { error: "Verify domain ownership before requesting indexing." };
+  }
+
   // 1c. URL Hostname Containment (Prevent injection of arbitrary external spam URLs)
   try {
     const urlObj = new URL(args.url);
@@ -195,6 +203,11 @@ export async function requestBatchIndexingAction(args: {
     .limit(1);
 
   if (!domain) throw new Error("Domain not found");
+
+  // 1a. Ownership proof — see requestIndexingAction.
+  if (!domain.verifiedAt) {
+    return { error: "Verify domain ownership before requesting indexing." };
+  }
 
   // 1c. URL Hostname Containment (Prevent batch injection of arbitrary external spam URLs)
   const domainHost = domain.host.toLowerCase();

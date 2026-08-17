@@ -17,9 +17,11 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
     start(async () => {
       const res = await addDomainAction(url);
       if (!res.ok) { setErr(res.error); return; }
-      // Route through /a/{auditId} so the user watches the live audit; that page
-      // auto-redirects to /r/{slug} on completion. Same flow as free tier.
-      router.push(`/a/${res.auditId}`);
+      // Verified domains start auditing immediately: route through /a/{auditId}
+      // so the user watches the live run, which auto-redirects to /r/{slug} on
+      // completion (same flow as free tier). Unverified ones have no audit yet —
+      // send them to the workspace, where the verify banner is.
+      router.push(res.auditId ? `/a/${res.auditId}` : `/dashboard/${encodeURIComponent(res.host)}`);
     });
   }
 
@@ -51,7 +53,8 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
     <section className="rounded-[28px] border border-border/70 bg-card/40 p-6 text-center backdrop-blur-sm sm:p-8">
       <h2 className="text-xl font-medium text-foreground">Add your first domain</h2>
       <p className="mt-2 text-sm text-muted-foreground">
-        We&apos;ll run a full audit immediately, then check daily for changes.
+        Confirm ownership with a DNS record or Search Console, then we run a full
+        audit and check daily for changes.
       </p>
       <form onSubmit={submit} className="mx-auto mt-6 flex max-w-xl flex-col gap-2 sm:flex-row">
         <Input
