@@ -16,7 +16,7 @@ import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getPlan } from "@/lib/plan";
 import { auditLog } from "@/lib/audit-log";
 import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
-import { listSites, pickBestGscProperty } from "@/lib/gsc";
+import { listSites, pickBestGscProperty, provesGscOwnership } from "@/lib/gsc";
 import { integrations } from "@/db/schema";
 
 /**
@@ -68,9 +68,15 @@ async function enqueueAudit(
   }
 }
 
+/**
+ * Add a domain to monitoring. `auditId` is null when the domain still needs an
+ * ownership proof — no audit is queued in that case, so callers should send the
+ * user to the workspace (where the verify banner lives) rather than to a live
+ * audit page.
+ */
 export async function addDomainAction(
   rawUrl: string,
-): Promise<{ ok: true; host: string; auditId: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; host: string; auditId: string | null } | { ok: false; error: string }> {
   let session;
   try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
 
@@ -127,27 +133,25 @@ export async function addDomainAction(
     });
   }
 
-  const auditSlug = publicSlug();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
-  const [audit] = await db.insert(audits).values({
-    slug: auditSlug, userId: session.user.id, sourceUrl: origin,
-    status: "queued", expiresAt, isPublic: false,
-  }).returning({ id: audits.id });
-
-  // First-add audits run with no prior monitoring state so the engine's
-  // `force` is silently ignored — but watched pages can't exist yet on a
-  // brand-new domain anyway. Forwarding for symmetry; harmless when empty.
   const [domRow] = await db
-    .select({ id: monitoredDomains.id, gscSiteUrl: monitoredDomains.gscSiteUrl })
+    .select({
+      id: monitoredDomains.id,
+      gscSiteUrl: monitoredDomains.gscSiteUrl,
+      verifiedAt: monitoredDomains.verifiedAt,
+    })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)))
     .limit(1);
-  const watchedUrls = domRow ? await loadWatchedUrlsForDomain(domRow.id) : [];
+  let verified = Boolean(domRow?.verifiedAt);
 
   // Auto-bind the matching GSC property if the user already granted us
   // Search Console access. Best-effort: a failure (revoked perms,
   // network) leaves the domain unbound and the per-host settings page
   // surfaces a suggestion instead.
+  //
+  // A matched owner-or-full property is also a valid ownership proof (see
+  // `provesGscOwnership`), so it verifies the domain outright — Pro users who
+  // already connected Search Console never touch a TXT record.
   if (domRow && !domRow.gscSiteUrl) {
     const [conn] = await db
       .select({ id: integrations.id })
@@ -159,9 +163,15 @@ export async function addDomainAction(
         const sites = await listSites(session.user.id);
         const pick = pickBestGscProperty(sites, host);
         if (pick) {
+          const entry = sites.find((s) => s.siteUrl === pick);
+          const verifies = !verified && entry != null && provesGscOwnership(entry);
           await db.update(monitoredDomains)
-            .set({ gscSiteUrl: pick })
+            .set({ gscSiteUrl: pick, ...(verifies && { verifiedAt: new Date() }) })
             .where(eq(monitoredDomains.id, domRow.id));
+          if (verifies) {
+            verified = true;
+            auditLog("monitor.verified.via_gsc", { userId: session.user.id, host, siteUrl: pick });
+          }
           auditLog("gsc.autobind.on_add", { userId: session.user.id, host, siteUrl: pick });
         } else {
           auditLog("gsc.autobind.on_add.no_match", { userId: session.user.id, host });
@@ -176,8 +186,36 @@ export async function addDomainAction(
     }
   }
 
-  // Best-effort kickoff: the domain is already saved and the weekly cron will
-  // audit it regardless, so an enqueue failure must NOT fail the add (or 500).
+  // Ownership gate: an unverified domain gets no crawl at all — not even a
+  // one-off kickoff. The row is already saved with `nextRunAt` due, so
+  // monitor-domains audits it on the first hourly tick after
+  // verifyDomainAction / autoVerifyDomains stamps `verifiedAt`.
+  //
+  // This is also what bounds abuse on this path: you can only make us crawl a
+  // host you have proven you control, which is a stronger guarantee than the
+  // rate caps in `assertProAuditAllowed` could give.
+  //
+  // ponytail: the cron is already the mechanism, so no kickoff audit is fired
+  // at verify time either. Add one there if the sub-1h wait for the first
+  // report ever becomes a complaint.
+  if (!domRow || !verified) {
+    auditLog("monitor.add.awaiting_verification", { userId: session.user.id, host });
+    return { ok: true, host, auditId: null };
+  }
+
+  const auditSlug = publicSlug();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+  const [audit] = await db.insert(audits).values({
+    slug: auditSlug, userId: session.user.id, sourceUrl: origin,
+    status: "queued", expiresAt, isPublic: false,
+  }).returning({ id: audits.id });
+
+  // A re-added domain can already carry a watched-pages list, so forward it and
+  // let the kickoff run force-refetch those URLs. Empty on a brand-new domain.
+  const watchedUrls = await loadWatchedUrlsForDomain(domRow.id);
+
+  // Best-effort kickoff: the domain is already saved and the cron will audit it
+  // regardless, so an enqueue failure must NOT fail the add (or 500).
   await enqueueAudit(
     audit.id,
     { url: origin, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full", ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }) },
@@ -324,6 +362,7 @@ export async function addWatchedPage(
     id: monitoredDomains.id,
     host: monitoredDomains.host,
     sourceUrl: monitoredDomains.sourceUrl,
+    verifiedAt: monitoredDomains.verifiedAt,
   })
     .from(monitoredDomains)
     .where(and(
@@ -333,6 +372,12 @@ export async function addWatchedPage(
     ))
     .limit(1);
   if (!dom) return { ok: false, error: "not found" };
+
+  // Pinning a page schedules recurring fetches of it (and fires one below), so
+  // it needs the same ownership proof the monitoring cron demands.
+  if (!dom.verifiedAt) {
+    return { ok: false, error: "Verify domain ownership first (see workspace header)." };
+  }
 
   // Normalise + validate.
   const normalized = normalizeUserUrl(rawUrl);

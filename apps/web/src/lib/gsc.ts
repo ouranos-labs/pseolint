@@ -202,6 +202,20 @@ export async function markGscSynced(userId: string, at: Date = new Date()): Prom
 
 export type GscSite = { siteUrl: string; permissionLevel: string };
 
+/**
+ * True when a GSC property entry proves the connected user controls the site,
+ * making it valid evidence of domain ownership on its own.
+ *
+ * `listSites` already drops `siteUnverifiedUser`, so every entry it returns has
+ * passed Google's own DNS / HTML-file / Analytics verification — strictly
+ * stronger than our `_pseolint-verify` TXT check. On top of that we require
+ * owner-or-full access so a `siteRestrictedUser` grant (a read-only delegate
+ * who does not control the site) never counts as an ownership claim.
+ */
+export function provesGscOwnership(site: GscSite): boolean {
+  return site.permissionLevel === "siteOwner" || site.permissionLevel === "siteFullUser";
+}
+
 export async function listSites(userId: string): Promise<GscSite[]> {
   const tokens = await loadGscTokens(userId);
   if (!tokens) throw new Error("GSC not connected");
@@ -432,7 +446,11 @@ export async function autoBindGscPropertiesForUser(userId: string): Promise<Auto
   if (sites.length === 0) return { bound: 0, ambiguous: 0, unmatched: 0 };
 
   const unbound = await db
-    .select({ id: monitoredDomains.id, host: monitoredDomains.host })
+    .select({
+      id: monitoredDomains.id,
+      host: monitoredDomains.host,
+      verifiedAt: monitoredDomains.verifiedAt,
+    })
     .from(monitoredDomains)
     .where(and(
       eq(monitoredDomains.userId, userId),
@@ -451,8 +469,16 @@ export async function autoBindGscPropertiesForUser(userId: string): Promise<Auto
       ambiguous++;
       continue;
     }
+    // A matched owner-or-full property doubles as domain verification, so
+    // connecting Search Console starts monitoring without a TXT record. Only
+    // stamped when still unverified — never re-dates an existing verification.
+    const entry = sites.find((s) => s.siteUrl === matches[0].siteUrl);
+    const verifies = !d.verifiedAt && entry != null && provesGscOwnership(entry);
     await db.update(monitoredDomains)
-      .set({ gscSiteUrl: matches[0].siteUrl })
+      .set({
+        gscSiteUrl: matches[0].siteUrl,
+        ...(verifies && { verifiedAt: new Date() }),
+      })
       .where(eq(monitoredDomains.id, d.id));
     bound++;
   }

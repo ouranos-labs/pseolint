@@ -1,10 +1,12 @@
-import { and, asc, eq, isNull, like, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits, watchedPages } from "@/db/schema";
 import { publicSlug } from "@/lib/slug";
 import { inngest } from "@/lib/inngest";
 import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 import { PRO_REAUDIT_SAMPLE_SIZE } from "@/lib/audit-limits";
+import { generateVerificationToken } from "@/lib/domain-verify";
+import { autoBindGscPropertiesForUser } from "@/lib/gsc";
 
 /**
  * Webhook-safe variant of addDomainAction — no session required.
@@ -20,7 +22,11 @@ export async function ensureMonitoredDomainForUser(
   const origin = `${u.protocol}//${u.host}`;
 
   const [existing] = await db
-    .select({ id: monitoredDomains.id, removedAt: monitoredDomains.removedAt })
+    .select({
+      id: monitoredDomains.id,
+      removedAt: monitoredDomains.removedAt,
+      verifiedAt: monitoredDomains.verifiedAt,
+    })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
     .limit(1);
@@ -34,9 +40,16 @@ export async function ensureMonitoredDomainForUser(
       if (active >= MAX_PRO_DOMAINS) {
         throw new Error(`Pro domain cap reached (${MAX_PRO_DOMAINS})`);
       }
+      // Ownership must be re-proven on every re-add — same rule as
+      // addDomainAction's reactivate branch.
       await db
         .update(monitoredDomains)
-        .set({ removedAt: null, sourceUrl: origin })
+        .set({
+          removedAt: null,
+          sourceUrl: origin,
+          verificationToken: generateVerificationToken(),
+          verifiedAt: null,
+        })
         .where(eq(monitoredDomains.id, existing.id));
     }
   } else {
@@ -54,8 +67,28 @@ export async function ensureMonitoredDomainForUser(
       host,
       cadence: "daily",
       nextRunAt: new Date(),
+      // Without a token the auto-verify cron skips the row and the workspace
+      // verify banner has nothing to display — the domain would be stuck
+      // unverifiable until the user clicked Verify twice.
+      verificationToken: generateVerificationToken(),
     });
   }
+
+  // Checkout usually follows a free audit, so the user may already have Search
+  // Console connected. Binding it here also verifies the domain when the
+  // property proves ownership, which spares a fresh Pro subscriber the TXT
+  // record. Best-effort by contract — returns zero counts on any failure.
+  await autoBindGscPropertiesForUser(userId);
+
+  const [domRow] = await db
+    .select({ id: monitoredDomains.id, verifiedAt: monitoredDomains.verifiedAt })
+    .from(monitoredDomains)
+    .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
+    .limit(1);
+
+  // Ownership gate — mirrors addDomainAction. No kickoff crawl for an
+  // unverified domain; monitor-domains picks it up once `verifiedAt` lands.
+  if (!domRow?.verifiedAt) return { host };
 
   const auditSlug = publicSlug();
   const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
@@ -73,12 +106,7 @@ export async function ensureMonitoredDomainForUser(
 
   // v0.5.3 — load any existing watched URLs for the domain (re-activated
   // domains may already have a list) so the kickoff audit forces them.
-  const [domRow] = await db
-    .select({ id: monitoredDomains.id })
-    .from(monitoredDomains)
-    .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
-    .limit(1);
-  const watchedUrls = domRow ? await loadWatchedUrlsForDomain(domRow.id) : [];
+  const watchedUrls = await loadWatchedUrlsForDomain(domRow.id);
 
   await inngest.send({
     name: "audit/requested",
@@ -92,6 +120,30 @@ export async function ensureMonitoredDomainForUser(
   });
 
   return { host };
+}
+
+/**
+ * Domains eligible for a monitoring run right now: due, not paused, not
+ * soft-removed, and — the gate that matters — ownership-verified. A row failing
+ * any of these must never reach the auditor.
+ *
+ * Extracted from the `monitor-domains` cron (its only production caller) so the
+ * eligibility predicate can be exercised directly against a real database
+ * instead of being re-implemented by a test.
+ */
+export function selectDueDomains(limit: number) {
+  return db
+    .select()
+    .from(monitoredDomains)
+    .where(and(
+      eq(monitoredDomains.paused, false),
+      lte(monitoredDomains.nextRunAt, new Date()),
+      isNull(monitoredDomains.removedAt),
+      // Ownership proof: a DNS TXT record, or a Search Console property the
+      // user owns (see `provesGscOwnership`).
+      isNotNull(monitoredDomains.verifiedAt),
+    ))
+    .limit(limit);
 }
 
 /**

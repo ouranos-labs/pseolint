@@ -265,7 +265,7 @@ vi.mock("@/db", async () => {
 });
 
 vi.mock("@/db/schema", () => ({
-  monitoredDomains: { id: {}, userId: {}, host: {}, sourceUrl: {}, removedAt: {} },
+  monitoredDomains: { id: {}, userId: {}, host: {}, sourceUrl: {}, removedAt: {}, verifiedAt: {} },
   audits: { id: {}, slug: {}, sourceUrl: {}, userId: {}, status: {}, expiresAt: {}, isPublic: {} },
   watchedPages: {
     id: {},
@@ -355,6 +355,17 @@ describe("addWatchedPage", () => {
     const res = await callAddWatched(d.id, "https://example.com/x");
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toMatch(/not found/i);
+  });
+
+  it("rejects domains whose ownership hasn't been verified", async () => {
+    STATE.session = { user: { id: "user-A", email: "a@x" } };
+    const d = seedDomain({ verifiedAt: null });
+    const res = await callAddWatched(d.id, "https://example.com/x");
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/verify domain ownership/i);
+    // No pin, and no audit fired at a host we can't prove the user controls.
+    expect(STATE.watched).toHaveLength(0);
+    expect(STATE.inngestSent).toHaveLength(0);
   });
 
   it("rejects URLs whose host doesn't match the monitored domain", async () => {

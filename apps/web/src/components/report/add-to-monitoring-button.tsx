@@ -12,7 +12,9 @@ export function AddToMonitoringButton({ originUrl, className, children }: { orig
     start(async () => {
       const res = await addDomainAction(originUrl);
       if (!res.ok) { setErr(res.error); return; }
-      router.push(`/a/${res.auditId}`);
+      // No auditId means the domain still needs an ownership proof — the
+      // workspace carries the verify banner.
+      router.push(res.auditId ? `/a/${res.auditId}` : `/dashboard/${encodeURIComponent(res.host)}`);
     });
   }
 
