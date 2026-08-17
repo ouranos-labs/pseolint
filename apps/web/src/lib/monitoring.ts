@@ -131,8 +131,16 @@ export async function ensureMonitoredDomainForUser(
  * eligibility predicate can be exercised directly against a real database
  * instead of being re-implemented by a test.
  */
-export function selectDueDomains(limit: number) {
-  return db
+/**
+ * Either the pooled client or an open transaction. Accepting a transaction lets
+ * the DB-backed eligibility test seed rows, assert against them, and roll back —
+ * so a suite pointed at a live database commits nothing and the monitoring cron
+ * can never observe its fixtures.
+ */
+type Conn = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export function selectDueDomains(limit: number, conn: Conn = db) {
+  return conn
     .select()
     .from(monitoredDomains)
     .where(and(
