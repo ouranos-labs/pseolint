@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
+import { guidesForSection } from "@/lib/marketing-guides";
 import { env } from "@/lib/env";
 
 const SITE_URL =
@@ -183,6 +184,41 @@ export default function RulesIndexPage() {
           </li>
         ))}
       </ul>
+
+      {/* Editorial guides. Authored as their own route files, so nothing iterates
+          them — without this block they sit in the sitemap with no inbound links
+          and starve for crawl equity. Registry: lib/marketing-guides.ts. */}
+      <section className="mt-16">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">Guides</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Longer explainers that cut across several rules at once.
+        </p>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+          {guidesForSection("rules").map((guide) => (
+            <li key={guide.slug}>
+              <Link
+                href={`/rules/${guide.slug}`}
+                className="group flex h-full flex-col rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/40 hover:bg-card/80"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                    Guide
+                  </span>
+                  <span className="text-xs text-primary transition-transform group-hover:translate-x-0.5">
+                    Read &rarr;
+                  </span>
+                </div>
+                <h3 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
+                  {guide.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {guide.blurb}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">

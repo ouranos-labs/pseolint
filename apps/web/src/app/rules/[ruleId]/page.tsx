@@ -12,6 +12,7 @@ import { env } from "@/lib/env";
 import { InlineAuditWidget } from "@/components/marketing/inline-audit-widget";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { WorkedExampleSection } from "@/components/marketing/worked-example-section";
+import { renderInline, plainText } from "@/components/marketing/inline-markup";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? env().BETTER_AUTH_URL ?? "https://pseolint.dev";
@@ -138,7 +139,7 @@ function buildFaqJsonLd(rule: MarketingRule): FaqPageJsonLd {
     mainEntity: rule.faqs.map((faq) => ({
       "@type": "Question",
       name: faq.q,
-      acceptedAnswer: { "@type": "Answer", text: faq.a }
+      acceptedAnswer: { "@type": "Answer", text: plainText(faq.a) }
     }))
   };
 }
@@ -225,7 +226,9 @@ export default async function RulePage({ params }: PageProps) {
             className="border-b border-border/60 px-5 py-5 last:border-b-0"
           >
             <dt className="text-sm font-semibold text-foreground">{faq.q}</dt>
-            <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">{faq.a}</dd>
+            <dd className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {renderInline(faq.a)}
+            </dd>
           </div>
         ))}
       </dl>
@@ -265,7 +268,7 @@ export default async function RulePage({ params }: PageProps) {
         {rule.title}
       </h1>
 
-      <p className="mt-4 max-w-2xl text-base text-foreground">{rule.oneLiner}</p>
+      <p className="mt-4 max-w-2xl text-base text-foreground">{renderInline(rule.oneLiner)}</p>
 
       {/* Archetype B: Answer-First Structure FAQ render at the top */}
       {archetype === 'aeo' && (
@@ -364,11 +367,11 @@ export default async function RulePage({ params }: PageProps) {
           <div className="grid gap-4 md:grid-cols-2">
             <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-destructive">Failing Pattern</h4>
-              <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
+              <p className="text-sm leading-relaxed text-foreground">{renderInline(rule.failingExample)}</p>
             </div>
             <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Passing Pattern</h4>
-              <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
+              <p className="text-sm leading-relaxed text-foreground">{renderInline(rule.passingExample)}</p>
             </div>
           </div>
         </section>
@@ -376,13 +379,13 @@ export default async function RulePage({ params }: PageProps) {
         <>
           <Section title="A page that fails">
             <div data-example className="rounded-[18px] border border-destructive/30 bg-destructive/5 p-5">
-              <p className="text-sm leading-relaxed text-foreground">{rule.failingExample}</p>
+              <p className="text-sm leading-relaxed text-foreground">{renderInline(rule.failingExample)}</p>
             </div>
           </Section>
 
           <Section title="A page that passes">
             <div data-example className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
-              <p className="text-sm leading-relaxed text-foreground">{rule.passingExample}</p>
+              <p className="text-sm leading-relaxed text-foreground">{renderInline(rule.passingExample)}</p>
             </div>
           </Section>
         </>
@@ -487,7 +490,7 @@ export default async function RulePage({ params }: PageProps) {
               <span className="inline-grid h-7 w-7 shrink-0 place-items-center rounded-full border border-primary/40 bg-primary/10 font-mono text-xs text-primary">
                 {index + 1}
               </span>
-              <span className="text-sm leading-relaxed text-foreground">{step}</span>
+              <span className="text-sm leading-relaxed text-foreground">{renderInline(step)}</span>
             </li>
           ))}
         </ol>
@@ -574,12 +577,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * Keeps each rendered <p> independently extractable and under the
  * aeo/content-modularity word ceiling — split the source string with `\n\n`.
  */
+/**
+ * Renders inline `backtick` spans as <code>.
+ *
+ * This is load-bearing beyond typography: the engine's content rules strip
+ * EXAMPLE_REGION_SELECTOR ("pre, code, blockquote, figure, samp, kbd,
+ * [data-example]") before scanning, precisely so a page that *documents* a
+ * pattern isn't scored as if it were committing it. A rule page naming
+ * "hidden gem" as a specimen is quoting, not writing clichés — marking the
+ * specimen as code is how we say that in markup rather than special-casing
+ * our own domain in the engine.
+ */
 function Prose({ text }: { text: string }) {
   return (
     <>
       {text.split(/\n\n+/).map((para, i) => (
         <p key={i} className={`text-sm leading-relaxed text-foreground${i > 0 ? " mt-3" : ""}`}>
-          {para}
+          {renderInline(para)}
         </p>
       ))}
     </>

@@ -2,6 +2,7 @@ import { type Metadata } from "next";
 import Link from "next/link";
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
+import { guidesForSection } from "@/lib/marketing-guides";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
@@ -139,6 +140,40 @@ export default function ToolsIndexPage() {
           </Link>
         )) }
       </div>
+
+      {/* Editorial guides — see the note in app/rules/page.tsx; these route files
+          are not iterated by MARKETING_TOOLS and were orphaned without this block. */}
+      <section className="mt-12">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">Guides</h2>
+        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+          Walkthroughs for setting up a programmatic build and checking it before launch.
+        </p>
+        <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+          { guidesForSection("tools").map((guide) => (
+            <li key={ guide.slug }>
+              <Link
+                href={ `/tools/${guide.slug}` }
+                className="group flex h-full flex-col rounded-[22px] border border-border/70 bg-card/60 p-6 backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-card"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Guide
+                  </span>
+                  <span className="text-xs text-primary transition-transform group-hover:translate-x-0.5">
+                    Read →
+                  </span>
+                </div>
+                <h3 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
+                  { guide.title }
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  { guide.blurb }
+                </p>
+              </Link>
+            </li>
+          )) }
+        </ul>
+      </section>
 
       <div className="mt-6 grid gap-4 rounded-[22px] border border-border/60 bg-card/40 p-5 sm:grid-cols-2">
         <div>

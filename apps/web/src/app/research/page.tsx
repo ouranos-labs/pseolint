@@ -86,6 +86,54 @@ export default function ResearchIndexPage() {
         sites in {new Date().getFullYear()}.
       </p>
 
+      {/* Framing section. The hub was flagged by our own spam/thin-content rule at
+          294 words — fair for a bare index, but /research is meant to be the
+          citable authority hub, so it should state how the data is produced and
+          where it stops being reliable. Also adds real internal links out. */}
+      <section className="mt-10 rounded-[22px] border border-border/60 bg-card/40 p-6">
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          How these reports are built
+        </h2>
+        <div className="mt-4 space-y-4 text-sm leading-relaxed text-muted-foreground">
+          <p>
+            Every figure here comes from running the open-source pseolint engine over a
+            corpus of live sites, not from a survey or a vendor panel. The rules that
+            produce those numbers are the same ones that run when you audit your own
+            site, at the same thresholds, so a claim in a report can be reproduced by
+            pointing the CLI at the same URL. Where a report cites a percentage, the
+            denominator is stated inline rather than left implied.
+          </p>
+          <p>
+            Snapshots are dated and never silently revised. Search behaviour moves —
+            a core update lands, a platform changes its default templates — so a
+            re-measured figure ships as a new dated snapshot with the delta called out,
+            and the original stays readable. The scoring model, per-template
+            aggregation, and the severity demotions we apply are documented at{" "}
+            <Link
+              href="/methodology"
+              className="text-foreground underline decoration-dotted underline-offset-2"
+            >
+              /methodology
+            </Link>
+            , and the continuously-updated clean-corpus rankings are at{" "}
+            <Link
+              href="/leaderboard"
+              className="text-foreground underline decoration-dotted underline-offset-2"
+            >
+              /leaderboard
+            </Link>
+            .
+          </p>
+          <p>
+            The honest limit: this corpus is a sample, not a census of the web. It skews
+            toward sites that publish programmatically and toward the platforms our users
+            run, so treat cross-platform comparisons as directional and read the stated
+            sample size before quoting a number. Where a finding rests on too few sites
+            to generalise, the report says so instead of rounding it into a headline.
+          </p>
+        </div>
+      </section>
+
       <ul className="mt-12 space-y-6">
         {REPORTS.map((r) => (
           <li key={r.slug}>
