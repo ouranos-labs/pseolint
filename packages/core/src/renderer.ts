@@ -40,6 +40,15 @@ const INTERCEPTED_RESOURCE_TYPES = new Set([
 
 export interface RenderOptions {
   browserWsEndpoint?: string;
+  /**
+   * Path to a Chromium executable to launch instead of the binary Playwright
+   * downloaded for its own pinned build. Falls back to the
+   * `PSEOLINT_BROWSER_EXECUTABLE` env var. Lets environments with a system /
+   * pre-provisioned Chromium (containers, CI images) run render mode without
+   * a `playwright install` step. Ignored when `browserWsEndpoint` connects to
+   * a remote browser instead of launching one.
+   */
+  browserExecutablePath?: string;
   concurrency: number;
   timeoutMs: number;
   /**
@@ -158,7 +167,13 @@ export async function renderPages(
     validateWsEndpoint(endpoint);
     browser = await pw.chromium.connectOverCDP(endpoint);
   } else {
-    browser = await pw.chromium.launch({ headless: true });
+    const executablePath = options.browserExecutablePath
+      ?? process.env.PSEOLINT_BROWSER_EXECUTABLE
+      ?? undefined;
+    browser = await pw.chromium.launch({
+      headless: true,
+      ...(executablePath ? { executablePath } : {}),
+    });
   }
 
   // One browser context carries the UA + privacy headers + init script for every

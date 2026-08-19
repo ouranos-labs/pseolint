@@ -109,6 +109,50 @@ export const SOURCE_LIBRARY = {
     title: "Charikar — Similarity Estimation Techniques from Rounding Algorithms (SimHash), STOC 2002",
     url: "https://doi.org/10.1145/509907.509965",
   },
+  snippets: {
+    title: "Google Search Central — How to write meta descriptions (snippets)",
+    url: `${SC}/appearance/snippet`,
+  },
+  googlebot: {
+    title: "Google Search Central — Googlebot and its crawl limits",
+    url: `${SC}/crawling-indexing/googlebot`,
+  },
+  specialTags: {
+    title: "Google Search Central — Meta tags and HTML attributes Google supports",
+    url: `${SC}/crawling-indexing/special-tags`,
+  },
+  multiRegional: {
+    title: "Google Search Central — Managing multi-regional and multilingual sites",
+    url: `${SC}/specialty/international/managing-multi-regional-sites`,
+  },
+  robotsMetaTag: {
+    title: "Google Search Central — Robots meta tag, data-nosnippet, and X-Robots-Tag",
+    url: `${SC}/crawling-indexing/robots-meta-tag`,
+  },
+  robotsTxtSpec: {
+    title: "Google Search Central — How Google interprets the robots.txt specification",
+    url: `${SC}/crawling-indexing/robots/robots_txt`,
+  },
+  pagination: {
+    title: "Google Search Central — Pagination and incremental page loading",
+    url: `${SC}/specialty/ecommerce/pagination-and-incremental-page-loading`,
+  },
+  buildSitemap: {
+    title: "Google Search Central — Build and submit a sitemap (lastmod guidance)",
+    url: `${SC}/crawling-indexing/sitemaps/build-sitemap`,
+  },
+  sitemapsProtocol: {
+    title: "sitemaps.org — Sitemaps XML protocol",
+    url: "https://www.sitemaps.org/protocol.html",
+  },
+  ogp: {
+    title: "ogp.me — The Open Graph protocol",
+    url: "https://ogp.me/",
+  },
+  linksCrawlable: {
+    title: "Google Search Central — Make your links crawlable",
+    url: `${SC}/crawling-indexing/links-crawlable`,
+  },
   gdpr: {
     title: "EUR-Lex — General Data Protection Regulation (EU) 2016/679",
     url: "https://eur-lex.europa.eu/eli/reg/2016/679/oj",

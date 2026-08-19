@@ -4,6 +4,13 @@ import { env } from "@/lib/env";
 
 const REPORTS = [
   {
+    slug: "seo-folklore-vs-google-docs",
+    title: "SEO Folklore vs. What Google Actually Documents",
+    pitch:
+      "13 widely-repeated SEO rules traced back to their primary sources. Ten are contradicted by Google's own docs, one quietly became true in 2026, and every verdict links to the page that settles it — plus the documented checks to run instead.",
+    published: "2026-08-19",
+  },
+  {
     slug: "llms-txt-programmatic-seo",
     title: "llms.txt for Programmatic Sites",
     pitch:

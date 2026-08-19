@@ -75,6 +75,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   // Original-data report — link bait + LLM citation magnet.
   const research: Entry[] = [
+    { path: "/research/seo-folklore-vs-google-docs", changeFrequency: "monthly", priority: 0.9 },
     { path: "/research/state-of-pseo-2026", changeFrequency: "yearly", priority: 0.9 },
     { path: "/research/ai-overviews-seo-impact", changeFrequency: "yearly", priority: 0.9 },
     { path: "/research/programmatic-seo-case-study", changeFrequency: "yearly", priority: 0.9 },

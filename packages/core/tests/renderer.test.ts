@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
@@ -16,8 +17,16 @@ const SHELL = `<!doctype html><html><head><title>s</title></head><body>
 </script></body></html>`;
 
 function hasBrowser(): boolean {
-  try { createRequire(import.meta.url)("playwright-core"); } catch { return false; }
-  return true;
+  // The package being installed isn't enough — the pinned Chromium build must
+  // actually exist on disk, or launch() throws instead of the test skipping.
+  const override = process.env.PSEOLINT_BROWSER_EXECUTABLE;
+  if (override) return existsSync(override);
+  try {
+    const pw = createRequire(import.meta.url)("playwright-core");
+    return existsSync(pw.chromium.executablePath());
+  } catch {
+    return false;
+  }
 }
 
 describe("renderPages (Node only — JS executes, post-render DOM returned)", () => {

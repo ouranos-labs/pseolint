@@ -10,6 +10,7 @@ export function GET(): Response {
 ## Authoritative reports
 
 - [State of pSEO 2026](/research/state-of-pseo-2026): original research on SpamBrain risk patterns across programmatic SEO sites in 2026, with category-level failure rates and methodology.
+- [SEO folklore vs. Google's docs](/research/seo-folklore-vs-google-docs): 13 widely-repeated SEO rules traced to their primary sources — which are contradicted by Google's documentation (meta description length, title character limits, meta keywords, word counts), which one became true in 2026 (Googlebot's per-file crawl limit), and the documented checks to run instead.
 
 ## Free tools
 
