@@ -2,7 +2,11 @@ import { describe, expect, test } from "vitest";
 import { ogCompletenessRule } from "../../../src/rules/tech/og-completeness.js";
 import type { ParsedPage } from "../../../src/types.js";
 
-function page(url: string, og: { title?: string; description?: string; image?: string }): ParsedPage {
+function page(
+  url: string,
+  og: { title?: string; description?: string; image?: string },
+  html = ""
+): ParsedPage {
   return {
     url,
     title: "",
@@ -21,7 +25,7 @@ function page(url: string, og: { title?: string; description?: string; image?: s
     resolvedHrefs: [],
     structureSignature: "",
     contentText: "",
-    html: "",
+    html,
   };
 }
 
@@ -108,6 +112,86 @@ describe("ogCompletenessRule", () => {
   test("all three present and non-empty (no whitespace edge case) → no finding", () => {
     const findings = ogCompletenessRule([
       page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  // --- og:type / og:url (ogp.me required properties, detected from html) ---
+
+  const fullOgHtml = [
+    "<head>",
+    '<meta property="og:title" content="Title">',
+    '<meta property="og:description" content="Desc">',
+    '<meta property="og:image" content="https://img">',
+    '<meta property="og:type" content="article">',
+    '<meta property="og:url" content="https://ex.com/a">',
+    "</head>",
+  ].join("");
+
+  test("full OG set including og:type and og:url → no finding", () => {
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }, fullOgHtml),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("title/description/image present but no og:type → info naming og:type", () => {
+    const html = [
+      "<head>",
+      '<meta property="og:title" content="Title">',
+      '<meta property="og:description" content="Desc">',
+      '<meta property="og:image" content="https://img">',
+      '<meta property="og:url" content="https://ex.com/a">',
+      "</head>",
+    ].join("");
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }, html),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("info");
+    expect(findings[0].message).toContain("og:type");
+    expect(findings[0].message).not.toContain("og:url");
+  });
+
+  test("core present but both og:type and og:url missing → single info listing both", () => {
+    const html = '<head><meta property="og:title" content="Title"></head>';
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }, html),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("info");
+    expect(findings[0].message).toContain("og:type");
+    expect(findings[0].message).toContain("og:url");
+  });
+
+  test("detects og:type/og:url despite attribute order and quote variations", () => {
+    const html = [
+      "<head>",
+      "<meta content='article' property='og:type'>",
+      '<meta content="https://ex.com/a" property=og:url >',
+      "</head>",
+    ].join("");
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }, html),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("missing core tags: detectable missing aux tags are appended without changing severity", () => {
+    const html = '<head><meta property="og:url" content="https://ex.com/a"></head>';
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { description: "Desc", image: "https://img" }, html),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+    expect(findings[0].message).toContain("og:title");
+    expect(findings[0].message).toContain("og:type");
+    expect(findings[0].message).not.toContain("og:url");
+  });
+
+  test("empty html → aux tags not checked (existing behavior preserved)", () => {
+    const findings = ogCompletenessRule([
+      page("https://ex.com/a", { title: "Title", description: "Desc", image: "https://img" }, ""),
     ]);
     expect(findings).toEqual([]);
   });

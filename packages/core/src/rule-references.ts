@@ -45,4 +45,17 @@ export const RULE_REFERENCES: Record<string, string> = {
   "aeo/citable-facts": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "aeo/content-modularity": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
   "aeo/summary-bait": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
+  // 2026-08-19 folklore-vs-fact batch — every ref is the primary source that
+  // documents the behavior (see docs/folklore.md for the checks we refuse to run).
+  "links/crawlable-anchors": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
+  "links/generic-anchor-text": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable#anchor-text",
+  "content/meta-description-presence": "https://developers.google.com/search/docs/appearance/snippet#meta-descriptions",
+  "tech/language-mismatch": "https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites",
+  "tech/hreflang-validity": "https://developers.google.com/search/docs/specialty/international/localized-versions",
+  "tech/html-size": "https://developers.google.com/search/docs/crawling-indexing/googlebot",
+  "tech/meta-robots-conflict": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag",
+  "tech/snippet-suppression": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag",
+  "tech/viewport-meta": "https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing",
+  "tech/sitemap-hygiene": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap",
+  "tech/robots-txt-limits": "https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt",
 };

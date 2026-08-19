@@ -27,8 +27,11 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "content/heading-structure": "page",
   "content/image-alt-text": "page",
   "content/citation-coverage": "page",
+  "content/meta-description-presence": "page",
 
   // links
+  "links/crawlable-anchors": "page",
+  "links/generic-anchor-text": "page",
   "links/orphan-pages": "corpus",
   "links/dead-ends": "corpus",
   "links/cluster-connectivity": "corpus",
@@ -49,6 +52,15 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "tech/og-completeness": "page",
   "tech/csr-bailout": "page",
   "tech/core-web-vitals": "page",
+  // 2026-08-19 folklore-vs-fact batch (see docs/folklore.md)
+  "tech/language-mismatch": "page",
+  "tech/hreflang-validity": "page",
+  "tech/html-size": "page",
+  "tech/meta-robots-conflict": "page",
+  "tech/snippet-suppression": "page",
+  "tech/viewport-meta": "page",
+  "tech/sitemap-hygiene": "corpus",
+  "tech/robots-txt-limits": "corpus",
 
   // schema
   "schema/json-ld-valid": "page",

@@ -46,6 +46,17 @@ import { answerFirstRule } from "./rules/aeo/answer-first.js";
 import { citableFactsRule } from "./rules/aeo/citable-facts.js";
 import { contentModularityRule } from "./rules/aeo/content-modularity.js";
 import { summaryBaitRule } from "./rules/aeo/summary-bait.js";
+import { languageMismatchRule } from "./rules/tech/language-mismatch.js";
+import { hreflangValidityRule } from "./rules/tech/hreflang-validity.js";
+import { crawlableAnchorsRule } from "./rules/links/crawlable-anchors.js";
+import { genericAnchorTextRule } from "./rules/links/generic-anchor-text.js";
+import { sitemapHygieneRule } from "./rules/tech/sitemap-hygiene.js";
+import { robotsTxtLimitsRule } from "./rules/tech/robots-txt-limits.js";
+import { htmlSizeRule } from "./rules/tech/html-size.js";
+import { metaRobotsConflictRule } from "./rules/tech/meta-robots-conflict.js";
+import { snippetSuppressionRule } from "./rules/tech/snippet-suppression.js";
+import { metaDescriptionPresenceRule } from "./rules/content/meta-description-presence.js";
+import { viewportMetaRule } from "./rules/tech/viewport-meta.js";
 import { redirectChainRule } from "./rules/tech/redirect-chain.js";
 import { soft404Rule } from "./rules/tech/soft-404.js";
 import { evaluateProbe } from "./rules/tech/soft-404-probe.js";
@@ -966,6 +977,51 @@ function runRulesOnPages(
   // the v0.4.x README without ever shipping. Now it does.
   if (isEnabled("tech/og-completeness") && modeOk("tech/og-completeness")) {
     pushAll(findings, tag(ogCompletenessRule(pages)));
+  }
+
+  // 2026-08-19 folklore-vs-fact batch — statically-checkable rules cross-
+  // referenced against Google Search Central / Lighthouse / sitemaps.org /
+  // ogp.me primary sources. See docs/folklore.md for the counterpart list of
+  // checks we deliberately DON'T run.
+  if (isEnabled("content/meta-description-presence") && modeOk("content/meta-description-presence")) {
+    pushAll(findings, tag(metaDescriptionPresenceRule(pages)));
+  }
+
+  if (isEnabled("tech/language-mismatch") && modeOk("tech/language-mismatch")) {
+    pushAll(findings, tag(languageMismatchRule(pages)));
+  }
+
+  if (isEnabled("tech/hreflang-validity") && modeOk("tech/hreflang-validity")) {
+    // Same noindex-aware set as hreflang-consistency: invalid codes on a
+    // noindex'd alternate are still bugs in the hreflang set.
+    pushAll(findings, tag(hreflangValidityRule(noindexAwarePages)));
+  }
+
+  if (isEnabled("tech/html-size") && modeOk("tech/html-size")) {
+    pushAll(findings, tag(htmlSizeRule(pages)));
+  }
+
+  if (isEnabled("tech/meta-robots-conflict") && modeOk("tech/meta-robots-conflict")) {
+    // Needs the noindex-aware set: a page dropped by respectNoindex may be
+    // noindex'd BY ACCIDENT via a conflicting directive — the exact bug this
+    // rule exists to surface.
+    pushAll(findings, tag(metaRobotsConflictRule(noindexAwarePages)));
+  }
+
+  if (isEnabled("tech/snippet-suppression") && modeOk("tech/snippet-suppression")) {
+    pushAll(findings, tag(snippetSuppressionRule(pages)));
+  }
+
+  if (isEnabled("tech/viewport-meta") && modeOk("tech/viewport-meta")) {
+    pushAll(findings, tag(viewportMetaRule(pages)));
+  }
+
+  if (isEnabled("links/crawlable-anchors") && modeOk("links/crawlable-anchors")) {
+    pushAll(findings, tag(crawlableAnchorsRule(pages)));
+  }
+
+  if (isEnabled("links/generic-anchor-text") && modeOk("links/generic-anchor-text")) {
+    pushAll(findings, tag(genericAnchorTextRule(pages)));
   }
 
   // Schema rules
@@ -2878,6 +2934,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       const robotsFindings = robotsComplianceRule(parsedPages, sitemapUrlSet, robotsTxtContent);
       pushAll(allFindings,robotsFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
     }
+
+    // Sitemap hygiene (cross-host scope, lastmod sanity) only makes sense for
+    // HTTP sources — filesystem audits have no host to compare against.
+    if (/^https?:\/\//i.test(source)) {
+      const hygieneFindings = sitemapHygieneRule(sitemapUrlSet, sitemapLastmodByUrl, source);
+      pushAll(allFindings, hygieneFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+    }
   }
 
   // AEO site-wide rules. These run unconditionally (consistent with sitemap-completeness
@@ -2888,6 +2951,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (robotsTxtContent) {
     const crawlerFindings = crawlerAccessRule(robotsTxtContent);
     pushAll(allFindings,crawlerFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
+
+    const robotsLimitFindings = robotsTxtLimitsRule(robotsTxtContent);
+    pushAll(allFindings, robotsLimitFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));
   }
 
   // tech/soft-404 synthetic probe: a URL we deliberately invent to be
