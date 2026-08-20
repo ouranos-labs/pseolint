@@ -120,7 +120,7 @@ function buildMessage(url: string, count: number, matchedPhrases: string[]): str
 }
 
 /**
- * content/common-phrase-reuse — per-page cliché density detector.
+ * content/common-phrase-reuse: per-page cliché density detector.
  *
  * Scans each page's contentText for a corpus of 42 known pSEO marketing
  * clichés. Fires ONE warning/low-confidence finding per page when >=3 distinct

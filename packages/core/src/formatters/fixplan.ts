@@ -16,11 +16,11 @@ interface Bucket {
   worstSeverity: Severity;
   /** Effort, derived from the first finding that has one. Falls back to "other". */
   effort: FixEffort | "other";
-  /** First finding seen — used for the narrative line + sample URL. */
+  /** First finding seen: used for the narrative line + sample URL. */
   exemplar: RuleResult;
   /** Distinct page URLs in this bucket (in encounter order, deduped). */
   urls: string[];
-  /** v0.4.3 — lowest confidence in the bucket (drives caveat rendering). */
+  /** v0.4.3: lowest confidence in the bucket (drives caveat rendering). */
   worstConfidence?: Confidence;
 }
 
@@ -32,8 +32,8 @@ const CONFIDENCE_RANK: Record<Confidence, number> = {
 };
 
 function confidenceCaveat(c: Confidence | undefined): string | null {
-  if (c === "low") return "low confidence — known false-positive risk on this site type";
-  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  if (c === "low") return "low confidence: known false-positive risk on this site type";
+  if (c === "speculative") return "speculative: heuristic match; verify before acting";
   return null;
 }
 
@@ -169,7 +169,7 @@ function bucketNarrative(b: Bucket): string {
 
 function renderBucketLines(b: Bucket): string[] {
   const lines: string[] = [];
-  lines.push(`- [ ] ${bucketHeadline(b)} — ${bucketNarrative(b)}`);
+  lines.push(`- [ ] ${bucketHeadline(b)}: ${bucketNarrative(b)}`);
 
   const caveat = confidenceCaveat(b.worstConfidence);
   if (caveat) {
@@ -182,7 +182,7 @@ function renderBucketLines(b: Bucket): string[] {
       const first = shortenUrl(b.urls[0]);
       const allShort = b.urls.slice(0, 4).map((u) => `\`${shortenUrl(u)}\``).join(", ");
       const more = b.urls.length > 4 ? `, +${b.urls.length - 4} more` : "";
-      lines.push(`  - First instance: \`${first}\` — ${b.exemplar.message}`);
+      lines.push(`  - First instance: \`${first}\`, ${b.exemplar.message}`);
       lines.push(`  - Pages: ${allShort}${more}`);
     } else if (b.count === 1) {
       // Single-finding bucket: URL is already in the headline; show the raw
@@ -325,7 +325,7 @@ export function formatFixplan(
   lines.push(
     `> Generated ${date}. Verdict: **${verdict}** (risk ${summary.risk}/100). ${summary.pageCount} pages audited.`,
   );
-  // v0.4.3 — surface the scoring profile so plan readers know which
+  // v0.4.3: surface the scoring profile so plan readers know which
   // site-type-aware overrides shaped the plan.
   const auditedLine = auditedAsFixplanLine(summary.siteClassification);
   if (auditedLine) {
@@ -337,7 +337,7 @@ export function formatFixplan(
     `> Run \`pseolint <source> --fixplan plan.md\` after each fix round to refresh`,
   );
   lines.push(
-    `> this list — \`[x]\` items are inferred from finding hashes that no longer`,
+    `> this list: \`[x]\` items are inferred from finding hashes that no longer`,
   );
   lines.push(`> appear in the new audit.`);
   lines.push("");
@@ -353,7 +353,7 @@ export function formatFixplan(
   const buckets = bucketByTemplate(allFindings);
 
   if (buckets.length === 0) {
-    lines.push(`No findings to fix — site looks clean.`);
+    lines.push(`No findings to fix: site looks clean.`);
     const skipLines = renderSkippedSection(summary);
     if (skipLines.length > 0) {
       lines.push("");

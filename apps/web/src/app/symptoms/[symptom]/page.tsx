@@ -251,7 +251,7 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
           <InlineAuditWidget
             headline="Diagnose your site"
             cta="Run a SpamBrain check"
-            ruleHint={`Runs the full pSEO audit — the rules most relevant to this symptom: ${entry.relatedRules.join(", ")}.`}
+            ruleHint={`Runs the full pSEO audit, the rules most relevant to this symptom: ${entry.relatedRules.join(", ")}.`}
           />
         </div>
       </header>
@@ -448,7 +448,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 /**
  * Renders one or more JSON-LD documents (newline-separated) as inline
  * application/ld+json scripts. The `payload` is fully producer-controlled,
- * already JSON.stringify'd, and `</` escaped — see ldString().
+ * already JSON.stringify'd, and `</` escaped: see ldString().
  */
 function StructuredData({ payload }: { payload: string }): React.JSX.Element {
   const docs = payload.split("\n").filter(Boolean);

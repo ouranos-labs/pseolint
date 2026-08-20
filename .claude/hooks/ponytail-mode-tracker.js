@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ponytail — UserPromptSubmit hook to track which ponytail mode is active
+// ponytail: UserPromptSubmit hook to track which ponytail mode is active
 // Inspects user input for /ponytail commands and writes mode to flag file
 
 const { getDefaultMode } = require('./ponytail-config');
@@ -36,7 +36,7 @@ process.stdin.on('end', () => {
         writeHookOutput(
           'UserPromptSubmit',
           mode,
-          'PONYTAIL MODE CHANGED — level: ' + mode,
+          'PONYTAIL MODE CHANGED, level: ' + mode,
         );
       } else if (mode === 'off') {
         clearMode();

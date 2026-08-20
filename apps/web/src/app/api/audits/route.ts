@@ -28,7 +28,7 @@ import type { AuditBlockReason } from "@/lib/analytics/events";
 export const runtime = "nodejs";
 
 const BodySchema = z.object({
-  // Accepts bare hostnames ("example.com") and adds https:// — see normalizeUserUrl.
+  // Accepts bare hostnames ("example.com") and adds https://, see normalizeUserUrl.
   url: z.string().min(1).transform((raw, ctx) => {
     const normalized = normalizeUserUrl(raw);
     if (!normalized) {
@@ -42,7 +42,7 @@ const BodySchema = z.object({
   force: z.boolean().optional(),
   /** Opt-in Playwright-rendered audit for JS-heavy sites (SPA, Webflow, Framer). */
   render: z.boolean().optional(),
-  /** Originating /tools/[slug] entry point — validated against the tool registry below. */
+  /** Originating /tools/[slug] entry point: validated against the tool registry below. */
   tool: z.string().optional(),
 });
 
@@ -53,7 +53,7 @@ const URL_COOLDOWN_MS = 5 * 60 * 1000;
 // advertised on /limits applies only to dashboard "Re-audit now" and
 // monitoring kickoff (see PRO_REAUDIT_SAMPLE_SIZE in lib/audit-limits.ts).
 // The split is intentional cost control on the unauthenticated POST surface
-// — public submissions can't burn the full Pro budget without going through
+//: public submissions can't burn the full Pro budget without going through
 // the rate-limited dashboard path.
 const SAMPLE_SIZE_CEILING = 300;
 const IN_FLIGHT_LIMIT_FREE = 1;
@@ -72,7 +72,7 @@ function normalizeAuditUrl(raw: string): string {
   try {
     const u = new URL(raw);
     u.hash = "";
-    // Strip trailing slash on pathname for dedupe/cooldown consistency — treat "/" vs "" as same URL.
+    // Strip trailing slash on pathname for dedupe/cooldown consistency: treat "/" vs "" as same URL.
     if (u.pathname.length > 1 && u.pathname.endsWith("/")) u.pathname = u.pathname.slice(0, -1);
     return u.toString();
   } catch {
@@ -102,7 +102,7 @@ export async function POST(req: Request): Promise<Response> {
 
   auditLog("audit.request.received", { url, force: !!force });
 
-  // Fetch session early — verified sessioned callers skip Turnstile (they already passed
+  // Fetch session early: verified sessioned callers skip Turnstile (they already passed
   // magic-link auth + email verification, which is a stronger anti-abuse signal than a CAPTCHA).
   const session = await getOptionalSession();
   const sessionTrusted = !!session?.user.emailVerified;
@@ -132,7 +132,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const host = safeHost(url);
 
-  // Blocklist — reject known-bad user or host before any other work.
+  // Blocklist: reject known-bad user or host before any other work.
   const keysToCheck: string[] = [hostBlockKey(host)];
   if (session) keysToCheck.push(userBlockKey(session.user.id));
   const blocked = await checkBlocklist(keysToCheck);
@@ -205,7 +205,7 @@ export async function POST(req: Request): Promise<Response> {
   let anonSessionId: string | null = null;
   let expiresAt: Date;
 
-  // Per-host global rate limit — protects target sites during viral-post
+  // Per-host global rate limit: protects target sites during viral-post
   // amplification. v0.5.6 refinement: Pro requests get the per-host check
   // exclusively from `assertProAuditAllowed`. Doing it here too would
   // double-bump the counter and silently halve the documented 30/hr limit
@@ -237,7 +237,7 @@ export async function POST(req: Request): Promise<Response> {
     userId = session.user.id;
     // getPlan was already called above to decide isProSession; reuse that.
     plan = isProSession ? "pro" : "free";
-    // "Never expires" for Pro — far-future sentinel Postgres can serialize.
+    // "Never expires" for Pro: far-future sentinel Postgres can serialize.
     // JS max date (year 275760) round-trips as `+275760-09-13T...` which Postgres's
     // timestamptz parser rejects.
     expiresAt = plan === "pro" ? new Date("9999-12-31T23:59:59.999Z") : addDays(30);
@@ -290,7 +290,7 @@ export async function POST(req: Request): Promise<Response> {
           trackBlocked("daily_limit", 429);
           return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
         }
-        // Per-user-per-host daily cap — anti-harassment for third-party targets.
+        // Per-user-per-host daily cap: anti-harassment for third-party targets.
         const hostKey = `user-host:${userId}:${host}:${today}`;
         const hostRes = await bumpRateLimit(hostKey, PER_USER_HOST_DAILY_FREE);
         if (!hostRes.allowed) {
@@ -312,9 +312,9 @@ export async function POST(req: Request): Promise<Response> {
       if (!allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_anon", anonSessionId });
         trackBlocked("session_limit", 429);
-        return NextResponse.json({ error: "Session limit reached — sign in for more" }, { status: 429 });
+        return NextResponse.json({ error: "Session limit reached, sign in for more" }, { status: 429 });
       }
-      // Per-anon-session-per-host daily cap — anon attackers can't focus all
+      // Per-anon-session-per-host daily cap: anon attackers can't focus all
       // their daily quota on one target.
       const anonHostKey = `anon-host:${anonSessionId}:${host}:${today}`;
       const anonHostRes = await bumpRateLimit(anonHostKey, PER_ANON_HOST_DAILY);
@@ -342,7 +342,7 @@ export async function POST(req: Request): Promise<Response> {
         { status: 429 },
       );
     }
-    // Per-IP-per-host daily cap — closes residential-proxy + anon-cookie-clear
+    // Per-IP-per-host daily cap: closes residential-proxy + anon-cookie-clear
     // attack vector. Even with rotating IPs, each IP can only target a host once.
     const ipHostKey = `anon-ip-host:${hashIp(clientIp(req))}:${host}:${today}`;
     const ipHostRes = await bumpRateLimit(ipHostKey, PER_ANON_IP_HOST_DAILY);
@@ -356,7 +356,7 @@ export async function POST(req: Request): Promise<Response> {
     }
   }
 
-  // In-flight cap for free and anon tiers — prevents a single caller from
+  // In-flight cap for free and anon tiers: prevents a single caller from
   // queueing many audits in parallel. Pro in-flight is handled by
   // assertProAuditAllowed above (same DB query, same limit constant).
   if (tier !== "pro" && !devFlags.rateLimitDisabled) {
@@ -381,7 +381,7 @@ export async function POST(req: Request): Promise<Response> {
   // trips after a crawl has already fired dozens of requests at a struggling
   // origin (the paperforge/Neon incident). A concurrent probe at the entry URL
   // tells us the origin's state up front. We only *block* when the origin is
-  // unreachable — there is genuinely nothing to audit, so no false-positive /
+  // unreachable; there is genuinely nothing to audit, so no false-positive /
   // override concern. A `degraded` origin is NOT blocked here: the audit
   // proceeds and `run-audit` automatically drops it to gentle (low-concurrency)
   // mode, which is friendlier than refusing the run. `force` (sessioned
@@ -396,14 +396,14 @@ export async function POST(req: Request): Promise<Response> {
       trackBlocked("origin_unreachable", 503);
       return NextResponse.json(
         {
-          error: `We couldn't reach ${host} — ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.`,
+          error: `We couldn't reach ${host}, ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.`,
           code: "origin_unreachable",
         },
         { status: 503 },
       );
     }
     if (health.verdict === "degraded") {
-      // Not fatal — let it run gentle. Logged so we can see how often it happens.
+      // Not fatal: let it run gentle. Logged so we can see how often it happens.
       auditLog("audit.request.preflight_degraded", {
         url, host, reason: health.reason, medianMs: health.medianMs, errorRatio: health.errorRatio,
       });
@@ -412,7 +412,7 @@ export async function POST(req: Request): Promise<Response> {
 
   const requestedSampleSize = Math.min(pageCapFor(tier), SAMPLE_SIZE_CEILING);
 
-  // Only persist a tool slug that resolves in the registry — never trust the
+  // Only persist a tool slug that resolves in the registry: never trust the
   // client's raw value (it drives the report's focused-lens view). The audit
   // itself still runs the full rule set; `tool` only affects presentation.
   const tool = body.data.tool && getMarketingTool(body.data.tool) ? body.data.tool : null;
@@ -422,7 +422,7 @@ export async function POST(req: Request): Promise<Response> {
     isPublic: plan !== "pro", expiresAt, tool,
   }).returning({ id: audits.id, slug: audits.slug });
 
-  // Render is a Pro-only capability — gate it server-side so a non-Pro caller
+  // Render is a Pro-only capability: gate it server-side so a non-Pro caller
   // can never enable it by hand-crafting the POST body. (The form already hides
   // the toggle for non-Pro, but the client is not the trust boundary.)
   const render = isProSession ? (body.data.render ?? false) : false;

@@ -22,7 +22,7 @@ const SCHEMAS = [
   ]
 }`,
     tips: [
-      "Each Question must have a unique, specific name — no generic placeholders.",
+      "Each Question must have a unique, specific name: no generic placeholders.",
       "The Answer text should be at least 2 full sentences and not repeat the question verbatim.",
       "FAQPage markup no longer earns rich results for general publishers (Aug 2023), but is still heavily used by AI Overviews for citation.",
     ],
@@ -51,9 +51,9 @@ const SCHEMAS = [
   "inLanguage": "en"
 }`,
     tips: [
-      "Use TechArticle for code-heavy developer guides — it signals technical authority to AI systems.",
+      "Use TechArticle for code-heavy developer guides; it signals technical authority to AI systems.",
       "Always include both datePublished and dateModified. Stale dates suppress AI Overview citations.",
-      "The knowsAbout array is the machine-readable equivalent of an author bio — be specific.",
+      "The knowsAbout array is the machine-readable equivalent of an author bio: be specific.",
     ],
   },
   {
@@ -79,7 +79,7 @@ const SCHEMAS = [
 }`,
     tips: [
       "Set price to 0 with availability InStock to qualify for free product rich results in SERP.",
-      "Use AggregateRating only if you have real, verifiable reviews — fake reviews are a manual action risk.",
+      "Use AggregateRating only if you have real, verifiable reviews: fake reviews are a manual action risk.",
       "Combine with a FAQPage schema on the same page for dual-schema richness.",
     ],
   },
@@ -144,7 +144,7 @@ const SCHEMAS = [
     tips: [
       "BreadcrumbList should match the visual breadcrumb nav on the page exactly.",
       "The last item's item URL must match the page's self-referencing canonical.",
-      "Every programmatic page template should include this — it gives Google your site hierarchy in machine-readable form.",
+      "Every programmatic page template should include this; it gives Google your site hierarchy in machine-readable form.",
     ],
   },
 ];

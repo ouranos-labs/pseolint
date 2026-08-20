@@ -1,14 +1,14 @@
 /**
  * Unit tests for GSC sync helpers.
  *
- * All DB and GSC API calls are mocked — these tests validate the chunking,
+ * All DB and GSC API calls are mocked: these tests validate the chunking,
  * upsert shape, and error-handling logic of syncOneDomain without requiring a
  * live database or OAuth grant.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Module mocks — must be hoisted before any imports that resolve the modules.
+// Module mocks: must be hoisted before any imports that resolve the modules.
 // ---------------------------------------------------------------------------
 
 const auditLogMock = vi.fn();

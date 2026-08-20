@@ -1,4 +1,4 @@
-# pseolint.dev — The pSEO Compliance Platform
+# pseolint.dev: The pSEO Compliance Platform
 
 ## Full Product Brief (April 2026)
 
@@ -8,7 +8,7 @@
 
 The only platform purpose-built for programmatic SEO compliance. Fully open-source (MIT CLI + AGPL web app) under the `ouranos-labs` GitHub org. Revenue from the hosted service, not proprietary code. Category-defining product in a space where no tool currently exists.
 
-**Model:** Supabase / Plausible / n8n — fully open-source codebase, revenue from hosted service. CLI drives npm adoption → hosted platform captures revenue.
+**Model:** Supabase / Plausible / n8n, fully open-source codebase, revenue from hosted service. CLI drives npm adoption → hosted platform captures revenue.
 
 ---
 
@@ -58,7 +58,7 @@ All code is open-source under `github.com/ouranos-labs/pseolint` (monorepo). Rev
 **Why fully open-source:**
 - AGPL-3.0 on `apps/web` prevents competitors from hosting the dashboard without contributing back
 - MIT on `packages/*` ensures maximum npm adoption with zero friction
-- Self-hosting is possible but impractical (GSC OAuth, Trigger.dev jobs, Supabase, Redis) — 95% will pay $14/mo
+- Self-hosting is possible but impractical (GSC OAuth, Trigger.dev jobs, Supabase, Redis): 95% will pay $14/mo
 - Open codebase is a portfolio asset for job applications (visible on `ouranos-labs`, separate from personal `ouranos27`)
 - Community-contributed rules via PR expand the rule set without solo maintenance burden
 
@@ -68,7 +68,7 @@ All code is open-source under `github.com/ouranos-labs/pseolint` (monorepo). Rev
 
 ### What It Does
 
-Audits a programmatic SEO site at the **page-set level** — analyzing relationships between pages, not individual URLs. Detects the exact patterns Google's SpamBrain targets.
+Audits a programmatic SEO site at the **page-set level**: analyzing relationships between pages, not individual URLs. Detects the exact patterns Google's SpamBrain targets.
 
 ### Input Modes
 
@@ -226,7 +226,7 @@ npx pseolint ./out --format html       # visual report (local file)
 ### Console Output Example
 
 ```
-  pseolint v1.0.0 — Auditing 4,771 pages
+  pseolint v1.0.0: Auditing 4,771 pages
 
   ╭──────────────────────────────────────────╮
   │  SpamBrain Risk Score:  32/100 ⚠️ Caution │
@@ -278,7 +278,7 @@ npx pseolint ./out --format html       # visual report (local file)
 
 ### What the CLI Can't Do
 
-The CLI is a snapshot. Run it, get a score, fix issues, run again. But pSEO sites are alive — you publish new pages, Google re-crawls, SpamBrain re-evaluates. You need continuous monitoring, not one-time audits.
+The CLI is a snapshot. Run it, get a score, fix issues, run again. But pSEO sites are alive; you publish new pages, Google re-crawls, SpamBrain re-evaluates. You need continuous monitoring, not one-time audits.
 
 The hosted platform is everything that requires persistence, scheduling, external APIs, and shared access.
 
@@ -351,7 +351,7 @@ curl -X POST https://api.pseolint.dev/v1/audit \
 - Runs full audit on staging/preview URL before production deploy
 - Returns pass/fail based on configured threshold
 - Compares against baseline from last production audit
-- Reports score *diff* — "Score went from 28 to 35 (+7) due to 50 new thin pages"
+- Reports score *diff*: "Score went from 28 to 35 (+7) due to 50 new thin pages"
 - Blocks deploy if threshold exceeded
 - GitHub Checks API integration (shows pass/fail on PR)
 
@@ -376,7 +376,7 @@ For each flagged rule, generate specific, actionable fixes:
 
 | Tier | Price | Audits | GSC | Monitoring | Competitors | Gate API | AI Fixes |
 |------|-------|--------|-----|------------|-------------|----------|----------|
-| **Free** | $0 | 1 manual/month | — | — | — | — | — |
+| **Free** | $0 | 1 manual/month |: | (|) | (|) |
 | **Pro** | $14/mo | Unlimited | ✅ 1 site | Weekly | 5 sites | ✅ | 50/month |
 | **Team** | $24/mo | Unlimited | ✅ 5 sites | Daily | 15 sites | ✅ | 200/month |
 
@@ -451,10 +451,10 @@ jobs:
 ```
 
 Tools exposed:
-- `audit_site` — run full audit from Claude Code/Cursor
-- `check_page` — quick check single page against rules
-- `explain_score` — explain what's driving the score
-- `suggest_fixes` — AI-powered fix suggestions for flagged rules
+- `audit_site`: run full audit from Claude Code/Cursor
+- `check_page`: quick check single page against rules
+- `explain_score`: explain what's driving the score
+- `suggest_fixes`: AI-powered fix suggestions for flagged rules
 
 ### 3.4 VS Code Extension (Low Priority, Post-Traction)
 
@@ -565,7 +565,7 @@ Managed with pnpm workspaces + Turborepo. All packages publish independently to 
 ouranos-labs/pseolint/
 ├── packages/
 │   ├── core/                       # npm: @pseolint/core (MIT)
-│   │   ├── src/                    # Shared audit engine — importable by anyone
+│   │   ├── src/                    # Shared audit engine: importable by anyone
 │   │   │   ├── auditor.ts          # Main orchestrator
 │   │   │   ├── loader.ts           # Page loading (fs/http)
 │   │   │   ├── parser.ts           # HTML → structured data
@@ -730,13 +730,13 @@ export const alerts = pgTable('alerts', {
 ### Phase 1: CLI Launch (Week 4)
 
 **Channels:**
-- ProductHunt: "ESLint for programmatic SEO — SpamBrain-proof your site before publishing"
-- Hacker News: "Show HN: Open-source SpamBrain risk detector — I built it after Google nuked 80% of pSEO pages in March"
+- ProductHunt: "ESLint for programmatic SEO: SpamBrain-proof your site before publishing"
+- Hacker News: "Show HN: Open-source SpamBrain risk detector: I built it after Google nuked 80% of pSEO pages in March"
 - r/SEO, r/TechSEO: "After the March 2026 update, I open-sourced a tool to catch the exact patterns SpamBrain targets"
-- r/nextjs, r/webdev: Developer angle — "Open-source CI tool for pSEO sites"
+- r/nextjs, r/webdev: Developer angle: "Open-source CI tool for pSEO sites"
 - Twitter/X: Build-in-public thread + tag SEO accounts
-- DEV.to: Tutorial — "How to audit your programmatic SEO site for SpamBrain risk"
-- GitHub: ouranos-labs/pseolint — comprehensive README, contributing guide, rule documentation
+- DEV.to: Tutorial: "How to audit your programmatic SEO site for SpamBrain risk"
+- GitHub: ouranos-labs/pseolint: comprehensive README, contributing guide, rule documentation
 
 **Case study:** Run on PaperForge, publish findings: "We ran pseolint on our 4,771-page template site. Score: 32. Here's what we found and fixed."
 
@@ -766,9 +766,9 @@ Landing page targets:
 - "spambrain risk score"
 
 Long-tail pages (small pSEO set):
-- /rules/[rule-id] — one page per rule explaining what it checks, why it matters, how to fix
-- /guides/[framework] — "pSEO compliance for Next.js", "pSEO compliance for Astro", etc.
-- /updates/[update-name] — analysis of each Google spam update
+- /rules/[rule-id]: one page per rule explaining what it checks, why it matters, how to fix
+- /guides/[framework]: "pSEO compliance for Next.js", "pSEO compliance for Astro", etc.
+- /updates/[update-name]: analysis of each Google spam update
 
 ---
 
@@ -798,10 +798,10 @@ Long-tail pages (small pSEO set):
 | npm weekly downloads | 500 | 2,000 | 5,000 |
 | GitHub stars | 200 | 1,000 | 3,000 |
 | Free accounts | 50 | 300 | 1,000 |
-| Paid subscribers | — | 30 | 100 |
-| MRR | — | $420 | $1,400 |
+| Paid subscribers |: | 30 | 100 |
+| MRR |: | $420 | $1,400 |
 
-Conservative estimates. The npm install base is the leading indicator — everything else flows from it.
+Conservative estimates. The npm install base is the leading indicator; everything else flows from it.
 
 ---
 
@@ -814,7 +814,7 @@ Conservative estimates. The npm install base is the leading indicator — everyt
 5. **Your exact stack.** Next.js, Supabase, Drizzle, Better Auth, Polar, Coolify. Zero new learning.
 6. **Compounds with portfolio.** Every pSEO project you build (PaperForge, Tallyard, future sites) is both a customer and a case study.
 7. **Build-once maintenance.** Rules don't change often. Google's spam policies evolve slowly. The CLI is mostly stable after v1; the SaaS grows incrementally.
-8. **Portfolio asset.** Fully open-source under `ouranos-labs` — visible, reviewable code with real algorithms (SimHash, TF-IDF, entity masking), monorepo architecture, CI/CD, and a production SaaS. Strong signal for job applications without polluting the personal `ouranos27` handle.
+8. **Portfolio asset.** Fully open-source under `ouranos-labs`: visible, reviewable code with real algorithms (SimHash, TF-IDF, entity masking), monorepo architecture, CI/CD, and a production SaaS. Strong signal for job applications without polluting the personal `ouranos27` handle.
 9. **Community extensibility.** MIT-licensed core with an extensible rule API means the community can contribute rules via PR. The rule set grows beyond 30 without you maintaining every addition.
 10. **AGPL moat.** Web app under AGPL-3.0 prevents competitors from hosting a clone without open-sourcing their changes. The hosted service at pseolint.dev remains the path of least resistance.
 

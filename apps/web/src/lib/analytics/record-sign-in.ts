@@ -13,7 +13,7 @@ const NEW_USER_WINDOW_MS = 60_000;
  * Stitch a freshly-signed-in user to their prior anonymous activity and emit
  * signed_in. Called from better-auth's session.create.after, BEFORE
  * claimAnonAudits clears the anon cookie (so the alias still has the id).
- * isNewUser is a 60s-createdAt heuristic — approximate by design; analytics,
+ * isNewUser is a 60s-createdAt heuristic: approximate by design; analytics,
  * not authorization. Never throws (sign-in must not depend on analytics).
  */
 export async function recordSignIn(userId: string): Promise<void> {

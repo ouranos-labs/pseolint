@@ -67,7 +67,7 @@ export function McpKeysCard() {
       {newToken && (
         <div className="mt-4 rounded-[12px] border border-border/60 bg-muted/40 p-4">
           <p className="text-xs font-medium text-foreground">
-            Copy this token now — it won&apos;t be shown again:
+            Copy this token now; it won&apos;t be shown again:
           </p>
           <pre className="mt-2 overflow-x-auto rounded-[8px] bg-background p-2 font-mono text-[11px] text-foreground">
             {newToken}

@@ -1,10 +1,10 @@
-# pseolint v1.1 UX Coherence — Implementation Plan
+# pseolint v1.1 UX Coherence: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship the v1.1 UX coherence reframe — tier-aware dashboard home, two-layer nav, audit↔monitor bridge with intent-preserving checkout, per-domain workspace, and public slugs replacing raw DB UUIDs.
+**Goal:** Ship the v1.1 UX coherence reframe, tier-aware dashboard home, two-layer nav, audit↔monitor bridge with intent-preserving checkout, per-domain workspace, and public slugs replacing raw DB UUIDs.
 
-**Architecture:** Additive schema changes (slugs on `audits` + `monitoredDomains`, `usage_log`, `alert_defaults`, `monitoredDomains.removedAt`). Server actions for add-domain / re-audit / snooze-dismiss. New routes: `/dashboard/:slug`, `/dashboard/:slug/settings`, `/dashboard/settings/{account,billing,alerts}`. Report route migrates from `/r/[uuid]` to `/r/[slug]`. Navigation split into global top-bar + dashboard sub-nav. No engine or rule changes — `@pseolint/core` unchanged.
+**Architecture:** Additive schema changes (slugs on `audits` + `monitoredDomains`, `usage_log`, `alert_defaults`, `monitoredDomains.removedAt`). Server actions for add-domain / re-audit / snooze-dismiss. New routes: `/dashboard/:slug`, `/dashboard/:slug/settings`, `/dashboard/settings/{account,billing,alerts}`. Report route migrates from `/r/[uuid]` to `/r/[slug]`. Navigation split into global top-bar + dashboard sub-nav. No engine or rule changes, `@pseolint/core` unchanged.
 
 **Tech Stack:** Next.js 16 App Router, Drizzle + Postgres (Neon), Inngest crons, Better Auth, Polar checkout/webhooks, nanoid for slugs, React Server Components + server actions, Tailwind v4.
 
@@ -12,7 +12,7 @@
 
 ---
 
-## Task 1: Schema migration — slugs, soft-delete, usage_log, alert_defaults
+## Task 1: Schema migration: slugs, soft-delete, usage_log, alert_defaults
 
 **Files:**
 - Modify: `apps/web/src/db/schema.ts`
@@ -144,7 +144,7 @@ export const alertDefaults = pgTable("alert_default", {
 Run: `cd apps/web && bun run db:generate`
 Expected: a new migration file `src/db/migrations/0004_*.sql` is created.
 
-**Open the generated file** and inject a backfill BEFORE the NOT NULL constraint on `slug`. Drizzle typically emits `ADD COLUMN slug text NOT NULL` — we need to split that into ADD NULL → backfill → SET NOT NULL. Replace the auto-emitted statements for both `audit` and `monitored_domain` slug columns with:
+**Open the generated file** and inject a backfill BEFORE the NOT NULL constraint on `slug`. Drizzle typically emits `ADD COLUMN slug text NOT NULL`, we need to split that into ADD NULL → backfill → SET NOT NULL. Replace the auto-emitted statements for both `audit` and `monitored_domain` slug columns with:
 
 ```sql
 -- Backfill slugs for existing audits
@@ -175,7 +175,7 @@ Run (in psql or a one-off script): verify `SELECT count(*) FROM audit WHERE slug
 
 ```bash
 git add apps/web/src/db/schema.ts apps/web/src/db/migrations/ apps/web/src/lib/slug.ts apps/web/tests/unit/slug.test.ts
-git commit -m "feat(web): schema foundations for UX coherence — slugs, soft-delete, usage_log, alert_defaults"
+git commit -m "feat(web): schema foundations for UX coherence, slugs, soft-delete, usage_log, alert_defaults"
 ```
 
 ---
@@ -183,7 +183,7 @@ git commit -m "feat(web): schema foundations for UX coherence — slugs, soft-de
 ## Task 2: Generate slugs on insert; default insert helpers
 
 **Files:**
-- Modify: `apps/web/src/app/api/audits/route.ts` (POST handler — audit creation)
+- Modify: `apps/web/src/app/api/audits/route.ts` (POST handler: audit creation)
 - Modify: all other call sites that insert into `audits` or `monitoredDomains` (see Step 1 to locate)
 
 - [ ] **Step 1: Find every audit + monitoredDomain insert**
@@ -253,7 +253,7 @@ git commit -m "feat(web): populate public slug on audit + monitored-domain inser
 
 ---
 
-## Task 3: Route migration — `/r/[uuid]` → `/r/[slug]`
+## Task 3: Route migration: `/r/[uuid]` → `/r/[slug]`
 
 **Files:**
 - Rename: `apps/web/src/app/r/[uuid]/page.tsx` → `apps/web/src/app/r/[slug]/page.tsx`
@@ -317,7 +317,7 @@ git commit -m "refactor(web): public report URLs use slug, not database UUID"
 ## Task 4: Anon IP rate limit + per-tier page cap
 
 **Files:**
-- Modify: `apps/web/src/app/api/audits/route.ts` (POST — anon & free audit submission)
+- Modify: `apps/web/src/app/api/audits/route.ts` (POST: anon & free audit submission)
 - Create: `apps/web/src/lib/ip.ts`
 - Create: `apps/web/src/lib/audit-limits.ts`
 
@@ -622,7 +622,7 @@ git commit -m "feat(web): AI triage metering + POST /api/audits/:slug/triage end
 
 ---
 
-## Task 6: Nav — split top-bar + dashboard sub-nav shell
+## Task 6: Nav: split top-bar + dashboard sub-nav shell
 
 **Files:**
 - Modify: `apps/web/src/app/layout.tsx` (top-bar: anon vs signed-in variants; marketing links to footer for signed-in)
@@ -757,9 +757,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
 - [ ] **Step 3: Remove old inline dashboard nav**
 
-Any `/dashboard/*` page that rendered its own nav strip — remove it; the shell now handles it. Existing files to inspect: `/dashboard/page.tsx`, `/dashboard/queue/page.tsx`, `/dashboard/integrations/page.tsx`, `/dashboard/settings/tokens/page.tsx`. Leave their content untouched; strip only duplicated breadcrumb/nav markup.
+Any `/dashboard/*` page that rendered its own nav strip, remove it; the shell now handles it. Existing files to inspect: `/dashboard/page.tsx`, `/dashboard/queue/page.tsx`, `/dashboard/integrations/page.tsx`, `/dashboard/settings/tokens/page.tsx`. Leave their content untouched; strip only duplicated breadcrumb/nav markup.
 
-Also: the `SiteNav` (top-bar) previously rendered Queue/Integrations pills for signed-in users — remove those lines (Step 1 already drops them under the AccountMenu branch).
+Also: the `SiteNav` (top-bar) previously rendered Queue/Integrations pills for signed-in users, remove those lines (Step 1 already drops them under the AccountMenu branch).
 
 - [ ] **Step 4: Typecheck + build**
 
@@ -770,7 +770,7 @@ Expected: both pass.
 
 ```bash
 git add apps/web
-git commit -m "feat(web): two-layer nav — global top-bar + dashboard sidebar"
+git commit -m "feat(web): two-layer nav, global top-bar + dashboard sidebar"
 ```
 
 ---
@@ -831,7 +831,7 @@ export async function HistoryList({ userId }: { userId: string }) {
   if (!rows.length) {
     return (
       <div className="rounded-[22px] border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-        No audits yet — run your first one above.
+        No audits yet, run your first one above.
       </div>
     );
   }
@@ -847,7 +847,7 @@ export async function HistoryList({ userId }: { userId: string }) {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <span className="font-mono tabular-nums text-foreground">{r.score ?? "—"}</span>
+            <span className="font-mono tabular-nums text-foreground">{r.score ?? "; "}</span>
             <span className="text-xs text-muted-foreground">{r.findingCount ?? 0} findings</span>
             <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">View</Link>
           </div>
@@ -902,7 +902,7 @@ export function AuditForm({ defaultUrl }: { defaultUrl?: string }) {
 }
 ```
 
-(Adjust the response shape depending on what `POST /api/audits` currently returns — it may return `{ id }` or `{ slug }`. Ensure it returns `slug` after Task 2.)
+(Adjust the response shape depending on what `POST /api/audits` currently returns, it may return `{ id }` or `{ slug }`. Ensure it returns `slug` after Task 2.)
 
 - [ ] **Step 4: Add-domain card (Pro empty state + header button target)**
 
@@ -1017,15 +1017,15 @@ Update / ensure `PortfolioStrip` (already exists from prior work under `/compone
 - [ ] **Step 6: Typecheck + build**
 
 Run: `cd apps/web && bun run typecheck && bun run build`
-Expected: both pass (the `addDomainAction` reference will break — expected; Task 8 adds it).
+Expected: both pass (the `addDomainAction` reference will break, expected; Task 8 adds it).
 
-Actually the build will fail until Task 8 lands. Mark a `// @ts-expect-error — addDomainAction added in Task 8` where imported, or skip this step's verification and defer to Task 8's build gate.
+Actually the build will fail until Task 8 lands. Mark a `// @ts-expect-error, addDomainAction added in Task 8` where imported, or skip this step's verification and defer to Task 8's build gate.
 
 - [ ] **Step 7: Commit (allow-failing verify)**
 
 ```bash
 git add apps/web
-git commit -m "feat(web): tier-aware dashboard home — history for free, portfolio for Pro"
+git commit -m "feat(web): tier-aware dashboard home, history for free, portfolio for Pro"
 ```
 
 ---
@@ -1154,7 +1154,7 @@ export async function reAuditNowAction(domainSlug: string): Promise<{ ok: true; 
 
 - [ ] **Step 2: Honor `removedAt` in the monitoring cron**
 
-Modify `apps/web/src/inngest/functions/monitor-domains.ts` — in the domain-selection query, add `and(isNull(monitoredDomains.removedAt), ...)` to every `where(...)` that fetches domains for scheduling. Locate every `db.select().from(monitoredDomains)` or `db.update(monitoredDomains)` and make sure removed rows are excluded.
+Modify `apps/web/src/inngest/functions/monitor-domains.ts`, in the domain-selection query, add `and(isNull(monitoredDomains.removedAt), ...)` to every `where(...)` that fetches domains for scheduling. Locate every `db.select().from(monitoredDomains)` or `db.update(monitoredDomains)` and make sure removed rows are excluded.
 
 - [ ] **Step 3: Typecheck + build**
 
@@ -1192,7 +1192,7 @@ git commit -m "feat(web): add/remove/re-audit domain server actions; respect sof
 
 ---
 
-## Task 9: Report page `/r/:slug` — context-aware CTA strip
+## Task 9: Report page `/r/:slug`: context-aware CTA strip
 
 **Files:**
 - Modify: `apps/web/src/app/r/[slug]/page.tsx`
@@ -1223,7 +1223,7 @@ export function ReportCtaStrip(ctx: Ctx) {
       return (
         <div className={`${base} flex items-center justify-between gap-3`}>
           <p className="text-xs text-muted-foreground">
-            Save this audit to your history — <Link href={`/signin?next=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
+            Save this audit to your history, <Link href={`/signin?next=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
           </p>
           <Link href={`/pricing?intent=monitor&audit=${ctx.auditSlug}`} className={primary}>
             Monitor this domain with Pro →
@@ -1259,7 +1259,7 @@ export function ReportCtaStrip(ctx: Ctx) {
     case "pro_other":
       return (
         <div className={`${base} flex items-center justify-between gap-3`}>
-          <p className="text-xs text-muted-foreground">Shared report — not one of your monitored domains.</p>
+          <p className="text-xs text-muted-foreground">Shared report, not one of your monitored domains.</p>
           <AddToMonitoringButton domain={ctx.domain} className={secondary} />
         </div>
       );
@@ -1268,7 +1268,7 @@ export function ReportCtaStrip(ctx: Ctx) {
 
 "use client";
 function AddToMonitoringButton({ domain, className }: { domain: string; className: string }) {
-  // Client island — calls addDomainAction with the audit's origin, routes to /dashboard/:slug on success.
+  // Client island, calls addDomainAction with the audit's origin, routes to /dashboard/:slug on success.
   // Implementation mirrors AddDomainCard (variant="compact") logic, but pre-filled + single-click.
   return (
     <form
@@ -1284,7 +1284,7 @@ function AddToMonitoringButton({ domain, className }: { domain: string; classNam
 }
 ```
 
-Note: the `AddToMonitoringButton` with server-action import inside `action={...}` is a bit unusual — it's cleaner to extract the button into a separate client component that calls the server action via `useTransition`. See the `AddDomainCard` shape (Task 7, Step 4) for the pattern.
+Note: the `AddToMonitoringButton` with server-action import inside `action={...}` is a bit unusual, it's cleaner to extract the button into a separate client component that calls the server action via `useTransition`. See the `AddDomainCard` shape (Task 7, Step 4) for the pattern.
 
 - [ ] **Step 2: Resolve context on the server + render**
 
@@ -1347,13 +1347,13 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
       <div className="mb-6">
         <ReportCtaStrip {...({ kind: ctxKind, auditSlug: slug, domain: audit.sourceUrl, domainSlug } as Parameters<typeof ReportCtaStrip>[0])} />
       </div>
-      {/* existing report body render — iframe or HTML injection */}
+      {/* existing report body render, iframe or HTML injection */}
     </main>
   );
 }
 ```
 
-The existing report body rendering (iframe of R2-hosted HTML, or polling state for in-progress audits) stays unchanged — this task only adds the top CTA strip.
+The existing report body rendering (iframe of R2-hosted HTML, or polling state for in-progress audits) stays unchanged, this task only adds the top CTA strip.
 
 - [ ] **Step 3: Build**
 
@@ -1364,7 +1364,7 @@ Expected: both pass.
 
 ```bash
 git add apps/web
-git commit -m "feat(web): context-aware CTA strip on /r/:slug — tier × ownership × monitoring state"
+git commit -m "feat(web): context-aware CTA strip on /r/:slug, tier × ownership × monitoring state"
 ```
 
 ---
@@ -1446,13 +1446,13 @@ export async function createCheckoutSession(opts: {
     productId: opts.productId,
     customerEmail: opts.customerEmail,
     successUrl: opts.successUrl,
-    metadata: opts.metadata,    // NEW — Polar checkout API accepts a metadata map
+    metadata: opts.metadata,    // NEW, Polar checkout API accepts a metadata map
   });
   return { url: res.url };
 }
 ```
 
-Verify by running: `grep -rn "createCheckoutSession" apps/web/src` — only one caller (the checkout route), already updated.
+Verify by running: `grep -rn "createCheckoutSession" apps/web/src`, only one caller (the checkout route), already updated.
 
 - [ ] **Step 4: Webhook reads metadata on new subscription**
 
@@ -1534,12 +1534,12 @@ Expected: both pass.
 
 ```bash
 git add apps/web
-git commit -m "feat(web): intent-preserving checkout — bind domain + trigger audit on subscription.created"
+git commit -m "feat(web): intent-preserving checkout, bind domain + trigger audit on subscription.created"
 ```
 
 ---
 
-## Task 11: Per-domain workspace `/dashboard/:slug` — header + timeline + findings
+## Task 11: Per-domain workspace `/dashboard/:slug`: header + timeline + findings
 
 **Files:**
 - Create: `apps/web/src/app/dashboard/[slug]/page.tsx`
@@ -1657,7 +1657,7 @@ export function WorkspaceHeader({ domain, runs }: { domain: { slug: string; host
         </nav>
         <h1 className="text-2xl font-medium text-foreground">{domain.host}</h1>
         <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="tabular-nums text-3xl font-mono text-foreground">{current ?? "—"}</span>
+          <span className="tabular-nums text-3xl font-mono text-foreground">{current ?? "; "}</span>
           {delta != null && (
             <span className={delta >= 0 ? "text-primary" : "text-destructive"}>
               {delta >= 0 ? "+" : ""}{delta}
@@ -1689,7 +1689,7 @@ type Run = {
 
 export function TimelineStrip({ runs }: { runs: Run[] }) {
   if (!runs.length) {
-    return <p className="text-xs text-muted-foreground">No runs yet — the initial audit is queued.</p>;
+    return <p className="text-xs text-muted-foreground">No runs yet, the initial audit is queued.</p>;
   }
 
   return (
@@ -1795,7 +1795,7 @@ Expected: both pass.
 
 ```bash
 git add apps/web
-git commit -m "feat(web): per-domain workspace — header, timeline strip, findings panel"
+git commit -m "feat(web): per-domain workspace, header, timeline strip, findings panel"
 ```
 
 ---
@@ -1845,7 +1845,7 @@ export default async function DomainSettings({ params }: { params: Promise<{ slu
         <span>/</span>
         <span className="text-foreground">Settings</span>
       </nav>
-      <h1 className="text-xl font-medium">Settings — {domain.host}</h1>
+      <h1 className="text-xl font-medium">Settings, {domain.host}</h1>
 
       <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[22px] border border-border/60 p-5">
         <input type="hidden" name="domainSlug" value={domain.slug} />
@@ -1872,7 +1872,7 @@ export default async function DomainSettings({ params }: { params: Promise<{ slu
           <span className="text-sm font-medium">GSC property</span>
           <span className="text-xs text-muted-foreground">Bind a Search Console property to rank findings by traffic.</span>
           <select name="gscIntegrationId" defaultValue="" className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm">
-            <option value="">— none —</option>
+            <option value=""> (none) </option>
             {gscConns.map((c) => <option key={c.id} value={c.id}>GSC ({c.scope ?? c.id.slice(0, 8)})</option>)}
           </select>
         </label>
@@ -1904,7 +1904,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   const alertThreshold = Number(formData.get("alertThreshold") ?? 10);
   const alertEmailRaw = String(formData.get("alertEmail") ?? "").trim();
   const alertEmail = alertEmailRaw.length ? alertEmailRaw : null;
-  // gscIntegrationId binding: out of scope for v1.1 storage — defer to a follow-up once the
+  // gscIntegrationId binding: out of scope for v1.1 storage, defer to a follow-up once the
   // `monitoredDomains.gscIntegrationId` column is added (flagged in spec §14).
 
   await db.update(monitoredDomains).set({ alertThreshold, alertEmail })
@@ -1925,7 +1925,7 @@ Expected: both pass.
 
 ```bash
 git add apps/web
-git commit -m "feat(web): per-domain settings page — alert threshold, alert email, GSC binding stub"
+git commit -m "feat(web): per-domain settings page, alert threshold, alert email, GSC binding stub"
 ```
 
 ---
@@ -2167,7 +2167,7 @@ git commit -m "feat(web): account / billing / alerts settings pages + shared act
 
 ---
 
-## Task 15: Pricing page — read intent, show intent banner, forward to checkout
+## Task 15: Pricing page: read intent, show intent banner, forward to checkout
 
 **Files:**
 - Modify: `apps/web/src/app/pricing/page.tsx`
@@ -2191,7 +2191,7 @@ Expected: both pass.
 
 ```bash
 git add apps/web/src/app/pricing/page.tsx
-git commit -m "feat(web): pricing page — intent-preserving banner"
+git commit -m "feat(web): pricing page, intent-preserving banner"
 ```
 
 ---
@@ -2219,7 +2219,7 @@ Run `bun run dev` in `apps/web`. Confirm:
 
 - [ ] **Step 2: Document any failures inline in this plan**
 
-If any step fails, add a comment to this plan noting the issue + remediation. No silent fixes — tracked as follow-up tasks.
+If any step fails, add a comment to this plan noting the issue + remediation. No silent fixes, tracked as follow-up tasks.
 
 - [ ] **Step 3: Commit QA notes (if any)**
 
@@ -2235,5 +2235,5 @@ git commit -m "docs: v1.1 QA notes"
 - Run-diff view
 - Per-finding history timeline
 - GSC integration per-domain wiring (stub dropdown only)
-- Private hosted reports (unlisted toggle) — future
-- Welcome banner auto-dismiss logic — polling strategy during implementation
+- Private hosted reports (unlisted toggle): future
+- Welcome banner auto-dismiss logic: polling strategy during implementation

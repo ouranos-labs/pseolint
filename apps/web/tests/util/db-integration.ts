@@ -5,7 +5,7 @@
  * DB-backed suites must be gated behind an explicit opt-in.
  *
  * Set RUN_DB_INTEGRATION_TESTS=1 with a real DATABASE_URL to run them locally.
- * CI defaults to skip — `bun run lint` still typechecks the files so signature
+ * CI defaults to skip: `bun run lint` still typechecks the files so signature
  * drift on `mergeFindings`, `evaluateAlertGate`, etc. is still caught.
  */
 export const RUN_DB_INTEGRATION = process.env.RUN_DB_INTEGRATION_TESTS === "1";

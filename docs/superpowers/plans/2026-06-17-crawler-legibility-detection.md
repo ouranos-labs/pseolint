@@ -67,7 +67,7 @@ describe("countInteractive", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/framework-detect.test.ts`
-Expected: FAIL — cannot find module `../src/framework-detect.js`.
+Expected: FAIL, cannot find module `../src/framework-detect.js`.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -143,7 +143,7 @@ import { csrBailoutRule } from "../../../src/rules/tech/csr-bailout.js";
 import type { ParsedPage } from "../../../src/types.js";
 
 function page(p: Partial<ParsedPage> & { url: string; html: string }): ParsedPage {
-  // Minimal ParsedPage for rule tests — only fields the rule reads matter.
+  // Minimal ParsedPage for rule tests, only fields the rule reads matter.
   return { contentText: "", title: "", url: p.url, html: p.html, ...p } as ParsedPage;
 }
 
@@ -195,7 +195,7 @@ describe("csr-bailout", () => {
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `npx vitest run tests/rules/tech/csr-bailout.test.ts`
-Expected: FAIL — cannot find module `csr-bailout.js`.
+Expected: FAIL, cannot find module `csr-bailout.js`.
 
 - [ ] **Step 4: Write the rule**
 
@@ -220,7 +220,7 @@ function visibleWordCount(html: string): number {
 
 /**
  * Flags pages whose interactive value (or substantive content) exists in the
- * rendered DOM but not the raw server HTML — invisible to crawlers that don't
+ * rendered DOM but not the raw server HTML: invisible to crawlers that don't
  * run JS. Requires --render (no-op when page.renderedHtml is absent).
  */
 export function csrBailoutRule(pages: ParsedPage[]): RuleResult[] {
@@ -331,7 +331,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { renderPages } from "../src/renderer.js";
 
-// JS injects a form via DOM API — raw bytes contain zero <input>/<button>.
+// JS injects a form via DOM API, raw bytes contain zero <input>/<button>.
 const SHELL = `<!doctype html><html><head><title>s</title></head><body>
 <div id="app"></div>
 <script>
@@ -346,7 +346,7 @@ function hasBrowser(): boolean {
   return true;
 }
 
-describe("renderPages (Node only — JS executes, post-render DOM returned)", () => {
+describe("renderPages (Node only, JS executes, post-render DOM returned)", () => {
   it.skipIf(!hasBrowser())("renders injected DOM not present in raw HTML", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-render-"));
     try {
@@ -371,7 +371,7 @@ describe("renderPages (Node only — JS executes, post-render DOM returned)", ()
 
 Run: `node node_modules/playwright-core/cli.js install chromium-headless-shell`
 Run: `npx vitest run tests/renderer.test.ts`
-Expected: PASS (renders ≥1 input + button). If no browser, the case skips cleanly — that is acceptable for CI.
+Expected: PASS (renders ≥1 input + button). If no browser, the case skips cleanly, that is acceptable for CI.
 
 - [ ] **Step 4: Add the render step in the auditor**
 
@@ -463,7 +463,7 @@ describe("evaluateProbe (synthetic invalid URL)", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run tests/rules/tech/soft-404.test.ts`
-Expected: FAIL — `evaluateProbe` is not exported.
+Expected: FAIL, `evaluateProbe` is not exported.
 
 - [ ] **Step 3: Add `evaluateProbe` to `soft-404.ts`**
 
@@ -473,7 +473,7 @@ import { load } from "cheerio";
 
 /**
  * Evaluate a synthetic-invalid-URL probe response. A correct site returns
- * 404/410 for a URL that cannot exist; a 200 is the soft-404 signal — no body
+ * 404/410 for a URL that cannot exist; a 200 is the soft-404 signal: no body
  * pattern required (unlike soft404Rule). Body pattern/emptiness raises confidence.
  */
 export function evaluateProbe(probedUrl: string, status: number, body: string): RuleResult | null {
@@ -532,7 +532,7 @@ if (isEnabled("tech/soft-404") && siteType === "programmatic-directory") {
 }
 ```
 
-Use a deterministic token (hash of the cluster signature — reuse any existing string-hash util; if none, a tiny inline `[...s].reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0,0)`). Respect `skipDetectedAuth` if the representative page was auth-detected. Adapt `cachedFetch`'s real return shape and the `tag`/`pushAll`/`log` helpers to those in scope.
+Use a deterministic token (hash of the cluster signature, reuse any existing string-hash util; if none, a tiny inline `[...s].reduce((h,c)=>((h<<5)-h+c.charCodeAt(0))|0,0)`). Respect `skipDetectedAuth` if the representative page was auth-detected. Adapt `cachedFetch`'s real return shape and the `tag`/`pushAll`/`log` helpers to those in scope.
 
 - [ ] **Step 7: Run full suite + typecheck**
 
@@ -593,4 +593,4 @@ git commit -m "feat(core): csr-bailout scoring weight + cluster collapse; docs"
 
 - **Spec coverage:** Component 1 render wiring → Task 3; `ParsedPage.renderedHtml` → Task 2 Step 1 + Task 3. Component 2 `tech/csr-bailout` → Task 2 (logic) + Task 5 (weighting, collapse). Component 3 soft-404 probe → Task 4. framework-detect helpers → Task 1. Pre-flight → Task 3 Step 5. Tests/fixtures → Tasks 1,2,3,4,5. Live regression → Task 6. CHANGELOG/rule-count → Task 5. All spec sections mapped.
 - **Placeholder scan:** Integration steps in Tasks 3/4 intentionally include a read-first step because `auditor.ts` internals and `cachedFetch`'s shape were not fully read during planning; the surrounding code is given concretely. All pure-unit code (Tasks 1, 2, 4 evaluateProbe) is complete.
-- **Type consistency:** `csrBailoutRule(pages): RuleResult[]`, `countInteractive(html): number`, `detectClientFrameworkFromHtml(html): ClientFramework|null`, `evaluateProbe(url, status, body): RuleResult|null`, `ParsedPage.renderedHtml?: string` — consistent across tasks. Rule id `tech/csr-bailout` consistent in scope.ts, rule, auditor, scoring, docs.
+- **Type consistency:** `csrBailoutRule(pages): RuleResult[]`, `countInteractive(html): number`, `detectClientFrameworkFromHtml(html): ClientFramework|null`, `evaluateProbe(url, status, body): RuleResult|null`, `ParsedPage.renderedHtml?: string`: consistent across tasks. Rule id `tech/csr-bailout` consistent in scope.ts, rule, auditor, scoring, docs.

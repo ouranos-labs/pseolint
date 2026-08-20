@@ -191,7 +191,7 @@ export default async function ToolPage({ params }: { params: Promise<RouteParams
         <p>
           Want every rule, not just this lens? The full audit on the homepage
           runs the complete SpamBrain + AEO rule set and produces the same
-          shareable report — same backend, broader output.
+          shareable report: same backend, broader output.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link

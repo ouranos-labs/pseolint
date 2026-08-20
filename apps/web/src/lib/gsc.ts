@@ -21,7 +21,7 @@ const AUTHORIZE_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const API_BASE = "https://searchconsole.googleapis.com/webmasters/v3";
 
-/** OAuth state TTL — 10 min is plenty for the round-trip through Google. */
+/** OAuth state TTL: 10 min is plenty for the round-trip through Google. */
 const STATE_TTL_MS = 10 * 60 * 1000;
 /** Refresh access tokens this many ms before they expire to absorb clock skew. */
 const REFRESH_SKEW_MS = 60 * 1000;
@@ -81,7 +81,7 @@ export function unpackState(state: string): { userId: string } {
     throw new Error("invalid OAuth state");
   }
   if (Date.now() - parsed.t > STATE_TTL_MS) {
-    throw new Error("OAuth state expired — please try again");
+    throw new Error("OAuth state expired; please try again");
   }
   return { userId: parsed.u };
 }
@@ -106,7 +106,7 @@ export async function exchangeCodeForTokens(code: string): Promise<GscTokens> {
   }
   const json = (await res.json()) as { access_token: string; refresh_token?: string; expires_in: number };
   if (!json.refresh_token) {
-    throw new Error("Google did not return a refresh_token — re-grant with prompt=consent");
+    throw new Error("Google did not return a refresh_token; re-grant with prompt=consent");
   }
   return {
     accessToken: json.access_token,
@@ -173,7 +173,7 @@ export async function loadGscTokens(userId: string): Promise<GscTokens | null> {
     return tokens;
   }
 
-  // Access token expired — refresh and persist before returning.
+  // Access token expired; refresh and persist before returning.
   const refreshed = await refreshTokens(tokens.refreshToken);
   const next: GscTokens = {
     accessToken: refreshed.accessToken,
@@ -207,7 +207,7 @@ export type GscSite = { siteUrl: string; permissionLevel: string };
  * making it valid evidence of domain ownership on its own.
  *
  * `listSites` already drops `siteUnverifiedUser`, so every entry it returns has
- * passed Google's own DNS / HTML-file / Analytics verification — strictly
+ * passed Google's own DNS / HTML-file / Analytics verification: strictly
  * stronger than our `_pseolint-verify` TXT check. On top of that we require
  * owner-or-full access so a `siteRestrictedUser` grant (a read-only delegate
  * who does not control the site) never counts as an ownership claim.
@@ -245,7 +245,7 @@ export type GscPageQueryRow = {
  * row into `gsc_page_metrics`, and the dashboard later reads the top-500 by
  * impressions; rows beyond the top 5 000 contribute negligibly to either the
  * upsert cost or the visible card. Sites with deeper long-tails would need
- * pagination via `startRow` (deferred — typical pSEO traffic is heavy-headed
+ * pagination via `startRow` (deferred: typical pSEO traffic is heavy-headed
  * and the impression-weighted card metrics are unchanged at visible
  * precision below 5 000 rows).
  */
@@ -288,7 +288,7 @@ export async function querySearchAnalyticsByPage(
 
 /**
  * Query Search Analytics for a property dimensioned by `page` AND `query`.
- * Used by the growth self-measurement sync (our own property) — distinct from
+ * Used by the growth self-measurement sync (our own property): distinct from
  * the page-only Pro sync. Returns one row per (url, query) in the date range.
  */
 export async function querySearchAnalyticsByPageQuery(
@@ -331,13 +331,13 @@ export async function querySearchAnalyticsByPageQuery(
   }));
 }
 
-/** "YYYY-MM" for the current month in UTC — used as the `monthBucket` key. */
+/** "YYYY-MM" for the current month in UTC, used as the `monthBucket` key. */
 export function monthBucketUtc(d: Date = new Date()): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 /** ISO-8601 week key "YYYY-Www" in UTC (e.g. "2026-W02"). The week-year can
- * differ from the calendar year around Jan 1 / Dec 31 — ISO weeks belong to
+ * differ from the calendar year around Jan 1 / Dec 31: ISO weeks belong to
  * the year containing their Thursday. */
 export function weekBucketUtc(d: Date = new Date()): string {
   // Copy to a UTC date at midnight.
@@ -372,16 +372,16 @@ interface PropertyMatch {
 
 /**
  * Score how well a GSC property URL matches a monitored host. Confidence:
- *   0 → URL prefix `https://{host}/` (or http) — exact match including www-state
+ *   0 → URL prefix `https://{host}/` (or http): exact match including www-state
  *   1 → URL prefix matching the host's www-variant (naked vs www)
- *   2 → Domain property `sc-domain:{host}` — exact host match
+ *   2 → Domain property `sc-domain:{host}`: exact host match
  *   3 → Domain property covering host as a subdomain (e.g. sc-domain:example.com for blog.example.com)
  * Returns null for: unrelated hosts, subpath-only URL prefixes
  * (`https://example.com/blog/`), unparseable URLs.
  *
  * Why subpath properties are rejected: if a user has both `sc-domain:example.com`
  * and `https://example.com/blog/` and we pick the subpath, we'd weight the
- * whole monitored host's findings using a sliver of its traffic — silently
+ * whole monitored host's findings using a sliver of its traffic: silently
  * wrong. Better to leave unbound and let the user choose.
  */
 export function scorePropertyMatch(siteUrl: string, host: string): PropertyMatch | null {
@@ -402,14 +402,14 @@ export function scorePropertyMatch(siteUrl: string, host: string): PropertyMatch
   const propHost = parsed.host.toLowerCase();
   const propNaked = propHost.replace(/^www\./, "");
   if (propNaked !== monitoredNaked) return null;
-  // Same naked host — distinguish exact match vs www-variant.
+  // Same naked host: distinguish exact match vs www-variant.
   return { siteUrl, confidence: propHost === monitoredHost ? 0 : 1 };
 }
 
 /**
  * Pick the single best GSC property for a host, or null if no unambiguous
- * match exists. Returns null when two properties tie at the best confidence
- * — silent wrong-binding would be worse than no binding (user would see
+ * match exists. Returns null when two properties tie at the best confidence;
+ * silent wrong-binding would be worse than no binding (user would see
  * traffic-weighted ranks based on a property that isn't theirs and have no
  * way to diagnose it).
  */
@@ -433,7 +433,7 @@ export interface AutoBindResult {
  * Auto-bind every unbound monitored domain for a user, using the highest-
  * confidence unique match against their GSC property list. Idempotent and
  * best-effort: any failure (no grant, revoked perms, network) returns zero
- * counts rather than throwing — caller should treat this as a UX nicety, not
+ * counts rather than throwing: caller should treat this as a UX nicety, not
  * a critical step.
  */
 export async function autoBindGscPropertiesForUser(userId: string): Promise<AutoBindResult> {
@@ -471,7 +471,7 @@ export async function autoBindGscPropertiesForUser(userId: string): Promise<Auto
     }
     // A matched owner-or-full property doubles as domain verification, so
     // connecting Search Console starts monitoring without a TXT record. Only
-    // stamped when still unverified — never re-dates an existing verification.
+    // stamped when still unverified; never re-dates an existing verification.
     const entry = sites.find((s) => s.siteUrl === matches[0].siteUrl);
     const verifies = !d.verifiedAt && entry != null && provesGscOwnership(entry);
     await db.update(monitoredDomains)

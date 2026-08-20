@@ -10,7 +10,7 @@ import { sendMagicLinkEmail } from "@/lib/resend";
  * Why this exists: a delivery failure (e.g. an unverified Resend `from`
  * domain) is an *upstream* problem, not a bug in our handler. Returning 500
  * conflates the two and shows the user a scary, dead-end error. We still
- * surface the failure (never a fake 200 — the email genuinely didn't send),
+ * surface the failure (never a fake 200: the email genuinely didn't send),
  * but with an accurate status and an actionable message. The detailed reason
  * is already logged server-side by `sendMagicLinkEmail` for monitoring.
  */

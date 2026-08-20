@@ -6,7 +6,7 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
-const PAGE_TITLE = "SpamBrain symptoms — diagnose your site";
+const PAGE_TITLE = "SpamBrain symptoms: diagnose your site";
 const PAGE_DESCRIPTION =
   "A triage list for programmatic-SEO sites that have been hit. Match the symptom in Search Console, then run a template-aware audit to confirm.";
 const CANONICAL = `${SITE_URL}/symptoms`;
@@ -60,19 +60,19 @@ function jsonLdSafe(data: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "How do I triage a SpamBrain hit on a programmatic-SEO site?",
-    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the audit to confirm which template and which rules are actually firing. The audit identifies the specific template responsible — you don't need to triage hundreds of URLs to find the problem.",
+    a: "All 5 most-searched symptoms share the same triage shape: identify the symptom you're seeing in Google Search Console (impressions cliff, CTR collapse, indexed-but-not-served, sudden manual action, or slow Core Web Vitals decay), map it to the rule cluster that explains it (spam/* for the March 5, 2024 scaled-content-abuse pattern, links/* for the May 7, 2024 site-reputation-abuse pattern, tech/* for the slow CWV decay, content/* for thin-intent drift), then run the audit to confirm which template and which rules are actually firing. The audit identifies the specific template responsible; you don't need to triage hundreds of URLs to find the problem.",
   },
   {
     q: "How long does recovery take after fixing the rule violations?",
-    a: "Median observed recovery time is 30–90 days — Google needs to recrawl, rescore through SpamBrain, and let the classifier's rolling signal stabilize. Manual actions surface faster (usually one reconsideration cycle, 1–2 weeks) but require a documented fix in the request. Algorithmic suppression has no notification and no reconsideration channel; the only confirmation is watching impressions return in GSC's Search Status Dashboard and the per-URL Performance report.",
+    a: "Median observed recovery time is 30–90 days, Google needs to recrawl, rescore through SpamBrain, and let the classifier's rolling signal stabilize. Manual actions surface faster (usually one reconsideration cycle, 1–2 weeks) but require a documented fix in the request. Algorithmic suppression has no notification and no reconsideration channel; the only confirmation is watching impressions return in GSC's Search Status Dashboard and the per-URL Performance report.",
   },
   {
     q: "Will AI Overviews summarize away symptom-style diagnostic content?",
-    a: "Broadly true for top-of-funnel 'what is X' content, where the LLM can synthesize a one-paragraph answer from three sources and the user never clicks. Not true for interactive diagnostic content like these symptom pages — when the workflow requires the reader to look at their own GSC chart, classify what they're seeing, and make a branching decision, the LLM can't condense the experience into a snippet. That's why pseolint's symptom pages are deliberately structured as branching diagnostic flows rather than 'ultimate guides.'",
+    a: "Broadly true for top-of-funnel 'what is X' content, where the LLM can synthesize a one-paragraph answer from three sources and the user never clicks. Not true for interactive diagnostic content like these symptom pages, when the workflow requires the reader to look at their own GSC chart, classify what they're seeing, and make a branching decision, the LLM can't condense the experience into a snippet. That's why pseolint's symptom pages are deliberately structured as branching diagnostic flows rather than 'ultimate guides.'",
   },
   {
     q: "What is the May 7, 2024 site-reputation-abuse policy?",
-    a: "It drove a wave of manual actions against domains hosting third-party parasite-SEO content under their authority — coupon subdomains, sponsored-content networks, affiliate landing pages under a high-DR root. Enforcement is characteristically subfolder-scoped: the offending section loses ranking while the rest of the domain is left intact. pseolint's links/host-section-divergence rule is built for exactly this pattern — it flags a URL section that diverges from the rest of the host on inbound links, topic, template, and authorship — so run that and read the site-reputation-abuse-penalty symptom page before assuming the cause is something else.",
+    a: "It drove a wave of manual actions against domains hosting third-party parasite-SEO content under their authority, coupon subdomains, sponsored-content networks, affiliate landing pages under a high-DR root. Enforcement is characteristically subfolder-scoped: the offending section loses ranking while the rest of the domain is left intact. pseolint's links/host-section-divergence rule is built for exactly this pattern (it flags a URL section that diverges from the rest of the host on inbound links, topic, template, and authorship) so run that and read the site-reputation-abuse-penalty symptom page before assuming the cause is something else.",
   },
 ];
 
@@ -121,22 +121,22 @@ export default function SymptomsIndexPage() {
         className="mt-3 text-balance text-3xl tracking-tight sm:text-4xl lg:text-5xl"
         style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 }}
       >
-        SpamBrain symptoms — diagnose your site.
+        SpamBrain symptoms: diagnose your site.
       </h1>
       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
         If your traffic chart looks wrong and you don&apos;t yet know why, start here. Each
-        page below covers one specific failure mode we see on programmatic-SEO sites — what
+        page below covers one specific failure mode we see on programmatic-SEO sites: what
         it looks like in Google Search Console, the few things that actually cause it, and
         the order to investigate. The audit tells you{" "}
         <span className="font-medium text-foreground">which template</span> is responsible
-        — not just which URLs. The free pseolint audit covers up to 200 pages, stratified
+: not just which URLs. The free pseolint audit covers up to 200 pages, stratified
         across templates, with 30-day retention at $0; comparable tools like Screaming Frog
         ($259/year), Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for
         the same triage surface and do not produce per-template verdicts. When you&apos;ve
         matched the symptom, run a real audit on your domain to confirm.
       </p>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        These symptoms cover programmatic-SEO patterns + AI Overview readiness — not a
+        These symptoms cover programmatic-SEO patterns + AI Overview readiness: not a
         general SEO audit. For Core Web Vitals use{" "}
         <a href="https://pagespeed.web.dev" className="text-primary hover:underline" rel="nofollow">PageSpeed Insights</a>,
         and for broken-link scanning use{" "}
@@ -171,7 +171,7 @@ export default function SymptomsIndexPage() {
 
       <section className="mt-12 max-w-3xl space-y-5 text-sm leading-relaxed text-muted-foreground">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
-          Template-level symptoms — the template-scoped failure modes
+          Template-level symptoms: the template-scoped failure modes
         </h2>
         <p>
           pseolint surfaces three template-scoped symptom patterns that flat-URL
@@ -189,7 +189,7 @@ export default function SymptomsIndexPage() {
           <li>
             <span className="font-medium text-foreground">Cross-template duplication.</span>{" "}
             <code className="font-mono text-xs">spam/near-duplicate</code> is
-            corpus-wide — it compares pages across all templates. A site where
+            corpus-wide; it compares pages across all templates. A site where
             the <code className="font-mono text-xs">/category/:slug</code> and{" "}
             <code className="font-mono text-xs">/listing/:slug</code> templates
             produce near-identical pages (different slug, same body) will fire
@@ -226,7 +226,7 @@ export default function SymptomsIndexPage() {
         <p>
           Median observed recovery time for sites that fix the underlying rule
           violations is <span className="font-medium text-foreground">30–90 days</span>{" "}
-          — Google needs to recrawl, rescore through SpamBrain, and let the
+: Google needs to recrawl, rescore through SpamBrain, and let the
           classifier&apos;s rolling signal stabilize. Manual actions surface
           faster (usually one reconsideration cycle, 1–2 weeks) but require a
           documented fix in the request. Algorithmic suppression has no
@@ -244,7 +244,7 @@ export default function SymptomsIndexPage() {
           &quot;what is X&quot; content, where the LLM can synthesize a
           one-paragraph answer from three sources and the user never clicks.
           It&apos;s not true for interactive diagnostic content like the pages
-          below — when the workflow requires the reader to look at their own
+          below: when the workflow requires the reader to look at their own
           GSC chart, classify what they&apos;re seeing, and make a branching
           decision, the LLM can&apos;t condense the experience into a snippet.
           That&apos;s why pseolint&apos;s symptom pages are deliberately
@@ -254,7 +254,7 @@ export default function SymptomsIndexPage() {
         <p>
           The May 7, 2024 site-reputation-abuse policy in particular drove a
           wave of manual actions against domains hosting third-party
-          parasite-SEO content under their authority — if you bought a coupon
+          parasite-SEO content under their authority: if you bought a coupon
           subdomain, ran a sponsored-content network, or hosted affiliate
           landing pages under a high-DR root, it&apos;s worth running the
           doorway-page detector and reading the doorway-pattern symptom page
@@ -265,7 +265,7 @@ export default function SymptomsIndexPage() {
           Triage philosophy here borrows from incident-response runbooks rather
           than ranking-recovery playbooks: observability first, hypothesis
           second, irreversible remediation last. Each branch below stays
-          falsifiable — if the diagnostic checks come back clean, the symptom
+          falsifiable: if the diagnostic checks come back clean, the symptom
           isn&apos;t the one you thought it was, and you escalate to the next
           differential rather than committing to a fix.
         </p>
@@ -273,7 +273,7 @@ export default function SymptomsIndexPage() {
 
       <p className="mt-8 max-w-3xl text-sm leading-relaxed text-muted-foreground">
         Each symptom page maps a Search Console signal to the specific Google policy
-        or algorithm update that caused it — impressions cliffs to the March 5, 2024
+        or algorithm update that caused it: impressions cliffs to the March 5, 2024
         scaled-content-abuse update, manual actions to the May 7, 2024
         site-reputation-abuse policy, and CTR collapse to SpamBrain thin-content
         scoring. The triage flow starts from what you observe in GSC, not from a
@@ -299,7 +299,7 @@ export default function SymptomsIndexPage() {
           },
           {
             source: "helpfulContent",
-            note: "Google's helpful-content guidance is the baseline each symptom's content-quality triage branch checks against — relevant for CTR-collapse and thin-intent symptoms.",
+            note: "Google's helpful-content guidance is the baseline each symptom's content-quality triage branch checks against, relevant for CTR-collapse and thin-intent symptoms.",
           },
           {
             source: "searchEssentials",

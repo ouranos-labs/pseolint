@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { AuditSummary } from "@pseolint/core";
 import { SeverityDemotions } from "./severity-demotions";
 
-/** Minimal AuditSummary stub — only the fields SeverityDemotions reads. */
+/** Minimal AuditSummary stub: only the fields SeverityDemotions reads. */
 function makeSummary(over: Partial<AuditSummary>): AuditSummary {
   return over as AuditSummary;
 }

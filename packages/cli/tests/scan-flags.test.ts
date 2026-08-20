@@ -3,7 +3,7 @@
  *
  * We cannot call `runCli` directly in vitest without either (a) a live target URL
  * or (b) mocking `auditSource`. The cleanest testable surface is the Commander
- * option parsing itself — we test that the three new flags are recognised and
+ * option parsing itself: we test that the three new flags are recognised and
  * that the documented mutual-exclusivity (legacyFlat wins over perTemplate) is
  * enforced by the CLI's formatting path.
  *

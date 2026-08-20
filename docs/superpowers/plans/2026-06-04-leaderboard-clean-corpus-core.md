@@ -1,10 +1,10 @@
-# Leaderboard Clean-Corpus Core — Implementation Plan (Plan 1 of 3)
+# Leaderboard Clean-Corpus Core: Implementation Plan (Plan 1 of 3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make clean public audits (incl. anonymous) persist permanently and become search-indexable, fix the leaderboard's supersede semantics, and reconcile the now-false retention copy — so the board stops evaporating and starts compounding as an SEO corpus.
+**Goal:** Make clean public audits (incl. anonymous) persist permanently and become search-indexable, fix the leaderboard's supersede semantics, and reconcile the now-false retention copy, so the board stops evaporating and starts compounding as an SEO corpus.
 
-**Architecture:** Extract the eligibility + robots rules into one pure, unit-tested module (`lib/leaderboard.ts`) and reuse it in three places: the audit-completion step (to extend `expiresAt`), the leaderboard query (to gate + order), and the report page's `generateMetadata` (to flip `index`/`follow`). No new tables in this plan — permanence rides the existing `expiresAt` lever; a single `audits.source` column is added now so Plans 2–3 don't need a second migration.
+**Architecture:** Extract the eligibility + robots rules into one pure, unit-tested module (`lib/leaderboard.ts`) and reuse it in three places: the audit-completion step (to extend `expiresAt`), the leaderboard query (to gate + order), and the report page's `generateMetadata` (to flip `index`/`follow`). No new tables in this plan, permanence rides the existing `expiresAt` lever; a single `audits.source` column is added now so Plans 2–3 don't need a second migration.
 
 **Tech Stack:** Next.js (App Router, RSC), Drizzle ORM (Postgres/Neon), Inngest, Vitest.
 
@@ -90,7 +90,7 @@ describe("PERMANENT_EXPIRES_AT", () => {
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `npx vitest run src/lib/leaderboard.test.ts`
-Expected: FAIL — `Cannot find module './leaderboard'`.
+Expected: FAIL, `Cannot find module './leaderboard'`.
 
 - [ ] **Step 3: Write the module**
 
@@ -109,7 +109,7 @@ Create `apps/web/src/lib/leaderboard.ts`:
 /** Risk strictly below this is leaderboard-eligible (A/B bands). Tunable. */
 export const LEADERBOARD_RISK_MAX = 40;
 
-/** Too-small samples produce volatile rankings — exclude below this. */
+/** Too-small samples produce volatile rankings, exclude below this. */
 export const LEADERBOARD_MIN_PAGES = 5;
 
 /**
@@ -144,7 +144,7 @@ export function isLeaderboardEligible(a: EligibilityInput): boolean {
 /**
  * Robots directive for a /r/[slug] page. Only leaderboard-eligible reports are
  * indexed; every private/failing/thin/expired report stays noindex,nofollow
- * (the historical default). expiresAt is intentionally NOT an input here —
+ * (the historical default). expiresAt is intentionally NOT an input here:
  * eligible audits have their expiry extended to PERMANENT_EXPIRES_AT, and an
  * expired row never reaches this function (the page renders ExpiredState first).
  */
@@ -182,7 +182,7 @@ In `apps/web/src/db/schema.ts`, inside the `audits` pgTable definition, add the 
   source: text("source").$type<"user" | "seed">().notNull().default("user"),
 ```
 
-(`text` is already imported in this file — it is used by adjacent columns.)
+(`text` is already imported in this file, it is used by adjacent columns.)
 
 - [ ] **Step 2: Generate the migration**
 
@@ -234,8 +234,8 @@ Replace the block starting at `const completedAt = new Date();` (line 290) down 
     summary.issues.shouldFix.length +
     summary.issues.informational.length;
 
-  // Read current visibility so we can decide permanence. Clean public audits —
-  // including anonymous ones — get their expiry extended to the far-future
+  // Read current visibility so we can decide permanence. Clean public audits,
+  // including anonymous ones, get their expiry extended to the far-future
   // sentinel so the listing + /r/[slug] page persist as an SEO corpus entry.
   // Non-eligible audits keep the tier expiry set at creation (anon 1d / free 30d).
   const [vis] = await db
@@ -274,7 +274,7 @@ Replace the block starting at `const completedAt = new Date();` (line 290) down 
   });
 ```
 
-(This preserves every existing field in the `.set()` — the only additions are the `vis` read, the `eligible` computation, and the conditional `expiresAt` spread. The explanatory comments at lines 307–315 are condensed into the new comment above; do not lose the `siteClassification` / `scrapePlan` fields.)
+(This preserves every existing field in the `.set()`, the only additions are the `vis` read, the `eligible` computation, and the conditional `expiresAt` spread. The explanatory comments at lines 307–315 are condensed into the new comment above; do not lose the `siteClassification` / `scrapePlan` fields.)
 
 - [ ] **Step 3: Typecheck**
 
@@ -295,7 +295,7 @@ git commit -m "feat(audit): persist clean public audits permanently at completio
 
 ---
 
-### Task 4: Leaderboard query — clean-only gate + most-recent supersede
+### Task 4: Leaderboard query: clean-only gate + most-recent supersede
 
 **Files:**
 - Modify: `apps/web/src/app/leaderboard/page.tsx` (query, lines 83–112)
@@ -345,7 +345,7 @@ Expected: no errors.
 - [ ] **Step 4: Manual verification**
 
 Run: `npm run dev`, open `http://localhost:3000/leaderboard`.
-Expected: the page renders; any listed card has a grade in the A or B band (risk < 40). If you have a known failing public audit, confirm its host is absent. (If the DB is empty locally, the empty-state renders — that's acceptable; the gate is verified by the lib tests + typecheck.)
+Expected: the page renders; any listed card has a grade in the A or B band (risk < 40). If you have a known failing public audit, confirm its host is absent. (If the DB is empty locally, the empty-state renders, that's acceptable; the gate is verified by the lib tests + typecheck.)
 
 - [ ] **Step 5: Commit**
 
@@ -384,7 +384,7 @@ with:
 
 ```ts
   // Only leaderboard-eligible reports (clean + public + over the page floor)
-  // are indexable — they assert a NAMED site is clean, which is defensible.
+  // are indexable, they assert a NAMED site is clean, which is defensible.
   // Every other report (private, failing, thin, not-ready) stays noindex.
   if (!row || !isReady(row)) {
     return { title: "Audit not found · pseolint", robots: { index: false, follow: false } };
@@ -392,12 +392,12 @@ with:
   const robots: Metadata["robots"] = reportRobots(row);
 ```
 
-(`row` is the full audit row from `findAudit`, so it already carries `isPublic`, `status`, `host`, `pageCount`, `risk` — the fields `EligibilityInput` needs.)
+(`row` is the full audit row from `findAudit`, so it already carries `isPublic`, `status`, `host`, `pageCount`, `risk`, the fields `EligibilityInput` needs.)
 
 - [ ] **Step 3: Typecheck**
 
 Run: `npx tsc --noEmit -p tsconfig.json`
-Expected: no errors. (If TS complains that the row's `status` is a wider/narrower type than `EligibilityInput.status: string`, it will not — `string` accepts the enum.)
+Expected: no errors. (If TS complains that the row's `status` is a wider/narrower type than `EligibilityInput.status: string`, it will not, `string` accepts the enum.)
 
 - [ ] **Step 4: Manual verification**
 
@@ -506,7 +506,7 @@ to:
 
 - [ ] **Step 4: Soften the `ExpiredState` copy (defensive only)**
 
-`ExpiredState` only renders for already-expired rows (eligible rows never expire), so its copy is not user-facing for clean sites. No change required, but if touched, leave the existing "Anonymous reports live for 24 hours" text — it is accurate for the rows that actually reach this state. Skip.
+`ExpiredState` only renders for already-expired rows (eligible rows never expire), so its copy is not user-facing for clean sites. No change required, but if touched, leave the existing "Anonymous reports live for 24 hours" text, it is accurate for the rows that actually reach this state. Skip.
 
 - [ ] **Step 5: Typecheck**
 
@@ -540,11 +540,11 @@ Replace the paragraph at lines 234–244 (`Leaderboard methodology in one paragr
 ```tsx
       <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
         Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
-        completed public audits, deduplicated by hostname so a domain occupies exactly one slot —
+        completed public audits, deduplicated by hostname so a domain occupies exactly one slot,
         the most recent audit per domain wins, so a re-audit supersedes the prior score. Only sites
         scoring in the A or B band (risk below 40) are listed; audits below the 5-page floor are
         excluded because too-small samples produce volatile rankings. Pages marked private by their
-        owner never appear, regardless of score. A clean public audit — including an anonymous one —
+        owner never appear, regardless of score. A clean public audit (including an anonymous one) 
         is kept permanently and shown with the date it was scored; if a site is re-audited and slips
         below the bar, it drops off the board. The board first shipped on March 15, 2026 alongside the
         v0.4.0 engine cut, and the scoring weights were last rebalanced on April 21, 2026 when the AEO
@@ -561,14 +561,14 @@ Replace the two paragraphs at lines 293–308 with:
           Any audit a user runs with{ " " }
           <span className="font-mono text-foreground">isPublic = true</span> is listed once it
           completes, crosses the 5-page minimum, and scores in the A or B band (risk below 40).
-          Free-tier audits cost $0 and default to public — that&rsquo;s the trade for unlimited
+          Free-tier audits cost $0 and default to public, that&rsquo;s the trade for unlimited
           one-shot acquisition runs, capped at 3 audits per browser per 24-hour window. Audits that
           score below the bar still produce a full report at their own URL; they just aren&rsquo;t
           listed publicly. Pro plans start at $19/mo, default to private, and stay private unless an
           operator flips the visibility toggle.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Listings are deduplicated by hostname — the most recent audit per domain shows, and
+          Listings are deduplicated by hostname, the most recent audit per domain shows, and
           rankings refresh every ten minutes. A clean public listing is kept permanently; re-auditing
           a site supersedes its previous entry. If you ran a public audit you didn&rsquo;t mean to
           share, mark it private from your dashboard and it disappears at the next revalidation.
@@ -611,6 +611,6 @@ Expected: `src/lib/leaderboard.ts`, `src/lib/leaderboard.test.ts`, `src/db/schem
 
 **Spec coverage (Plan 1 portion):** §0 indexability → Task 5. §1 eligibility constant → Task 1. §2 retention → Task 3. §3 supersede + query fix → Task 4. §4 `audits.source` → Task 2 (the `leaderboardClaims` table is deferred to Plan 3 by design). §9 copy → Tasks 4/6/7. §5–§8 (claims, conversion, seeding, nofollow-until-verified, takedown valve) are explicitly deferred to Plans 2–3 and called out in the scope note.
 
-**Deferred-dependency check:** Nothing in Plan 1 references `leaderboardClaims`, badges, or seed rows. The `audits.source` column is added now but only read starting in Plan 2 — safe (defaulted, unused).
+**Deferred-dependency check:** Nothing in Plan 1 references `leaderboardClaims`, badges, or seed rows. The `audits.source` column is added now but only read starting in Plan 2, safe (defaulted, unused).
 
 **Type consistency:** `isLeaderboardEligible` / `reportRobots` / `EligibilityInput` names and the `PERMANENT_EXPIRES_AT` string are used identically in Tasks 1, 3, 5, 6. The audit row from `findAudit` (`typeof audits.$inferSelect`) structurally satisfies `EligibilityInput`.

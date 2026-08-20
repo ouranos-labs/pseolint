@@ -146,7 +146,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           (unverified
             ? "Pending DNS verification."
             : noRunsYet
-            ? "First audit queued — results within minutes."
+            ? "First audit queued: results within minutes."
             : `Audited ${d.lastRunAt!.toISOString().slice(0, 10)} · ${findingsCount} open finding${findingsCount === 1 ? "" : "s"}.`);
 
         return (
@@ -163,7 +163,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
                 Verify
               </Link>
             ) : d.paused ? (
-              // A paused domain isn't being monitored — surface that instead of
+              // A paused domain isn't being monitored: surface that instead of
               // a green "Live" badge, which would imply active monitoring.
               <span className="absolute right-3 top-3 z-10 inline-flex h-6 items-center justify-center rounded-[8px] border border-border/60 bg-secondary/80 px-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground shadow-sm">
                 Paused
@@ -217,7 +217,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
                   return (
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}`}
-                      title="Engine verdict — moderated by domain authority & content-effort"
+                      title="Engine verdict: moderated by domain authority & content-effort"
                     >
                       <span className={`inline-block h-1 w-1 rounded-full ${v.dot}`} />
                       {v.label}
@@ -235,7 +235,7 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
 }
 
 /**
- * Per-domain GSC state. Three distinct states matter — collapsing them to a
+ * Per-domain GSC state. Three distinct states matter: collapsing them to a
  * binary "✓ / Connect" hides the silent-failure case (grant exists but no
  * property bound) which leaves rank scores unweighted by traffic.
  */
@@ -260,7 +260,7 @@ function GscPill({
       <Link
         href={`/dashboard/${encodeURIComponent(host)}/settings`}
         className="inline-flex items-center rounded-full border border-warning/40 bg-warning/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-warning hover:bg-warning/20"
-        title="Search Console is connected but no property is bound to this domain — findings here aren't traffic-weighted"
+        title="Search Console is connected but no property is bound to this domain: findings here aren't traffic-weighted"
       >
         Bind GSC →
       </Link>
@@ -269,7 +269,7 @@ function GscPill({
   return (
     <span
       className="inline-flex items-center gap-1 font-mono text-[10px] uppercase tracking-wider text-success"
-      title={`Bound to ${siteUrl} — findings ranked by traffic-at-risk`}
+      title={`Bound to ${siteUrl}: findings ranked by traffic-at-risk`}
     >
       <span className="inline-block h-1 w-1 rounded-full bg-success" />
       GSC bound

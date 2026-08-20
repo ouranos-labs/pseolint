@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { isSafePublicUrl } from "@/lib/ssrf";
 
-describe("SSRF smoke — bypass attempts rejected", () => {
+describe("SSRF smoke: bypass attempts rejected", () => {
   const targets = [
     "http://169.254.169.254/latest/meta-data/",   // AWS metadata
     "http://metadata.google.internal/",            // GCP metadata

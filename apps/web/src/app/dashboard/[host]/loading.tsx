@@ -2,7 +2,7 @@
  * Loading boundary for the domain workspace. Two jobs:
  *  1. Caps Next.js Link prefetch at this boundary so prefetching a host link no
  *     longer executes the full page render (10+ DB queries). Without a loading
- *     boundary, default prefetch fetches the entire dynamic render — and the
+ *     boundary, default prefetch fetches the entire dynamic render: and the
  *     /dashboard index prefetching every domain at once saturated Neon's
  *     connections (CONNECT_TIMEOUT). See db/index.ts and lib/db-retry.ts.
  *  2. Gives a skeleton during the heavy render on real navigation.

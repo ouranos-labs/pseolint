@@ -3,7 +3,7 @@
  *
  * Adding a tracking call site without adding to this union is a compile error;
  * every event's payload is typed here in exactly one place. Plain pageviews are
- * NOT in this union — they are emitted automatically by `trackScreenViews` on
+ * NOT in this union: they are emitted automatically by `trackScreenViews` on
  * the client provider.
  */
 export type AuditBlockReason =

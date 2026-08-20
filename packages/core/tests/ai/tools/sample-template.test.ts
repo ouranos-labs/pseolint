@@ -12,7 +12,7 @@ describe("sample_template tool", () => {
     if (!r.ok) return;
     expect(r.data.sample).toHaveLength(10);
     expect(r.data.template).toBeNull();
-    // Stratified should pull from both templates — at least 1 each.
+    // Stratified should pull from both templates: at least 1 each.
     const cityCount = r.data.sample.filter((u) => u.includes("/city/")).length;
     const blogCount = r.data.sample.filter((u) => u.includes("/blog/")).length;
     expect(cityCount).toBeGreaterThanOrEqual(1);
@@ -29,7 +29,7 @@ describe("sample_template tool", () => {
       "https://example.com/blog/state-of-pseo",
     ];
     // sample_template uses inferUrlTemplate (stratified-sample.ts) directly,
-    // not the site-classifier normalizer — but both produce identical
+    // not the site-classifier normalizer, but both produce identical
     // ":slug" output for hyphenated multi-word segments, so /city/:slug
     // is the canonical key here too.
     const r = await sampleTemplateTool.run({ urls, n: 2, template: "/city/:slug" });

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 /**
  * Owner-only toggle for the manifest's `isPublic` flag. The toggle
- * doesn't expose LLM-proposed rewrites publicly — even when public, the
+ * doesn't expose LLM-proposed rewrites publicly: even when public, the
  * `/m/<slug>` page renders a paraphrased view for non-owners. This is
  * for explicit curation (sharing for feedback, leaderboard inclusion).
  */

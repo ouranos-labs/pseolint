@@ -1,6 +1,6 @@
 /**
  * Slack incoming-webhook dispatcher for monitoring alerts.
- * SSRF guard: only accepts hooks.slack.com URLs — keeps a webhook column
+ * SSRF guard: only accepts hooks.slack.com URLs: keeps a webhook column
  * from being weaponized to probe internal services.
  */
 
@@ -50,14 +50,14 @@ export async function sendSlackAlert(input: SlackAlertInput): Promise<void> {
     : [];
 
   const payload = {
-    text: `pSEOLint alert · ${input.sourceUrl} risk ${input.previousRisk ?? "—"} → ${input.currentRisk}`,
+    text: `pSEOLint alert · ${input.sourceUrl} risk ${input.previousRisk ?? "; "} → ${input.currentRisk}`,
     blocks: [
       { type: "header", text: { type: "plain_text", text: `${directionEmoji} pSEOLint alert` } },
       {
         type: "section",
         fields: [
           { type: "mrkdwn", text: `*Site*\n${input.sourceUrl}` },
-          { type: "mrkdwn", text: `*Risk*\n${input.previousRisk ?? "—"} → *${input.currentRisk}* (Δ ${delta >= 0 ? "+" : ""}${delta})` },
+          { type: "mrkdwn", text: `*Risk*\n${input.previousRisk ?? "; "} → *${input.currentRisk}* (Δ ${delta >= 0 ? "+" : ""}${delta})` },
         ],
       },
       ...ruleListBlocks,

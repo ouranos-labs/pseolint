@@ -16,7 +16,7 @@ interface RecoveredFinding {
 }
 
 interface RunDiffStripProps {
-  /** Findings whose firstSeenAt >= previousAudit.completedAt — first appeared in the latest run. */
+  /** Findings whose firstSeenAt >= previousAudit.completedAt: first appeared in the latest run. */
   newFindings: NewFinding[];
   /** Open findings that were present in the prior run but didn't reappear in this run. */
   recoveredCount: number;
@@ -30,7 +30,7 @@ interface RunDiffStripProps {
 const SEV_RANK: Record<Severity, number> = { critical: 0, error: 1, warning: 2, info: 3 };
 
 /**
- * "What changed since last run" strip — sits above the findings panel.
+ * "What changed since last run" strip: sits above the findings panel.
  *
  * The point of monitoring is to notice things on the user's behalf. If the
  * dashboard renders the same numbers every visit, the user can't tell whether
@@ -45,7 +45,7 @@ export function RunDiffStrip({ newFindings, recoveredCount, recoveredFindings = 
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
           What changed
         </p>
-        <p className="mt-1 text-sm text-foreground">First completed run — diff will appear after the next audit.</p>
+        <p className="mt-1 text-sm text-foreground">First completed run: diff will appear after the next audit.</p>
       </section>
     );
   }
@@ -67,7 +67,7 @@ export function RunDiffStrip({ newFindings, recoveredCount, recoveredFindings = 
           What changed since {formatDate(previousAt)}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
-          No new findings, no recoveries — your sites are holding steady.
+          No new findings, no recoveries: your sites are holding steady.
         </p>
       </section>
     );
@@ -145,10 +145,10 @@ export function RunDiffStrip({ newFindings, recoveredCount, recoveredFindings = 
 }
 
 /**
- * Recovered findings drawer — closes the loop on the "−N recovered" chip.
+ * Recovered findings drawer: closes the loop on the "−N recovered" chip.
  *
  * The strip's count says *that* something was verified gone; the drawer says
- * *what*. Without this, "−2 recovered" is a number without a referent — the
+ * *what*. Without this, "−2 recovered" is a number without a referent: the
  * user can't tell whether their fix worked or whether some unrelated rule
  * stopped firing. Pro is monitoring; monitoring is only legible when the
  * artifact of the verification is visible.

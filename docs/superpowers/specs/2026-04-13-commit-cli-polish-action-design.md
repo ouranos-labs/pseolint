@@ -1,4 +1,4 @@
-# Commit, CLI Polish, and GitHub Action — Design Spec
+# Commit, CLI Polish, and GitHub Action: Design Spec
 
 **Date:** 2026-04-13
 **Scope:** Three workstreams to ship CLI v1.0-ready: commit + CI, CLI flag additions, GitHub Action implementation.
@@ -11,7 +11,7 @@ Commit all current uncommitted work (30 rules, formatters, CLI, bug fixes) and v
 
 **Commit:** Single commit covering everything added/fixed this session. The initial scaffold commit already exists; this is the second commit with all rule implementations, formatters, CLI rewrite, and bug fixes.
 
-**CI verification:** The existing `.github/workflows/ci.yml` already uses `oven-sh/setup-bun`, `bun install`, `bun run lint`, `bun run build`, `bun run test` and triggers on push to main + PRs. No changes needed — just verify it passes after commit.
+**CI verification:** The existing `.github/workflows/ci.yml` already uses `oven-sh/setup-bun`, `bun install`, `bun run lint`, `bun run build`, `bun run test` and triggers on push to main + PRs. No changes needed, just verify it passes after commit.
 
 ---
 
@@ -39,7 +39,7 @@ export interface AuditOptions {
 
 **sampleSize:** After `loadPagesFromSource` and deduplication, if `sampleSize > 0 && sampleSize < deduped.length`, shuffle `deduped` with Fisher-Yates and take the first N entries.
 
-**ignore:** After loading pages, filter out any whose URL matches an ignore pattern. Use simple glob matching: `*` matches any non-separator chars, `**` matches anything including separators. Match against the URL pathname (for HTTP) or relative file path (for filesystem). No external dependency — inline matcher function.
+**ignore:** After loading pages, filter out any whose URL matches an ignore pattern. Use simple glob matching: `*` matches any non-separator chars, `**` matches anything including separators. Match against the URL pathname (for HTTP) or relative file path (for filesystem). No external dependency, inline matcher function.
 
 ### CLI changes (`packages/cli/src/cli.ts`)
 
@@ -105,12 +105,12 @@ inputs:
 
 ### Implementation (`packages/action/src/index.ts`)
 
-**Dependencies:** `@actions/core`, `@actions/github`, `@pseolint/core` (workspace import — change existing `pseolint` dep to `@pseolint/core`).
+**Dependencies:** `@actions/core`, `@actions/github`, `@pseolint/core` (workspace import, change existing `pseolint` dep to `@pseolint/core`).
 
 **Flow:**
 1. Read inputs via `@actions/core.getInput()`
 2. Call `auditSource(source)` from `@pseolint/core`
-3. Build a custom markdown comment body (NOT `formatMarkdown` — the action needs truncation and the HTML marker that `formatMarkdown` doesn't include). Write a local `formatPrComment(summary: AuditSummary): string` function in the action source.
+3. Build a custom markdown comment body (NOT `formatMarkdown`: the action needs truncation and the HTML marker that `formatMarkdown` doesn't include). Write a local `formatPrComment(summary: AuditSummary): string` function in the action source.
 4. Find or create a PR comment (identified by a hidden HTML marker `<!-- pseolint-report -->`)
 5. Post/update the comment via `@actions/github`
 6. If `summary.score >= threshold`, call `core.setFailed()`
@@ -129,7 +129,7 @@ The markdown body prepends `<!-- pseolint-report -->` as the first line so futur
 
 ```markdown
 <!-- pseolint-report -->
-## pSEO Lint — Score: {score}/100 ({label})
+## pSEO Lint: Score: {score}/100 ({label})
 
 | Category | Score |
 |----------|------:|
@@ -171,6 +171,6 @@ A workflow `.github/workflows/action-release.yml` triggers on version tags (`v*`
 
 ## Deferred
 
-- `--data-source <file>` CLI flag (template JSON comparison) — separate design session
-- PR comment score diff from main branch — requires hosted platform for baseline storage
-- `PSEOLINT_TOKEN` integration in action — requires hosted platform API
+- `--data-source <file>` CLI flag (template JSON comparison): separate design session
+- PR comment score diff from main branch: requires hosted platform for baseline storage
+- `PSEOLINT_TOKEN` integration in action: requires hosted platform API

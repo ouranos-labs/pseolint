@@ -25,7 +25,7 @@ function safeJsonLd(value: unknown): string {
 /**
  * FAQ pairs mirrored from the visible Q&A on this page. The audit's
  * `aeo/faq-coverage` rule wants FAQPage JSON-LD whose questions/answers match
- * on-page content — these paraphrase the sections below and are kept in sync
+ * on-page content: these paraphrase the sections below and are kept in sync
  * by hand (not entity-swapped boilerplate).
  */
 const METHODOLOGY_FAQ: { q: string; a: string }[] = [
@@ -35,15 +35,15 @@ const METHODOLOGY_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "How do audits work?",
-    a: "The engine shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples pages across templates — up to 200 (free / monitoring) or 500 (manual re-audit) — and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs — so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
+    a: "The engine shifts the unit of analysis from URL to template. Phase 1 clusters sitemap URLs into templates (≥1% coverage, ≥5 URLs, ≥2 surviving templates). Phase 2 stratified-samples pages across templates (up to 200 (free / monitoring) or 500 (manual re-audit)) and runs every rule per template. The site verdict is the worst template verdict among templates covering ≥5% of URLs, so a tiny page can't tank the site and a dominant broken template can't hide behind a clean one.",
   },
   {
     q: "Does pseolint measure domain authority?",
-    a: "No. pseolint is a static-content and link-graph analyzer — it reads what pages say, how they link, and how they nest. It does not check backlinks, brand mentions, domain age, or any external trust signal, and has no Moz/Ahrefs/Semrush dependency, by design, so it can run offline against a build directory. Pass --authority-score (0-100) to shift the verdict ladder for your authority tier.",
+    a: "No. pseolint is a static-content and link-graph analyzer; it reads what pages say, how they link, and how they nest. It does not check backlinks, brand mentions, domain age, or any external trust signal, and has no Moz/Ahrefs/Semrush dependency, by design, so it can run offline against a build directory. Pass --authority-score (0-100) to shift the verdict ladder for your authority tier.",
   },
   {
     q: "What does a passing verdict mean?",
-    a: "A pass means pseolint's rules don't false-positive on shapes that high-authority sites successfully ship. A fail often means the engine correctly identified a real issue (duplicate titles, redirect chains, missing OG tags) that the site can absorb because of its authority — not that the engine is wrong.",
+    a: "A pass means pseolint's rules don't false-positive on shapes that high-authority sites successfully ship. A fail often means the engine correctly identified a real issue (duplicate titles, redirect chains, missing OG tags) that the site can absorb because of its authority, not that the engine is wrong.",
   },
   {
     q: "What stays true regardless of which sites pseolint audits?",
@@ -95,9 +95,9 @@ interface CorpusSite {
 
 const REPUTABLE_SITES: CorpusSite[] = [
   // 2026-05-03 round 11 (after v0.5.2 added 4 content-quality rules
-  // — title-uniqueness, heading-structure, image-alt-text, og-completeness).
+  //: title-uniqueness, heading-structure, image-alt-text, og-completeness).
   // The new rules surfaced real findings that previous rounds missed.
-  // We did NOT update ceilings to make the corpus pass — that would be
+  // We did NOT update ceilings to make the corpus pass; that would be
   // calibration laundering. The fails below reflect actual, documented
   // issues each site has; they remain "fails" in this snapshot because
   // those issues, while tolerated by Google for these high-authority
@@ -107,7 +107,7 @@ const REPUTABLE_SITES: CorpusSite[] = [
   { url: "g2.com/categories", vertical: "software directory", expectedCeiling: "caution", actualVerdict: "ready", risk: 18 },
   { url: "wise.com/us/currency-converter", vertical: "currency pair", expectedCeiling: "caution", actualVerdict: "caution", risk: 26 },
   { url: "webflow.com/templates", vertical: "template gallery", expectedCeiling: "caution", actualVerdict: "caution", risk: 38 },
-  { url: "typeform.com/templates", vertical: "template gallery", expectedCeiling: "caution", actualVerdict: "critical", risk: 61, note: "Real finding: content/title-uniqueness × 6 — multiple template gallery cards share the exact same title. Google ranks Typeform despite this because of authority; lower-DA operators with the same pattern would be demoted." },
+  { url: "typeform.com/templates", vertical: "template gallery", expectedCeiling: "caution", actualVerdict: "critical", risk: 61, note: "Real finding: content/title-uniqueness × 6, multiple template gallery cards share the exact same title. Google ranks Typeform despite this because of authority; lower-DA operators with the same pattern would be demoted." },
   { url: "segment.com/integrations", vertical: "integration directory", expectedCeiling: "caution", actualVerdict: "critical", risk: 61, note: "Real findings: spam/boilerplate-ratio × 25 (warning) + tech/redirect-chain × 25 (warning). Cumulative impact on integrity bucket pushes critical." },
   { url: "jasper.ai/templates", vertical: "template gallery", expectedCeiling: "caution", actualVerdict: "caution", risk: 37 },
   { url: "ramp.com/spend-management", vertical: "category directory", expectedCeiling: "caution", actualVerdict: "ready", risk: 19 },
@@ -115,8 +115,8 @@ const REPUTABLE_SITES: CorpusSite[] = [
 
 const SKIPPED_SITES: { url: string; reason: string }[] = [
   { url: "nerdwallet.com/best/credit-cards", reason: "blocks our user-agent (403/CAPTCHA)" },
-  { url: "numbeo.com/cost-of-living", reason: "p95 ≈ 30s under audit load — safe-mode origin gate aborts" },
-  { url: "airbyte.com/connectors", reason: "p95 > 4× baseline under audit load — safe-mode origin gate aborts" },
+  { url: "numbeo.com/cost-of-living", reason: "p95 ≈ 30s under audit load, safe-mode origin gate aborts" },
+  { url: "airbyte.com/connectors", reason: "p95 > 4× baseline under audit load, safe-mode origin gate aborts" },
   { url: "stripe.com/atlas/states", reason: "URL returns 404 in our crawl" },
 ];
 
@@ -155,7 +155,7 @@ export default function MethodologyPage(): React.ReactElement {
       </h1>
 
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Most SEO audit tools rely on face validity — &quot;these rules look like
+        Most SEO audit tools rely on face validity: &quot;these rules look like
         they map to documented Google policy.&quot; pseolint adds <em>predictive</em>{" "}
         validity: we audit a curated corpus of in-production pSEO sites that
         demonstrably win in search, and treat any deviation between our verdict
@@ -163,25 +163,25 @@ export default function MethodologyPage(): React.ReactElement {
         not in the site.
       </p>
 
-      {/* audit pipeline overview — positioned near the top so engineers
+      {/* audit pipeline overview: positioned near the top so engineers
           understand the sampling model before reading the calibration data */}
       <section className="mt-10 rounded-[22px] border border-border/60 bg-card/40 p-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">
           // pipeline
         </p>
         <h2 className="mt-2 text-base font-semibold tracking-tight text-foreground sm:text-lg">
-          How audits work — two-phase template pipeline
+          How audits work: two-phase template pipeline
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           pseolint pivots the unit of analysis from URL to template. A 100k-URL directory
-          no longer averages findings across a flat 200-URL sample — instead, each
+          no longer averages findings across a flat 200-URL sample: instead, each
           template cluster is audited independently and produces its own verdict.
         </p>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
-              Phase 1 — Template detection
+              Phase 1: Template detection
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Cluster sitemap URLs by signature (e.g.{" "}
@@ -189,18 +189,18 @@ export default function MethodologyPage(): React.ReactElement {
               to clusters with <strong className="text-foreground">≥1% coverage</strong>{" "}
               of total discovered URLs and <strong className="text-foreground">≥5 URLs</strong>.
               Require <strong className="text-foreground">≥2 surviving templates</strong>{" "}
-              to activate the template path — single-template sites fall through to the
+              to activate the template path: single-template sites fall through to the
               legacy per-URL view (spec §15.3). Cost: ~T HTTP fetches (T = template count,
               typically 5–20). Cheap.
             </p>
           </div>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
-              Phase 2 — Per-template deep audit
+              Phase 2: Per-template deep audit
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Stratified-sample pages{" "}
-              <strong className="text-foreground">across templates</strong> — up to 200
+              <strong className="text-foreground">across templates</strong>: up to 200
               (free / scheduled monitoring) or 500 (manual re-audit). Run all {SCORED_RULE_COUNT} rules on each sample set. Compute
               per-template risk, verdict, and variance metric. The page budget is spread across
               templates so a dominant cluster can&apos;t crowd out coverage of the smaller ones.
@@ -208,7 +208,7 @@ export default function MethodologyPage(): React.ReactElement {
           </div>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
-              Aggregation — site verdict
+              Aggregation: site verdict
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               Site verdict = worst template verdict,{" "}
@@ -217,17 +217,17 @@ export default function MethodologyPage(): React.ReactElement {
               page at critical doesn&apos;t tank the site. A{" "}
               <code className="font-mono text-[10px]">/listing/*</code> template covering
               97% of the site does. Templates below 5% still appear in the dashboard
-              drill-down — they just don&apos;t drive the headline.
+              drill-down; they just don&apos;t drive the headline.
             </p>
           </div>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-wider text-primary/80">
-              Variance metric — uniformity score
+              Variance metric: uniformity score
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               For each template:{" "}
               <code className="font-mono text-[10px]">uniformity = 1 - mean(stdev(per-rule fire-rates))</code>.
-              High uniformity (≥0.7) = every sample has the same problems — template is broken
+              High uniformity (≥0.7) = every sample has the same problems: template is broken
               uniformly, one structural fix helps all N pages. Low uniformity = problem is
               data-quality-dependent, not template-structural. Surfaces in the template card
               as a colour-coded bar (green / yellow / red at 0.7 / 0.4 thresholds).
@@ -239,13 +239,13 @@ export default function MethodologyPage(): React.ReactElement {
         <pre className="mt-5 overflow-x-auto rounded-[12px] border border-border/60 bg-muted/10 p-4 font-mono text-[10px] leading-relaxed text-muted-foreground">
 {`sitemap URLs (100k)
         │
-        ▼ Phase 1 — Template detection (~T fetches)
+        ▼ Phase 1: Template detection (~T fetches)
   clusterUrlTemplates()
         │  filter: ratio ≥ 1%, count ≥ 5, ≥ 2 survivors
         ▼
   Template[] { signature, totalUrls }
         │
-        ▼ Phase 2 — Per-template deep audit (stratified sample)
+        ▼ Phase 2: Per-template deep audit (stratified sample)
   for each template:
     sample (stratified)  →  fetch + parse  →  run ${SCORED_RULE_COUNT} rules
     compute: risk, verdict, uniformityScore, topDriver
@@ -274,7 +274,7 @@ export default function MethodologyPage(): React.ReactElement {
               <span className="text-muted-foreground">
                 Not pseolint customers. Have not endorsed pseolint, and we
                 don&apos;t imply they have. Picked because they demonstrably
-                win in search — useful as a ground-truth calibration target.
+                win in search: useful as a ground-truth calibration target.
               </span>
             </dd>
           </div>
@@ -303,7 +303,7 @@ export default function MethodologyPage(): React.ReactElement {
               <span className="text-muted-foreground">
                 A fail often means the engine correctly identified a real
                 issue (duplicate titles, redirect chains, missing OG tags)
-                that the site can absorb because of authority — not that the
+                that the site can absorb because of authority: not that the
                 engine is wrong. See &quot;How to read our verdict&quot;
                 below.
               </span>
@@ -324,13 +324,13 @@ export default function MethodologyPage(): React.ReactElement {
         <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Reproducibility</dt>
         <dd className="font-mono text-xs text-foreground">
           <code>--sample-seed 1729</code>{" "}
-          <span className="text-muted-foreground">— same seed, same audit, same verdict</span>
+          <span className="text-muted-foreground">: same seed, same audit, same verdict</span>
         </dd>
 
         <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Verifiability</dt>
         <dd className="font-mono text-xs text-foreground">
           <code>bun run scripts/calibration-reputable-pseo.ts</code>{" "}
-          <span className="text-muted-foreground">— reruns against the same corpus</span>
+          <span className="text-muted-foreground">: reruns against the same corpus</span>
         </dd>
 
         <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">Limitations</dt>
@@ -359,7 +359,7 @@ export default function MethodologyPage(): React.ReactElement {
               year: "numeric", month: "long", day: "numeric",
             })}
           </time>
-          {" "}— quarterly cadence. Numerical results below are point-in-time;
+          {" "}: quarterly cadence. Numerical results below are point-in-time;
           they will drift as sites redesign or as our engine evolves.
           Methodology and trade-offs (the durable claims) stay stable across
           refreshes.
@@ -374,7 +374,7 @@ export default function MethodologyPage(): React.ReactElement {
           Twelve programmatic-SEO sites curated to span verticals (integration
           directories, currency-pair converters, template galleries, category
           directories, city-level cost-of-living indices) and ranking strength.
-          Every entry has a documented &quot;ground-truth ceiling&quot; — the
+          Every entry has a documented &quot;ground-truth ceiling&quot;: the
           verdict pseolint must produce *or better* for the engine to be
           considered correctly calibrated. The corpus, the runner, and the
           regression tests are open-source.
@@ -448,7 +448,7 @@ export default function MethodologyPage(): React.ReactElement {
         <p className="mt-4 text-xs text-muted-foreground">
           Three more corpus sites (nerdwallet, numbeo, stripe.com/atlas) are
           excluded from the snapshot because they consistently fail to fetch
-          under our crawler — see &quot;Excluded&quot; below.
+          under our crawler: see &quot;Excluded&quot; below.
         </p>
 
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -459,13 +459,13 @@ export default function MethodologyPage(): React.ReactElement {
         <ul className="mt-2 grid gap-2 text-sm leading-relaxed text-muted-foreground">
           <li>
             <strong className="text-foreground">Zapier (concerning)</strong>{" "}
-            — <code className="font-mono text-xs">tech/canonical-consistency</code>{" "}
+: <code className="font-mono text-xs">tech/canonical-consistency</code>{" "}
             fires on integration pages with tracking parameters that don&apos;t
             canonicalise back to the parameter-free URL. Real tech-debt.
           </li>
           <li>
             <strong className="text-foreground">Typeform (critical)</strong>{" "}
-            — <code className="font-mono text-xs">content/title-uniqueness</code>{" "}
+: <code className="font-mono text-xs">content/title-uniqueness</code>{" "}
             fires on 6 template-gallery cards that share the exact same
             title (templates with different content but identical heading
             text). The new title-uniqueness rule (v0.5.2) caught this. A
@@ -474,7 +474,7 @@ export default function MethodologyPage(): React.ReactElement {
           </li>
           <li>
             <strong className="text-foreground">Segment (critical)</strong>{" "}
-            — <code className="font-mono text-xs">spam/boilerplate-ratio</code>{" "}
+: <code className="font-mono text-xs">spam/boilerplate-ratio</code>{" "}
             and <code className="font-mono text-xs">tech/redirect-chain</code>{" "}
             both fire on 25 of 41 sampled pages. Catalog-shape findings,
             but real ones.
@@ -487,7 +487,7 @@ export default function MethodologyPage(): React.ReactElement {
           is tied to authority, not content quality. Pass{" "}
           <code className="font-mono text-xs">--authority-score 80</code>{" "}
           when auditing these sites and the verdict shifts one tier
-          lenient (concerning → caution; critical → concerning) — that&apos;s
+          lenient (concerning → caution; critical → concerning); that&apos;s
           the bring-your-own-DA mechanism documented under <em>Limitations</em>{" "}
           above.
         </p>
@@ -526,7 +526,7 @@ export default function MethodologyPage(): React.ReactElement {
               </a>, two sites previously predicted{" "}
               <VerdictPill v="caution" /> now score <VerdictPill v="ready" />:{" "}
               <code className="font-mono text-xs">wordpress.com</code>{" "}
-              (defensible — polished marketing site) and{" "}
+              (defensible: polished marketing site) and{" "}
               <code className="font-mono text-xs">expatistan.com</code>{" "}
               (3-page sample artifact). One regression the other direction:{" "}
               <code className="font-mono text-xs">nextjs.org</code>{" "}
@@ -538,7 +538,7 @@ export default function MethodologyPage(): React.ReactElement {
 
         <blockquote className="mt-5 max-w-2xl border-l-2 border-primary/40 pl-4 text-sm italic leading-relaxed text-muted-foreground">
           The primary failure mode of v0.5.1 was false-positives on real
-          working pSEO sites — which destroyed credibility with the audience
+          working pSEO sites: which destroyed credibility with the audience
           that actually uses the tool. The new false negatives are at the
           verdict-ladder boundary; neither says &quot;you&apos;re great&quot; while
           genuinely being a spam farm.
@@ -564,7 +564,7 @@ export default function MethodologyPage(): React.ReactElement {
           graph analyzer. It reads what your pages say, how they link, and
           how they nest. It does not check backlinks, brand mentions, age,
           or any external trust signal that Google&apos;s quality systems
-          weight heavily. There is no DA/DR/Moz/Ahrefs integration — by
+          weight heavily. There is no DA/DR/Moz/Ahrefs integration: by
           design, because pseolint is meant to be runnable offline against
           a build directory or a local dev server with no third-party API
           dependency.
@@ -573,7 +573,7 @@ export default function MethodologyPage(): React.ReactElement {
           This matters for how to read the verdict. The reputable-pSEO
           calibration corpus is{" "}
           <strong className="text-foreground">biased toward high-authority
-          domains</strong> — Zapier, G2, Wise, NerdWallet, Webflow are all
+          domains</strong>: Zapier, G2, Wise, NerdWallet, Webflow are all
           well-established brands with strong backlink profiles. Their
           200-word integration pages or template-gallery cards rank because{" "}
           <em>they are those brands</em>. The same content shape on a
@@ -587,7 +587,7 @@ export default function MethodologyPage(): React.ReactElement {
             <strong className="text-foreground">If you operate at a
             comparable authority tier</strong> to the corpus (established
             brand, strong backlink profile, named editorial leadership),
-            treat the verdict literally — a <code className="font-mono text-xs">caution</code>
+            treat the verdict literally: a <code className="font-mono text-xs">caution</code>
             {" "}or worse is genuinely worth investigating.
           </li>
           <li>
@@ -609,7 +609,7 @@ export default function MethodologyPage(): React.ReactElement {
           well. Instead, <em>bring-your-own-authority</em> ships today: pass a
           normalized 0-100 authority score (the <code>--authority-score</code>{" "}
           flag, the MCP parameter, or a per-domain Pro setting) and the verdict
-          ladder adjusts for your tier — the raw risk number is unchanged.
+          ladder adjusts for your tier: the raw risk number is unchanged.
           Still future work: proxy-signal detection (domain age, internal-graph
           density, named editorial leadership) for callers without an authority
           figure of their own.
@@ -629,9 +629,9 @@ export default function MethodologyPage(): React.ReactElement {
             { name: "Domain authority", status: "shipped", version: "v0.5.2", note: "--authority-score lets callers shift verdict for high/low-DA tiers." },
             { name: "Core Web Vitals (LCP/INP/CLS)", status: "roadmap", version: "planned", note: "Needs render-time PerformanceObserver harness." },
             { name: "Open Graph metadata", status: "shipped", version: "v0.5.2", note: "tech/og-completeness ships with the credibility layer." },
-            { name: "Title tag uniqueness", status: "shipped", version: "v0.5.2", note: "content/title-uniqueness — raw, not entity-masked." },
-            { name: "H1 structure", status: "shipped", version: "v0.5.2", note: "content/heading-structure — presence, single-H1, hierarchy." },
-            { name: "Image alt-text", status: "shipped", version: "v0.5.2", note: "content/image-alt-text — skips decorative images." },
+            { name: "Title tag uniqueness", status: "shipped", version: "v0.5.2", note: "content/title-uniqueness, raw, not entity-masked." },
+            { name: "H1 structure", status: "shipped", version: "v0.5.2", note: "content/heading-structure, presence, single-H1, hierarchy." },
+            { name: "Image alt-text", status: "shipped", version: "v0.5.2", note: "content/image-alt-text, skips decorative images." },
           ].map((g) => {
             const isShipped = g.status === "shipped";
             return (
@@ -686,7 +686,7 @@ export default function MethodologyPage(): React.ReactElement {
           {SKIPPED_SITES.map((s) => (
             <li key={s.url}>
               <code className="font-mono text-xs text-foreground">{s.url}</code>
-              <span className="ml-2">— {s.reason}</span>
+              <span className="ml-2">: {s.reason}</span>
             </li>
           ))}
         </ul>
@@ -700,7 +700,7 @@ export default function MethodologyPage(): React.ReactElement {
           <strong className="text-success">Shipped in v0.5.2:</strong>{" "}
           <code className="font-mono text-xs">AuditOptions.authorityScore</code>{" "}
           (CLI: <code className="font-mono text-xs">--authority-score 0-100</code>)
-          — bring-your-own-DA verdict ladder shift. Pass-through to formatter
+: bring-your-own-DA verdict ladder shift. Pass-through to formatter
           callers via <code className="font-mono text-xs">summary.appliedSeverityDemotions</code>.
           What remains:
         </p>
@@ -710,7 +710,7 @@ export default function MethodologyPage(): React.ReactElement {
           <li>3. <strong className="text-foreground">A weak-pSEO calibration corpus</strong> to balance the reputable one. Future runs would assert reputable-PASS <em>and</em> weak-FLAG simultaneously, preventing single-axis drift.</li>
           <li>4. <strong className="text-foreground">Core Web Vitals</strong> (LCP/INP/CLS) via render-mode page-load instrumentation. Currently in tier-1 of the blind-spot audit; needs a render-time PerformanceObserver harness.</li>
           <li>5. <strong className="text-foreground">Residential-IP rendering proxy</strong> to add Zillow, Yelp, TripAdvisor, Indeed (currently excluded for CAPTCHA/403 walls).</li>
-          <li>6. <strong className="text-foreground">Verdict-explanation strings anchored to outcomes</strong> — &quot;concerning means at this risk level, sites historically saw X% indexation loss after a Helpful Content rebuild&quot; — once we have enough longitudinal data.</li>
+          <li>6. <strong className="text-foreground">Verdict-explanation strings anchored to outcomes</strong>: &quot;concerning means at this risk level, sites historically saw X% indexation loss after a Helpful Content rebuild&quot;: once we have enough longitudinal data.</li>
         </ol>
       </section>
 
@@ -723,7 +723,7 @@ export default function MethodologyPage(): React.ReactElement {
           to the public repository. Clone it, run{" "}
           <code className="font-mono text-xs">bun run scripts/calibration-reputable-pseo.ts</code>,
           and confirm or refute the table above. We treat the runner&apos;s
-          output as the source of truth — this page is just a dated mirror.
+          output as the source of truth; this page is just a dated mirror.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <a
@@ -752,7 +752,7 @@ export default function MethodologyPage(): React.ReactElement {
           },
           {
             source: "searchEssentials",
-            note: "Google Search Essentials documents the technical requirements — canonical tags, crawlability, structured data — that several of pseolint's tech-bucket rules enforce and that the calibration data validates.",
+            note: "Google Search Essentials documents the technical requirements (canonical tags, crawlability, structured data) that several of pseolint's tech-bucket rules enforce and that the calibration data validates.",
           },
         ]}
       />

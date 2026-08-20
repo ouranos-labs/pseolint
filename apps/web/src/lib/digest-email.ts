@@ -36,7 +36,7 @@ export async function sendWeeklyDigestTo(userId: string, userEmail: string): Pro
   const { error } = await resend.emails.send({
     from: env().RESEND_FROM,
     to: userEmail,
-    subject: `pseolint — ${n} fix${n === 1 ? "" : "es"} worth making this week`,
+    subject: `pseolint: ${n} fix${n === 1 ? "" : "es"} worth making this week`,
     html,
   });
   if (error) {

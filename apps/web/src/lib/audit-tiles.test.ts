@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { AuditSummary } from "@pseolint/core";
 import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "./audit-tiles";
 
-// Regression: legacy v0.3 blobs in R2 have no bucketed `issues` object — they
+// Regression: legacy v0.3 blobs in R2 have no bucketed `issues` object; they
 // carry a flat `findings` array. audit-tiles used to read `summary.issues.blockers`
 // unconditionally, throwing and sending the whole /dashboard/[host] route to the
 // error boundary for any host whose latest completed audit was pre-v0.4.

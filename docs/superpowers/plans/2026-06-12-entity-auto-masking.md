@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Derive entity-mask patterns from the corpus under audit (tokens that vary across templated sibling pages) and merge them into `entityPatterns`, so masking consumers (`entity-swap`, `near-duplicate` proxies, `meta-uniqueness`, etc.) collapse templated pages to a common skeleton — closing the city-templated doorway blind spot.
+**Goal:** Derive entity-mask patterns from the corpus under audit (tokens that vary across templated sibling pages) and merge them into `entityPatterns`, so masking consumers (`entity-swap`, `near-duplicate` proxies, `meta-uniqueness`, etc.) collapse templated pages to a common skeleton, closing the city-templated doorway blind spot.
 
-**Architecture:** One pure module `algorithms/auto-entity-mask.ts` exporting `deriveEntityPatterns(pages, opts)`. It clusters pages by URL template (reusing `template-detection`'s normalizer), and within each cluster of ≥3 siblings collects tokens whose *presence varies across members* (constant template words appear in all members and are skipped; entities appear in a subset). Two token sources — URL-slug tokens and capitalized content tokens — feed the same "varying token" primitive. Wired into `auditor.ts` at one point; gated by a default-on `autoEntityMask` option. Measured against the committed two-sided baseline.
+**Architecture:** One pure module `algorithms/auto-entity-mask.ts` exporting `deriveEntityPatterns(pages, opts)`. It clusters pages by URL template (reusing `template-detection`'s normalizer), and within each cluster of ≥3 siblings collects tokens whose *presence varies across members* (constant template words appear in all members and are skipped; entities appear in a subset). Two token sources (URL-slug tokens and capitalized content tokens) feed the same "varying token" primitive. Wired into `auditor.ts` at one point; gated by a default-on `autoEntityMask` option. Measured against the committed two-sided baseline.
 
 **Tech Stack:** TypeScript (NodeNext, `.js` import specifiers), vitest. The masker (`maskEntities`) and `EntityMaskPattern` (`{placeholder, pattern: RegExp}`) already exist.
 
@@ -14,12 +14,12 @@
 
 ## File Structure
 
-- **Create** `packages/core/src/algorithms/auto-entity-mask.ts` — `deriveEntityPatterns` + helpers (pure, no I/O).
-- **Create** `packages/core/tests/algorithms/auto-entity-mask.test.ts` — unit tests.
-- **Modify** `packages/core/src/template-detection.ts` — `export` the existing `normalizePathToTemplate` (reuse the one normalizer).
-- **Modify** `packages/core/src/auditor.ts` — compute derived patterns once before the group loop; merge at the `runRulesOnPages` call (line ~2754); read `options.autoEntityMask`.
-- **Modify** `packages/core/src/types.ts` — add `autoEntityMask?: boolean` to `AuditOptions` (line ~442).
-- **Modify** `packages/core/src/index.ts` — export `deriveEntityPatterns`.
+- **Create** `packages/core/src/algorithms/auto-entity-mask.ts`: `deriveEntityPatterns` + helpers (pure, no I/O).
+- **Create** `packages/core/tests/algorithms/auto-entity-mask.test.ts`: unit tests.
+- **Modify** `packages/core/src/template-detection.ts`: `export` the existing `normalizePathToTemplate` (reuse the one normalizer).
+- **Modify** `packages/core/src/auditor.ts`: compute derived patterns once before the group loop; merge at the `runRulesOnPages` call (line ~2754); read `options.autoEntityMask`.
+- **Modify** `packages/core/src/types.ts`: add `autoEntityMask?: boolean` to `AuditOptions` (line ~442).
+- **Modify** `packages/core/src/index.ts`: export `deriveEntityPatterns`.
 - **Regenerate + commit** `packages/core/calibration/baseline-scorecard.json` after measuring.
 
 Conventions: `.js` import specifiers for `.ts` sources; run core tests from `packages/core/` (`npx vitest run <file>`); the calibration runner is `bun run scripts/calibration-corpus.ts`.
@@ -40,7 +40,7 @@ to:
 ```ts
 export function normalizePathToTemplate(pathname: string): string {
 ```
-(No other change — `urlToNormalizedTemplate` in the same file keeps using it.)
+(No other change, `urlToNormalizedTemplate` in the same file keeps using it.)
 
 - [ ] **Step 2: Verify it still type-checks**
 
@@ -77,7 +77,7 @@ function page(url: string, contentText: string) {
   return { url, contentText };
 }
 
-describe("deriveEntityPatterns — URL-slug varying tokens", () => {
+describe("deriveEntityPatterns, URL-slug varying tokens", () => {
   test("masks the varying city token, not the constant template words", () => {
     const pages = ["austin", "dallas", "houston"].map((c) =>
       page(`https://x.test/emergency-plumber-${c}`, `Emergency Plumber in ${c}`),
@@ -95,7 +95,7 @@ describe("deriveEntityPatterns — URL-slug varying tokens", () => {
   });
 });
 
-describe("deriveEntityPatterns — content-diff varying tokens", () => {
+describe("deriveEntityPatterns, content-diff varying tokens", () => {
   test("masks a capitalized entity that varies across siblings, not shared headings", () => {
     const pages = ["Austin", "Dallas", "Houston"].map((c, i) =>
       page(`https://x.test/p${i}`, `Overview Section. Our office in ${c} serves clients.`),
@@ -110,7 +110,7 @@ describe("deriveEntityPatterns — content-diff varying tokens", () => {
   });
 });
 
-describe("deriveEntityPatterns — guards & determinism", () => {
+describe("deriveEntityPatterns, guards & determinism", () => {
   test("returns identical patterns on repeat runs (deterministic)", () => {
     const pages = ["austin", "dallas", "houston"].map((c) => page(`https://x.test/plumber-${c}`, `Plumber ${c}`));
     const a = deriveEntityPatterns(pages);
@@ -142,7 +142,7 @@ Run (from `packages/core`):
 ```bash
 npx vitest run tests/algorithms/auto-entity-mask.test.ts
 ```
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -279,7 +279,7 @@ Expected: PASS (all tests).
 
 ```bash
 git add packages/core/src/algorithms/auto-entity-mask.ts packages/core/tests/algorithms/auto-entity-mask.test.ts
-git commit -m "feat(core): deriveEntityPatterns — corpus-derived entity masks (url-slug + content-diff)"
+git commit -m "feat(core): deriveEntityPatterns, corpus-derived entity masks (url-slug + content-diff)"
 ```
 
 ---
@@ -352,7 +352,7 @@ git commit -m "feat(core): wire corpus-derived entity masks into the auditor (de
 
 ## Task 4: Measure against the baseline (staged) + commit the new baseline
 
-This is the deliverable — a measured recall delta. Not TDD; it runs the calibration harness.
+This is the deliverable, a measured recall delta. Not TDD; it runs the calibration harness.
 
 - [ ] **Step 1: Capture the current (pre-change) numbers from the committed baseline**
 
@@ -362,7 +362,7 @@ cd /d/phili/SSD_Projects/pseolint && node -e "const b=require('./packages/core/c
 ```
 Record: recall 44%, fp (reputable false positives), doorwayspam = `caution`.
 
-- [ ] **Step 2: Stage A — measure URL-slug only**
+- [ ] **Step 2: Stage A: measure URL-slug only**
 
 Temporarily run a content-diff-off audit to isolate Strategy A. Run a one-off:
 ```bash
@@ -373,7 +373,7 @@ console.log("doorwayspam:", s.verdict, "risk", s.risk, "doorway-fired:",
   [...s.issues.blockers,...s.issues.shouldFix,...s.issues.informational].some(r=>r.ruleId==="spam/doorway-pattern"));
 ' 2>&1 | grep -v "AI triage"
 ```
-Expected: `doorwayspam` now `concerning` (or higher) with `spam/doorway-pattern` fired (entity-swap ∧ thin). If it is still `caution` with doorway NOT fired, STOP and report — the masking isn't collapsing the pages (debug `deriveEntityPatterns` on these 7 URLs).
+Expected: `doorwayspam` now `concerning` (or higher) with `spam/doorway-pattern` fired (entity-swap ∧ thin). If it is still `caution` with doorway NOT fired, STOP and report, the masking isn't collapsing the pages (debug `deriveEntityPatterns` on these 7 URLs).
 
 - [ ] **Step 3: Full harness run, diff vs baseline (do NOT overwrite yet)**
 
@@ -386,13 +386,13 @@ console.log("recall", (base.recall*100).toFixed(0)+"% ->", (cur.recall*100).toFi
 console.log("reputable FP", base.fp, "->", cur.fp, cur.fp>base.fp?"  *** REGRESSION ***":"  (ok)");
 '
 ```
-Expected: recall **up** vs 44%; reputable FP **not increased**. If reputable FP rose, investigate (over-masking or composite-gate weakness per spec §4) before proceeding — do NOT commit a baseline with a reputable regression.
+Expected: recall **up** vs 44%; reputable FP **not increased**. If reputable FP rose, investigate (over-masking or composite-gate weakness per spec §4) before proceeding, do NOT commit a baseline with a reputable regression.
 
 - [ ] **Step 4: Commit the new baseline (records the improvement)**
 
 Only if Step 3 shows recall up and FP not increased:
 ```bash
-cd /d/phili/SSD_Projects/pseolint && bun run scripts/calibration-corpus.ts --write-baseline >/dev/null 2>&1 && rm -f scripts/calibration-results.json scripts/calibration-results.md && git add packages/core/calibration/baseline-scorecard.json && git commit -m "feat(calibration): new baseline after entity auto-masking — recall <before>% -> <after>%"
+cd /d/phili/SSD_Projects/pseolint && bun run scripts/calibration-corpus.ts --write-baseline >/dev/null 2>&1 && rm -f scripts/calibration-results.json scripts/calibration-results.md && git add packages/core/calibration/baseline-scorecard.json && git commit -m "feat(calibration): new baseline after entity auto-masking, recall <before>% -> <after>%"
 ```
 (Fill the real before/after numbers from Step 3 into the message.)
 
@@ -410,7 +410,7 @@ Expected: full suite green (the legacy soft-gate skips without ephemeral results
 
 **Spec coverage:** §3.1 module + signature → Task 2. §3.2 URL-slug → Task 2 (`urlSlugTokens` + `varyingTokens`). §3.3 content-diff → Task 2 (`contentEntityTokens` + `varyingTokens`). §3.4 composition/determinism → Task 2 (sort, no randomness, chunked regex). §3.5 over-masking guard → Task 2 (`minClusterSize`, `minTokenLength`, STOPWORDS, `maxTokens`) + the harness ratchet in Task 4. §3.6 wiring/option/diagnostics → Task 3. §4 staged measurement + DoD → Task 4. Normalizer reuse → Task 1.
 
-**Placeholder scan:** Code is complete in every step. The only intentional unknowns are the real before/after numbers (Task 4 Step 4 message) and a confirm-the-variable-name note (Task 3 Step 3) — both are verify-then-fill, not vague instructions.
+**Placeholder scan:** Code is complete in every step. The only intentional unknowns are the real before/after numbers (Task 4 Step 4 message) and a confirm-the-variable-name note (Task 3 Step 3), both are verify-then-fill, not vague instructions.
 
 **Type consistency:** `deriveEntityPatterns(pages, opts?)` returns `EntityMaskPattern[]` (matching the masker) and is used identically in Task 3's merge and Task 2's tests. `DeriveOptions` fields (`urlSlug`/`contentDiff`/`minClusterSize`) are used consistently across tests and impl. `MaskPage = Pick<ParsedPage,"url"|"contentText">` matches what `parsedPagesAll` (ParsedPage[]) provides.
 

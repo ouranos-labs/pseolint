@@ -73,18 +73,18 @@ interface SerpApiResponse {
 /**
  * Google SERP query via SerpAPI. Caches responses by `keyword + locale +
  * language + num` for 24h via `cachedFetch`. The orchestrator typically
- * calls this when proposing AEO improvements — knowing what currently
+ * calls this when proposing AEO improvements: knowing what currently
  * ranks for a target query informs whether the page being audited has a
  * realistic shot at displacing the incumbents.
  *
  * SerpAPI key resolution order: explicit `apiKey` arg → `SERPAPI_API_KEY`
- * env var. Tool returns an error result when no key is available — the
+ * env var. Tool returns an error result when no key is available: the
  * orchestrator should skip this probe rather than retry.
  */
 export const querySerpTool = defineTool({
   name: "query_serp",
   description:
-    "Query Google SERP (via SerpAPI) for a keyword. Returns organic results (position, title, URL, snippet) plus flags for answer-box and knowledge-graph presence. Use this when proposing AEO improvements — knowing what currently ranks informs realistic positioning. Caches responses for 24h. Costs ~$0.005 per call.",
+    "Query Google SERP (via SerpAPI) for a keyword. Returns organic results (position, title, URL, snippet) plus flags for answer-box and knowledge-graph presence. Use this when proposing AEO improvements: knowing what currently ranks informs realistic positioning. Caches responses for 24h. Costs ~$0.005 per call.",
   inputSchema,
   outputSchema,
   async execute({ keyword, locale = "us", language = "en", num = 10, apiKey, cacheDir }, ctx) {

@@ -4,9 +4,9 @@
  * `addMonitoredDomain` server action.
  *
  * Both create a row that the *user never explicitly verifies at creation time*,
- * so both must (a) issue a verification token — without one the auto-verify cron
+ * so both must (a) issue a verification token: without one the auto-verify cron
  * skips the row and the workspace banner has nothing to render, leaving the
- * domain permanently unverifiable — and (b) queue no crawl until ownership is
+ * domain permanently unverifiable: and (b) queue no crawl until ownership is
  * proven. `@/lib/monitoring` is the module under test, so it is imported for
  * real rather than mocked.
  */

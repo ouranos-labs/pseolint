@@ -19,7 +19,7 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
       if (!res.ok) { setErr(res.error); return; }
       // Verified domains start auditing immediately: route through /a/{auditId}
       // so the user watches the live run, which auto-redirects to /r/{slug} on
-      // completion (same flow as free tier). Unverified ones have no audit yet —
+      // completion (same flow as free tier). Unverified ones have no audit yet:
       // send them to the workspace, where the verify banner is.
       router.push(res.auditId ? `/a/${res.auditId}` : `/dashboard/${encodeURIComponent(res.host)}`);
     });

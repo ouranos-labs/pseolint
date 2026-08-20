@@ -1,20 +1,20 @@
-# Richer Deterministic Fact Extraction — Design Proposal
+# Richer Deterministic Fact Extraction: Design Proposal
 
 **Status:** proposed (2026-06-11)
 **Date:** 2026-06-11
 **Author:** pseolint maintainers
 
-This is **part 1 of a 4-part "Page Value Model"** initiative — the positive
+This is **part 1 of a 4-part "Page Value Model"** initiative, the positive
 counterpart to pseolint's existing *risk* verdict. Where the risk verdict answers
 *"how likely is this page to get penalized?"*, the Page Value Model answers
-*"how much genuine, citable, authoritative information does this page carry?"* —
+*"how much genuine, citable, authoritative information does this page carry?"*,
 modeled on Google's helpful-content / E-E-A-T evaluation.
 
 The four parts, in dependency order:
 
 1. **Richer deterministic fact extraction** ← *this spec*
 2. On-page authority / E-E-A-T deepening (deterministic)
-3. Page Value Score — a first-class 0–100 output built on `content/value-add`
+3. Page Value Score: a first-class 0–100 output built on `content/value-add`
 4. LLM-graded helpfulness (optional, in the `ai/*` layer)
 
 Off-page authority (backlinks, Domain Authority, engagement) remains a
@@ -31,7 +31,7 @@ already composes seven originality signals into a per-page value verdict.
 But "facts" today means **only the six numeric regex categories**. A page that
 cites the GDPR, links to three `.gov` sources, and names four standards bodies
 scores zero extra credit for any of it. Google's evaluation of page value leans
-heavily on exactly those signals — named entities, sourced citations, and
+heavily on exactly those signals, named entities, sourced citations, and
 quantified claims. This spec widens the engine's deterministic notion of "a fact"
 to include them, feeding both a new rule and the existing value composite, while
 keeping `aeo/citable-facts` byte-for-byte unchanged so the reputable-pSEO
@@ -57,7 +57,7 @@ function that takes the data already on a `ParsedPage` and returns a typed
 `PageFacts` object. Three consumers:
 
 1. **`aeo/citable-facts`** is refactored to delegate its numeric extraction to
-   the shared module, consuming **only** `PageFacts.citableFacts` — which is
+   the shared module, consuming **only** `PageFacts.citableFacts`, which is
    defined to be byte-identical to today's `extractRawFacts()` output. Behavior,
    thresholds (`minFactsPerPage: 3`, `targetFactsPerPage: 8`), and calibration
    are unchanged.
@@ -119,7 +119,7 @@ export interface GroundedClaim {
 }
 
 export interface PageFacts {
-  /** EXACTLY today's extractRawFacts() output. Frozen — calibration-stable. */
+  /** EXACTLY today's extractRawFacts() output. Frozen, calibration-stable. */
   citableFacts: string[];
   /** New numeric kinds NOT folded into citableFacts (ratios, measurements, counts). */
   measurements: FactSpan[];
@@ -136,21 +136,21 @@ export function extractPageFacts(
 
 ## The four detectors (all deterministic)
 
-### 1. Numeric facts — `citableFacts` (frozen) + `measurements` (new)
+### 1. Numeric facts: `citableFacts` (frozen) + `measurements` (new)
 
 - `citableFacts`: lift the existing six `FACT_PATTERNS` from `citable-facts.ts`
   into the shared module verbatim. `extractRawFacts()` becomes a thin wrapper so
   the existing rule's output is provably unchanged.
 - `measurements` (new, NOT counted by `aeo/citable-facts`):
-  - **ratios** — `\b\d+\s*(?:out of|in|of)\s*\d+\b`, `\b\d+\s*:\s*\d+\b`.
-  - **measurements** — number + unit from a closed unit list
+  - **ratios**: `\b\d+\s*(?:out of|in|of)\s*\d+\b`, `\b\d+\s*:\s*\d+\b`.
+  - **measurements**: number + unit from a closed unit list
     (`kg|lb|mi|km|m|cm|mm|MB|GB|TB|ms|fps|mph|kWh|…`).
-  - **count** — number + a noun is *not* attempted (too noisy); `count` is
+  - **count**: number + a noun is *not* attempted (too noisy); `count` is
     reserved for explicit "N+ items"-style tokens behind a conservative pattern.
   - Run all measurement regexes on the **entity-masked** text so a masked ZIP or
     state-embedded number cannot masquerade as a measurement.
 
-### 2. Named entities — `namedEntities`
+### 2. Named entities: `namedEntities`
 
 - Refine the proper-noun regexes already proven in `aeo/answer-first`
   (`MULTI_WORD_PROPER_NOUN`, `SINGLE_WORD_PROPER_NOUN`).
@@ -165,22 +165,22 @@ export function extractPageFacts(
   noun is masked out so it does not count as an entity.
 - Confidence: `medium` (JSON-LD-sourced) / `low` (regex-only).
 
-### 3. Citations — `citations`
+### 3. Citations: `citations`
 
 - From `resolvedHrefs`, keep links whose registrable domain differs from the
   page's (external only).
 - Classify **authoritative** by:
-  - **TLD heuristic** — `.gov`, `.edu`, `.mil`, `.int` (and `.gov.*`/`.ac.*`
+  - **TLD heuristic**: `.gov`, `.edu`, `.mil`, `.int` (and `.gov.*`/`.ac.*`
     second-level patterns).
-  - **Allowlist** — a small, configurable set: `wikipedia.org`, `w3.org`,
+  - **Allowlist**: a small, configurable set: `wikipedia.org`, `w3.org`,
     `iso.org`, `ietf.org`, `rfc-editor.org`, `doi.org`, `nih.gov`,
     `who.int`, `schema.org`, plus an extension hook in `AuditOptions`.
-- No fetching — classification is purely by URL string. (Verifying that cited
+- No fetching: classification is purely by URL string. (Verifying that cited
   URLs *resolve* is explicitly out of scope; a future `tech/*` rule could own
   it.)
 - Confidence: `medium`.
 
-### 4. Grounded claims — `groundedClaims`
+### 4. Grounded claims: `groundedClaims`
 
 A deterministic approximation of "a verifiable claim," shipped at
 **`speculative` confidence** with a documented limitation.
@@ -199,15 +199,15 @@ A deterministic approximation of "a verifiable claim," shipped at
 ## New rule: `content/citation-coverage`
 
 - **Category:** `citation` (existing `CategoryKey`).
-- **Scope:** per-page (`RuleScope` — needs only the page's own facts, but reads
+- **Scope:** per-page (`RuleScope`: needs only the page's own facts, but reads
   `resolvedHrefs`; classified the same way other per-page content rules are).
 - **What it fires on:** a page that makes statistical/factual assertions but
-  cites few or no authoritative sources — the "unsourced authority" gap. The
+  cites few or no authoritative sources, the "unsourced authority" gap. The
   signal pairs claim/stat density against authoritative-citation count.
 - **Severity / confidence:** `warning` at most; `low` confidence in general and
   `speculative` for the claim-derived portion. A page legitimately may not need
   citations (a personal blog, a contact page), so the rule is conservative and
-  **site-type-aware** — added to the appropriate suppression / demotion lists so
+  **site-type-aware**, added to the appropriate suppression / demotion lists so
   it does not blanket-fire on `small-marketing` / non-pSEO sites.
 
 ### Firing condition (default thresholds)
@@ -234,27 +234,27 @@ flagged provisional pending a calibration pass.
   "confidence": "low",
   "message": "/guides/gdpr-checklist makes 9 quantified claims but cites 0 authoritative sources (4 named entities: GDPR, ICO, Article 30, EDPB).",
   "pageUrl": "https://example.com/guides/gdpr-checklist",
-  "fix": "Cite the primary sources behind your numbers — link the statute, the standard, the .gov/.edu page, or the dataset. AI Overviews and Google's helpful-content systems weight pages that ground claims in authoritative references. Note: this rule detects statistic+citation co-occurrence, not semantic correctness."
+  "fix": "Cite the primary sources behind your numbers, link the statute, the standard, the .gov/.edu page, or the dataset. AI Overviews and Google's helpful-content systems weight pages that ground claims in authoritative references. Note: this rule detects statistic+citation co-occurrence, not semantic correctness."
 }
 ```
 
 ## Wiring & integration points
 
-- `algorithms/fact-extraction.ts` — new module + export from `index.ts`.
-- `rules/aeo/citable-facts.ts` — refactor `extractRawFacts` to delegate; keep the
+- `algorithms/fact-extraction.ts`: new module + export from `index.ts`.
+- `rules/aeo/citable-facts.ts`: refactor `extractRawFacts` to delegate; keep the
   public signature and output identical.
-- `rules/content/citation-coverage.ts` — new rule + export from `index.ts`.
-- `auditor.ts` — register the rule, thread new `AuditOptions.rules` knobs
+- `rules/content/citation-coverage.ts`: new rule + export from `index.ts`.
+- `auditor.ts`: register the rule, thread new `AuditOptions.rules` knobs
   (`citationCoverageMinClaims`, `citationCoverageMinAuthoritative`,
   `citationAllowlist`), and pass the shared `PageFacts` so the page is not parsed
   for facts more than once.
-- `rules/content/value-add.ts` — add citation/entity signals to the composite.
-- `rules/scope.ts` (`RULE_SCOPE`) — register scope for the new rule.
-- `rule-references.ts` — add `content/citation-coverage` → `/rules/citation-coverage`
+- `rules/content/value-add.ts`: add citation/entity signals to the composite.
+- `rules/scope.ts` (`RULE_SCOPE`): register scope for the new rule.
+- `rule-references.ts`: add `content/citation-coverage` → `/rules/citation-coverage`
   (`docsUrl`) and a Google policy `ref`.
-- `site-classifier.ts` — add to `PSEO_ONLY_RULE_IDS` or the severity-demotion
+- `site-classifier.ts`: add to `PSEO_ONLY_RULE_IDS` or the severity-demotion
   map as the calibration pass dictates.
-- `schemas/audit-summary.schema.json` + `SCHEMA_VERSION` — only if a new finding
+- `schemas/audit-summary.schema.json` + `SCHEMA_VERSION`: only if a new finding
   shape requires it (the new rule uses the standard `RuleResult`, so likely no
   bump; confirm during implementation).
 
@@ -275,17 +275,17 @@ flagged provisional pending a calibration pass.
 
 ## Testing
 
-- **Characterization test** — `extractRawFacts` / `aeo/citable-facts` output is
+- **Characterization test**: `extractRawFacts` / `aeo/citable-facts` output is
   identical before and after the refactor (locks calibration).
-- **Extractor unit tests** — fixtures for: a fact-rich page, a fact-poor page,
+- **Extractor unit tests**: fixtures for: a fact-rich page, a fact-poor page,
   entity-masking parity (a state/ZIP must not count), a `.gov` + allowlist
   citation, a `general` external citation, an internal link (excluded), and a
   grounded-claim co-occurrence (stat + citation in one sentence vs. stat and
   citation in different sentences → not grounded).
-- **Rule tests** — `content/citation-coverage` fires on the unsourced-claims
+- **Rule tests**: `content/citation-coverage` fires on the unsourced-claims
   fixture, stays silent on a well-cited page and on a citation-light blog/contact
   page (site-type behavior).
-- **Dogfood** — the new rule must not regress pseolint.dev's own `/rules`,
+- **Dogfood**: the new rule must not regress pseolint.dev's own `/rules`,
   `/symptoms`, `/tools` pages (extend the existing web dogfood test once the rule
   ships).
 
@@ -296,14 +296,14 @@ flagged provisional pending a calibration pass.
 - Deepened on-page E-E-A-T author/credential detection (part 2).
 - Off-page authority / backlinks / Domain Authority (deliberate non-feature).
 - Live-checking that cited URLs resolve (possible future `tech/*` rule).
-- A `/rules/citation-coverage` marketing explainer page — authored under the
+- A `/rules/citation-coverage` marketing explainer page: authored under the
   separate T7 rule-coverage task once the rule ships.
 
 ## Open questions (resolve during planning)
 
 1. Final default for `citationCoverageMinClaims` / `citationCoverageMinAuthoritative`
-   — start lenient (4 / 1), tighten via a calibration sweep.
+, start lenient (4 / 1), tighten via a calibration sweep.
 2. Exact starting `citationAllowlist` contents and whether it lives inline or in
    a small data file alongside the entity-mask defaults.
 3. Whether `measurements` should *ever* feed `aeo/citable-facts` in a future
-   major version (would require recalibration) — left as a deliberate no for now.
+   major version (would require recalibration), left as a deliberate no for now.

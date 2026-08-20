@@ -21,7 +21,7 @@ import { integrations } from "@/db/schema";
 
 /**
  * Strip a leading "www." for case-insensitive host comparison. Watched URLs
- * must belong to the monitored domain — but `www.example.com` and
+ * must belong to the monitored domain: but `www.example.com` and
  * `example.com` are routinely the same site, so we treat them as equivalent.
  */
 function canonicalHost(host: string): string {
@@ -70,7 +70,7 @@ async function enqueueAudit(
 
 /**
  * Add a domain to monitoring. `auditId` is null when the domain still needs an
- * ownership proof — no audit is queued in that case, so callers should send the
+ * ownership proof: no audit is queued in that case, so callers should send the
  * user to the workspace (where the verify banner lives) rather than to a live
  * audit page.
  */
@@ -107,7 +107,7 @@ export async function addDomainAction(
         return { ok: false, error: `Pro is capped at ${MAX_PRO_DOMAINS} active monitored domains. Remove one first, or email support for a higher limit.` };
       }
       // Reactivate a soft-deleted row. Issue a fresh verification token + clear
-      // verifiedAt — ownership must be re-proven each time a domain is re-added.
+      // verifiedAt: ownership must be re-proven each time a domain is re-added.
       await db.update(monitoredDomains)
         .set({
           removedAt: null,
@@ -150,7 +150,7 @@ export async function addDomainAction(
   // surfaces a suggestion instead.
   //
   // A matched owner-or-full property is also a valid ownership proof (see
-  // `provesGscOwnership`), so it verifies the domain outright — Pro users who
+  // `provesGscOwnership`), so it verifies the domain outright: Pro users who
   // already connected Search Console never touch a TXT record.
   if (domRow && !domRow.gscSiteUrl) {
     const [conn] = await db
@@ -186,7 +186,7 @@ export async function addDomainAction(
     }
   }
 
-  // Ownership gate: an unverified domain gets no crawl at all — not even a
+  // Ownership gate: an unverified domain gets no crawl at all, not even a
   // one-off kickoff. The row is already saved with `nextRunAt` due, so
   // monitor-domains audits it on the first hourly tick after
   // verifyDomainAction / autoVerifyDomains stamps `verifiedAt`.
@@ -242,7 +242,7 @@ export async function removeDomainAction(
 
   if (!res.length) return { ok: false, error: "not found" };
 
-  // v0.5.3 — domain removal is soft (sets removedAt), so the FK cascade on
+  // v0.5.3: domain removal is soft (sets removedAt), so the FK cascade on
   // watched_page never fires. Drop the watched list explicitly so a future
   // re-add doesn't resurrect stale URLs.
   await db.delete(watchedPages).where(eq(watchedPages.monitoredDomainId, res[0].id));
@@ -277,18 +277,18 @@ export async function reAuditNowAction(
     status: "queued", expiresAt, isPublic: false,
   }).returning({ id: audits.id });
 
-  // v0.5.3 — thread per-domain watched URLs into the audit so manual re-audits
+  // v0.5.3: thread per-domain watched URLs into the audit so manual re-audits
   // always re-fetch them, not just weekly cron runs.
   const watchedUrls = await loadWatchedUrlsForDomain(dom.id);
 
-  // Re-audit's whole point is to run now — a failed enqueue must surface as an
+  // Re-audit's whole point is to run now: a failed enqueue must surface as an
   // error (and mark the orphaned row failed), not 500 or falsely report success.
   const queued = await enqueueAudit(
     audit.id,
     { url: dom.sourceUrl, plan: "pro", sampleSize: PRO_REAUDIT_SAMPLE_SIZE, mode: "full", ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }) },
     { userId: session.user.id, host: domainHost },
   );
-  if (!queued) return { ok: false, error: "Couldn't queue the audit — please try again in a moment." };
+  if (!queued) return { ok: false, error: "Couldn't queue the audit, please try again in a moment." };
 
   return { ok: true, auditId: audit.id };
 }
@@ -319,11 +319,11 @@ export async function verifyDomainAction(
   if (!dom) return { ok: false, error: "not found" };
   if (dom.verifiedAt) return { ok: true };
   if (!dom.verificationToken) {
-    // Legacy row (pre-migration) — issue a token now so the user can verify.
+    // Legacy row (pre-migration): issue a token now so the user can verify.
     await db.update(monitoredDomains)
       .set({ verificationToken: generateVerificationToken() })
       .where(eq(monitoredDomains.id, dom.id));
-    return { ok: false, error: "Verification token issued — retry in a moment after publishing the TXT record." };
+    return { ok: false, error: "Verification token issued, retry in a moment after publishing the TXT record." };
   }
 
   const ok = await verifyDomainToken(dom.host, dom.verificationToken);
@@ -339,7 +339,7 @@ export async function verifyDomainAction(
 }
 
 /**
- * v0.5.3 — pin a URL to a domain's watched-pages list. Pro-only; cap of 20
+ * v0.5.3: pin a URL to a domain's watched-pages list. Pro-only; cap of 20
  * per domain. Validates that the URL parses, passes the SSRF guard, and
  * matches the monitored domain's host (www-equivalent). On insert, fires an
  * `audit/requested` Inngest event for the domain's source URL with
@@ -404,7 +404,7 @@ export async function addWatchedPage(
   const cap = WATCHED_PAGES_CAP.pro;
   try {
     const inserted = await db.transaction(async (tx) => {
-      // Acquire row lock; result discarded — we only need the side effect.
+      // Acquire row lock; result discarded; we only need the side effect.
       await tx
         .select({ id: monitoredDomains.id })
         .from(monitoredDomains)
@@ -443,14 +443,14 @@ export async function addWatchedPage(
       userId: session.user.id, monitoredDomainId: dom.id, host: dom.host, url: normalized,
     });
 
-    // "Audit on add" — fire an immediate audit run forced to refetch this URL.
+    // "Audit on add"; fire an immediate audit run forced to refetch this URL.
     // Reuses the existing audit/requested pipeline; isPublic=false matches the
     // Pro private-by-default convention, expiresAt mirrors lib/monitoring.ts.
     //
     // Rate-limit gate: this path bypasses /api/audits, so apply the same
     // suite of gates that route enforces. Without all of them a Pro user
     // spam-clicking add can fire 20 audits × 500 pages = 10,000 fetched
-    // URLs against one host in seconds — past the 30/hr per-host throttle
+    // URLs against one host in seconds: past the 30/hr per-host throttle
     // and worker-pool burst budget. When any gate trips, the watched row
     // stays pinned (it's just a list entry; no cost) and the URL is audited
     // on the next monitoring tick instead.
@@ -486,7 +486,7 @@ export async function addWatchedPage(
 
 /**
  * Remove a watched page. Authorisation goes through the parent monitored
- * domain's user_id — no cross-tenant deletes possible because the SELECT
+ * domain's user_id: no cross-tenant deletes possible because the SELECT
  * filters on the session user before issuing the delete.
  */
 export async function removeWatchedPage(

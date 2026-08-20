@@ -8,7 +8,7 @@ export type EventSink = (event: SessionEvent) => void | Promise<void>;
  * Per-session event recorder. Three concerns:
  *   1. In-memory buffer (returned in SessionResult so callers can replay).
  *   2. Optional NDJSON file writer for durable replay (orchestrator session log).
- *   3. Optional callback fanout — the web app passes a callback that pushes
+ *   3. Optional callback fanout: the web app passes a callback that pushes
  *      to SSE / R2 in production.
  *
  * Errors writing the file are swallowed; we never want a log-write failure
@@ -32,7 +32,7 @@ export class SessionLog {
       try {
         await this.opts.onEvent(event);
       } catch {
-        // Sink failures are non-fatal — never let an SSE/R2 hiccup take
+        // Sink failures are non-fatal: never let an SSE/R2 hiccup take
         // down the session. The buffer is still authoritative.
       }
     }
@@ -45,7 +45,7 @@ export class SessionLog {
         }
         await appendFile(this.opts.ndjsonPath, JSON.stringify(event) + "\n", "utf8");
       } catch {
-        // Same — log-file errors don't kill the session.
+        // Same: log-file errors don't kill the session.
       }
     }
   }

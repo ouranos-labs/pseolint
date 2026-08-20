@@ -19,7 +19,7 @@
 
 ### Patch Changes
 
-- 3361782: v0.7.3 — render-aware checks, AI content-effort, and bring-your-own inputs.
+- 3361782: v0.7.3: render-aware checks, AI content-effort, and bring-your-own inputs.
 
   Verdict moderators never change the raw `risk` number, so CI gates keyed off `--ci-threshold` stay stable.
 
@@ -44,14 +44,14 @@
   on pseolint.dev's own audit). Now it compares each page's @type SET signature and
   fires only when pages in the same template cluster genuinely disagree.
 
-- 3c9cb0d: fix(core): v0.7.2 rule-design batch — graded thresholds + presence-quality.
+- 3c9cb0d: fix(core): v0.7.2 rule-design batch: graded thresholds + presence-quality.
 
   Follow-up to the v0.7.1 FP-elimination batch, addressing the two deferred root
   causes (C: binary/absolute thresholds, D: presence-not-quality). Verified
   against the 24-fixture calibration corpus: zero new false positives vs the prior
   metrics, and the crawl-size verdict flips are gone.
 
-  C — binary-threshold redesigns:
+  C: binary-threshold redesigns:
 
   - spam/boilerplate-ratio: continuous document-frequency weighting replaces the
     floor(N\*0.8)+1 skeleton cliff; 2-band severity. Verdict no longer flips when
@@ -65,7 +65,7 @@
   - content/wikipedia-paraphrase: min-length guard + threshold 0.40→0.55 above the
     legal/medical topic-overlap baseline; advisory language, stays low-confidence.
 
-  D — presence-quality (validate the value, not just its presence):
+  D: presence-quality (validate the value, not just its presence):
 
   - schema/required-fields: empty arrays / whitespace / nameless author objects
     count as missing.
@@ -84,23 +84,23 @@
 
 ### Patch Changes
 
-- ce06ef7: v0.7.1 — rule false-positive elimination batch (post unique-value design review).
+- ce06ef7: v0.7.1: rule false-positive elimination batch (post unique-value design review).
 
   Stops the engine flagging healthy sites without weakening real detection. Each fix
   is TDD'd and validated against the reputable-pSEO fixtures.
 
-  - **links/orphan-pages, links/cluster-connectivity** — suppressed on sampled crawls
+  - **links/orphan-pages, links/cluster-connectivity**: suppressed on sampled crawls
     (the linking/target page is often un-fetched; reliable only on a full crawl).
-  - **tech/canonical-consistency** — collapse "canonicalizes outside crawl scope" to
+  - **tech/canonical-consistency**: collapse "canonicalizes outside crawl scope" to
     one site-level note when all pages point at the same alternate host (staging/
     preview/localhost), instead of one finding per page; dedup HTTP-vs-HTML.
-  - **tech/sitemap-completeness** — normalize sitemap URLs before the set-diff (kills
+  - **tech/sitemap-completeness**: normalize sitemap URLs before the set-diff (kills
     trailing-slash/query false "missing"); demote the missing aggregate to warning.
-  - **schema/consistency** — flag @type variance per template cluster (structureSignature),
+  - **schema/consistency**: flag @type variance per template cluster (structureSignature),
     not site-wide (was a guaranteed FP on any multi-template site).
-  - **aeo/crawler-access** — honor robots `Allow` directives per RFC 9309 (allow-all
+  - **aeo/crawler-access**: honor robots `Allow` directives per RFC 9309 (allow-all
     no longer reported as fully blocked).
-  - **Severity/confidence bands** — error/critical demoted to warning on weak or
+  - **Severity/confidence bands**: error/critical demoted to warning on weak or
     forecast signals: thin-content medium band, summary-bait, translation-no-op,
     entity-swap (low mask coverage), soft-404 (OR-weighted confidence model).
 
@@ -146,7 +146,7 @@
   The Action now makes the partial status unmissable. On a truncated run it emits a
   `core.warning` naming the reason and page count, sets two new outputs
   (`truncated`, `truncated-reason`), and adds a ⚠ blockquote to the PR comment
-  ("Partial coverage — crawl aborted … treat a pass as provisional"). A partial run
+  ("Partial coverage: crawl aborted … treat a pass as provisional"). A partial run
   is not auto-failed (a partial pass is still informative), but a new optional input
   `fail-on-truncated` (default `false`) lets workflows opt into failing the check
   when coverage was partial even if risk is under threshold. `action.yml` now
@@ -208,7 +208,7 @@
 
 - 01627a8: feat: add AEO rule category with 8 rules for AI Overview readiness
 
-  Introduces `aeo/*` — a new scored rule category focused on Answer Engine
+  Introduces `aeo/*`, a new scored rule category focused on Answer Engine
   Optimization. Brings the total to **42 rules across 8 categories** (7 scored
 
   - `data/*`). While SpamBrain rules protect against Google penalties, AEO
@@ -218,29 +218,29 @@
 
   New rules:
 
-  - `aeo/llms-txt` — checks for `/llms.txt` at the origin and validates the
+  - `aeo/llms-txt`: checks for `/llms.txt` at the origin and validates the
     minimal shape (H1 title, at least one `##` section, markdown link entries).
-  - `aeo/crawler-access` — parses `robots.txt` per user-agent and flags blocked
+  - `aeo/crawler-access`: parses `robots.txt` per user-agent and flags blocked
     AI crawlers (GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Bytespider,
     Google-Extended, CCBot, Applebot-Extended). Warns per blocked crawler,
     errors when all are blocked.
-  - `aeo/freshness-signals` — checks each page for a dateModified signal
+  - `aeo/freshness-signals`: checks each page for a dateModified signal
     (JSON-LD, `article:modified_time`, visible "Last updated" text). Warns when
     absent, emits info when older than 180 days.
-  - `aeo/faq-coverage` — detects FAQ-style content (question-phrased H2s or
+  - `aeo/faq-coverage`: detects FAQ-style content (question-phrased H2s or
     URL patterns like `/how-to-*`, `/what-is-*`, `*-faq`) that lacks FAQPage
     or HowTo JSON-LD.
-  - `aeo/answer-first` — scores the first paragraph after the H1 for
+  - `aeo/answer-first`: scores the first paragraph after the H1 for
     extractable-answer quality: concrete facts, named entities, complete
     sentence, boilerplate detection, and template-opener detection via entity
     masking across the corpus.
-  - `aeo/citable-facts` — counts unique, entity-specific citable facts per page
+  - `aeo/citable-facts`: counts unique, entity-specific citable facts per page
     (dollar amounts, percentages, timeframes, dates, Form numbers). Filters out
     template facts shared across the majority of masked pages.
-  - `aeo/non-replicable-value` — detects pages that are pure informational text
-    with no interactive element, downloadable asset, or gated content — pages
+  - `aeo/non-replicable-value`: detects pages that are pure informational text
+    with no interactive element, downloadable asset, or gated content: pages
     AI can fully summarize without sending a click.
-  - `aeo/content-modularity` — splits pages by H2/H3 and flags sections that
+  - `aeo/content-modularity`: splits pages by H2/H3 and flags sections that
     aren't independently extractable (cross-references like "as mentioned above",
     vague headings like "More Info", paragraphs over 200 words).
 
@@ -258,26 +258,26 @@
   New flat threshold keys in `AuditOptions.rules` (all optional, sensible
   defaults):
 
-  - `answerFirstMaxWords` (default 100) — opener length cap for `aeo/answer-first`
-  - `citableFactsMin` (default 3) — below this a page errors
-  - `citableFactsTarget` (default 8) — at or above this a page passes
-  - `freshnessMaxStaleDays` (default 180) — age at which `dateModified` is flagged stale
-  - `modularityMaxParagraphWords` (default 200) — `aeo/content-modularity`
-  - `modularityMinSelfContainedRatio` (default 0.7) — `aeo/content-modularity`
-  - `faqMinQuestionHeadings` (default 2) — `aeo/faq-coverage`
+  - `answerFirstMaxWords` (default 100): opener length cap for `aeo/answer-first`
+  - `citableFactsMin` (default 3): below this a page errors
+  - `citableFactsTarget` (default 8): at or above this a page passes
+  - `freshnessMaxStaleDays` (default 180): age at which `dateModified` is flagged stale
+  - `modularityMaxParagraphWords` (default 200): `aeo/content-modularity`
+  - `modularityMinSelfContainedRatio` (default 0.7): `aeo/content-modularity`
+  - `faqMinQuestionHeadings` (default 2): `aeo/faq-coverage`
 
   Page-group `overrides` still apply normally for severity tuning.
 
   ### AEO sub-score and console section
 
-  `categoryScores.aeo` is the sub-score (raw 0–100 damage — lower is better) and
+  `categoryScores.aeo` is the sub-score (raw 0–100 damage; lower is better) and
   has its own label scheme distinct from the SpamBrain Risk label:
 
-  - 0–20 **AI-Ready** — pages structured for citation
-  - 21–40 **Partial** — some citable, others vulnerable
-  - 41–60 **Vulnerable** — most pages will be summarized away without clicks
-  - 61–80 **Invisible** — pages offer nothing AI can't synthesize itself
-  - 81–100 **Ghost** — blocked from AI + no citable structure; traffic will crater
+  - 0–20 **AI-Ready**: pages structured for citation
+  - 21–40 **Partial**: some citable, others vulnerable
+  - 41–60 **Vulnerable**: most pages will be summarized away without clicks
+  - 61–80 **Invisible**: pages offer nothing AI can't synthesize itself
+  - 81–100 **Ghost**: blocked from AI + no citable structure; traffic will crater
 
   `aeoScoreLabel(score)` is exported from `@pseolint/core` so downstream formatters
   can surface the label. The console formatter renders a dedicated
@@ -287,8 +287,8 @@
   ### AI triage
 
   Prompt bumped to `1.1.0` (additive). The system prompt now explicitly
-  distinguishes two threat families — **SpamBrain penalty risk** (spam/cannibal/
-  content/data/tech/schema/links) and **AI Overview invisibility** (aeo/\*) — and
+  distinguishes two threat families: **SpamBrain penalty risk** (spam/cannibal/
+  content/data/tech/schema/links) and **AI Overview invisibility** (aeo/\*), and
   asks for at least one root cause from each when both families are present. A
   new `findingCountByCategory` field in the prompt payload gives the model
   per-category totals for weighting.

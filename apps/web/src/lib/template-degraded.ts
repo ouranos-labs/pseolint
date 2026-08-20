@@ -39,7 +39,7 @@ export function detectDegradedTemplates(
 
   for (const curr of currTemplates) {
     const prev = prevBySignature.get(curr.signature);
-    if (!prev) continue; // new template — no baseline to compare
+    if (!prev) continue; // new template: no baseline to compare
 
     const prevRank = VERDICT_RANK[prev.verdict];
     const currRank = VERDICT_RANK[curr.verdict];

@@ -11,7 +11,7 @@ interface RiskTrendChartProps {
   runs: TrendPoint[];
   /**
    * Alert threshold: the run-to-run risk RISE (delta) that trips an alert.
-   * Marks the runs that breached it — it is NOT an absolute score level.
+   * Marks the runs that breached it: it is NOT an absolute score level.
    */
   alertThreshold?: number | null;
 }
@@ -27,11 +27,11 @@ const PLOT_H = H - PAD_T - PAD_B;
 const Y_MAX = 100;
 
 /**
- * Risk-score area chart — 30/90 day trend on the per-host page.
+ * Risk-score area chart: 30/90 day trend on the per-host page.
  *
  * Pro is "monitoring," but a single risk number tells the user nothing about
  * direction. This is the headline answer to "is my site getting better or
- * worse?" — the question monitoring exists to answer.
+ * worse?": the question monitoring exists to answer.
  *
  * Pure SVG so we don't take a chart-lib dep for one chart. The tradeoff is
  * fewer features (no zoom, no crosshair) but the visual is exactly what we want.
@@ -76,7 +76,7 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
   const latestTone = scoreFill(latest.risk);
 
   // The threshold is a run-to-run RISE delta, not an absolute level. Mark the
-  // transitions where risk rose by >= threshold — those tripped the risk-rise
+  // transitions where risk rose by >= threshold; those tripped the risk-rise
   // alert. (New error/critical findings also fire alerts; this chart only knows
   // scores, so it shows the risk-rise part.)
   const th = typeof alertThreshold === "number" && alertThreshold > 0 ? alertThreshold : null;
@@ -104,7 +104,7 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
           </linearGradient>
         </defs>
 
-        {/* Y-axis ticks at 0 / 25 / 50 / 75 / 100 — gives the eye an anchor for absolute risk level. */}
+        {/* Y-axis ticks at 0 / 25 / 50 / 75 / 100: gives the eye an anchor for absolute risk level. */}
         {[0, 25, 50, 75, 100].map((tick) => (
           <g key={tick}>
             <line
@@ -126,13 +126,13 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
           </g>
         ))}
 
-        {/* Area fill — uses the same tone as the latest run's score band. */}
+        {/* Area fill: uses the same tone as the latest run's score band. */}
         <g className={latestTone}>
           <path d={areaPath} fill="url(#risk-area)" />
           <path d={linePath} fill="none" stroke="currentColor" strokeWidth="2" />
         </g>
 
-        {/* Per-run dots so the discrete events stay legible — important because
+        {/* Per-run dots so the discrete events stay legible: important because
             runs are daily/weekly, not continuous. */}
         {completed.map((p, i) => {
           const isLast = i === completed.length - 1;
@@ -160,7 +160,7 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
           );
         })}
 
-        {/* X-axis date labels at the start and end — keeps the chart uncluttered. */}
+        {/* X-axis date labels at the start and end: keeps the chart uncluttered. */}
         <text
           x={PAD_X}
           y={H - 8}
@@ -180,7 +180,7 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
 
       {th != null && (
         <p className="mt-2 font-mono text-[10px] text-muted-foreground">
-          <span className="text-warning">◯</span> risk rose ≥ Δ{th} vs. the prior run — tripped a risk-rise alert
+          <span className="text-warning">◯</span> risk rose ≥ Δ{th} vs. the prior run: tripped a risk-rise alert
         </p>
       )}
     </section>

@@ -182,13 +182,13 @@ describe("renderTemplateCardsMarkdown", () => {
     expect(out).toBe("");
   });
 
-  it("shows — in top-driver cell when topDriver is null", () => {
+  it("shows n/a in top-driver cell when topDriver is null", () => {
     const noDriverTemplates: Template[] = [
       { ...twoTemplates[0], variance: { ...twoTemplates[0].variance, topDriver: null } },
       { ...twoTemplates[1], variance: { ...twoTemplates[1].variance, topDriver: null } },
     ];
     const out = renderTemplateCardsMarkdown(noDriverTemplates, {});
-    expect(out).toContain("| — |");
+    expect(out).toContain("| n/a |");
   });
 });
 

@@ -1,6 +1,6 @@
 # Calibration Against Reputable Programmatic SEO Websites
 
-**Status:** spec — calibration runner shipped, full corpus run pending
+**Status:** spec, calibration runner shipped, full corpus run pending
 **Date:** 2026-05-03
 **Authors:** pseolint maintainers
 
@@ -29,14 +29,14 @@ v0.4.3 site-type-aware scoring shipped):
 
 `programmatic-directory` is the site type that is *most* structurally
 different from the "page = article" assumptions our AEO and EEAT rules are
-calibrated against — and it is the only profile with **zero overrides**.
+calibrated against, and it is the only profile with **zero overrides**.
 Every AEO rule, every EEAT rule, fires at full severity on a Zapier-shaped
 catalog. This is almost certainly wrong, but we have no measurement to prove
 it either way.
 
 The existing dogfood at `scripts/dogfood-v043.ts` does not catch this
 because its only `programmatic-directory` targets are `softschools.com`
-(worksheet-farm) and `expatistan.com` (mid-tier) — both already weak. The
+(worksheet-farm) and `expatistan.com` (mid-tier), both already weak. The
 corpus *confirms* the engine ("see, our `concerning` verdict matches!")
 instead of *challenging* it. We need the inverse: a corpus of reputable
 programmatic-directory sites that the engine is **expected to grade `ready`
@@ -52,7 +52,7 @@ predictions, by rule:
 
 ### Rules I expect to false-positive across most of the corpus
 
-1. **`spam/template-diversity`** — fires when fewer than 30% of pages have
+1. **`spam/template-diversity`**: fires when fewer than 30% of pages have
    distinct `structureSignature`. Successful programmatic directories
    (Zapier integrations, G2 categories, Wise currency pairs) use one
    template across thousands of pages by design. Predicted fire-rate on
@@ -60,41 +60,41 @@ predictions, by rule:
    structure but mis-weighted as `warning`; should be `info` for
    programmatic-directory.
 
-2. **`spam/boilerplate-ratio`** — default 60% boilerplate threshold is
+2. **`spam/boilerplate-ratio`**: default 60% boilerplate threshold is
    editorial-content thinking. Marketplace and integration pages have a
    shared "How does X work?" / "Popular X" / "Pricing" frame that puts
    genuine catalog data at 50–75% boilerplate. Predicted fire-rate:
    **70%**. Reality: threshold should be 75% for programmatic-directory.
 
-3. **`content/missing-author`** — Zillow listings, Yelp business pages,
+3. **`content/missing-author`**: Zillow listings, Yelp business pages,
    Zapier integrations don't have per-page bylines. Authorship lives at
    the platform level (operator's about page), not on every catalog
    record. Predicted fire-rate: **~100%**. Reality: should be **suppressed
    entirely** on programmatic-directory; the fix advice ("add an author
    meta tag") would actively make these sites worse if followed.
 
-4. **`content/eeat-signals`** — same shape as missing-author. Catalog
+4. **`content/eeat-signals`**: same shape as missing-author. Catalog
    pages don't have author + date + sources + about-link per record.
    Predicted fire-rate: **~100%**. Should be info or suppressed.
 
-5. **`aeo/answer-first`** — measures whether the first paragraph after H1
+5. **`aeo/answer-first`**: measures whether the first paragraph after H1
    is fact-rich. Catalog pages don't have a first paragraph; they have
    data tables. Predicted fire-rate: **>85%**. Reality: should be `info`
    on programmatic-directory.
 
-6. **`aeo/citable-facts`** — looks for ≥3 entity-specific citable facts
+6. **`aeo/citable-facts`**: looks for ≥3 entity-specific citable facts
    per page. Catalog records *are* facts, but our extractor is calibrated
    for prose ("In 2023, Acme reported $45M…"), not for tables. Predicted
    fire-rate: **40–60%** (mixed because some catalogs have prose copy).
    Reality: should be `info` with `low` confidence on
    programmatic-directory until the extractor learns to read tables.
 
-7. **`aeo/content-modularity`** — flags vague section headings. Many
+7. **`aeo/content-modularity`**: flags vague section headings. Many
    catalogs use vague H2s by template ("About this property", "Similar
    listings"). Predicted fire-rate: **>70%**. Reality: should be `info`
    on programmatic-directory.
 
-8. **`spam/thin-content`** — 300-word minimum. Listings (Zillow, Yelp)
+8. **`spam/thin-content`**: 300-word minimum. Listings (Zillow, Yelp)
    often have 200-word descriptions because the *data* is the content.
    Predicted fire-rate: **30–50%**. Reality: threshold should be 200
    words for programmatic-directory, or this rule should be paired with
@@ -103,29 +103,29 @@ predictions, by rule:
 
 ### Rules I expect to behave correctly on the reputable corpus
 
-- `spam/near-duplicate` — reputable directories have distinct facts per
+- `spam/near-duplicate`: reputable directories have distinct facts per
   record; SimHash should not cluster them.
-- `spam/entity-swap` — same.
-- `spam/doorway-pattern` — composite rule, hard to trip without the above
+- `spam/entity-swap`: same.
+- `spam/doorway-pattern`: composite rule, hard to trip without the above
   two.
-- `links/orphan-pages`, `links/dead-ends`, `links/cluster-connectivity` —
+- `links/orphan-pages`, `links/dead-ends`, `links/cluster-connectivity`:
   successful directories have strong internal linking by definition.
-- `links/host-section-divergence` — should NOT fire on reputable sites
+- `links/host-section-divergence`: should NOT fire on reputable sites
   whose sections share authorship + template + topic. (Already in
   `PSEO_ONLY_RULE_IDS` for non-pSEO; for pSEO sites it should only fire
   on actual rented-inventory shapes.)
-- `tech/*` — canonical/sitemap/redirect rules are independent of site
+- `tech/*`: canonical/sitemap/redirect rules are independent of site
   type; reputable sites should pass.
-- `schema/*` — same.
+- `schema/*`: same.
 
 ### Rules whose behavior is unpredictable without data
 
-- `spam/publication-velocity` — corpus-aware after v0.5.1, but big
+- `spam/publication-velocity`: corpus-aware after v0.5.1, but big
   marketplaces still publish thousands of listings a day. Need to verify
   the corpus-fraction floor handles this.
-- `spam/template-coverage` — already in `PSEO_ONLY_RULE_IDS`; should be
+- `spam/template-coverage`: already in `PSEO_ONLY_RULE_IDS`; should be
   fine.
-- `cannibal/url-pattern` — same.
+- `cannibal/url-pattern`: same.
 
 ## Decision matrix per rule (post-calibration)
 
@@ -139,7 +139,7 @@ threshold below, choose ONE of three actions:
 | 30–50% at error+              | Demote confidence to `low`; keep severity       |
 | < 30%                         | Keep as-is                                      |
 
-Suppression and demotion happen via `SCORING_PROFILES` overrides — no rule
+Suppression and demotion happen via `SCORING_PROFILES` overrides, no rule
 code changes. Threshold tuning happens in `DEFAULTS` (per-site-type
 threshold maps would be a v0.6+ structural change).
 
@@ -227,7 +227,7 @@ audits. Run with `bun run scripts/calibration-reputable-pseo.ts`.
 
 Even before running the corpus, the symmetry argument alone justifies
 adding the same shape of override that other profiles already have. The
-following is conservative — it matches the pattern in `docs` and
+following is conservative, it matches the pattern in `docs` and
 `ecommerce`:
 
 ```ts
@@ -268,18 +268,18 @@ other way.
 
 | Site | Verdict | Δ | Top driver |
 | ---- | ------- | -- | ---------- |
-| zapier.com/apps/slack/integrations | ERROR (origin) | — | — |
-| g2.com/categories | ERROR (origin) | — | — |
+| zapier.com/apps/slack/integrations | ERROR (origin) |: |: |
+| g2.com/categories | ERROR (origin) |: |: |
 | wise.com/us/currency-converter | caution | 0 | tech/hreflang-consistency |
-| nerdwallet.com/best/credit-cards | ERROR (fetch) | — | — |
-| webflow.com/templates | ERROR (origin) | — | — |
+| nerdwallet.com/best/credit-cards | ERROR (fetch) |: |: |
+| webflow.com/templates | ERROR (origin) |: |: |
 | typeform.com/templates | concerning | **+1** | aeo/citable-facts |
 | segment.com/integrations | concerning | **+1** | spam/doorway-pattern (300× critical) |
 | jasper.ai/templates | concerning | **+1** | aeo/citable-facts |
 | ramp.com/spend-management | caution | 0 | aeo/freshness-signals |
 | numbeo.com/cost-of-living | concerning | **+1** | tech/hreflang-consistency |
-| airbyte.com/connectors | ERROR (origin) | — | — |
-| stripe.com/atlas/states | ERROR (fetch) | — | — |
+| airbyte.com/connectors | ERROR (origin) |: |: |
+| stripe.com/atlas/states | ERROR (fetch) |: |: |
 
 **4 of 6 audited sites failed.** Findings → fixes:
 
@@ -287,11 +287,11 @@ other way.
    ≥3 signals; near-dup + entity-swap + identical-structure are TRUE BY
    DESIGN on catalog pages, hitting the threshold on every C(N,2) pair.
    **Fix:** rule now requires a *content-quality* signal (thin OR
-   identical-meta) as the third signal — purely-structural similarity
+   identical-meta) as the third signal, purely-structural similarity
    isn't enough.
 2. `tech/hreflang-consistency` fired 385× on Wise's 25-page sample.
    The reciprocity check fired "no hreflang back" whenever the *target*
-   page wasn't in our crawl sample — a sample-size artifact, not a real
+   page wasn't in our crawl sample, a sample-size artifact, not a real
    issue. **Fix:** only assert reciprocity on pages we actually parsed.
 3. `aeo/freshness-signals` fired warning on every page of every reputable
    pSEO site. Catalog freshness is the data, not a visible "Last updated"
@@ -314,7 +314,7 @@ Round 2 surfaced two more issues:
    catalogs by design.** Every pair of integration pages is SimHash-near-
    duplicate; many catalog pages are thin (200-300 words is correct for
    a directory record).
-3. **URL-parse crash on Webflow** — bare `https://` href passed the regex
+3. **URL-parse crash on Webflow**: bare `https://` href passed the regex
    check but crashed `normalizeAuditUrl`. Defensive bug introduced by the
    round-1 hreflang patch.
 
@@ -339,15 +339,15 @@ Round 2 surfaced two more issues:
 | zapier.com/apps/slack/integrations | **caution** | 0 | (was critical → caution) |
 | g2.com/categories | **caution** | 0 | (was ERROR → caution; now completes within 4× gate) |
 | wise.com/us/currency-converter | caution | 0 | (consistent) |
-| nerdwallet.com/best/credit-cards | ERROR | — | site blocks our crawler |
-| webflow.com/templates | ERROR | — | URL-parse crash mid-run; fixed for r4 |
+| nerdwallet.com/best/credit-cards | ERROR |: | site blocks our crawler |
+| webflow.com/templates | ERROR |: | URL-parse crash mid-run; fixed for r4 |
 | typeform.com/templates | **caution** | 0 | (was critical → caution) |
-| segment.com/integrations | concerning | +1 | spam/doorway-pattern (300× critical) — classified as small-marketing, demotion didn't apply |
+| segment.com/integrations | concerning | +1 | spam/doorway-pattern (300× critical): classified as small-marketing, demotion didn't apply |
 | jasper.ai/templates | **caution** | 0 | (was concerning → caution) |
 | ramp.com/spend-management | caution | 0 | (consistent) |
-| numbeo.com/cost-of-living | ERROR | — | p95=30s genuine slow origin |
-| airbyte.com/connectors | concerning | +1 | 8 blockers from spam triplet firing 1-2× each — small per-rule count but cumulative |
-| stripe.com/atlas/states | ERROR | — | URL likely 404 |
+| numbeo.com/cost-of-living | ERROR |: | p95=30s genuine slow origin |
+| airbyte.com/connectors | concerning | +1 | 8 blockers from spam triplet firing 1-2× each: small per-rule count but cumulative |
+| stripe.com/atlas/states | ERROR |: | URL likely 404 |
 
 **6 of 8 audited sites passed.** Pass rate 75% vs round 1's 33%. Round 3
 fixes:
@@ -357,11 +357,11 @@ fixes:
    that prevents an entire-audit abort from a single malformed `<link>`.
 2. Origin-degradation gate raised to 4× / 8s. G2 now completes; Numbeo at
    p95=30s correctly identified as genuinely slow.
-3. `unclear` profile demotes AEO + EEAT — covers the case where the
+3. `unclear` profile demotes AEO + EEAT: covers the case where the
    classifier can't confidently place a site, which empirically happens
    to most reputable pSEO sites.
 4. `programmatic-directory` demotes `spam/near-duplicate` and
-   `spam/doorway-pattern` to warning — catalog records are by-design.
+   `spam/doorway-pattern` to warning, catalog records are by-design.
 
 Remaining failures point to *classifier* and *threshold-spread* problems
 that the next round addresses.
@@ -370,7 +370,7 @@ that the next round addresses.
 
 Round-4 fixes (in flight):
 
-1. Extend `spam/doorway-pattern` demotion to `small-marketing` profile —
+1. Extend `spam/doorway-pattern` demotion to `small-marketing` profile:
    classifier mis-classifies catalog directories (Segment) as
    small-marketing@0.88. The signal is real but the user-visible
    advice ("doorway pattern detected") doesn't match reality on a
@@ -379,7 +379,7 @@ Round-4 fixes (in flight):
    negative cost.
 2. Extend the spam triplet (`spam/near-duplicate`,
    `spam/entity-swap`, `spam/doorway-pattern`) demotions to `unclear`
-   — catches sites like Airbyte where the classifier can't decide
+, catches sites like Airbyte where the classifier can't decide
    what they are. The signals stay visible (warning, not info) so a
    real doorway/duplicate pattern is still surfaced; they just stop
    tanking the score on structurally-ambiguous catalog directories.
@@ -387,7 +387,7 @@ Round-4 fixes (in flight):
 ## Calibration round 4 results (2026-05-03, rulesetVersion=7)
 
 5 PASS / 3 FAIL / 4 ERROR. Zapier regressed (caution → concerning) on a
-different page sample — small but non-deterministic drift, since the
+different page sample, small but non-deterministic drift, since the
 sample-25 stratified strategy can pull different pages each run.
 Webflow now COMPLETES (URL-parse defended at source) but verdict
 'caution' exceeded its 'ready' ceiling. Segment doorway demoted to
@@ -398,17 +398,17 @@ pushed the verdict to concerning.
 
 7 PASS / 2 FAIL / 3 ERROR. Big improvements:
 
-- Webflow: PASS (corpus ceiling adjusted to caution — template gallery
+- Webflow: PASS (corpus ceiling adjusted to caution: template gallery
   cards have ~150 words by design, no per-template authors; caution is
   the realistic ceiling).
 - Airbyte: PASS (round 4 unclear demotions kicked in; round 5 boilerplate
   demotion stabilized the verdict).
-- Numbeo: ERROR (genuine 30-second p95 — origin really is slow).
+- Numbeo: ERROR (genuine 30-second p95: origin really is slow).
 
 Remaining failures:
-- Zapier (concerning, risk=55) — driven by 3 thin-content pages at error
+- Zapier (concerning, risk=55): driven by 3 thin-content pages at error
   + 6 canonical-consistency at error + cumulative AEO info findings.
-- Segment (concerning, risk=56) — driven by 24 pages each tripping
+- Segment (concerning, risk=56): driven by 24 pages each tripping
   thin-content (warning), boilerplate-ratio (warning), redirect-chain
   (warning), plus 276 doorway-pattern fires (warning, capped).
 
@@ -439,7 +439,7 @@ Remaining failures (verdict-boundary issues, not direction-of-engine):
 | typeform.com/templates | concerning, risk=51 | 4 info-severity rules each hitting their per-rule maxImpact; the cumulative bucket-fill pushes citation past its 100 cap |
 | segment.com/integrations | concerning, risk=57 | doorway-pattern (300× warning, capped), boilerplate-ratio + redirect-chain + thin-content all warning, capped, summing into integrity bucket |
 
-Both fail by 10-17 points — at the **caution → concerning boundary**.
+Both fail by 10-17 points, at the **caution → concerning boundary**.
 Stratified sampling across N=25 pages across multiple runs causes
 verdicts to bounce ±1 ladder rung based on which pages got picked. This
 is below the calibration noise floor: further demotion would weaken the
@@ -475,20 +475,20 @@ when the classifier is improved (a deeper change).
 **6 PASS / 3 FAIL / 3 ERROR**, with sample-seed locked at 1729 for
 reproducibility. New trust-inducing wins:
 
-- **G2: ready (risk=5)** — was caution. Best-possible verdict.
-- **Typeform: ready (risk=20)** — was concerning.
-- **Ramp: ready (risk=20)** — consistent.
+- **G2: ready (risk=5)**: was caution. Best-possible verdict.
+- **Typeform: ready (risk=20)**: was concerning.
+- **Ramp: ready (risk=20)**: consistent.
 - **Cluster collapse on doorway-pattern.** Segment's 276 per-pair
   findings collapsed into one cluster finding. The dominant driver list
   now reflects *actual* concerns (boilerplate, redirect-chain) rather
   than C(N,2) noise.
 - **Verdicts are reproducible.** `sampleSeed: 1729` makes every call
-  deterministic — same sample, same audit, same verdict. Round-to-
+  deterministic, same sample, same audit, same verdict. Round-to-
   round drift solved.
 
 Remaining failures, now clearly diagnosed:
 
-1. **Zapier (risk=50, concerning)** — driven by `links/unreachable-from-
+1. **Zapier (risk=50, concerning)**: driven by `links/unreachable-from-
    root × 24 warning`. The seed picked deep `/apps/X/integrations` pages
    whose link graph doesn't reach back to the single start URL. This is
    a sampling artifact: when auditing a partial slice of a large catalog,
@@ -496,7 +496,7 @@ Remaining failures, now clearly diagnosed:
    to corpus-wide audits, or add a "sampled audit" flag that suppresses
    this rule.
 
-2. **Segment (risk=57, concerning)** — `spam/boilerplate-ratio` (25
+2. **Segment (risk=57, concerning)**: `spam/boilerplate-ratio` (25
    pages, error→warning by my demotion), `tech/redirect-chain` (25
    pages), `spam/thin-content` (25 pages, info by demotion) all fire
    honestly. Google tolerates Segment's catalog shape; our verdict
@@ -505,7 +505,7 @@ Remaining failures, now clearly diagnosed:
    that catalog-shape sites with these signals score concerning until
    the operator addresses them as legitimate tech debt.
 
-3. **Airbyte (risk=42, concerning)** — all top drivers are *info*
+3. **Airbyte (risk=42, concerning)**: all top drivers are *info*
    severity (110 info findings cumulating into citation bucket).
    Verdict-to-findings disconnect at its purest: no individual finding
    crosses warning, but the volume pushes the bucket over its 100 cap.
@@ -520,25 +520,25 @@ fixes shipped:
 
 1. **Suppress `links/unreachable-from-root` on partial-sample audits.**
    The rule was firing on Zapier's 50-page sample because deep
-   `/apps/X/integrations` pages don't link back to the start URL —
+   `/apps/X/integrations` pages don't link back to the start URL,
    sampling artifact. Now skipped when `sampleSize < total`.
 2. **Cap info-severity bucket contribution at 50 (not 100).** A flood
    of info findings can no longer fill the 100-cap and tank the
    verdict. Warning+ findings still cap at 100. Info-only contribution
-   from a single bucket is bounded — Airbyte's "all info → concerning"
+   from a single bucket is bounded, Airbyte's "all info → concerning"
    paradox solved.
 
 Round 9: **7 PASS / 2 FAIL / 3 ERROR**. New wins:
-- **Airbyte: caution** (was concerning) — info-cap directly responsible
-- **Wise: ready** (was caution) — info-cap let her cleanly into ready
+- **Airbyte: caution** (was concerning): info-cap directly responsible
+- **Wise: ready** (was caution): info-cap let her cleanly into ready
 - **Ramp: ready** consistently
 - **5 of 9 audited sites at `ready`** verdict (best possible)
 
 The 2 remaining failures are now genuinely diagnosable:
-- **Zapier risk=53** — `tech/canonical-consistency × 7` with mixed
+- **Zapier risk=53**: `tech/canonical-consistency × 7` with mixed
   error+info. Real canonical inconsistencies on integration pages
   with tracking params. Engine is making an honest call.
-- **Segment risk=58** — `spam/boilerplate-ratio × 25 warning` +
+- **Segment risk=58**: `spam/boilerplate-ratio × 25 warning` +
   `tech/redirect-chain × 25 warning`. Real catalog characteristics
   that a developer should investigate.
 
@@ -556,7 +556,7 @@ ladder might still be too strict for catalogs at the boundary, but the
 | Failed                        |  4 |  2 |
 | Pass rate                     | 33% | 78% |
 | Sites scoring `ready`         |  0 |  5 |
-| Reputable pSEO at `critical`  |  — |  0 |
+| Reputable pSEO at `critical`  |: |  0 |
 | Doorway findings on Segment   | 300 (raw) | 1 cluster |
 | Verdict reproducibility       | random | seeded |
 | Info-cumulation bucket overflow | yes | capped at 50 |
@@ -568,12 +568,12 @@ ladder might still be too strict for catalogs at the boundary, but the
 
 The corpus is biased toward high-authority domains. Zapier, G2, Wise,
 NerdWallet, Webflow, Typeform, Segment, Jasper, Ramp, Numbeo, Airbyte,
-Stripe Atlas — every site is an established brand with a strong
+Stripe Atlas, every site is an established brand with a strong
 backlink profile. The engine reads only static content + link graph;
 it does not measure backlinks, brand mentions, domain age, named
 editorial leadership, or any other authority signal Google's quality
 systems weight heavily. There is no third-party API integration
-(Moz/Ahrefs/Semrush) — by design, because pseolint is meant to be
+(Moz/Ahrefs/Semrush), by design, because pseolint is meant to be
 runnable offline against a build directory or local dev server.
 
 This means our verdict ladder is implicitly anchored at the
@@ -581,8 +581,8 @@ calibration corpus's authority tier. **A `ready` verdict on a 6-month-
 old startup running the same content shape as Zapier is not the same
 guarantee as `ready` on Zapier itself.** The engine cannot tell them
 apart. Operators at lower authority tiers should treat the verdict as
-a *directional minimum* — fixing what pseolint flags is necessary,
-not sufficient — rather than a literal ceiling.
+a *directional minimum*, fixing what pseolint flags is necessary,
+not sufficient, rather than a literal ceiling.
 
 The fix is in the future-work section below: bring-your-own-authority
 score (`AuditOptions.authorityScore`, 0-100) that shifts the verdict
@@ -601,7 +601,7 @@ data.
    age, internal-graph density, named editorial leadership) for the
    common case where the caller has no external authority data. This
    is the single largest fix to verdict-credibility across operator
-   tiers — the calibration corpus's high-DA bias is otherwise baked in
+   tiers, the calibration corpus's high-DA bias is otherwise baked in
    permanently.
 
 2. **Classifier confidence on catalog directories.** Only 1 of 9
@@ -614,7 +614,7 @@ data.
 
 2. **Suppress sampling-artifact rules on partial audits.**
    `links/unreachable-from-root` is unreliable on `sampleSize < total`
-   audits — it doesn't know whether disconnection is real or sample-
+   audits, it doesn't know whether disconnection is real or sample-
    shape. Add a `sampled: boolean` flag to the rule's input and
    suppress on sampled runs.
 
@@ -626,12 +626,12 @@ data.
    visibility while preventing info-fatigue from tanking verdict.
 
 4. **Expand the corpus.** Add Zillow, Yelp, TripAdvisor with a
-   residential-IP rendering proxy when available — those are the
+   residential-IP rendering proxy when available, those are the
    ground-truth targets we skipped because of CAPTCHA walls.
 
 5. **Show what was suppressed in the report.** When a profile demotes
    N rules, the verdict block should say so transparently:
-   *"5 rules suppressed for `programmatic-directory` site type — your
+   *"5 rules suppressed for `programmatic-directory` site type, your
    site is structured as a catalog, so these don't apply."* Turns
    severity demotion from a hidden mechanism into a visible decision.
 
@@ -646,11 +646,11 @@ data.
 | Rule  | `spam/doorway-pattern` requires content-quality signal (thin OR identical-meta) | 1 |
 | Rule  | `tech/hreflang-consistency` skips reciprocity check for un-crawled targets | 1 |
 | Rule  | `tech/hreflang-consistency` regex requires host char after `https://` | 2 |
-| Source | `normalizeAuditUrl` defensive — returns input on parse failure | 3 |
+| Source | `normalizeAuditUrl` defensive: returns input on parse failure | 3 |
 | Engine | `BackpressureMonitor` thresholds: 2× → 4×, 3000ms → 8000ms | 1 |
 | Profile | `programmatic-directory` adds 7 demotions (was 0) | 1-6 |
 | Profile | `small-marketing` adds 4 demotions (freshness, missing-author, doorway, boilerplate, thin-content) | 1-6 |
-| Profile | `unclear` adds 10 demotions (was 0 — "stay strict" was empirically wrong) | 2-6 |
+| Profile | `unclear` adds 10 demotions (was 0: "stay strict" was empirically wrong) | 2-6 |
 | Corpus | Webflow ceiling `ready` → `caution` | 5 |
 | Engine | `CORE_RULESET_VERSION` 1 → 9 | 1-6 |
 
@@ -672,6 +672,6 @@ data.
 3. **What about reputable-but-rented sites?** Some sites that look
    reputable from rankings actually rely on a parent host's authority
    (e.g., guest-author networks on news sites). Those should *not* be in
-   the calibration corpus — they would over-train us toward forgiving
+   the calibration corpus, they would over-train us toward forgiving
    the very pattern `links/host-section-divergence` is designed to catch.
    The corpus is curated to first-party pSEO only.

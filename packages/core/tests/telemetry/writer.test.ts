@@ -85,7 +85,7 @@ describe("appendTelemetryRecord", () => {
 
   it("does not throw when given a schema-violating record (swallows programmer bug)", async () => {
     const path = join(dir, "telemetry.jsonl");
-    // Cast to bypass the TS check — we are asserting the runtime
+    // Cast to bypass the TS check; we are asserting the runtime
     // behavior of an invalid record shape.
     const bad = { ...auditA, extraField: "nope" } as unknown as AuditRecord;
     await expect(
@@ -95,7 +95,7 @@ describe("appendTelemetryRecord", () => {
     let exists = true;
     try {
       const contents = await readFile(path, "utf8");
-      // If the file got created it must be empty — strict acceptance.
+      // If the file got created it must be empty: strict acceptance.
       expect(contents).toBe("");
     } catch {
       exists = false;

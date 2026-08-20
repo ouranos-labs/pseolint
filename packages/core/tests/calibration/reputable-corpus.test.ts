@@ -5,12 +5,12 @@
  * `scripts/calibration-corpus.ts` and asserts that no site in the
  * curated reputable-pSEO corpus scored worse than its expected verdict
  * ceiling. Any failure here means the engine has regressed in a way that
- * causes it to flag sites that demonstrably win at pSEO — which is a bug
+ * causes it to flag sites that demonstrably win at pSEO: which is a bug
  * in OUR calibration, not the sites.
  *
  * The test is a *soft* gate: it skips automatically when no calibration
  * results exist or when the most recent run is older than 14 days. This is
- * deliberate — running the calibration makes 12 live HTTP audits that take
+ * deliberate: running the calibration makes 12 live HTTP audits that take
  * minutes to complete and require network access, neither of which belongs
  * in `bun test`. Treat it as: "if calibration has been run recently, its
  * verdict ceilings still hold."
@@ -75,7 +75,7 @@ describe("reputable-pSEO calibration regression", () => {
 
   if (status.state === "missing") {
     it.skip(
-      "calibration not run — execute `bun run scripts/calibration-corpus.ts` to populate scripts/calibration-results.json",
+      "calibration not run: execute `bun run scripts/calibration-corpus.ts` to populate scripts/calibration-results.json",
       () => {},
     );
     return;
@@ -83,7 +83,7 @@ describe("reputable-pSEO calibration regression", () => {
 
   if (status.state === "stale") {
     it.skip(
-      `calibration is ${status.ageDays} days old — re-run \`bun run scripts/calibration-corpus.ts\` to refresh the gate`,
+      `calibration is ${status.ageDays} days old: re-run \`bun run scripts/calibration-corpus.ts\` to refresh the gate`,
       () => {},
     );
     return;
@@ -91,7 +91,7 @@ describe("reputable-pSEO calibration regression", () => {
 
   const { data } = status;
 
-  it("ran against current ruleset version (or older — older is fine, the test still gates)", () => {
+  it("ran against current ruleset version (or older: older is fine, the test still gates)", () => {
     expect(typeof data.rulesetVersion).toBe("string");
     expect(data.rulesetVersion.length).toBeGreaterThan(0);
   });

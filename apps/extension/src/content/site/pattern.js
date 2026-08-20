@@ -1,8 +1,8 @@
-// pseolint extension — single-URL template pattern guess (Path B seed, §5).
+// pseolint extension: single-URL template pattern guess (Path B seed, §5).
 //
-// ponytail: heuristic from ONE url — variable segments are guessed by shape.
+// ponytail: heuristic from ONE url, variable segments are guessed by shape.
 //   Ceiling: a static page like "/about-us" gets mis-generalised to ":slug".
-//   That's fine — the server validates a template actually has siblings before
+//   That's fine: the server validates a template actually has siblings before
 //   it samples (§5 stratified sampling). This only seeds the crawl with a guess.
 
 // Order matters: the first match wins (uuid/date before the generic slug rule).

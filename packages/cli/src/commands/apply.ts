@@ -29,7 +29,7 @@ export interface ApplyCliOptions {
   noColor?: boolean;
 }
 
-/** Result of applying a manifest — consumed by the printer and (Slice 2) the PR opener. */
+/** Result of applying a manifest, consumed by the printer and (Slice 2) the PR opener. */
 export type ApplyResult =
   | { ok: false; error: string; hint?: string }
   | {
@@ -62,7 +62,7 @@ function safeResolve(repoRoot: string, p: string): string | null {
 
 /**
  * Apply a fix manifest's deterministic edits into a working tree. Pure of any
- * printing/exit — returns a structured result so both the CLI printer and the
+ * printing/exit: returns a structured result so both the CLI printer and the
  * PR opener (`apply --pr`) can consume it. Interpolated-template misses demote
  * to the checklist rather than corrupting source. No GitHub, no network.
  */
@@ -124,7 +124,7 @@ export async function applyManifest(opts: ApplyCliOptions): Promise<ApplyResult>
     try {
       content = await readFile(abs, "utf8");
     } catch {
-      content = null; // missing file — only whole-file creates (find === null) can proceed
+      content = null; // missing file: only whole-file creates (find === null) can proceed
     }
 
     let working = content ?? "";
@@ -140,7 +140,7 @@ export async function applyManifest(opts: ApplyCliOptions): Promise<ApplyResult>
         fileTouched = true;
         applied += 1;
       } else {
-        // Literal absent — almost always an interpolated template. Hand it to the human.
+        // Literal absent: almost always an interpolated template. Hand it to the human.
         demoted.push(editToChecklist(e, `literal not found in ${relPath} (interpolated template?)`));
       }
     }
@@ -165,7 +165,7 @@ export async function applyManifest(opts: ApplyCliOptions): Promise<ApplyResult>
 }
 
 /**
- * `pseolint apply` — run {@link applyManifest} and render the result to stdout,
+ * `pseolint apply`: run {@link applyManifest} and render the result to stdout,
  * returning a process exit code. The human reviews + commits the diff.
  */
 export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
@@ -187,11 +187,11 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
   out.write(`  ${verb} ${appliedCount} edit${appliedCount === 1 ? "" : "s"} across ${changedFiles.length} file${changedFiles.length === 1 ? "" : "s"}\n`);
   for (const f of changedFiles) out.write(paint(`    ${dryRun ? "~" : "✓"} ${f}\n`, GREEN, strip));
   if (dryRun && changedFiles.length > 0) {
-    out.write(paint(`  (dry run — nothing written; re-run without --dry-run to apply)\n`, DIM, strip));
+    out.write(paint(`  (dry run: nothing written; re-run without --dry-run to apply)\n`, DIM, strip));
   }
 
   if (allChecklist.length > 0) {
-    out.write("\n" + paint(`── Checklist (${allChecklist.length} — needs a human) ──\n`, BOLD, strip));
+    out.write("\n" + paint(`── Checklist (${allChecklist.length}, needs a human) ──\n`, BOLD, strip));
     for (const c of allChecklist) {
       const where = c.path ? paint(` [${c.path}]`, DIM, strip) : c.url ? paint(` [${c.url}]`, DIM, strip) : "";
       out.write(paint(`  • `, YELLOW, strip) + paint(`${c.kind}`, CYAN, strip) + `: ${c.title}${where}\n`);
@@ -200,7 +200,7 @@ export async function runApplyCommand(opts: ApplyCliOptions): Promise<number> {
   }
 
   if (appliedCount === 0 && allChecklist.length === 0) {
-    out.write(paint(`\n  Nothing to do — manifest had no actionable patches.\n`, DIM, strip));
+    out.write(paint(`\n  Nothing to do: manifest had no actionable patches.\n`, DIM, strip));
   }
 
   return 0;
@@ -211,7 +211,7 @@ function editToChecklist(e: FileEdit, why: string): ChecklistItem {
     kind: "unmapped",
     path: e.path,
     url: e.url,
-    title: `Apply ${e.field} manually — ${why}`,
+    title: `Apply ${e.field} manually: ${why}`,
     detail: e.find === null ? e.replace : `Before: ${e.find}\nAfter: ${e.replace}`,
     reason: e.reason,
   };

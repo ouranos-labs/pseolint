@@ -4,7 +4,7 @@
  * v0.3 blobs never carry them, so this returns `{ truncated: false }` for them.
  *
  * The R2 blob is UNTRUSTED JSON, so we duck-type defensively rather than trust
- * the static union — an unexpected `truncatedKind` value collapses to `null`
+ * the static union: an unexpected `truncatedKind` value collapses to `null`
  * (the report then shows the generic degraded-origin copy, never a wrong claim).
  */
 export function summaryTruncation(summary: unknown): {

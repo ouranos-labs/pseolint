@@ -1,5 +1,5 @@
 /**
- * v0.6 Per-template scoring — aggregates findings by template cluster,
+ * v0.6 Per-template scoring: aggregates findings by template cluster,
  * computes per-template verdict/risk/categories, and computes the variance
  * metric (fire-rates, uniformity, top driver).
  *
@@ -180,7 +180,7 @@ function computeRiskAndCategories(
     bucketRaw[key] = Math.min(100, info + nonInfo);
   }
 
-  // Use equal weights for per-template scoring — no site-type profile here
+  // Use equal weights for per-template scoring: no site-type profile here
   // (the classification-based profile applies at the site level, not per-template).
   const weighted =
     bucketRaw.integrity * 0.40 +
@@ -294,7 +294,7 @@ export function scoreTemplates(
   const templates: Template[] = [];
 
   for (const candidate of candidates) {
-    // Skip longtail from per-template scoring — it's a catch-all, not a real template.
+    // Skip longtail from per-template scoring; it's a catch-all, not a real template.
     // We still compute it but mark it as low-priority for verdict aggregation.
     const auditedUrlSet = new Set(candidate.urls);
 
@@ -329,7 +329,7 @@ export function scoreTemplates(
     const verdict = verdictForRisk(risk);
     const variance = computeVariance(auditedUrls, findingsByUrl);
 
-    // Collect finding IDs — use ruleId+pageUrl as a stable reference key.
+    // Collect finding IDs: use ruleId+pageUrl as a stable reference key.
     const findingIds = templateFindings.map(
       (f) => `${f.ruleId}:${f.pageUrl ?? ""}`,
     );

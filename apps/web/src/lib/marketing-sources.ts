@@ -7,7 +7,7 @@
  * `content/citation-coverage` rule expects those claims to be grounded in
  * authoritative outbound citations (.gov/.edu/.int TLDs plus an allowlist that
  * now includes developers.google.com + web.dev). Defining the canonical URLs
- * ONCE here guarantees they are real and stable — page authors reference a
+ * ONCE here guarantees they are real and stable: page authors reference a
  * source by key and add a page-specific `note`, so no page can ship a
  * hallucinated or rotted link.
  *

@@ -13,7 +13,7 @@ export async function requireSession() {
   return session;
 }
 
-/** Thin wrapper for use in server actions — throws a plain Error when unauthenticated. */
+/** Thin wrapper for use in server actions; throws a plain Error when unauthenticated. */
 export async function getRequiredSession() {
   const session = await getOptionalSession();
   if (!session) throw new Error("Unauthorized");
@@ -35,7 +35,7 @@ export async function getAnonSessionId(): Promise<string | null> {
 /**
  * READ-WRITE: Returns the existing anon session ID, creating and persisting
  * a new one if none exists. MUST only be called from a Server Action or
- * Route Handler — calling this during an RSC render pass will throw in Next.js 15+.
+ * Route Handler: calling this during an RSC render pass will throw in Next.js 15+.
  */
 export async function getOrCreateAnonSessionId(): Promise<string> {
   const store = await cookies();

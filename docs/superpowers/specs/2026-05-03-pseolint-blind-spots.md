@@ -1,6 +1,6 @@
 # pseolint blind spots: what we don't detect (and why)
 
-**Status:** living document — updated each release
+**Status:** living document, updated each release
 **Date:** 2026-05-03
 **Engine version at writing:** v0.5.2
 
@@ -16,7 +16,7 @@ item.
 
 ---
 
-## Tier 1 — meaningful gaps that affect verdict accuracy
+## Tier 1: meaningful gaps that affect verdict accuracy
 
 These are the gaps a thoughtful operator should know about because they
 directly shape how to read pseolint's verdict.
@@ -38,7 +38,7 @@ Moz/Ahrefs/Semrush would (a) require a paid SaaS dependency, (b)
 disagree across providers, and (c) approximate Google's actual signals
 poorly.
 
-**Roadmap fix:** `AuditOptions.authorityScore` (0-100) — bring-your-own
+**Roadmap fix:** `AuditOptions.authorityScore` (0-100), bring-your-own
 authority, verdict ladder shifts one tier in the appropriate direction.
 Plus proxy-signal detection (domain age via WHOIS, internal-graph
 density, named editorial leadership presence) for callers without
@@ -130,12 +130,12 @@ phantom. v0.5.3 target.
 
 ---
 
-## Tier 2 — known gaps with workarounds
+## Tier 2: known gaps with workarounds
 
 ### 2.1 Search Console integration / indexation status
 
 **What we don't detect:** which of your URLs are actually indexed,
-which got "Crawled — currently not indexed" status, manual actions,
+which got "Crawled, currently not indexed" status, manual actions,
 mobile-usability errors.
 
 **Why it's a real blind spot:** the ground truth for "did this work" is
@@ -164,7 +164,7 @@ ambiguous. We do detect some related patterns: `cannibal/url-pattern`
 flags reordered tokens, `tech/canonical-consistency` catches
 canonical-conflicts.
 
-**Roadmap fix:** `tech/parameter-url-explosion` — flag origins where the
+**Roadmap fix:** `tech/parameter-url-explosion`, flag origins where the
 sitemap / discovered URL count contains parameter-combination patterns
 (`?sort=`, `?filter=`, `?page=`) at scale. v0.6 target.
 
@@ -192,7 +192,7 @@ deceptive markup by Google and can trigger structured-data manual
 actions. Common in pSEO when the schema generator runs from one data
 source and the page renderer from another.
 
-**Roadmap fix:** `data/schema-content-drift` — for a given page, extract
+**Roadmap fix:** `data/schema-content-drift`, for a given page, extract
 JSON-LD primary entity values (price, sku, rating) and assert each
 appears literally in the rendered DOM. v0.6 target.
 
@@ -226,7 +226,7 @@ set itself. Available via the AI orchestrator path.
 
 ---
 
-## Tier 3 — narrow gaps, lower priority
+## Tier 3: narrow gaps, lower priority
 
 ### 3.1 Mobile-friendliness checks
 
@@ -294,7 +294,7 @@ priority for the pSEO target audience.
 
 ---
 
-## Tier 4 — intentional non-features
+## Tier 4: intentional non-features
 
 These are blind spots that we've explicitly chosen NOT to fill, with
 reasoning.
@@ -317,11 +317,11 @@ SERPs.
 ### 4.4 Real-time crawl frequency analysis
 
 Tracking how often Google actually crawls your URLs requires server-
-log access — out of scope for a static analyzer.
+log access, out of scope for a static analyzer.
 
 ### 4.5 Conversion-rate / engagement signals
 
-Bounce rate, dwell time, conversion rate — these are GA-domain signals.
+Bounce rate, dwell time, conversion rate, these are GA-domain signals.
 Not part of the audit surface.
 
 ---
@@ -330,7 +330,7 @@ Not part of the audit surface.
 
 1. **A `ready` verdict means**: "pseolint's static + graph analysis
    found no significant issues in the dimensions it checks." It does
-   NOT mean "you will rank well" — authority, page speed, off-page
+   NOT mean "you will rank well"; authority, page speed, off-page
    signals, search intent matching, and other factors outside our scope
    matter too.
 

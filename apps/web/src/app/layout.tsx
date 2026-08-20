@@ -24,14 +24,14 @@ const SITE_LAST_UPDATED = new Date().toISOString().slice(0, 10);
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "pseolint — SpamBrain-proof your pSEO",
+  title: "pseolint: SpamBrain-proof your pSEO",
   description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
   authors: [{ name: "pseolint Editorial Team", url: SITE_URL }],
   creator: "Ouranos Labs",
   publisher: "Ouranos Labs",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "pseolint — SpamBrain-proof your pSEO",
+    title: "pseolint: SpamBrain-proof your pSEO",
     description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
     type: "website",
     siteName: "pseolint",
@@ -39,18 +39,18 @@ export const metadata = {
       url: "/opengraph-image",
       width: 1200,
       height: 630,
-      alt: "pseolint — SpamBrain-proof your pSEO",
+      alt: "pseolint, SpamBrain-proof your pSEO",
     }],
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "pseolint — SpamBrain-proof your pSEO",
+    title: "pseolint: SpamBrain-proof your pSEO",
     description: "Audit your programmatic SEO site for SpamBrain risk in 60 seconds.",
     images: [{
       url: "/opengraph-image",
       width: 1200,
       height: 630,
-      alt: "pseolint — SpamBrain-proof your pSEO",
+      alt: "pseolint, SpamBrain-proof your pSEO",
     }],
   },
 };
@@ -108,13 +108,13 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
     <nav className="relative z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
         <Link href={ signedIn ? "/dashboard" : "/" } className="flex items-center gap-2.5 text-sm">
-          <NavRing size={ 30 } title="pseolint — site-type-aware SpamBrain + AEO audit" />
+          <NavRing size={ 30 } title="pseolint: site-type-aware SpamBrain + AEO audit" />
           <span className="font-semibold tracking-tight">pseolint</span>
           <span className="hidden font-mono text-[11px] text-muted-foreground sm:inline">v{ENGINE_VERSION}</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
 
-          {/* Marketing / acquisition links — only for signed-out visitors. Logged-in
+          {/* Marketing / acquisition links: only for signed-out visitors. Logged-in
               users get a focused nav (Dashboard + account); all of these remain
               reachable from the footer. */}
           { !signedIn && (

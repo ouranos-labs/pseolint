@@ -14,7 +14,7 @@ const TONE_CLASSES: Record<Tone, string> = {
 interface EmptyStateProps {
   /** Short headline. The "what's missing" line. */
   title: string;
-  /** Supporting context — what would normally be here, or what to do next. */
+  /** Supporting context: what would normally be here, or what to do next. */
   description?: ReactNode;
   /** Optional primary action (next/link). */
   action?: { href: string; label: string };

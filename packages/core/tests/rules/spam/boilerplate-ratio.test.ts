@@ -21,14 +21,14 @@ function page(url: string, contentText: string): ParsedPage {
   };
 }
 
-// A block shared across ALL pages — contributes weight 1.0.
+// A block shared across ALL pages: contributes weight 1.0.
 const SHARED = "this block appears on every single page as a shared footer disclaimer text";
-// A block unique to one page — contributes weight 1/N.
+// A block unique to one page: contributes weight 1/N.
 const UNIQUE_A = "california specific content that no other page contains in its body text";
 const UNIQUE_B = "texas specific content that no other page contains in its body text at all";
 const UNIQUE_C = "florida specific content that no other page contains in its body text today";
 
-describe("boilerplateRatioRule — continuous weighting", () => {
+describe("boilerplateRatioRule: continuous weighting", () => {
   // (a) A page that is mostly shared blocks fires as error (ratio well above threshold+0.1)
   test("fires error when page is overwhelmingly shared-block content", () => {
     const pages = [
@@ -49,7 +49,7 @@ describe("boilerplateRatioRule — continuous weighting", () => {
   });
 
   // (b) STABILITY: adding one sibling barely moves a page's ratio/verdict
-  test("stability — page ratio barely moves when one sibling is added or removed", () => {
+  test("stability: page ratio barely moves when one sibling is added or removed", () => {
     // Build a corpus of 9 pages where each page is ~50% shared, ~50% unique.
     // Under the old binary cutoff (floor(9*0.8)+1 = 8), a block on 8/9 pages = skeleton.
     // Under the old binary cutoff with 10 pages (floor(10*0.8)+1 = 9), 8/10 = not skeleton.
@@ -114,7 +114,7 @@ describe("boilerplateRatioRule — continuous weighting", () => {
     expect(findings.length).toBeGreaterThan(0);
 
     // Collect severities; at threshold+0 to threshold+0.1 zone we expect warning
-    // (exact zone depends on word counts — just assert no finding is below warning)
+    // (exact zone depends on word counts: just assert no finding is below warning)
     for (const f of findings) {
       expect(["warning", "error"]).toContain(f.severity);
     }
@@ -122,7 +122,7 @@ describe("boilerplateRatioRule — continuous weighting", () => {
 
   // (d2) Single-page-unique content has ZERO boilerplate weight: a 2-page corpus
   // of fully distinct pages must not fire even at a strict maxRatio. (freq-1)/(N-1)
-  // gives a block on 1/2 pages weight 0 — freq/N would have given it 0.5 and
+  // gives a block on 1/2 pages weight 0: freq/N would have given it 0.5 and
   // fired at maxRatio < 0.5.
   test("all-unique 2-page corpus does not fire even at a strict threshold", () => {
     const pages = [

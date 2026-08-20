@@ -102,7 +102,7 @@ const buildPriorState = (origin: string, urls: Record<string, UrlStateEntry>): R
 /**
  * ISO timestamp for `n` days before `Date.now()`. Use this for any "recent
  * enough to dodge the 7-day age floor" prior fetchedAt, instead of a hard-
- * coded date — hard-coded dates silently rot as the calendar advances.
+ * coded date: hard-coded dates silently rot as the calendar advances.
  */
 const daysAgo = (n: number): string => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString();
 
@@ -133,8 +133,8 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     });
 
     // Seed prior state where /a and /b were audited recently, with no findings,
-    // and the sitemap lastmod is OLDER than fetchedAt — matrix should SKIP them.
-    // / is intentionally absent from prior state — matrix should refetch it ("new").
+    // and the sitemap lastmod is OLDER than fetchedAt: matrix should SKIP them.
+    // / is intentionally absent from prior state: matrix should refetch it ("new").
     const recentFetch = new Date().toISOString();
     const statePath = join(workDir, "state.json");
     await writeState(statePath, buildPriorState(server.origin, {
@@ -150,7 +150,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     });
 
     // The sitemap and robots.txt are always fetched; what we care about is
-    // whether /a and /b — which the matrix marked as "unchanged" — were
+    // whether /a and /b (which the matrix marked as "unchanged") were
     // touched. They must NOT appear in fetched.
     expect(server.fetched).not.toContain("/a");
     expect(server.fetched).not.toContain("/b");
@@ -214,7 +214,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     const entry = after!.urls[`${server.origin}/a`];
     expect(entry).toBeDefined();
     // The whole point of monitoring mode is that the skip evidence stays
-    // honest — bumping fetchedAt on a skipped URL would mean the age floor
+    // honest: bumping fetchedAt on a skipped URL would mean the age floor
     // never triggers and silently-changed pages drift forever.
     expect(entry.fetchedAt).toBe(priorFetchedAt);
   });
@@ -284,7 +284,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     expect(carriedInfo!.carriedForward).toBe(true);
     expect(carriedInfo!.lastVerifiedAt).toBe(recentFetch);
 
-    // The skipped URL's prior state entry is preserved verbatim — no fetchedAt
+    // The skipped URL's prior state entry is preserved verbatim: no fetchedAt
     // bump, original findings still present so future runs can carry them again.
     const after = await readState(statePath);
     expect(after).not.toBeNull();
@@ -361,7 +361,7 @@ describe("monitoring mode (auditor + planScrapeStrategy wiring)", () => {
     await writeFile(join(siteDir, "page.html"), baseHtml("Page"), "utf8");
 
     const statePath = join(workDir, "state.json");
-    // Seed a state file with a fake URL — irrelevant to the file-based audit
+    // Seed a state file with a fake URL: irrelevant to the file-based audit
     // but proves we don't try to apply the matrix.
     await writeState(statePath, buildPriorState("file:///fake", {
       "file:///fake/page.html": baseEntry({ fetchedAt: new Date().toISOString() }),

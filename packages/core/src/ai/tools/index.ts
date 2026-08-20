@@ -1,5 +1,5 @@
 /**
- * Orchestrator tool registry. Each entry is a `DefinedTool` — call
+ * Orchestrator tool registry. Each entry is a `DefinedTool`: call
  * `.toAiTool()` to get an AI-SDK-compatible tool object, or `.run()` for
  * direct unit-test invocation.
  *
@@ -13,7 +13,7 @@
  *   - Domain-level checks         (check_domain_llms_txt, check_domain_crawler_access)
  *
  * Future phases extend this map with the remaining rule wrappers (links/*,
- * tech/redirect-chain, tech/soft-404, etc. — most useful as part of
+ * tech/redirect-chain, tech/soft-404, etc.: most useful as part of
  * `check_all_rules` once that escape hatch lands), schema/text validators,
  * and external probes (SerpAPI, ask_ai_engine).
  */

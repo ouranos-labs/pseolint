@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "private": true,
   "type": "module",
-  "description": "pseolint MV3 browser extension — pSEO failure signals on the live SERP.",
+  "description": "pseolint MV3 browser extension, pSEO failure signals on the live SERP.",
   "license": "MIT",
   "scripts": {
     "build": "bun build src/background.js --target=browser --format=iife --define PSEOLINT_MCP_BRIDGE=false --outfile=dist/background.js && bun build src/content/serp/index.js --target=browser --format=iife --outfile=dist/serp.js && bun build src/ui/sidepanel.js --target=browser --format=iife --outfile=dist/sidepanel.js",

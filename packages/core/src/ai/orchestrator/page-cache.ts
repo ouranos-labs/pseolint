@@ -22,7 +22,7 @@ export interface PageCacheEntry {
  *      take a `pageId` in their input and look up HTML via the cache
  *
  * Net effect: HTML never lives in the LLM conversation history. The cost
- * impact is dramatic — the v0.4.4 dogfood showed 5 fetched pages exploding
+ * impact is dramatic: the v0.4.4 dogfood showed 5 fetched pages exploding
  * to 297K tokens / $0.91 in a single step because re-passing HTML through
  * tool inputs accumulated quadratically. With pageId references that
  * collapses to ~20K tokens / $0.06 for the same workload.
@@ -47,7 +47,7 @@ export class PageCache {
 
   /**
    * Stable pageId derivation: sha256 of the URL, truncated to 16 hex chars
-   * (~64 bits — collision-safe for any realistic session size). Same URL
+   * (~64 bits: collision-safe for any realistic session size). Same URL
    * always maps to the same pageId so `fetch_page` is idempotent within
    * a session, and the LLM can re-reference a page without juggling ids.
    */
@@ -63,7 +63,7 @@ export class PageCache {
       Object.entries(entry.headers).reduce((acc, [k, v]) => acc + k.length + v.length, 0);
 
     // Replacing an existing entry: subtract its old size from the running total
-    // before checking the cap — re-fetching the same URL shouldn't re-bill cap.
+    // before checking the cap: re-fetching the same URL shouldn't re-bill cap.
     const existing = this.store.get(pageId);
     if (existing) {
       this.currentBytes -=
@@ -95,7 +95,7 @@ export class PageCache {
     return this.store.size;
   }
 
-  /** Memory usage estimate in bytes — useful for orchestrator-side monitoring. */
+  /** Memory usage estimate in bytes: useful for orchestrator-side monitoring. */
   approximateBytes(): number {
     return this.currentBytes;
   }
@@ -115,7 +115,7 @@ export function withPageCache<T>(cache: PageCache, fn: () => Promise<T>): Promis
 
 /**
  * Read the current session's page cache. Returns null when called outside
- * `withPageCache` (e.g. unit tests that don't set one up — those tests use
+ * `withPageCache` (e.g. unit tests that don't set one up: those tests use
  * `setTestCache` to inject a cache directly).
  */
 export function currentPageCache(): PageCache | null {
@@ -125,12 +125,12 @@ export function currentPageCache(): PageCache | null {
 /**
  * Test-only helper: set a page cache for the duration of a synchronous or
  * async test. Use as `await withPageCache(cache, async () => { ... })`
- * — same API as the production wrapper, just imported in tests.
+ *: same API as the production wrapper, just imported in tests.
  */
 export const setTestCache = withPageCache;
 
 /**
- * Resolve a `pageId` to its cache entry — the standard tool-side helper.
+ * Resolve a `pageId` to its cache entry: the standard tool-side helper.
  * Throws a clear, LLM-friendly error when the cache isn't in scope or the
  * pageId is unknown so the orchestrator can recover by re-fetching rather
  * than crashing the session.
@@ -139,13 +139,13 @@ export function resolvePage(pageId: string): PageCacheEntry {
   const cache = currentPageCache();
   if (!cache) {
     throw new Error(
-      "page cache not in scope — tool must run inside the orchestrator's withPageCache wrapper",
+      "page cache not in scope: tool must run inside the orchestrator's withPageCache wrapper",
     );
   }
   const entry = cache.get(pageId);
   if (!entry) {
     throw new Error(
-      `unknown pageId ${pageId} — call fetch_page to populate the cache before passing the returned pageId here`,
+      `unknown pageId ${pageId}: call fetch_page to populate the cache before passing the returned pageId here`,
     );
   }
   return entry;

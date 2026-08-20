@@ -104,7 +104,7 @@ export async function POST(req: Request): Promise<Response> {
         }
       } catch (e) {
         console.error("[polar webhook] monitor-intent binding failed:", e);
-        // Do not fail the webhook — user can add domain manually from dashboard.
+        // Do not fail the webhook: user can add domain manually from dashboard.
       }
     }
   }

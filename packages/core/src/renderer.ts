@@ -24,7 +24,7 @@ const RENDER_USER_AGENT = `Mozilla/5.0 (compatible; pseolint-render/${RENDER_VER
 
 /**
  * Playwright resource types that can carry analytics beacons. CSS, fonts,
- * images, and media typically don't — skipping them keeps the route handler
+ * images, and media typically don't: skipping them keeps the route handler
  * off most subresource requests and preserves Playwright's fast path.
  */
 const INTERCEPTED_RESOURCE_TYPES = new Set([
@@ -53,12 +53,12 @@ export interface RenderOptions {
   timeoutMs: number;
   /**
    * How to handle analytics / telemetry / session-replay beacons.
-   *   "block" (default) — abort known analytics hosts (Google Analytics, Plausible,
+   *   "block" (default): abort known analytics hosts (Google Analytics, Plausible,
    *     Mixpanel, Hotjar, PostHog, Sentry, etc.). Prevents the audit from injecting
    *     fake pageviews / sessions into the site owner's dashboards.
-   *   "allow-first-party" — block third-party analytics only; keep same-origin
+   *   "allow-first-party": block third-party analytics only; keep same-origin
    *     requests for sites that self-host analytics on their own domain.
-   *   "allow" — don't intercept anything. Use this only when you're auditing a
+   *   "allow": don't intercept anything. Use this only when you're auditing a
    *     site you own and explicitly want render-mode traffic in your analytics.
    */
   analyticsMode?: AnalyticsMode;
@@ -209,7 +209,7 @@ export async function renderPages(
         for (const e of list.getEntries()) if (!e.hadRecentInput) v.cls += e.value;
       }).observe({ type: "layout-shift", buffered: true });
     } catch {
-      // Older/headless Chromium without these entry types — vitals stay at defaults.
+      // Older/headless Chromium without these entry types: vitals stay at defaults.
     }
   });
 
@@ -219,7 +219,7 @@ export async function renderPages(
     await context.route("**/*", (route: any, request: any) => {
       let blocked = false;
       try {
-        // Skip resource types that can't carry an analytics beacon — CSS, fonts,
+        // Skip resource types that can't carry an analytics beacon: CSS, fonts,
         // images, media. Keeps the fast path for the vast majority of subresources
         // and preserves Playwright's in-browser networking.
         const resourceType = typeof request.resourceType === "function" ? request.resourceType() : "";
@@ -252,7 +252,7 @@ export async function renderPages(
           }
         }
       } catch {
-        // fall through on any interception-time error — better to let the
+        // fall through on any interception-time error: better to let the
         // request proceed than to break rendering over a bad URL parse.
       }
 

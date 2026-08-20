@@ -1,7 +1,7 @@
 /**
  * Manifest validation layer. Patches proposed by the LLM via `finish_audit`
  * pass through these validators before the manifest is persisted to R2.
- * Failures are not silently dropped — the caller (web app's session
+ * Failures are not silently dropped: the caller (web app's session
  * finalization) decides whether to retry the LLM, drop the failed patches,
  * or surface them as a "needs human review" subset.
  *

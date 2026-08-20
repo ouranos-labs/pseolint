@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { cachedFetch, CACHE_ENTRY_SCHEMA_VERSION, type CacheBackend, type AnyCacheEntry } from "../src/cache.js";
 
-/** In-memory CacheBackend — proves cachedFetch's revalidation logic is backend-agnostic. */
+/** In-memory CacheBackend: proves cachedFetch's revalidation logic is backend-agnostic. */
 class MemoryBackend implements CacheBackend {
   store = new Map<string, AnyCacheEntry>();
   async get(url: string): Promise<AnyCacheEntry | null> {
@@ -30,7 +30,7 @@ describe("CacheBackend (backend-agnostic cachedFetch)", () => {
     const second = await cachedFetch("https://example.com/x", { timeoutMs: 5000, cache: { backend, ttlMs: 60_000 }, fetcher });
     expect(second.fromCache).toBe(true);
     expect(second.body).toBe("<h1>hello</h1>");
-    expect(calls).toBe(1); // served from the backend — no second origin fetch
+    expect(calls).toBe(1); // served from the backend: no second origin fetch
   });
 
   it("revalidates via the backend: a stored ETag triggers a conditional request, 304 → cache hit", async () => {

@@ -11,7 +11,7 @@ export type Status =
 
 export type TrafficClass = "very-high" | "high" | "medium" | "low";
 
-/** Verdict ladder rank — higher = more concerning (and higher risk). */
+/** Verdict ladder rank: higher = more concerning (and higher risk). */
 export const VERDICT_RANK: Record<Verdict, number> = {
   ready: 0,
   caution: 1,
@@ -27,7 +27,7 @@ export interface CorpusSite {
   class: SiteClass;
   /** Reputable only: engine verdict must be <= this (hard gate). */
   expectedVerdictCeiling?: Verdict;
-  /** Policy-violating only: ASPIRATIONAL target — verdict should be >= this. NOT a CI gate. */
+  /** Policy-violating only: ASPIRATIONAL target, verdict should be >= this. NOT a CI gate. */
   expectedVerdictFloor?: Verdict;
   /** Policy-violating only: named spam policies the site visibly violates. */
   visiblePolicies?: string[];
@@ -35,7 +35,7 @@ export interface CorpusSite {
    * Whether the policy violation is visible in the fetched page content.
    * `off-page-only` = the abuse lives in the host relationship or domain history
    * (site-reputation parasites) and is invisible to an on-page audit by
-   * construction — an on-page score CANNOT detect it. Unset = on-page-detectable.
+   * construction: an on-page score CANNOT detect it. Unset = on-page-detectable.
    * Used to report the engine's *addressable* calibration ceiling separately
    * from the structurally-undetectable cases.
    */
@@ -43,8 +43,8 @@ export interface CorpusSite {
   /**
    * `true` for hand-constructed fixtures (e.g. doorwayspam.example) that exist
    * to assert a recall floor on a specific rule, NOT real-world sites. Synthetic
-   * sites are excluded from real-world recall/precision — catching one proves the
-   * rule fires, not that the engine tracks reality — but kept as a must-catch floor.
+   * sites are excluded from real-world recall/precision: catching one proves the
+   * rule fires, not that the engine tracks reality: but kept as a must-catch floor.
    */
   synthetic?: boolean;
   groundTruth: {
@@ -53,7 +53,7 @@ export interface CorpusSite {
     evidence: string;
     /** URL backing the evidence (traffic study, SEO case study, enforcement list). */
     source?: string;
-    /** ISO date the label was last verified — labels decay; re-verify periodically. */
+    /** ISO date the label was last verified: labels decay; re-verify periodically. */
     asOf?: string;
   };
   samplingHint?: { sampleSize?: number; noRender?: boolean };

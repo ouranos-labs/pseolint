@@ -14,7 +14,7 @@ function safeHost(url: string): string {
   try { return new URL(url).host; } catch { return "audit"; }
 }
 
-// Disable shared CDN caching of audit dumps and explicitly mark as noindex —
+// Disable shared CDN caching of audit dumps and explicitly mark as noindex:
 // belt-and-braces alongside the global proxy header.
 const EXPORT_HEADERS: Record<string, string> = {
   "cache-control": "private, no-store",

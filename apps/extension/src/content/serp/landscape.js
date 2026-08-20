@@ -1,7 +1,7 @@
 // Tier-1 SERP landscape (architecture §6 honesty boundary): describes how
 // programmatic the VISIBLE results are. No fetch, no permission, no risk verdict.
 //
-// Clustering is STRUCTURAL, from the visible siblings — NOT pattern.js's per-URL
+// Clustering is STRUCTURAL, from the visible siblings: NOT pattern.js's per-URL
 // guess. pattern.js only treats a segment as :slug when it has a hyphen, so
 // /city/boston and /city/miami would never group. On a SERP we can see the
 // siblings, so the sound signal is: ≥2 results sharing host + parent directory

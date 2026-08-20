@@ -34,14 +34,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/rules", changeFrequency: "monthly", priority: 0.8 },
     { path: "/symptoms", changeFrequency: "monthly", priority: 0.8 },
     { path: "/research", changeFrequency: "monthly", priority: 0.7 },
-    // Credibility hub (calibration methodology). Was missing from the sitemap —
+    // Credibility hub (calibration methodology). Was missing from the sitemap:
     // a high-trust, link-worthy page that should be crawled.
     { path: "/methodology", changeFrequency: "monthly", priority: 0.7 },
-    // MCP server setup (remote + stdio) — acquisition surface for the AI-assistant channel.
+    // MCP server setup (remote + stdio): acquisition surface for the AI-assistant channel.
     { path: "/mcp-server", changeFrequency: "monthly", priority: 0.8 },
   ];
 
-  // Tools resist AI Overviews (interactive) — high priority for crawl + cite signals.
+  // Tools resist AI Overviews (interactive): high priority for crawl + cite signals.
   const tools: Entry[] = [
     ...MARKETING_TOOLS.map((t): Entry => ({
       path: `/tools/${t.slug}`,
@@ -52,7 +52,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/tools/programmatic-seo-checklist", changeFrequency: "monthly", priority: 0.9 },
   ];
 
-  // Rule explainers — primary topical-authority surface.
+  // Rule explainers: primary topical-authority surface.
   const rules: Entry[] = [
     ...MARKETING_RULES.map((r): Entry => ({
       path: `/rules/${r.slug}`,
@@ -66,14 +66,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: "/rules/internal-linking-silos", changeFrequency: "monthly", priority: 0.8 },
   ];
 
-  // Symptom diagnostic pages — bottom-funnel intent, evergreen.
+  // Symptom diagnostic pages: bottom-funnel intent, evergreen.
   const symptoms: Entry[] = MARKETING_SYMPTOMS.map((s): Entry => ({
     path: `/symptoms/${s.slug}`,
     changeFrequency: "monthly",
     priority: 0.8,
   }));
 
-  // Original-data report — link bait + LLM citation magnet.
+  // Original-data report: link bait + LLM citation magnet.
   const research: Entry[] = [
     { path: "/research/seo-folklore-vs-google-docs", changeFrequency: "monthly", priority: 0.9 },
     { path: "/research/state-of-pseo-2026", changeFrequency: "yearly", priority: 0.9 },

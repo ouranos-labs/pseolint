@@ -12,7 +12,7 @@ import { auditSource } from "../../src/auditor.js";
  * dev server): the first ~10 page fetches succeed (warmup, no aborts), then the
  * origin starts returning 5xx. Once the rolling 5xx rate clears the watchdog's
  * 0.15 threshold the monitor trips, the audit signal aborts, and the in-flight
- * fetch worker throws — but the salvaged pages survive.
+ * fetch worker throws: but the salvaged pages survive.
  */
 
 const originalFetch = globalThis.fetch;
@@ -34,7 +34,7 @@ function buildSitemap(urls: string[]): string {
     </urlset>`;
 }
 
-describe("auditSource — backpressure partial-report salvage", () => {
+describe("auditSource: backpressure partial-report salvage", () => {
   test("flushes a truncated report with the pages fetched before the watchdog abort", async () => {
     const base = "https://degraded.dev";
     const goodUrls = Array.from({ length: 12 }, (_, i) => `${base}/good-${i}`);
@@ -92,7 +92,7 @@ describe("auditSource — backpressure partial-report salvage", () => {
 
     // The good pages fetched before the abort survived into the report.
     expect(summary.pageCount).toBeGreaterThan(0);
-    // We aborted before fetching all 42 URLs — coverage is a lower bound.
+    // We aborted before fetching all 42 URLs: coverage is a lower bound.
     expect(summary.pageCount).toBeLessThan(allUrls.length);
     expect(liveFetches).toBeLessThan(allUrls.length);
 
@@ -131,7 +131,7 @@ describe("auditSource — backpressure partial-report salvage", () => {
       // is a slow 503 that yields no usable body. fetchPageWithMeta returns the
       // page object for any status, so to force an empty salvage we 503 with an
       // empty body and rely on the content-type filter dropping the warmup 200s
-      // is not what we want — instead we make warmup pages non-HTML so they are
+      // is not what we want: instead we make warmup pages non-HTML so they are
       // dropped, leaving the eventual summary with zero audited pages.
       n += 1;
       if (n <= 11) {

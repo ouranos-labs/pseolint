@@ -18,7 +18,7 @@ export interface RootCause {
 
 export interface TriageResult {
   rootCauses: RootCause[];
-  /** Optional — may be absent when the model ran tight on output tokens. */
+  /** Optional: may be absent when the model ran tight on output tokens. */
   narrative?: string;
   /**
    * Inferred programmatic-SEO archetype the root causes were prioritized for.

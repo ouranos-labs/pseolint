@@ -1,7 +1,7 @@
 // In-page landscape chip (reach surface, shadow DOM, §9). Informational; the
 // per-result templated badges carry the funnel link. Returns the host element
 // or null (no chip). Brand-aligned (pseolint.dev dark surface + emerald dot) but
-// deliberately restrained — it sits on Google's page.
+// deliberately restrained; it sits on Google's page.
 export function mountChip(text, doc = document) {
   // Single chip, ever: drop any prior one first so re-runs don't stack duplicates
   // and an empty text (nothing templated / reset) just clears it.

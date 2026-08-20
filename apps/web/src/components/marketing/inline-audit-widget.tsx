@@ -45,7 +45,7 @@ export type InlineAuditWidgetProps = {
   ruleHint?: string;
   /**
    * Optional tool slug. When set, it's sent to POST /api/audits so the report
-   * renders a FocusedLensCard scoped to that tool's ruleLens — the only way to
+   * renders a FocusedLensCard scoped to that tool's ruleLens: the only way to
    * deliver a "focused on X" promise. Omit it for a plain full audit.
    */
   tool?: string;
@@ -93,7 +93,7 @@ export function InlineAuditWidget({
         try {
           window.turnstile.remove(widgetId);
         } catch {
-          // Widget already removed by a prior unmount — safe to ignore.
+          // Widget already removed by a prior unmount: safe to ignore.
         }
       }
     };
@@ -105,7 +105,7 @@ export function InlineAuditWidget({
     if (!normalized) {
       setErr({
         message: "That doesn't look like a valid URL.",
-        hint: "Use a full URL starting with https:// — e.g. https://yoursite.com.",
+        hint: "Use a full URL starting with https://, e.g. https://yoursite.com.",
       });
       return;
     }

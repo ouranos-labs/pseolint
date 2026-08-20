@@ -6,7 +6,7 @@ interface CumulativeCoverageCardProps {
 /**
  * v0.5.3 "Coverage you can prove" card. Reframes the per-run "200 URLs/week"
  * cron number as the cumulative URL count this domain's audit history has
- * built up. We sum `audits.pageCount` across all completed runs — this is
+ * built up. We sum `audits.pageCount` across all completed runs: this is
  * total URLs *audited*, not deduplicated distinct URLs (computing distinct
  * would require reading per-audit URL lists out of R2 on every page-view,
  * which is too heavy for v0.5.3). The label reflects that limit honestly.
@@ -37,7 +37,7 @@ export function CumulativeCoverageCard({
       </div>
       <p className="mt-2 text-[11px] text-muted-foreground">
         Pro monitoring re-fetches up to 200 URLs per monitoring run, diff-aware.
-        Unchanged URLs carry forward their findings without a re-fetch — the count
+        Unchanged URLs carry forward their findings without a re-fetch: the count
         above is what was actually fetched, summed across runs.
       </p>
     </section>

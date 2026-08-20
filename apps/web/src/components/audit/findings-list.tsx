@@ -26,7 +26,7 @@ export function FindingsList({ summary }: { summary: AnyAuditSummary }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// v0.4 — bucketed by severity-tier (blockers / shouldFix / informational).
+// v0.4: bucketed by severity-tier (blockers / shouldFix / informational).
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FindingsListV04({ summary }: { summary: AuditSummaryV04 }) {
@@ -136,12 +136,12 @@ function BucketSection({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// v0.3 — legacy flat findings array (preserved for posterity).
+// v0.3: legacy flat findings array (preserved for posterity).
 // ─────────────────────────────────────────────────────────────────────────────
 
 function FindingsListV03({ summary }: { summary: AuditSummaryV03 }) {
   // `audit/origin-readiness` is rendered above the list by OriginReadinessCard
-  // — keeping it here would show the same data twice. Only relevant for v0.3
+  //: keeping it here would show the same data twice. Only relevant for v0.3
   // where audit/* findings were mixed into `summary.findings`. v0.4 keeps
   // them in `diagnostics.auditFindings`, never in `summary.issues`.
   const visibleFindings = summary.findings.filter((f) => f.ruleId !== "audit/origin-readiness");
@@ -251,14 +251,14 @@ function sevBorderBg(sev: Severity): string {
 
 // The engine attaches a `confidence` hint (high|medium|low|speculative) so the
 // UI can hedge a finding that's known to false-positive on the audited site
-// type. Only render a chip when the engine is hedging (low/speculative) — a
+// type. Only render a chip when the engine is hedging (low/speculative): a
 // `high` (or omitted, which defaults to high) finding needs no caveat.
 function ConfidenceChip({ confidence }: { confidence?: RuleResult["confidence"] }) {
   if (confidence !== "low" && confidence !== "speculative") return null;
   const label = confidence === "speculative" ? "speculative" : "low confidence";
   const title =
     confidence === "speculative"
-      ? "Heuristic match — verify before acting."
+      ? "Heuristic match: verify before acting."
       : "May be a false positive on your site type.";
   return (
     <span
@@ -297,7 +297,7 @@ function ContextEvidence({ context }: { context: NonNullable<RuleResult["context
       </div>
     );
   }
-  // contentBreakdown — surface the boilerplate ratio (shared / total words).
+  // contentBreakdown: surface the boilerplate ratio (shared / total words).
   const ratio = context.totalWordCount > 0 ? Math.round((context.sharedWordCount / context.totalWordCount) * 100) : 0;
   return (
     <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
@@ -320,7 +320,7 @@ function CarriedForwardBadge({ lastVerifiedAt }: { lastVerifiedAt?: string }) {
   return (
     <span
       className="inline-flex w-fit items-center gap-1 rounded-full border border-border/60 bg-card/60 px-2 py-0.5 font-mono text-[10px] text-muted-foreground"
-      title="Not re-fetched this run — carried forward from a prior audit under monitoring mode."
+      title="Not re-fetched this run: carried forward from a prior audit under monitoring mode."
     >
       carried forward{when}
     </span>
@@ -333,7 +333,7 @@ function FindingGroup({ group }: { group: RuleGroup }) {
   const affected = collectPageUrls(findings);
   // v0.4 enriches findings with `docsUrl` (the marketing-page deeplink); v0.3
   // only had `ref` (the upstream Google docs URL). Render whichever is present
-  // — the new "Read more" link is preferred when both exist.
+  //: the new "Read more" link is preferred when both exist.
   const docsHref = representative.docsUrl ?? null;
   const refHref = representative.ref ?? null;
 
@@ -448,7 +448,7 @@ function AffectedPages({ urls }: { urls: string[] }) {
 }
 
 /**
- * Category breakdown — shape-aware.
+ * Category breakdown: shape-aware.
  * - v0.4: 4 letter-graded tiles (Integrity, Discoverability, Citation, Data)
  * - v0.3: legacy 8-category numeric risk breakdown
  */
@@ -578,7 +578,7 @@ function effortTone(effort: string): string {
 }
 
 // v0.3 category scores are a risk model (lower is safer), so the canonical
-// 5-band system applies — keeps the colour vocabulary consistent with v0.4.
+// 5-band system applies: keeps the colour vocabulary consistent with v0.4.
 function scoreTone(score: number): string {
   return canonicalGradeOf(score).text;
 }

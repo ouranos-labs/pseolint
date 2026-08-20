@@ -1,6 +1,6 @@
 import "server-only";
 
-// postgres.js / network error codes that are transient connection failures —
+// postgres.js / network error codes that are transient connection failures:
 // safe to retry because the query itself is fine; the socket was stale or the
 // Neon compute was briefly unreachable (see apps/web/src/db/index.ts for why
 // this happens on Vercel serverless). Anything not in this set (a real SQL
@@ -13,7 +13,7 @@ const TRANSIENT_CODES = new Set([
   "ECONNRESET",
   "ETIMEDOUT",
   "EPIPE",
-  "57P01", // admin_shutdown — server closed the connection
+  "57P01", // admin_shutdown: server closed the connection
 ]);
 
 const TRANSIENT_MESSAGE =
@@ -50,7 +50,7 @@ export async function withDbRetry<T>(fn: () => Promise<T>, attempts = 3): Promis
     } catch (err) {
       lastErr = err;
       if (i === attempts - 1 || !isTransient(err)) throw err;
-      // 100ms, 300ms — long enough for postgres.js to drop the dead socket and
+      // 100ms, 300ms: long enough for postgres.js to drop the dead socket and
       // open a fresh one before the next attempt.
       await new Promise((resolve) => setTimeout(resolve, 100 * (i * 2 + 1)));
     }

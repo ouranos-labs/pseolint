@@ -42,7 +42,7 @@ describe("withDbRetry", () => {
 
   it("does NOT retry a non-transient error (e.g. a real SQL error)", async () => {
     const fn = vi.fn(async () => {
-      throw pgError("23505"); // unique_violation — a genuine query failure
+      throw pgError("23505"); // unique_violation: a genuine query failure
     });
     await expect(withDbRetry(fn)).rejects.toThrow();
     expect(fn).toHaveBeenCalledTimes(1);

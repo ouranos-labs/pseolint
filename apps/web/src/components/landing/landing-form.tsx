@@ -64,11 +64,11 @@ export function LandingForm() {
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const [force, setForce] = useState(false);
-  // Authorization attestation — remembered across visits once checked so
+  // Authorization attestation: remembered across visits once checked so
   // repeat users don't re-tick. Legal cover, not security.
   const [authorized, setAuthorized] = useState(false);
   // True only when authorization was restored from localStorage on mount (a
-  // returning user). Used to hide the checkbox entirely for them — a fresh
+  // returning user). Used to hide the checkbox entirely for them: a fresh
   // visitor who ticks it this session still sees it stay, checked.
   const [rememberedAuthorization, setRememberedAuthorization] = useState(false);
   // Turnstile is deferred until the user engages the form (focuses the URL
@@ -102,7 +102,7 @@ export function LandingForm() {
         setRememberedAuthorization(true);
       }
     } catch {
-      // localStorage unavailable — checkbox remains visible and unchecked.
+      // localStorage unavailable: checkbox remains visible and unchecked.
     }
   }, []);
 
@@ -150,7 +150,7 @@ export function LandingForm() {
     if (!normalized) {
       setErr({
         message: "That doesn't look like a valid URL.",
-        hint: "Use a full URL starting with https:// — e.g. https://yoursite.com.",
+        hint: "Use a full URL starting with https://, e.g. https://yoursite.com.",
       });
       return;
     }
@@ -163,7 +163,7 @@ export function LandingForm() {
     }
     // Defensive: if the user reached submit without the focus that normally arms
     // Turnstile (e.g. browser autofill + Enter), arm it now so the widget renders
-    // for the retry — this submit still falls through to the token guard below.
+    // for the retry; this submit still falls through to the token guard below.
     if (!turnstileArmed) setTurnstileArmed(true);
     if (!token) {
       setErr({
@@ -189,7 +189,7 @@ export function LandingForm() {
         const { auditId, reportUrl, cached } = await res.json();
         // When the API returns a cached/deduped report, surface that on the report
         // page so the caller knows they're looking at the most recent public audit
-        // of this URL — not necessarily their own scan.
+        // of this URL: not necessarily their own scan.
         const next = cached && reportUrl ? `${reportUrl}?cached=1` : `/a/${auditId}`;
         router.push(next);
         return;
@@ -209,7 +209,7 @@ export function LandingForm() {
 
   return (
     <>
-      {/* Load the Turnstile script only once the form is armed — its `onload`
+      {/* Load the Turnstile script only once the form is armed: its `onload`
           callback (window.onTurnstileReady) is registered by the armed render
           effect, so loading it eagerly would warn about a missing callback. */}
       { siteKey && turnstileArmed && (
@@ -226,13 +226,13 @@ export function LandingForm() {
               </div>
 
               <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl lg:text-4xl">
-                Catch the patterns that get programmatic-SEO sites deindexed — before SpamBrain does.
+                Catch the patterns that get programmatic-SEO sites deindexed: before SpamBrain does.
               </h1>
 
               <p className="text-sm leading-relaxed text-muted-foreground">
                 pseolint is the open-source linter for programmatic SEO. Paste a URL or drop it in CI:
                 it finds the doorway clusters, near-duplicates, and thin templates that trip SpamBrain,
-                then tells you which <span className="text-foreground">template</span> to fix — one fix, N pages.
+                then tells you which <span className="text-foreground">template</span> to fix: one fix, N pages.
                 It also flags which pages can get cited in ChatGPT, Perplexity, and Google AI Overviews.
               </p>
 
@@ -243,8 +243,8 @@ export function LandingForm() {
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     { serp.against
-                      ? `Audit your page free below — then pseolint watches your whole site for the gaps that keep ${serp.against} ahead, continuously and grounded in Search Console.`
-                      : "Audit your page free below — then pseolint watches your whole site for these risks, continuously and grounded in Search Console." }
+                      ? `Audit your page free below: then pseolint watches your whole site for the gaps that keep ${serp.against} ahead, continuously and grounded in Search Console.`
+                      : "Audit your page free below, then pseolint watches your whole site for these risks, continuously and grounded in Search Console." }
                   </p>
                 </div>
               ) }
@@ -308,11 +308,11 @@ export function LandingForm() {
                   disabled={ submitting }
                   className="h-11 w-full font-semibold"
                 >
-                  { submitting ? "Starting audit…" : serp ? "Audit to win this SERP" : "Audit my site — free" }
+                  { submitting ? "Starting audit…" : serp ? "Audit to win this SERP" : "Audit my site, free" }
                 </Button>
 
                 <p className="text-[10px] leading-relaxed text-muted-foreground">
-                  We fetch up to 50 pages anonymously (200 signed in) over a few minutes — if it&apos;s your site and it&apos;s cache-cold, warm it first.
+                  We fetch up to 50 pages anonymously (200 signed in) over a few minutes: if it&apos;s your site and it&apos;s cache-cold, warm it first.
                 </p>
 
                 { err && (
@@ -346,7 +346,7 @@ export function LandingForm() {
               </p>
               <p className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
                 <span className="inline-block h-1 w-1 rounded-full bg-success" />
-                Analytics-safe — audit runs won&apos;t touch your GA, PostHog, Mixpanel, or session-replay dashboards.
+                Analytics-safe: audit runs won&apos;t touch your GA, PostHog, Mixpanel, or session-replay dashboards.
               </p>
             </div>
 
@@ -383,7 +383,7 @@ export function LandingForm() {
               } }
               className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Audit my site — free
+              Audit my site: free
             </a>
           </div>
         </div>
@@ -396,7 +396,7 @@ export function LandingForm() {
           <div className="mb-8 max-w-2xl">
             <p className="text-xs uppercase tracking-wider text-muted-foreground">Scope</p>
             <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
-              What pseolint is — and isn&apos;t.
+              What pseolint is, and isn&apos;t.
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               Self-select before you run it. The audit is narrow on purpose; if you want a 360°
@@ -411,7 +411,7 @@ export function LandingForm() {
               </p>
               <p className="mt-3 text-sm leading-relaxed text-foreground">
                 An audit specifically for programmatic-SEO sites (template-driven content at scale)
-                and AI Overview readiness. It audits by template — pages sampled stratified
+                and AI Overview readiness. It audits by template: pages sampled stratified
                 across templates, one verdict per template, site verdict = worst template above 5% coverage.
                 Catches SpamBrain-classifier triggers from the March 27, 2026 core update, the
                 May 7, 2024 site-reputation-abuse policy, the March 5, 2024 scaled-content-abuse
@@ -422,11 +422,11 @@ export function LandingForm() {
                 Use it when
               </p>
               <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
-                <li>— You run a programmatic SEO site (city × service grids, state × LLC fees, app × integration matrices)</li>
-                <li>— You want to know which template is dragging your site score down</li>
-                <li>— You&apos;re worried about a Helpful Content System / scaled-content-abuse hit</li>
-                <li>— You want your pages cited in AI Overviews / Perplexity / ChatGPT search</li>
-                <li>— You want a CI gate that fails the build when a template degrades</li>
+                <li>; You run a programmatic SEO site (city × service grids, state × LLC fees, app × integration matrices)</li>
+                <li>; You want to know which template is dragging your site score down</li>
+                <li>; You&apos;re worried about a Helpful Content System / scaled-content-abuse hit</li>
+                <li>; You want your pages cited in AI Overviews / Perplexity / ChatGPT search</li>
+                <li>; You want a CI gate that fails the build when a template degrades</li>
               </ul>
             </div>
 
@@ -481,7 +481,7 @@ export function LandingForm() {
               </span>
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Illustrative archetypes, not real sites — the shapes pseolint actually finds. Each grid shows a
+              Illustrative archetypes, not real sites: the shapes pseolint actually finds. Each grid shows a
               dominant template&apos;s sample; lower score = safer. The verifiable version is your own scan and
               the public{ " " }
               <Link href="/leaderboard" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
@@ -551,7 +551,7 @@ export function LandingForm() {
               The audit, in measurable terms.
             </h2>
             <p className="mt-3 text-base text-muted-foreground">
-              Specific values you can cite — what we run, what we cap, and which Google policies the ruleset maps to.
+              Specific values you can cite: what we run, what we cap, and which Google policies the ruleset maps to.
             </p>
           </div>
 
@@ -566,7 +566,7 @@ export function LandingForm() {
 
           <ul className="mt-8 grid gap-3 text-sm leading-relaxed text-muted-foreground sm:grid-cols-2">
             <li>
-              <span className="text-foreground">Template-aware SpamBrain + AEO scoring</span> — the engine pivots the unit of analysis from URL to template. Pages are sampled stratified across templates, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; per-template breakdown landed across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
+              <span className="text-foreground">Template-aware SpamBrain + AEO scoring</span>, the engine pivots the unit of analysis from URL to template. Pages are sampled stratified across templates, one verdict per template, site verdict = worst template with ≥5% coverage. Programmatic-directories, blogs, ecommerce, docs, and small-marketing sites remain weighted differently. Classification-driven scoring shipped in <span className="text-foreground">v0.4.3</span>; <span className="text-foreground">v0.5</span> added change-driven monitoring; <span className="text-foreground">v0.5.1</span> added <code className="font-mono text-xs">links/host-section-divergence</code>; <span className="text-foreground">v0.5.2</span> added 4 content-quality rules; per-template breakdown landed across the full ruleset (<Link href="/rules" className="underline decoration-dotted underline-offset-2 hover:text-foreground">live list</Link>).
             </li>
             <li>
               <span className="text-foreground">Engineering rigor, not marketing.</span> Doorway-pattern findings cluster by template (one line per template group, not per-pair noise). <code className="font-mono text-xs">--sample-seed</code> makes verdicts reproducible across runs. Info-severity findings can&apos;t accumulate past a per-bucket cap. The open-source calibration corpus + runner + regression tests guard against engine drift on each release. Full engineering log at <Link href="/methodology" className="text-foreground underline decoration-dotted underline-offset-2">/methodology</Link>.
@@ -575,7 +575,7 @@ export function LandingForm() {
               Free tier: up to 200 pages per audit (stratified across detected templates), 3 audits per browser session per day, reports retained <span className="text-foreground">24 hours</span> for anonymous runs and <span className="text-foreground">30 days</span> once you sign in.
             </li>
             <li>
-              Pro tier: <span className="text-foreground">$19</span> per month for per-domain template-aware monitoring — up to 200 pages every monitoring run, stratified across templates, cumulative coverage grows over time, <span className="text-foreground">50 audits</span> per day and unlimited trend history.
+              Pro tier: <span className="text-foreground">$19</span> per month for per-domain template-aware monitoring, up to 200 pages every monitoring run, stratified across templates, cumulative coverage grows over time, <span className="text-foreground">50 audits</span> per day and unlimited trend history.
             </li>
             <li>
               Detection maps to current Google policy, leading with what hit pSEO most recently: the <span className="text-foreground">March 27, 2026</span> core update that tightened scaled-content signals on date-stacked corpora, the <span className="text-foreground">May 7, 2024</span> site-reputation-abuse policy that closed the parasite-SEO loophole (now enforced by <code className="font-mono text-xs">links/host-section-divergence</code>), the <span className="text-foreground">March 5, 2024</span> scaled-content-abuse update, and the 2022 SpamBrain rebuild that moved enforcement from manual review to silent classifier-time suppression.
@@ -611,7 +611,7 @@ export function LandingForm() {
               </p>
               <p className="mt-4 text-sm text-muted-foreground">
                 Prefer the CLI? <code className="font-mono text-xs">npx pseolint ./out --ci-threshold concerning --format json</code>{ " " }
-                does the same thing locally — see the{ " " }
+                does the same thing locally: see the{ " " }
                 <Link href="/mcp-server" className="text-primary hover:underline">MCP server</Link> for editor + agent setups.
               </p>
             </div>
@@ -651,7 +651,7 @@ export function LandingForm() {
             <Link href="/rules" className="hover:text-foreground hover:underline">rules across 8 categories</Link>{ " " }
             mapped to current Google policy. We run pseolint on{ " " }
             <span className="text-foreground">pseolint.dev</span> itself and publish the result on the public{ " " }
-            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link> — verdict{ " " }
+            <Link href="/leaderboard" className="hover:text-foreground hover:underline">leaderboard</Link>, verdict{ " " }
             <span className="text-foreground">Ready</span>, origin handled the crawl at a 106ms median TTFB, and the
             audit&apos;s open findings are literally our own SEO to-do list. The traction is the receipts, not a
             number we made up.
@@ -685,10 +685,10 @@ export function LandingForm() {
                 } }
                 className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                Audit my site — free
+                Audit my site: free
               </a>
               <span className="text-xs text-muted-foreground">
-                Free, no signup. Pro is <span className="text-foreground">$19/mo</span> —{ " " }
+                Free, no signup. Pro is <span className="text-foreground">$19/mo</span>: { " " }
                 <Link href="/pricing" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
                   what&apos;s included
                 </Link>.
@@ -743,7 +743,7 @@ function hostOf(url: string): string {
 
 function mapApiError(status: number, message: string, code?: string): FormError {
   const lower = message.toLowerCase();
-  // Pre-flight origin-health block — the server probed the origin before
+  // Pre-flight origin-health block: the server probed the origin before
   // dispatching and found it down or degraded. The message already explains
   // what we found and how to override; just give it an honest title.
   if (code === "origin_unreachable") {
@@ -786,7 +786,7 @@ function mapApiError(status: number, message: string, code?: string): FormError 
     if (lower.includes("private") || lower.includes("loopback") || lower.includes("not allowed")) {
       return {
         message: "Can't audit that URL.",
-        hint: "We only audit public sites — localhost, private networks, and non-http(s) URLs are blocked.",
+        hint: "We only audit public sites, localhost, private networks, and non-http(s) URLs are blocked.",
       };
     }
     return {
@@ -833,11 +833,11 @@ function buildTiles({
 const AUDIENCE = [
   {
     who: "pSEO builders",
-    what: "City × service grids, directories, state × fee matrices — content generated from a template at scale.",
+    what: "City × service grids, directories, state × fee matrices, content generated from a template at scale.",
   },
   {
     who: "Template-site operators",
-    what: "Thousands of pages from one template. One structural fix should cover all of them — pseolint tells you which.",
+    what: "Thousands of pages from one template. One structural fix should cover all of them, pseolint tells you which.",
   },
   {
     who: "Agencies shipping client sites",
@@ -861,14 +861,14 @@ const RECEIPTS = [
     host: "airport-hotels.example",
     score: 87,
     verdict: "Doorway garden",
-    note: "240k pages across /hotel-[city] templates. 94% of pages scored below 30 on uniqueness. SpamBrain treats these as a single thin cluster — one structural fix, not 240,000.",
+    note: "240k pages across /hotel-[city] templates. 94% of pages scored below 30 on uniqueness. SpamBrain treats these as a single thin cluster, one structural fix, not 240,000.",
     tiles: buildTiles({ errors: 146, warnings: 42, infos: 8 }),
   },
   {
     host: "legal-directory.example",
     score: 62,
     verdict: "AI-generated, no receipts",
-    note: "Structural hygiene is fine. Every article is credible prose. Zero citations, zero bylines — signals SpamBrain increasingly uses to distinguish generation from reporting.",
+    note: "Structural hygiene is fine. Every article is credible prose. Zero citations, zero bylines, signals SpamBrain increasingly uses to distinguish generation from reporting.",
     tiles: buildTiles({ errors: 18, warnings: 76, infos: 32, errorStart: 40 }),
   },
   {

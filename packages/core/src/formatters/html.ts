@@ -17,13 +17,13 @@ import {
 } from "./template-cards.js";
 
 export interface HtmlFormatOptions {
-  /** No-op for HTML — every finding is rendered regardless. Accepted for option-signature parity. */
+  /** No-op for HTML: every finding is rendered regardless. Accepted for option-signature parity. */
   verbose?: boolean;
-  /** v0.5.11 — when true (default), render per-template cards when ≥2 templates were detected. */
+  /** v0.5.11: when true (default), render per-template cards when ≥2 templates were detected. */
   perTemplate?: boolean;
-  /** v0.5.11 — filter per-URL findings to this template signature. */
+  /** v0.5.11: filter per-URL findings to this template signature. */
   filterTemplate?: string;
-  /** v0.5.11 — skip per-template view; render flat per-URL list. */
+  /** v0.5.11: skip per-template view; render flat per-URL list. */
   legacyFlat?: boolean;
 }
 
@@ -119,8 +119,8 @@ function renderCategoryTiles(categories: CategoryGrades): string {
 }
 
 function confidenceCaveat(c: Confidence | undefined): string | null {
-  if (c === "low") return "low confidence — known false-positive risk on this site type";
-  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  if (c === "low") return "low confidence: known false-positive risk on this site type";
+  if (c === "speculative") return "speculative: heuristic match; verify before acting";
   return null;
 }
 
@@ -138,7 +138,7 @@ function renderFindingRow(f: RuleResult): string {
     ? `<div class="caveat">${escapeHtml(caveat)}</div>`
     : "";
 
-  // Cluster context (collapsed details) — only on findings that carry one.
+  // Cluster context (collapsed details): only on findings that carry one.
   let cluster = "";
   if (f.context?.type === "cluster") {
     const ctx = f.context;
@@ -174,7 +174,7 @@ function renderFindingRow(f: RuleResult): string {
   </li>`;
 }
 
-/** v0.4.3 — "Audited as <type>" line shown under the verdict badge. */
+/** v0.4.3: "Audited as <type>" line shown under the verdict badge. */
 function auditedAsHtml(c: SiteClassification | undefined): string {
   if (!c) return "";
   const confPct = Math.round(c.confidence * 100);
@@ -461,7 +461,7 @@ ${TEMPLATE_CARDS_CSS}
     <h1 class="title display">Audit report</h1>
     <span class="src-link">${escapeHtml(crawlMeta)}</span>
   </div>
-  <p class="lead">Schema ${escapeHtml(summary.schemaVersion)}. Verdict, category grades, and bucketed issues — see docs links per finding for what each rule checks.</p>
+  <p class="lead">Schema ${escapeHtml(summary.schemaVersion)}. Verdict, category grades, and bucketed issues: see docs links per finding for what each rule checks.</p>
 
   <section class="card">
     <span class="verdict-badge tone-${verdictTone}"><span class="verdict-dot"></span>${escapeHtml(VERDICT_LABEL[verdict])}</span>
@@ -470,7 +470,7 @@ ${TEMPLATE_CARDS_CSS}
     <div class="cat-grid">${renderCategoryTiles(summary.categories)}</div>
   </section>
 
-  ${summary.templateDetected ? `<div class="template-banner"><strong>Template-generated content detected.</strong> Fix suggestions are tailored for template authors — one change can fix hundreds of pages.</div>` : ""}
+  ${summary.templateDetected ? `<div class="template-banner"><strong>Template-generated content detected.</strong> Fix suggestions are tailored for template authors, one change can fix hundreds of pages.</div>` : ""}
 
   ${renderOriginReadinessCard(readiness)}
 

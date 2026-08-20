@@ -73,7 +73,7 @@ export function faqCoverageRule(
     findings.push({
       ruleId: "aeo/faq-coverage",
       severity: "info",
-      // Always medium: detecting FAQ-shape from H2 phrasing + URL is heuristic — some
+      // Always medium: detecting FAQ-shape from H2 phrasing + URL is heuristic, some
       // pages with question-style headings aren't actually FAQ content (e.g. blog
       // posts titled "How we built X").
       confidence: "medium",
@@ -81,7 +81,7 @@ export function faqCoverageRule(
       pageUrl: page.url,
       fix:
         `Add FAQPage JSON-LD that mirrors the existing Q&A content. For pSEO templates, generate the ` +
-        `schema programmatically from the same data source that renders the headings — don't ship identical ` +
+        `schema programmatically from the same data source that renders the headings: don't ship identical ` +
         `questions with only the entity name swapped.`,
     });
   }

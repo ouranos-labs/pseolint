@@ -1,5 +1,5 @@
 /**
- * Programmatic-SEO archetype — the site's content strategy, inferred by the
+ * Programmatic-SEO archetype: the site's content strategy, inferred by the
  * triage LLM (tier 1) and persisted as a first-class signal (tier 2). Kept as a
  * shared vocabulary so triage, the audit row, and any future consumer agree.
  */

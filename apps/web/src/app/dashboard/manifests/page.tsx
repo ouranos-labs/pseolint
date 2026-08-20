@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
-// `and` reserved for future filters (status, domain) — currently unused.
+// `and` reserved for future filters (status, domain): currently unused.
 import { db } from "@/db";
 import { fixManifests, orchestratorSessions } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
@@ -27,7 +27,7 @@ export default async function ManifestsPage() {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?next=/dashboard/manifests");
 
-  // Pull recent sessions + their manifest (left join — running/failed
+  // Pull recent sessions + their manifest (left join: running/failed
   // sessions have no manifest yet but should still appear in the list so
   // users can navigate to /o/<id> for status).
   const rows = await db
@@ -82,7 +82,7 @@ export default async function ManifestsPage() {
               row.status === "completed" && row.manifestSlug
                 ? `/m/${row.manifestSlug}`
                 : `/o/${row.sessionId}`;
-            const dur = row.durationMs ? `${(row.durationMs / 1000).toFixed(0)}s` : "—";
+            const dur = row.durationMs ? `${(row.durationMs / 1000).toFixed(0)}s` : "; ";
             return (
               <li key={row.sessionId}>
                 <Link

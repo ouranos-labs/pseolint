@@ -112,7 +112,7 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
   }
   const worstLabel = worstSignals.length > 0 ? worstSignals.join(", ") : "multiple signals";
   return (
-    `${page.url}: value-add score ${pct(score)} — composite of ` +
+    `${page.url}: value-add score ${pct(score)}, composite of ` +
     `[originality: ${pct(signals.originality)}, freshness: ${pct(signals.freshness)}, ` +
     `facts: ${pct(signals.facts)}, E-E-A-T: ${pct(signals.eeat)}, translation: ${pct(signals.translation)}, ` +
     `cliché-reuse: ${pct(signals.clicheReuse)}, wikipedia-paraphrase: ${pct(signals.wikipediaParaphrase)}]. ` +
@@ -121,7 +121,7 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
 }
 
 /**
- * content/value-add — second-pass composite rule.
+ * content/value-add: second-pass composite rule.
  *
  * Reads from existing findings instead of parsing pages directly.
  * Aggregates 7 per-page signal scores (originality, freshness, facts,
@@ -133,8 +133,8 @@ function buildMessage(page: ParsedPage, score: number, signals: Signals): string
  * logic drift between the two rules.
  *
  * Fires ONE finding per page when score < 0.5:
- *   - warning  (score ∈ [0.35, 0.5)) — borderline, low confidence
- *   - error    (score < 0.35)         — clearly low value-add
+ *   - warning  (score ∈ [0.35, 0.5)): borderline, low confidence
+ *   - error    (score < 0.35): clearly low value-add
  */
 export function valueAddRule(pages: ParsedPage[], findings: RuleResult[]): RuleResult[] {
   const results: RuleResult[] = [];
@@ -150,7 +150,7 @@ export function valueAddRule(pages: ParsedPage[], findings: RuleResult[]): RuleR
       severity,
       confidence,
       message: buildMessage(page, score, signals),
-      fix: "Add proprietary content (original analysis, primary-source data, expert commentary, original imagery) to lift the value-add score above 0.5. Score is a composite — improve any underweight signal.",
+      fix: "Add proprietary content (original analysis, primary-source data, expert commentary, original imagery) to lift the value-add score above 0.5. Score is a composite, improve any underweight signal.",
       pageUrl: page.url,
     });
   }

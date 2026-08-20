@@ -50,7 +50,7 @@ export async function addMonitoredDomain(rawUrl: string): Promise<ActionResult> 
   }
 
   // If GSC is already connected for this user, attempt to auto-bind the new
-  // domain to its matching property. Best-effort — the user's domain is
+  // domain to its matching property. Best-effort: the user's domain is
   // already added; binding failure shouldn't surface as an error.
   const [gscRow] = await db
     .select({ id: integrations.id })

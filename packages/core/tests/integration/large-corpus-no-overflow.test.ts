@@ -10,7 +10,7 @@ import { auditSource } from "../../src/auditor.js";
  * The pairwise spam rules (spam/near-duplicate, spam/entity-swap) emit ONE
  * finding per similar pair, so a dense site produces C(N,2) findings. The old
  * `findings.push(...tag(rule.findings))` spread passed every finding as a
- * separate call argument, and V8 caps that (~131072) — so the audit threw
+ * separate call argument, and V8 caps that (~131072): so the audit threw
  * `RangeError: Maximum call stack size exceeded` at the rule-aggregation step,
  * BEFORE enrichment was even reached. (The earlier enrichment-only regression
  * test missed this because it bypassed the rule-aggregation push.) Fixed by the
@@ -32,7 +32,7 @@ afterEach(async () => {
 describe("large dense corpus does not overflow the call stack", () => {
   it("confirms the spread this guards against still overflows at the corpus's pair count on this runtime", () => {
     // Premise check. If a future V8 raises the arg cap above PAIR_COUNT this
-    // fails loudly — bump PAGES so the integrated test below stays meaningful.
+    // fails loudly: bump PAGES so the integrated test below stays meaningful.
     expect(() => {
       const sink: number[] = [];
       sink.push(...new Array(PAIR_COUNT).fill(0));

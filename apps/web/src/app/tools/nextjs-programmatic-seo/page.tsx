@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Why should I run pseolint in my CI/CD pipeline?",
-    a: "Automated linting in your build pipeline catches structural errors—such as broken canonical tags, duplicate templates, or too much boilerplate—before they deploy to production, saving your indexation budget.",
+    a: "Automated linting in your build pipeline catches structural errors (such as broken canonical tags, duplicate templates, or too much boilerplate) before they deploy to production, saving your indexation budget.",
   },
   {
     q: "Is it better to use generateMetadata or custom meta tags?",
@@ -244,7 +244,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           </h2>
           <p>
             Google&apos;s SpamBrain model analyzes templates across your entire site to calculate similarity vectors.
-            If you merely swap a single keyword—like a location or vendor name—while keeping the surrounding prose
+            If you merely swap a single keyword (like a location or vendor name) while keeping the surrounding prose
             99% identical, SpamBrain flags the site for doorway page behavior. To prevent this, implement
             <strong> dynamic paragraph variations</strong>. Set up 3 or 4 alternative writing options for
             reused sections, and choose them based on the slug hash or specific data categories.

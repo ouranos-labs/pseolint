@@ -114,7 +114,7 @@ describe("eeatSignalsRule", () => {
   // NEW: scope signals to content, not raw HTML
   // -------------------------------------------------------------------------
 
-  test("'last updated' only in footer/JS raw HTML (not contentText) — does NOT count as signal", () => {
+  test("'last updated' only in footer/JS raw HTML (not contentText): does NOT count as signal", () => {
     // The raw HTML has "last updated" in a JS var and footer, but contentText is empty.
     // After the fix (check contentText not html), this should NOT get the pattern credit.
     const findings = eeatSignalsRule([

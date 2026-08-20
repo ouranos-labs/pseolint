@@ -12,10 +12,10 @@ const EEAT_TEXT_PATTERNS = [
  * Count how many of the 4 E-E-A-T signal categories the page satisfies.
  *
  * Categories:
- *  1. About-page link — a same-host href containing /about
- *  2. Author identity — any authorSignals field present
- *  3. Published date — page.publishedDate set
- *  4. Transparency text — "sources:", "references:", "last updated", etc.
+ *  1. About-page link: a same-host href containing /about
+ *  2. Author identity: any authorSignals field present
+ *  3. Published date: page.publishedDate set
+ *  4. Transparency text: "sources:", "references:", "last updated", etc.
  *     in page.contentText (NOT raw HTML, to avoid footer/JS false positives)
  *
  * Exported so value-add can reuse this without duplicating logic.
@@ -47,7 +47,7 @@ export function countSignalCategories(page: ParsedPage): number {
     count += 1;
   }
 
-  // 4. Transparency text — check contentText (parsed visible text), not raw HTML
+  // 4. Transparency text: check contentText (parsed visible text), not raw HTML
   if (EEAT_TEXT_PATTERNS.some((pattern) => pattern.test(page.contentText))) {
     count += 1;
   }

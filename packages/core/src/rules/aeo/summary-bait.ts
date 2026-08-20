@@ -11,7 +11,7 @@ export interface SummaryBaitOptions {
   minFactsToAnalyze?: number;
 }
 
-// Same fact extractors as aeo/citable-facts — intentionally duplicated so this
+// Same fact extractors as aeo/citable-facts: intentionally duplicated so this
 // rule is self-contained and doesn't silently break if citable-facts's regexes
 // drift. Keep in sync when adding new patterns there.
 const FACT_PATTERNS: RegExp[] = [
@@ -104,7 +104,7 @@ function pageHasNonReplicableValue(html: string, contentText: string): boolean {
 }
 
 /**
- * Composite rule — fires when a page is "optimized for summarization, not retention":
+ * Composite rule: fires when a page is "optimized for summarization, not retention":
  *   1. Has a strong answer-first opener (AI Overviews will cite it), AND
  *   2. Has no interactive / downloadable / gated value below the fold, AND
  *   3. Has its citable facts concentrated in the opener (nothing deeper to scroll for).
@@ -138,7 +138,7 @@ export function summaryBaitRule(
 
     findings.push({
       ruleId: "aeo/summary-bait",
-      // Warning, not error: this is a forecast — we measure what AI MIGHT do (cite
+      // Warning, not error: this is a forecast; we measure what AI MIGHT do (cite
       // without sending the click), not what it WILL do for any given page. An
       // error severity would overstate a probabilistic, page-shape signal.
       severity: "warning",
@@ -148,12 +148,12 @@ export function summaryBaitRule(
         `${Math.round(concentration * 100)}% of citable facts (${openerFacts.length}/${fullFacts.length}) ` +
         `sit in the first ${openerWords} words, the page has no interactive / downloadable / gated value ` +
         `below the fold, and the opener passes answer-first. AI Overviews are likely to cite this page ` +
-        `without sending the click — this is a forecast based on page shape, not a guarantee.`,
+        `without sending the click; this is a forecast based on page shape, not a guarantee.`,
       pageUrl: page.url,
       fix:
         `Redistribute value across the page so the full answer requires scrolling: ` +
-        `(1) move the interactive element — calculator, checklist, comparison tool, generator, ` +
-        `downloadable asset — above the fold, or at least into a prominent section below the opener; ` +
+        `(1) move the interactive element: calculator, checklist, comparison tool, generator, ` +
+        `downloadable asset: above the fold, or at least into a prominent section below the opener; ` +
         `(2) push a portion of the citable facts into a "Details" / "Requirements" / "Full breakdown" ` +
         `section deeper on the page; ` +
         `(3) add non-replicable value the summary can't carry (worked examples, user-specific calculations, ` +

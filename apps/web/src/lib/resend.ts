@@ -25,7 +25,7 @@ export async function sendMagicLinkEmail(to: string, url: string): Promise<void>
   });
   if (error) {
     logSigninLink(to, url, `failed: ${error.message}`);
-    // In dev we've already logged the URL — swallow the error so Better Auth
+    // In dev we've already logged the URL; swallow the error so Better Auth
     // returns 200 and the UI can show "check your email / terminal". In prod
     // we still throw so monitoring surfaces delivery failures.
     if (process.env.NODE_ENV === "production") {
@@ -37,7 +37,7 @@ export async function sendMagicLinkEmail(to: string, url: string): Promise<void>
 /**
  * Notify a user that their orchestrator session finished. Best-effort: a
  * delivery failure logs but doesn't block the Inngest function from
- * marking the session terminal — the manifest is reachable from the
+ * marking the session terminal: the manifest is reachable from the
  * dashboard regardless.
  */
 export async function sendOrchestratorCompleteEmail(
@@ -59,7 +59,7 @@ export async function sendOrchestratorCompleteEmail(
       reason: error.message,
       manifestUrl: props.manifestUrl,
     });
-    // Never throw — email is a notification convenience, not the canonical
+    // Never throw: email is a notification convenience, not the canonical
     // surface. The manifest is always reachable from /dashboard.
   }
 }

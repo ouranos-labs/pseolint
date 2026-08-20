@@ -17,7 +17,7 @@ function visibleWordCount(html: string): number {
 
 /**
  * Flags pages whose interactive value (or substantive content) exists in the
- * rendered DOM but not the raw server HTML — invisible to crawlers that don't
+ * rendered DOM but not the raw server HTML: invisible to crawlers that don't
  * run JS. Requires --render (no-op when page.renderedHtml is absent).
  */
 export function csrBailoutRule(pages: ParsedPage[]): RuleResult[] {

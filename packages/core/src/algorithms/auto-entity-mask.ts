@@ -111,7 +111,7 @@ export function deriveEntityPatterns(pages: ReadonlyArray<MaskPage>, opts?: Deri
   const patterns: EntityMaskPattern[] = [];
   for (let i = 0; i < tokens.length; i += CHUNK) {
     // Each token is metacharacter-escaped (escapeRegex) and joined into a bounded,
-    // backtracking-free alternation `\b(?:a|b|c)\b` — no nested quantifiers, so this
+    // backtracking-free alternation `\b(?:a|b|c)\b`, no nested quantifiers, so this
     // dynamic RegExp is ReDoS-safe by construction.
     const alt = tokens.slice(i, i + CHUNK).map(escapeRegex).join("|");
     // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp

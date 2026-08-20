@@ -19,7 +19,7 @@ describe("missingAuthorRule", () => {
     expect(findings[0].ruleId).toBe("content/missing-author");
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].pageUrl).toBe("https://example.com/no-author");
-    // Always medium — many page types legitimately omit author bylines.
+    // Always medium: many page types legitimately omit author bylines.
     expect(findings[0].confidence).toBe("medium");
     expect(findings[0].message).toMatch(/blog\/news/i);
   });

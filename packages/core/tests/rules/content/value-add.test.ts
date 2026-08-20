@@ -27,7 +27,7 @@ function finding(ruleId: string, pageUrl: string, severity: RuleResult["severity
 }
 
 describe("valueAddRule", () => {
-  test("all-good page (no rules fire) — score >= 0.5 — no finding", () => {
+  test("all-good page (no rules fire): score >= 0.5: no finding", () => {
     const p = page("https://example.com/good", {
       authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
       resolvedHrefs: ["https://example.com/about"],
@@ -46,7 +46,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("bestfirenze pattern — regurgitated-content + thin + no eeat — score < 0.5 — fires finding", () => {
+  test("bestfirenze pattern (regurgitated-content + thin + no eeat) score < 0.5: fires finding", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
     // 7-signal: o=0 (regurgitated), f=0.5 (freshness warning),
@@ -68,7 +68,7 @@ describe("valueAddRule", () => {
     expect(results[0].message).toContain("SpamBrain");
   });
 
-  test("bestfirenze pattern severe — regurgitated + facts error + freshness error + no eeat — score < 0.5 — fires finding", () => {
+  test("bestfirenze pattern severe (regurgitated + facts error + freshness error + no eeat) score < 0.5: fires finding", () => {
     const url = "https://bestfirenze.com/";
     const p = page(url);
     // 7-signal: o=0, f=0 (freshness error), c=0 (facts error), e=0 (no signals), t=1, cr=1, wp=1
@@ -84,7 +84,7 @@ describe("valueAddRule", () => {
     expect(results[0].message).toContain("SpamBrain");
   });
 
-  test("mixed page (some signals good, some bad) — finding at error severity", () => {
+  test("mixed page (some signals good, some bad): finding at error severity", () => {
     const url = "https://example.com/mixed";
     // originality=0 (regurgitated), freshness=1 (no finding), facts=1 (no finding),
     // eeat=0 (no signals on page), translation=1 (no finding)
@@ -98,7 +98,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("mixed page — regurgitated + no eeat + no freshness — 6-signal score exactly 0.5 — no finding", () => {
+  test("mixed page (regurgitated + no eeat + no freshness) 6-signal score exactly 0.5: no finding", () => {
     const url = "https://example.com/poor";
     // 6-signal math: o=0, f=0 (error), c=1, e=0, t=1, cr=1 => (0+0+1+0+1+1)/6 = 0.5
     // score = 0.5 => exactly at threshold => NO finding (threshold is score < 0.5)
@@ -111,7 +111,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("mixed page — regurgitated + no eeat + no freshness + cliche-reuse — score < 0.5 — fires finding", () => {
+  test("mixed page (regurgitated + no eeat + no freshness + cliche-reuse) score < 0.5: fires finding", () => {
     const url = "https://example.com/poor-cliche";
     // 7-signal: o=0, f=0 (error), c=1, e=0, t=1, cr=0, wp=1 => (0+0+1+0+1+0+1)/7 = 3/7≈0.429 => warning
     const p = page(url);
@@ -125,7 +125,7 @@ describe("valueAddRule", () => {
     expect(results[0].ruleId).toBe("content/value-add");
   });
 
-  test("page with only translation-no-op firing — score 0.8 — no finding", () => {
+  test("page with only translation-no-op firing: score 0.8: no finding", () => {
     const url = "https://example.com/en/page";
     const p = page(url);
     // translation-no-op: pageUrl is first URL, relatedUrls has others
@@ -144,7 +144,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("translation-no-op matching via relatedUrls — translation=0", () => {
+  test("translation-no-op matching via relatedUrls: translation=0", () => {
     const primaryUrl = "https://example.com/page";
     const relatedUrl = "https://example.com/fr/page";
     const p = page(relatedUrl);
@@ -163,7 +163,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("all signals bad — score near 0 — error finding (clearly low) with worst signal list", () => {
+  test("all signals bad (score near 0) error finding (clearly low) with worst signal list", () => {
     const url = "https://example.com/terrible";
     const p = page(url);
     const findings: RuleResult[] = [
@@ -189,7 +189,7 @@ describe("valueAddRule", () => {
     expect(results[0].message).toContain("0%");
   });
 
-  test("eeat fully present (4 categories) — eeat signal = 1.0", () => {
+  test("eeat fully present (4 categories): eeat signal = 1.0", () => {
     const url = "https://example.com/eeat-good";
     const p = page(url, {
       authorSignals: { metaAuthor: "Jane", schemaAuthor: false, bylineElement: false, relAuthorLink: false },
@@ -202,7 +202,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("eeat partially present (2-3 categories) — eeat signal = 0.5", () => {
+  test("eeat partially present (2-3 categories): eeat signal = 0.5", () => {
     const url = "https://example.com/partial-eeat";
     const p = page(url, {
       publishedDate: "2024-01-01",
@@ -213,7 +213,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("freshness at info/warning severity — freshness = 0.5", () => {
+  test("freshness at info/warning severity: freshness = 0.5", () => {
     const url = "https://example.com/stale";
     const p = page(url);
     const findings: RuleResult[] = [
@@ -250,10 +250,10 @@ describe("valueAddRule", () => {
   });
 
   // -------------------------------------------------------------------------
-  // 6-signal composite tests (v0.5.11 — common-phrase-reuse as signal 6)
+  // 6-signal composite tests (v0.5.11: common-phrase-reuse as signal 6)
   // -------------------------------------------------------------------------
 
-  test("6-signal: all-good (no common-phrase-reuse finding) — score 5/6 — no finding", () => {
+  test("6-signal: all-good (no common-phrase-reuse finding) (score 5/6) no finding", () => {
     const url = "https://example.com/6signal-good";
     // No findings => o=1,f=1,c=1,e=0,t=1,cr=1 => score=5/6≈0.833 => no finding
     const p = page(url);
@@ -261,7 +261,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("6-signal: only common-phrase-reuse fires — composite drops by 1/6 — no finding", () => {
+  test("6-signal: only common-phrase-reuse fires (composite drops by 1/6) no finding", () => {
     const url = "https://example.com/6signal-cliche-only";
     const p = page(url);
     // cr=0, all others=1 except eeat=0 (no signals) => o=1,f=1,c=1,e=0,t=1,cr=0 => 4/6≈0.667 => no finding
@@ -273,7 +273,7 @@ describe("valueAddRule", () => {
     expect(results).toHaveLength(0);
   });
 
-  test("6-signal: common-phrase-reuse + 2 other signals fire — composite reflects all 7 signals", () => {
+  test("6-signal: common-phrase-reuse + 2 other signals fire, composite reflects all 7 signals", () => {
     const url = "https://example.com/6signal-three-bad";
     const p = page(url);
     // 7-signal: o=0 (regurgitated), f=1, c=0 (facts error), e=0, t=1, cr=0 (cliche), wp=1
@@ -335,15 +335,15 @@ describe("valueAddRule", () => {
   // NEW: 2-band severity (warning for borderline, error for clearly low)
   // -------------------------------------------------------------------------
 
-  test("borderline score (just below 0.5, above severity boundary) — warning severity", () => {
+  test("borderline score (just below 0.5, above severity boundary): warning severity", () => {
     // Score of exactly 3/7 ≈ 0.429 (borderline, not clearly low)
     // 7-signal: o=1, f=1, c=1, e=0 (no eeat), t=0 (translation no-op), cr=0 (cliche), wp=1
-    // = 4/7 ≈ 0.571 — too high. Let's try: o=0, f=1, c=1, e=1/4=0.25, t=1, cr=1, wp=1 = 5.25/7≈0.75
+    // = 4/7 ≈ 0.571, too high. Let's try: o=0, f=1, c=1, e=1/4=0.25, t=1, cr=1, wp=1 = 5.25/7≈0.75
     // Need score in borderline band. Let's think about bands:
-    // task says "2 bands" — let's say score in [0.35, 0.5) → warning, score < 0.35 → error/critical.
-    // 7-signal: o=0, f=0.5, c=1, e=0.25, t=1, cr=1, wp=1 = 4.75/7 ≈ 0.679 — no fire.
-    // Need more signals bad. o=0, f=0, c=0.5, e=0.25, t=1, cr=1, wp=1 = 3.75/7≈0.536 — no fire.
-    // o=0, f=0, c=0, e=0.25, t=1, cr=1, wp=1 = 3.25/7≈0.464 — borderline! → warning
+    // task says "2 bands"; let's say score in [0.35, 0.5) → warning, score < 0.35 → error/critical.
+    // 7-signal: o=0, f=0.5, c=1, e=0.25, t=1, cr=1, wp=1 = 4.75/7 ≈ 0.679, no fire.
+    // Need more signals bad. o=0, f=0, c=0.5, e=0.25, t=1, cr=1, wp=1 = 3.75/7≈0.536: no fire.
+    // o=0, f=0, c=0, e=0.25, t=1, cr=1, wp=1 = 3.25/7≈0.464: borderline! → warning
     const url = "https://example.com/borderline";
     const p = page(url, { publishedDate: "2024-01-01" });  // 1 eeat category → 0.25
     const findings: RuleResult[] = [
@@ -357,7 +357,7 @@ describe("valueAddRule", () => {
     expect(results[0].severity).toBe("warning");
   });
 
-  test("clearly low score — error severity (not warning)", () => {
+  test("clearly low score: error severity (not warning)", () => {
     // o=0, f=0, c=0, e=0, t=0, cr=0, wp=0 = 0/7 = 0 → well below borderline → error
     const url = "https://example.com/clearly-low";
     const p = page(url);

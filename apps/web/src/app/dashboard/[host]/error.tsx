@@ -36,7 +36,7 @@ export default function DomainWorkspaceError({
 
       <p className="max-w-md text-sm leading-relaxed text-muted-foreground">
         This is usually a brief database connection blip rather than a problem
-        with your data. Try again in a moment — your audits and findings are safe.
+        with your data. Try again in a moment: your audits and findings are safe.
       </p>
 
       {error.digest && (

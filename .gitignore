@@ -1,7 +1,7 @@
 node_modules
 .turbo
 dist
-# The GitHub Action ships its ncc-bundled dist — consumers run the committed
+# The GitHub Action ships its ncc-bundled dist: consumers run the committed
 # dist/index.js via `uses:`, so it must be tracked despite the global `dist` rule.
 !packages/action/dist/
 !packages/action/dist/**
@@ -16,10 +16,10 @@ docs/reports/*
 # Isolated worktrees for in-flight plans
 .worktrees/
 
-# pseolint runtime (cache, state, telemetry — can reach 1 GB+ on large pSEO sites)
+# pseolint runtime (cache, state, telemetry: can reach 1 GB+ on large pSEO sites)
 .pseolint/
 
-# Calibration runner output — point-in-time engine-validation data, not CI input.
+# Calibration runner output: point-in-time engine-validation data, not CI input.
 # The regression test at packages/core/tests/calibration/reputable-corpus.test.ts
 # auto-skips when this file is missing, so committing it would break CI on every
 # site at the verdict-ladder boundary (live HTTP audits are non-deterministic;
@@ -30,10 +30,10 @@ scripts/calibration-results.md
 
 .npmrc
 
-# Internal go-to-market material — not for the public repo.
+# Internal go-to-market material: not for the public repo.
 marketing/
 
-# Ad-hoc local debug/inspection scripts — these tend to hardcode local DB URLs,
+# Ad-hoc local debug/inspection scripts: these tend to hardcode local DB URLs,
 # OAuth secrets, and tokens. Keep them out of the repo entirely.
 apps/web/scripts/check-*
 apps/web/scripts/inspect-*
@@ -42,7 +42,7 @@ apps/web/scripts/inspect-*
 *.~lock.*#
 ~$*
 
-# Local-only credentials & tooling (never commit) — added during MCP work 2026-06-08
+# Local-only credentials & tooling (never commit): added during MCP work 2026-06-08
 .npmrc.disabled
 packages/mcp/.mcpregistry_*
 packages/mcp/mcp-publisher*
@@ -50,13 +50,13 @@ packages/mcp/mcp-publisher*
 .claude/worktrees/
 .claire/
 
-# content-effort per-page LLM cache — local runtime speed-cache. The durable,
+# content-effort per-page LLM cache: local runtime speed-cache. The durable,
 # committed corpus signal is calibration/content-effort-scores.json (the per-site
 # aggregate map); the per-page cache regenerates on demand and is never committed.
 packages/core/calibration/.effort-cache/
 packages/core/calibration/.effort-cache-stub/
 
-# graphify knowledge-graph output — regenerable AST snapshot, not source
+# graphify knowledge-graph output: regenerable AST snapshot, not source
 graphify-out/
 
 .chrome-user-data/

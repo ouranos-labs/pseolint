@@ -25,7 +25,7 @@ export function GradeChip({ risk, size = "default", showNumber = true }: GradeCh
         <span
           className={`font-mono font-semibold tabular-nums text-foreground ${size === "lg" ? "text-2xl" : "text-sm"}`}
         >
-          {risk ?? "—"}
+          {risk ?? "; "}
         </span>
       )}
     </span>

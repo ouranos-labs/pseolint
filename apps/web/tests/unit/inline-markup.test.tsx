@@ -5,8 +5,8 @@
  * (`content/common-phrase-reuse` on /rules/common-phrase-reuse,
  * `content/regurgitated-content` on /rules/regurgitated-content) because they
  * quote the patterns they document as plain prose. The engine already strips
- * EXAMPLE_REGION_SELECTOR — "pre, code, blockquote, figure, samp, kbd,
- * [data-example]" — before scanning, so emitting <code> for a specimen is the
+ * EXAMPLE_REGION_SELECTOR: "pre, code, blockquote, figure, samp, kbd,
+ * [data-example]": before scanning, so emitting <code> for a specimen is the
  * designed way to say "quoting, not committing" without carving our own domain
  * out of our own engine.
  *

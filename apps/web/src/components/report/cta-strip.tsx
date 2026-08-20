@@ -19,7 +19,7 @@ export function ReportCtaStrip(ctx: Ctx) {
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
           <p className="text-xs text-muted-foreground">
-            Save this audit to your history — <Link href={`/signin?next=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
+            Save this audit to your history, <Link href={`/signin?next=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
           </p>
           <Link href={`/pricing?intent=monitor&audit=${ctx.auditSlug}`} className={PRIMARY}>
             Monitor this domain with Pro →
@@ -31,7 +31,7 @@ export function ReportCtaStrip(ctx: Ctx) {
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
           <p className="text-xs text-muted-foreground">
-            {ctx.kind === "free_own" ? "Saved to your history." : "Shared audit — run your own to keep it in history."}
+            {ctx.kind === "free_own" ? "Saved to your history." : "Shared audit, run your own to keep it in history."}
           </p>
           <Link href={`/pricing?intent=monitor&audit=${ctx.auditSlug}`} className={PRIMARY}>
             Monitor this domain →
@@ -55,7 +55,7 @@ export function ReportCtaStrip(ctx: Ctx) {
     case "pro_other":
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
-          <p className="text-xs text-muted-foreground">Shared report — not one of your monitored domains.</p>
+          <p className="text-xs text-muted-foreground">Shared report: not one of your monitored domains.</p>
           <AddToMonitoringButton originUrl={ctx.originUrl} className={SECONDARY}>+ Add to monitoring</AddToMonitoringButton>
         </div>
       );

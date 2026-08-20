@@ -9,7 +9,7 @@ const inputSchema = z.object({
     .array(z.string())
     .min(2)
     .max(50)
-    .describe("Min 2 pageIds — consistency only makes sense across a sample."),
+    .describe("Min 2 pageIds: consistency only makes sense across a sample."),
 });
 
 const outputSchema = z.object({
@@ -28,7 +28,7 @@ const outputSchema = z.object({
 export const checkRuleSchemaConsistencyTool = defineTool({
   name: "check_rule_schema_consistency",
   description:
-    "Detect JSON-LD @type mismatches across a page sample (e.g. most /city/* pages declare Place+Service but a few drop Service). Min 2 pageIds — pass a representative sample of one template at a time for the cleanest signal.",
+    "Detect JSON-LD @type mismatches across a page sample (e.g. most /city/* pages declare Place+Service but a few drop Service). Min 2 pageIds: pass a representative sample of one template at a time for the cleanest signal.",
   inputSchema,
   outputSchema,
   async execute({ pageIds }) {

@@ -62,7 +62,7 @@ export function validateLlmsTxt(content: string): { valid: boolean; reason?: str
 }
 
 /**
- * Check for /llms.txt at the origin. Site-level rule — runs once, not per page.
+ * Check for /llms.txt at the origin. Site-level rule: runs once, not per page.
  */
 export interface LlmsTxtRuleOptions {
   /** Timeout in ms for the /llms.txt fetch. Default: 10 000. */
@@ -93,7 +93,7 @@ export async function llmsTxtRule(
       confidence: "low",
       message:
         `No llms.txt found at ${llmsUrl}. ` +
-        `llms.txt is a draft standard with low adoption — absence isn't a defect, only a missed opportunity.`,
+        `llms.txt is a draft standard with low adoption: absence isn't a defect, only a missed opportunity.`,
       fix:
         `Create ${llmsUrl} to guide AI engines toward your most authoritative, citable content. ` +
         `Start with an # H1 title, a blockquote summary, then ## sections listing your key pages as markdown links. ` +

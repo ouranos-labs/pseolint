@@ -4,7 +4,7 @@ import { Redis } from "@upstash/redis";
 import { hashIp } from "@/lib/ip";
 import type { McpIdentity } from "@/lib/mcp-auth";
 
-/** Minimal shape we depend on — lets tests inject fakes without a live Redis. */
+/** Minimal shape we depend on; lets tests inject fakes without a live Redis. */
 export interface LimiterLike {
   limit(key: string): Promise<{ success: boolean; reset: number }>;
 }

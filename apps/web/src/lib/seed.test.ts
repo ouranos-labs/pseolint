@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { hashToInt } from "./seed";
 
 describe("hashToInt", () => {
-  it("is stable — the same host yields the same int across calls", () => {
+  it("is stable: the same host yields the same int across calls", () => {
     expect(hashToInt("example.com")).toBe(hashToInt("example.com"));
     expect(hashToInt("paperforge.dev")).toBe(hashToInt("paperforge.dev"));
   });

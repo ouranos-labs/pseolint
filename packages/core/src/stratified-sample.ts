@@ -30,7 +30,7 @@ export function inferUrlTemplate(url: string): string {
  * Mulberry32 PRNG: tiny, fast, statistically adequate for stratified sampling
  * (we don't need cryptographic strength). Returns a deterministic float in
  * [0, 1) given a seeded state. Used so that `auditSource(url, { sampleSeed })`
- * picks the same sample on repeated runs — calibration runs and CI gates need
+ * picks the same sample on repeated runs: calibration runs and CI gates need
  * reproducible verdicts.
  */
 export function mulberry32(seed: number): () => number {

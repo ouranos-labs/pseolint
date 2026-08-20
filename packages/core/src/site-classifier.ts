@@ -1,5 +1,5 @@
 /**
- * v0.4 Site Classifier — runs BEFORE rules to gate which rule set applies.
+ * v0.4 Site Classifier: runs BEFORE rules to gate which rule set applies.
  *
  * Today the engine runs every rule against every audited site regardless of
  * whether the site is actually programmatic-SEO. A 23-page marketing site
@@ -38,7 +38,7 @@ export type ClassificationSignal =
     }
   | { kind: "framework-detected"; value: "nextjs" | "vite" | "astro" | "unknown" }
   /**
-   * v0.5.3 — emitted when `applyDegenerationGuard` downgrades a
+   * v0.5.3: emitted when `applyDegenerationGuard` downgrades a
    * `small-marketing` or `blog` classification to `unclear` because the
    * corpus is degenerate (mostly thin / mostly identical titles). Surfacing
    * this in `signals` lets the UI explain why severity demotions didn't
@@ -57,7 +57,7 @@ export interface SiteClassification {
    * checks this list before invoking each rule.
    *
    * Empty array when type is `programmatic-directory`, `ecommerce`, or
-   * `unclear` — those run all rules.
+   * `unclear`: those run all rules.
    */
   suppressedRules: string[];
 }
@@ -106,7 +106,7 @@ export function normalizePathToTemplate(pathname: string): string {
       return ":slug";
     }
     // Long lowercase letter-only segments (>= 12 chars) are treated as
-    // slugs even without hyphens — covers concatenated-word URLs like
+    // slugs even without hyphens: covers concatenated-word URLs like
     // /chicagoplumbers without hyphens.
     if (seg.length >= 12 && /^[a-z]+$/.test(seg)) {
       return ":slug";
@@ -173,7 +173,7 @@ export interface ClassifySiteInput {
 }
 
 /**
- * v0.4.3 — common docs path prefixes. Match is case-insensitive and exact
+ * v0.4.3: common docs path prefixes. Match is case-insensitive and exact
  * on the FIRST path segment (so `/docs/...` matches but a stray `/somethingdocs`
  * does not). Tuned to the docs frameworks we see most: Docusaurus, Nextra,
  * GitBook, MkDocs, VuePress, mintlify, fumadocs, Astro Starlight.
@@ -195,7 +195,7 @@ const DOCS_PATH_PREFIXES: readonly string[] = [
 ];
 
 /**
- * v0.4.3 — common ecommerce path prefixes. Same matching rules as docs:
+ * v0.4.3: common ecommerce path prefixes. Same matching rules as docs:
  * case-insensitive, anchored at the FIRST path segment.
  */
 const ECOMMERCE_PATH_PREFIXES: readonly string[] = [
@@ -235,9 +235,9 @@ function pathPrefixRatio(urls: string[], prefixes: readonly string[]): number {
 }
 
 /**
- * v0.4.3 — docs site detection. A site is `docs` when its URL distribution
+ * v0.4.3: docs site detection. A site is `docs` when its URL distribution
  * is dominated by docs-shaped path prefixes:
- *   - 50+ URLs total (docs sites are not tiny — guard against false-positives
+ *   - 50+ URLs total (docs sites are not tiny: guard against false-positives
  *     on a 5-page marketing site with one /docs link)
  *   - ≥ 60% of URLs sit under a docs prefix
  * Returns `null` when not enough evidence; otherwise the SiteClassification.
@@ -257,7 +257,7 @@ function tryClassifyDocs(
 }
 
 /**
- * v0.4.3 — ecommerce site detection. Two paths to a positive classification:
+ * v0.4.3: ecommerce site detection. Two paths to a positive classification:
  *   - URL count ≥ 50 AND ≥ 70% of URLs match /products/* or /collections/*
  *     (high-confidence: this is the canonical Shopify/Woo URL shape)
  *   - URL count ≥ 100 AND ≥ 50% match a broader ecommerce-shaped prefix
@@ -285,7 +285,7 @@ function tryClassifyEcommerce(
 /**
  * Locale-code regex for the FIRST path segment. Matches BCP-47-shaped slugs:
  * `/en`, `/de`, `/en-us`, `/zh-hant`, `/pt-br`, etc. Two-letter language code
- * with optional two-letter region. Lowercase only — sites that uppercase
+ * with optional two-letter region. Lowercase only: sites that uppercase
  * locale codes are rare; we don't normalize.
  */
 const LOCALE_SEGMENT_REGEX = /^[a-z]{2}(?:-[a-z]{2})?$/;
@@ -312,15 +312,15 @@ function localizedRatio(urls: string[]): number {
 }
 
 /**
- * v0.4.3-rc2 — localized-marketing detector. Stripe, Vercel, Linear, Cloudflare
+ * v0.4.3-rc2: localized-marketing detector. Stripe, Vercel, Linear, Cloudflare
  * etc. publish each marketing page under multiple `/[lang]/` prefixes. Their
  * sitemap looks like a programmatic directory to the size+cluster heuristic
  * (10k+ URLs all matching `/:slug/:slug` after normalization), but they are
- * NOT pSEO sites — they're high-quality marketing sites with i18n.
+ * NOT pSEO sites: they're high-quality marketing sites with i18n.
  *
  * Signal: ≥30% of URLs have a first segment that matches `/[a-z]{2}(-[a-z]{2})?/`.
  * Returns small-marketing with 0.75 confidence (lower than ecommerce/docs
- * because some localized pSEO directories DO exist — we'd rather under-classify
+ * because some localized pSEO directories DO exist: we'd rather under-classify
  * here than mis-suppress real spam findings).
  */
 function tryClassifyLocalizedMarketing(
@@ -331,7 +331,7 @@ function tryClassifyLocalizedMarketing(
   if (ratio < 0.3) return null;
   // Higher confidence when the locale prefix dominates AND the site isn't
   // ALSO matching the docs/ecommerce shape underneath the locale (those
-  // would have caught it earlier — by reaching this point we know it's
+  // would have caught it earlier: by reaching this point we know it's
   // generic marketing).
   let confidence = 0.75;
   if (ratio >= 0.5) confidence = 0.82;
@@ -376,13 +376,13 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
     return { type: "unclear", confidence: 0, signals, suppressedRules: [] };
   }
 
-  // v0.4.3 — try the new high-confidence URL-shape detectors first. These
+  // v0.4.3: try the new high-confidence URL-shape detectors first. These
   // override the legacy size-based heuristics when they fire because URL
   // shape is a stronger signal than raw URL count. Order matters:
-  //   1. ecommerce — strongest signal first; /products/* and /collections/*
+  //   1. ecommerce: strongest signal first; /products/* and /collections/*
   //      are an extremely specific URL shape that doesn't occur elsewhere.
-  //   2. docs — /docs/*, /api/*, /reference/* are nearly as specific.
-  //   3. localized-marketing — /[lang]/ first segment indicates i18n marketing
+  //   2. docs: /docs/*, /api/*, /reference/* are nearly as specific.
+  //   3. localized-marketing: /[lang]/ first segment indicates i18n marketing
   //      (stripe.com, vercel.com, etc.) which v0.4.3-rc1 mis-classified as
   //      programmatic-directory because the localized URL count tripped the
   //      ≥1000 URL + ≥60% top-3 cluster heuristic.
@@ -400,7 +400,7 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
   let type: SiteType = "unclear";
   let confidence = 0;
 
-  // v0.4.3-rc3 — lowered programmatic-directory threshold from 1000 → 500
+  // v0.4.3-rc3: lowered programmatic-directory threshold from 1000 → 500
   // after dogfood showed softschools.com (955 URLs, real pSEO directory)
   // missing the cutoff and classifying as `unclear`. Rebalanced confidence:
   //   ≥ 1000 URLs + top3≥60% template ratio → 0.9
@@ -412,7 +412,7 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
       type = "programmatic-directory";
       confidence = 0.9;
     } else {
-      // Lots of pages but no clear template clustering — likely ecommerce
+      // Lots of pages but no clear template clustering, likely ecommerce
       // (varied product URLs) or a sprawling content site.
       type = "ecommerce";
       confidence = 0.6;
@@ -439,11 +439,11 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
       type = "blog";
       confidence = 0.85;
     } else if (!topIsDeepCluster) {
-      // Tiny site without a deep dominant template — marketing pages.
+      // Tiny site without a deep dominant template: marketing pages.
       type = "small-marketing";
       confidence = 0.85;
     } else {
-      // Tiny site WITH a deep dominant template — likely a templated
+      // Tiny site WITH a deep dominant template, likely a templated
       // micro-site (rare, but possible). Don't claim it's pSEO from such a
       // tiny sample. Keep `unclear` so all rules run; the rules themselves
       // will decide.
@@ -477,7 +477,7 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
 }
 
 /**
- * v0.5.3 — corpus-quality guard against "small-marketing" / "blog"
+ * v0.5.3: corpus-quality guard against "small-marketing" / "blog"
  * classification masking degenerate sites. The `small-marketing` profile
  * demotes `spam/thin-content`, `aeo/citable-facts`, `aeo/freshness-signals`,
  * `spam/doorway-pattern` etc. to `info` to avoid false-positives on legit
@@ -489,7 +489,7 @@ export function classifySite(input: ClassifySiteInput): SiteClassification {
  * This guard runs AFTER classification, with parsed-page stats. If the
  * corpus is degenerate (median word count < 50 OR ≥50% of pages share an
  * identical title), the classification is downgraded to `unclear` so the
- * demotion table doesn't apply — the natural rule severities then fire.
+ * demotion table doesn't apply: the natural rule severities then fire.
  *
  * Only `small-marketing` and `blog` are guarded. The other types either
  * already run all rules (`unclear`, `programmatic-directory`, `ecommerce`,

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { Template } from "@pseolint/core";
 
 // Pure logic helpers extracted inline to match what template-card.tsx computes.
-// We test the logic independently — no DOM/React environment needed.
+// We test the logic independently: no DOM/React environment needed.
 
 function uniformityColor(score: number): string {
   if (score >= 0.7) return "bg-success";
@@ -22,7 +22,7 @@ function coverageLine(template: Template, totalDiscoveredUrls: number): string {
   const pct =
     totalDiscoveredUrls > 0
       ? ((template.totalUrls / totalDiscoveredUrls) * 100).toFixed(1)
-      : "—";
+      : "; ";
   return `${template.totalUrls.toLocaleString()} / ${totalDiscoveredUrls.toLocaleString()} URLs (${pct}%)`;
 }
 
@@ -51,7 +51,7 @@ function makeTemplate(overrides: Partial<Template> = {}): Template {
   };
 }
 
-describe("TemplateCard — uniformityColor", () => {
+describe("TemplateCard: uniformityColor", () => {
   it("returns bg-success when score >= 0.7", () => {
     expect(uniformityColor(0.7)).toBe("bg-success");
     expect(uniformityColor(1.0)).toBe("bg-success");
@@ -68,7 +68,7 @@ describe("TemplateCard — uniformityColor", () => {
   });
 });
 
-describe("TemplateCard — topDriverLine", () => {
+describe("TemplateCard: topDriverLine", () => {
   it("formats '8/10 samples fail spam/thin-content' for 0.8 fire rate on 10 samples", () => {
     const t = makeTemplate();
     expect(topDriverLine(t)).toBe("8/10 samples fail spam/thin-content");
@@ -93,7 +93,7 @@ describe("TemplateCard — topDriverLine", () => {
   });
 });
 
-describe("TemplateCard — coverageLine", () => {
+describe("TemplateCard: coverageLine", () => {
   it("shows count / total with percentage", () => {
     const t = makeTemplate({ totalUrls: 234 });
     const result = coverageLine(t, 8200);
@@ -105,10 +105,10 @@ describe("TemplateCard — coverageLine", () => {
     expect(result).toContain("URLs (2.9%)");
   });
 
-  it("shows — percentage when totalDiscoveredUrls is 0", () => {
+  it("shows: percentage when totalDiscoveredUrls is 0", () => {
     const t = makeTemplate({ totalUrls: 5 });
     const result = coverageLine(t, 0);
-    expect(result).toContain("—");
+    expect(result).toContain("; ");
   });
 
   it("shows 100.0% when totalUrls === totalDiscoveredUrls", () => {

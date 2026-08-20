@@ -164,13 +164,13 @@ const CATEGORY_MAP: Record<string, CategoryKey> = {
 };
 
 /**
- * Per-rule category overrides — take precedence over the namespace-level
+ * Per-rule category overrides: take precedence over the namespace-level
  * CATEGORY_MAP. A rule lands here when its namespace (chosen for code
  * organisation) doesn't match the scoring bucket its *signal* belongs to.
  *
  * `links/host-section-divergence` lives in the links namespace because it reads
  * the internal-link graph, but semantically it detects a spam-policy violation
- * (Google's May 2024 site-reputation-abuse) — an INTEGRITY signal, not a
+ * (Google's May 2024 site-reputation-abuse): an INTEGRITY signal, not a
  * discoverability one. Without this override it scored in the discoverability
  * bucket (0.15 weight on programmatic-directory), so a confirmed parasite
  * section moved the risk score by ~2pts despite registering as a blocker.
@@ -184,7 +184,7 @@ export function categoryForRule(ruleId: string): CategoryKey | undefined {
 }
 
 /**
- * v0.4.3 — site-type-aware scoring profile. Each profile defines:
+ * v0.4.3: site-type-aware scoring profile. Each profile defines:
  *   - `categoryWeights`: how much each category contributes to the verdict.
  *     Must sum to 1.0 (audit always 0).
  *   - `severityOverrides`: ruleId → final severity. Applied AFTER the rule
@@ -197,7 +197,7 @@ export function categoryForRule(ruleId: string): CategoryKey | undefined {
  *
  * Threshold: site-type profiles only apply when the classifier is at least
  * 70% confident. Below that we fall back to the conservative "unclear"
- * defaults — never demote findings on a site we can't confidently classify.
+ * defaults: never demote findings on a site we can't confidently classify.
  */
 interface ScoringProfile {
   /** Per-category weight; must sum to 1.0. */
@@ -216,7 +216,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "aeo/answer-first":       "info",
       "aeo/summary-bait":       "warning",
       // CSR-bailout on a small-marketing SPA is lower-stakes (a deliberately
-      // client-only marketing widget) — keep visible but don't tank the verdict.
+      // client-only marketing widget); keep visible but don't tank the verdict.
       "tech/csr-bailout":       "info",
       // 2026-05-03 calibration round 5: Segment integrations had 24 thin
       // pages (200-300 words is correct for a catalog record). thin-content
@@ -232,18 +232,18 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "content/missing-author": "info",
       // 2026-05-03 calibration round 3: Segment integrations classified as
       // small-marketing@0.88 and tripped doorway-pattern 300× critical
-      // (catalog records are thin + entity-swap by design — not actually a
+      // (catalog records are thin + entity-swap by design, not actually a
       // doorway funnel). The classifier mistakes catalog directories as
       // small-marketing; this demotion absorbs that mis-classification
       // without weakening detection on actual small-marketing sites
-      // (linear.app, supabase.com — none of which produce entity-swap pairs).
+      // (linear.app, supabase.com; none of which produce entity-swap pairs).
       "spam/doorway-pattern":   "warning",
       // 2026-05-03 calibration round 4: spam/boilerplate-ratio fired ERROR
       // on Segment's integration directory (24 pages, 60%+ shared template
-      // chrome). On a marketing-template site the rule is correct — repeated
+      // chrome). On a marketing-template site the rule is correct: repeated
       // "About us" / "Pricing" copy across pages IS a quality issue. On a
       // catalog mis-classified to small-marketing, the shared chrome IS the
-      // template — by design. Demote to warning here; real marketing sites
+      // template, by design. Demote to warning here; real marketing sites
       // (linear.app, supabase.com) won't trip it because their corpus is
       // page-diverse, but catalog-shape pages classified as small-marketing
       // (Segment, Wise) won't tank the verdict.
@@ -289,7 +289,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
     // `ecommerce` demotes `aeo/citable-facts`, `small-marketing` demotes 4
     // rules). `programmatic-directory` is the site type *most* structurally
     // different from the "page = article" assumptions the AEO and EEAT rules
-    // are calibrated against — yet was the only profile with no overrides.
+    // are calibrated against, yet was the only profile with no overrides.
     //
     // Pre-calibration adjustment: demote (never escalate) the rules that
     // first-principles analysis predicts will false-positive on catalog-
@@ -316,7 +316,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "content/missing-author": "info",
       "content/eeat-signals":   "info",
       // Template uniformity is correct for catalogs by design. Keep the
-      // signal but cap at warning — never error.
+      // signal but cap at warning, never error.
       "spam/template-diversity": "warning",
       // 2026-05-03 v0.5.2 round 10: same catalog logic as small-marketing.
       "tech/og-completeness":      "info",
@@ -324,7 +324,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "content/image-alt-text":    "info",
       // 2026-05-03 calibration round 2: catalogs are near-duplicate by
       // design. spam/near-duplicate fires CRITICAL on every catalog pair.
-      // Demote to warning — keeps the signal visible without dominating
+      // Demote to warning: keeps the signal visible without dominating
       // the score.
       "spam/near-duplicate":    "warning",
       // 2026-05-03 calibration round 5: catalog records are by-design
@@ -340,7 +340,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       // Demoting to warning preserves the signal without tanking the score.
       "spam/doorway-pattern":   "warning",
       // 2026-05-03 calibration round 4: catalog pages share template chrome
-      // by design — same as `spam/template-diversity`, this signal is
+      // by design; same as `spam/template-diversity`, this signal is
       // structurally true on programmatic-directories.
       "spam/boilerplate-ratio": "warning",
     },
@@ -390,13 +390,13 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
     // intent meant that 4 of 5 reputable pSEO sites that classified as
     // unclear (Zapier integrations, Typeform templates, Jasper templates,
     // Numbeo cost-of-living) failed their verdict ceiling. The dominant
-    // driver was always `aeo/citable-facts` at full error severity — but
+    // driver was always `aeo/citable-facts` at full error severity, but
     // catalog/template-gallery pages don't have prose, so the rule fires
     // for a STRUCTURAL reason (page is a table, not a paragraph), not a
     // QUALITY reason. Demoting the structurally-incompatible rules to
     // info on `unclear` is conservative:
     //   - if site is genuinely editorial and got mis-classified, signals
-    //     still surface (just info, not error) — author can act on them.
+    //     still surface (just info, not error); author can act on them.
     //   - if site is catalog and got mis-classified to unclear, verdict
     //     no longer falsely tanks.
     // Real spam signals (near-dup, doorway, thin) keep their severity.
@@ -411,28 +411,28 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       // and scored concerning despite all info-severity findings in the
       // top 5. The 8 critical "blockers" came from spam/near-duplicate,
       // spam/entity-swap, spam/doorway-pattern firing 1-2× each on its
-      // connectors directory — invisible per-rule but cumulatively pushing
+      // connectors directory: invisible per-rule but cumulatively pushing
       // the score over 'caution'. On unclear sites we cannot tell whether
       // these triple-fires represent a real doorway or a catalog; the
       // calibration corpus shows reputable catalogs hitting them more
-      // often than real doorways do. Demote to warning — keeps the signal
+      // often than real doorways do. Demote to warning: keeps the signal
       // visible (it appears in shouldFix bucket, with full message) without
       // tanking the verdict on a structurally-ambiguous site.
       "spam/near-duplicate":    "warning",
       "spam/entity-swap":       "warning",
       "spam/doorway-pattern":   "warning",
-      // 2026-05-03 calibration round 4: same boilerplate logic on unclear —
+      // 2026-05-03 calibration round 4: same boilerplate logic on unclear:
       // we can't tell whether the site is a marketing site (boilerplate IS
       // a quality issue) or a catalog (it isn't), so demote conservatively.
       "spam/boilerplate-ratio": "warning",
       // 2026-05-03 calibration round 5: same thin-content logic on unclear.
       // Catalog-shape sites that classify as unclear (Zapier, Typeform,
       // Jasper) had thin-content firing at error on the 5-15% of pages
-      // shorter than the 300-word default. Demote to info — surfaces the
+      // shorter than the 300-word default. Demote to info: surfaces the
       // signal without driving the verdict on a structurally-ambiguous site.
       "spam/thin-content":      "info",
       // 2026-05-03 v0.5.2 round 10: same demotions as programmatic-
-      // directory profile — these tipped Webflow/Zapier/Numbeo/Airbyte
+      // directory profile; these tipped Webflow/Zapier/Numbeo/Airbyte
       // back into concerning territory because they classify as unclear
       // and the new rules aren't yet calibrated for catalog shape.
       "tech/og-completeness":      "info",
@@ -462,7 +462,7 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
  * Pick the scoring profile for a classification. Falls back to `unclear`
  * (the conservative default) when classifier confidence is below 70%.
  *
- * v0.5.3 — when `applyDegenerationGuard` has tripped, we return a synthetic
+ * v0.5.3: when `applyDegenerationGuard` has tripped, we return a synthetic
  * profile that reuses `unclear` category weights but applies NO severity /
  * confidence overrides. The whole point of the guard is to expose the
  * natural rule severities on degenerate corpora; the demotion table on
@@ -482,7 +482,7 @@ function profileFor(classification: SiteClassification | undefined): ScoringProf
 }
 
 /**
- * v0.4.3 — per-rule impact model. Replaces flat severity weights so a single
+ * v0.4.3: per-rule impact model. Replaces flat severity weights so a single
  * "error" doesn't always cost the same: a `spam/near-duplicate` cluster of 5
  * pages should hurt much more than a single `aeo/citable-facts` warning, even
  * though both could theoretically be "error" severity.
@@ -496,14 +496,14 @@ function profileFor(classification: SiteClassification | undefined): ScoringProf
 interface RuleImpact {
   /** First-occurrence penalty. */
   baseImpact: number;
-  /** Per-additional-instance penalty (capped — see below). */
+  /** Per-additional-instance penalty (capped; see below). */
   perInstance: number;
   /** Hard cap on per-rule contribution (so no single rule can dominate). */
   maxImpact?: number;
 }
 
 const RULE_IMPACTS: Record<string, RuleImpact> = {
-  // SpamBrain — high baseline, count amplifies (cluster matters)
+  // SpamBrain: high baseline, count amplifies (cluster matters)
   "spam/near-duplicate":      { baseImpact: 25, perInstance: 5,  maxImpact: 80 },
   "spam/entity-swap":         { baseImpact: 25, perInstance: 5,  maxImpact: 80 },
   "spam/doorway-pattern":     { baseImpact: 30, perInstance: 0,  maxImpact: 30 },
@@ -536,7 +536,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // v0.5.8 composite per-page quality synthesis
   "content/value-add":            { baseImpact: 25, perInstance: 8, maxImpact: 50 },
 
-  // Tech — softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
+  // Tech: softened in v0.4.3-rc2 after dogfood showed nextjs.org regressing
   // from ready→caution on tech/canonical-consistency × 4 (legit cross-domain
   // canonicals on a CDN). Per-instance now 1 (was 3).
   "tech/canonical-consistency":          { baseImpact: 8,  perInstance: 1, maxImpact: 25 },
@@ -546,10 +546,10 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "tech/sitemap-completeness":           { baseImpact: 8,  perInstance: 1, maxImpact: 30 },
   "tech/robots-sitemap-presence":        { baseImpact: 8,  perInstance: 0, maxImpact: 8 },
   "tech/soft-404":                       { baseImpact: 6,  perInstance: 1, maxImpact: 30 },
-  // hreflang — one bad declaration breaks all language pairs, so the COUNT
+  // hreflang: one bad declaration breaks all language pairs, so the COUNT
   // doesn't compound. perInstance: 0 keeps it at the base impact regardless
   // of how many language pairs are affected. Dogfood showed 350 findings on
-  // stripe.com from a single missing reciprocal pair — that should not be
+  // stripe.com from a single missing reciprocal pair; that should not be
   // treated as 350× the impact.
   "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
   "tech/og-completeness":                { baseImpact: 4,  perInstance: 1, maxImpact: 20 },
@@ -568,7 +568,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // severity rather than diluting into discoverability (0.15 weight).
   "links/host-section-divergence": { baseImpact: 15, perInstance: 5, maxImpact: 45 },
 
-  // AEO — much lower baselines than spam (AEO is opt-in optimization)
+  // AEO: much lower baselines than spam (AEO is opt-in optimization)
   "aeo/citable-facts":        { baseImpact: 2,  perInstance: 1,  maxImpact: 25 },
   "aeo/answer-first":         { baseImpact: 3,  perInstance: 1,  maxImpact: 25 },
   "aeo/summary-bait":         { baseImpact: 4,  perInstance: 1,  maxImpact: 25 },
@@ -590,7 +590,7 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
 const DEFAULT_RULE_IMPACT: RuleImpact = { baseImpact: 5, perInstance: 1, maxImpact: 25 };
 
 /**
- * v0.4.3 — confidence-based discount applied to each finding's impact.
+ * v0.4.3: confidence-based discount applied to each finding's impact.
  * Low-confidence findings contribute less to the bucket so they don't
  * inflate the verdict on site types where they false-positive.
  */
@@ -603,7 +603,7 @@ const CONFIDENCE_MULTIPLIER: Record<Confidence, number> = {
 
 /** Slug map for `RuleResult.docsUrl`. Defaults to the rule-id segment after the `/`. */
 const RULE_DOCS_SLUG: Record<string, string> = {
-  // intentionally empty for v0.4 — slug = ruleId.split("/").pop() works for every shipped rule
+  // intentionally empty for v0.4; slug = ruleId.split("/").pop() works for every shipped rule
 };
 
 function docsUrlFor(ruleId: string): string {
@@ -611,7 +611,7 @@ function docsUrlFor(ruleId: string): string {
   return `https://pseolint.dev/rules/${slug}`;
 }
 
-/** Verdict ladder thresholds — see spec §4.4. */
+/** Verdict ladder thresholds; see spec §4.4. */
 function verdictForRisk(risk: number): Verdict {
   if (risk <= 20) return "ready";
   if (risk <= 40) return "caution";
@@ -620,7 +620,7 @@ function verdictForRisk(risk: number): Verdict {
 }
 
 /**
- * 2026-05-03 v0.5.2 — apply the bring-your-own-authority shift to the
+ * 2026-05-03 v0.5.2: apply the bring-your-own-authority shift to the
  * verdict ladder. The raw `risk` number is unchanged; only the user-
  * facing verdict mapping shifts.
  *
@@ -665,23 +665,23 @@ function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | und
   return shiftVerdict(verdict, { score: authorityScore, lenientAt: 80, strictAt: 30, cap: 1 });
 }
 
-// Content-effort JUDGE model — PINNED, not the provider default. The moderation
+// Content-effort JUDGE model: PINNED, not the provider default. The moderation
 // thresholds below (3 / 5 / 25) are calibrated to THIS model's 0-100 score
 // distribution (reputable median ≈ 8.5, farms ≤3). Bumping it requires a
-// re-calibration run — regenerate the committed score map and confirm the
+// re-calibration run: regenerate the committed score map and confirm the
 // reputable/farm gap still separates cleanly:
 //   PSEO_EFFORT_MODEL=<new-model> bun run packages/core/scripts/content-effort-validate.ts
 //   bun run scripts/calibration-corpus.ts   # verdict ceilings must still pass
 // Only then move this constant. See docs/superpowers/specs/2026-07-17-sonnet-5-default-bump.md.
 const CONTENT_EFFORT_MODEL = "claude-sonnet-4-6";
 
-// content-effort moderation band — STARTING values; Task 7 tunes against the
+// content-effort moderation band: STARTING values; Task 7 tunes against the
 // ratchet. Derived from the gate data: reputable median effort ≈ 8.5, addressable
 // farms cluster ≤7, proprietary-data winners (numbeo/airbyte) ≈28.
 const EFFORT_STRICT_AT = 5; // very-low effort → escalate (farm cluster)
 const EFFORT_LENIENT_AT = 25; // high effort → soften (rescues proprietary-data winners e.g. numbeo)
 const EFFORT_CAP = 1;
-// v0.7.4 — promote content-effort from a ±1 nudge to a recall DRIVER for the
+// v0.7.4: promote content-effort from a ±1 nudge to a recall DRIVER for the
 // "verbose AI farm" archetype that defeats every structural/content rule
 // (rich, entity-distinct prose → thin/unique-value/near-duplicate all stay
 // quiet; see docs/superpowers/specs/2026-06-29-recall-leak-structural-rules-suppressed.md).
@@ -712,7 +712,7 @@ function gradeForPenalty(penalty: number): Grade {
 
 /** True for `text/html` and `application/xhtml+xml` only (treat as audit-eligible content). */
 function isHtmlContentType(contentType: string | undefined): boolean {
-  if (!contentType) return true; // Local files / unknown — assume HTML.
+  if (!contentType) return true; // Local files / unknown; assume HTML.
   const lower = contentType.toLowerCase();
   return lower.includes("text/html") || lower.includes("application/xhtml+xml");
 }
@@ -723,7 +723,7 @@ function globMatchPathname(pattern: string, urlOrPath: string): boolean {
   try {
     pathname = new URL(urlOrPath).pathname;
   } catch {
-    // Not a URL — treat as already-a-path. Force a leading slash for consistency.
+    // Not a URL; treat as already-a-path. Force a leading slash for consistency.
     pathname = urlOrPath.startsWith("/") ? urlOrPath : `/${urlOrPath}`;
   }
   // Allow patterns that don't begin with "/" by normalising both sides.
@@ -762,7 +762,7 @@ function runRulesOnPages(
    * Full set of parsed pages including those filtered out by `respectNoindex`
    * / `skipDetectedAuth`. Defaults to `pages` for backwards compat. The two
    * noindex-conflict rules (`tech/canonical-noindex-conflict`,
-   * `tech/robots-noindex-conflict`) read this list specifically — without it,
+   * `tech/robots-noindex-conflict`) read this list specifically: without it,
    * `respectNoindex: true` would hide noindex'd pages from the very rules
    * designed to flag accidental noindex'ing.
    */
@@ -824,7 +824,7 @@ function runRulesOnPages(
       };
     });
 
-  // Spam rules — always compute cross-page data, only push findings if enabled
+  // Spam rules: always compute cross-page data, only push findings if enabled
   const nearDuplicate = nearDuplicateRule(pages, resolvedRules.nearDuplicateThreshold);
   if (isEnabled("spam/near-duplicate") && modeOk("spam/near-duplicate")) {
     pushAll(findings, tag(nearDuplicate.findings));
@@ -889,7 +889,7 @@ function runRulesOnPages(
     })));
   }
 
-  // 2026-05-03 v0.5.2 blind-spot fixes — title uniqueness + heading
+  // 2026-05-03 v0.5.2 blind-spot fixes: title uniqueness + heading
   // structure + image alt-text were tier-1 gaps in the blind-spot audit.
   if (isEnabled("content/title-uniqueness") && modeOk("content/title-uniqueness")) {
     pushAll(findings, tag(titleUniquenessRule(pages)));
@@ -913,7 +913,7 @@ function runRulesOnPages(
     pushAll(findings, tag(wikipediaParaphraseRule(pages)));
   }
 
-  // Link rules — use the global link graph
+  // Link rules: use the global link graph
   if (isEnabled("links/orphan-pages") && modeOk("links/orphan-pages")) {
     pushAll(findings, tag(orphanPagesRule(pages, inbound, rootUrl, sampled)));
   }
@@ -969,7 +969,7 @@ function runRulesOnPages(
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
     // hreflang declarations on noindex'd pages are still bugs when they're
-    // inconsistent — see auditor.test.ts "emits technical SEO findings".
+    // inconsistent; see auditor.test.ts "emits technical SEO findings".
     pushAll(findings, tag(hreflangConsistencyRule(noindexAwarePages, normalizeUrlOptions)));
   }
 
@@ -1074,7 +1074,7 @@ function runRulesOnPages(
     pushAll(findings, tag(summaryBaitRule(pages, entityPatterns)));
   }
 
-  // Cannibal rules — only url-pattern survives in v0.4 (title-overlap and
+  // Cannibal rules: only url-pattern survives in v0.4 (title-overlap and
   // keyword-collision dropped due to high false-positive rates; see
   // 2026-04-29 v0.4 redesign spec §4.3).
   if (isEnabled("cannibal/url-pattern") && modeOk("cannibal/url-pattern")) {
@@ -1099,12 +1099,12 @@ interface ScoreOutput {
   risk: number;
   /** v0.4 four-bucket categories with grades. */
   categories: CategoryGrades;
-  /** Counts per issue bucket — for the verdict headline. */
+  /** Counts per issue bucket, for the verdict headline. */
   bucketCounts: { blockers: number; shouldFix: number; informational: number };
 }
 
 /**
- * v0.4.3 — apply per-site-type severity + confidence overrides BEFORE any
+ * v0.4.3: apply per-site-type severity + confidence overrides BEFORE any
  * bucketing happens, so blocker/shouldFix counts and category buckets all
  * reflect the user-visible severity, not the rule's native severity.
  *
@@ -1135,7 +1135,7 @@ export function applyScoringProfileOverrides(
 /**
  * 2026-05-03 credibility: list of rule IDs that ACTUALLY had their severity
  * remapped on this audit. Distinct from `profile.severityOverrides` which is
- * the static set of demotions defined per profile — this is the subset of
+ * the static set of demotions defined per profile: this is the subset of
  * those that actually fired. Surfaced via `summary.appliedSeverityDemotions`
  * so formatters can show the user "engine demoted X rules because <site
  * type> profile" rather than hiding the mechanism.
@@ -1156,7 +1156,7 @@ function computeAppliedDemotions(
 }
 
 /**
- * v0.4.3 — confidence-and-count-aware scoring. Replaces the v0.4 model that
+ * v0.4.3: confidence-and-count-aware scoring. Replaces the v0.4 model that
  * counted only severity. Each rule has a `baseImpact + (count - 1) *
  * perInstance` contribution capped by `maxImpact`. The result is multiplied
  * by the finding's `confidence` (default `high` → 1.0). Per-site-type
@@ -1215,14 +1215,14 @@ function scoreFromFindings(
   // 2026-05-03 calibration credibility fix: track info-severity vs
   // non-info contributions to each bucket separately so a flood of info
   // findings can't fill the bucket cap and tank the verdict on its own.
-  // Round 7 surfaced this on Airbyte and round 8 on Zapier — both had
+  // Round 7 surfaced this on Airbyte and round 8 on Zapier; both had
   // ALL info-severity findings in their top drivers yet scored
   // `concerning` because cumulative info impact filled the citation
   // bucket past its 100 cap. Now: info contribution per bucket caps at
   // 50; warning+ contribution caps at 100; final bucket = sum, capped
   // at 100. A site with no real warning/error findings can score at
   // most ~12.5 risk from info accumulation at typical 0.25 citation
-  // weight — which keeps verdict aligned with the visible severity in
+  // weight, which keeps verdict aligned with the visible severity in
   // the report.
   const bucketInfoOnly: Record<CategoryKey, number> = {
     integrity: 0, discoverability: 0, citation: 0, data: 0, audit: 0,
@@ -1241,7 +1241,7 @@ function scoreFromFindings(
     const cap = impactSpec.maxImpact ?? Number.POSITIVE_INFINITY;
     const cappedImpact = Math.min(cap, rawImpact);
 
-    // Confidence multiplier — use the WORST (highest-multiplier) confidence
+    // Confidence multiplier: use the WORST (highest-multiplier) confidence
     // in the group so a rule that fires repeatedly with mixed confidence is
     // not unfairly downweighted to its lowest-confidence instance.
     let bestMultiplier = 0;
@@ -1255,7 +1255,7 @@ function scoreFromFindings(
     const weighted = cappedImpact * bestMultiplier;
 
     // Bucket the rule's contribution by the highest severity in the group.
-    // Mixed-severity groups (e.g. error + info) count toward non-info — once
+    // Mixed-severity groups (e.g. error + info) count toward non-info: once
     // a rule has any non-info finding, its count contribution is treated as
     // a real-issue signal, not info accumulation.
     const isInfoOnly = group.every((f) => f.severity === "info");
@@ -1279,13 +1279,13 @@ function scoreFromFindings(
     bucketRaw.citation * cw.citation +
     bucketRaw.data * cw.data;
 
-  // v0.5.3 — blocker DENSITY floor. Category weights (e.g. small-marketing's
+  // v0.5.3: blocker DENSITY floor. Category weights (e.g. small-marketing's
   // citation:0.20) can dilute hard-failed sites to A/B even when most pages
   // hit critical findings. Floor risk based on blockers-per-page so that:
   //   - small structurally-broken sites (bestfirenze: 5 blockers / 6 pages
   //     = 0.83) get pushed to D/critical regardless of category-weight dilution
   //   - large reputable directories (Zapier integrations: 5 blockers / 500
-  //     pages = 0.01) are unaffected — their per-page error rate is tiny
+  //     pages = 0.01) are unaffected; their per-page error rate is tiny
   //     so the dilution is honest, not a scoring artifact
   // Density bands chosen to land bestfirenze at ≥60 (D) without disturbing
   // calibration corpus reputable sites at ratio < 0.05.
@@ -1353,7 +1353,7 @@ function withDocsUrls(findings: RuleResult[]): RuleResult[] {
  * Append every item of `items` to `target` in place. Use this instead of
  * `target.push(...items)` whenever `items` can be large. The spread form passes
  * each element as a separate call argument, and V8 caps argument count
- * (~131072) — so `push(...bigArray)` throws `RangeError: Maximum call stack size
+ * (~131072): so `push(...bigArray)` throws `RangeError: Maximum call stack size
  * exceeded` on large inputs. A dense site makes the pairwise rules
  * (near-duplicate / entity-swap) emit C(N,2) findings, which blew the cap at the
  * rule-aggregation push *before* enrichment was even reached. The loop has no
@@ -1433,7 +1433,7 @@ async function fetchWithRetry(
     if (r.status < 200 || r.status >= 300) return null;
     if (maxBytes && maxBytes > 0 && r.body.length > maxBytes) {
       // eslint-disable-next-line no-console
-      console.error(`pseolint: sitemap ${url} is ${(r.body.length / 1_048_576).toFixed(0)}MB, over the ${(maxBytes / 1_048_576).toFixed(0)}MB cap — skipping it.`);
+      console.error(`pseolint: sitemap ${url} is ${(r.body.length / 1_048_576).toFixed(0)}MB, over the ${(maxBytes / 1_048_576).toFixed(0)}MB cap; skipping it.`);
       return null;
     }
     return { text: r.body, contentType: (r.headers["content-type"] ?? "").toLowerCase() };
@@ -1551,7 +1551,7 @@ function isSitemapIndex(text: string): boolean {
 }
 
 function matchGlob(pattern: string, value: string): boolean {
-  // Iterative glob matcher — avoids dynamic RegExp to prevent ReDoS.
+  // Iterative glob matcher: avoids dynamic RegExp to prevent ReDoS.
   // Supports ** (any path segments) and * (one path segment, no separator).
   // Normalise both sides to forward slashes so Windows paths work with
   // POSIX-style patterns like **/api/**.
@@ -1638,7 +1638,7 @@ async function collectUrlsFromSitemap(
   // `childTotal` = number of child sitemaps referenced by index(es) we walked.
   // `childFailed` = those we could NOT fetch/parse (404, non-sitemap, or skipped
   // by the depth cap). A non-zero `childFailed` means the declared URL list is
-  // itself INCOMPLETE — the caller's coverage guardrail keys on this to catch
+  // itself INCOMPLETE; the caller's coverage guardrail keys on this to catch
   // "unreachable child sitemaps", which a urls-only count can never reveal.
 ): Promise<{ urls: string[]; lastmodByUrl: Map<string, string>; childTotal: number; childFailed: number }> {
   visited.add(sitemapUrl);
@@ -1656,7 +1656,7 @@ async function collectUrlsFromSitemap(
     return { urls, lastmodByUrl, childTotal: 0, childFailed: 0 };
   }
 
-  // It's a sitemap index. Past the depth cap we stop recursing — but the
+  // It's a sitemap index. Past the depth cap we stop recursing, but the
   // children we DON'T walk are unreached coverage, so report them as failed.
   if (depth >= maxDepth) {
     // eslint-disable-next-line no-console
@@ -1672,7 +1672,7 @@ async function collectUrlsFromSitemap(
     const childUrl = entry.url;
     if (signal?.aborted) throw signal.reason ?? new Error("aborted");
     childTotal += 1;
-    if (visited.has(childUrl)) continue; // already walked (cyclic index) — not a failure
+    if (visited.has(childUrl)) continue; // already walked (cyclic index), not a failure
     const child = await fetchWithRetry(childUrl, timeoutMs, cache, stats, signal, validateHop, SITEMAP_MAX_BYTES);
     if (!child) { childFailed += 1; continue; }
     const childLike = child.contentType.includes("xml") || looksLikeSitemap(child.text);
@@ -1747,7 +1747,7 @@ interface MonitoringContext {
   ageFloorDays: number;
   now: Date;
   /**
-   * v0.5.3 — caller-supplied "watched pages" override. Any URL here is always
+   * v0.5.3: caller-supplied "watched pages" override. Any URL here is always
    * refetched (reason `"watched"`), regardless of age / ruleset / lastmod.
    * URLs absent from the sitemap are still added to the fetch set.
    */
@@ -1779,7 +1779,7 @@ async function loadPagesFromSource(
 ): Promise<{ pages: LoadedPage[]; sitemapUrls?: Set<string>; sitemapLastmodByUrl?: Map<string, string>; discoveredUrlCount?: number; declaredSitemapUrlCount?: number; sitemapChildTotal?: number; sitemapChildFailed?: number; scrapePlan?: ScrapePlan }> {
   // Memoized SSRF validator. When guardSsrf is on, every URL fetched by the
   // audit (source, sitemap entries, redirects, discovered links) goes through
-  // this. DNS is hit once per unique hostname per audit — a 4k-page audit on
+  // this. DNS is hit once per unique hostname per audit: a 4k-page audit on
   // one origin does 1 DNS lookup, not 4k.
   const ssrfCache = new Map<string, Promise<void>>();
   const validateHop: ((u: string) => Promise<void>) | undefined = guardSsrf
@@ -1815,7 +1815,7 @@ async function loadPagesFromSource(
       contentType = fetched.contentType;
     } catch (err: unknown) {
       const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
-      // Sitemap URL returned non-200 — fallback to crawl from origin homepage
+      // Sitemap URL returned non-200; fallback to crawl from origin homepage
       if (source.includes("sitemap")) {
         try {
           const origin = new URL(source).origin;
@@ -1828,7 +1828,7 @@ async function loadPagesFromSource(
           throw new Error(`Failed to fetch source URL: ${source} (and fallback to origin failed${fallbackDetail})`, { cause: fallbackErr });
         }
       } else {
-        throw new Error(`Failed to fetch source URL: ${source}${detail} — verify the URL is correct and returns a valid response.`, { cause: err });
+        throw new Error(`Failed to fetch source URL: ${source}${detail}; verify the URL is correct and returns a valid response.`, { cause: err });
       }
     }
 
@@ -1844,7 +1844,7 @@ async function loadPagesFromSource(
         : allSitemapUrls;
 
       // v0.5: change-driven monitoring. Apply the decision matrix BEFORE
-      // fetching bodies. URLs in plan.skip are not network-touched at all —
+      // fetching bodies. URLs in plan.skip are not network-touched at all;
       // their findings will be carried forward from prior state by the caller.
       // This is the whole point of monitoring mode: rule eval is microseconds,
       // the fetch is seconds; move the skip decision upstream of the fetch.
@@ -1870,7 +1870,7 @@ async function loadPagesFromSource(
       // the caller. Falls back to a private array when no sink is passed.
       const pages: LoadedPage[] = pageSink ?? [];
 
-      // Fetch robots.txt once for the origin — reused for Crawl-Delay pacing and Disallow checks.
+      // Fetch robots.txt once for the origin, reused for Crawl-Delay pacing and Disallow checks.
       const sourceOrigin = (() => { try { return new URL(source).origin; } catch { return ""; } })();
       const robots = await fetchRobotsMeta(sourceOrigin, timeoutMs, cache, stats, signal, validateHop);
       const effectiveConcurrency = robots.crawlDelaySec > 0 ? 1 : concurrency;
@@ -1891,7 +1891,7 @@ async function loadPagesFromSource(
               skippedByRobots.push(url);
               return;
             }
-          } catch { /* URL parse failed — fall through, fetch will fail naturally */ }
+          } catch { /* URL parse failed; fall through, fetch will fail naturally */ }
         }
 
         const result = await fetchPageWithMeta(url, timeoutMs, cache, stats, signal, validateHop, followRedirects);
@@ -1922,7 +1922,7 @@ async function loadPagesFromSource(
           const linkMatches = Array.from(page.html.matchAll(/href=["']([^"']+)["']/gi));
           for (const match of linkMatches) {
             if (discoveredUrls.size >= maxCrawlDiscovered) {
-              // Hard ceiling — don't let a malicious site with many self-links
+              // Hard ceiling: don't let a malicious site with many self-links
               // extend crawl discovery up to the byte budget.
               discoveryCeilingReached = true;
               break outer;
@@ -1990,7 +1990,7 @@ async function loadPagesFromSource(
         const knownCrawled = new Set<string>([source]);
         const allDiscoveredUrls = new Set<string>([source]);
         const maxDepth = 3;
-        // Total URLs the discovered sitemap(s) declare — the basis for the
+        // Total URLs the discovered sitemap(s) declare, the basis for the
         // caller's coverage guardrail. Undefined when no sitemap is found.
         let declaredSitemapUrlCount: number | undefined;
         // Child-sitemap reachability for the guardrail: how many child sitemaps
@@ -2000,7 +2000,7 @@ async function loadPagesFromSource(
         let sitemapChildFailed = 0;
 
         // Sitemap-first discovery (like Google). Before link-crawling, read the
-        // sitemap(s) the site declares — link-crawl only reaches *linked* pages,
+        // sitemap(s) the site declares; link-crawl only reaches *linked* pages,
         // but a pSEO site's whole point is thousands of programmatic URLs that
         // may be sparsely linked (or behind a build-frozen, under-linked nav).
         // Sources of truth, in order:
@@ -2029,7 +2029,7 @@ async function loadPagesFromSource(
               smText = fetched.text;
               smType = fetched.contentType;
             } catch {
-              continue; // SSRF refusal, network error, etc. — skip this candidate
+              continue; // SSRF refusal, network error, etc.; skip this candidate
             }
             if (!(smType.includes("xml") || looksLikeSitemap(smText))) continue;
             const { urls: discoveredSmUrls, childTotal: ct, childFailed: cf } = await collectUrlsFromSitemap(
@@ -2044,7 +2044,7 @@ async function loadPagesFromSource(
 
           // Same-origin + robots-aware filter, deduped against what we have.
           // Record what the sitemap(s) declared (deduped) before same-origin /
-          // robots filtering — the operator's site has this many URLs.
+          // robots filtering: the operator's site has this many URLs.
           if (sitemapListedUrls.length > 0) declaredSitemapUrlCount = new Set(sitemapListedUrls).size;
 
           const seedUrls = Array.from(new Set(sitemapListedUrls)).filter((u) => {
@@ -2064,7 +2064,7 @@ async function loadPagesFromSource(
           for (const u of seedUrls) allDiscoveredUrls.add(u);
           // Cap the seed fetch. With a sampling budget, fit under it; without one
           // (the default "audit everything" path) bound by maxCrawlDiscovered, the
-          // same ceiling the link-crawl honors — otherwise a homepage audit of a
+          // same ceiling the link-crawl honors; otherwise a homepage audit of a
           // site with a 50k-URL sitemap would try to fetch all of them (the link
           // crawl never could, so this would be an unbounded-egress regression).
           const seedToFetch = discoveryBudget > 0
@@ -2172,7 +2172,7 @@ async function loadPagesFromSource(
     // from the fixture manifest. Without a manifest (or unparseable JSON), the
     // engine falls back to file-path URLs (existing behaviour for arbitrary
     // HTML directories). Missing files listed in a valid manifest are
-    // propagated as errors — a stale manifest is a programmer error, not
+    // propagated as errors: a stale manifest is a programmer error, not
     // a soft condition.
     const manifestPath = join(resolved, "_manifest.json");
     let hasManifest = false;
@@ -2182,7 +2182,7 @@ async function loadPagesFromSource(
       manifest = JSON.parse(raw) as Record<string, string>;
       hasManifest = true;
     } catch {
-      // No manifest file or invalid JSON — fall through to path-based loading
+      // No manifest file or invalid JSON; fall through to path-based loading
     }
     if (hasManifest && manifest !== null) {
       // Propagate missing-file errors (fail-loud: stale manifests must be noticed)
@@ -2211,7 +2211,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const runId = generateRunId();
   const runStartedAt = Date.now();
   // Apply safeMode preset first, then let explicit options override it. Using
-  // `??` preserves the "not set" vs "explicitly false" distinction — a user
+  // `??` preserves the "not set" vs "explicitly false" distinction: a user
   // who picks safeMode="saas" but passes `guardSsrf: false` gets the explicit
   // override. Localhost sources auto-promote to the `dev` preset unless the
   // caller explicitly set `safeMode` or passed `autoDevPreset: false`.
@@ -2221,16 +2221,16 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const timeoutMs = options?.timeout ?? 30000;
   const ignorePatterns = options?.ignore ?? [];
   const respectNoindex = options?.respectNoindex ?? true;
-  // v0.7.x — auth / boilerplate / search-result skipping default ON. These
+  // v0.7.x: auth / boilerplate / search-result skipping default ON. These
   // pages are never SEO targets, so auditing them only adds noise; the
   // calibration FP-rate over the fixture corpus is ~0 (see calibration/fp-rate.ts).
-  // `skipEmptyBody` stays OFF by default — its one corpus hit is a listing
+  // `skipEmptyBody` stays OFF by default; its one corpus hit is a listing
   // homepage the parser under-extracts, a borderline false positive.
   const skipDetectedAuth = options?.skipDetectedAuth ?? true;
   const skipBoilerplate = options?.skipBoilerplate ?? true;
   const skipSearchPages = options?.skipSearchPages ?? true;
   const skipEmptyBody = options?.skipEmptyBody ?? false;
-  // v0.5.12: when pinnedUrls is non-empty, sampleSize is irrelevant — the
+  // v0.5.12: when pinnedUrls is non-empty, sampleSize is irrelevant; the
   // pinned list IS the sample. Force to 0 so the post-fetch sampling step
   // is a no-op and all pinned pages pass through untruncated.
   const hasPinnedUrlsEarly = Array.isArray(options?.pinnedUrls) && (options.pinnedUrls as ReadonlyArray<string>).length > 0;
@@ -2249,7 +2249,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const backpressureAbort = new AbortController();
   let backpressureError: OriginDegradedError | null = null;
   // Set once we've decided to salvage a partial report after a watchdog abort.
-  // From that point `throwIfAborted` must NOT re-throw the backpressure error —
+  // From that point `throwIfAborted` must NOT re-throw the backpressure error;
   // the watchdog already did its job (stopped fetching); the rest of the
   // pipeline runs over the pages collected so far and the truncation is
   // surfaced on the summary instead.
@@ -2261,7 +2261,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const observer = new FetchObserver();
   // 2026-05-03 calibration: the prior (3s p95 cap, 2× baseline multiplier)
   // gate aborted 4 of 12 reputable-pSEO audits on what was normal load
-  // variance — Zapier at p95=576ms (2.4× a 236ms baseline), Webflow at
+  // variance: Zapier at p95=576ms (2.4× a 236ms baseline), Webflow at
   // p95=1808ms (2.2× 833ms), Airbyte at p95=1288ms (3.4× 380ms). For real
   // production CDNs these spikes are noise, not degradation. Raise the
   // gate so it still catches truly broken origins (sustained 4× slowdown
@@ -2275,8 +2275,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         // audits on real production sites that legitimately return ~10% 5xx
         // (transient errors, async page renderers warming up, sites in
         // canary). Combined with the `>=` comparison bug (also fixed),
-        // this aborted every web-app audit. 0.15 keeps the gate honest —
-        // a sustained 15%+ 5xx rate is a real problem, not noise — while
+        // this aborted every web-app audit. 0.15 keeps the gate honest
+        // (a sustained 15%+ 5xx rate is a real problem, not noise) while
         // letting transient errors not bring down the whole audit.
         errorRatioThreshold: 0.15,
       })
@@ -2323,7 +2323,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     // pages collected so far. Before that commit, the loader-boundary catch
     // handles it; this guard only fires on the rare path where the loader
     // returned normally (e.g. a fetch mock that ignores the abort signal) yet
-    // the watchdog still voted to abort — salvage rather than crash.
+    // the watchdog still voted to abort; salvage rather than crash.
     if (backpressureError && !truncated) {
       salvageBackpressure();
     }
@@ -2428,14 +2428,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     (priorState ? "monitoring" : "fresh");
 
   // Build the monitoring context only for HTTP sources in monitoring mode with
-  // prior state. Single-page HTML and filesystem sources skip this — they are
+  // prior state. Single-page HTML and filesystem sources skip this; they are
   // exempted from the strategy (a single-page audit has nothing to plan; local
   // reads are cheap so re-reading every file beats branch complexity).
   const isHttpSource = /^https?:\/\//i.test(source);
   // If the user asked for monitoring against a filesystem source, surface that
   // we're ignoring the request. Silent bypass leads to "why is my state file
   // not being used?" debugging. Only log when the user actively chose
-  // monitoring (explicit --mode or --since) — auto-monitoring on prior state
+  // monitoring (explicit --mode or --since); auto-monitoring on prior state
   // existence is implicit and shouldn't warn.
   if (!isHttpSource && effectiveMode === "monitoring" && (options?.state?.mode === "monitoring" || options?.state?.since)) {
     console.error(
@@ -2454,10 +2454,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       : null;
 
   if (!priorState && options?.state?.since) {
-    console.error("no prior state found — performing full baseline audit");
+    console.error("no prior state found; performing full baseline audit");
   }
 
-  // v0.5.12 — pinnedUrls fast path: bypass sitemap discovery + random sampling
+  // v0.5.12 pinnedUrls fast path: bypass sitemap discovery + random sampling
   // entirely. Only fetch the caller-specified URLs. Validated same-origin for
   // HTTP sources. Filesystem sources treat pinnedUrls as absolute paths.
   let loadedPagesRaw: LoadedPage[];
@@ -2493,7 +2493,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         }
       }
     }
-    // Fetch pinned URLs directly — no sitemap fetch, no sampling
+    // Fetch pinned URLs directly: no sitemap fetch, no sampling
     const ssrfCache = new Map<string, Promise<void>>();
     const validateHopPinned: ((u: string) => Promise<void>) | undefined = guardSsrf
       ? async (u: string) => {
@@ -2522,7 +2522,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     } catch (err) {
       // Same salvage contract as the sitemap/crawl path: a watchdog abort
       // mid-fetch keeps the pages already collected in `pinnedPages`. Any other
-      // error (external abort, SSRF rejection) is fatal — re-throw it.
+      // error (external abort, SSRF rejection) is fatal; re-throw it.
       if (err instanceof OriginDegradedError) {
         salvageBackpressure();
       } else {
@@ -2538,7 +2538,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   } else {
     // Salvage sink: loadPagesFromSource fills this incrementally as pages come
     // back. If the backpressure watchdog aborts mid-crawl the call throws an
-    // OriginDegradedError and the function's own return value is lost — but the
+    // OriginDegradedError and the function's own return value is lost, but the
     // already-fetched pages survive here, so we recover them and continue the
     // pipeline with a `truncated` flag instead of throwing the whole run away.
     const pageSink: LoadedPage[] = [];
@@ -2554,7 +2554,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       scrapePlan = loaded.scrapePlan;
     } catch (err) {
       // Only the watchdog abort is salvageable. An external abort (ctrl-C /
-      // parent timeout) or any other error is fatal — re-throw it untouched so
+      // parent timeout) or any other error is fatal; re-throw it untouched so
       // --no-backpressure and ctrl-C behaviour are unchanged.
       if (err instanceof OriginDegradedError) {
         // Prefer the canonical backpressureError message (same object the
@@ -2582,7 +2582,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       }
     }
   }
-  // Pages we successfully FETCHED (HTTP 2xx) from discovery — before content-type
+  // Pages we successfully FETCHED (HTTP 2xx) from discovery, before content-type
   // and policy filtering, and before sampling. This is the right denominator for
   // the coverage guardrail: noindex / non-HTML pages were still *reached* (they
   // count), intentional sampling happens later (doesn't count against us), and
@@ -2622,7 +2622,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       skippedByContentType.push(p.url);
     }
   }
-  // Replace contents in place without `splice(0, n, ...big)` — that spread hits
+  // Replace contents in place without `splice(0, n, ...big)`; that spread hits
   // the V8 argument-count cap on large corpora (same class as pushAll).
   loadedPages.length = 0;
   pushAll(loadedPages, htmlOnlyPages);
@@ -2634,7 +2634,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // v0.5: prior state was loaded BEFORE loadPagesFromSource so the change-
   // driven monitoring decision matrix could run pre-fetch. URLs the matrix
   // marked as "skip" were never fetched and are recorded in skippedUrls
-  // above. The old post-fetch contentHash skip is gone — the decision now
+  // above. The old post-fetch contentHash skip is gone; the decision now
   // happens upstream of the network round-trip.
 
   let robotsTxtContent = "";
@@ -2734,7 +2734,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   // CrUX field data: fetch real-user p75 CWV (LCP/CLS/INP) and attach to pages
   // so tech/core-web-vitals can score against the number Google ranks on rather
-  // than the lab render. Opt-in (key required), best-effort — any failure leaves
+  // than the lab render. Opt-in (key required), best-effort; any failure leaves
   // fieldVitals unset and the rule falls back to lab vitals.
   if (options?.crux?.apiKey) {
     try {
@@ -2758,9 +2758,9 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
             // eslint-disable-next-line no-console
             console.error(
               `pseolint: CrUX returned operational error(s) [${statuses.join(", ")}]` +
-              (rateLimited ? " — rate-limited (429); some pages fell back to lab/no field data." : "") +
-              (badKey ? " — key rejected (401/403); check CRUX_API_KEY." : "") +
-              (!rateLimited && !badKey ? " — some field data may be missing." : ""),
+              (rateLimited ? "; rate-limited (429); some pages fell back to lab/no field data." : "") +
+              (badKey ? "; key rejected (401/403); check CRUX_API_KEY." : "") +
+              (!rateLimited && !badKey ? "; some field data may be missing." : ""),
             );
           },
         },
@@ -2780,7 +2780,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   // v0.4.1 §page-filter: drop noindex'd pages and (when enabled) heuristically
   // detected auth pages BEFORE rule evaluation. The site owner's noindex is a
-  // hard signal — they already opted out of SEO indexing, so auditing those
+  // hard signal: they already opted out of SEO indexing, so auditing those
   // URLs produces only noise. Auth detection is opt-in via skipDetectedAuth
   // (off for the CLI by default; on for the hosted web form).
   const skippedByPolicy: Array<{
@@ -2830,7 +2830,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
             );
           }
           // Entity patterns are used with String.replace to mask every occurrence, which
-          // requires the `g` flag. Add it if the user forgot — a silently broken "only first
+          // requires the `g` flag. Add it if the user forgot; a silently broken "only first
           // match masked" regex would make template-detection rules (answer-first,
           // citable-facts) miss shared openers.
           const normalizedFlags = rawFlags.includes("g") ? rawFlags : `${rawFlags}g`;
@@ -2846,14 +2846,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       ]
     : DEFAULT_ENTITY_PATTERNS;
 
-  // v0.4 §4.11 — pre-flight site classification. We compute this BEFORE the
+  // v0.4 §4.11: pre-flight site classification. We compute this BEFORE the
   // rule pipeline so the dispatcher can skip pSEO-only rules on small
   // marketing sites / blogs. Classification is computed off the FULL
   // discovered URL set (sitemap when available, else loaded URLs). This
   // matters: a sampled crawl of a 5000-page directory must still classify
   // as `programmatic-directory`, not `unclear`.
   const classifierUrls: string[] = (() => {
-    // v0.6.1 — explicit caller override takes priority. Lets calibration
+    // v0.6.1: explicit caller override takes priority. Lets calibration
     // fixtures audit a small sample but classify against full sitemap.
     if (options?.classifierUrls && options.classifierUrls.length > 0) {
       return [...options.classifierUrls];
@@ -2869,7 +2869,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     urls: classifierUrls,
     framework: classifierFramework,
   });
-  // v0.5.3 — degeneration guard. If the classifier landed on small-marketing
+  // v0.5.3: degeneration guard. If the classifier landed on small-marketing
   // or blog but the corpus is degenerate (mostly thin / mostly identical
   // titles), downgrade to `unclear` so the small-marketing severity-demotion
   // table doesn't mask hard failures (the bestfirenze.com case).
@@ -2882,8 +2882,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   //
   // A backpressure abort BEFORE classification salvages only a fragment of the
   // crawl (`truncated` is already set here; the coverage guardrail runs later).
-  // Classifying that fragment — e.g. the 1 page left after the watchdog aborts a
-  // cold-start origin — as `small-marketing` and suppressing the pSEO rules off
+  // Classifying that fragment, e.g. the 1 page left after the watchdog aborts a
+  // cold-start origin as `small-marketing` and suppressing the pSEO rules off
   // it is exactly what produced the confident false "READY" on a 5,600-page
   // site. When the run was truncated pre-classification we genuinely could not
   // determine the site type: force `unclear` (confidence 0, no suppression,
@@ -2916,7 +2916,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   }
 
   // v0.4 §4.4: origin readiness is now diagnostic-only. The previous
-  // `audit/origin-readiness` finding emission was retired — the structured
+  // `audit/origin-readiness` finding emission was retired; the structured
   // ReadinessReport in `summary.diagnostics.originReadiness` is the canonical
   // signal now (no double-counting in the issue buckets).
 
@@ -3028,7 +3028,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       groupConfig?.overrides,
       options?.mode ?? "full",
       // 2026-05-06 calibration fix: pinnedUrls mode fetches a hand-picked subset
-      // of the full site — the link graph across those pages is structurally
+      // of the full site; the link graph across those pages is structurally
       // incomplete, just like a random-sampled crawl. Pass `true` so
       // links/unreachable-from-root skips its check rather than emitting
       // sampling-artifact false positives (22/25 Wise pages flagged "unreachable"
@@ -3052,7 +3052,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   throwIfAborted();
 
-  // v0.5.8 — content/value-add composite: second-pass rule that reads from
+  // v0.5.8 content/value-add composite: second-pass rule that reads from
   // the full allFindings array to compute a per-page quality synthesis score.
   // Must run AFTER all per-page rules so all source signals are present.
   {
@@ -3085,7 +3085,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // strategy marked as "skip" were never fetched this run, so no rule produced
   // findings for them. Restore their findings from prior state, marked with
   // `carriedForward: true` and `lastVerifiedAt` so consumers can reason about
-  // staleness. Inject after enrichment + overrides — these findings already
+  // staleness. Inject after enrichment + overrides; these findings already
   // went through both in their original run; re-running enrichment would
   // strip their template / cluster assignments because parsedPages doesn't
   // contain the skipped pages.
@@ -3101,7 +3101,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
           confidence: f.confidence as Confidence,
           carriedForward: true,
           lastVerifiedAt: prior.fetchedAt,
-          // State stores `url` but the engine type uses `pageUrl` — map back.
+          // State stores `url` but the engine type uses `pageUrl`; map back.
           pageUrl: typeof f.url === "string" ? f.url : url,
         };
         // Optional fields are preserved opportunistically when present in state.
@@ -3118,7 +3118,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  // v0.6 — template detection + per-template scoring (opt-in, additive).
+  // v0.6: template detection + per-template scoring (opt-in, additive).
   // Activation gating per spec §11.1 / §15.3:
   //   - Site classification is NOT `unclear` AND NOT `small-marketing`
   //   - detectTemplates returns ≥ 2 qualifying (non-longtail) templates
@@ -3166,16 +3166,16 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  // v0.6.0 — spec §15.1: site verdict comes from siteVerdictFromTemplates when
+  // v0.6.0 spec §15.1: site verdict comes from siteVerdictFromTemplates when
   // ≥1 template has ≥5% coverage. Falls back to the legacy risk-ladder verdict
   // when no template meets the threshold (single-template sites, `unclear`/
   // `small-marketing` classifications, or the long-tail-only case).
-  // The `risk` score is intentionally unchanged — §15.1 governs verdict only.
+  // The `risk` score is intentionally unchanged; §15.1 governs verdict only.
   const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), resolvedAuthorityScore);
   const templateVerdict = siteVerdictFromTemplates(siteTemplates);
   const baseVerdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
 
-  // 2026-06-17 SP1 — opt-in content-effort moderation. Like authority, this
+  // 2026-06-17 SP1: opt-in content-effort moderation. Like authority, this
   // shifts only the user-facing verdict (never `risk`), one tier in either
   // direction, and is a strict no-op when the signal is absent (null/undefined).
   // Resolution: an injected `contentEffortScore` (calibration/tests, offline)
@@ -3193,7 +3193,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       // Reuse the audit's own parsed pages + template clustering: map each
       // template's audited URLs back to their parsed contentText. When no
       // template qualified (small/unclear sites), fall back to ONE synthetic
-      // site-wide template over every audited page — mirrors the validation
+      // site-wide template over every audited page; mirrors the validation
       // runner's buildTemplates (scripts/content-effort-validate.ts).
       const contentByUrl = new Map(parsedPages.map((p) => [p.url, p.contentText ?? ""]));
       const toSamples = (urls: string[]) =>
@@ -3260,7 +3260,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     pageCount: auditedPageCount || parsedPages.length,
     templateDetected: enriched.templateDetected,
     rawFindingCount: enriched.rawFindingCount,
-    // v0.5.12 — sorted list of audited page URLs for --repin capture
+    // v0.5.12: sorted list of audited page URLs for --repin capture
     auditedUrls: parsedPages.length > 0
       ? [...parsedPages.map((p) => p.url)].sort()
       : undefined,
@@ -3285,13 +3285,13 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (!truncated && sitemapChildFailed && sitemapChildFailed > 0) {
     // (A) Extraction-side: a sitemap INDEX referenced child sitemaps we could
     // not fetch/parse (404, non-sitemap, or beyond the depth cap). The declared
-    // URL list is itself incomplete — the "unreachable child sitemaps" case a
+    // URL list is itself incomplete: the "unreachable child sitemaps" case a
     // urls-only count can never see (and the original false-negative class).
     truncated = true;
     truncatedKind = "coverage";
     truncatedReason =
       `${sitemapChildFailed} of ${sitemapChildTotal} child sitemaps referenced by the sitemap index could not be ` +
-      `fetched or parsed — both the declared URL count and this audit are incomplete, so the verdict is not ` +
+      `fetched or parsed; both the declared URL count and this audit are incomplete, so the verdict is not ` +
       `representative of the full site. Check that every child sitemap is reachable (HTTP 200, valid XML).`;
     // eslint-disable-next-line no-console
     console.error(`pseolint: ${truncatedReason}`);
@@ -3301,15 +3301,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     // we intended to. Compare against `fetchedCount` (pages actually fetched,
     // pre-filter/pre-sample) so legitimately-skipped pages (noindex, non-HTML)
     // and intentional sampling do NOT register as a shortfall. `intended` is
-    // bounded by every deliberate limit — an explicit sample, the crawl cap, and
-    // the declared total — so none of them false-fire.
+    // bounded by every deliberate limit: an explicit sample, the crawl cap, and
+    // the declared total, so none of them false-fire.
     const sampleCap = sampleSize > 0 ? sampleSize : Number.POSITIVE_INFINITY;
     const crawlCap = maxCrawlDiscovered > 0 ? maxCrawlDiscovered : Number.POSITIVE_INFINITY;
     const intended = Math.min(sampleCap, crawlCap, declaredSitemapUrlCount);
     const floor = Math.max(20, Math.floor(intended * 0.05));
     // `intended >= 20`: only judge representativeness when we actually meant to
     // audit a substantial slice. A deliberately tiny sample/crawl cap (intended
-    // < 20) is the operator's choice, not under-discovery — don't flag it (and
+    // < 20) is the operator's choice, not under-discovery; don't flag it (and
     // it would otherwise trip the absolute floor of 20).
     if (intended >= 20 && fetchedCount < floor) {
       const unreached = Math.max(0, declaredSitemapUrlCount - fetchedCount);
@@ -3320,7 +3320,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       truncatedReason =
         `Fetched ${fetchedCount} of ~${declaredSitemapUrlCount} sitemap-declared URLs (~${pct}% coverage); ` +
         `~${unreached} could not be retrieved (4xx/5xx, redirects, or robots-blocked). The verdict covers only the ` +
-        `pages reached and is not representative — check for a stale sitemap or unreachable pages, or raise crawl limits.`;
+        `pages reached and is not representative; check for a stale sitemap or unreachable pages, or raise crawl limits.`;
       // eslint-disable-next-line no-console
       console.error(`pseolint: ${truncatedReason}`);
     }
@@ -3330,7 +3330,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     summary.truncated = true;
     summary.truncatedReason = truncatedReason;
     if (truncatedKind) summary.truncatedKind = truncatedKind;
-    // A truncated run is incomplete — never present it as a clean green. Floor
+    // A truncated run is incomplete; never present it as a clean green. Floor
     // the verdict to at least "caution" so the headline matches the partial-
     // coverage banner instead of the false "READY ✓" over a salvaged fragment.
     // ("ready" is the only rung below "caution"; everything else already is.)
@@ -3356,12 +3356,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     if (unmatched.length === ignorePatterns.length) {
       // eslint-disable-next-line no-console
       console.warn(
-        `[pseolint] none of the ${ignorePatterns.length} ignore pattern${ignorePatterns.length === 1 ? "" : "s"} matched any URLs — check config or --ignore for typos`,
+        `[pseolint] none of the ${ignorePatterns.length} ignore pattern${ignorePatterns.length === 1 ? "" : "s"} matched any URLs; check config or --ignore for typos`,
       );
     } else if (options?.warnUnmatchedIgnore === true) {
       for (const pattern of unmatched) {
         // eslint-disable-next-line no-console
-        console.warn(`[pseolint] ignore pattern '${pattern}' matched 0 URLs — likely typo`);
+        console.warn(`[pseolint] ignore pattern '${pattern}' matched 0 URLs, likely typo`);
       }
     }
   }
@@ -3389,7 +3389,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     for (const reason of scrapePlan.skip.values()) {
       reasonCounts[reason] = (reasonCounts[reason] ?? 0) + 1;
     }
-    // `fetched` is the number of URLs whose bodies actually came back —
+    // `fetched` is the number of URLs whose bodies actually came back;
     // robots-disallowed, byte-budget-exceeded, content-type-filtered, and 4xx
     // URLs the matrix INTENDED to refetch may have dropped out before we got
     // here. `intended` (= scrapePlan.refetch.size) is exposed too so callers
@@ -3425,14 +3425,14 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     auditFindings.push({
       ruleId: "audit/skipped-by-policy",
       severity: "info",
-      message: `Skipped ${skippedByPolicy.length} page${skippedByPolicy.length === 1 ? "" : "s"} from rule evaluation — ${parts.join(", ")}. First few: ${sample}${more}.`,
+      message: `Skipped ${skippedByPolicy.length} page${skippedByPolicy.length === 1 ? "" : "s"} from rule evaluation: ${parts.join(", ")}. First few: ${sample}${more}.`,
       relatedUrls: skippedByPolicy.map((s) => s.url),
     });
   }
 
   // Local flat view of every finding the engine produced, used internally for
   // state persistence, regression detection, AI triage input, and telemetry
-  // counts. NOT exposed on the AuditSummary — consumers must use
+  // counts. NOT exposed on the AuditSummary; consumers must use
   // `summary.issues.{blockers,shouldFix,informational}` and
   // `summary.diagnostics.auditFindings`.
   const enrichedFindings: RuleResult[] = enriched.findings;
@@ -3442,7 +3442,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const currentFindings = new Map<string, Set<string>>();
     for (const f of enrichedFindings) {
       if (!f.pageUrl) continue;
-      // Carried-forward findings are not "current" — we did not re-verify them
+      // Carried-forward findings are not "current"; we did not re-verify them
       // this run. Including them would mask a genuine regression on a skipped
       // URL: prior set has rule X carried-forward, current set also has X
       // (carried-forward), comparison says "no new rule", we miss the case
@@ -3475,7 +3475,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     // v0.5+: persist full finding records per URL so future monitoring runs
     // can carry them forward when the URL is skipped pre-fetch. Carried-
     // forward findings (carriedForward=true) are NOT re-persisted under the
-    // fetched URL — they belong to the prior entry that's preserved verbatim
+    // fetched URL; they belong to the prior entry that's preserved verbatim
     // for skipped URLs above.
     const fullFindingsByUrl = new Map<string, RuleResult[]>();
     for (const f of enrichedFindings) {
@@ -3572,7 +3572,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   if (options?.ai?.enabled) {
     if (options.ai.apiKey) {
       console.error(
-        "[ai-triage] warning: ai.apiKey is set in options. Prefer env vars (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.) — never commit an apiKey to a config file.",
+        "[ai-triage] warning: ai.apiKey is set in options. Prefer env vars (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.); never commit an apiKey to a config file.",
       );
     }
     try {
@@ -3590,7 +3590,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
               ttlMs: options.ai.cache?.ttlMs ?? 30 * 24 * 60 * 60 * 1000,
             };
 
-      // Daily-budget pre-flight read (best-effort — missing file is fine).
+      // Daily-budget pre-flight read (best-effort; missing file is fine).
       let spentTodayUsd: number | undefined;
       if (options.ai.dailyBudgetUsd !== undefined) {
         const telemetryPath = options.telemetry?.path ?? ".pseolint/telemetry.jsonl";
@@ -3624,7 +3624,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     } catch (e) {
       const reason = e instanceof Error ? e.message : "unknown error";
       console.error(`[ai-triage] skipped: ${reason}`);
-      // No resolved model — providerId/modelId blank.
+      // No resolved model; providerId/modelId blank.
       triageAttempt = { providerId: options.ai.provider ?? "", modelId: options.ai.model ?? "", skipReason: reason };
     }
   }
@@ -3698,7 +3698,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const aiHintEnabled = options?.ai?.suggest !== false;
   if (aiHintEnabled && !options?.ai?.enabled && process.env.ANTHROPIC_API_KEY) {
     console.error(
-      `💡 AI triage available — re-run with --ai to prioritize ${enrichedFindings.length} findings into a fix list.`,
+      `💡 AI triage available: re-run with --ai to prioritize ${enrichedFindings.length} findings into a fix list.`,
     );
   }
 

@@ -1,8 +1,8 @@
-# Actionable Output Improvements — Design Spec
+# Actionable Output Improvements: Design Spec
 
 > **For agentic workers:** This spec describes finding enrichment, clustering, content analysis, template detection, effort tagging, and formatter upgrades for pseolint.
 
-**Goal:** Transform pseolint's output from a wall of pairwise findings into clustered, contextualized, actionable guidance that tells users what's wrong, what's duplicated, and where to start fixing — across all four output formats.
+**Goal:** Transform pseolint's output from a wall of pairwise findings into clustered, contextualized, actionable guidance that tells users what's wrong, what's duplicated, and where to start fixing, across all four output formats.
 
 **Problem:** A 476-page PaperForge audit produces 8,839 findings dominated by O(n^2) pairwise comparisons. Fix strings are generic platitudes. Users get no content breakdown, no effort estimate, no template-aware advice. The signal-to-noise ratio makes the output unusable for large pSEO sites.
 
@@ -115,7 +115,7 @@ For cluster findings where `ruleId` is `spam/near-duplicate` or `spam/entity-swa
 - Pick the 2 most-similar pages from `worstPairs[0]`
 - Reuse sentence-level text block extraction from boilerplate-ratio (`split(/[.!?]\s+|\n+/)`, trim, lowercase, filter >20 chars)
 - Compute blocks shared between the two pages vs. blocks unique to each
-- Attach `contentBreakdown` data to the cluster finding's `fix` string (not as a second context — a finding has one context)
+- Attach `contentBreakdown` data to the cluster finding's `fix` string (not as a second context: a finding has one context)
 - Format: "Shared: intro (42w), terms (180w), signature (95w). Unique: title only (3w)."
 
 For `content/unique-value` findings:
@@ -136,7 +136,7 @@ If matched: `templateDetected = true`.
 After enrichment, regenerate fix strings for enriched findings:
 
 **Cluster findings (template detected):**
-> "Your template produces N near-identical pages (X–Y% similar). [Content breakdown]. Add conditional content sections per entity dimension — local regulations, pricing, requirements, or statistics specific to each [STATE/entity]."
+> "Your template produces N near-identical pages (X–Y% similar). [Content breakdown]. Add conditional content sections per entity dimension: local regulations, pricing, requirements, or statistics specific to each [STATE/entity]."
 
 **Cluster findings (template NOT detected):**
 > "N pages form a near-duplicate cluster (X–Y% similar). [Content breakdown]. Differentiate these pages with unique content specific to each page's topic."
@@ -174,14 +174,14 @@ Replace the current count-only format with richer per-rule summaries:
 **Before:**
 ```
 Top Issues
-  1. spam/near-duplicate — 4673 findings
+  1. spam/near-duplicate: 4673 findings
 ```
 
 **After:**
 ```
 Top Issues
-  1. spam/near-duplicate — 3 clusters (47 pages, 85–91% similar). Structural fix.
-  2. tech/og-completeness — 10 pages missing tags. Quick fix.
+  1. spam/near-duplicate: 3 clusters (47 pages, 85–91% similar). Structural fix.
+  2. tech/og-completeness: 10 pages missing tags. Quick fix.
 ```
 
 **Sort order:** Severity first (critical > error > warning > info), then effort ascending within same severity (quick wins bubble up).
@@ -198,7 +198,7 @@ Top Issues
     [structural]
 ```
 
-**HTML:** `<details>` / `<summary>` collapsible — summary shows cluster size and similarity range, expand to see full member list and worst pairs.
+**HTML:** `<details>` / `<summary>` collapsible, summary shows cluster size and similarity range, expand to see full member list and worst pairs.
 
 **Markdown:** Same structure as console with markdown links and inline effort badges `(**structural**)`.
 
@@ -216,7 +216,7 @@ Top Issues
 
 **Console:** Dim text at end of finding: `[quick fix]`, `[moderate]`, `[structural]`
 
-**HTML:** Colored pill — green (quick), yellow (moderate), red (structural)
+**HTML:** Colored pill, green (quick), yellow (moderate), red (structural)
 
 **Markdown:** Inline bold: `(**quick fix**)`, `(**moderate**)`, `(**structural**)`
 
@@ -248,51 +248,51 @@ Added to the Zod schema as `z.boolean().optional()`. Passed through `AuditOption
 
 ### Backward compatibility
 
-- `RuleResult.context`, `RuleResult.effort` are optional — existing consumers unaffected
-- `AuditSummary.templateDetected`, `AuditSummary.rawFindingCount` are optional — same
+- `RuleResult.context`, `RuleResult.effort` are optional: existing consumers unaffected
+- `AuditSummary.templateDetected`, `AuditSummary.rawFindingCount` are optional: same
 - JSON output gains new fields; no existing fields change shape or semantics
-- Scoring is unchanged — cluster findings preserve the highest severity from constituent pairs
+- Scoring is unchanged: cluster findings preserve the highest severity from constituent pairs
 - `summary.rawFindingCount` preserves the pre-enrichment count so CI scripts checking raw finding counts still work
-- Rule implementations are unchanged — enrichment is a post-processing layer
-- CLI flags unchanged — no new flags needed
-- Exit code logic unchanged — still score vs. threshold
+- Rule implementations are unchanged: enrichment is a post-processing layer
+- CLI flags unchanged: no new flags needed
+- Exit code logic unchanged: still score vs. threshold
 
 ---
 
 ## 5. Testing Strategy
 
-### Unit tests — enrichment pipeline (`enrich-findings.test.ts`)
+### Unit tests: enrichment pipeline (`enrich-findings.test.ts`)
 
-1. **Union-find clustering** — 5 pairwise findings (A~B, B~C, D~E, A~E) collapse to 1 cluster with 5 members
-2. **Independent clusters** — Pairs (A~B, C~D) with no overlap produce 2 separate cluster findings
-3. **Worst pairs selection** — Cluster with 10 pairs preserves top 3 by similarity, sorted descending
-4. **Similarity range** — `similarityRange` captures [min, max] across all pairs
-5. **Cross-rule independence** — near-duplicate and keyword-collision on same pages produce separate clusters
-6. **Content breakdown** — 2 pages sharing 3 of 5 text blocks → `sharedBlocks` has 3, `uniqueWordCount` reflects the other 2
-7. **Template detection positive** — >=10 entity-swap pages + boilerplate >=50% → `templateDetected = true`
-8. **Template detection negative** — 3 entity-swap pairs + no boilerplate → `templateDetected = false`
-9. **Template config override** — `templateGenerated: true` → `templateDetected = true` regardless of findings
-10. **Effort assignment** — og-completeness on 3 pages → `quick`; on 25 pages → `moderate`
-11. **Effort escalation boundary** — 20 pages = no escalation, 21 pages = escalated
-12. **Non-pairwise passthrough** — thin-content, orphan-pages get effort tags but no clustering
+1. **Union-find clustering**: 5 pairwise findings (A~B, B~C, D~E, A~E) collapse to 1 cluster with 5 members
+2. **Independent clusters**: Pairs (A~B, C~D) with no overlap produce 2 separate cluster findings
+3. **Worst pairs selection**: Cluster with 10 pairs preserves top 3 by similarity, sorted descending
+4. **Similarity range**: `similarityRange` captures [min, max] across all pairs
+5. **Cross-rule independence**: near-duplicate and keyword-collision on same pages produce separate clusters
+6. **Content breakdown**: 2 pages sharing 3 of 5 text blocks → `sharedBlocks` has 3, `uniqueWordCount` reflects the other 2
+7. **Template detection positive**: >=10 entity-swap pages + boilerplate >=50% → `templateDetected = true`
+8. **Template detection negative**: 3 entity-swap pairs + no boilerplate → `templateDetected = false`
+9. **Template config override**: `templateGenerated: true` → `templateDetected = true` regardless of findings
+10. **Effort assignment**: og-completeness on 3 pages → `quick`; on 25 pages → `moderate`
+11. **Effort escalation boundary**: 20 pages = no escalation, 21 pages = escalated
+12. **Non-pairwise passthrough**: thin-content, orphan-pages get effort tags but no clustering
 
-### Unit tests — fix strings (`fix-strings.test.ts`)
+### Unit tests: fix strings (`fix-strings.test.ts`)
 
-13. **Cluster fix with template** — Contains "template", "conditional sections", cluster size, similarity range, content summary
-14. **Cluster fix without template** — Contains "differentiate", no "template" language
-15. **Per-page fix with template >5 pages** — Contains "template" mention
+13. **Cluster fix with template**: Contains "template", "conditional sections", cluster size, similarity range, content summary
+14. **Cluster fix without template**: Contains "differentiate", no "template" language
+15. **Per-page fix with template >5 pages**: Contains "template" mention
 
 ### Formatter tests (extend existing)
 
-16. **Console Top Issues** — Each line has cluster count + effort tag, not raw finding count
-17. **Console cluster rendering** — Worst pair line + shared content summary present
-18. **HTML cluster rendering** — `<details>` element with cluster data
-19. **JSON context serialization** — `context` and `effort` fields present
-20. **Markdown effort inline** — `(**quick fix**)` format present
+16. **Console Top Issues**: Each line has cluster count + effort tag, not raw finding count
+17. **Console cluster rendering**: Worst pair line + shared content summary present
+18. **HTML cluster rendering**: `<details>` element with cluster data
+19. **JSON context serialization**: `context` and `effort` fields present
+20. **Markdown effort inline**: `(**quick fix**)` format present
 
 ### Integration test
 
-21. **PaperForge-shaped fixture** — 20 near-identical pages varying only by entity. Assert: raw pairwise > 100, enriched < 10, clusters contain members, template detected, fix strings reference templates
+21. **PaperForge-shaped fixture**: 20 near-identical pages varying only by entity. Assert: raw pairwise > 100, enriched < 10, clusters contain members, template detected, fix strings reference templates
 
 ---
 

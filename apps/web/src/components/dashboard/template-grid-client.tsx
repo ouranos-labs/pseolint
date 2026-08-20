@@ -31,7 +31,7 @@ export interface TemplateGridClientProps {
  * event (`template-selected`) so the FindingsPanel below it can filter.
  *
  * Per-cluster coverage is read off each `Template.totalDiscoveredUrls` inside
- * the card — there is deliberately no site-level discovered-URL prop here (the
+ * the card: there is deliberately no site-level discovered-URL prop here (the
  * old one was wired to `summary.pageCount`, the sampled count, producing wrong
  * coverage denominators).
  */

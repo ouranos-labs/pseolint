@@ -70,13 +70,13 @@ async function fetchXml(url: string, timeoutMs: number, signal?: AbortSignal): P
 /**
  * Fetch + parse sitemap.xml, optionally recursing into a sitemap index. Caps
  * the URL list at `maxUrls` so a 50K-URL sitemap doesn't blow up the model
- * context. Reports `truncated: true` when the cap fires — the LLM should then
+ * context. Reports `truncated: true` when the cap fires: the LLM should then
  * call `sample_template` with the returned subset.
  */
 export const fetchSitemapTool = defineTool({
   name: "fetch_sitemap",
   description:
-    "Fetch a sitemap.xml and return its URL list. Handles sitemap-index recursion (one level by default). Capped at 5000 URLs by default — use detect_templates + sample_template afterwards to pick a representative sample for auditing. Returns `truncated: true` when capped.",
+    "Fetch a sitemap.xml and return its URL list. Handles sitemap-index recursion (one level by default). Capped at 5000 URLs by default, use detect_templates + sample_template afterwards to pick a representative sample for auditing. Returns `truncated: true` when capped.",
   inputSchema,
   outputSchema,
   async execute({ sitemapUrl, maxUrls = 5000, maxDepth = 1, timeoutMs = 15_000 }, ctx) {

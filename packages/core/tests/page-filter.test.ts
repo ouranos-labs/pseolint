@@ -53,7 +53,7 @@ describe("detectNoindex", () => {
 
   test("returns false when 'noindex' is a substring of an unrelated word", () => {
     // robotsMeta is parsed from a meta tag content attr, not free body text,
-    // so this case is theoretical — but tightening the regex to word-boundary
+    // so this case is theoretical, but tightening the regex to word-boundary
     // would be a future improvement.
     expect(detectNoindex(makePage({ robotsMeta: "follow" }))).toBe(false);
   });
@@ -126,7 +126,7 @@ describe("detectAuthPage", () => {
   test("marketing page with single password-input signal stays not-auth", () => {
     const result = detectAuthPage(
       makePage({
-        title: "How to choose a strong password — security guide",
+        title: "How to choose a strong password: security guide",
         contentText: Array(300).fill("word").join(" "), // 300 words → not thin
         html: '<input type="password"/>',
       }),
@@ -139,7 +139,7 @@ describe("detectAuthPage", () => {
   test("returns no signals for plain marketing page", () => {
     const result = detectAuthPage(
       makePage({
-        title: "Pricing — MyApp",
+        title: "Pricing: MyApp",
         contentText: Array(300).fill("word").join(" "),
         html: "<h1>Pricing</h1>",
       }),
@@ -227,7 +227,7 @@ describe("detectBoilerplatePage", () => {
     const result = detectBoilerplatePage(
       makePage({
         url: "https://example.com/blog/privacy-by-design",
-        title: "Privacy by Design — Why It Matters | MyApp",
+        title: "Privacy by Design: Why It Matters | MyApp",
         headings: { h1: ["Why Privacy by Design Matters"], h2: [] },
         contentText: "We talk about privacy a lot in this article...",
       }),

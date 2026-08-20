@@ -41,7 +41,7 @@ describe("deliverMagicLink", () => {
     // `instanceof` avoids dual better-auth resolution under vitest.)
     expect(err?.constructor.name).toBe("APIError");
     expect(err?.statusCode).toBe(502);
-    // User-facing message is clean and actionable — it must NOT leak the
+    // User-facing message is clean and actionable; it must NOT leak the
     // underlying Resend reason.
     expect(err?.message).toContain("couldn't send your sign-in email");
     expect(err?.message).not.toContain("Resend");

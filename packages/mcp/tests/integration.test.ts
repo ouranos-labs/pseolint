@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { fileURLToPath } from "node:url";
-// NO vi.mock here — this suite runs the REAL engine (auditSource, formatJson,
+// NO vi.mock here: this suite runs the REAL engine (auditSource, formatJson,
 // formatConsole) against a static fixture in filesystem mode (no network), so
 // it catches core↔MCP drift that the mocked suite cannot.
 import { createServer } from "../src/server.js";
 import { connect, textOf, type CallResult } from "./helpers.js";
 
-// packages/core/calibration/fixtures/airbyte_com — 24 static HTML pages.
+// packages/core/calibration/fixtures/airbyte_com: 24 static HTML pages.
 const FIXTURE = fileURLToPath(new URL("../../core/calibration/fixtures/airbyte_com", import.meta.url));
 
 const VERDICTS = ["ready", "caution", "concerning", "critical"];
@@ -67,7 +67,7 @@ describe("integration (real engine, filesystem fixture)", () => {
     const text = textOf(r);
     expect(text.length).toBeGreaterThan(100);
     // v0.4 console formatter uses the verdict ladder and intentionally never
-    // prints the numeric risk to humans — assert on what it actually emits.
+    // prints the numeric risk to humans; assert on what it actually emits.
     expect(text).toMatch(/pseolint/i);
     expect(text).toMatch(/fix|blocker|finding/i);
   }, 30_000);

@@ -143,7 +143,7 @@ describe("regurgitatedContentRule", () => {
   });
 
   test("real site: live <script> Places JS still trips (script is not example markup)", () => {
-    // The exclusion removes example/code regions but NOT <script> — a genuine
+    // The exclusion removes example/code regions but NOT <script>: a genuine
     // scraper carries the marker in a live script, which must still be detected.
     const html = `
       <script>const s = new google.maps.places.PlacesService(map);</script>

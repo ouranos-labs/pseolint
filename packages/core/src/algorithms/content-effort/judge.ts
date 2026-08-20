@@ -70,9 +70,9 @@ export interface JudgeUsage { inputTokens: number; outputTokens: number; }
 /**
  * Production generate: structured-output judge. `generateObject` enforces the schema via a
  * single FORCED tool, so a prompt injection in the page text can at most return an in-range
- * number — it cannot add or redirect tools (the body sits inside the data fence; the system
+ * number: it cannot add or redirect tools (the body sits inside the data fence; the system
  * frames it as untrusted). `onUsage`, when provided, reports each call's token usage so a
- * caller can enforce a hard cost ceiling — it may throw to abort the run mid-flight.
+ * caller can enforce a hard cost ceiling: it may throw to abort the run mid-flight.
  */
 export function makeLlmGenerate(
   model: LanguageModel,

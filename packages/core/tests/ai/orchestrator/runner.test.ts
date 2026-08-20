@@ -87,7 +87,7 @@ describe("runOrchestrator", () => {
       model,
       providerId: "anthropic",
       modelId: "claude-sonnet-4-6",
-      // Run with empty tool registry — only finish_audit is needed for this happy-path test.
+      // Run with empty tool registry: only finish_audit is needed for this happy-path test.
       tools: {},
     });
 
@@ -205,7 +205,7 @@ describe("runOrchestrator", () => {
   });
 
   it("includes finish_audit in the orchestrator tool registry by default", () => {
-    // Sanity — no execution; ensures the finish tool's name + description are stable.
+    // Sanity: no execution; ensures the finish tool's name + description are stable.
     expect(finishAuditTool.name).toBe("finish_audit");
     expect(finishAuditTool.description).toContain("Terminate");
   });

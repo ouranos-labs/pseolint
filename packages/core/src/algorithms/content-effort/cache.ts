@@ -14,7 +14,7 @@ export async function readEffortCache(dir: string, key: string): Promise<number 
     const v = (JSON.parse(raw) as { effort: number }).effort;
     return Number.isFinite(v) ? v : null;
   } catch {
-    return null; // miss / unreadable — non-fatal
+    return null; // miss / unreadable: non-fatal
   }
 }
 

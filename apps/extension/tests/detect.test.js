@@ -46,13 +46,13 @@ assert.ok(isWebSerp("https://www.google.com/search?q=best+crm"), "plain web SERP
 assert.ok(isWebSerp("https://www.google.com/search?q=x&start=10"), "paginated web SERP");
 assert.ok(isWebSerp("https://www.google.com/search?q=x&udm=14"), "udm=14 is Web");
 assert.ok(isWebSerp("https://www.google.co.uk/search?q=x"), "ccTLD web SERP");
-// Verticals — classic tbm and new-UI udm — are NOT scannable. Allowlist: any tbm,
-// or any udm other than 14, is dormant — incl. verticals we never enumerated.
+// Verticals (classic tbm and new-UI udm) are NOT scannable. Allowlist: any tbm,
+// or any udm other than 14, is dormant: incl. verticals we never enumerated.
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&tbm=isch"), "images (tbm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&tbm=nws"), "news (tbm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=2"), "images (udm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=7"), "video (udm)");
-assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=28"), "shopping (udm) — unenumerated, dormant by default");
+assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=28"), "shopping (udm), unenumerated, dormant by default");
 // Not a results page at all.
 assert.ok(!isWebSerp("https://www.google.com/maps"), "maps path");
 assert.ok(!isWebSerp("https://example.com/search?q=x"), "non-google host");

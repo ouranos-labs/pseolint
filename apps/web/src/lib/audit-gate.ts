@@ -8,7 +8,7 @@ import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
 import { DAILY_AUDIT_CAP } from "@/lib/audit-limits";
 
 /**
- * Per-host audit ceiling per hour, applied across all tiers — protects target
+ * Per-host audit ceiling per hour, applied across all tiers: protects target
  * sites from amplification (e.g. a viral homepage submission). Mirrors the
  * inline value in `apps/web/src/app/api/audits/route.ts` until that handler is
  * refactored to call this module directly (planned for v0.5.4).
@@ -51,7 +51,7 @@ function currentHourKey(): string {
  * Known limitation (matches /api/audits route, planned fix in v0.5.4):
  * `bumpRateLimit` increments before the allow check, so a request blocked by
  * gate N still increments the counters for gates 1..N-1. In practice the
- * effect is small — counters TTL daily/hourly — but a Pro user repeatedly
+ * effect is small: counters TTL daily/hourly, but a Pro user repeatedly
  * hitting the per-host cap will burn their daily budget without firing an
  * audit. The fix is a reserve-then-commit gate primitive; deferred to keep
  * this v0.5.3 tail focused.

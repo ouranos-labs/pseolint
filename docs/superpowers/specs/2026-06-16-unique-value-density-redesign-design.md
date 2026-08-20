@@ -1,4 +1,4 @@
-# content/unique-value — density redesign
+# content/unique-value: density redesign
 
 **Date:** 2026-06-16
 **Status:** spec (approved direction; not yet implemented)
@@ -32,7 +32,7 @@ Three coupled choices break it:
    conflates "large + cohesive" (good) with "low unique value" (bad).
 
 Observed live on pseolint.dev: adding real content drove the flagged set 41 → 16 → 18 → 7
-without converging — it just moved which same-topic pages sit at 96–99. A genuinely
+without converging, it just moved which same-topic pages sit at 96–99. A genuinely
 near-duplicate page scores far lower (~0–40), so detection of the *real* bad case is fine;
 the failure is instability + false-positive bias at the top of the range. This is the same
 false-positive-on-reputable-pSEO risk the calibration work guards against.
@@ -41,18 +41,18 @@ false-positive-on-reputable-pSEO risk the calibration work guards against.
 
 - **A. IDF-weighted *sum*, absolute threshold.** Smoother credit, but still an absolute
   mass → still corpus-size- and length-sensitive. Rejected: only half the fix.
-- **B. Rarity *density* (ratio) — chosen.** Per-token graded weight, divided by the page's
+- **B. Rarity *density* (ratio): chosen.** Per-token graded weight, divided by the page's
   distinct-token count. Continuous (no shuffle), length-robust (ratio), corpus-robust (IDF
   normalizes by N). Catches near-dupes (low density) and clears large originals (high density).
 - **C. Percentile within the crawl** (flag bottom X%). Rejected: always flags X% even on a
-  flawless site — wrong for a pass/fail gate.
+  flawless site, wrong for a pass/fail gate.
 - **D. Merge into `spam/near-duplicate` (SimHash).** Rejected: that rule catches *pairs*;
   unique-value catches a page diluted by boilerplate spread across many pages with no single
   twin. Complementary, keep separate.
 
 ## Design (Approach B)
 
-Per page, over its distinct tokens `D` (same tokenizer as today — lowercase, split on
+Per page, over its distinct tokens `D` (same tokenizer as today, lowercase, split on
 whitespace, strip edge punctuation):
 
 ```
@@ -77,13 +77,13 @@ otherwise              → no finding
 - Two thresholds only. The `info` band directly fixes "borderline reads as a ship-blocker."
 
 ### Thresholds
-`errorBelow` / `passBelow` are **calibration outputs, not guesses** — pick from the density
+`errorBelow` / `passBelow` are **calibration outputs, not guesses**, pick from the density
 distribution of the reputable-pSEO corpus vs known-spam fixtures (see Validation). Starting
 placeholders for the first calibration run: `passBelow ≈ 0.20`, `errorBelow ≈ 0.12`.
 
 ### Scope (unchanged responsibilities, now cleaner)
 - Volume/thinness → `spam/thin-content` (a short original page passes unique-value, fails
-  thin-content if too short — clean separation; today's rule blurs the two).
+  thin-content if too short, clean separation; today's rule blurs the two).
 - Exact near-dupe pairs → `spam/near-duplicate` (SimHash).
 - Text quality / spun gibberish → `content/value-add` (unique-but-meaningless tokens still
   read as high density here; documented non-goal, same gaming surface as today).
@@ -95,11 +95,11 @@ placeholders for the first calibration run: `passBelow ≈ 0.20`, `errorBelow �
 | `packages/core/src/rules/content/unique-value.ts` | the ~6-line metric (w + density + 2-band severity); rewrite message/fix copy |
 | `packages/core/src/auditor.ts` | DEFAULTS (L118): `uniqueValueMinWords:100` → `uniqueValueMinDensity:{passBelow,errorBelow}`; resolvedRules type (L705); invocation (L796); resolve (L2210) |
 | `packages/core/src/types.ts` | `AuditOptions.rules` knob (L464): replace `uniqueValueMinWords?` |
-| `packages/core/src/enrich-findings.ts` | L195/216/231 parse the unique-word *count* out of the message — update to the new shape (density), or have the rule attach a structured field instead of regexing prose |
-| `packages/core/src/per-template-scoring.ts` | RULE_IMPACTS entry (L68) — likely unchanged; re-check after severity mix shifts |
+| `packages/core/src/enrich-findings.ts` | L195/216/231 parse the unique-word *count* out of the message: update to the new shape (density), or have the rule attach a structured field instead of regexing prose |
+| `packages/core/src/per-template-scoring.ts` | RULE_IMPACTS entry (L68): likely unchanged; re-check after severity mix shifts |
 | `packages/core/tests/rules/content/unique-value.test.ts` | rewrite for density (see Test plan) |
-| `apps/web/src/lib/marketing-rules.ts` | `/rules/unique-value` explainer (L539, L543) describes "exactly one" + "100 page-unique words" — rewrite to density |
-| `apps/web/src/lib/marketing-rules.test.ts` | dogfood calls `uniqueValueRule(corpus, 100)` — switch to density signature |
+| `apps/web/src/lib/marketing-rules.ts` | `/rules/unique-value` explainer (L539, L543) describes "exactly one" + "100 page-unique words": rewrite to density |
+| `apps/web/src/lib/marketing-rules.test.ts` | dogfood calls `uniqueValueRule(corpus, 100)`: switch to density signature |
 | CHANGELOG / changeset | scoring-affecting change → version bump per repo convention |
 
 Signature change: `uniqueValueRule(pages, minUniqueWords)` →
@@ -108,7 +108,7 @@ Signature change: `uniqueValueRule(pages, minUniqueWords)` →
 change requiring a version bump. No back-compat shim (`ponytail:` add only if a real
 external caller is found).
 
-## Validation / calibration (the gate — do NOT ship without it)
+## Validation / calibration (the gate: do NOT ship without it)
 
 This changes scoring for every user. Before merge:
 
@@ -122,7 +122,7 @@ This changes scoring for every user. Before merge:
      no longer error (the whole point).
    - **Separation exists:** reputable and spam density distributions are visibly separable;
      set `passBelow`/`errorBelow` in the gap. If they do **not** separate, the metric is
-     wrong — stop and reconsider (e.g., weight by token count, or a different rarity fn).
+     wrong, stop and reconsider (e.g., weight by token count, or a different rarity fn).
    - **Stability:** re-run with +10 sibling pages added; a clearly-original page's verdict
      does not flip (the anti-shuffle check).
 

@@ -39,7 +39,7 @@ describe("ogCompletenessRule", () => {
     expect(findings).toEqual([]);
   });
 
-  test("fires when og:image is missing — severity info (cosmetic only)", () => {
+  test("fires when og:image is missing, severity info (cosmetic only)", () => {
     const findings = ogCompletenessRule([
       page("https://ex.com/a", { title: "T", description: "D" }),
     ]);

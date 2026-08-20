@@ -38,7 +38,7 @@ export const monitorDomains = inngest.createFunction(
     auditLog("monitor.cron.start", {});
 
     // Eligibility (including the ownership gate) lives in selectDueDomains so
-    // it can be tested against a real DB — see monitor-eligibility.test.ts.
+    // it can be tested against a real DB: see monitor-eligibility.test.ts.
     const due = await step.run("fetch-due", async () =>
       selectDueDomains(MAX_DOMAINS_PER_TICK * 3),
     );
@@ -78,7 +78,7 @@ async function runOneMonitor(monitoredDomainId: string) {
   const mode: "full" | "diff" = isFullRun ? "full" : "diff";
   auditLog("monitor.domain.dispatch", { domainId: d.id, mode });
 
-  // Monitoring audits count against the user's daily quota — same economics as ad-hoc audits.
+  // Monitoring audits count against the user's daily quota: same economics as ad-hoc audits.
   const [profile] = await db
     .select({ plan: userProfiles.plan })
     .from(userProfiles)
@@ -135,14 +135,14 @@ async function runOneMonitor(monitoredDomainId: string) {
     }
   } catch (e) {
     auditLog("monitor.state.download_failed", { monitoredDomainId: d.id, err: e instanceof Error ? e.message : String(e) });
-    // Continue without prior state — auditor will baseline.
+    // Continue without prior state: auditor will baseline.
     stateTmpPath = null;
   }
 
-  // v0.5.3 — load the domain's watched-pages list so the engine force-refetches
+  // v0.5.3: load the domain's watched-pages list so the engine force-refetches
   // those URLs even when diff-mode would otherwise skip them. Empty list = no
   // force header sent (clean payload). Engine-side note: in fresh mode without
-  // prior state, `force` is silently ignored — fine here because the very
+  // prior state, `force` is silently ignored: fine here because the very
   // first run for a new domain has no watched pages yet.
   const watchedUrls = await loadWatchedUrlsForDomain(d.id);
 
@@ -211,7 +211,7 @@ async function runOneMonitor(monitoredDomainId: string) {
     }
   }
 
-  // v0.6.3 — per-template verdict comparison: fire template_degraded events when a
+  // v0.6.3, per-template verdict comparison: fire template_degraded events when a
   // template's verdict worsens between this run and the previous run. Requires a
   // prior audit (d.lastAuditId) so the very first run produces no events.
   if (d.lastAuditId && currSummaryRaw) {
@@ -251,7 +251,7 @@ async function runOneMonitor(monitoredDomainId: string) {
     });
     if (gate.shouldAlert) {
       const newRuleIds = gate.firingCombinations.map((f) => f.ruleId);
-      // Record the alert in history — written even without an email recipient,
+      // Record the alert in history: written even without an email recipient,
       // mirroring the pre-gate maybeAlert behaviour it replaced.
       const [alertRow] = await db
         .insert(monitoringAlerts)
@@ -295,7 +295,7 @@ async function runOneMonitor(monitoredDomainId: string) {
               });
             }
           }
-          // Email succeeded — stamp delivery, then write dedup rows.
+          // Email succeeded: stamp delivery, then write dedup rows.
           await db
             .update(monitoringAlerts)
             .set({ deliveredAt: new Date() })
@@ -309,7 +309,7 @@ async function runOneMonitor(monitoredDomainId: string) {
           }
         } catch (e) {
           auditLog("monitor.alert_gate.email_failed", { domainId: d.id, err: e instanceof Error ? e.message : String(e) });
-          // Do NOT write dedup rows — let the next run retry.
+          // Do NOT write dedup rows: let the next run retry.
         }
       }
     }
@@ -334,7 +334,7 @@ async function loadSummary(auditId: string): Promise<AuditSummary | null> {
   }
 }
 
-/** v0.4: AuditSummary no longer exposes a flat `findings` array — re-flatten from issues buckets. */
+/** v0.4: AuditSummary no longer exposes a flat `findings` array, re-flatten from issues buckets. */
 function summaryFindings(summary: AuditSummary | null): AuditSummary["issues"]["blockers"] {
   if (!summary) return [];
   return [

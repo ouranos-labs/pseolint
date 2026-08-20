@@ -5,7 +5,7 @@
  * Returns the canonical URL string, or null when the input is empty or
  * structurally invalid (no host, unsupported scheme, garbage characters).
  *
- * Single source of truth — call from server actions, API handlers, and client
+ * Single source of truth: call from server actions, API handlers, and client
  * forms (on blur/submit) so users never have to type the scheme themselves.
  *
  * Safe for both client and server: only depends on the global `URL` constructor.

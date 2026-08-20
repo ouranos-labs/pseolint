@@ -3,13 +3,13 @@ import type { ParsedPage, RuleResult } from "../../types.js";
 const MIN_BODY_WORDS_FOR_H2_REQUIREMENT = 600;
 
 /**
- * content/heading-structure — three checks:
- *   1. Pages missing an <h1> entirely (severity: error — almost always a
+ * content/heading-structure: three checks:
+ *   1. Pages missing an <h1> entirely (severity: error: almost always a
  *      template bug or a misconfigured CMS).
- *   2. Pages with multiple <h1> elements (severity: warning — accessibility
+ *   2. Pages with multiple <h1> elements (severity: warning: accessibility
  *      anti-pattern + ambiguous primary topic signal).
  *   3. Long pages (>600 words) with no <h2> sub-structure (severity: info
- *      — readability / Featured Snippet eligibility issue).
+ *: readability / Featured Snippet eligibility issue).
  *
  * Kept separate from `content/title-uniqueness` because heading hierarchy
  * is a different signal (Google reads H1+H2 to understand topic
@@ -17,7 +17,7 @@ const MIN_BODY_WORDS_FOR_H2_REQUIREMENT = 600;
  *
  * The 2026-05-03 blind-spot audit named the previously-phantom
  * `content/heading-uniqueness` as a gap; this is the corrected rule
- * (heading STRUCTURE, not uniqueness — duplicate H1s across catalog
+ * (heading STRUCTURE, not uniqueness: duplicate H1s across catalog
  * pages aren't actually a problem the way duplicate titles are).
  */
 export function headingStructureRule(pages: ParsedPage[]): RuleResult[] {

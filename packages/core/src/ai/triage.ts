@@ -29,12 +29,12 @@ const rootCauseSchema = z.object({
 const triagePayloadSchema = z.object({
   archetype: z
     .enum(ARCHETYPES)
-    .describe("Inferred programmatic-SEO archetype of the site — the lens root causes are prioritized for."),
+    .describe("Inferred programmatic-SEO archetype of the site: the lens root causes are prioritized for."),
   archetypeRationale: z
     .string()
     .describe("One sentence: why this archetype, from the findings/rule-mix/page-count."),
   rootCauses: z.array(rootCauseSchema).min(1).max(5).describe("1 to 5 root causes, ranked by SEO impact FOR THIS ARCHETYPE (highest first)."),
-  narrative: z.string().optional().describe("1-2 sentence overall summary. Optional — if output is tight, prioritize rootCauses and omit this."),
+  narrative: z.string().optional().describe("1-2 sentence overall summary. Optional, if output is tight, prioritize rootCauses and omit this."),
 });
 
 export interface TriageOptions {
@@ -131,14 +131,14 @@ export async function triageFindings(
         return { result: { ...cached, cacheHit: true } };
       }
     } catch {
-      // cache read errors are non-fatal — fall through to fresh call
+      // cache read errors are non-fatal: fall through to fresh call
     }
   }
 
   // One-line pre-call estimate so users see what's about to be spent.
   const costLabel = preflightCostUsd !== undefined ? `~$${preflightCostUsd.toFixed(3)}` : "cost unknown";
   console.error(
-    `[ai-triage] calling ${options.providerId}:${options.modelId} — ~${estimate.toLocaleString()} input / ≤${maxOutputTokens.toLocaleString()} output tokens, ${costLabel}`,
+    `[ai-triage] calling ${options.providerId}:${options.modelId}, ~${estimate.toLocaleString()} input / ≤${maxOutputTokens.toLocaleString()} output tokens, ${costLabel}`,
   );
 
   let generated;
@@ -215,7 +215,7 @@ export async function triage(
   opts?: { maxCostUsd?: number },
 ): Promise<TriageResult> {
   const resolved = await createLanguageModel({});
-  // v0.4: AuditSummary no longer exposes a flat `findings` array — flatten the
+  // v0.4: AuditSummary no longer exposes a flat `findings` array, flatten the
   // three issue buckets so triage sees every rule-fired finding the engine emitted.
   const allIssues = [
     ...summary.issues.blockers,

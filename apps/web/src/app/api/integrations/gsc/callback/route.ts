@@ -12,7 +12,7 @@ import { trackServerAfter } from "@/lib/analytics/track.server";
 export const runtime = "nodejs";
 
 /**
- * OAuth callback — exchange the auth code for tokens, encrypt + persist, and
+ * OAuth callback: exchange the auth code for tokens, encrypt + persist, and
  * bounce the user back to the integrations page. Defends against:
  *   - state forgery (sealed with BETTER_AUTH_SECRET, ttl-checked)
  *   - cross-account replay (state is pinned to a userId, must match session)
@@ -62,7 +62,7 @@ export async function GET(req: Request): Promise<Response> {
   // Best-effort auto-bind: now that we have tokens, try to pair every
   // unbound monitored domain with its GSC property. Counts are surfaced in
   // the redirect's query so the banner can report what happened. A failure
-  // here is non-fatal — the connection itself succeeded.
+  // here is non-fatal: the connection itself succeeded.
   const result = await autoBindGscPropertiesForUser(session.user.id);
   auditLog("gsc.autobind", { userId: session.user.id, ...result });
   trackServerAfter({ name: "gsc_connected" }, { profileId: session.user.id });

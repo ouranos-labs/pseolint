@@ -65,7 +65,7 @@ export async function HistoryList({ userId }: { userId: string }) {
   if (!rows.length) {
     return (
       <div className="rounded-[18px] border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-        No audits yet — run your first one above.
+        No audits yet: run your first one above.
       </div>
     );
   }
@@ -87,7 +87,7 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
   const delta = latest && prior && latest.risk != null && prior.risk != null
     ? latest.risk - prior.risk
     : null;
-  // Surface a contextual upgrade nudge only when the user has shown intent —
+  // Surface a contextual upgrade nudge only when the user has shown intent:
   // re-auditing the same domain twice means they care about regressions, which
   // is exactly what monitoring solves.
   const showMonitoringCta = plan === "free" && completedRows.length >= 2;
@@ -108,7 +108,7 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
               return (
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}`}
-                  title="Engine verdict — moderated by domain authority & content-effort"
+                  title="Engine verdict: moderated by domain authority & content-effort"
                 >
                   <span className={`inline-block h-1 w-1 rounded-full ${v.dot}`} />
                   {v.label}
@@ -121,7 +121,7 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
               risk: {latest.risk}
               {delta != null && delta !== 0 && (
                 // Only a risk INCREASE is a regression (red). A flat run
-                // (delta 0) is neutral, not a regression — don't paint it red.
+                // (delta 0) is neutral, not a regression: don't paint it red.
                 <span className={delta > 0 ? " text-destructive" : " text-primary"}>
                   {" "}({delta > 0 ? "+" : ""}{delta})
                 </span>
@@ -157,7 +157,7 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
               </div>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <span className="font-mono tabular-nums text-foreground">{r.risk ?? "—"}</span>
+              <span className="font-mono tabular-nums text-foreground">{r.risk ?? "; "}</span>
               <span className="hidden text-xs text-muted-foreground sm:inline">{r.findingCount ?? 0} findings</span>
               <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">
                 View

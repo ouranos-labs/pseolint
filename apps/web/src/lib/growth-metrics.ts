@@ -30,7 +30,7 @@ function pathOf(url: string): string | null {
   }
 }
 
-/** Display path for a stored URL — its pathname, or the raw string if it
+/** Display path for a stored URL: its pathname, or the raw string if it
  * doesn't parse (defensive: the `url` column is free-text). */
 export function displayPath(url: string): string {
   return pathOf(url) ?? url;

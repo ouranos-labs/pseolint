@@ -9,7 +9,7 @@ const inputSchema = z.object({
 
 /**
  * Trimmed projection of `ParsedPage`. The full parser shape is broader than
- * what the LLM benefits from seeing on every parse — we surface the fields
+ * what the LLM benefits from seeing on every parse: we surface the fields
  * that drive AEO / schema / content rules and let dedicated tools dig deeper
  * when the model asks (validate_jsonld, compute_text_metrics).
  */
@@ -36,7 +36,7 @@ function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length;
 }
 
-/** Pull `@type` from a JSON-LD block — handles string, array, and missing cases. */
+/** Pull `@type` from a JSON-LD block: handles string, array, and missing cases. */
 function jsonLdTypesOf(block: unknown): string[] {
   if (typeof block !== "object" || block === null) return [];
   const t = (block as { "@type"?: unknown })["@type"];
@@ -67,7 +67,7 @@ export const parsePageTool = defineTool({
     try {
       internalHost = new URL(entry.url).hostname;
     } catch {
-      // Non-URL `url` (e.g. file path) — every link counts as internal.
+      // Non-URL `url` (e.g. file path): every link counts as internal.
     }
 
     let internal = 0;
@@ -78,7 +78,7 @@ export const parsePageTool = defineTool({
         if (internalHost === "" || host === internalHost) internal++;
         else external++;
       } catch {
-        // Already-resolved relative path — treat as internal.
+        // Already-resolved relative path: treat as internal.
         internal++;
       }
     }

@@ -28,7 +28,7 @@
 | Path | Change |
 |------|--------|
 | `packages/core/src/state.ts` | Add `lastModified`, `etag`, `sitemapLastmodAtAudit`, `rulesetVersion`, `findings: Finding[]` to `UrlStateEntry`; add `rulesetVersion`, `lastFullAuditAt` to `RunState`; bump `STATE_SCHEMA_VERSION` to 2; update `readState` validation. |
-| `packages/core/src/cache.ts` | Surface raw `last-modified` and `etag` from response headers in `CachedFetchResult` (already in `headers` but caller would dig into the bag — make explicit accessors not needed; document headers are lowercased). |
+| `packages/core/src/cache.ts` | Surface raw `last-modified` and `etag` from response headers in `CachedFetchResult` (already in `headers` but caller would dig into the bag: make explicit accessors not needed; document headers are lowercased). |
 | `packages/core/src/auditor.ts` | Extend `collectUrlsFromSitemap` return type to `{ urls: string[]; lastmodByUrl: Map<string, string> }`; replace `state.since` post-fetch skip with `planScrapeStrategy()` pre-fetch; implement findings carry-forward; populate new state fields; surface `scrapePlan` in summary. |
 | `packages/core/src/types.ts` | Add `ScrapePlanSummary` type; extend `AuditSummary` with optional `scrapePlan`; extend `AuditOptions.state` with `mode?: "monitoring" \| "fresh"`, `ageFloorDays?: number`. |
 | `packages/core/src/index.ts` | Export `planScrapeStrategy`, `CORE_RULESET_VERSION`, new types. |
@@ -50,7 +50,7 @@
 
 ---
 
-## Phase 1 — Foundation primitives (no behavior change)
+## Phase 1: Foundation primitives (no behavior change)
 
 ### Task 1: Ruleset version constant
 
@@ -73,7 +73,7 @@ describe("CORE_RULESET_VERSION", () => {
 });
 ```
 
-- [ ] **Step 1.2: Run test, verify FAIL** — `bun --cwd packages/core test -- ruleset-version`. Expected: cannot resolve module.
+- [ ] **Step 1.2: Run test, verify FAIL**: `bun --cwd packages/core test -- ruleset-version`. Expected: cannot resolve module.
 
 - [ ] **Step 1.3: Implement constant**
 
@@ -199,7 +199,7 @@ export interface Finding {
   confidence: string;
   message: string;
   url?: string;
-  // permissive shape — exact Finding type lives in types.ts; state stores a snapshot
+  // permissive shape, exact Finding type lives in types.ts; state stores a snapshot
   [key: string]: unknown;
 }
 
@@ -256,7 +256,7 @@ if (typeof state.lastRun !== "string" ||
 
 - [ ] **Step 2.6: Run full core test suite to catch fallout**
 
-`bun --cwd packages/core test`. Existing tests in auditor / state / cache may need updating where they construct `UrlStateEntry` or `RunState` literals. For each failure, add the missing required fields (`findings: []`, `rulesetVersion: "1"`, `lastFullAuditAt: ...`). Do NOT make new fields optional just to dodge fixing tests — the design wants them required.
+`bun --cwd packages/core test`. Existing tests in auditor / state / cache may need updating where they construct `UrlStateEntry` or `RunState` literals. For each failure, add the missing required fields (`findings: []`, `rulesetVersion: "1"`, `lastFullAuditAt: ...`). Do NOT make new fields optional just to dodge fixing tests, the design wants them required.
 
 - [ ] **Step 2.7: Typecheck**
 
@@ -278,7 +278,7 @@ git commit -m "feat(core): bump state schema to v2 with monitoring fields"
 - Modify: `packages/core/src/cache.ts`
 - Modify: `packages/core/tests/cache.test.ts`
 
-`CachedFetchResult.headers` already contains lowercased response headers (see `headersToObject` at cache.ts ~199). No code change needed — but add a regression test pinning the contract so a future refactor doesn't drop these.
+`CachedFetchResult.headers` already contains lowercased response headers (see `headersToObject` at cache.ts ~199). No code change needed, but add a regression test pinning the contract so a future refactor doesn't drop these.
 
 - [ ] **Step 3.1: Write regression test**
 
@@ -307,7 +307,7 @@ describe("cachedFetch surfaces validators", () => {
 });
 ```
 
-- [ ] **Step 3.2: Run test, verify PASS** (no implementation change required — this is a regression pin).
+- [ ] **Step 3.2: Run test, verify PASS** (no implementation change required: this is a regression pin).
 
 `bun --cwd packages/core test -- cache`.
 
@@ -320,7 +320,7 @@ git commit -m "test(core): pin last-modified and etag passthrough in cachedFetch
 
 ---
 
-## Phase 2 — Decision logic (pure)
+## Phase 2: Decision logic (pure)
 
 ### Task 4: `planScrapeStrategy()` with exhaustive matrix tests
 
@@ -528,7 +528,7 @@ describe("planScrapeStrategy", () => {
 });
 ```
 
-- [ ] **Step 4.2: Run tests, verify FAIL** — `bun --cwd packages/core test -- scrape-strategy`. Expected: cannot resolve module.
+- [ ] **Step 4.2: Run tests, verify FAIL**: `bun --cwd packages/core test -- scrape-strategy`. Expected: cannot resolve module.
 
 - [ ] **Step 4.3: Implement planScrapeStrategy**
 
@@ -626,7 +626,7 @@ export function planScrapeStrategy(inputs: ScrapeStrategyInputs): ScrapePlan {
       continue;
     }
 
-    // 7. No signal that says "unchanged" — be conservative
+    // 7. No signal that says "unchanged"; be conservative
     if (!lastmod && !gscDelta) {
       refetch.set(url, "no-signal");
       continue;
@@ -654,7 +654,7 @@ git commit -m "feat(core): add planScrapeStrategy() pure decision matrix for mon
 
 ---
 
-## Phase 3 — Sitemap lastmod surfacing
+## Phase 3: Sitemap lastmod surfacing
 
 ### Task 5: Extend sitemap walker to capture `<lastmod>`
 
@@ -741,7 +741,7 @@ git commit -m "feat(core): surface sitemap <lastmod> from collectUrlsFromSitemap
 
 ---
 
-## Phase 4 — Wire decision matrix into auditor
+## Phase 4: Wire decision matrix into auditor
 
 ### Task 6: Replace `--since` post-fetch skip with pre-fetch plan
 
@@ -759,7 +759,7 @@ In `packages/core/src/types.ts`, find `AuditOptions["state"]` and add:
 ```ts
 state?: {
   path?: string;
-  since?: boolean;            // existing — kept as alias for mode=monitoring
+  since?: boolean;            // existing, kept as alias for mode=monitoring
   exitOnRegression?: boolean; // existing
   mode?: "monitoring" | "fresh"; // NEW
   ageFloorDays?: number;      // NEW; default 7
@@ -771,7 +771,7 @@ state?: {
 In `auditor.ts`, in the section that currently reads `priorState` (~line 1544–1569), restructure:
 
 1. Read prior state as today.
-2. Compute candidate URL list from discovery (sitemap + crawl) — but DEFER actual fetching of those URLs.
+2. Compute candidate URL list from discovery (sitemap + crawl): but DEFER actual fetching of those URLs.
 3. Compute `currentRulesetVersion = CORE_RULESET_VERSION` (import from `./ruleset-version.js`).
 4. Compute `effectiveMode`: explicit `state.mode` wins; else if `state.since && priorState`, "monitoring"; else if `priorState && !state.since`, "monitoring" (auto); else "fresh".
 5. If mode is "fresh" or `priorState === null`: refetch every URL, no carry-forward.
@@ -786,7 +786,7 @@ Concretely, this requires splitting today's `loadPages` into two phases: discove
   c. Existing `loadPages` becomes a thin wrapper: discover → fetch all.
   d. Monitoring path: discover → planScrapeStrategy → fetch only refetch URLs.
 
-For fully-static-source paths (filesystem source), the decision matrix doesn't apply — local reads are cheap. Filesystem sources skip the strategy and read all files as today.
+For fully-static-source paths (filesystem source), the decision matrix doesn't apply, local reads are cheap. Filesystem sources skip the strategy and read all files as today.
 
 - [ ] **Step 6.3: Add integration test for the monitoring path**
 
@@ -811,12 +811,12 @@ describe("monitoring mode", () => {
     // Seed prior state where /a was audited 1 day ago with 0 findings, sitemap says /a unchanged.
     // Run audit in monitoring mode.
     // Assert: /a was NOT fetched; its prior findings were carried forward; new URLs were fetched.
-    // (Pseudo-code — actual implementation depends on how auditSource accepts a custom fetcher.)
+    // (Pseudo-code, actual implementation depends on how auditSource accepts a custom fetcher.)
   });
 });
 ```
 
-If `auditSource` doesn't currently accept a custom fetcher, plumb one through `AuditOptions` (search for existing places where tests inject mocks — `cachedFetch` accepts `fetcher`; the test surface may need the same option exposed at `auditSource` level). If that's not feasible in this task, skip the integration test here and rely on the unit test for `planScrapeStrategy` (Task 4) plus a smaller wiring test that asserts:
+If `auditSource` doesn't currently accept a custom fetcher, plumb one through `AuditOptions` (search for existing places where tests inject mocks, `cachedFetch` accepts `fetcher`; the test surface may need the same option exposed at `auditSource` level). If that's not feasible in this task, skip the integration test here and rely on the unit test for `planScrapeStrategy` (Task 4) plus a smaller wiring test that asserts:
 - when `priorState` is provided and `state.mode === "fresh"`, all URLs go through the refetch path
 - when `state.mode === "monitoring"`, the function doesn't fetch URLs in `plan.skip`
 
@@ -935,13 +935,13 @@ git commit -m "feat(core): surface scrapePlan stats in AuditSummary"
 
 ---
 
-## Phase 5 — CLI surface
+## Phase 5: CLI surface
 
 ### Task 9: Add `--mode` and `--age-floor-days` flags
 
 **Files:**
-- Modify: `packages/cli/src/cli.ts` (or wherever CLI flag parsing lives — search for existing `--since` definition)
-- Modify: `packages/cli/src/config.ts` (or equivalent — wherever flags map to AuditOptions)
+- Modify: `packages/cli/src/cli.ts` (or wherever CLI flag parsing lives: search for existing `--since` definition)
+- Modify: `packages/cli/src/config.ts` (or equivalent: wherever flags map to AuditOptions)
 - Test: `packages/cli/tests/cli-flags.test.ts` (or extend existing)
 
 - [ ] **Step 9.1: Locate `--since` flag definition**
@@ -1027,7 +1027,7 @@ git commit -m "feat(cli): print monitoring summary line when scrapePlan present"
 
 ---
 
-## Phase 6 — Polish
+## Phase 6: Polish
 
 ### Task 11: CHANGELOG entries
 
@@ -1041,7 +1041,7 @@ git commit -m "feat(cli): print monitoring summary line when scrapePlan present"
 - [ ] **Step 11.2: Add v0.5.0 entry**
 
 ```markdown
-## v0.5.0 — Change-driven monitoring (2026-05-01)
+## v0.5.0: Change-driven monitoring (2026-05-01)
 
 ### Breaking
 
@@ -1050,7 +1050,7 @@ git commit -m "feat(cli): print monitoring summary line when scrapePlan present"
 
 ### Added
 
-- `planScrapeStrategy()` exported from `@pseolint/core` — pure decision matrix that picks which URLs to refetch based on sitemap `<lastmod>`, prior state age, ruleset version, and open-finding rechecks.
+- `planScrapeStrategy()` exported from `@pseolint/core`: pure decision matrix that picks which URLs to refetch based on sitemap `<lastmod>`, prior state age, ruleset version, and open-finding rechecks.
 - `CORE_RULESET_VERSION` constant. Bump when adding or materially changing rules so monitoring runs re-evaluate them.
 - `AuditSummary.scrapePlan` reports fetched / carried-forward counts and reasons.
 - `--mode=monitoring|fresh` and `--age-floor-days=N` CLI flags.
@@ -1094,7 +1094,7 @@ All green.
 ```bash
 # Baseline run (writes state)
 bun packages/cli/dist/index.js https://pseolint.dev --state .pseolint/smoke-state.json --discovery-budget 50
-# Second run — should report most URLs carried forward
+# Second run: should report most URLs carried forward
 bun packages/cli/dist/index.js https://pseolint.dev --state .pseolint/smoke-state.json --discovery-budget 50
 ```
 
@@ -1102,7 +1102,7 @@ Verify the second run prints the monitoring summary line and shows `fetched < ca
 
 - [ ] **Step 12.3: Self-review the diff**
 
-`git diff main` — read every changed file. Look for:
+`git diff main`, read every changed file. Look for:
 - Stray `console.log` debugging
 - Comments that reference the task / fix instead of the why
 - Required fields that crept into being optional to dodge test fixes (revert to required)
@@ -1141,9 +1141,9 @@ git commit -am "polish: address self-review findings"
 
 ## Open questions deferred (not blocking v1)
 
-- Sitemap-lastmod trust verification (HEAD-sample 5%) — separate plan.
-- Carry-forward staleness UX (confidence demotion after N days) — Pro dashboard.
-- GSC delta ingestion — Pro v1.1 (the field is wired; the Pro side ingests it).
-- Cache-busting site detection beyond post-fetch hash compare — v2.
+- Sitemap-lastmod trust verification (HEAD-sample 5%): separate plan.
+- Carry-forward staleness UX (confidence demotion after N days): Pro dashboard.
+- GSC delta ingestion: Pro v1.1 (the field is wired; the Pro side ingests it).
+- Cache-busting site detection beyond post-fetch hash compare: v2.
 
 These do not block shipping v1. The v1 design is correct without them.

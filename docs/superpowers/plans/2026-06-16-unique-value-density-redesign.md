@@ -1,28 +1,28 @@
-# content/unique-value Density Redesign — Implementation Plan
+# content/unique-value Density Redesign: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace `content/unique-value`'s binary exactly-page-exclusive-word count (absolute floor 100) with a rarity-**density** ratio so the rule stops shuffling and stops false-positiving on large, tightly-themed sites — while still catching near-duplicate / boilerplate / entity-swap pages.
+**Goal:** Replace `content/unique-value`'s binary exactly-page-exclusive-word count (absolute floor 100) with a rarity-**density** ratio so the rule stops shuffling and stops false-positiving on large, tightly-themed sites, while still catching near-duplicate / boilerplate / entity-swap pages.
 
 **Architecture:** Per page, weight each distinct token by normalized IDF (`ln(N/df)/ln(N)`), average over the page's distinct tokens → `density ∈ [0,1]`. Fire `error` below `errorBelow`, `info` in the borderline band below `passBelow`. Continuous (no shuffle), ratio (length-robust), IDF-normalized (corpus-size-robust). New signature: `uniqueValueRule(pages, { passBelow, errorBelow })`.
 
 **Tech Stack:** TypeScript (ESM, `.js` import specifiers), vitest, bun, turbo. Spec: `docs/superpowers/specs/2026-06-16-unique-value-density-redesign-design.md`.
 
-**Hard gate:** This changes scoring for every user. Task 5 (calibration) is mandatory before merge — do not ship if the reputable-vs-spam density distributions don't separate.
+**Hard gate:** This changes scoring for every user. Task 5 (calibration) is mandatory before merge, do not ship if the reputable-vs-spam density distributions don't separate.
 
 ---
 
 ## File map
 
-- `packages/core/src/rules/content/unique-value.ts` — the metric (rewrite, ~30 lines) + new exported `UniqueValueThresholds`.
-- `packages/core/tests/rules/content/unique-value.test.ts` — rewrite for density.
-- `packages/core/src/auditor.ts` — DEFAULTS (L118), resolvedRules type (L705), invocation (L796), resolve (L2210).
-- `packages/core/src/types.ts` — `AuditOptions.rules` knob (L464).
-- `packages/core/src/enrich-findings.ts` — `extractSortKey` (L210), `extractWorstDetail` (L230).
-- `apps/web/src/lib/marketing-rules.ts` — `/rules/unique-value` explainer copy (`whatItDetects` ~L539, `failingExample` ~L543).
-- `apps/web/src/lib/marketing-rules.test.ts` — dogfood call `uniqueValueRule(corpus, 100)`.
-- `packages/core/calibration/*` + `packages/core/tests/calibration/reputable-corpus.test.ts` — the gate (Task 5).
-- `.changeset/*` — version bump (Task 6).
+- `packages/core/src/rules/content/unique-value.ts`: the metric (rewrite, ~30 lines) + new exported `UniqueValueThresholds`.
+- `packages/core/tests/rules/content/unique-value.test.ts`: rewrite for density.
+- `packages/core/src/auditor.ts`: DEFAULTS (L118), resolvedRules type (L705), invocation (L796), resolve (L2210).
+- `packages/core/src/types.ts`: `AuditOptions.rules` knob (L464).
+- `packages/core/src/enrich-findings.ts`: `extractSortKey` (L210), `extractWorstDetail` (L230).
+- `apps/web/src/lib/marketing-rules.ts`: `/rules/unique-value` explainer copy (`whatItDetects` ~L539, `failingExample` ~L543).
+- `apps/web/src/lib/marketing-rules.test.ts`: dogfood call `uniqueValueRule(corpus, 100)`.
+- `packages/core/calibration/*` + `packages/core/tests/calibration/reputable-corpus.test.ts`: the gate (Task 5).
+- `.changeset/*`: version bump (Task 6).
 
 ---
 
@@ -32,7 +32,7 @@
 - Modify: `packages/core/src/rules/content/unique-value.ts` (full rewrite)
 - Test: `packages/core/tests/rules/content/unique-value.test.ts` (full rewrite)
 
-- [ ] **Step 1: Write the failing tests** — replace the file contents:
+- [ ] **Step 1: Write the failing tests**: replace the file contents:
 
 ```ts
 import { describe, expect, test } from "vitest";
@@ -120,7 +120,7 @@ describe("uniqueValueRule (density)", () => {
 Run: `cd packages/core && bunx vitest run tests/rules/content/unique-value.test.ts`
 Expected: FAIL (old signature takes a number; `severity`/`message` assertions don't match).
 
-- [ ] **Step 3: Rewrite the rule** — replace `packages/core/src/rules/content/unique-value.ts`:
+- [ ] **Step 3: Rewrite the rule**: replace `packages/core/src/rules/content/unique-value.ts`:
 
 ```ts
 import type { ParsedPage, RuleResult } from "../../types.js";
@@ -144,8 +144,8 @@ function tokenize(text: string): string[] {
 
 /**
  * Originality as a corpus-relative DENSITY, not an absolute count. Each distinct
- * token is weighted by normalized IDF (ln(N/df)/ln(N)) — 1 if page-exclusive, ~0
- * if on every page — and averaged over the page's distinct tokens. A near-
+ * token is weighted by normalized IDF (ln(N/df)/ln(N)): 1 if page-exclusive, ~0
+ * if on every page: and averaged over the page's distinct tokens. A near-
  * duplicate / boilerplate page scores low regardless of corpus size or length; a
  * large original page stays high. Continuous, so it doesn't shuffle at the margin.
  * Volume is spam/thin-content's job; exact twins are spam/near-duplicate's.
@@ -185,7 +185,7 @@ export function uniqueValueRule(
         `Most of its vocabulary also appears on other pages.`,
       pageUrl: page.url,
       fix:
-        `Raise originality density: add page-specific text — a distinct lead, this ` +
+        `Raise originality density: add page-specific text, a distinct lead, this ` +
         `record's own facts, page-specific examples. Content repeated across pages on ` +
         `the same axis (boilerplate, shared legal/spec blocks, per-axis data like a ` +
         `role's regulations across that role's documents) is common vocabulary and ` +
@@ -216,7 +216,7 @@ git commit -m "feat(core): unique-value as rarity density (replaces binary count
 - Modify: `packages/core/src/types.ts:464`
 - Modify: `packages/core/src/auditor.ts` (L118, L705, L796, L2210)
 
-- [ ] **Step 1: Replace the config knob** in `packages/core/src/types.ts` — change line 464 inside `AuditOptions.rules`:
+- [ ] **Step 1: Replace the config knob** in `packages/core/src/types.ts`: change line 464 inside `AuditOptions.rules`:
 
 ```ts
     // was: uniqueValueMinWords?: number;
@@ -254,7 +254,7 @@ git commit -m "feat(core): unique-value as rarity density (replaces binary count
 - [ ] **Step 6: Build + run core suite**
 
 Run: `cd packages/core && bunx tsc --noEmit -p tsconfig.json && bunx vitest run`
-Expected: typecheck clean; tests pass (any auditor test asserting the old `uniqueValueMinWords` shape fails here — fix those to the new shape in this step).
+Expected: typecheck clean; tests pass (any auditor test asserting the old `uniqueValueMinWords` shape fails here, fix those to the new shape in this step).
 
 - [ ] **Step 7: Commit**
 
@@ -289,7 +289,7 @@ expect(extractSortKey("content/unique-value", "x has low unique-content density 
 
 - [ ] **Step 2: Run, verify fail.** Run: `cd packages/core && bunx vitest run tests/enrich-findings.test.ts` → FAIL.
 
-- [ ] **Step 3: Update `extractSortKey`** (L210) — parse the density float:
+- [ ] **Step 3: Update `extractSortKey`** (L210): parse the density float:
 
 ```ts
 function extractSortKey(ruleId: string, message: string): number {
@@ -304,7 +304,7 @@ function extractSortKey(ruleId: string, message: string): number {
 }
 ```
 
-- [ ] **Step 4: Update `extractWorstDetail`** (L230) — read the density:
+- [ ] **Step 4: Update `extractWorstDetail`** (L230): read the density:
 
 ```ts
   if (ruleId === "content/unique-value") {
@@ -330,7 +330,7 @@ git commit -m "fix(core): enrich-findings parses unique-value density for sort +
 - Modify: `apps/web/src/lib/marketing-rules.ts` (`/rules/unique-value` `whatItDetects` ~L539, `failingExample` ~L543)
 - Modify: `apps/web/src/lib/marketing-rules.test.ts` (dogfood `uniqueValueRule(corpus, 100)`)
 
-- [ ] **Step 1: Update the dogfood call** in `apps/web/src/lib/marketing-rules.test.ts` — find `uniqueValueRule(corpus, 100)` and the surrounding test; change to the density signature and rename the assertion:
+- [ ] **Step 1: Update the dogfood call** in `apps/web/src/lib/marketing-rules.test.ts`: find `uniqueValueRule(corpus, 100)` and the surrounding test; change to the density signature and rename the assertion:
 
 ```ts
   it("no reference page has low unique-content density (>= passBelow over the full corpus)", () => {
@@ -340,23 +340,23 @@ git commit -m "fix(core): enrich-findings parses unique-value density for sort +
 ```
 (Use the SAME default thresholds the engine ships in Task 2; if calibration in Task 5 moves them, update here too.)
 
-- [ ] **Step 2: Run the dogfood** — Run: `cd apps/web && bunx vitest run src/lib/marketing-rules.test.ts`
-Expected: it tells you whether the reference pages clear the density floor. If a few don't, that is real signal for Task 5 (don't paper over it by lowering the floor here — set the floor in calibration).
+- [ ] **Step 2: Run the dogfood**: Run: `cd apps/web && bunx vitest run src/lib/marketing-rules.test.ts`
+Expected: it tells you whether the reference pages clear the density floor. If a few don't, that is real signal for Task 5 (don't paper over it by lowering the floor here, set the floor in calibration).
 
-- [ ] **Step 3: Rewrite the explainer copy** in `apps/web/src/lib/marketing-rules.ts` for slug `unique-value` — replace the count-based `whatItDetects` and `failingExample` with density wording. `whatItDetects` (keep paragraphs < 180 words each):
+- [ ] **Step 3: Rewrite the explainer copy** in `apps/web/src/lib/marketing-rules.ts` for slug `unique-value`: replace the count-based `whatItDetects` and `failingExample` with density wording. `whatItDetects` (keep paragraphs < 180 words each):
 
 ```
-content/unique-value asks how original a page is relative to its siblings, as a density rather than a raw count. It tokenises each page's main content (lower-cased, whitespace-split, edge punctuation stripped) and weights every distinct word by how rare it is across the audited set — a word on one page scores 1, a word on every page scores near 0 (normalised inverse document frequency). The page's score is the average of those weights: its unique-content density, between 0 and 1.
+content/unique-value asks how original a page is relative to its siblings, as a density rather than a raw count. It tokenises each page's main content (lower-cased, whitespace-split, edge punctuation stripped) and weights every distinct word by how rare it is across the audited set, a word on one page scores 1, a word on every page scores near 0 (normalised inverse document frequency). The page's score is the average of those weights: its unique-content density, between 0 and 1.
 
-A page whose vocabulary mostly repeats across its siblings — boilerplate, shared spec blocks, an entity-swapped template — scores low and fires. Because it is an average, the metric does not punish a page for being short or for living in a large, tightly-themed site, and it does not flip on a one-word margin the way a hard count does. Volume is spam/thin-content's job; exact twins are spam/near-duplicate's; this rule isolates low originality.
+A page whose vocabulary mostly repeats across its siblings (boilerplate, shared spec blocks, an entity-swapped template) scores low and fires. Because it is an average, the metric does not punish a page for being short or for living in a large, tightly-themed site, and it does not flip on a one-word margin the way a hard count does. Volume is spam/thin-content's job; exact twins are spam/near-duplicate's; this rule isolates low originality.
 ```
 `failingExample`:
 
 ```
-/api/stripe-vs-square and /api/stripe-vs-paypal on a fintech directory: each is 900 words, but the shared "What is a payment API" intro, the identical feature glossary, and the same integration checklist mean almost every word also appears on the sibling pages. Their unique-content density lands around 0.09 — well under the 0.20 floor — so the rule fires, because a reader gains little from the second page that the first did not already give them.
+/api/stripe-vs-square and /api/stripe-vs-paypal on a fintech directory: each is 900 words, but the shared "What is a payment API" intro, the identical feature glossary, and the same integration checklist mean almost every word also appears on the sibling pages. Their unique-content density lands around 0.09, well under the 0.20 floor, so the rule fires, because a reader gains little from the second page that the first did not already give them.
 ```
 
-- [ ] **Step 4: Typecheck web** — Run: `cd /d/phili/SSD_Projects/pseolint && bunx turbo run typecheck --filter=@pseolint/web`
+- [ ] **Step 4: Typecheck web**: Run: `cd /d/phili/SSD_Projects/pseolint && bunx turbo run typecheck --filter=@pseolint/web`
 Expected: clean.
 
 - [ ] **Step 5: Commit**
@@ -383,7 +383,7 @@ Expected: it audits the reputable-pSEO corpus + fixtures and compares to `baseli
 
 - [ ] **Step 3: Set the thresholds in the gap.** Pick `errorBelow` ≈ just above the spam cluster, `passBelow` ≈ just below the reputable cluster. Update `DEFAULTS.uniqueValueDensity` (auditor L118) and the dogfood (Task 4) to match.
 
-Acceptance — ALL must hold (else stop and reconsider the metric, per spec):
+Acceptance, ALL must hold (else stop and reconsider the metric, per spec):
 - No false-negative regression: every near-dup/entity-swap/boilerplate fixture still flags.
 - False-positive reduction: reputable large cohesive corpus pages no longer error.
 - Separation exists: reputable and spam density ranges don't overlap at the chosen thresholds.
@@ -405,7 +405,7 @@ git commit -m "test(core): calibrate uniqueValueDensity thresholds against reput
 **Files:**
 - Create: `.changeset/unique-value-density.md`
 
-- [ ] **Step 1: Add the changeset** (scoring-affecting → minor bump for core; follow repo convention — check an existing `.changeset/*.md`):
+- [ ] **Step 1: Add the changeset** (scoring-affecting → minor bump for core; follow repo convention: check an existing `.changeset/*.md`):
 
 ```md
 ---
@@ -439,8 +439,8 @@ git commit -m "chore(changeset): unique-value density redesign"
 ---
 
 ## Self-review notes
-- **Spec coverage:** metric (T1), wiring/config rename (T2), enrich-findings parse (T3), explainer+dogfood (T4), calibration gate + thresholds (T5), version bump + stale-ref sweep (T6). Approaches A/C/D were rejected in the spec — not re-litigated here.
+- **Spec coverage:** metric (T1), wiring/config rename (T2), enrich-findings parse (T3), explainer+dogfood (T4), calibration gate + thresholds (T5), version bump + stale-ref sweep (T6). Approaches A/C/D were rejected in the spec: not re-litigated here.
 - **Type consistency:** `uniqueValueRule(pages, UniqueValueThresholds)` and `rules.uniqueValueDensity` / `DEFAULTS.uniqueValueDensity` / `resolvedRules.uniqueValueDensity` use the same `{ passBelow, errorBelow }` shape throughout.
 - **Out of scope:** percentile mode, stoplist, embeddings, merging with SimHash, the AI content-effort feature.
-- `ponytail:` no back-compat shim for the renamed config knob — it's already a breaking scoring change behind a version bump. Add one only if a real external caller of `uniqueValueMinWords` turns up in Step 6 Step 3's grep.
+- `ponytail:` no back-compat shim for the renamed config knob: it's already a breaking scoring change behind a version bump. Add one only if a real external caller of `uniqueValueMinWords` turns up in Step 6 Step 3's grep.
 ```

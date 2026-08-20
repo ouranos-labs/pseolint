@@ -1,4 +1,4 @@
-# Site Reputation Abuse Detection — Design Proposal
+# Site Reputation Abuse Detection: Design Proposal
 
 **Status:** shipped in v0.5.1 (2026-05-03)
 **Date:** 2026-05-03
@@ -15,7 +15,7 @@
 ## Why
 
 pseolint's marketing surfaces (homepage, `state-of-pseo-2026`, `marketing-symptoms.ts`,
-`abuse` page, tools page) prominently reference site-reputation-abuse — Google's
+`abuse` page, tools page) prominently reference site-reputation-abuse, Google's
 May 2024 spam-policy update targeting third-party content hosted under an
 established host's reputation (e.g. coupon sections inside news domains). The
 audit engine currently has no rule that detects this pattern. Either we ship
@@ -48,25 +48,25 @@ a sub-corpus that exceeds a minimum size.
 ## Proposed rule: `links/host-section-divergence`
 
 Severity: `warning` (escalates to `error` when 3+ signals stack and the section
-has >50 pages — that's the rented-inventory pattern Google penalizes most often).
+has >50 pages, that's the rented-inventory pattern Google penalizes most often).
 
 ### Algorithm
 
 1. **Section discovery.** Group all crawled pages by their first non-trivial
-   path prefix (`/{first}/...`). Sections with <10 pages are excluded — sub-
+   path prefix (`/{first}/...`). Sections with <10 pages are excluded, sub-
    corpus signals are unreliable below that.
 
 2. **Per-section signals.** For each candidate section vs. the rest of the host:
 
-   - `inboundExternalRatio` — fraction of section pages with at least one
+   - `inboundExternalRatio`: fraction of section pages with at least one
      inbound internal link from *outside* the section. Signal trips when
      `< 0.20`.
-   - `topicJaccard` — Jaccard distance between the section's top-100 TF-IDF
+   - `topicJaccard`: Jaccard distance between the section's top-100 TF-IDF
      terms and the host-wide top-100. Signal trips when `> 0.75`.
-   - `templateOverlap` — fraction of section pages whose `structureSignature`
+   - `templateOverlap`: fraction of section pages whose `structureSignature`
      matches a signature also seen in the rest of the host. Signal trips when
      `< 0.10`.
-   - `authorshipMismatch` — boolean: section has byline/author-schema coverage
+   - `authorshipMismatch`: boolean: section has byline/author-schema coverage
      <30% while the host's other sections have >70% (or vice versa). Signal
      trips when true.
 
@@ -89,10 +89,10 @@ has >50 pages — that's the rented-inventory pattern Google penalizes most ofte
 - `RuleScope`: `corpus` (needs the full link graph, term frequencies, and
   structure signatures).
 - Diff-mode: skipped (corpus rule).
-- Bucket: `spam` (it's a scaled-content-abuse-adjacent signal — the host is
+- Bucket: `spam` (it's a scaled-content-abuse-adjacent signal: the host is
   effectively running two corpora, one of which behaves like the rule's other
   spam targets).
-- `PSEO_ONLY_RULE_IDS`: yes — small editorial sites should not trip this.
+- `PSEO_ONLY_RULE_IDS`: yes: small editorial sites should not trip this.
 
 ### Why two signals, not three
 
@@ -125,14 +125,14 @@ shape.
    because it scopes naturally with the other graph-shape rules.
 
 2. Should section discovery use deeper prefixes (e.g. `/blog/2024/`)? First
-   suggestion: no — start with the first path segment. Deeper prefixes can be a
+   suggestion: no, start with the first path segment. Deeper prefixes can be a
    v2 if false positives demand it.
 
 3. How to handle subdomains? Currently pseolint normalizes against a single
    host. Cross-subdomain reputation is out of scope for v1 of this rule.
 
 4. Score weight: drop into `spam` bucket as-is (current weight 0.40 of total),
-   or carve out a small standalone slice? Recommend in-bucket — keeps the score
+   or carve out a small standalone slice? Recommend in-bucket, keeps the score
    formula stable.
 
 ## Alternative: trim the marketing instead
@@ -147,7 +147,7 @@ on us.
 
 ## Decision needed
 
-- [ ] Ship the rule (estimated 1–2 days) — recommended path
+- [ ] Ship the rule (estimated 1–2 days): recommended path
 - [ ] Trim marketing to match current detection scope
 - [ ] Defer (note: each month deferred extends the window where the marketing
       claims something the engine doesn't enforce)

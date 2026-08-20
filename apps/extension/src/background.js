@@ -1,8 +1,8 @@
-// pseolint extension — background service worker (architecture §3).
+// pseolint extension: background service worker (architecture §3).
 //
 // The ONLY component permitted to touch the network (single, auditable egress).
 // For the SERP overlay it fetches each ranked result, runs the Tier-1 client
-// rules locally, and returns ONLY a verdict per URL — the raw page HTML is
+// rules locally, and returns ONLY a verdict per URL: the raw page HTML is
 // parsed and discarded inside this worker, it never crosses back to a content
 // script. Path B (sending a SignalSet to the hosted API) is a separate egress
 // added in build-seq step 5; this step makes no outbound call to pseolint.
@@ -10,7 +10,7 @@ import { scanPage } from "./shared/rules-client.js";
 
 const FETCH_TIMEOUT_MS = 8000;
 const MAX_BYTES = 6_000_000; // skip absurdly large bodies (content-length guard)
-const MAX_URLS = 20; // cap per scan — don't hammer 100 origins off one SERP
+const MAX_URLS = 20; // cap per scan: don't hammer 100 origins off one SERP
 
 // We can soundly judge HTML only. Accept html / xhtml; an ABSENT content-type is
 // also allowed (common on real pages) and falls through to the shell/word-count
@@ -30,7 +30,7 @@ chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() 
 async function analyze(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  // Default "unreached" signal set — every field the scorecard reads is present.
+  // Default "unreached" signal set: every field the scorecard reads is present.
   const miss = { url, ok: false, status: 0, words: 0, ogComplete: false, isLikelyShell: false, flags: [], verdict: null, aeoReady: false };
   try {
     const res = await fetch(url, {
@@ -41,7 +41,7 @@ async function analyze(url) {
     const contentType = res.headers.get("content-type") || "";
     // Reached but not analysable HTML → ok, no signals.
     if (contentType && !HTML_TYPE.test(contentType)) return { ...miss, ok: true, status: res.status };
-    // Size guard via content-length (best-effort; chunked bodies lack it — the 8s
+    // Size guard via content-length (best-effort; chunked bodies lack it: the 8s
     // timeout is the backstop). We do NOT slice the body: a mid-<head> cut could
     // sever an og/title tag → a FALSE "no OG" signal.
     if (Number(res.headers.get("content-length")) > MAX_BYTES) return { ...miss, ok: true, status: res.status };
@@ -79,7 +79,7 @@ function sendOrQueue(data) {
   if (bridgeSocket && bridgeSocket.readyState === WebSocket.OPEN) {
     try { bridgeSocket.send(data); return; } catch {}
   }
-  // Socket gone — queue and reconnect; the alarm will also reconnect within 5s.
+  // Socket gone: queue and reconnect; the alarm will also reconnect within 5s.
   responseQueue.push(data);
   connectToMcpBridge();
 }
@@ -114,7 +114,7 @@ function connectToMcpBridge() {
         }
         try {
           const reply = await chrome.tabs.sendMessage(tab.id, { type: "pseolint:landscape" });
-          // SW may have been suspended during the await — use sendOrQueue.
+          // SW may have been suspended during the await: use sendOrQueue.
           sendOrQueue(JSON.stringify({ id, payload: { summary: reply?.summary, url: tab.url } }));
         } catch (err) {
           sendOrQueue(JSON.stringify({ id, payload: { error: `Failed to query tab: ${err.message}` } }));
@@ -161,10 +161,10 @@ async function getActiveTab() {
 
 // The mcp bridge (LLM / terminal driving) is a DEV-only egress to ws://localhost:4000.
 // Excluded from the production/store build via the PSEOLINT_MCP_BRIDGE compile flag
-// (default OFF — the `typeof` guard also fails safe if the flag is undefined);
+// (default OFF: the `typeof` guard also fails safe if the flag is undefined);
 // `bun run build:dev` sets it true to drive the extension locally.
 if (typeof PSEOLINT_MCP_BRIDGE !== "undefined" && PSEOLINT_MCP_BRIDGE) {
-  // Use chrome.alarms for the reconnect loop — unlike setInterval, alarms
+  // Use chrome.alarms for the reconnect loop: unlike setInterval, alarms
   // WAKE the MV3 service worker after Chrome suspends it, making reconnection reliable.
   chrome.alarms.create("mcp-bridge-keepalive", { periodInMinutes: 1 / 12 }); // every 5s
   chrome.alarms.onAlarm.addListener((alarm) => {

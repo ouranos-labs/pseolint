@@ -9,7 +9,7 @@ import { inngest } from "../src/lib/inngest";
 
 async function main() {
   await inngest.send({ name: "seed/leaderboard.requested", data: {} });
-  console.log("Sent seed/leaderboard.requested — watch the Inngest dashboard for progress.");
+  console.log("Sent seed/leaderboard.requested: watch the Inngest dashboard for progress.");
 }
 
 main().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });

@@ -51,7 +51,7 @@ export function citationCoverageRule(
         `but cites ${authoritative} authoritative source${authoritative === 1 ? "" : "s"}${entityNote}.`,
       pageUrl: page.url,
       fix:
-        "Cite the primary sources behind your numbers — link the statute, standard, dataset, " +
+        "Cite the primary sources behind your numbers: link the statute, standard, dataset, " +
         ".gov/.edu page, or research that backs each statistic. AI Overviews and Google's " +
         "helpful-content systems weight pages that ground claims in authoritative references. " +
         "Note: this rule detects statistic+citation co-occurrence, not semantic correctness.",

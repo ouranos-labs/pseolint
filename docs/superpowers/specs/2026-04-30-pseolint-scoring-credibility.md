@@ -1,4 +1,4 @@
-# pseolint scoring — credibility audit + redesign proposal
+# pseolint scoring: credibility audit + redesign proposal
 
 **Status:** PROPOSAL · awaiting greenlight before implementation
 **Author:** [generated 2026-04-30]
@@ -21,7 +21,7 @@ that promises "audit your site for SpamBrain risk."
 
 ---
 
-## §2 The evidence — nextjs.org breakdown
+## §2 The evidence: nextjs.org breakdown
 
 ```
 verdict:  concerning (was nearly critical)
@@ -42,7 +42,7 @@ Categories:
 |------|------:|-------------|
 | `aeo/citable-facts` | 3 | Each Next.js docs landing page has < 8 entity-specific numbers. **This is what marketing pages look like.** |
 | `spam/thin-content` | 1 | One docs page is short. May be a legit nav landing, may be a real bug. |
-| `tech/canonical-consistency` | 1 | Real technical signal — worth checking. |
+| `tech/canonical-consistency` | 1 | Real technical signal: worth checking. |
 | `aeo/answer-first` | 1 | Opener doesn't lead with a number+entity. **Marketing tone, not a defect.** |
 | `links/orphan-pages` | 1 | One page has no inbound links in the sample. Likely a sampling artifact (3 pages out of 573 discovered). |
 
@@ -68,7 +68,7 @@ That is the calibration crisis in concrete form.
 
 ---
 
-## §3 The math — why this happens
+## §3 The math: why this happens
 
 ### Severity weights (raw penalty per finding)
 
@@ -78,7 +78,7 @@ SEVERITY_WEIGHTS = { critical: 40, error: 25, warning: 12, info: 5 }
 
 These are **steep**. Four `error`-severity findings in any single category
 (25 × 4 = 100) max out that category's raw bucket. With Citation weighted
-0.25, four AEO errors alone contribute **25 risk** — a quarter of the
+0.25, four AEO errors alone contribute **25 risk**, a quarter of the
 worst-possible verdict.
 
 ### Category weights
@@ -106,7 +106,7 @@ practice, weighted at a quarter of the verdict.
 | `aeo/crawler-access` | All AI crawlers blocked | Plenty of sites block GPTBot intentionally |
 
 **An "error" should mean: this will hurt you with Google.** None of these
-rules predict Google demotion. They predict AI Overview citation likelihood —
+rules predict Google demotion. They predict AI Overview citation likelihood,
 a different concern. Conflating them is the bug.
 
 ### Severity → verdict math (current)
@@ -140,7 +140,7 @@ push will recruit users who run one audit, see "concerning," and bounce.
 
 ---
 
-## §5 Mental model — what users actually want to know
+## §5 Mental model: what users actually want to know
 
 Map the rules to the **user's question**, not our internal taxonomy:
 
@@ -150,8 +150,8 @@ This is the marquee promise. Rules that genuinely predict demotion:
 
 | Rule | Why it's a real penalty risk |
 |------|------------------------------|
-| `spam/near-duplicate` | March 5 2024 scaled-content-abuse — direct SpamBrain trigger |
-| `spam/entity-swap` | Doorway-page detection — SpamBrain rebuild Aug 25 2022 |
+| `spam/near-duplicate` | March 5 2024 scaled-content-abuse: direct SpamBrain trigger |
+| `spam/entity-swap` | Doorway-page detection: SpamBrain rebuild Aug 25 2022 |
 | `spam/doorway-pattern` | Same |
 | `spam/template-coverage` | Scaled-content classifier signal |
 | `spam/template-diversity` | Same |
@@ -187,7 +187,7 @@ Real ranking-affecting tech hygiene:
 
 ### Question 3: "Will AI Overviews cite my site?"
 
-Citability optimization — **a separate product question**:
+Citability optimization, **a separate product question**:
 
 | Rule | Why it's AEO-only |
 |------|-------------------|
@@ -236,7 +236,7 @@ The default risk shown in `--ci-threshold`, dashboards, and headlines is
 the **SpamBrain verdict**. AEO is a parallel track, computed always and
 shown alongside, but NEVER blocks CI by default.
 
-To gate CI on AEO too, the user passes `--aeo-ci-threshold concerning` —
+To gate CI on AEO too, the user passes `--aeo-ci-threshold concerning`,
 explicit opt-in.
 
 ### Re-categorize rules (4-bucket → 5-track)
@@ -253,7 +253,7 @@ explicit opt-in.
 
 ```ts
 SPAMBRAIN_WEIGHTS = {
-  spambrain:  0.55,   // direct demotion risk — drives the verdict
+  spambrain:  0.55,   // direct demotion risk, drives the verdict
   tech:       0.25,   // crawlability + index hygiene
   schema:     0.10,   // structured-data correctness
   quality:    0.10,   // E-E-A-T + author + data
@@ -264,10 +264,10 @@ SPAMBRAIN_WEIGHTS = {
 ### Re-calibrate severity weights
 
 ```ts
-// Current — too steep, easy to max-out a category
+// Current, too steep, easy to max-out a category
 SEVERITY_WEIGHTS_OLD = { critical: 40, error: 25, warning: 12, info: 5 }
 
-// Proposed — finer-grained, harder to accidentally max out
+// Proposed, finer-grained, harder to accidentally max out
 SEVERITY_WEIGHTS_NEW = { critical: 30, error: 15, warning: 8, info: 3 }
 ```
 
@@ -289,7 +289,7 @@ Real-world sites can have 4-5 minor issues without flipping to `concerning`.
 
 **Rationale:** AEO is opt-in optimization, not penalty defense. None of
 these failures predict ranking loss. `warning` says "consider this";
-`error` says "fix before shipping" — an AEO finding is never the latter.
+`error` says "fix before shipping"; an AEO finding is never the latter.
 
 ### Verdict thresholds (unchanged for SpamBrain track)
 
@@ -309,10 +309,10 @@ Add to console + JSON output:
 
 ```
 Verdict: READY for SpamBrain (risk 19/100)
-Verdict: CAUTION for AI Overviews (risk 38/100) — pass --aeo-ci-threshold to gate CI
+Verdict: CAUTION for AI Overviews (risk 38/100), pass --aeo-ci-threshold to gate CI
 
 Skipped this audit:
-  4 pSEO-only rules — site classified as small-marketing
+  4 pSEO-only rules, site classified as small-marketing
   3 noindex pages
   0 auth-detected pages
 
@@ -360,7 +360,7 @@ optimization headroom. Both true. Both believable.
 
 ### shopify.com under v0.5 proposal (estimate from 193 should-fix)
 
-Likely similar — high AEO-track number (their pages are gloriously
+Likely similar, high AEO-track number (their pages are gloriously
 marketing-shaped) but low SpamBrain-track number. Same READY · CAUTION
 shape.
 
@@ -378,35 +378,35 @@ spam stays.**
 
 ## §8 Migration plan
 
-### v0.5.0 (breaking) — release ladder
+### v0.5.0 (breaking): release ladder
 
 Exactly the kind of change that warrants a major. The verdict shape, JSON
 output, and CLI flags all shift.
 
-1. **Engine** — split `scoreFromFindings` into `scoreSpamBrain` +
+1. **Engine**: split `scoreFromFindings` into `scoreSpamBrain` +
    `scoreAEO`. Add a third return field `aeo` to `AuditSummary`.
-2. **Severities** — patch the 8 AEO rule files to demote default severity
+2. **Severities**: patch the 8 AEO rule files to demote default severity
    per §6 table.
-3. **Formatters** — every formatter (console, json, markdown, html)
+3. **Formatters**: every formatter (console, json, markdown, html)
    shows two verdict lines. JSON adds an `aeo: { verdict, risk,
    categories }` sibling to the current top-level fields.
-4. **CLI** — `--ci-threshold` continues to gate on SpamBrain. New
+4. **CLI**: `--ci-threshold` continues to gate on SpamBrain. New
    `--aeo-ci-threshold <severity>` opt-in for AEO gating.
-5. **MCP** — `audit_site` returns the SpamBrain verdict; new
+5. **MCP**: `audit_site` returns the SpamBrain verdict; new
    `audit_aeo_readiness` tool returns the AEO verdict. (Or extend the
    existing tool with an `include` parameter.)
-6. **Web app** — dashboard tile shows two badges; report page has two
+6. **Web app**: dashboard tile shows two badges; report page has two
    verdict pills.
-7. **Site classifier** — when site is classified `small-marketing` or
+7. **Site classifier**: when site is classified `small-marketing` or
    `blog` AND user didn't pass `--aeo`, suppress AEO findings entirely
    (don't even report them). They're not relevant for those site types
    unless explicitly requested.
-8. **Migration doc** — v0.4 → v0.5 migration guide. Note the new
+8. **Migration doc**: v0.4 → v0.5 migration guide. Note the new
    `aeo:` section in JSON; note that CI gates on SpamBrain only by
    default; show how to restore old behavior with `--aeo-ci-threshold
    concerning`.
 
-### v0.4.3 (no breaking) — interim calibration if v0.5 is too far
+### v0.4.3 (no breaking): interim calibration if v0.5 is too far
 
 If v0.5 is more than a week away, ship a v0.4.3 patch:
 
@@ -432,7 +432,7 @@ This is a band-aid; v0.5 is the right fix.
 - **Q: What if the site IS pSEO and AEO matters?** Site classifier already
   detects `programmatic-directory`. For those sites, enable AEO by default.
   For everyone else, keep it opt-in.
-- **Q: Should we keep the single risk number anywhere?** Yes — for trend
+- **Q: Should we keep the single risk number anywhere?** Yes: for trend
   charts, alert thresholds, leaderboards. Show "SpamBrain risk" as the
   trended number; AEO is its own line.
 
@@ -442,15 +442,15 @@ This is a band-aid; v0.5 is the right fix.
 
 Three options:
 
-1. **Accept §6 as-is and ship as v0.5.0** — proper fix, takes ~3-5 days
+1. **Accept §6 as-is and ship as v0.5.0**: proper fix, takes ~3-5 days
    of agent-driven work + 1 day re-dogfood.
 2. **Ship v0.4.3 band-aid first** (severity demotion + weight shift),
    then v0.5.0 properly later.
-3. **Workshop §6 further** — invite reviewers, run the proposal past
+3. **Workshop §6 further**: invite reviewers, run the proposal past
    the friend who flagged the original credibility issue, validate
    the new defaults against more sites.
 
 Recommendation: **(2) then (1).** Ship v0.4.3 today (4 hours: the AEO
 severity flips + the weight shift). It immediately makes nextjs.org
-score `caution` instead of `concerning` — enough to restore baseline
+score `caution` instead of `concerning`, enough to restore baseline
 trust. Then schedule v0.5.0 for next week with the two-verdict split.

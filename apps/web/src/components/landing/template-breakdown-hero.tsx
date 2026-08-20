@@ -3,7 +3,7 @@ import { TemplateCard } from "@/components/audit/template-card";
 
 /**
  * Audit-as-template visual centerpiece: shows the paradigm with 3 live
- * TemplateCard instances backed by realistic mock data. No interactivity —
+ * TemplateCard instances backed by realistic mock data. No interactivity:
  * this is a static marketing surface. The annotation and comparison footer
  * explain the aggregation logic (spec §15.1) and the v0.5→stratified sampling shift.
  */
@@ -166,7 +166,7 @@ export function TemplateBreakdownHero() {
             picks the worst template with{" "}
             <strong className="text-foreground">≥5% URL coverage.</strong>{" "}
             <code className="font-mono text-[11px]">/listing/:slug</code> covers{" "}
-            97.3% of the site — so its{" "}
+            97.3% of the site, so its{" "}
             <span className="font-semibold text-warning">concerning</span> verdict drives
             the headline, even though <code className="font-mono text-[11px]">/article/:slug</code>{" "}
             is clean. One template-level fix, not 8,201 page-by-page investigations.
@@ -177,13 +177,13 @@ export function TemplateBreakdownHero() {
         <div className="mt-6 overflow-hidden rounded-[18px] border border-border/60 bg-card/40">
           <div className="flex items-center border-b border-border/60 px-5 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Sampling model — before &amp; after
+              Sampling model: before &amp; after
             </p>
           </div>
           <div className="grid gap-0 divide-y divide-border/40 sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             <div className="px-5 py-4">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-                v0.5 — flat random sample
+                v0.5: flat random sample
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 200 URLs drawn across the whole site. On an 8,200-URL directory,
@@ -191,7 +191,7 @@ export function TemplateBreakdownHero() {
                 <code className="font-mono text-[10px]">/listing/*</code> template&apos;s
                 thin-content crisis averages out with the clean article pages.
                 Site scores{" "}
-                <span className="font-semibold text-foreground">caution</span> — the
+                <span className="font-semibold text-foreground">caution</span>: the
                 problem is invisible.
               </p>
               <div className="mt-3 flex items-center gap-2">
@@ -210,13 +210,13 @@ export function TemplateBreakdownHero() {
             </div>
             <div className="px-5 py-4">
               <p className="font-mono text-[11px] font-semibold uppercase tracking-wider text-primary/80">
-                Stratified sampling — by template
+                Stratified sampling: by template
               </p>
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 Pages are sampled stratified across templates (up to 200). Each template
                 gets its own verdict. The{" "}
                 <code className="font-mono text-[10px]">/listing/*</code> cluster
-                surfaces an 8/10 thin-content fire rate — unmistakable.{" "}
+                surfaces an 8/10 thin-content fire rate: unmistakable.{" "}
                 <code className="font-mono text-[10px]">/article/*</code> gets
                 credit for being clean.
               </p>

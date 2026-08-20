@@ -56,7 +56,7 @@ const ITEMS = [
   {
     id: "internal-links",
     category: "Technical SEO",
-    title: "No orphan pages — all URLs have ≥1 internal inbound link",
+    title: "No orphan pages: all URLs have ≥1 internal inbound link",
     detail: "Google discovers pages through links. Pages only reachable via sitemap are fragile. Add hub or category pages that link into your templates.",
     severity: "Major",
     ruleSlug: "orphan-pages",
@@ -175,7 +175,7 @@ export function InteractiveChecklist() {
               <p className="text-[10px] text-muted-foreground">{done}/{total} done</p>
             </>
           ) : (
-            <span className="font-mono text-3xl font-bold tabular-nums text-muted-foreground">—</span>
+            <span className="font-mono text-3xl font-bold tabular-nums text-muted-foreground">: </span>
           )}
         </div>
       </div>

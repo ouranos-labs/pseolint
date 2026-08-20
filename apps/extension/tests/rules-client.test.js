@@ -1,7 +1,7 @@
 // Runnable check for the Tier-1 client verdict (architecture §6).
 // Imports the REAL core rules via subpath exports, so this also proves the
 // browser-safe export wiring resolves. `node tests/rules-client.test.js`
-// (requires @pseolint/core to be built — `dist/` — which it is in the workspace).
+// (requires @pseolint/core to be built (`dist/`) which it is in the workspace).
 import assert from "node:assert";
 import { toVerdict, verdictFor, scanPage } from "../src/shared/rules-client.js";
 
@@ -27,7 +27,7 @@ assert.deepStrictEqual(
 assert.strictEqual(
   toVerdict([{ ruleId: "spam/thin-content", severity: "error", confidence: "medium" }]),
   null,
-  "medium-confidence finding is dropped — we badge only what's sound",
+  "medium-confidence finding is dropped; we badge only what's sound",
 );
 assert.strictEqual(
   toVerdict([

@@ -31,7 +31,7 @@ export function boilerplateRatioRule(pages: ParsedPage[], maxRatio: number): Rul
   // Continuous weight, min-max normalized over document frequency: a block
   // unique to ONE page is not boilerplate at all (weight 0); a block on EVERY
   // page is full boilerplate (weight 1); mid-frequency blocks scale linearly
-  // between. (freq-1)/(N-1) — not freq/N — so unique content never inflates the
+  // between. (freq-1)/(N-1) (not freq/N) so unique content never inflates the
   // ratio (which freq/N does, giving every block at least 1/N). N>=2 here, so
   // N-1>=1: no division by zero. Removes the binary skeleton cliff entirely.
   const blockWeight = (block: string): number => {
@@ -68,7 +68,7 @@ export function boilerplateRatioRule(pages: ParsedPage[], maxRatio: number): Rul
       confidence,
       pageUrl: page.url,
       message: `${page.url} has boilerplate ratio ${(ratio * 100).toFixed(1)}% (max ${(maxRatio * 100).toFixed(1)}%).`,
-      fix: `${(ratio * 100).toFixed(1)}% of this page's content is shared template text. Reduce repeated boilerplate sections or add unique content blocks—introductions, case studies, or page-specific data—to bring the ratio below ${(maxRatio * 100).toFixed(1)}%.`
+      fix: `${(ratio * 100).toFixed(1)}% of this page's content is shared template text. Reduce repeated boilerplate sections or add unique content blocks (introductions, case studies, or page-specific data) to bring the ratio below ${(maxRatio * 100).toFixed(1)}%.`
     });
   });
 

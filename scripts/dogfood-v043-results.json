@@ -550,7 +550,7 @@
       "expectedType": "programmatic-directory",
       "humanGrade": "concerning",
       "audit": null,
-      "error": "audit failed: Failed to fetch source URL: https://www.softschools.com — verify the URL is correct and returns a valid response."
+      "error": "audit failed: Failed to fetch source URL: https://www.softschools.com; verify the URL is correct and returns a valid response."
     },
     {
       "url": "https://www.expatistan.com",

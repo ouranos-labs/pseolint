@@ -131,7 +131,7 @@ describe("auditSource", () => {
     }) as typeof fetch;
 
     const summary = await auditSource("https://example.dev/sitemap-dup.xml");
-    // audit/* findings are diagnostic-only in v0.4 — excluded from the issue
+    // audit/* findings are diagnostic-only in v0.4: excluded from the issue
     // buckets, surfaced under `summary.diagnostics.auditFindings`.
     expect(allIssues(summary).some((f) => f.ruleId === "audit/duplicate-url")).toBe(false);
     expect(summary.diagnostics.auditFindings.some((f) => f.ruleId === "audit/duplicate-url")).toBe(true);
@@ -301,7 +301,7 @@ describe("auditSource", () => {
     tempDirs.push(dir);
     await writeFile(join(dir, "a.html"), "<html><body><h1>x</h1><p>hello world</p></body></html>", "utf-8");
     // safeMode enables guardSsrf, but explicit false wins. Auditing a local
-    // directory (no URL) still runs — preset shouldn't break it.
+    // directory (no URL) still runs: preset shouldn't break it.
     const summary = await auditSource(dir, { safeMode: "saas", guardSsrf: false });
     expect(summary.pageCount).toBe(1);
   });
@@ -598,7 +598,7 @@ describe("v0.4.3 classification-driven scoring", () => {
     // 2026-05-03 calibration: previously this test expected lowConf to keep
     // aeo/citable-facts at the original `error` severity, on the premise
     // that the `unclear` fallback profile had no overrides. Calibration
-    // showed that fallback caused 4 of 5 reputable pSEO sites to fail —
+    // showed that fallback caused 4 of 5 reputable pSEO sites to fail:
     // structurally-incompatible rules (AEO on non-prose pages) over-fired
     // when the classifier hit confidence < 0.7. The `unclear` profile now
     // demotes those rules conservatively too. To still demonstrate the
@@ -674,7 +674,7 @@ describe("v0.4.3 classification-driven scoring", () => {
 
   test("scoreFromFindings rewards count for spam findings (cluster matters)", async () => {
     // A site with 5 near-duplicate findings should score higher risk than
-    // one with a single near-duplicate finding, even at the same severity —
+    // one with a single near-duplicate finding, even at the same severity:
     // this is the per-instance amplification working as designed.
     const dir = await mkdtemp(join(tmpdir(), "pseolint-cluster-amp-"));
     tempDirs.push(dir);

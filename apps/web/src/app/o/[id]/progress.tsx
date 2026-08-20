@@ -156,7 +156,7 @@ export function OrchestratorProgress({
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <CancelButton sessionId={sessionId} />
           <span className="text-xs text-muted-foreground">
-            Live event tailing (SSE) is on the roadmap — for now the page polls every 3s.
+            Live event tailing (SSE) is on the roadmap: for now the page polls every 3s.
           </span>
         </div>
       )}
@@ -179,7 +179,7 @@ function CancelButton({ sessionId }: { sessionId: string }) {
         setError(body.error ?? `cancel failed (${res.status})`);
         return;
       }
-      // Refresh the page state — the next poll will pick up status=aborted.
+      // Refresh the page state: the next poll will pick up status=aborted.
       window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -222,8 +222,8 @@ function CancelButton({ sessionId }: { sessionId: string }) {
 
 function statusLabel(s: SessionStatus["status"]): string {
   switch (s) {
-    case "queued": return "Queued — orchestrator job will pick this up shortly.";
-    case "running": return "Running — the LLM is calling tools and producing the manifest.";
+    case "queued": return "Queued, orchestrator job will pick this up shortly.";
+    case "running": return "Running; the LLM is calling tools and producing the manifest.";
     case "completed": return "Completed.";
     case "failed": return "Failed.";
     case "aborted": return "Aborted.";

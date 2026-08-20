@@ -35,14 +35,14 @@ function parseRobotsDirectives(value: string): { noindex: boolean; nofollow: boo
 export const checkIndexabilityTool = defineTool({
   name: "check_indexability",
   description:
-    "Determine whether a previously-fetched page is indexable by search engines. Combines <meta name=robots>, X-Robots-Tag (pass from fetch_page response headers), and canonical signals. Returns `indexable: false` with reasons when noindex or non-self-referencing canonical is present. Call this near the top of any per-page audit — non-indexable pages don't need rule checks.",
+    "Determine whether a previously-fetched page is indexable by search engines. Combines <meta name=robots>, X-Robots-Tag (pass from fetch_page response headers), and canonical signals. Returns `indexable: false` with reasons when noindex or non-self-referencing canonical is present. Call this near the top of any per-page audit, non-indexable pages don't need rule checks.",
   inputSchema,
   outputSchema,
   async execute({ pageId, xRobotsTagHeader }) {
     const entry = resolvePage(pageId);
     const parsed = parseHtmlPage(entry.html, entry.url);
     // If the caller didn't pass X-Robots-Tag, pull it from the cached fetch
-    // headers — saves the LLM a round-trip just to surface a header it
+    // headers: saves the LLM a round-trip just to surface a header it
     // already saw in fetch_page's output.
     const xRobots = xRobotsTagHeader ?? entry.headers["x-robots-tag"] ?? "";
     const reasons: string[] = [];

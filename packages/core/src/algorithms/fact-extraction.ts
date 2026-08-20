@@ -143,7 +143,7 @@ export const DEFAULT_CITATION_ALLOWLIST: readonly string[] = [
   // Google's own published documentation is the primary authoritative source for
   // claims about Google's ranking and spam systems (Search Essentials, spam
   // policies, helpful-content guidance) and for Core Web Vitals (web.dev).
-  // Scoped to the docs subdomain — a bare google.com link (Maps, search results)
+  // Scoped to the docs subdomain: a bare google.com link (Maps, search results)
   // is deliberately NOT credited as authoritative.
   "developers.google.com", "web.dev",
 ];
@@ -217,7 +217,7 @@ function resolveHrefs(hrefs: string[], base: string): string[] {
 /**
  * Deterministic approximation of "a verifiable claim": a block (<p>/<li>) that
  * contains a statistic AND an outbound citation. Approximated at block level,
- * not exact sentence level — documented limitation. Detects co-occurrence, not
+ * not exact sentence level: documented limitation. Detects co-occurrence, not
  * semantic truth. Consume at `speculative` confidence.
  */
 export function extractGroundedClaims(

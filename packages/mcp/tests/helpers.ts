@@ -5,7 +5,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 /**
  * Connect a real MCP `Client` to the given server over an in-memory transport.
  * `listTools()` is called so the client caches each tool's output-schema
- * validator — successful tool results are then validated client-side against
+ * validator: successful tool results are then validated client-side against
  * `outputSchema`, which is the core of these battle tests.
  */
 export async function connect(server: McpServer): Promise<Client> {
@@ -68,7 +68,7 @@ export function makeSummary(o: SummaryOverrides = {}): any {
       discoverability: { grade: "A", issues: 0 },
       citation: { grade: "C", issues: 5 },
       data: { grade: "A", issues: 0 },
-      // weight-0 diagnostics bucket — must be filtered out of structured output
+      // weight-0 diagnostics bucket; must be filtered out of structured output
       audit: { grade: "A", issues: 0 },
     },
     issues: {

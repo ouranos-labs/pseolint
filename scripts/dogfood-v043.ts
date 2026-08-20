@@ -1,5 +1,5 @@
 /**
- * v0.4.3 dogfood — validate the new classification-driven scoring
+ * v0.4.3 dogfood: validate the new classification-driven scoring
  * (SCORING_PROFILES + RULE_IMPACTS + per-rule confidence) against a
  * broader site distribution covering all 5 classifier types.
  *
@@ -47,12 +47,12 @@ interface Target {
 }
 
 const TARGETS: Target[] = [
-  // ───── docs sites — historically over-penalised by AEO rules ─────
+  // ───── docs sites: historically over-penalised by AEO rules ─────
   { url: "https://nextjs.org", expectedType: "docs", expectedFramework: "nextjs", humanGrade: "ready" },
   { url: "https://react.dev", expectedType: "docs", expectedFramework: "nextjs", humanGrade: "ready" },
   { url: "https://docs.python.org/3/", expectedType: "docs", humanGrade: "ready" },
 
-  // ───── small-marketing — pSEO-only rules should be suppressed ─────
+  // ───── small-marketing: pSEO-only rules should be suppressed ─────
   { url: "https://stripe.com", expectedType: "small-marketing", humanGrade: "ready" },
   { url: "https://linear.app", expectedType: "small-marketing", humanGrade: "ready" },
   { url: "https://supabase.com", expectedType: "small-marketing", humanGrade: "ready" },
@@ -60,7 +60,7 @@ const TARGETS: Target[] = [
   // shopify corporate marketing site (not a store)
   { url: "https://www.shopify.com", expectedType: "small-marketing", humanGrade: "ready" },
 
-  // ───── ecommerce — Shopify-shape stores ─────
+  // ───── ecommerce: Shopify-shape stores ─────
   { url: "https://www.allbirds.com", expectedType: "ecommerce", expectedFramework: "shopify", humanGrade: "ready" },
   { url: "https://www.gymshark.com", expectedType: "ecommerce", expectedFramework: "shopify", humanGrade: "ready" },
 
@@ -68,7 +68,7 @@ const TARGETS: Target[] = [
   { url: "https://wordpress.com", expectedType: "blog", expectedFramework: "wordpress", humanGrade: "caution" },
   { url: "https://blog.cloudflare.com", expectedType: "blog", humanGrade: "ready" },
 
-  // ───── programmatic directories — we WANT these to score concerning+ ─────
+  // ───── programmatic directories: we WANT these to score concerning+ ─────
   { url: "https://www.softschools.com", expectedType: "programmatic-directory", humanGrade: "concerning" },
   // city × cost-of-living pSEO directory
   { url: "https://www.expatistan.com", expectedType: "programmatic-directory", humanGrade: "caution" },
@@ -165,7 +165,7 @@ async function auditOne(target: Target, hardTimeoutMs = 60_000): Promise<AuditSn
     audit: null,
   };
 
-  // framework detection — quick 5s probe
+  // framework detection: quick 5s probe
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5_000);
@@ -176,7 +176,7 @@ async function auditOne(target: Target, hardTimeoutMs = 60_000): Promise<AuditSn
     }
   } catch (err) {
     snap.error = `framework-detect failed: ${err instanceof Error ? err.message : String(err)}`;
-    // Don't bail — still attempt the audit.
+    // Don't bail; still attempt the audit.
   }
 
   // The audit itself, with a hard wall-clock timeout.
@@ -253,7 +253,7 @@ function printSnapshot(snap: AuditSnapshot): void {
     `  suppressedRules=${a.suppressedRules}`
   );
   console.log(
-    `  verdict: ${verdictColor}${a.verdict}${ansi.reset} (risk ${a.risk}) — predicted ${snap.humanGrade} → [${flag}]`
+    `  verdict: ${verdictColor}${a.verdict}${ansi.reset} (risk ${a.risk}); predicted ${snap.humanGrade} → [${flag}]`
   );
   console.log(
     `  counts: blockers=${a.blockers} shouldFix=${a.shouldFix} info=${a.informational}` +
@@ -392,7 +392,7 @@ async function main(): Promise<void> {
   const outPath = isBaseline ? BASELINE_PATH : RESULTS_PATH;
 
   console.log(
-    `${ansi.bold}v0.4.3 dogfood — phase=${phase}${ansi.reset}\n` +
+    `${ansi.bold}v0.4.3 dogfood: phase=${phase}${ansi.reset}\n` +
     `  targets: ${TARGETS.length}\n` +
     `  sample-size: 5  concurrency: 1  safe-mode: saas  hard-timeout: 60s\n` +
     `  out: ${outPath}\n`,
@@ -403,14 +403,14 @@ async function main(): Promise<void> {
     const snap = await auditOne(target);
     results.push(snap);
     printSnapshot(snap);
-    // Best-effort flush after each — partial snapshot survives a crash.
+    // Best-effort flush after each; partial snapshot survives a crash.
     try {
       writeFileSync(
         outPath,
         JSON.stringify({ capturedAt: new Date().toISOString(), phase, results } satisfies Snapshot, null, 2),
       );
     } catch {
-      // ignore — we'll write again at the end.
+      // ignore; we'll write again at the end.
     }
   }
 
@@ -424,7 +424,7 @@ async function main(): Promise<void> {
     if (baseline) {
       diff(baseline, snapshot);
     } else {
-      console.log(`\n${ansi.yellow}No baseline found at ${BASELINE_PATH} — skipping diff.${ansi.reset}`);
+      console.log(`\n${ansi.yellow}No baseline found at ${BASELINE_PATH}; skipping diff.${ansi.reset}`);
       console.log(`Run ${ansi.bold}bun run scripts/dogfood-v043.ts --baseline${ansi.reset} first to capture one.`);
     }
   } else {

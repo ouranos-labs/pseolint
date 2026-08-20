@@ -31,7 +31,7 @@ export default function SigninClient() {
                 sent
               </div>
               <p className="text-sm leading-relaxed text-foreground/90">
-                Check your inbox — we sent a sign-in link to{" "}
+                Check your inbox; we sent a sign-in link to{" "}
                 <span className="font-medium">{email}</span>.
               </p>
               <p className="text-xs text-muted-foreground">Link expires in 15 minutes.</p>

@@ -10,7 +10,7 @@
 /** Risk strictly below this is leaderboard-eligible (A/B bands). Tunable. */
 export const LEADERBOARD_RISK_MAX = 40;
 
-/** Too-small samples produce volatile rankings — exclude below this. */
+/** Too-small samples produce volatile rankings; exclude below this. */
 export const LEADERBOARD_MIN_PAGES = 5;
 
 /**
@@ -45,7 +45,7 @@ export function isLeaderboardEligible(a: EligibilityInput): boolean {
 /**
  * Robots directive for a /r/[slug] page. Only leaderboard-eligible reports are
  * indexed; every private/failing/thin/expired report stays noindex,nofollow
- * (the historical default). expiresAt is intentionally NOT an input here —
+ * (the historical default). expiresAt is intentionally NOT an input here:
  * eligible audits have their expiry extended to PERMANENT_EXPIRES_AT, and an
  * expired row never reaches this function (the page renders ExpiredState first).
  */

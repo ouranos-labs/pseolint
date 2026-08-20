@@ -17,7 +17,7 @@ export interface BudgetCaps {
   maxWallSeconds: number;
   /**
    * Inject a watchdog system message every N tool calls reminding the model
-   * to converge on a manifest. Defaults to 20 — i.e. on calls 20, 40, 60,
+   * to converge on a manifest. Defaults to 20: i.e. on calls 20, 40, 60,
    * 80, the model gets a "are you converging?" nudge. Set to 0 to disable.
    */
   watchdogIntervalCalls: number;
@@ -66,7 +66,7 @@ export type SessionEvent =
    * Per-step delta. inputTokens/outputTokens are this step alone (not
    * cumulative); estimatedUsd is the per-step cost (sum these to get total).
    * `durationMs` is wall-clock time from the start of this step to when
-   * its onStepFinish fired — undefined when prepareStep didn't run for the
+   * its onStepFinish fired: undefined when prepareStep didn't run for the
    * very first step. Cumulative state lives in `session_finished.usage`.
    */
   | { kind: "step_usage"; inputTokens: number; outputTokens: number; estimatedUsd: number; durationMs?: number }
@@ -76,7 +76,7 @@ export type SessionEvent =
 
 /**
  * Final result returned by `runOrchestrator`. `manifest` is whatever
- * `finish_audit` was called with — null when the session terminated for any
+ * `finish_audit` was called with: null when the session terminated for any
  * reason other than the model calling finish_audit.
  */
 export interface SessionResult {

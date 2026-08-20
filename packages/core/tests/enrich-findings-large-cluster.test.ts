@@ -13,7 +13,7 @@ import type { ParsedPage, RuleResult } from "../src/types.js";
  * `enrichFindings` then collapsed each component and computed the similarity
  * range via `Math.min(...similarities)` / `Math.max(...similarities)`. The
  * spread operator passes every array element as a separate call argument, and
- * V8 caps the argument count (~131072) — so an array of tens/hundreds of
+ * V8 caps the argument count (~131072): so an array of tens/hundreds of
  * thousands of pairwise similarities overflowed the call stack while building
  * the cluster finding (i.e. "while writing the report").
  *
@@ -69,7 +69,7 @@ function fullyConnectedNearDuplicateFindings(n: number): RuleResult[] {
   return findings;
 }
 
-describe("enrichFindings — large dense cluster (stack-overflow regression)", () => {
+describe("enrichFindings: large dense cluster (stack-overflow regression)", () => {
   // n=600 -> C(600,2) = 179700 pairs, comfortably above V8's ~131072
   // spread-argument cap on every supported engine.
   const N = 600;

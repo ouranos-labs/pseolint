@@ -63,7 +63,7 @@ export async function isSafePublicUrl(raw: string): Promise<boolean> {
     return true;
   }
   // `dns.lookup` uses the OS resolver (getaddrinfo) which is far more reliable
-  // for short-lived requests than c-ares-based resolve4/resolve6 — those time
+  // for short-lived requests than c-ares-based resolve4/resolve6; those time
   // out under cold-start conditions and falsely reject valid public domains.
   try {
     const addrs = await withTimeout(dns.lookup(host, { all: true }), DNS_TIMEOUT_MS);

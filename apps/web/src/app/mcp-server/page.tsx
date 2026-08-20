@@ -8,12 +8,12 @@ const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 const REMOTE_URL = "https://pseolint.dev/mcp";
 
 export const metadata: Metadata = {
-  title: "pseolint MCP server — audit pSEO sites from Claude, Cursor & any MCP client",
+  title: "pseolint MCP server: audit pSEO sites from Claude, Cursor & any MCP client",
   description:
     "Connect pseolint to your AI coding assistant. Paste the hosted URL for a zero-install remote server, or run the open-source stdio package. Penalty-risk audits, fix manifests, no signup.",
   alternates: { canonical: `${SITE_URL}/mcp-server` },
   openGraph: {
-    title: "pseolint MCP server — penalty-risk audits inside your AI assistant",
+    title: "pseolint MCP server: penalty-risk audits inside your AI assistant",
     description:
       "Zero-install remote endpoint (paste one URL) or the open-source stdio package. Audit programmatic SEO sites for SpamBrain risk without leaving Claude or Cursor.",
     url: `${SITE_URL}/mcp-server`,
@@ -40,11 +40,11 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What's the difference between the remote and the local (stdio) server?",
-    a: "Same engine, different delivery. The remote server is hosted at https://pseolint.dev/mcp — you paste one URL into your MCP client, nothing to install, and it serves the three read-only audit tools. The local stdio server runs on your machine via npx @pseolint/mcp; it also exposes the AI-orchestrated audit tool that produces a fix manifest with concrete patches. Use remote for the fastest start, stdio for the orchestrate tool or fully offline/local runs.",
+    a: "Same engine, different delivery. The remote server is hosted at https://pseolint.dev/mcp; you paste one URL into your MCP client, nothing to install, and it serves the three read-only audit tools. The local stdio server runs on your machine via npx @pseolint/mcp; it also exposes the AI-orchestrated audit tool that produces a fix manifest with concrete patches. Use remote for the fastest start, stdio for the orchestrate tool or fully offline/local runs.",
   },
   {
     q: "Is it free? Do I need an account?",
-    a: "The remote server's three read-only tools are free and need no signup — anonymous use is rate-limited per IP. Creating a free API key in your dashboard raises those limits. The open-source stdio package is free and unlimited. The orchestrate tool (stdio/CLI) calls a paid LLM provider with your own API key.",
+    a: "The remote server's three read-only tools are free and need no signup, anonymous use is rate-limited per IP. Creating a free API key in your dashboard raises those limits. The open-source stdio package is free and unlimited. The orchestrate tool (stdio/CLI) calls a paid LLM provider with your own API key.",
   },
   {
     q: "Which clients does this work with?",
@@ -60,7 +60,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What are the four tools?",
-    a: "pseolint_audit_site (crawl + verdict + risk score + findings), pseolint_explain_score (why the verdict is what it is, quick wins first), pseolint_check_page_technical (per-page canonical/OG/JSON-LD/meta checks), and pseolint_orchestrate_audit (LLM-driven deep audit that emits a paste-able fix manifest — stdio/CLI only for now).",
+    a: "pseolint_audit_site (crawl + verdict + risk score + findings), pseolint_explain_score (why the verdict is what it is, quick wins first), pseolint_check_page_technical (per-page canonical/OG/JSON-LD/meta checks), and pseolint_orchestrate_audit (LLM-driven deep audit that emits a paste-able fix manifest, stdio/CLI only for now).",
   },
 ];
 
@@ -125,14 +125,14 @@ export default function McpServerPage() {
         , so they drop into Claude, Cursor, and any MCP-capable client.
       </p>
 
-      {/* Remote — primary */}
+      {/* Remote: primary */}
       <section className="mt-8 rounded-[22px] border border-border/60 bg-card/40 p-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-success">
           Recommended · zero install
         </p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight">Remote server</h2>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          One hosted endpoint — no Node, no <code className="font-mono text-xs">npx</code>, no
+          One hosted endpoint: no Node, no <code className="font-mono text-xs">npx</code>, no
           local setup. Serves the three read-only audit tools. Anonymous use is
           rate-limited; a free API key raises your limits.
         </p>
@@ -153,7 +153,7 @@ export default function McpServerPage() {
 }`}</CodeBlock>
 
         <h3 className="mt-5 text-sm font-semibold text-foreground">
-          Claude Desktop (stdio-only) — via the mcp-remote bridge
+          Claude Desktop (stdio-only): via the mcp-remote bridge
         </h3>
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           Add to <code className="font-mono text-xs">claude_desktop_config.json</code>:
@@ -191,7 +191,7 @@ export default function McpServerPage() {
         </p>
       </section>
 
-      {/* stdio — secondary */}
+      {/* stdio: secondary */}
       <section className="mt-6 rounded-[22px] border border-border/60 bg-card/40 p-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Open source · power users
@@ -218,7 +218,7 @@ export default function McpServerPage() {
   }
 }`}</CodeBlock>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          The orchestrate tool calls a paid LLM provider — set{" "}
+          The orchestrate tool calls a paid LLM provider: set{" "}
           <code className="font-mono text-xs">ANTHROPIC_API_KEY</code> (or another supported provider key)
           in the server&apos;s environment. The other three tools run without it.
         </p>
@@ -246,10 +246,10 @@ export default function McpServerPage() {
             The tools
           </p>
           <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-foreground">
-            <li><code className="font-mono text-xs">pseolint_audit_site</code> — verdict + risk + findings</li>
-            <li><code className="font-mono text-xs">pseolint_explain_score</code> — why, quick wins first</li>
-            <li><code className="font-mono text-xs">pseolint_check_page_technical</code> — per-page checks</li>
-            <li><code className="font-mono text-xs">pseolint_orchestrate_audit</code> — fix manifest (local)</li>
+            <li><code className="font-mono text-xs">pseolint_audit_site</code>: verdict + risk + findings</li>
+            <li><code className="font-mono text-xs">pseolint_explain_score</code>: why, quick wins first</li>
+            <li><code className="font-mono text-xs">pseolint_check_page_technical</code>: per-page checks</li>
+            <li><code className="font-mono text-xs">pseolint_orchestrate_audit</code>: fix manifest (local)</li>
           </ul>
         </div>
       </section>
@@ -280,7 +280,7 @@ export default function McpServerPage() {
         JSON, a score-explanation tool that surfaces quick wins ranked by severity,
         a per-page technical check covering canonical tags, Open Graph, and JSON-LD,
         and an AI-orchestrated audit (stdio only) that produces a paste-able fix
-        manifest. All tools run the same {SCORED_RULE_COUNT}-rule engine as the web UI — no separate
+        manifest. All tools run the same {SCORED_RULE_COUNT}-rule engine as the web UI: no separate
         install or account required for the remote endpoint.
       </p>
 
@@ -296,7 +296,7 @@ export default function McpServerPage() {
           },
           {
             source: "helpfulContent",
-            note: "Google's helpful-content system guidance informs the content-quality rules — thin content, boilerplate ratio, citable facts — surfaced in every MCP audit response.",
+            note: "Google's helpful-content system guidance informs the content-quality rules (thin content, boilerplate ratio, citable facts) surfaced in every MCP audit response.",
           },
         ]}
       />

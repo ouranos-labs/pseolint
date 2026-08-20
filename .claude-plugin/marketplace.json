@@ -13,7 +13,7 @@
     {
       "name": "pseolint",
       "source": "./skills/pseolint",
-      "description": "Full-lifecycle programmatic SEO — design, build, audit, fix, and gate template pages at scale without earning a thin-content / SpamBrain penalty. 12 playbooks, each bound to the pseolint rules that gate it."
+      "description": "Full-lifecycle programmatic SEO, design, build, audit, fix, and gate template pages at scale without earning a thin-content / SpamBrain penalty. 12 playbooks, each bound to the pseolint rules that gate it."
     },
     {
       "name": "aeo",

@@ -13,8 +13,8 @@ let results = []; // [{ url, anchor }]
 let summary = null;
 let lastHref = location.href; // SPA-nav sentinel: query/vertical/page changes move it
 
-// Wipe every mark we've drawn back to a clean page — badges in the titles and the
-// fixed landscape chip — and drop cached state. Called on SPA navigation (new
+// Wipe every mark we've drawn back to a clean page: badges in the titles and the
+// fixed landscape chip, and drop cached state. Called on SPA navigation (new
 // query, vertical switch, pagination) and when we land on a non-web vertical.
 function clearOverlay() {
   for (const el of document.querySelectorAll('[data-pseolint="badge"],[data-pseolint="chip"]')) el.remove();
@@ -28,7 +28,7 @@ function pushLandscape(reset) {
   chrome.runtime.sendMessage({ type: "pseolint:landscape-updated", summary: serializeSummary(summary), reset: !!reset }).catch(() => {});
 }
 
-// Tier 1 — auto, zero permission.
+// Tier 1: auto, zero permission.
 function runLandscape() {
   results = detectResults(document);
   summary = analyzeLandscape(results);
@@ -46,7 +46,7 @@ function runLandscape() {
   mountChip(landscapeChip(summary));
 }
 
-// Tier 2 — opt-in deep scan (side panel asked). Fetch+judge via the SW, paint
+// Tier 2: opt-in deep scan (side panel asked). Fetch+judge via the SW, paint
 // risk badges, and return per-result {verdict, ok} so the panel can show coverage.
 async function deepScan() {
   if (results.length === 0) {

@@ -14,7 +14,7 @@ function filterSkillBodyForMode(body, mode) {
 
   // Only the intensity table rows and worked examples are mode-specific, and
   // both are keyed by a mode name (lite/full/ultra). A bullet whose label is
-  // not a mode — e.g. "No unrequested abstractions: ..." — is a normal rule
+  // not a mode, e.g. "No unrequested abstractions: ..."; is a normal rule
   // and must be kept verbatim.
   return withoutFrontmatter
     .split(/\r?\n/)
@@ -37,7 +37,7 @@ function filterSkillBodyForMode(body, mode) {
 }
 
 function getFallbackInstructions(mode) {
-  return 'PONYTAIL MODE ACTIVE — level: ' + mode + '\n\n' +
+  return 'PONYTAIL MODE ACTIVE, level: ' + mode + '\n\n' +
     'You are a lazy senior developer. Lazy means efficient, not careless. The best code is the code never written.\n\n' +
     '## Persistence\n\n' +
     'ACTIVE EVERY RESPONSE. No drift back to over-building. Still active if unsure. Off only: "stop ponytail" / "normal mode".\n\n' +
@@ -53,9 +53,9 @@ function getFallbackInstructions(mode) {
     '## Rules\n\n' +
     'No abstractions that were not requested. No avoidable dependencies. No boilerplate nobody asked for. ' +
     'Deletion over addition. Boring over clever. Fewest files possible. ' +
-    'Ship the lazy version and question the complex request in the same response — never stall. ' +
+    'Ship the lazy version and question the complex request in the same response: never stall. ' +
     'Between two same-size stdlib options, pick the one correct on edge cases. ' +
-    'Mark intentional simplifications with a `ponytail:` comment — a shortcut with a known ceiling names the ceiling and the upgrade path in the comment.\n\n' +
+    'Mark intentional simplifications with a `ponytail:` comment, a shortcut with a known ceiling names the ceiling and the upgrade path in the comment.\n\n' +
     '## Output\n\n' +
     'Code first. Then at most three short lines: what was skipped, when to add it. ' +
     'If the explanation is longer than the code, delete the explanation. ' +
@@ -72,13 +72,13 @@ function getPonytailInstructions(mode) {
   const configuredMode = normalizePersistedMode(mode) || DEFAULT_MODE;
 
   if (INDEPENDENT_MODES.has(configuredMode)) {
-    return 'PONYTAIL MODE ACTIVE — level: ' + configuredMode + '. Behavior defined by /ponytail-' + configuredMode + ' skill.';
+    return 'PONYTAIL MODE ACTIVE, level: ' + configuredMode + '. Behavior defined by /ponytail-' + configuredMode + ' skill.';
   }
 
   const effectiveMode = normalizeMode(configuredMode) || DEFAULT_MODE;
 
   try {
-    return 'PONYTAIL MODE ACTIVE — level: ' + effectiveMode + '\n\n' +
+    return 'PONYTAIL MODE ACTIVE, level: ' + effectiveMode + '\n\n' +
       filterSkillBodyForMode(fs.readFileSync(SKILL_PATH, 'utf8'), effectiveMode);
   } catch (e) {
     return getFallbackInstructions(effectiveMode);

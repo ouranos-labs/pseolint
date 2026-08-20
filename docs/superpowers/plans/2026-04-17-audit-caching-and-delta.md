@@ -275,7 +275,7 @@ export async function writeCacheEntry(
 }
 ```
 
-Wait — redirect pointer doesn't have a `url` field, only the requesting URL is known by caller. Fix the writer signature:
+Wait, redirect pointer doesn't have a `url` field, only the requesting URL is known by caller. Fix the writer signature:
 
 Replace the `writeCacheEntry` above with:
 
@@ -295,7 +295,7 @@ export async function writeCacheEntry(
 }
 ```
 
-And update the test accordingly — pass the URL explicitly:
+And update the test accordingly, pass the URL explicitly:
 
 ```ts
     await writeCacheEntry(dir, "https://example.com/a", {
@@ -311,7 +311,7 @@ And update the test accordingly — pass the URL explicitly:
 - [ ] **Step 2.4: Run tests, verify they pass**
 
 Run: `bun --cwd packages/core test -- cache`
-Expected: PASS (7 tests total — 3 from Task 1, 4 from Task 2).
+Expected: PASS (7 tests total, 3 from Task 1, 4 from Task 2).
 
 - [ ] **Step 2.5: Typecheck**
 
@@ -774,7 +774,7 @@ describe("cachedFetch redirects", () => {
 - [ ] **Step 5.2: Run tests, verify they fail**
 
 Run: `bun --cwd packages/core test -- cache`
-Expected: FAIL — redirects aren't handled.
+Expected: FAIL, redirects aren't handled.
 
 - [ ] **Step 5.3: Implement redirect handling**
 
@@ -1019,7 +1019,7 @@ async function fetchTextStrict(
 
 - [ ] **Step 6.3: Wire cache + stats through `runAudit` / `loadPagesFromSource`**
 
-In `packages/core/src/auditor.ts`, inside `runAudit` (or wherever source options are parsed — search for `isLocalhost`):
+In `packages/core/src/auditor.ts`, inside `runAudit` (or wherever source options are parsed, search for `isLocalhost`):
 
 After parsing `options`, add:
 
@@ -1035,7 +1035,7 @@ const cacheConfig: CacheConfig | null = options?.cache
 
 Pass `cacheConfig` and `cacheStats` to `loadPagesFromSource`. Update its signature to accept them, and update every internal call to `fetchWithRetry`, `fetchPageWithMeta`, `fetchTextStrict` to pass them.
 
-Expose stats on the `AuditSummary` — in `types.ts` add to `AuditSummary`:
+Expose stats on the `AuditSummary`, in `types.ts` add to `AuditSummary`:
 
 ```ts
   /** Cache statistics when caching is enabled. */
@@ -1214,7 +1214,7 @@ describe("inferUrlTemplate", () => {
 - [ ] **Step 8.2: Run test, verify it fails**
 
 Run: `bun --cwd packages/core test -- stratified-sample`
-Expected: FAIL — module does not exist.
+Expected: FAIL, module does not exist.
 
 - [ ] **Step 8.3: Implement `inferUrlTemplate`**
 
@@ -1322,7 +1322,7 @@ describe("stratifiedSample", () => {
       else counts.small += 1;
     }
     // sqrt([900, 90, 10]) = [30, 9.49, 3.16], sum = 42.65
-    // allocation for n=60 roughly [42, 13, 5] — small gets ~5, proportional would be <1
+    // allocation for n=60 roughly [42, 13, 5], small gets ~5, proportional would be <1
     expect(counts.small).toBeGreaterThanOrEqual(2);
     expect(counts.mid).toBeGreaterThanOrEqual(5);
     expect(counts.big).toBeLessThan(60);
@@ -1333,7 +1333,7 @@ describe("stratifiedSample", () => {
 - [ ] **Step 9.2: Run tests, verify they fail**
 
 Run: `bun --cwd packages/core test -- stratified-sample`
-Expected: FAIL — `stratifiedSample is not a function`.
+Expected: FAIL, `stratifiedSample is not a function`.
 
 - [ ] **Step 9.3: Implement `stratifiedSample`**
 
@@ -1622,7 +1622,7 @@ describe("readState / writeState", () => {
 - [ ] **Step 11.2: Run tests, verify they fail**
 
 Run: `bun --cwd packages/core test -- state`
-Expected: FAIL — module missing.
+Expected: FAIL, module missing.
 
 - [ ] **Step 11.3: Implement state.ts**
 
@@ -1859,7 +1859,7 @@ Extend `CliFlags` in `config.ts`:
 Append to `packages/core/tests/state.test.ts`:
 
 ```ts
-describe("state integration — write at end of audit", () => {
+describe("state integration, write at end of audit", () => {
   it("writes state file when --state is enabled in AuditOptions", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-state-int-"));
     try {
@@ -1949,7 +1949,7 @@ describe("--since delta filtering", () => {
 - [ ] **Step 13.2: Run test, verify it fails**
 
 Run: `bun --cwd packages/core test -- state`
-Expected: FAIL — `skippedUrls` not populated or `since` is not respected.
+Expected: FAIL, `skippedUrls` not populated or `since` is not respected.
 
 - [ ] **Step 13.3: Implement delta filtering**
 
@@ -1980,7 +1980,7 @@ if (options?.state?.since || options?.state?.exitOnRegression) {
     }
     loadedPages.splice(0, loadedPages.length, ...kept);
   } else if (!priorState && options.state.since) {
-    console.error("no prior state found — performing full baseline audit");
+    console.error("no prior state found, performing full baseline audit");
   }
 }
 ```
@@ -2086,7 +2086,7 @@ describe("--exit-on-regression", () => {
 - [ ] **Step 14.2: Run test, verify it fails**
 
 Run: `bun --cwd packages/core test -- state`
-Expected: FAIL — `hasRegression` not populated.
+Expected: FAIL, `hasRegression` not populated.
 
 - [ ] **Step 14.3: Implement regression detection**
 
@@ -2242,7 +2242,7 @@ If no CHANGELOG, skip this step.
 ```bash
 bun --cwd packages/core run lint
 git add packages/core/src/auditor.ts CHANGELOG.md
-git commit -m "refactor(core): remove adaptive discoveryBudget — replaced by --cache + stratified sampling"
+git commit -m "refactor(core): remove adaptive discoveryBudget, replaced by --cache + stratified sampling"
 ```
 
 ---
@@ -2300,7 +2300,7 @@ pseolint https://example.com --sample-size 200 --strategy stratified --max-per-t
 
 ### Static site: zero egress
 
-If your site outputs static HTML (`out/`, `dist/`, `public/`, `_site/`), audit the directory directly — no HTTP fetches at all:
+If your site outputs static HTML (`out/`, `dist/`, `public/`, `_site/`), audit the directory directly, no HTTP fetches at all:
 
 ```bash
 pseolint ./out
@@ -2322,13 +2322,13 @@ git commit -m "docs: document --cache, --state, --since, --strategy flags"
 
 | Spec section | Task |
 |--------------|------|
-| Primitive 1 — HTTP cache | Tasks 1–5 |
+| Primitive 1: HTTP cache | Tasks 1–5 |
 | cachedFetch signature | Task 4 |
-| Renderer interaction (bypasses cache) | (implicit — renderer calls aren't wrapped; document in README) |
+| Renderer interaction (bypasses cache) | (implicit: renderer calls aren't wrapped; document in README) |
 | Cache stats | Task 7.2 |
-| Primitive 2 — Run state | Task 11 |
+| Primitive 2: Run state | Task 11 |
 | State schema + renderMode | Task 11 + Task 13.3 |
-| Primitive 3 — Stratified sampling | Tasks 8–10 |
+| Primitive 3: Stratified sampling | Tasks 8–10 |
 | `inferUrlTemplate` | Task 8 |
 | sqrt allocation | Task 9 |
 | Execution modes `--cache` | Task 7 |
@@ -2340,7 +2340,7 @@ git commit -m "docs: document --cache, --state, --since, --strategy flags"
 | Security: path-traversal invariant | Task 2 (implicit in `assertValidKey`) |
 | Documentation | Task 16 |
 
-**Gap identified:** Renderer interaction isn't implemented as a guard — the renderer path simply never calls `cachedFetch` because it uses CDP. This is fine but worth a README note. Added in Task 16 implicitly.
+**Gap identified:** Renderer interaction isn't implemented as a guard, the renderer path simply never calls `cachedFetch` because it uses CDP. This is fine but worth a README note. Added in Task 16 implicitly.
 
 ### Placeholder scan
 
@@ -2350,10 +2350,10 @@ git commit -m "docs: document --cache, --state, --since, --strategy flags"
 
 ### Type consistency
 
-- `cacheKeyFor`, `CacheEntry`, `RedirectPointerEntry`, `CACHE_ENTRY_SCHEMA_VERSION`, `CachedFetchOptions`, `CachedFetchResult`, `Fetcher`, `CacheConfig` — used consistently across Tasks 1–7.
-- `RunState`, `UrlStateEntry`, `RenderMode`, `STATE_SCHEMA_VERSION`, `computeContentHash`, `normalizeHtmlForHash`, `readState`, `writeState`, `StateOptions` — consistent across Tasks 11–14.
-- `stratifiedSample`, `inferUrlTemplate`, `SamplingStrategy` — consistent Tasks 8–10.
-- `AuditOptions.cache`, `AuditOptions.state`, `AuditOptions.samplingStrategy`, `AuditOptions.maxPerTemplate`, `AuditSummary.cacheStats`, `AuditSummary.hasRegression`, `AuditSummary.skippedUrls` — used consistently in integration tasks.
+- `cacheKeyFor`, `CacheEntry`, `RedirectPointerEntry`, `CACHE_ENTRY_SCHEMA_VERSION`, `CachedFetchOptions`, `CachedFetchResult`, `Fetcher`, `CacheConfig`: used consistently across Tasks 1–7.
+- `RunState`, `UrlStateEntry`, `RenderMode`, `STATE_SCHEMA_VERSION`, `computeContentHash`, `normalizeHtmlForHash`, `readState`, `writeState`, `StateOptions`: consistent across Tasks 11–14.
+- `stratifiedSample`, `inferUrlTemplate`, `SamplingStrategy`: consistent Tasks 8–10.
+- `AuditOptions.cache`, `AuditOptions.state`, `AuditOptions.samplingStrategy`, `AuditOptions.maxPerTemplate`, `AuditSummary.cacheStats`, `AuditSummary.hasRegression`, `AuditSummary.skippedUrls`: used consistently in integration tasks.
 
 No naming drift found.
 
@@ -2363,8 +2363,8 @@ No naming drift found.
 
 Plan complete and saved to `docs/superpowers/plans/2026-04-17-audit-caching-and-delta.md`. Two execution options:
 
-**1. Subagent-Driven (recommended)** — Dispatch a fresh subagent per task, two-stage review (spec compliance → code quality) between tasks, fast iteration.
+**1. Subagent-Driven (recommended)**, Dispatch a fresh subagent per task, two-stage review (spec compliance → code quality) between tasks, fast iteration.
 
-**2. Inline Execution** — Execute tasks sequentially in this session with checkpoints for review.
+**2. Inline Execution**, Execute tasks sequentially in this session with checkpoints for review.
 
 Which approach?

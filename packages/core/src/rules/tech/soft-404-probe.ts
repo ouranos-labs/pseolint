@@ -9,7 +9,7 @@ import { SOFT_404_PATTERNS, THIN_BODY_THRESHOLD } from "./soft-404.js";
 
 /**
  * Evaluate a synthetic-invalid-URL probe response. A correct site returns
- * 404/410 for a URL that cannot exist; a 200 is the soft-404 signal — no body
+ * 404/410 for a URL that cannot exist; a 200 is the soft-404 signal: no body
  * pattern required (unlike soft404Rule). Body pattern/emptiness raises confidence.
  */
 export function evaluateProbe(probedUrl: string, status: number, body: string): RuleResult | null {

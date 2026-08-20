@@ -2,9 +2,9 @@
 import { useState, useRef, useEffect } from "react";
 
 type Props = {
-  /** Audit UUID — used for /api/audits/[id]/export/[format]. */
+  /** Audit UUID: used for /api/audits/[id]/export/[format]. */
   auditId: string;
-  /** Audit public slug — used for the print-mode preview URL only. */
+  /** Audit public slug: used for the print-mode preview URL only. */
   auditSlug: string;
   isPro: boolean;
 };
@@ -79,7 +79,7 @@ export function ExportMenu({ auditId, auditSlug, isPro }: Props) {
           <div className="w-full max-w-md rounded-[22px] border border-border/70 bg-background p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-medium text-foreground">PDF export is Pro</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              JSON and Markdown are available on every tier — they&apos;re what the open-source CLI already produces.
+              JSON and Markdown are available on every tier; they&apos;re what the open-source CLI already produces.
               PDF export runs a headless browser per audit, which is infrastructure we only run for paying users.
             </p>
             <div className="mt-5 flex justify-end gap-2">

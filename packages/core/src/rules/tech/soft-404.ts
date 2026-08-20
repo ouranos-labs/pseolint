@@ -1,7 +1,7 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 // ponytail: thin-body threshold. Nav/chrome inflate raw word counts; 50 is
-// already generous — pages that are genuinely soft-404s rarely exceed it.
+// already generous: pages that are genuinely soft-404s rarely exceed it.
 // Exported for the server-only probe (soft-404-probe.ts); this module stays
 // parser-dependency-free so the browser extension can import soft404Rule (§6/§10).
 export const THIN_BODY_THRESHOLD = 50;
@@ -18,8 +18,8 @@ export const SOFT_404_PATTERNS =
 /**
  * Confidence model for soft-404 detection:
  *
- *   Signal A — thin body (wordCount < THIN_BODY_THRESHOLD)
- *   Signal B — soft-404 pattern in title, h1, or opening content
+ *   Signal A: thin body (wordCount < THIN_BODY_THRESHOLD)
+ *   Signal B: soft-404 pattern in title, h1, or opening content
  *
  *   A AND B  → warning / high  (strong: both signals agree)
  *   B only   → info / low      (weak: substantive body, pattern might be

@@ -1,5 +1,5 @@
 /**
- * v0.5.11 — verifies that `legacyFlat: true` suppresses per-template cards
+ * v0.5.11: verifies that `legacyFlat: true` suppresses per-template cards
  * in console, markdown, and html formatters, and that the flat per-URL list
  * is still fully rendered.
  */
@@ -96,7 +96,7 @@ const findings: RuleResult[] = [
 
 // ── console formatter ──────────────────────────────────────────────────────
 
-describe("formatConsole — legacyFlat suppresses per-template cards", () => {
+describe("formatConsole: legacyFlat suppresses per-template cards", () => {
   it("renders template cards by default when ≥2 templates", () => {
     const summary = buildSummaryWithTemplates("critical", findings);
     const out = formatConsole(summary, { noColor: true });
@@ -147,7 +147,7 @@ describe("formatConsole — legacyFlat suppresses per-template cards", () => {
 
 // ── markdown formatter ────────────────────────────────────────────────────
 
-describe("formatMarkdown — legacyFlat suppresses per-template cards", () => {
+describe("formatMarkdown: legacyFlat suppresses per-template cards", () => {
   it("renders template cards by default when ≥2 templates", () => {
     const summary = buildSummaryWithTemplates();
     const out = formatMarkdown(summary);
@@ -175,7 +175,7 @@ describe("formatMarkdown — legacyFlat suppresses per-template cards", () => {
 
 // ── html formatter ────────────────────────────────────────────────────────
 
-describe("formatHtml — legacyFlat suppresses per-template cards", () => {
+describe("formatHtml: legacyFlat suppresses per-template cards", () => {
   // The CSS for template-cards is always injected into <style>.
   // We distinguish the presence/absence of the actual <section> element.
   it("renders template-cards section by default when ≥2 templates", () => {

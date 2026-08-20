@@ -1,11 +1,11 @@
 /**
- * v0.5.15 — fixture manifest (_manifest.json) directory loading.
+ * v0.5.15: fixture manifest (_manifest.json) directory loading.
  *
  * Verifies that when auditSource is given a directory path containing a
  * _manifest.json, it loads pages with their original URLs (not file paths),
  * allowing all URL-dependent rules to work correctly against disk fixtures.
  *
- * Tests use a real temp directory on the filesystem — no network calls.
+ * Tests use a real temp directory on the filesystem: no network calls.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from "vitest";

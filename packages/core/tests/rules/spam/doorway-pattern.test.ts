@@ -32,14 +32,14 @@ describe("spam/doorway-pattern", () => {
     // near-duplicate + entity-swap + identical-structure. The pre-fix rule
     // fired CRITICAL on every such pair (300× on a 25-page Segment audit).
     // After the fix, a content-quality signal (thin OR identical-meta) is
-    // required as the third signal — purely-structural similarity isn't
+    // required as the third signal: purely-structural similarity isn't
     // enough.
     const a = page("https://ex.com/integrations/slack-google-sheets", {
-      metaDescription: "Connect Slack to Google Sheets — sync messages, alerts, and channel events.",
+      metaDescription: "Connect Slack to Google Sheets, sync messages, alerts, and channel events.",
       structureSignature: "catalog-shell",
     });
     const b = page("https://ex.com/integrations/slack-airtable", {
-      metaDescription: "Connect Slack to Airtable — sync messages, records, and table events.",
+      metaDescription: "Connect Slack to Airtable, sync messages, records, and table events.",
       structureSignature: "catalog-shell",
     });
     const ndPairs = [pair(a.url, b.url)];

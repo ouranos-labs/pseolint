@@ -1,6 +1,6 @@
 # @pseolint/core
 
-> Programmatic SEO audit engine — 48+ rules, surfaced per-template, on every monitored release.
+> Programmatic SEO audit engine: 48+ rules, surfaced per-template, on every monitored release.
 
 The core engine behind [pseolint](https://www.npmjs.com/package/pseolint) v0.7.5. Use this package to embed pSEO auditing into your own tools, CI pipelines, or SaaS products.
 
@@ -36,43 +36,43 @@ for (const t of result.templates) {
 
 48+ rules grouped into 4 scoring super-categories (v0.4): **Integrity** (spam + content + cannibal, weight 0.50), **Discoverability** (links + tech, 0.20), **Citation** (aeo + schema, 0.25), **Data** (0.05). Source-tree namespaces remain `spam/*`, `aeo/*`, etc. for stable rule IDs.
 
-- **Spam / SpamBrain risk** (8) — near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern (cluster-collapsed since v0.5.2)
-- **Technical SEO** (11) — canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2), plus two render/probe rules (v0.7.3):
-  - **`tech/csr-bailout`** — render-diff rule (requires the `--render` / `render` option). Diffs raw server HTML against the post-hydration DOM and flags pages whose substantive content or interactivity exists *only* after client-side JS — invisible to crawlers and to Google's first indexing pass. High confidence when interactive elements are entirely absent from the server HTML; demoted to info on small marketing sites; a no-op without render.
-  - **`tech/soft-404`** — synthetic-URL probe for programmatic directories. Probes one invented, nonexistent URL per template cluster; an HTTP `200` (instead of a `404`) means the directory will silently index unbounded junk pages. One probe per cluster, capped, robots-respecting, and fail-open. (The static `tech/soft-404` content-pattern check on real pages still runs alongside the probe.)
-- **AEO / AI Overview citability** (8, v0.3.0–v0.3.1) — `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, content modularity, **summary-bait** (pages optimized for summarization over retention)
-- **Content** (7) — unique value, meta uniqueness, author attribution, E-E-A-T signals, plus **title-uniqueness**, **heading-structure**, **image-alt-text** (all v0.5.2)
-- **Internal linking** (6) — orphan pages, dead ends, cluster connectivity, link depth, unreachable-from-root (sample-aware), **host-section-divergence** (v0.5.1, site-reputation-abuse detector)
-- **Structured data** (3) — JSON-LD validity, required fields, cross-page schema consistency
-- **Cannibalization** (1) — URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 due to high false-positive rates)
-- **Data binding** (2) — verify rendered pages expose values from a source dataset (missing or identical-across-pages bindings)
+- **Spam / SpamBrain risk** (8): near-duplicate (SimHash), entity-swap doorways, thin content, boilerplate ratio, template diversity, template coverage, publication velocity, doorway pattern (cluster-collapsed since v0.5.2)
+- **Technical SEO** (11): canonical consistency, canonical/noindex and robots/noindex conflicts, sitemap completeness, robots compliance, redirect chains, soft 404s, hreflang reciprocity, robots-sitemap presence, **og-completeness** (v0.5.2), plus two render/probe rules (v0.7.3):
+  - **`tech/csr-bailout`**: render-diff rule (requires the `--render` / `render` option). Diffs raw server HTML against the post-hydration DOM and flags pages whose substantive content or interactivity exists *only* after client-side JS, invisible to crawlers and to Google's first indexing pass. High confidence when interactive elements are entirely absent from the server HTML; demoted to info on small marketing sites; a no-op without render.
+  - **`tech/soft-404`**: synthetic-URL probe for programmatic directories. Probes one invented, nonexistent URL per template cluster; an HTTP `200` (instead of a `404`) means the directory will silently index unbounded junk pages. One probe per cluster, capped, robots-respecting, and fail-open. (The static `tech/soft-404` content-pattern check on real pages still runs alongside the probe.)
+- **AEO / AI Overview citability** (8, v0.3.0–v0.3.1): `llms.txt` presence, AI-crawler access in robots.txt, freshness signals, FAQ coverage, answer-first opener, citable-fact density, content modularity, **summary-bait** (pages optimized for summarization over retention)
+- **Content** (7): unique value, meta uniqueness, author attribution, E-E-A-T signals, plus **title-uniqueness**, **heading-structure**, **image-alt-text** (all v0.5.2)
+- **Internal linking** (6): orphan pages, dead ends, cluster connectivity, link depth, unreachable-from-root (sample-aware), **host-section-divergence** (v0.5.1, site-reputation-abuse detector)
+- **Structured data** (3): JSON-LD validity, required fields, cross-page schema consistency
+- **Cannibalization** (1): URL pattern conflicts (`title-overlap` and `keyword-collision` were dropped in v0.4 due to high false-positive rates)
+- **Data binding** (2): verify rendered pages expose values from a source dataset (missing or identical-across-pages bindings)
 
-## What's new in v0.7 — graded thresholds & fewer false positives
+## What's new in v0.7: graded thresholds & fewer false positives
 
 The v0.7.1/v0.7.2 batch retired the binary thresholds that let a one-page change in crawl size flip a site's verdict, and tightened several rules to validate *quality*, not mere *presence*.
 
-> **BREAKING config rename.** `rules.uniqueValueMinWords` is gone — the `content/unique-value` rule moved from an absolute word count to a rarity-density score, configured via **`rules.uniqueValueDensity: { passBelow, errorBelow }`**. Anyone carrying the old key in `pseolint.config.*` must update it.
+> **BREAKING config rename.** `rules.uniqueValueMinWords` is gone: the `content/unique-value` rule moved from an absolute word count to a rarity-density score, configured via **`rules.uniqueValueDensity: { passBelow, errorBelow }`**. Anyone carrying the old key in `pseolint.config.*` must update it.
 
-- **Binary → continuous banded severity** — four rules no longer have a single pass/fail cliff; severity scales with how far the page is over the line, so a one-page crawl-size change can't flip the verdict: `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, `content/wikipedia-paraphrase`.
-- **Quality, not just presence** — four rules now inspect what's actually there:
-  - `schema/required-fields` — an empty / whitespace-only / nameless author now counts as *missing*, not present.
-  - `schema/json-ld-valid` — accepts an `@type` that is a string **or** an all-string array (multi-type nodes no longer false-positive).
-  - `tech/og-completeness` — whitespace-only tag values count as missing; severity is graded rather than all-or-nothing.
-  - `content/eeat-signals` — reads the visible `contentText` (not raw markup), and an about-link only counts when it's same-host.
+- **Binary → continuous banded severity**: four rules no longer have a single pass/fail cliff; severity scales with how far the page is over the line, so a one-page crawl-size change can't flip the verdict: `spam/boilerplate-ratio`, `spam/template-diversity`, `content/value-add`, `content/wikipedia-paraphrase`.
+- **Quality, not just presence**: four rules now inspect what's actually there:
+  - `schema/required-fields`: an empty / whitespace-only / nameless author now counts as *missing*, not present.
+  - `schema/json-ld-valid`: accepts an `@type` that is a string **or** an all-string array (multi-type nodes no longer false-positive).
+  - `tech/og-completeness`: whitespace-only tag values count as missing; severity is graded rather than all-or-nothing.
+  - `content/eeat-signals`: reads the visible `contentText` (not raw markup), and an about-link only counts when it's same-host.
 - **False-positive fixes + demotions:**
   - `links/orphan-pages` & `links/cluster-connectivity` are suppressed on sampled crawls (a sampled graph can't distinguish a real orphan from sample shape).
   - `tech/canonical-consistency` & `tech/sitemap-completeness` normalize URLs and collapse out-of-crawl-scope noise instead of flagging it.
   - `aeo/crawler-access` honors robots `Allow` directives ([RFC 9309](https://www.rfc-editor.org/rfc/rfc9309)) so an explicit allow no longer reads as a block.
   - `schema/consistency` compares each page's own `@type` signature rather than the cluster-wide union, so multi-template sites no longer false-positive.
 
-## What's new in v0.6 — audit-as-template
+## What's new in v0.6: audit-as-template
 
 The unit of analysis is now the **template**, not the URL. When ≥2 template clusters are detected (each with ≥1% URL coverage and ≥5 pages), the engine runs a two-phase pipeline:
 
-1. **Template detection** — clusters the sitemap via `clusterUrlTemplates`, canonicality-verifies one sample per cluster. Cost: ~T HTTP fetches.
-2. **Per-template deep audit** — stratified-samples K pages per template (K=10 monitoring, K=20 re-audit), runs all per-page rules, tags each `RuleResult` with its `template` field, computes per-template verdict + variance.
+1. **Template detection**: clusters the sitemap via `clusterUrlTemplates`, canonicality-verifies one sample per cluster. Cost: ~T HTTP fetches.
+2. **Per-template deep audit**: stratified-samples K pages per template (K=10 monitoring, K=20 re-audit), runs all per-page rules, tags each `RuleResult` with its `template` field, computes per-template verdict + variance.
 
-`AuditResult.templates` is additive — old code reading `findings` continues to work.
+`AuditResult.templates` is additive; old code reading `findings` continues to work.
 
 ### `Template` type
 
@@ -106,7 +106,7 @@ import { siteVerdictFromTemplates } from "@pseolint/core";
 const verdict = siteVerdictFromTemplates(result.templates);
 ```
 
-### Full example — audit a site, log per-template verdicts
+### Full example: audit a site, log per-template verdicts
 
 ```ts
 import { auditSource } from "@pseolint/core";
@@ -129,16 +129,16 @@ for (const t of result.templates) {
 
 Design rationale: [`docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md`](../../docs/superpowers/specs/2026-05-04-pseolint-v0.6-audit-as-template-reframe.md)
 
-## What's new in v0.5.2 — credibility layer
+## What's new in v0.5.2: credibility layer
 
-- **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps: `content/title-uniqueness` (raw, not entity-masked — catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips `role="presentation"` / `aria-hidden="true"` / explicit `alt=""`), `tech/og-completeness` (the README-promised rule that finally ships).
-- **`AuditOptions.authorityScore`** (0-100) — bring-your-own-DA. ≥80 shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't). ≤30 shifts one tier stricter (newer/lower-authority operator). Raw `risk` number unchanged so CI gates stay stable. The engine itself remains authority-blind by design — no Moz/Ahrefs/Semrush dependency.
-- **`AuditOptions.contentEffort`** (`{ enabled: boolean; model?: string; cacheDir?: string }`, v0.7.3) — opt-in AI content-effort signal. When `enabled`, an LLM (default `claude-sonnet-4-6`, override via `model`) judges a 0-100 content originality/effort score from sampled page text (≤10 pages, content-hash cached under `cacheDir` or an OS-temp default) that moderates the verdict ±1 tier. Needs `ANTHROPIC_API_KEY` in the environment; fail-safe no-op (no verdict change) when the key is absent or the call fails. The resolved score is written to `summary.contentEffort.score`. Page text is passed as untrusted DATA (no URL/domain in the prompt; structured-output, no-tool judge — injection-resistant). The read-only counterpart on the result is **`AuditSummary.contentEffort`** (`{ score: number }`), present only when the signal ran and produced a score.
-- **`AuditOptions.sampleSeed`** — deterministic `mulberry32` PRNG plumbed through the stratified sampler. Repeated audits with the same seed pick the same pages and produce reproducible verdicts.
-- **`spam/doorway-pattern` cluster collapse** — emits in the same `pageUrl` + `relatedUrls[0]` shape as `spam/near-duplicate` and is registered in `CLUSTERABLE_RULES`. C(N,2) per-pair findings on entity-swap-heavy catalogs collapse into one cluster finding per template-tied group.
-- **Per-bucket info-severity cap** — a flood of info findings can't fill a category bucket on its own (capped at 50 separately from the 100 cap on warning+ findings).
-- **`summary.appliedSeverityDemotions: string[]`** — engine emits the list of rule IDs whose severity was overridden by the active scoring profile so consumers (formatters, CI) can show *which* rules got demoted and *why*. Pass `--strict` to disable demotions entirely.
-- **Sample-aware rules** — `links/unreachable-from-root` skips on partial-sample audits (it can't distinguish real graph isolation from sample-shape).
+- **4 new content-quality rules** addressing the v0.5.1 blind-spot audit's tier-1 gaps: `content/title-uniqueness` (raw, not entity-masked: catalog templates with per-record entity values still pass), `content/heading-structure` (H1 presence, single-H1, hierarchy), `content/image-alt-text` (skips `role="presentation"` / `aria-hidden="true"` / explicit `alt=""`), `tech/og-completeness` (the README-promised rule that finally ships).
+- **`AuditOptions.authorityScore`** (0-100): bring-your-own-DA. ≥80 shifts the verdict ladder one tier lenient (established brand can absorb shapes a newer site can't). ≤30 shifts one tier stricter (newer/lower-authority operator). Raw `risk` number unchanged so CI gates stay stable. The engine itself remains authority-blind by design: no Moz/Ahrefs/Semrush dependency.
+- **`AuditOptions.contentEffort`** (`{ enabled: boolean; model?: string; cacheDir?: string }`, v0.7.3): opt-in AI content-effort signal. When `enabled`, an LLM (default `claude-sonnet-4-6`, override via `model`) judges a 0-100 content originality/effort score from sampled page text (≤10 pages, content-hash cached under `cacheDir` or an OS-temp default) that moderates the verdict ±1 tier. Needs `ANTHROPIC_API_KEY` in the environment; fail-safe no-op (no verdict change) when the key is absent or the call fails. The resolved score is written to `summary.contentEffort.score`. Page text is passed as untrusted DATA (no URL/domain in the prompt; structured-output, no-tool judge, injection-resistant). The read-only counterpart on the result is **`AuditSummary.contentEffort`** (`{ score: number }`), present only when the signal ran and produced a score.
+- **`AuditOptions.sampleSeed`**: deterministic `mulberry32` PRNG plumbed through the stratified sampler. Repeated audits with the same seed pick the same pages and produce reproducible verdicts.
+- **`spam/doorway-pattern` cluster collapse**: emits in the same `pageUrl` + `relatedUrls[0]` shape as `spam/near-duplicate` and is registered in `CLUSTERABLE_RULES`. C(N,2) per-pair findings on entity-swap-heavy catalogs collapse into one cluster finding per template-tied group.
+- **Per-bucket info-severity cap**: a flood of info findings can't fill a category bucket on its own (capped at 50 separately from the 100 cap on warning+ findings).
+- **`summary.appliedSeverityDemotions: string[]`**: engine emits the list of rule IDs whose severity was overridden by the active scoring profile so consumers (formatters, CI) can show *which* rules got demoted and *why*. Pass `--strict` to disable demotions entirely.
+- **Sample-aware rules**: `links/unreachable-from-root` skips on partial-sample audits (it can't distinguish real graph isolation from sample-shape).
 - **Markdown formatter** collapses informational findings under `<details>` so PR comments don't drown actionable items in 100+ info bullets.
 
 The full per-round iteration story (9 calibration rounds against a curated reputable-pSEO corpus) and the trade-offs we accepted are at [`docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md`](../../docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md). The honest blind-spot audit (what we still don't detect, including the domain-authority gap that motivated `--authority-score`) is at [`docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md`](../../docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md). The dated user-facing methodology summary is at [pseolint.dev/methodology](https://pseolint.dev/methodology).
@@ -147,7 +147,7 @@ The full per-round iteration story (9 calibration rounds against a curated reput
 
 ### `auditSource(source, options?)`
 
-Returns an `AuditResult` with verdict, risk score, category grades, enriched findings, and — since v0.6 — a `templates: Template[]` array with per-template verdicts and variance metrics. Also carries optional cache / state / AI-triage metadata.
+Returns an `AuditResult` with verdict, risk score, category grades, enriched findings, and, since v0.6, a `templates: Template[]` array with per-template verdicts and variance metrics. Also carries optional cache / state / AI-triage metadata.
 
 Selected options (see `AuditOptions` in `types.ts` for the full surface):
 
@@ -177,12 +177,12 @@ await auditSource("https://example.com/sitemap.xml", {
   ai: { enabled: true, provider: "anthropic", model: "claude-haiku-4-5-20251001", maxCostUsd: 0.1 },
   telemetry: { enabled: true, path: ".pseolint/telemetry.jsonl" },
   // Safety (v0.3.2–v0.3.3)
-  safeMode: "saas",                       // "saas" | "cli" — flips guardSsrf + caps
+  safeMode: "saas",                       // "saas" | "cli"; flips guardSsrf + caps
   guardSsrf: true,                        // DNS-validated SSRF check on every URL
   respectRobotsTxt: true,                 // skip sitemap URLs Disallow'd by target robots.txt
   followRedirects: true,
   maxCrawlDiscovered: 2000,               // hard ceiling on link-discovery fan-out
-  signal: controller.signal,              // AbortSignal — ctrl-C / quota-exhausted cancels cleanly
+  signal: controller.signal,              // AbortSignal: ctrl-C / quota-exhausted cancels cleanly
   rules: {
     nearDuplicateThreshold: 0.85,
     thinContentMinWords: 300,
@@ -225,9 +225,9 @@ GA / Plausible / PostHog / Mixpanel / Hotjar / Sentry dashboards.
 ```ts
 await auditSource(url, {
   render: {
-    analyticsMode: "block",               // default — blocks ~40 analytics hosts
-    // "allow-first-party" — block third-party only
-    // "allow" — don't intercept anything
+    analyticsMode: "block",               // default: blocks ~40 analytics hosts
+    // "allow-first-party"; block third-party only
+    // "allow"; don't intercept anything
     extraBlockedHosts: ["my-internal-metrics.corp"],
   },
 });
@@ -246,9 +246,9 @@ const html = formatHtml(summary);
 
 ## JSON output contract
 
-`formatJson(summary)` (and `pseolint --format json`) serializes the `AuditSummary` shape verbatim. This is the surface CI gates and other programmatic consumers (pseolint-gate-style scripts) should read. A machine-readable **JSON Schema (draft 2020-12)** is published with the package at [`schemas/audit-summary.schema.json`](./schemas/audit-summary.schema.json) — validate against it instead of hand-rolling shape assumptions.
+`formatJson(summary)` (and `pseolint --format json`) serializes the `AuditSummary` shape verbatim. This is the surface CI gates and other programmatic consumers (pseolint-gate-style scripts) should read. A machine-readable **JSON Schema (draft 2020-12)** is published with the package at [`schemas/audit-summary.schema.json`](./schemas/audit-summary.schema.json); validate against it instead of hand-rolling shape assumptions.
 
-### `schemaVersion` — read it, branch on it
+### `schemaVersion`: read it, branch on it
 
 ```jsonc
 {
@@ -257,14 +257,14 @@ const html = formatHtml(summary);
   "risk": 42,                       // 0-100, lower = better. Never shown to humans; use for CI thresholds.
   "headline": "3 ship-blockers, 16 should-fix",
   "categories": { /* 5 fixed keys → { grade, issues } */ },
-  "issues":     { /* severity buckets — see below */ },
+  "issues":     { /* severity buckets; see below */ },
   "templates":  [ /* v0.6 per-template breakdown; may be [] or absent */ ],
   "pageCount":  150
   // ... diagnostics, auditedUrls, truncated, etc.
 }
 ```
 
-The `schemaVersion` string carries a `YYYY-MM-vX.Y` tag (matching the `$id` of the published schema). **It bumps whenever the output shape changes** — breaking *or* additive. Gate scripts should assert the version they were written against (or accept a known range) so a shape change surfaces as a clear failure rather than silent misread.
+The `schemaVersion` string carries a `YYYY-MM-vX.Y` tag (matching the `$id` of the published schema). **It bumps whenever the output shape changes**, breaking *or* additive. Gate scripts should assert the version they were written against (or accept a known range) so a shape change surfaces as a clear failure rather than silent misread.
 
 ### `issues` is SEVERITY-bucketed (not a flat array, not category-keyed)
 
@@ -272,9 +272,9 @@ This is the most common thing consumers get wrong:
 
 ```jsonc
 "issues": {
-  "blockers":      [ /* RuleResult — severity error | critical */ ],
-  "shouldFix":     [ /* RuleResult — severity warning */ ],
-  "informational": [ /* RuleResult — severity info */ ]
+  "blockers":      [ /* RuleResult: severity error | critical */ ],
+  "shouldFix":     [ /* RuleResult: severity warning */ ],
+  "informational": [ /* RuleResult: severity info */ ]
 }
 ```
 
@@ -285,11 +285,11 @@ const all = [...summary.issues.blockers, ...summary.issues.shouldFix, ...summary
 const shouldFail = summary.issues.blockers.length > 0; // typical gate
 ```
 
-`categories` (keyed by `integrity` | `discoverability` | `citation` | `data` | `audit`) carries **grades + counts only** — the per-category issue arrays live under `issues`, bucketed by severity, not under `categories`.
+`categories` (keyed by `integrity` | `discoverability` | `citation` | `data` | `audit`) carries **grades + counts only**; the per-category issue arrays live under `issues`, bucketed by severity, not under `categories`.
 
 ### `truncated: true` means partial coverage
 
-When the crawl did not complete (e.g. the backpressure watchdog aborted on a degraded origin), the report sets `truncated: true` and a human-readable `truncatedReason`. The report still carries whatever findings were collected, but **CI gates MUST treat `pageCount`, `risk`, `verdict`, and all counts as LOWER bounds** — a "ready" verdict on a truncated run does not mean the site is clean, only that nothing was found before the abort. Gate on `truncated` explicitly if a partial pass should not count as a pass.
+When the crawl did not complete (e.g. the backpressure watchdog aborted on a degraded origin), the report sets `truncated: true` and a human-readable `truncatedReason`. The report still carries whatever findings were collected, but **CI gates MUST treat `pageCount`, `risk`, `verdict`, and all counts as LOWER bounds**: a "ready" verdict on a truncated run does not mean the site is clean, only that nothing was found before the abort. Gate on `truncated` explicitly if a partial pass should not count as a pass.
 
 ### Validating in your own pipeline
 
@@ -310,7 +310,7 @@ The schema's `additionalProperties` is permissive, so it pins the contract consu
 
 ### AI triage
 
-When `ai.enabled` is set, findings are clustered into root-causes by an LLM. Providers are loaded lazily from optional peer deps — install only the one you need:
+When `ai.enabled` is set, findings are clustered into root-causes by an LLM. Providers are loaded lazily from optional peer deps; install only the one you need:
 
 ```bash
 npm install @ai-sdk/anthropic   # or @ai-sdk/openai, @ai-sdk/google, @ai-sdk/mistral,
@@ -326,7 +326,7 @@ Cost and daily-budget caps are enforced pre-flight; results are cached on disk b
 
 ### AI orchestrator (v0.5)
 
-Net-new in v0.5. `orchestrate()` drives an LLM through 25 deterministic tools (sitemap fetch, template clustering, per-page rule checks, AEO probes against live answer engines, SerpAPI) and produces a **fix manifest** of concrete patches — not just a list of findings.
+Net-new in v0.5. `orchestrate()` drives an LLM through 25 deterministic tools (sitemap fetch, template clustering, per-page rule checks, AEO probes against live answer engines, SerpAPI) and produces a **fix manifest** of concrete patches, not just a list of findings.
 
 ```ts
 import { orchestrate } from "@pseolint/core";
@@ -345,17 +345,17 @@ if (session.reason === "completed") {
 ```
 
 **What you get:**
-- `manifest` — `FixManifest` with verdict, category grades, page/template/domain patches (replace_h1, rewrite_meta, add_jsonld, add_faq_block, rewrite_intro, add_internal_link, remove_thin_block, robots_txt, sitemap_xml, canonical_strategy)
-- `validation` — patch-by-patch `ManifestValidationReport`. Failed patches are dropped from the manifest before it returns; `failures` carries the location + reason.
-- `diff` — `ManifestDiff` of structured `PatchDiff` objects (5 kinds — text_replace, html_insert, html_remove, file_replace, guidance) suitable for direct UI rendering.
+- `manifest`: `FixManifest` with verdict, category grades, page/template/domain patches (replace_h1, rewrite_meta, add_jsonld, add_faq_block, rewrite_intro, add_internal_link, remove_thin_block, robots_txt, sitemap_xml, canonical_strategy)
+- `validation`: patch-by-patch `ManifestValidationReport`. Failed patches are dropped from the manifest before it returns; `failures` carries the location + reason.
+- `diff`: `ManifestDiff` of structured `PatchDiff` objects (5 kinds: text_replace, html_insert, html_remove, file_replace, guidance) suitable for direct UI rendering.
 
-**Architecture**: rules become tools the LLM calls. The LLM picks order. Budget caps (LLM tokens + external probe USD, pre-flight + reactive) bound spend. Watchdog injects a convergence reminder every N tool calls. AsyncLocalStorage-backed page cache means HTML never travels in conversation history — token cost stays bounded as audits scale.
+**Architecture**: rules become tools the LLM calls. The LLM picks order. Budget caps (LLM tokens + external probe USD, pre-flight + reactive) bound spend. Watchdog injects a convergence reminder every N tool calls. AsyncLocalStorage-backed page cache means HTML never travels in conversation history; token cost stays bounded as audits scale.
 
 **Lower-level exports** for callers who want individual pieces:
 
 ```ts
 import {
-  runOrchestrator,           // direct runner — bring your own LanguageModel
+  runOrchestrator,           // direct runner: bring your own LanguageModel
   orchestratorTools,         // the 25-tool registry
   defineTool,                // helper to add custom tools
   validateManifest,          // walk a manifest, return per-failure report
@@ -391,9 +391,9 @@ const plan = planScrapeStrategy({
 // plan.skip:    Map<url, "unchanged">
 ```
 
-**Reasons** (first match wins): `new` → `age` → `ruleset` → `recheck` (warning/error/critical only — info findings carry forward) → `lastmod` → `gsc` → `no-signal` → else `unchanged`.
+**Reasons** (first match wins): `new` → `age` → `ruleset` → `recheck` (warning/error/critical only; info findings carry forward) → `lastmod` → `gsc` → `no-signal` → else `unchanged`.
 
-`AuditSummary.scrapePlan` reports `{ fetched, intended, carriedForward, reasonCounts, rulesetVersion, lastFullAuditAt }` — populated only on monitoring runs.
+`AuditSummary.scrapePlan` reports `{ fetched, intended, carriedForward, reasonCounts, rulesetVersion, lastFullAuditAt }`, populated only on monitoring runs.
 
 **Bump `CORE_RULESET_VERSION`** when shipping a new rule or materially changing rule logic so monitoring runs re-evaluate previously-skipped URLs against the new ruleset.
 
@@ -415,11 +415,11 @@ Classify pages by glob and apply different rule subsets or threshold overrides p
 
 For client-rendered pages, install `playwright-core` and pass `render: { browserWsEndpoint }` to connect to an existing browser endpoint.
 
-Under the `render` option the auditor runs `renderPages()` (Playwright) to execute each sampled page in a headless browser and populate `ParsedPage.renderedHtml` with the post-hydration DOM, which the render-aware rules (`tech/csr-bailout`) diff against the raw server HTML. The render pass is **Node-only** (it does not run under Bun) and needs either a matching Chromium / `chromium-headless-shell` install (`npx playwright install chromium`) or a CDP endpoint (`render.browserWsEndpoint` or the `PSEOLINT_BROWSER_WS` env var). If no browser is available it **degrades gracefully** to a static audit — the run continues and render-aware rules are simply skipped.
+Under the `render` option the auditor runs `renderPages()` (Playwright) to execute each sampled page in a headless browser and populate `ParsedPage.renderedHtml` with the post-hydration DOM, which the render-aware rules (`tech/csr-bailout`) diff against the raw server HTML. The render pass is **Node-only** (it does not run under Bun) and needs either a matching Chromium / `chromium-headless-shell` install (`npx playwright install chromium`) or a CDP endpoint (`render.browserWsEndpoint` or the `PSEOLINT_BROWSER_WS` env var). If no browser is available it **degrades gracefully** to a static audit: the run continues and render-aware rules are simply skipped.
 
 ## Peer dependencies
 
-All AI providers and `playwright-core` are optional peers — you only install the ones you actually use.
+All AI providers and `playwright-core` are optional peers; you only install the ones you actually use.
 
 ## License
 

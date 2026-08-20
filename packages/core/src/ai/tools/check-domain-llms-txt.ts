@@ -30,14 +30,14 @@ const outputSchema = z.object({
  * Domain-level AEO check: does the site publish a valid /llms.txt? Wraps
  * `llmsTxtRule` with a built-in fetcher that goes through the SSRF guard.
  *
- * Unlike the per-page rules, this is called once per domain — the
+ * Unlike the per-page rules, this is called once per domain: the
  * orchestrator typically calls this near the top of the audit alongside
  * `check_domain_crawler_access`.
  */
 export const checkDomainLlmsTxtTool = defineTool({
   name: "check_domain_llms_txt",
   description:
-    "Check whether the site publishes a valid /llms.txt file (the emerging AEO standard for telling LLMs which content to ingest and how). Call once per domain near the start of an audit. Returns `found: false` when the file is absent — that itself is informational, not a hard error.",
+    "Check whether the site publishes a valid /llms.txt file (the emerging AEO standard for telling LLMs which content to ingest and how). Call once per domain near the start of an audit. Returns `found: false` when the file is absent; that itself is informational, not a hard error.",
   inputSchema,
   outputSchema,
   async execute({ origin, timeoutMs = 10_000 }, ctx) {

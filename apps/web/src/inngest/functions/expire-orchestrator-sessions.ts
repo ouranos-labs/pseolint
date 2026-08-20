@@ -9,7 +9,7 @@ import { deleteReport } from "@/lib/r2";
  * NDJSON event log + the manifest JSON). Mirrors the `expire-reports`
  * function for v0.4 audits.
  *
- * Sessions themselves aren't deleted — the rows stay so the Pro cost
+ * Sessions themselves aren't deleted: the rows stay so the Pro cost
  * dashboard can still aggregate historical spend. Only the R2 artifacts
  * (typically 100KB-2MB each) get cleaned up to keep storage bounded.
  */

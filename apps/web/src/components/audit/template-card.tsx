@@ -49,7 +49,7 @@ function topDriverLine(template: Template): string | null {
 }
 
 /**
- * "234 / 8 200 URLs (2.9%)" — share of all discovered URLs this cluster
+ * "234 / 8 200 URLs (2.9%)": share of all discovered URLs this cluster
  * represents. Denominator is the per-cluster `totalDiscoveredUrls` off the
  * template itself (what the CLI formatter uses), never the sampled page count.
  */
@@ -58,11 +58,11 @@ function coverageLine(template: Template): string {
     template.totalDiscoveredUrls > 0
       ? template.totalDiscoveredUrls
       : template.totalUrls;
-  const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "—";
+  const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "; ";
   return `${template.totalUrls.toLocaleString()} / ${denom.toLocaleString()} URLs (${pct}%)`;
 }
 
-/** "12 / 234 sampled" — how many of the cluster's URLs were actually audited. */
+/** "12 / 234 sampled"; how many of the cluster's URLs were actually audited. */
 function sampledLine(template: Template): string {
   return `${template.auditedUrls.length.toLocaleString()} / ${template.totalUrls.toLocaleString()} sampled`;
 }
@@ -90,7 +90,7 @@ export function TemplateCard({
           : "border-border/60 hover:border-border hover:bg-card/60",
       ].join(" ")}
       aria-pressed={selected}
-      aria-label={`Template ${template.signature} — ${template.verdict}`}
+      aria-label={`Template ${template.signature}: ${template.verdict}`}
     >
       {/* Header row: signature + verdict chip */}
       <div className="flex items-center justify-between gap-3">

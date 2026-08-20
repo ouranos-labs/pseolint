@@ -9,7 +9,7 @@ const PAGE_SIZE = 25;
 /**
  * Spec §5.2 "money surface": ranked open findings across every monitored
  * domain. Grounding the dashboard in actionable rows (not just charts) is the
- * primary value of Pro — operators want to know "what should I fix next" not
+ * primary value of Pro: operators want to know "what should I fix next" not
  * "how many findings do I have."
  */
 export async function CrossDomainFixQueue({ userId }: { userId: string }) {

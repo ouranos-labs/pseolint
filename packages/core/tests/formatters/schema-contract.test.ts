@@ -7,7 +7,7 @@
  * renamed, or re-typed in the engine output without updating the schema (and
  * bumping `SCHEMA_VERSION`), this test fails.
  *
- * Uses ajv (draft 2020-12 build) + ajv-formats — both already root devDeps.
+ * Uses ajv (draft 2020-12 build) + ajv-formats: both already root devDeps.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -131,7 +131,7 @@ function expectValid(summary: AuditSummary): void {
 }
 
 // ── tests ──────────────────────────────────────────────────────────────
-describe("audit-summary.schema.json — JSON output contract", () => {
+describe("audit-summary.schema.json: JSON output contract", () => {
   it("schema $id and schemaVersion const both equal the current SCHEMA_VERSION", () => {
     expect(schema.$id).toContain(SCHEMA_VERSION);
     const props = schema.properties as Record<string, { const?: string }>;
@@ -206,7 +206,7 @@ describe("audit-summary.schema.json — JSON output contract", () => {
     const summary = buildSummary({ verdict: "concerning", risk: 60, pageCount: 30 });
     (summary as unknown as { truncated: boolean }).truncated = true;
     (summary as unknown as { truncatedReason: string }).truncatedReason =
-      "Origin degraded — backpressure watchdog aborted the crawl.";
+      "Origin degraded: backpressure watchdog aborted the crawl.";
     expectValid(summary);
   });
 

@@ -1,6 +1,6 @@
 // Runnable check for the overlay's §9 safety contract. `bun tests/overlay.test.js`.
 // Visual rendering needs Chrome; here we verify the invariants with a fake DOM
-// that TRAPS innerHTML — the test fails loudly if anyone ever reaches for it.
+// that TRAPS innerHTML: the test fails loudly if anyone ever reaches for it.
 import assert from "node:assert";
 import { badgeView, mountBadge } from "../src/content/serp/overlay.js";
 
@@ -40,7 +40,7 @@ assert.strictEqual(badge.textSets.at(-1), "3 flags", "label set via textContent"
 assert.strictEqual(badge.style.background, "#df3a3a", "level colour applied");
 assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
 
-// Clickable variant (Path B): href → a SPAN badge (never an <a> — it nests inside
+// Clickable variant (Path B): href → a SPAN badge (never an <a>; it nests inside
 // the result's <h3>/<a>) with a click handler that opens the audit URL, label via
 // textContent (+ ↗ hint), role=link for a11y.
 doc = fakeDoc();

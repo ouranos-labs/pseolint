@@ -1,4 +1,4 @@
-# Live URL Scanning Hardening — Implementation Plan
+# Live URL Scanning Hardening: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -205,7 +205,7 @@ In `auditSource`, after the `parsedPages` map (around line 609), add httpMeta fr
   });
 ```
 
-This is slightly hacky — the cleaner approach would be for `parseHtmlPage` to accept `httpMeta`. But since `parseHtmlPage` is about HTML parsing and `httpMeta` is just passthrough, the cast is acceptable. The `httpMeta` field already exists on `ParsedPage` as optional.
+This is slightly hacky, the cleaner approach would be for `parseHtmlPage` to accept `httpMeta`. But since `parseHtmlPage` is about HTML parsing and `httpMeta` is just passthrough, the cast is acceptable. The `httpMeta` field already exists on `ParsedPage` as optional.
 
 - [ ] **Step 3: Verify existing tests still pass**
 
@@ -337,7 +337,7 @@ In `auditSource`, update the call:
 - [ ] **Step 3: Run tests**
 
 Run: `cd packages/core && bun run test`
-Expected: all tests pass. The crawl discovery test may need the `normalizeAuditUrl` import — if the function isn't accessible in the scope, import it.
+Expected: all tests pass. The crawl discovery test may need the `normalizeAuditUrl` import, if the function isn't accessible in the scope, import it.
 
 - [ ] **Step 4: Commit**
 
@@ -876,7 +876,7 @@ Note: `sitemapUrlSet` needs to be accessible in `auditSource`'s scope. Declare i
   let sitemapUrlSet: Set<string> | undefined;
 ```
 
-And set it inside `loadPagesFromSource` — but since that's a separate function, the cleaner approach is to return it alongside pages. Change `loadPagesFromSource` return type to:
+And set it inside `loadPagesFromSource`, but since that's a separate function, the cleaner approach is to return it alongside pages. Change `loadPagesFromSource` return type to:
 ```typescript
 async function loadPagesFromSource(
   source: string, concurrency: number, timeoutMs: number, crawlDiscovery: boolean
@@ -907,7 +907,7 @@ In `runRulesOnPages`, add after the hreflang rule:
 Remove the empty `tech/robots-sitemap-presence` block:
 ```typescript
   if (isEnabled("tech/robots-sitemap-presence")) {
-    // This is async and site-wide — run only for __default group to avoid duplication
+    // This is async and site-wide, run only for __default group to avoid duplication
     // It's handled separately in auditSource
   }
 ```
@@ -919,7 +919,7 @@ In `packages/core/src/index.ts`, remove:
 export * from "./rules/tech/robots-sitemap-presence.js";
 ```
 
-Keep the file itself — just don't export it. Tests that import it directly will still work.
+Keep the file itself, just don't export it. Tests that import it directly will still work.
 
 - [ ] **Step 5: Run tests, fix any breakage**
 

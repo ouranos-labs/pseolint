@@ -11,7 +11,7 @@ import type { AuditOptions, AuditSummary, FixManifest, FixEffort, ManifestValida
  * MCP SDK 1.29's `inputSchema`/`outputSchema` are typed as
  * `ZodRawShapeCompat = Record<string, z3.ZodTypeAny | z4.$ZodType>` via a
  * zod-compat shim. zod 4.4.x's high-level `ZodString` / `ZodNumber` extend
- * `core.$ZodType` from `zod/v4/core`, so they satisfy the runtime contract —
+ * `core.$ZodType` from `zod/v4/core`, so they satisfy the runtime contract:
  * but TypeScript 6 strict mode infers the union's z3 branch first and reports
  * a structural mismatch against z3 internals (`_type`, `_parse`, etc.) that v4
  * schemas don't have.
@@ -43,7 +43,7 @@ const MCP_SAMPLE_CAP = envInt("PSEOLINT_MCP_SAMPLE_CAP", 50);
 
 /**
  * Size cap on *human-readable* console/summary text. NOT applied to JSON via
- * string-slicing (that would corrupt it) — the JSON path is bounded by data
+ * string-slicing (that would corrupt it): the JSON path is bounded by data
  * instead (see JSON_TEXT_CHAR_CAP). Counts UTF-16 code units (a loose proxy for
  * tokens). Override with PSEOLINT_MCP_CHAR_LIMIT.
  */
@@ -94,7 +94,7 @@ function cliHint(target: string): string {
 
 /**
  * Truncate human-readable text to CHARACTER_LIMIT, appending a pointer to the
- * full report. Only ever call this on prose/console output — never on JSON.
+ * full report. Only ever call this on prose/console output: never on JSON.
  */
 function truncateText(text: string, hint: string): { text: string; truncated: boolean } {
   if (text.length <= CHARACTER_LIMIT) return { text, truncated: false };
@@ -224,7 +224,7 @@ interface RuleDriver {
 
 // Fix-effort sort order, mirroring core's FixEffort union. A missing effort is
 // treated as "moderate" (preserves prior intent); an UNRECOGNISED value sorts
-// last rather than first — `indexOf` would otherwise return -1 and float
+// last rather than first; `indexOf` would otherwise return -1 and float
 // unknown efforts above "quick".
 const EFFORT_ORDER: readonly FixEffort[] = ["quick", "moderate", "structural"];
 
@@ -252,7 +252,7 @@ function buildExplanation(summary: AuditSummary, threshold: number, drivers: Rul
   const label = verdictLabel(summary.verdict);
   const passFail = summary.risk >= threshold ? "FAIL" : "PASS";
 
-  lines.push(`pseolint Verdict: ${label} (risk ${summary.risk}/100, lower=better) — ${passFail} at threshold ${threshold}`);
+  lines.push(`pseolint Verdict: ${label} (risk ${summary.risk}/100, lower=better) - ${passFail} at threshold ${threshold}`);
   lines.push(`Pages analysed: ${summary.pageCount}`);
 
   if (summary.templateDetected) {
@@ -289,7 +289,7 @@ function buildExplanation(summary: AuditSummary, threshold: number, drivers: Rul
     }
   }
 
-  // v0.5.11 — surface per-template breakdown when present
+  // v0.5.11: surface per-template breakdown when present
   if (summary.templates && summary.templates.length >= 2) {
     lines.push("");
     lines.push("Per-template breakdown:");
@@ -298,7 +298,7 @@ function buildExplanation(summary: AuditSummary, threshold: number, drivers: Rul
       const driverPart = td
         ? ` (${Math.round(td.fireRate * t.auditedUrls.length)}/${t.auditedUrls.length} fail ${td.ruleId})`
         : "";
-      lines.push(`  ${t.signature}: ${t.verdict} — risk ${t.risk}${driverPart}`);
+      lines.push(`  ${t.signature}: ${t.verdict}, risk ${t.risk}${driverPart}`);
     }
   }
 
@@ -335,10 +335,10 @@ export function registerReadOnlyTools(server: McpServer): void {
     "pseolint_audit_site",
     {
       title: "Audit Site for SpamBrain Risk",
-      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 40+ rules scored across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless strict mode is set. When the audited site has ≥2 detected URL templates, the response includes a `templates` array with per-template verdicts, risk scores, category grades, variance metrics (uniformityScore, topDriver), and audited-URL counts. Both human-readable text and structured data (structuredContent) are returned. A high-risk site is NOT a tool error — check the `passed` field / `verdict`, not `isError`.",
+      description: "Use when a user asks to check their website for SEO issues, SpamBrain risk, duplicate content, thin pages, or before deploying a programmatic SEO site. Crawls the site, runs 40+ rules scored across 4 categories (integrity, discoverability, citation, data), and returns a verdict (ready/caution/concerning/critical) plus a numeric risk score (0-100, lower is better) with actionable findings. Pre-flight site classification suppresses pSEO-targeted rules on small marketing sites and blogs unless strict mode is set. When the audited site has ≥2 detected URL templates, the response includes a `templates` array with per-template verdicts, risk scores, category grades, variance metrics (uniformityScore, topDriver), and audited-URL counts. Both human-readable text and structured data (structuredContent) are returned. A high-risk site is NOT a tool error; check the `passed` field / `verdict`, not `isError`.",
       inputSchema: zodShape({
         source: z.string().min(1).describe("URL (e.g. http://localhost:3000) or local directory path (e.g. ./out) to audit"),
-        threshold: z.number().int().min(0).max(100).optional().default(40).describe("Risk threshold — `passed` is false if risk >= this value (default: 40, semantically equivalent to 'caution' verdict)"),
+        threshold: z.number().int().min(0).max(100).optional().default(40).describe("Risk threshold: `passed` is false if risk >= this value (default: 40, semantically equivalent to 'caution' verdict)"),
         sampleSize: z.number().int().min(0).max(MAX_SAMPLE_SIZE).optional().default(0).describe(`Audit a random subset of N pages. 0 = all pages up to the MCP cap of ${MCP_SAMPLE_CAP}. Set explicitly to override the cap (up to ${MAX_SAMPLE_SIZE}).`),
         format: z.enum(["console", "json"]).optional().default("console").describe("Text-content format. Use 'json' for full machine-readable output, 'console' for a human-readable summary. structuredContent is always returned regardless."),
         authorityScore: z.number().int().min(0).max(100).optional().describe("Bring-your-own domain authority (0-100). >=80 shifts the verdict one tier lenient on established brands; <=30 shifts one tier stricter on newer/lower-authority operators. The raw risk number is never modified."),
@@ -357,7 +357,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         findingCount: z.number(),
         findingsTruncated: z.boolean().optional().describe("True when more than the cap of findings exist and the structured array was shortened. Use json format or the CLI for the full set."),
         textTruncated: z.boolean().optional().describe("True when the text content (not the structured data) was shortened or replaced to fit the size cap."),
-        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial; treat verdict/risk/pageCount as lower bounds."),
         truncatedReason: z.string().optional().describe("Why the audit was truncated."),
         schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
@@ -373,13 +373,13 @@ export function registerReadOnlyTools(server: McpServer): void {
         // MCP audits run on user-supplied URLs inside AI-assistant environments
         // where the LLM may not vet the target. `safeMode: "saas"` flips on
         // guardSsrf (DNS-validated private-range check), tightens maxFetchBytes,
-        // and keeps robots.txt honoured — see packages/core SafeMode docs.
+        // and keeps robots.txt honoured; see packages/core SafeMode docs.
         const options: AuditOptions = { safeMode: "saas" };
         options.sampleSize = sampleSize > 0 ? sampleSize : MCP_SAMPLE_CAP;
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
         if (contentEffort) options.contentEffort = { enabled: true };
         // CrUX field CWV: auto-enabled when the hosted operator sets CRUX_API_KEY
-        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY —
+        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY;
         // no key travels through tool args). No-ops safely without it.
         if (process.env.CRUX_API_KEY) options.crux = { apiKey: process.env.CRUX_API_KEY };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
@@ -415,8 +415,8 @@ export function registerReadOnlyTools(server: McpServer): void {
           // lives in the CLI.
           text = formatJson(summary);
           if (text.length > getJsonTextCharCap()) {
-            // Compact envelope: drop the (large) findings array — they remain in
-            // structuredContent (capped) and the CLI carries the full set — so
+            // Compact envelope: drop the (large) findings array; they remain in
+            // structuredContent (capped) and the CLI carries the full set, so
             // the envelope stays small regardless of finding volume.
             const { findings: _findings, ...compact } = structured;
             text = JSON.stringify(
@@ -473,7 +473,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         pageCount: z.number(),
         categories: CATEGORY_GRADES_SCHEMA,
         topRules: z.array(TOP_RULE_SCHEMA),
-        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial; treat verdict/risk/pageCount as lower bounds."),
         truncatedReason: z.string().optional().describe("Why the audit was truncated."),
         schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
@@ -490,7 +490,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         if (authorityScore !== undefined) options.authorityScore = authorityScore;
         if (contentEffort) options.contentEffort = { enabled: true };
         // CrUX field CWV: auto-enabled when the hosted operator sets CRUX_API_KEY
-        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY —
+        // in the server env (same pattern as contentEffort/ANTHROPIC_API_KEY;
         // no key travels through tool args). No-ops safely without it.
         if (process.env.CRUX_API_KEY) options.crux = { apiKey: process.env.CRUX_API_KEY };
         if (sampleSeed !== undefined) options.sampleSeed = sampleSeed;
@@ -539,7 +539,7 @@ export function registerReadOnlyTools(server: McpServer): void {
     "pseolint_check_page_technical",
     {
       title: "Check Single Page Technical SEO",
-      description: "Use when a user asks to check a specific page URL for technical SEO issues. Checks per-page rules only: canonical tags, Open Graph tags, JSON-LD schema, robots directives, meta tags, thin content, and author signals. Does NOT check cross-page rules (duplicates, cannibalization, linking) — use pseolint_audit_site for those. Both human-readable text and structured data (structuredContent) are returned.",
+      description: "Use when a user asks to check a specific page URL for technical SEO issues. Checks per-page rules only: canonical tags, Open Graph tags, JSON-LD schema, robots directives, meta tags, thin content, and author signals. Does NOT check cross-page rules (duplicates, cannibalization, linking); use pseolint_audit_site for those. Both human-readable text and structured data (structuredContent) are returned.",
       inputSchema: zodShape({
         url: z.url().describe("Full URL of the page to check (e.g. https://yoursite.com/templates/california-llc)"),
       }),
@@ -547,7 +547,7 @@ export function registerReadOnlyTools(server: McpServer): void {
         url: z.string(),
         issueCount: z.number(),
         findings: z.array(FINDING_SCHEMA),
-        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial — treat verdict/risk/pageCount as lower bounds."),
+        truncated: z.boolean().optional().describe("True when the crawl aborted mid-run (origin degraded); coverage is partial; treat verdict/risk/pageCount as lower bounds."),
         truncatedReason: z.string().optional().describe("Why the audit was truncated."),
         schemaVersion: z.string().optional().describe("Output schema version, e.g. 2026-06-v0.6."),
       }),
@@ -618,10 +618,10 @@ export function registerOrchestrateTool(server: McpServer): void {
     {
       title: "Orchestrate AI-Native pSEO Audit",
       description:
-        "Use when a user wants concrete, paste-able fixes (rewritten H1s, JSON-LD blocks, robots.txt patches, internal-link suggestions) — not just a list of issues. " +
+        "Use when a user wants concrete, paste-able fixes (rewritten H1s, JSON-LD blocks, robots.txt patches, internal-link suggestions), not just a list of issues. " +
         "An LLM drives 25 tools (sitemap fetch, template clustering, per-page rule checks, AEO probes) and produces a fix manifest with structured patches, each validated against a deterministic schema. " +
-        "Costs real money (~$1-3 per audit on managed Anthropic). Capped at $2 / 60 tool calls / 180 seconds by default — adjust if the user asks for a deeper run. " +
-        "Returns a text summary plus a compact structured summary (structuredContent); pass format:'json' to also get the full manifest in the text content. The structured `reason` field reports why the run stopped — an incomplete run is not flagged via isError. The full manifest can be streamed via the CLI: `pseolint orchestrate <domain> --manifest-out manifest.json`.",
+        "Costs real money (~$1-3 per audit on managed Anthropic). Capped at $2 / 60 tool calls / 180 seconds by default; adjust if the user asks for a deeper run. " +
+        "Returns a text summary plus a compact structured summary (structuredContent); pass format:'json' to also get the full manifest in the text content. The structured `reason` field reports why the run stopped; an incomplete run is not flagged via isError. The full manifest can be streamed via the CLI: `pseolint orchestrate <domain> --manifest-out manifest.json`.",
       inputSchema: zodShape({
         domain: z.string().min(1).describe("URL of the site to audit (e.g. https://example.com). The orchestrator's first tool call fetches the sitemap."),
         maxCostUsd: z.number().min(0.1).max(MAX_ORCH_COST_USD).optional().default(2).describe(`Hard USD cap for this session. Default $2 (conservative for MCP-invoked sessions). Min $0.10, max $${MAX_ORCH_COST_USD}.`),
@@ -710,7 +710,7 @@ export function registerOrchestrateTool(server: McpServer): void {
  * Expose pseolint's rule knowledge (Open Knowledge Format bundle, lean subset)
  * as read-only MCP resources, keyed by ruleId so they line up 1:1 with the
  * `ruleId` on audit findings. An agent can audit, then read `pseolint://rules/<id>`
- * for what the rule detects and how to fix it — no web fetch, no extra tool.
+ * for what the rule detects and how to fix it: no web fetch, no extra tool.
  */
 export function registerRuleKnowledge(server: McpServer): void {
   const indexUri = "pseolint://rules";
@@ -754,7 +754,7 @@ export function registerRuleKnowledge(server: McpServer): void {
             mimeType: "text/markdown",
             text:
               `# ${rule.title}\n\n` +
-              `Rule \`${rule.ruleId}\` — ${rule.url}\n\n` +
+              `Rule \`${rule.ruleId}\`: ${rule.url}\n\n` +
               `## What it detects\n${rule.whatItDetects}\n\n` +
               `## How to fix\n${rule.howToFix.map((b) => `- ${b}`).join("\n")}\n`,
           },
@@ -778,7 +778,7 @@ export function createServer(): McpServer {
 type OrchestrateUsage = { toolCallCount: number; estimatedUsd: number; elapsedMs: number };
 
 /**
- * Compact structured summary of an orchestrate run — matches the tool's
+ * Compact structured summary of an orchestrate run: matches the tool's
  * outputSchema. Optional fields are omitted when no manifest was produced.
  * `completed` mirrors the run reason so clients have a boolean without parsing it.
  */
@@ -788,7 +788,7 @@ function buildOrchestrateStructured(
   manifest: FixManifest | null,
   validation: ManifestValidationReport | null,
 ) {
-  // Project usage to exactly the declared fields — the real UsageSnapshot also
+  // Project usage to exactly the declared fields; the real UsageSnapshot also
   // carries inputTokens/outputTokens, which would fail the strict outputSchema
   // (additionalProperties:false) if passed through.
   const base = {
@@ -861,7 +861,7 @@ function buildOrchestrateSummary(
 
   lines.push("");
   if (manifest.pages.length === 0 && manifest.templates.length === 0 && manifest.domainLevel.length === 0) {
-    lines.push("Manifest is empty — orchestrator found nothing actionable.");
+    lines.push("Manifest is empty: orchestrator found nothing actionable.");
   } else {
     if (manifest.pages.length > 0) {
       lines.push(`Page-level patches (${manifest.pages.length} pages):`);

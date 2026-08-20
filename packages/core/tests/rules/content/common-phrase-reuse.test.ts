@@ -22,17 +22,17 @@ function page(url: string, contentText: string): ParsedPage {
 }
 
 describe("commonPhraseReuseRule", () => {
-  test("page with 0 clichés — no finding", () => {
+  test("page with 0 clichés: no finding", () => {
     const p = page("https://example.com/good", "This is substantive content about specific topics with real data.");
     expect(commonPhraseReuseRule([p])).toHaveLength(0);
   });
 
-  test("page with 2 clichés — no finding (below threshold)", () => {
+  test("page with 2 clichés: no finding (below threshold)", () => {
     const p = page("https://example.com/two", "Located in the heart of downtown. Handpicked selection of local venues.");
     expect(commonPhraseReuseRule([p])).toHaveLength(0);
   });
 
-  test("page with exactly 3 clichés — 1 finding, severity warning, confidence low", () => {
+  test("page with exactly 3 clichés: 1 finding, severity warning, confidence low", () => {
     const p = page(
       "https://example.com/three",
       "Located in the heart of the city. This is a hidden gem. We are the leading provider of services.",
@@ -45,7 +45,7 @@ describe("commonPhraseReuseRule", () => {
     expect(results[0].pageUrl).toBe("https://example.com/three");
   });
 
-  test("page with 6+ clichés — 1 finding, message lists at least 3 example phrases", () => {
+  test("page with 6+ clichés: 1 finding, message lists at least 3 example phrases", () => {
     const p = page(
       "https://example.com/many",
       [
@@ -68,7 +68,7 @@ describe("commonPhraseReuseRule", () => {
     expect(parseInt(msg.match(/reuses (\d+)/)?.[1] ?? "0", 10)).toBeGreaterThanOrEqual(6);
   });
 
-  test("case-insensitive matching — 'In The Heart Of' matches phrase", () => {
+  test("case-insensitive matching: 'In The Heart Of' matches phrase", () => {
     const p = page(
       "https://example.com/case",
       "In The Heart Of the downtown area, this Hidden Gem is a Must-See attraction.",
@@ -90,12 +90,12 @@ describe("commonPhraseReuseRule", () => {
     expect(results).toHaveLength(1);
   });
 
-  test("empty contentText — no finding, no error", () => {
+  test("empty contentText: no finding, no error", () => {
     const p = page("https://example.com/empty", "");
     expect(commonPhraseReuseRule([p])).toHaveLength(0);
   });
 
-  test("undefined-like contentText (empty page) — no finding", () => {
+  test("undefined-like contentText (empty page): no finding", () => {
     const p = page("https://example.com/notext", "");
     expect(commonPhraseReuseRule([p])).toHaveLength(0);
   });
@@ -136,7 +136,7 @@ describe("commonPhraseReuseRule", () => {
     expect(fired[0].pageUrl).toBe("https://spam.example/listing");
   });
 
-  test("multiple pages — fires only on pages meeting threshold", () => {
+  test("multiple pages: fires only on pages meeting threshold", () => {
     const good = page("https://example.com/good", "Specific, substantive content about pricing and features.");
     const bad = page(
       "https://example.com/bad",

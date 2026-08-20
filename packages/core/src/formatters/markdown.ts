@@ -19,13 +19,13 @@ export interface MarkdownFormatOptions {
   /** When true, list every finding bucketed by severity (kept for parity with other formatters; markdown always lists everything). */
   verbose?: boolean;
   /**
-   * v0.5.11 — when true (default), render per-template cards above the
+   * v0.5.11: when true (default), render per-template cards above the
    * per-URL findings list when ≥2 templates were detected.
    */
   perTemplate?: boolean;
-  /** v0.5.11 — filter per-URL findings to this template signature. Silently ignored on no match. */
+  /** v0.5.11: filter per-URL findings to this template signature. Silently ignored on no match. */
   filterTemplate?: string;
-  /** v0.5.11 — skip per-template view; render flat per-URL list. */
+  /** v0.5.11: skip per-template view; render flat per-URL list. */
   legacyFlat?: boolean;
 }
 
@@ -70,14 +70,14 @@ function effortPrefix(effort: FixEffort | undefined): string {
   return effort ? `[${effort}] ` : "";
 }
 
-/** v0.4.3 — caveat suffix for low-confidence findings, rendered inline. */
+/** v0.4.3: caveat suffix for low-confidence findings, rendered inline. */
 function confidenceCaveat(c: Confidence | undefined): string | null {
-  if (c === "low") return "low confidence — known false-positive risk on this site type";
-  if (c === "speculative") return "speculative — heuristic match; verify before acting";
+  if (c === "low") return "low confidence: known false-positive risk on this site type";
+  if (c === "speculative") return "speculative: heuristic match; verify before acting";
   return null;
 }
 
-/** v0.4.3 — "Audited as <type>" line shown under the verdict header. */
+/** v0.4.3: "Audited as <type>" line shown under the verdict header. */
 function auditedAsLine(c: SiteClassification | undefined): string | null {
   if (!c) return null;
   const confPct = Math.round(c.confidence * 100);
@@ -138,10 +138,10 @@ function renderBucket(label: string, items: RuleResult[]): string[] {
   for (const b of buckets) {
     const caveat = confidenceCaveat(b.representativeConfidence);
     if (b.count === 1) {
-      const target = b.representativeUrl !== "<site-wide>" ? ` — ${b.representativeUrl}` : "";
+      const target = b.representativeUrl !== "<site-wide>" ? `, ${b.representativeUrl}` : "";
       const message = b.representativeFix ?? b.representativeMessage;
       const eff = effortPrefix(b.effort);
-      lines.push(`- **\`${b.ruleId}\`**${target} — ${eff}${message} ${bucketDocsLink(b)}`);
+      lines.push(`- **\`${b.ruleId}\`**${target}: ${eff}${message} ${bucketDocsLink(b)}`);
       if (caveat) lines.push(`  - _${caveat}_`);
       continue;
     }
@@ -156,10 +156,10 @@ function renderBucket(label: string, items: RuleResult[]): string[] {
     lines.push("");
 
     const moreSuffix = isTemplateBucket
-      ? ` — and ${b.count - 1} more page${b.count - 1 === 1 ? "" : "s"} match${
+      ? `, and ${b.count - 1} more page${b.count - 1 === 1 ? "" : "s"} match${
           b.count - 1 === 1 ? "es" : ""
         } this template.`
-      : ` — affecting ${b.count} pages total.`;
+      : `, affecting ${b.count} pages total.`;
     lines.push(`\`${b.representativeUrl}\` ${b.representativeMessage}${moreSuffix}`);
     lines.push("");
 
@@ -209,7 +209,7 @@ export function formatMarkdown(
   lines.push(
     `**Verdict:** ${VERDICT_GLYPH[summary.verdict]} ${VERDICT_LABEL[summary.verdict]}`,
   );
-  // v0.4.3 — show "Audited as <type>" right under the verdict so the
+  // v0.4.3: show "Audited as <type>" right under the verdict so the
   // operator knows which scoring profile produced the verdict.
   const audited = auditedAsLine(summary.siteClassification);
   if (audited) lines.push(audited);
@@ -267,9 +267,9 @@ export function formatMarkdown(
     }
   }
 
-  // Issue buckets — blockers and should-fix render inline because they're
+  // Issue buckets: blockers and should-fix render inline because they're
   // the actionable items. Informational findings collapse behind a
-  // <details> on by default — they're often high-volume on catalog and
+  // <details> on by default; they're often high-volume on catalog and
   // template-driven sites (118 info findings on Webflow's templates
   // gallery, 134 on Ramp's spend-management directory) where surfacing
   // every entry as a fresh markdown bullet drowns the actionable signal.
@@ -280,7 +280,7 @@ export function formatMarkdown(
   if (filteredInfo.length > 0) {
     const infoLines = renderBucket("Informational", filteredInfo);
     lines.push(`<details>`);
-    lines.push(`<summary><strong>Informational (${filteredInfo.length})</strong> — low-confidence or context-dependent findings. Click to expand.</summary>`);
+    lines.push(`<summary><strong>Informational (${filteredInfo.length})</strong>: low-confidence or context-dependent findings. Click to expand.</summary>`);
     lines.push("");
     // Strip the duplicate ## header that renderBucket added; the <summary>
     // already labels the section.

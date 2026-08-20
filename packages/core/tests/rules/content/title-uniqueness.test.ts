@@ -57,8 +57,8 @@ describe("titleUniquenessRule", () => {
 
   test("emits an error when two pages share the exact title", () => {
     const findings = titleUniquenessRule([
-      page("https://ex.com/a", "Pricing — pseolint"),
-      page("https://ex.com/b", "Pricing — pseolint"),
+      page("https://ex.com/a", "Pricing, pseolint"),
+      page("https://ex.com/b", "Pricing, pseolint"),
     ]);
     const dup = findings.find((f) => f.message.includes("share the exact title"));
     expect(dup).toBeDefined();

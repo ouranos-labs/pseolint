@@ -6,11 +6,11 @@ import type { AuditOptions } from "@pseolint/core";
  * per monitored domain. This is a SECURITY BOUNDARY, not a convenience parser.
  *
  * It MUST never become a raw `AuditOptions` passthrough: only the seven fields
- * below are accepted. Everything a Pro user could use to disable safety —
+ * below are accepted. Everything a Pro user could use to disable safety:
  * `safeMode`, `guardSsrf`, `respectRobotsTxt`, `respectNoindex`,
  * `skipDetectedAuth`, `maxFetchBytes`, `maxCrawlDiscovered`, `cache`, `render`,
  * `ai`, `contentEffort`, `authorityScore`, `openPageRankApiKey`, `dataSource`,
- * `state`, `force`, `signal`, … — is intentionally absent.
+ * `state`, `force`, `signal`, …: is intentionally absent.
  *
  * `.strict()` rejects any unknown key, so a future `AuditOptions` field that
  * happens to be dangerous cannot leak in just because it was added upstream.
@@ -58,7 +58,7 @@ export type ScanOptions = z.infer<typeof scanOptionsSchema>;
 /**
  * The slice of `AuditOptions` that `ScanOptions` is allowed to set. A
  * compile-time check that every key in `ScanOptions` exists on `AuditOptions`
- * with a compatible type — if core ever renames/retypes one of these fields,
+ * with a compatible type: if core ever renames/retypes one of these fields,
  * this fails to typecheck instead of silently drifting.
  */
 type _ScanOptionsAreAuditOptions = ScanOptions extends Pick<AuditOptions, keyof ScanOptions>
@@ -70,7 +70,7 @@ void _scanOptionsTypecheck;
 /**
  * Parse a stored/submitted scan-options blob against the allowlist. Returns the
  * validated object on success, or `null` for invalid input, an empty object, or
- * anything that isn't a plain object. Never throws — callers treat `null` as
+ * anything that isn't a plain object. Never throws: callers treat `null` as
  * "no per-domain scan options" and fall back to engine defaults.
  */
 export function parseScanOptions(raw: unknown): ScanOptions | null {

@@ -33,7 +33,7 @@ describe("renderPrBody", () => {
     ]);
     expect(body).toContain("**2 deterministic edits**");
     expect(body).toContain("`a.tsx`");
-    expect(body).toContain("- [ ] **generative**: Write FAQ — `a.tsx`");
+    expect(body).toContain("- [ ] **generative**: Write FAQ (`a.tsx`)");
   });
 });
 

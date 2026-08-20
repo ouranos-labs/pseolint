@@ -3,7 +3,7 @@ import Link from "next/link";
 type Variant = "not-connected" | "connected-not-bound" | "bound-no-data" | "bound-with-data";
 
 interface MonthlyTrendPoint {
-  /** "YYYY-MM" — only used as a tooltip key, not parsed. */
+  /** "YYYY-MM"; only used as a tooltip key, not parsed. */
   monthBucket: string;
   impressions: number;
   clicks: number;
@@ -76,7 +76,7 @@ export function GscStatusStrip(props: GscStatusStripProps) {
     return (
       <Strip tone="muted" eyebrow="Search Console · bound">
         <p className="text-sm text-foreground">
-          Bound to <span className="font-mono text-xs">{props.siteUrl}</span> — first sync pending.
+          Bound to <span className="font-mono text-xs">{props.siteUrl}</span>: first sync pending.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           GSC data appears within ~24h. Findings rank by severity × pages until then.
@@ -85,7 +85,7 @@ export function GscStatusStrip(props: GscStatusStripProps) {
     );
   }
 
-  // bound-with-data — rich card. The monitoring story finally has numbers
+  // bound-with-data: rich card. The monitoring story finally has numbers
   // attached: trend direction, where the traffic is concentrated, and where
   // the operator is actually ranking. The old single-line pill confirmed
   // the integration was alive without saying anything useful about it.
@@ -133,7 +133,7 @@ function BoundWithDataCard({
         )}
       </header>
 
-      {/* Headline numbers — what the operator wants to see first. */}
+      {/* Headline numbers: what the operator wants to see first. */}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
         <Stat
           label="Impressions"
@@ -148,17 +148,17 @@ function BoundWithDataCard({
         <Stat
           label="CTR"
           sub="clicks / impr"
-          value={ctr != null ? `${(ctr * 100).toFixed(2)}%` : "—"}
+          value={ctr != null ? `${(ctr * 100).toFixed(2)}%` : "; "}
         />
         <Stat
           label="Avg position"
           sub="impressions-weighted"
-          value={weightedAvgPosition != null ? weightedAvgPosition.toFixed(1) : "—"}
+          value={weightedAvgPosition != null ? weightedAvgPosition.toFixed(1) : "; "}
           tone={positionTone(weightedAvgPosition)}
         />
       </dl>
 
-      {/* Monthly trend — the question the old pill couldn't answer:
+      {/* Monthly trend, the question the old pill couldn't answer:
           "is my Google traffic growing or dying?" */}
       {showTrend && (
         <div className="flex items-end gap-3 rounded-[12px] border border-success/20 bg-background/30 p-3">
@@ -182,7 +182,7 @@ function BoundWithDataCard({
         </div>
       )}
 
-      {/* Top templates — concentration. "Where should I focus fixes?" */}
+      {/* Top templates: concentration. "Where should I focus fixes?" */}
       {top.length > 0 && (
         <div className="flex flex-col gap-1.5">
           <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -321,7 +321,7 @@ function Strip({
 }
 
 /**
- * Position tone — pages 1–3 read green (top of page 1), 4–10 muted (still
+ * Position tone: pages 1–3 read green (top of page 1), 4–10 muted (still
  * page 1), 11+ warning (off page 1, lots of impressions but few clicks).
  */
 function positionTone(p: number | null | undefined): string {

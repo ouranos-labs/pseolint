@@ -2,7 +2,7 @@
 import { OpenPanelComponent } from "@openpanel/nextjs";
 
 /**
- * Generic OpenPanel client transport — portable, no pseolint event names.
+ * Generic OpenPanel client transport: portable, no pseolint event names.
  * Renders nothing when unconfigured. trackScreenViews emits pageviews
  * automatically; trackOutgoingLinks emits outbound-link clicks.
  *

@@ -3,14 +3,14 @@
 pseolint reports **by template**, not by URL. So you fix in this order:
 
 1. Run the audit: `npx pseolint <url>` (or the MCP audit tool).
-2. Find the **worst template** — the one driving the site headline (worst verdict
+2. Find the **worst template**: the one driving the site headline (worst verdict
    with ≥5% URL coverage). Fixing it moves the score most.
-3. Read its `topDriver` — the rule firing across the most sampled pages. That's
+3. Read its `topDriver`: the rule firing across the most sampled pages. That's
    the one fix that repairs N pages at once.
 4. Apply the recipe below for that rule. Re-run pseolint on staging. Repeat for
    the next-worst template.
 
-Don't chase individual URL findings — a `uniformityScore` near 1.0 means the
+Don't chase individual URL findings: a `uniformityScore` near 1.0 means the
 whole template shares the defect; fix the template once.
 
 ## Fix recipes by rule family
@@ -24,7 +24,7 @@ genuinely different, that row probably shouldn't be a page.
 **`spam/thin-content` / `content/unique-value` / `content/value-add`**
 Not enough page-specific substance. Add original analysis, real data tables, or
 first-party insight per page. `content/unique-value` scores *rarity density*
-(how unusual the page's content is vs the corpus), not word count — padding
+(how unusual the page's content is vs the corpus), not word count: padding
 won't move it.
 
 **`spam/doorway-pattern` / `spam/template-coverage`**
@@ -52,7 +52,7 @@ canonical to self, no noindex, present in the right sitemap. Resolve the conflic
 the rule names.
 
 **`tech/csr-bailout`**
-Substantive content only appears after client-side JS — invisible to the first
+Substantive content only appears after client-side JS: invisible to the first
 indexing pass. Server-render or pre-render the content that matters for ranking.
 
 **`tech/soft-404`**

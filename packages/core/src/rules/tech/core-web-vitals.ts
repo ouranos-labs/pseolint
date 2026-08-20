@@ -1,7 +1,7 @@
 import type { ParsedPage, RuleResult, FieldVitals } from "../../types.js";
 
-// Google's "poor" thresholds — the tier that actively hurts rankings.
-// https://web.dev/articles/vitals — good ≤ first / poor > second.
+// Google's "poor" thresholds: the tier that actively hurts rankings.
+// https://web.dev/articles/vitals, good ≤ first / poor > second.
 const LCP_POOR_MS = 4000; // good ≤ 2500
 const CLS_POOR = 0.25; // good ≤ 0.1
 const INP_POOR_MS = 500; // good ≤ 200
@@ -50,7 +50,7 @@ function originOf(url: string): string {
  * Flags pages whose Core Web Vitals land in Google's "poor" tier.
  *
  * Metric selection is per-metric: CrUX field data (page.fieldVitals) wins when
- * present — it's the real-user p75 Google ranks on, and the only source of INP —
+ * present: it's the real-user p75 Google ranks on, and the only source of INP:
  * but LCP/CLS fall back to the lab render (page.webVitals) when field data lacks
  * that specific metric. INP is field-only. No-op when neither source is present.
  *
@@ -107,7 +107,7 @@ function buildFinding(subject: string, failing: Metric[], origin: boolean, pageC
   // origin-level (site aggregate applied to a page) and lab both sit at medium.
   const confidence = failing.some((f) => f.src === "field-url") ? "high" : "medium";
   const message = origin
-    ? `${subject} — site-level Core Web Vitals in the "poor" tier (CrUX origin p75): ${failing.map((f) => f.text).join(", ")}. ` +
+    ? `${subject}, site-level Core Web Vitals in the "poor" tier (CrUX origin p75): ${failing.map((f) => f.text).join(", ")}. ` +
       `Affects the whole origin; measured on ${pageCount} audited page${pageCount === 1 ? "" : "s"} that had no per-URL field data.`
     : `${subject} fails Core Web Vitals: ${failing.map((f) => f.text).join(", ")}.`;
   return {

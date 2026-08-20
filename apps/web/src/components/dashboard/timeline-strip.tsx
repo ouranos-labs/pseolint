@@ -14,7 +14,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
   const [compareMode, setCompareMode] = useState(false);
   const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
 
-  // Order in DB query is desc(createdAt) — flip to oldest→newest for the strip
+  // Order in DB query is desc(createdAt): flip to oldest→newest for the strip
   // so the eye reads time left-to-right.
   const ordered = [...runs].reverse();
   const completedRuns = ordered.filter((r) => r.status === "completed" && r.risk != null);
@@ -22,7 +22,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
   const newest = completedRuns[completedRuns.length - 1]?.completedAt ?? null;
 
   // Delta must compare each completed run against the previous COMPLETED run,
-  // not the previous array element — a failed/queued run in between carries a
+  // not the previous array element: a failed/queued run in between carries a
   // null risk and would otherwise null out (or mis-attribute) the delta.
   // Precompute risk-vs-prior-completed per slug.
   const deltaBySlug = new Map<string, number | null>();
@@ -42,7 +42,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
       if (prev.length < 2) {
         return [...prev, slug];
       }
-      // Replace slot 0 — keep slot 1 as "the latest pick".
+      // Replace slot 0: keep slot 1 as "the latest pick".
       return [prev[1]!, slug];
     });
   };
@@ -88,20 +88,20 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
         </div>
       </header>
       <p className="mt-1 text-xs text-muted-foreground">
-        One bar per audit, oldest → newest. Color shows risk change vs. previous run — green is an
-        improvement (risk went down — lower is safer), red is a regression. Click a bar to open that report.
+        One bar per audit, oldest → newest. Color shows risk change vs. previous run: green is an
+        improvement (risk went down: lower is safer), red is a regression. Click a bar to open that report.
       </p>
 
       {ordered.length === 0 ? (
         <p className="mt-4 rounded-[12px] border border-dashed border-border/60 bg-background/40 p-4 text-center text-xs text-muted-foreground">
-          No audits yet. Your first run will appear here as soon as it completes — usually within a minute.
+          No audits yet. Your first run will appear here as soon as it completes: usually within a minute.
         </p>
       ) : (
         <>
           <ol className="mt-4 flex flex-wrap items-end gap-1.5">
             {ordered.map((r) => {
               // Delta vs the previous COMPLETED run (skips failed/queued runs
-              // with null risk) — see deltaBySlug above. Non-completed runs
+              // with null risk): see deltaBySlug above. Non-completed runs
               // have no entry and render with the neutral/not-completed hue.
               const delta = deltaBySlug.get(r.slug) ?? null;
 

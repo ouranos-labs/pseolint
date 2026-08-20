@@ -7,7 +7,7 @@ import { getOptionalSession } from "@/lib/session";
 export const runtime = "nodejs";
 
 /**
- * GDPR Article 20 — Right to data portability. Returns a JSON dump of every
+ * GDPR Article 20: Right to data portability. Returns a JSON dump of every
  * row owned by the current user, scoped by userId FK. Excludes sensitive
  * columns that shouldn't leave the server (password hashes, OAuth refresh
  * tokens, encrypted integration credentials, upload-token hashes).

@@ -52,7 +52,7 @@
     },
     {
       "name": "check_page_technical",
-      "description": "Check a specific page URL for technical SEO issues (canonical, OG tags, schema, robots, thin content). Does not check cross-page rules — use audit_site for those.",
+      "description": "Check a specific page URL for technical SEO issues (canonical, OG tags, schema, robots, thin content). Does not check cross-page rules, use audit_site for those.",
       "parameters": {
         "url": {
           "type": "string",

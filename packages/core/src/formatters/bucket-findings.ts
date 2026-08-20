@@ -5,11 +5,11 @@ import { inferUrlTemplate } from "../stratified-sample.js";
  * A bucket of findings sharing the same `(ruleId, templateSignature)` key.
  *
  * Why bucket? On a programmatic-SEO site, a single template bug surfaces as
- * dozens (or thousands) of identical findings — one per generated page. Listing
+ * dozens (or thousands) of identical findings: one per generated page. Listing
  * them individually buries the actionable signal under noise. Bucketing
  * collapses them so the operator sees:
  *
- *   "23 instances on /templates/:slug — fix once, resolve all 23"
+ *   "23 instances on /templates/:slug: fix once, resolve all 23"
  *
  * instead of 23 separate finding lines. The bucket key is
  * `${ruleId}::${templateSignature ?? pageUrl ?? "__site__"}`:
@@ -31,7 +31,7 @@ export interface BucketedFinding {
   representativeDocsUrl?: string;
   severity: Severity;
   effort?: FixEffort;
-  /** v0.4.3 — confidence of the representative finding (used for caveat rendering). */
+  /** v0.4.3: confidence of the representative finding (used for caveat rendering). */
   representativeConfidence?: Confidence;
 }
 
@@ -108,7 +108,7 @@ export function bucketByTemplate(findings: RuleResult[]): BucketedFinding[] {
         existing.effort = f.effort;
       }
       // Track the lowest-confidence variant so the caveat surfaces if any
-      // member of the bucket is low/speculative — we don't want to hide a
+      // member of the bucket is low/speculative; we don't want to hide a
       // "low confidence" caveat behind a high-confidence representative.
       if (f.confidence !== undefined) {
         const cur = existing.representativeConfidence;

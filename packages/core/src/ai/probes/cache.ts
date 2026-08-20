@@ -13,10 +13,10 @@ export function probeCacheKey(...parts: string[]): string {
 
 /**
  * Lightweight content-addressable cache for external probe responses
- * (SerpAPI, ask_ai_engine). Simpler than the cachedFetch HTTP cache —
+ * (SerpAPI, ask_ai_engine). Simpler than the cachedFetch HTTP cache:
  * no ETag/Last-Modified, no negative cache, just key → JSON with TTL.
  *
- * Misses (file absent, malformed, expired) all return null silently —
+ * Misses (file absent, malformed, expired) all return null silently:
  * the caller fetches fresh and writes back.
  */
 export async function readProbeCache<T>(dir: string, key: string, ttlMs: number): Promise<T | null> {

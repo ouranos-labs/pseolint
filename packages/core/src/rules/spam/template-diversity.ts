@@ -2,14 +2,14 @@ import type { Confidence, ParsedPage, RuleResult } from "../../types.js";
 
 /**
  * Coarsen a structureSignature ("tag:count|tag:count|...") by bucketing each
- * tag's count logarithmically. Pages that differ only by trivial chrome — one
- * extra ad `<div>`, a conditional nav item — collapse to the SAME coarse
+ * tag's count logarithmically. Pages that differ only by trivial chrome: one
+ * extra ad `<div>`, a conditional nav item: collapse to the SAME coarse
  * signature, so a genuinely single-template site is no longer read as "diverse"
  * from count noise (the false negative the exact-count fingerprint caused).
  *
  * The raw exact-count signature (parser.buildStructureSignature) is SHARED with
  * spam/near-duplicate and spam/doorway-pattern and is deliberately left
- * untouched — this coarsening is local to the diversity measure.
+ * untouched: this coarsening is local to the diversity measure.
  */
 function coarsenSignature(signature: string): string {
   if (!signature) return signature;

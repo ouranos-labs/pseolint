@@ -7,7 +7,7 @@
  * and Open Graph cards.
  *
  * The "fired" indices are a hand-picked, asymmetric constellation that
- * reads as intentional brand iconography — not a random subset.
+ * reads as intentional brand iconography: not a random subset.
  */
 
 const BG = "hsl(222, 14%, 9%)"; // --background

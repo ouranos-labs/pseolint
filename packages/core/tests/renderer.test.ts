@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { createRequire } from "node:module";
 import { renderPages } from "../src/renderer.js";
 
-// JS injects a form via DOM API — raw bytes contain zero <input>/<button>.
+// JS injects a form via DOM API: raw bytes contain zero <input>/<button>.
 const SHELL = `<!doctype html><html><head><title>s</title></head><body>
 <div id="app"></div>
 <script>
@@ -29,7 +29,7 @@ function hasBrowser(): boolean {
   }
 }
 
-describe("renderPages (Node only — JS executes, post-render DOM returned)", () => {
+describe("renderPages (Node only: JS executes, post-render DOM returned)", () => {
   it.skipIf(!hasBrowser())("renders injected DOM not present in raw HTML", async () => {
     const dir = await mkdtemp(join(tmpdir(), "pseolint-render-"));
     try {

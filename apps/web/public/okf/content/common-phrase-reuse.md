@@ -1,15 +1,15 @@
 ---
 type: pSEO Audit Rule
-title: "Common Phrase Reuse — When pSEO Clichés Pile Up On One Page"
+title: "Common Phrase Reuse: When pSEO Clichés Pile Up On One Page"
 description: "A page leaning on 'hidden gem', 'trusted by thousands' and 'discover the best' reads as templated marketing. How content/common-phrase-reuse counts pSEO clichés."
 resource: https://pseolint.dev/rules/common-phrase-reuse
 ruleId: "content/common-phrase-reuse"
 tags: [content, "pSEO marketing cliches SEO"]
 ---
 
-# Common Phrase Reuse — When pSEO Clichés Pile Up On One Page
+# Common Phrase Reuse: When pSEO Clichés Pile Up On One Page
 
-> content/common-phrase-reuse scans each page against a bundled list of roughly 42 pSEO marketing clichés grouped into 5 categories — location filler, generic-marketing superlatives, aggregator phrasing, fake-authority claims, and filler hedges — and raises one low-confidence warning the moment 3 or more distinct phrases from that list appear, a speculative density signal Google's helpful-content guidance has weighted since 2024.
+> content/common-phrase-reuse scans each page against a bundled list of roughly 42 pSEO marketing clichés grouped into 5 categories: location filler, generic-marketing superlatives, aggregator phrasing, fake-authority claims, and filler hedges, and raises one low-confidence warning the moment 3 or more distinct phrases from that list appear, a speculative density signal Google's helpful-content guidance has weighted since 2024.
 
 _Rule `content/common-phrase-reuse` · [live explainer](https://pseolint.dev/rules/common-phrase-reuse)_
 
@@ -33,7 +33,7 @@ The same boutique-hotel page rewritten with concrete nouns: '28 suites, each wit
 - Read the finding's listed phrases and delete the ones that are pure filler before swapping anything in.
 - Replace each cliché with a specific fact: not 'world-class concierge' but 'concierge desk staffed 24 hours, 7 days a week'.
 - Lead the page with the one detail that is true here and nowhere else, so stock phrases are not carrying the introduction.
-- Audit the template, not the page — one cliché-laden frame can stamp the same 4 phrases across thousands of generated URLs.
+- Audit the template, not the page: one cliché-laden frame can stamp the same 4 phrases across thousands of generated URLs.
 - Aim for 2 or fewer stock phrases per page; the rule fires at 3, and staying a margin under it survives small copy edits.
 - Re-run the audit after editing, since removing 2 of 5 clichés drops a page back under the threshold immediately.
 
@@ -43,7 +43,7 @@ The same boutique-hotel page rewritten with concrete nouns: '28 suites, each wit
 - [thin-content](../spam/thin-content.md)
 
 # Sources
-- [Google Search Central — Creating helpful, reliable, people-first content](https://developers.google.com/search/docs/fundamentals/creating-helpful-content) — People-first guidance penalises copy that reads as if written to sound useful rather than to be useful; content/common-phrase-reuse quantifies that gap by tallying how many of the roughly 42 entries across the five cliché categories in the bundled phrase list appear on a single page, firing a low-confidence warning when the cross-category accumulation reaches 3 or more distinct matches.
-- [Google Search Central — Spam policies: scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies) — Scaled-content-abuse enforcement targets templated prose that varies only the entity token while recycling stock surrounding copy; a page accumulating 3 or more phrases from the bundled phrase list's five cliché categories presents a lexical saturation fingerprint — the density and category spread signal batch generation more reliably than any individual phrase alone.
-- [Google Search Central — Search Essentials](https://developers.google.com/search/docs/essentials) — Search Essentials warns against content produced primarily to rank rather than to inform; the bundled phrase list's five cliché categories operationalise that distinction, because real informational copy rarely needs location-filler, generic-marketing, aggregator-phrasing, fake-authority, or call-to-action stock language stacked on the same page.
-- [Google Search Central — AI features and your website](https://developers.google.com/search/docs/appearance/ai-features) — AI extraction pipelines deprioritise passages dominated by formulaic marketing language drawn from the bundled phrase list; when 3 or more category-distinct clichés from the five-family bundled set appear on one page, the passage's information density drops below the threshold AI Overviews uses to select attributable, original-sounding excerpts for inclusion.
+- [Google Search Central: Creating helpful, reliable, people-first content](https://developers.google.com/search/docs/fundamentals/creating-helpful-content): People-first guidance penalises copy that reads as if written to sound useful rather than to be useful; content/common-phrase-reuse quantifies that gap by tallying how many of the roughly 42 entries across the five cliché categories in the bundled phrase list appear on a single page, firing a low-confidence warning when the cross-category accumulation reaches 3 or more distinct matches.
+- [Google Search Central: Spam policies: scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies): Scaled-content-abuse enforcement targets templated prose that varies only the entity token while recycling stock surrounding copy; a page accumulating 3 or more phrases from the bundled phrase list's five cliché categories presents a lexical saturation fingerprint, the density and category spread signal batch generation more reliably than any individual phrase alone.
+- [Google Search Central: Search Essentials](https://developers.google.com/search/docs/essentials): Search Essentials warns against content produced primarily to rank rather than to inform; the bundled phrase list's five cliché categories operationalise that distinction, because real informational copy rarely needs location-filler, generic-marketing, aggregator-phrasing, fake-authority, or call-to-action stock language stacked on the same page.
+- [Google Search Central: AI features and your website](https://developers.google.com/search/docs/appearance/ai-features): AI extraction pipelines deprioritise passages dominated by formulaic marketing language drawn from the bundled phrase list; when 3 or more category-distinct clichés from the five-family bundled set appear on one page, the passage's information density drops below the threshold AI Overviews uses to select attributable, original-sounding excerpts for inclusion.

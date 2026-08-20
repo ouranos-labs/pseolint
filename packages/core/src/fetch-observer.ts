@@ -5,13 +5,13 @@
  * wall-clock duration, whether the cache served or revalidated it). These
  * observations feed two consumers:
  *
- *   1. `computeReadiness` — post-crawl aggregate (median / p95 / 5xx count /
+ *   1. `computeReadiness`: post-crawl aggregate (median / p95 / 5xx count /
  *      cache-assist ratio) surfaced as the `audit/origin-readiness` finding.
- *   2. `BackpressureMonitor` (backpressure.ts) — in-flight watchdog that aborts
+ *   2. `BackpressureMonitor` (backpressure.ts): in-flight watchdog that aborts
  *      the audit if the origin degrades under concurrent load.
  *
  * Both consumers treat pure cache hits (`fromCache` with no revalidation)
- * as non-informative about the origin — latency stats should describe the
+ * as non-informative about the origin: latency stats should describe the
  * SERVER, not our local SSD.
  */
 
@@ -45,7 +45,7 @@ export interface ReadinessReport {
   liveFetchCount: number;
   medianMs: number;
   p95Ms: number;
-  /** 2xx/3xx count / liveFetchCount. Not meaningful — provided for callers. */
+  /** 2xx/3xx count / liveFetchCount. Not meaningful: provided for callers. */
   successRatio: number;
   serverErrorCount: number;
   /** 5xx / liveFetchCount. */
@@ -107,7 +107,7 @@ function percentile(sortedAsc: number[], p: number): number {
 /**
  * Aggregate a run's fetch observations into a readiness report. Returns `null`
  * when there's no origin data to speak to (zero fetches, or all pure cache
- * hits). Null is a signal to callers that the finding should be suppressed —
+ * hits). Null is a signal to callers that the finding should be suppressed:
  * it's not a result worth displaying.
  */
 export function computeReadiness(

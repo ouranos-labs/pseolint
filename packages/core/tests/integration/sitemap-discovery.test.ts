@@ -3,7 +3,7 @@ import { auditSource } from "../../src/auditor.js";
 
 /**
  * Sitemap-first discovery: a homepage audit should read the site's declared
- * sitemap(s) — via robots.txt `Sitemap:` or a /sitemap.xml probe — and audit
+ * sitemap(s): via robots.txt `Sitemap:` or a /sitemap.xml probe, and audit
  * those URLs even when they are NOT reachable by following links from the
  * homepage. This is the "build-frozen / sparsely-linked programmatic site"
  * case the real dogfood hit. Falls back to link-crawl when no sitemap exists.

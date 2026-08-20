@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 export const revalidate = 600;
 
 export const metadata: Metadata = {
-  title: "pSEO Leaderboard — top-scoring programmatic SEO sites · pseolint",
+  title: "pSEO Leaderboard: top-scoring programmatic SEO sites · pseolint",
   description:
     "Public ranking of programmatic SEO sites by their pseolint score. See which sites pass SpamBrain rules and which trip the most thin-content and doorway-pattern findings.",
   alternates: { canonical: `${env().BETTER_AUTH_URL}/leaderboard` },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 /**
  * Escape `</` sequences inside a JSON-LD payload so a stray closing tag inside
  * a string can't terminate the surrounding `<script>` block. Inputs here are
- * server-derived but safely escaped — same helper pattern as rules/tools pages.
+ * server-derived but safely escaped: same helper pattern as rules/tools pages.
  */
 function safeJsonLd(obj: unknown): string {
   return JSON.stringify(obj).replace(/</g, "\\u003c");
@@ -34,7 +34,7 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
     key: "spam",
     weight: "33%",
     blurb:
-      "Doorway pages, scaled abuse, thin-content templates — the patterns SpamBrain targets directly.",
+      "Doorway pages, scaled abuse, thin-content templates: the patterns SpamBrain targets directly.",
   },
   {
     key: "content",
@@ -46,7 +46,7 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
     key: "aeo",
     weight: "14%",
     blurb:
-      "Answer-engine readiness — answer-first paragraphs, citable facts, modular self-contained sections.",
+      "Answer-engine readiness: answer-first paragraphs, citable facts, modular self-contained sections.",
   },
   {
     key: "links",
@@ -63,18 +63,18 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
     key: "data",
     weight: "6%",
     blurb:
-      "Data-source freshness and citation — does the page back up its claims with verifiable inputs?",
+      "Data-source freshness and citation: does the page back up its claims with verifiable inputs?",
   },
   {
     key: "schema",
     weight: "5%",
-    blurb: "Structured data correctness — valid JSON-LD, no spammy or misleading markup.",
+    blurb: "Structured data correctness, valid JSON-LD, no spammy or misleading markup.",
   },
   {
     key: "cannibal",
     weight: "5%",
     blurb:
-      "Keyword cannibalisation — multiple pages competing for the same query without differentiation.",
+      "Keyword cannibalisation: multiple pages competing for the same query without differentiation.",
   },
 ];
 
@@ -204,7 +204,7 @@ export default async function Leaderboard() {
           <div className="mt-4 rounded-[28px] border border-dashed border-border bg-card/30 p-10 text-center">
             <p className="text-sm text-muted-foreground">
               No public audits have completed yet. The leaderboard populates automatically as
-              users run public audits — start one from the homepage and you&rsquo;ll claim
+              users run public audits: start one from the homepage and you&rsquo;ll claim
               position #1 by default.
             </p>
             <Link
@@ -252,7 +252,7 @@ export default async function Leaderboard() {
                     </TrackedLink>
                   </h3>
                   <p className="mt-0.5 mx-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                    { r.ogDescription || `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
+                    { r.ogDescription || `Audited ${r.pageCount ?? "; "} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
                   </p>
 
                   <div className="mt-4 mr-2 flex items-center justify-end">
@@ -277,11 +277,11 @@ export default async function Leaderboard() {
 
       <p className="mt-12 max-w-2xl text-sm text-muted-foreground">
         Leaderboard methodology in one paragraph: the ranking is rebuilt every 10 minutes from
-        completed public audits, deduplicated by hostname so a domain occupies exactly one slot —
+        completed public audits, deduplicated by hostname so a domain occupies exactly one slot:
         the most recent audit per domain wins, so a re-audit supersedes the prior score. Only sites
         scoring in the A or B band (risk below 40) are listed; audits below the 5-page floor are
         excluded because too-small samples produce volatile rankings. Pages marked private by their
-        owner never appear, regardless of score. A clean public audit — including an anonymous one —
+        owner never appear, regardless of score. A clean public audit (including an anonymous one) 
         is kept permanently and shown with the date it was scored; if a site is re-audited and slips
         below the bar, it drops off the board. The board first shipped on March 15, 2026 alongside the
         v0.4.0 engine cut, and the scoring weights were last rebalanced on April 21, 2026 when the AEO
@@ -300,7 +300,7 @@ export default async function Leaderboard() {
       <section className="mt-10 max-w-3xl space-y-4 text-sm leading-relaxed text-muted-foreground">
         <p>
           The pseolint leaderboard ranks programmatic SEO sites by their composite{ " " }
-          <span className="text-foreground">risk score</span> — a 0-to-100 number where lower
+          <span className="text-foreground">risk score</span>: a 0-to-100 number where lower
           is better. The score is a weighted aggregate of findings across{ " " }
           <span className="text-foreground">SpamBrain + AEO rules</span> weighted by your site's
           archetype (programmatic-directory, blog, ecommerce, docs, small-marketing). Each finding
@@ -321,7 +321,7 @@ export default async function Leaderboard() {
           for opaque enterprise dashboards. It also demonstrates that the engine produces
           stable, repeatable results: the same site audited twice in a week should land within
           a few points. If your audit tells a different story than your traffic, that&rsquo;s
-          a signal worth investigating — usually a templating regression or a recently
+          a signal worth investigating: usually a templating regression or a recently
           shipped doorway pattern.
         </p>
         <p>
@@ -348,14 +348,14 @@ export default async function Leaderboard() {
           Any audit a user runs with{ " " }
           <span className="font-mono text-foreground">isPublic = true</span> is listed once it
           completes, crosses the 5-page minimum, and scores in the A or B band (risk below 40).
-          Free-tier audits cost $0 and default to public — that&rsquo;s the trade for unlimited
+          Free-tier audits cost $0 and default to public; that&rsquo;s the trade for unlimited
           one-shot acquisition runs, capped at 3 audits per browser per 24-hour window. Audits that
           score below the bar still produce a full report at their own URL; they just aren&rsquo;t
           listed publicly. Pro plans start at $19/mo, default to private, and stay private unless an
           operator flips the visibility toggle.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-          Listings are deduplicated by hostname — the most recent audit per domain shows, and
+          Listings are deduplicated by hostname: the most recent audit per domain shows, and
           rankings refresh every ten minutes. A clean public listing is kept permanently; re-auditing
           a site supersedes its previous entry. If you ran a public audit you didn&rsquo;t mean to
           share, mark it private from your dashboard and it disappears at the next revalidation.
@@ -370,7 +370,7 @@ export default async function Leaderboard() {
           Audits crawl up to <span className="text-foreground">200 pages on the free tier</span>{ " " }
           and <span className="text-foreground">500 on Pro (manual re-audits)</span>, sampling URLs from the
           sitemap and the homepage&rsquo;s outbound links. Render mode is opt-in via the{ " " }
-          <span className="font-mono text-foreground">--render</span> flag — useful for SPA
+          <span className="font-mono text-foreground">--render</span> flag: useful for SPA
           frameworks that hydrate content client-side, but skipped by default to keep audits
           fast and deterministic. Each sampled page runs through every rule in the engine, and
           findings are bucketed by severity.

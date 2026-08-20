@@ -24,7 +24,7 @@ const outputSchema = z.object({
 export const checkRuleSummaryBaitTool = defineTool({
   name: "check_rule_summary_bait",
   description:
-    "Detect 'summary bait' openers — content that withholds the answer to extract a scroll/click instead of resolving the query. AI engines preferentially cite pages that answer in the opener. Pass at least 3 pages so the rule can detect templated bait patterns across a sample.",
+    "Detect 'summary bait' openers: content that withholds the answer to extract a scroll/click instead of resolving the query. AI engines preferentially cite pages that answer in the opener. Pass at least 3 pages so the rule can detect templated bait patterns across a sample.",
   inputSchema,
   outputSchema,
   async execute({ pageIds, openerWordCount }) {

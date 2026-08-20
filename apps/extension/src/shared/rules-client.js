@@ -1,8 +1,8 @@
-// pseolint extension — the Tier-1 client rule subset (architecture §6).
+// pseolint extension: the Tier-1 client rule subset (architecture §6).
 //
 // One implementation, never forked: the rule LOGIC is imported straight from
 // @pseolint/core via its curated subpath exports. Those three export lines in
-// core/package.json ARE the documented Tier-1 boundary — a rule graduates to
+// core/package.json ARE the documented Tier-1 boundary: a rule graduates to
 // client-sound by getting an export, nothing more. Each module imports only
 // `import type` from core, so the built JS is dependency-free (§6 spike: ~478B).
 import { ogCompletenessRule } from "@pseolint/core/rules/tech/og-completeness";
@@ -11,7 +11,7 @@ import { thinContentRule } from "@pseolint/core/rules/spam/thin-content";
 import { parseSignals } from "./parse.js";
 
 // Mirror core's DEFAULTS.thinContentMinWords (auditor.ts). thin-content marks a
-// finding `high` confidence only when words < minWords/2 — that <150-word band is
+// finding `high` confidence only when words < minWords/2; that <150-word band is
 // the only thin-content we badge, so regex word-count slack (parse.js) is moot.
 const THIN_MIN_WORDS = 300;
 

@@ -26,7 +26,7 @@ import {
  * Dogfood contract for /rules/[ruleId] explainer pages (Task T7).
  *
  * pseolint audits its own site. Every rule explainer we add must clear
- * pseolint's OWN rules — specifically spam/thin-content, content/unique-value,
+ * pseolint's OWN rules: specifically spam/thin-content, content/unique-value,
  * and aeo/content-modularity (the acceptance set for T7), plus we hold the line
  * on aeo/answer-first and content/meta-uniqueness so new pages don't regress.
  *
@@ -36,7 +36,7 @@ import {
  * the same parseHtmlPage extractor a live audit uses). The corpus also includes
  * the symptom and tool pages so the cross-page rules (unique-value, citable
  * facts, meta-uniqueness) see the realistic shared-vocabulary baseline they
- * would on pseolint.dev — making this test at least as strict as production.
+ * would on pseolint.dev: making this test at least as strict as production.
  */
 
 const SITE = "https://pseolint.dev";
@@ -59,13 +59,13 @@ function prose(text: string): string {
 function sourcesBlock(refs: readonly MarketingSourceRef[]): string {
   if (!refs || refs.length === 0) return "";
   const items = resolveSources(refs)
-    .map((s) => `<li><a href="${esc(s.url)}">${esc(s.title)}</a> — ${esc(s.note)}</li>`)
+    .map((s) => `<li><a href="${esc(s.url)}">${esc(s.title)}</a> \u2014 ${esc(s.note)}</li>`)
     .join("");
   return `<h2>Sources</h2><ul>${items}</ul>`;
 }
 
 /** Render the optional "in practice" worked-example paragraphs, mirroring
- *  WorkedExampleSection (page's own voice — counts toward unique-value). */
+ *  WorkedExampleSection (page's own voice: counts toward unique-value). */
 function extraBlock(paragraphs: readonly string[] | undefined): string {
   if (!paragraphs || paragraphs.length === 0) return "";
   return `<h2>In practice</h2>${paragraphs.map((p) => `<p>${esc(p)}</p>`).join("")}`;
@@ -83,7 +83,7 @@ function buildRuleHtml(rule: MarketingRule): string {
     `<p>${esc(rule.oneLiner)}</p>`,
     `<h2>What it detects</h2>${prose(rule.whatItDetects)}`,
     `<h2>Why it matters</h2>${prose(rule.whyItMatters)}`,
-    // [data-example]: mirrors rules/[ruleId]/page.tsx — quoted illustrations the
+    // [data-example]: mirrors rules/[ruleId]/page.tsx: quoted illustrations the
     // engine's content-quality rules exclude (so an explainer that quotes a bad
     // pattern isn't flagged for teaching it).
     `<h2>A page that fails</h2><div data-example><p>${esc(rule.failingExample)}</p></div>`,
@@ -169,7 +169,7 @@ function describeFindings(findings: RuleResult[]): string {
   return findings.map((f) => `  - ${f.message}`).join("\n");
 }
 
-describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
+describe("MARKETING_RULES dogfood: must clear pseolint's own rules", () => {
   it("has at least the 6 launch entries plus batch-1 additions (>= 11)", () => {
     expect(MARKETING_RULES.length).toBeGreaterThanOrEqual(11);
   });
@@ -181,7 +181,7 @@ describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
   });
 
   // content/unique-value is now a rarity DENSITY (normalized-IDF average), not an
-  // absolute count — corpus-size- and length-robust, so it no longer shuffles on
+  // absolute count, corpus-size- and length-robust, so it no longer shuffles on
   // a one-word margin. We hold every reference page above the engine's default
   // passBelow floor across the full rules+symptoms+tools corpus. A genuinely
   // near-duplicate / entity-swapped page scores far below and would fail here.
@@ -207,7 +207,7 @@ describe("MARKETING_RULES dogfood — must clear pseolint's own rules", () => {
     // its entire subject is cataloguing pSEO clichés, so it must quote them in
     // prose (they are also the page's target keywords). The fail/pass example
     // boxes are already [data-example]-excluded; the remaining matches live in
-    // the teaching prose by necessity. Every OTHER page must stay clean — this
+    // the teaching prose by necessity. Every OTHER page must stay clean; this
     // proves the engine's example-exclusion works and that the source notes
     // introduce no clichés.
     const CLICHE_CATALOG = `${SITE}/rules/common-phrase-reuse`;

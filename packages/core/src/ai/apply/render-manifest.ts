@@ -9,9 +9,9 @@ import type { FixManifest } from "../orchestrator/finish-tool.js";
  * source file. This module maps those patches back to source files (via a
  * user-authored {@link TemplateMapping}) and splits them two ways:
  *
- *   - {@link FileEdit}      — deterministic, literal find/replace we can apply
+ *   - {@link FileEdit}: deterministic, literal find/replace we can apply
  *                             now (meta title/description, H1, robots, sitemap).
- *   - {@link ChecklistItem} — everything a human should place or word: JSON-LD /
+ *   - {@link ChecklistItem}: everything a human should place or word: JSON-LD /
  *                             FAQ insertions, prose rewrites, template guidance,
  *                             and anything with no mapped source file.
  *
@@ -111,7 +111,7 @@ function classifyPageDiff(
         out.checklist.push({
           kind: "unmapped",
           url: ctx.url,
-          title: `Update ${d.field} — no source file mapped`,
+          title: `Update ${d.field}: no source file mapped`,
           detail: `Before: ${d.before}\nAfter: ${d.after}`,
           reason: d.reason,
         });
@@ -185,7 +185,7 @@ export function renderManifest(manifest: FixManifest, mapping: TemplateMapping):
       } else {
         out.checklist.push({
           kind: "unmapped",
-          title: `Update ${fileKey} — no source path mapped`,
+          title: `Update ${fileKey}: no source path mapped`,
           detail: d.after,
           reason: d.reason,
         });
@@ -205,7 +205,7 @@ export function renderManifest(manifest: FixManifest, mapping: TemplateMapping):
 
 /**
  * Apply one edit to file content. `find: null` overwrites/creates the file.
- * Otherwise the literal must be present — a miss returns `applied: false` so the
+ * Otherwise the literal must be present: a miss returns `applied: false` so the
  * caller can demote it to the checklist (interpolated source often lacks the
  * rendered instance). Replaces the first occurrence only.
  */

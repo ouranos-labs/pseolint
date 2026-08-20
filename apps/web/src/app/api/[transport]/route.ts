@@ -89,7 +89,7 @@ const methodNotAllowed = () =>
 
 /**
  * MCP clients use POST (stateless Streamable HTTP). A GET almost always means a
- * human pasted the endpoint URL into a browser — send them to the human-facing
+ * human pasted the endpoint URL into a browser: send them to the human-facing
  * setup docs. Non-HTML callers (curl, probes) still get a 405.
  */
 export function GET(req: Request): Response {
@@ -105,7 +105,7 @@ export function GET(req: Request): Response {
 
 export const DELETE = methodNotAllowed;
 
-/** Permissive CORS preflight — the endpoint is an unauthenticated, read-only public surface. */
+/** Permissive CORS preflight; the endpoint is an unauthenticated, read-only public surface. */
 export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,

@@ -67,7 +67,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "schema/required-fields": "page",
   "schema/consistency": "corpus",
 
-  // cannibal — only url-pattern survives in v0.4 (title-overlap and
+  // cannibal: only url-pattern survives in v0.4 (title-overlap and
   // keyword-collision dropped due to high false-positive rates; see
   // 2026-04-29 v0.4 redesign spec §4.3).
   "cannibal/url-pattern": "corpus",
@@ -96,7 +96,7 @@ export function isRuleAllowedInDiff(ruleId: string): boolean {
 }
 
 /**
- * Canonical count of user-facing **scored** rules — every rule in `RULE_SCOPE`
+ * Canonical count of user-facing **scored** rules: every rule in `RULE_SCOPE`
  * except internal `audit/*` diagnostics (which never enter the scored category
  * buckets; see `auditor.ts` CATEGORY_MAP `audit: "audit"` with weight 0).
  * Derived from the registry so the public "N rules" copy can't drift.

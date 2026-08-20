@@ -87,7 +87,7 @@ export function freshnessSignalsRule(
 
     // A true modification signal is `dateModified`, a modification meta tag, or visible
     // "Last updated" text. `datePublished` alone (a page born in 2019 and never touched)
-    // is NOT a modification signal — fall through to the no-signal warning.
+    // is NOT a modification signal: fall through to the no-signal warning.
     const hasModificationSignal = Boolean(jsonLdModified || htmlModified || visibleSignal);
 
     if (!hasModificationSignal) {
@@ -99,7 +99,7 @@ export function freshnessSignalsRule(
         confidence: "medium",
         message:
           `${page.url} has no dateModified signal (no JSON-LD dateModified, no modification meta tag, no visible "Last updated"). ` +
-          `Evergreen pages may legitimately omit this — verify whether freshness signals matter for this page type.`,
+          `Evergreen pages may legitimately omit this: verify whether freshness signals matter for this page type.`,
         pageUrl: page.url,
         fix:
           `Add a freshness signal so AI engines know the page is current. Three recommended places: ` +
@@ -127,7 +127,7 @@ export function freshnessSignalsRule(
           confidence: "low",
           message:
             `${page.url} was last updated ${ageDays} days ago (threshold: ${maxStaleDays}). ` +
-            `Some pages are evergreen by design — only act if this page's information changes over time.`,
+            `Some pages are evergreen by design: only act if this page's information changes over time.`,
           pageUrl: page.url,
           fix:
             `AI engines prioritize fresh content for citation. If the page is still accurate, ` +

@@ -83,7 +83,7 @@ async function runOne(
       },
       ndjsonPath: join(outDir, "session.ndjson"),
       onEvent: (e: SessionEvent) => {
-        // Concise progress markers — one char per event family.
+        // Concise progress markers: one char per event family.
         if (e.kind === "tool_call") stream.write(paint(".", DIM, strip));
         if (e.kind === "tool_result" && (e.result as { ok?: boolean })?.ok === false) {
           stream.write(paint("x", RED, strip));
@@ -161,7 +161,7 @@ function buildMarkdownSummary(results: SiteResult[], opts: BatchCliOptions): str
   const validPatches = results.reduce((acc, r) => acc + r.validPatches, 0);
 
   const lines: string[] = [];
-  lines.push("# pseolint orchestrator — batch run");
+  lines.push("# pseolint orchestrator: batch run");
   lines.push("");
   lines.push(
     `**${results.length} sites** · **${completed} completed** · **$${totalSpend.toFixed(2)} total** · **${(totalDuration / 60).toFixed(1)} min wall** · **${validPatches}/${totalPatches} patches validated**`,
@@ -174,7 +174,7 @@ function buildMarkdownSummary(results: SiteResult[], opts: BatchCliOptions): str
   for (const r of results) {
     const patches = `${r.validPatches}/${r.totalPatches}`;
     lines.push(
-      `| \`${r.domain}\` | ${r.ok ? "✅ completed" : `❌ ${r.reason}`} | ${r.verdict ?? "—"} | ${patches} | $${r.spentUsd.toFixed(3)} | ${r.toolCallCount} | ${r.durationSeconds.toFixed(0)}s |`,
+      `| \`${r.domain}\` | ${r.ok ? "✅ completed" : `❌ ${r.reason}`} | ${r.verdict ?? "; "} | ${patches} | $${r.spentUsd.toFixed(3)} | ${r.toolCallCount} | ${r.durationSeconds.toFixed(0)}s |`,
     );
   }
   lines.push("");
@@ -184,16 +184,16 @@ function buildMarkdownSummary(results: SiteResult[], opts: BatchCliOptions): str
 
 /**
  * Run `orchestrate()` against a list of domains, emit aggregate stats +
- * per-site manifest JSON files. Sequential by default — concurrency > 1
+ * per-site manifest JSON files. Sequential by default: concurrency > 1
  * burns money fast on rate-limit errors. Failures on individual sites
  * don't abort the batch; they're recorded in `summary.json` with their
  * reason.
  *
  * Output layout (under `--out`, default `.pseolint/batch`):
- *   summary.json                  — aggregate metrics across all sites
- *   summary.md                    — markdown table for the launch thread
- *   <slug>/manifest.json          — full {manifest, validation, diff}
- *   <slug>/session.ndjson         — durable event log
+ *   summary.json: aggregate metrics across all sites
+ *   summary.md: markdown table for the launch thread
+ *   <slug>/manifest.json: full {manifest, validation, diff}
+ *   <slug>/session.ndjson: durable event log
  */
 export async function runOrchestrateBatchCommand(opts: BatchCliOptions): Promise<number> {
   const strip = opts.noColor ?? !process.stdout.isTTY;
@@ -244,7 +244,7 @@ export async function runOrchestrateBatchCommand(opts: BatchCliOptions): Promise
       workers.push(next());
     }
     await Promise.all(workers);
-    // Worker-pool may reorder — sort to match input order for the summary.
+    // Worker-pool may reorder; sort to match input order for the summary.
     const order = new Map(sites.map((s, i) => [s, i]));
     results.sort((a, b) => (order.get(a.domain) ?? 0) - (order.get(b.domain) ?? 0));
   }
@@ -272,6 +272,6 @@ export async function runOrchestrateBatchCommand(opts: BatchCliOptions): Promise
   );
   stream.write(paint(`Wrote ${join(opts.outDir, "summary.md")}`, DIM, strip) + "\n");
 
-  // Exit non-zero if any site didn't complete — useful for CI batch runs.
+  // Exit non-zero if any site didn't complete; useful for CI batch runs.
   return completed === results.length ? 0 : 1;
 }

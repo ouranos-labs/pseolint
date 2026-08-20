@@ -4,7 +4,7 @@
 
 **Goal:** Integrate the self-hosted OpenPanel instance into pseolint.dev with a typed, full-funnel, cookieless, first-party product-analytics event catalog (client + server), anonymous→account identity stitching, and honest privacy/terms copy.
 
-**Architecture:** One bounded module at `apps/web/src/lib/analytics/` with a deliberate seam: generic transport (`op-transport.server.ts`, `op-transport.client.tsx` — portable, no pseolint event names) vs. app catalog + bindings (`events.ts`, `track.server.ts`, `use-analytics.ts`). Server events use `next/server`'s `after()` so they never add response latency; Inngest/webhook contexts await directly. Everything is a **no-op when env keys are absent** (dev/CI safe).
+**Architecture:** One bounded module at `apps/web/src/lib/analytics/` with a deliberate seam: generic transport (`op-transport.server.ts`, `op-transport.client.tsx`, portable, no pseolint event names) vs. app catalog + bindings (`events.ts`, `track.server.ts`, `use-analytics.ts`). Server events use `next/server`'s `after()` so they never add response latency; Inngest/webhook contexts await directly. Everything is a **no-op when env keys are absent** (dev/CI safe).
 
 **Tech Stack:** Next.js (App Router), TypeScript, `@openpanel/nextjs` (client) + `@openpanel/sdk` (server), Drizzle, better-auth, Inngest, Polar, Bun, Vitest.
 
@@ -16,17 +16,17 @@
 
 ## File Structure
 
-**New (analytics module — `apps/web/src/lib/analytics/`):**
-- `events.ts` — `AnalyticsEvent` discriminated union + `AuditBlockReason` + pure `toTrackArgs()` helper. App-only catalog. (Portable? No.)
-- `op-transport.server.ts` — `getAnalyticsClient()` singleton, `trackRaw`/`identifyRaw`/`aliasRaw`, `__resetAnalyticsClient()`. Generic server transport. (Portable.)
-- `track.server.ts` — typed `trackServer`/`identifyServer`/`aliasServer`. App glue.
-- `op-transport.client.tsx` — `<AnalyticsProvider>`. Generic client transport. (Portable.)
-- `use-analytics.ts` — `useAnalytics()` typed hook. App glue.
-- `track-view.tsx` — `<TrackView event=...>` render-nothing client component that fires one event on mount (for view events from server pages). App glue.
-- `record-sign-in.ts` — `recordSignIn(userId)` identity-stitch glue called from the auth session hook. App glue.
+**New (analytics module, `apps/web/src/lib/analytics/`):**
+- `events.ts`: `AnalyticsEvent` discriminated union + `AuditBlockReason` + pure `toTrackArgs()` helper. App-only catalog. (Portable? No.)
+- `op-transport.server.ts`: `getAnalyticsClient()` singleton, `trackRaw`/`identifyRaw`/`aliasRaw`, `__resetAnalyticsClient()`. Generic server transport. (Portable.)
+- `track.server.ts`: typed `trackServer`/`identifyServer`/`aliasServer`. App glue.
+- `op-transport.client.tsx`: `<AnalyticsProvider>`. Generic client transport. (Portable.)
+- `use-analytics.ts`: `useAnalytics()` typed hook. App glue.
+- `track-view.tsx`: `<TrackView event=...>` render-nothing client component that fires one event on mount (for view events from server pages). App glue.
+- `record-sign-in.ts`: `recordSignIn(userId)` identity-stitch glue called from the auth session hook. App glue.
 
 **New (client click wrapper):**
-- `apps/web/src/components/analytics/tracked-link.tsx` — `<TrackedLink event href>` client `<Link>` that fires a typed event on click.
+- `apps/web/src/components/analytics/tracked-link.tsx`: `<TrackedLink event href>` client `<Link>` that fires a typed event on click.
 
 **New (tests):**
 - `apps/web/src/lib/analytics/events.test.ts`
@@ -35,23 +35,23 @@
 - `apps/web/src/lib/analytics/record-sign-in.test.ts`
 
 **Modified:**
-- `apps/web/src/lib/env.ts` — three optional OpenPanel keys.
-- `apps/web/.env.example`, `apps/web/.env` — document/add keys.
-- `apps/web/src/app/layout.tsx` — mount `<AnalyticsProvider>` with profileId.
-- `apps/web/src/lib/auth.ts` — call `recordSignIn` in `session.create.after`.
-- `apps/web/src/app/api/audits/route.ts` — `audit_created` + `audit_blocked`.
-- `apps/web/src/inngest/functions/run-audit.ts` — `audit_completed` + `audit_failed`.
-- `apps/web/src/app/api/webhooks/polar/route.ts` — `subscription_started` + `subscription_canceled`.
-- `apps/web/src/app/api/checkout/route.ts` — `checkout_redirected`.
-- `apps/web/src/components/landing/landing-form.tsx` — `audit_form_engaged`, `audit_submitted`, `audit_submit_failed`.
-- `apps/web/src/app/signin/signin-client.tsx` — `signin_started`.
-- `apps/web/src/app/pricing/pricing-client.tsx` — `checkout_started`.
+- `apps/web/src/lib/env.ts`: three optional OpenPanel keys.
+- `apps/web/.env.example`, `apps/web/.env`: document/add keys.
+- `apps/web/src/app/layout.tsx`: mount `<AnalyticsProvider>` with profileId.
+- `apps/web/src/lib/auth.ts`: call `recordSignIn` in `session.create.after`.
+- `apps/web/src/app/api/audits/route.ts`: `audit_created` + `audit_blocked`.
+- `apps/web/src/inngest/functions/run-audit.ts`: `audit_completed` + `audit_failed`.
+- `apps/web/src/app/api/webhooks/polar/route.ts`: `subscription_started` + `subscription_canceled`.
+- `apps/web/src/app/api/checkout/route.ts`: `checkout_redirected`.
+- `apps/web/src/components/landing/landing-form.tsx`: `audit_form_engaged`, `audit_submitted`, `audit_submit_failed`.
+- `apps/web/src/app/signin/signin-client.tsx`: `signin_started`.
+- `apps/web/src/app/pricing/pricing-client.tsx`: `checkout_started`.
 - Secondary surfaces (Phase D): `app/api/integrations/gsc/callback/route.ts`, `app/api/audits/[id]/export/[format]/route.ts`, content pages (rules/symptoms/tools/leaderboard), nav upgrade link.
-- `apps/web/src/app/privacy/page.tsx`, `apps/web/src/app/terms/page.tsx` — copy rewrite.
+- `apps/web/src/app/privacy/page.tsx`, `apps/web/src/app/terms/page.tsx`: copy rewrite.
 
 ---
 
-## PHASE A — Foundation (deps, env, module, tests)
+## PHASE A: Foundation (deps, env, module, tests)
 
 ### Task A1: Install dependencies + env keys
 
@@ -79,13 +79,13 @@ In `apps/web/src/lib/env.ts`, inside `const envSchema = z.object({ ... })`, add 
   OPENPANEL_API_URL: z.string().url().optional(),
 });
 ```
-(Keep the existing closing `});` — i.e. the three new lines go before it.)
+(Keep the existing closing `});`, i.e. the three new lines go before it.)
 
 - [ ] **Step 3: Document in `.env.example`**
 
 Append to `apps/web/.env.example`:
 ```
-# OpenPanel (self-hosted product analytics). Optional — omit to disable analytics (no-op).
+# OpenPanel (self-hosted product analytics). Optional: omit to disable analytics (no-op).
 OPENPANEL_CLIENT_ID=
 OPENPANEL_CLIENT_SECRET=
 OPENPANEL_API_URL=https://api-openpanel.philippekam.dev
@@ -111,7 +111,7 @@ git add apps/web/package.json apps/web/src/lib/env.ts apps/web/.env.example
 git -C ../.. add bun.lock 2>/dev/null || true
 git commit -m "feat(analytics): add OpenPanel deps + optional env keys"
 ```
-(Note: `.env` is git-ignored — do not stage it. `git add bun.lock` is best-effort: if the file is named `bun.lockb` or is unchanged, the `|| true` keeps the step from failing.)
+(Note: `.env` is git-ignored, do not stage it. `git add bun.lock` is best-effort: if the file is named `bun.lockb` or is unchanged, the `|| true` keeps the step from failing.)
 
 ---
 
@@ -144,7 +144,7 @@ describe("toTrackArgs", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bunx vitest run src/lib/analytics/events.test.ts`
-Expected: FAIL — cannot find module `./events`.
+Expected: FAIL, cannot find module `./events`.
 
 - [ ] **Step 3: Create `events.ts`**
 
@@ -155,7 +155,7 @@ Create `apps/web/src/lib/analytics/events.ts`:
  *
  * Adding a tracking call site without adding to this union is a compile error;
  * every event's payload is typed here in exactly one place. Plain pageviews are
- * NOT in this union — they are emitted automatically by `trackScreenViews` on
+ * NOT in this union: they are emitted automatically by `trackScreenViews` on
  * the client provider.
  */
 export type AuditBlockReason =
@@ -292,7 +292,7 @@ describe("op-transport.server", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bunx vitest run src/lib/analytics/op-transport.server.test.ts`
-Expected: FAIL — cannot find module `./op-transport.server`.
+Expected: FAIL, cannot find module `./op-transport.server`.
 
 - [ ] **Step 3: Create `op-transport.server.ts`**
 
@@ -303,7 +303,7 @@ import { OpenPanel } from "@openpanel/sdk";
 import { env } from "@/lib/env";
 
 /**
- * Generic OpenPanel server transport — no pseolint event names live here. This
+ * Generic OpenPanel server transport: no pseolint event names live here. This
  * is the file that lifts into a private `packages/analytics` when a second
  * apps/ app needs analytics (see spec §3.5). Lazy singleton so unconfigured
  * environments construct nothing.
@@ -436,7 +436,7 @@ describe("track.server bindings", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bunx vitest run src/lib/analytics/track.server.test.ts`
-Expected: FAIL — cannot find module `./track.server`.
+Expected: FAIL, cannot find module `./track.server`.
 
 - [ ] **Step 3: Create `track.server.ts`**
 
@@ -495,7 +495,7 @@ No new unit tests (repo has no jsdom/React-render test setup; the pure mapping i
 import { OpenPanelComponent } from "@openpanel/nextjs";
 
 /**
- * Generic OpenPanel client transport — portable, no pseolint event names.
+ * Generic OpenPanel client transport: portable, no pseolint event names.
  * Renders nothing when unconfigured. trackScreenViews emits pageviews
  * automatically; trackOutgoingLinks emits outbound-link clicks.
  */
@@ -603,7 +603,7 @@ git commit -m "feat(analytics): client provider, typed hook, view/link helpers"
 
 ---
 
-## PHASE B — Identity wiring
+## PHASE B: Identity wiring
 
 ### Task B1: Mount the provider in the root layout
 
@@ -708,7 +708,7 @@ describe("recordSignIn", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bunx vitest run src/lib/analytics/record-sign-in.test.ts`
-Expected: FAIL — cannot find module `./record-sign-in`.
+Expected: FAIL, cannot find module `./record-sign-in`.
 
 - [ ] **Step 3: Create `record-sign-in.ts`**
 
@@ -729,7 +729,7 @@ const NEW_USER_WINDOW_MS = 60_000;
  * Stitch a freshly-signed-in user to their prior anonymous activity and emit
  * signed_in. Called from better-auth's session.create.after, BEFORE
  * claimAnonAudits clears the anon cookie (so the alias still has the id).
- * isNewUser is a 60s-createdAt heuristic — approximate by design; analytics,
+ * isNewUser is a 60s-createdAt heuristic: approximate by design; analytics,
  * not authorization. Never throws (sign-in must not depend on analytics).
  */
 export async function recordSignIn(userId: string): Promise<void> {
@@ -795,9 +795,9 @@ git commit -m "feat(analytics): anon->account identity stitch on sign-in"
 
 ---
 
-## PHASE C — Primary funnel events
+## PHASE C: Primary funnel events
 
-### Task C1: Audit API route — `audit_created` + `audit_blocked`
+### Task C1: Audit API route: `audit_created` + `audit_blocked`
 
 **Files:**
 - Modify: `apps/web/src/app/api/audits/route.ts`
@@ -885,7 +885,7 @@ git commit -m "feat(analytics): audit_created + audit_blocked on the audit API"
 
 ---
 
-### Task C2: Audit pipeline — `audit_completed` + `audit_failed`
+### Task C2: Audit pipeline: `audit_completed` + `audit_failed`
 
 **Files:**
 - Modify: `apps/web/src/inngest/functions/run-audit.ts`
@@ -958,7 +958,7 @@ git commit -m "feat(analytics): audit_completed + audit_failed in the audit pipe
 
 ---
 
-### Task C3: Polar webhook — `subscription_started` + `subscription_canceled`
+### Task C3: Polar webhook: `subscription_started` + `subscription_canceled`
 
 **Files:**
 - Modify: `apps/web/src/app/api/webhooks/polar/route.ts`
@@ -1013,7 +1013,7 @@ git commit -m "feat(analytics): subscription_started + subscription_canceled"
 
 ---
 
-### Task C4: Checkout route — `checkout_redirected`
+### Task C4: Checkout route: `checkout_redirected`
 
 **Files:**
 - Modify: `apps/web/src/app/api/checkout/route.ts`
@@ -1046,7 +1046,7 @@ git commit -m "feat(analytics): checkout_redirected"
 
 ---
 
-### Task C5: Landing form — `audit_form_engaged`, `audit_submitted`, `audit_submit_failed`
+### Task C5: Landing form: `audit_form_engaged`, `audit_submitted`, `audit_submit_failed`
 
 **Files:**
 - Modify: `apps/web/src/components/landing/landing-form.tsx`
@@ -1093,7 +1093,7 @@ In `submit()`, immediately before `const res = await fetch("/api/audits", {` (li
 
 - [ ] **Step 4: `audit_submit_failed` on a non-OK response**
 
-In `submit()`, inside the `else` after the `res.ok` block — change the failure parse (line 185) to capture and track:
+In `submit()`, inside the `else` after the `res.ok` block, change the failure parse (line 185) to capture and track:
 ```ts
       const { error, code } = await res.json().catch(() => ({ error: "Unknown error" }));
       track({ name: "audit_submit_failed", props: { status: res.status, code: typeof code === "string" ? code : undefined } });
@@ -1163,13 +1163,13 @@ git commit -m "feat(analytics): signin_started + checkout_started"
 
 ---
 
-## PHASE D — Secondary surfaces
+## PHASE D: Secondary surfaces
 
 These reuse `<TrackView>` (view events from server pages), `<TrackedLink>` (click events), and the established server pattern (`after(() => trackServer(...))`).
 
 > **Note on specificity:** the reusable helpers (`TrackView`, `TrackedLink`, `useAnalytics`, `trackServer`) are fully defined in Phases A–C. The Phase D files were **not** read line-by-line while authoring this plan, so each Phase D step begins with a "read the file, locate the success/click point" action and then applies the exact one-liner shown. This phase is the exhaustive long-tail; Phases A–C already deliver the high-value funnel end-to-end and can ship independently. Implement Phase D file-by-file, committing per file group.
 
-### Task D1: Server secondary events — `gsc_connected`, `report_exported`
+### Task D1: Server secondary events: `gsc_connected`, `report_exported`
 
 **Files:**
 - Modify: `apps/web/src/app/api/integrations/gsc/callback/route.ts`
@@ -1212,7 +1212,7 @@ git commit -m "feat(analytics): gsc_connected + report_exported"
 
 ### Task D2: View events on content pages
 
-**Files (server components — drop in `<TrackView>`):**
+**Files (server components, drop in `<TrackView>`):**
 - Modify: `apps/web/src/app/rules/[ruleId]/page.tsx`
 - Modify: `apps/web/src/app/symptoms/[symptom]/page.tsx`
 - Modify: `apps/web/src/app/tools/[tool]/page.tsx`
@@ -1263,7 +1263,7 @@ git commit -m "feat(analytics): rule/symptom/tool/report view events"
 
 ---
 
-### Task D3: Click/action events — upgrade, tool_run, leaderboard, dashboard surfaces
+### Task D3: Click/action events: upgrade, tool_run, leaderboard, dashboard surfaces
 
 **Files:**
 - Modify: `apps/web/src/app/layout.tsx` (nav Upgrade → `TrackedLink`, `upgrade_clicked {source:"nav"}`)
@@ -1284,7 +1284,7 @@ In `app/layout.tsx`, import `TrackedLink` and replace the nav Upgrade `<Link hre
               Upgrade
             </TrackedLink>
 ```
-(`SiteNav` is a server component rendering a client `TrackedLink` — fine.)
+(`SiteNav` is a server component rendering a client `TrackedLink`, fine.)
 
 - [ ] **Step 2: tool_run**
 
@@ -1306,7 +1306,7 @@ Each is a client component performing an action. Add `useAnalytics` and fire on 
 - mcp-keys create UI: after key create succeeds → `track({ name: "mcp_key_created" })`.
 - `dashboard/integrations/page.tsx` connect buttons: on click → `track({ name: "integration_connect_clicked", props: { provider } })` (provider ∈ gsc|webflow|wordpress). If a button is in a server component, wrap with a small client control or `TrackedLink`.
 - dashboard findings action UI (caller of `_actions/findings.ts`): on action → `track({ name: "triage_action", props: { action } })`.
-- `cta_clicked`: the landing page's secondary "Audit my site — free" anchors and the final CTA section (`landing-form.tsx`, already has `track` from C5) and the pricing "Try free audit" link — add `track({ name: "cta_clicked", props: { location } })` on click (`location` ∈ e.g. `"hero_secondary"`, `"final_cta"`, `"pricing_try_free"`). This retires the last unused catalog member.
+- `cta_clicked`: the landing page's secondary "Audit my site: free" anchors and the final CTA section (`landing-form.tsx`, already has `track` from C5) and the pricing "Try free audit" link: add `track({ name: "cta_clicked", props: { location } })` on click (`location` ∈ e.g. `"hero_secondary"`, `"final_cta"`, `"pricing_try_free"`). This retires the last unused catalog member.
 
 - [ ] **Step 5: Typecheck + commit**
 
@@ -1318,7 +1318,7 @@ git commit -m "feat(analytics): secondary click/action events"
 
 ---
 
-## PHASE E — Privacy + terms copy
+## PHASE E: Privacy + terms copy
 
 ### Task E1: Rewrite the analytics/cookies copy
 
@@ -1326,32 +1326,32 @@ git commit -m "feat(analytics): secondary click/action events"
 - Modify: `apps/web/src/app/privacy/page.tsx`
 - Modify: `apps/web/src/app/terms/page.tsx`
 
-- [ ] **Step 1: Privacy — data-collected answer (line ~33)**
+- [ ] **Step 1: Privacy: data-collected answer (line ~33)**
 
 Change the trailing sentence `... No raw IPs, no card data, no behavioral tracking.` to:
 ```
 ... No raw IPs, no card data. Product analytics is first-party, self-hosted, and cookieless (see Analytics below).
 ```
 
-- [ ] **Step 2: Privacy — Analytics item (line ~115)**
+- [ ] **Step 2: Privacy: Analytics item (line ~115)**
 
 Replace the `Analytics` item value with:
 ```
-Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (api-openpanel.philippekam.dev) — first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest.
+Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (api-openpanel.philippekam.dev), first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest.
 ```
 
-- [ ] **Step 3: Privacy — "No behavioral tracking" item (line ~121)**
+- [ ] **Step 3: Privacy: "No behavioral tracking" item (line ~121)**
 
 Replace its value with (and consider retitling the key to "No third-party / cross-site tracking"):
 ```
 No third-party or cross-site tracking. No Google Analytics, Segment, Mixpanel, FB pixel, LinkedIn pixel, or similar. No cross-site identifiers. Our product analytics is first-party and runs on our own servers.
 ```
 
-- [ ] **Step 4: Privacy — "No analytics cookies" item (line ~171)**
+- [ ] **Step 4: Privacy: "No analytics cookies" item (line ~171)**
 
 Keep the key; clarify the value:
 ```
-Our analytics is cookieless — we set no analytics or tracking cookies. We reuse the strictly-necessary anonymous session identifier as a first-party analytics profile key, setting no additional cookie.
+Our analytics is cookieless, we set no analytics or tracking cookies. We reuse the strictly-necessary anonymous session identifier as a first-party analytics profile key, setting no additional cookie.
 ```
 
 - [ ] **Step 5: Terms**
@@ -1368,7 +1368,7 @@ git commit -m "docs(privacy): describe first-party cookieless OpenPanel analytic
 
 ---
 
-## PHASE F — Verification
+## PHASE F: Verification
 
 ### Task F1: Full suite + build
 
@@ -1387,7 +1387,7 @@ Expected: PASS.
 Run: `bun run build`
 Expected: build succeeds. (Build runs with `NEXT_PHASE=phase-production-build`; OpenPanel keys are optional so the build needs no analytics env.)
 
-- [ ] **Step 4: Manual smoke (configured env) — optional but recommended**
+- [ ] **Step 4: Manual smoke (configured env): optional but recommended**
 
 With `OPENPANEL_CLIENT_ID/SECRET/API_URL` set in `.env`, run `bun run dev`, load `/`, submit an audit, and confirm in the OpenPanel dashboard that `screen_view`, `audit_submitted`, and `audit_created` arrive; sign in and confirm `signed_in` + identify. With the keys removed, confirm the app runs and emits nothing.
 
@@ -1402,6 +1402,6 @@ git commit -m "test(analytics): verification fixups"
 ## Acceptance criteria (from spec §11)
 
 1. Configured: pageviews + `audit_submitted`/`audit_created`/`audit_completed` flow; sign-in emits `signed_in` + identify + alias; subsequent events attribute to `user.id`; a Pro purchase emits `subscription_started`.
-2. Unconfigured: app builds and runs unchanged — no network calls, no thrown errors, provider renders nothing.
+2. Unconfigured: app builds and runs unchanged: no network calls, no thrown errors, provider renders nothing.
 3. `/privacy` + `/terms` accurately describe the analytics; no remaining absolute "no analytics SDK / no behavioral tracking" claims.
 4. `bun run test` + `bun run typecheck` + `bun run build` all green.

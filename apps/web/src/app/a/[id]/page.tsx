@@ -91,17 +91,17 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
       </div>
       <p className="mt-3 max-w-xl text-sm text-muted-foreground">
         Crawling up to 200 pages, classifying templates, scoring against the SpamBrain + AEO rule set. Usually
-        30–120 seconds. Safe to leave this page open — your report link is already stable.
+        30–120 seconds. Safe to leave this page open: your report link is already stable.
       </p>
 
       <div className="mt-8 overflow-hidden rounded-[28px] border border-border/70 bg-card/60 backdrop-blur-sm">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-3.5 text-xs">
-          <span className="font-mono text-muted-foreground">{host ?? "—"}</span>
+          <span className="font-mono text-muted-foreground">{host ?? "; "}</span>
           <span className="font-mono tabular-nums text-muted-foreground">{elapsed}s</span>
         </div>
 
         <div className="px-6 pb-4 pt-6">
-          <ScanningTiles title="Live scan preview — decorative" />
+          <ScanningTiles title="Live scan preview: decorative" />
         </div>
 
         <ul className="flex flex-col gap-3 border-t border-border/60 px-6 py-5">
@@ -166,7 +166,7 @@ function AuditErrorBlock({ err, sourceUrl }: { err: string; sourceUrl: string | 
           </p>
           <p className="mt-1.5 text-foreground">
             We stopped the crawl because your origin slowed down significantly while we
-            were auditing — typically a sign the cache went cold or the site started
+            were auditing: typically a sign the cache went cold or the site started
             rate-limiting us. The audit is paused, not penalised; nothing was charged.
           </p>
         </div>

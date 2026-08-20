@@ -72,7 +72,7 @@
       }
     },
     "diagnostics": {
-      "description": "Engine-internal diagnostics (origin readiness, crawl stats, engine-emitted audit/* findings). Weight 0 — never affects the verdict. Shape is intentionally loose here; consumers should not gate on diagnostics internals.",
+      "description": "Engine-internal diagnostics (origin readiness, crawl stats, engine-emitted audit/* findings). Weight 0, never affects the verdict. Shape is intentionally loose here; consumers should not gate on diagnostics internals.",
       "type": "object"
     },
     "pageCount": {
@@ -105,7 +105,7 @@
       "items": { "type": "string" }
     },
     "truncated": {
-      "description": "True when the run did NOT cover the full site — either the backpressure watchdog aborted a degraded-origin crawl, or discovery under-delivered against the declared sitemap (see truncatedKind). The report still carries whatever was collected. CI gates MUST treat coverage as PARTIAL: counts, `risk`, and `verdict` are LOWER bounds. Absent or false on complete runs.",
+      "description": "True when the run did NOT cover the full site, either the backpressure watchdog aborted a degraded-origin crawl, or discovery under-delivered against the declared sitemap (see truncatedKind). The report still carries whatever was collected. CI gates MUST treat coverage as PARTIAL: counts, `risk`, and `verdict` are LOWER bounds. Absent or false on complete runs.",
       "type": "boolean"
     },
     "truncatedReason": {

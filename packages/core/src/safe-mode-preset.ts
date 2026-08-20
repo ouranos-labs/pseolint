@@ -16,7 +16,7 @@ export type SafeModeKey = SafeMode | "__none";
 /**
  * Presets that flip several safety defaults at once. Individual options on
  * AuditOptions override the preset when explicitly set. `__none` is the
- * sentinel key used when no preset is selected — all fields undefined so the
+ * sentinel key used when no preset is selected: all fields undefined so the
  * `??` chain falls through to hard-coded defaults.
  */
 export const SAFE_MODE_PRESETS: Record<SafeModeKey, SafeModePreset> = {
@@ -38,7 +38,7 @@ export const SAFE_MODE_PRESETS: Record<SafeModeKey, SafeModePreset> = {
   },
   dev: {
     // Localhost probe. A cache-cold dev server can amplify every crawled URL
-    // into a chain of DB queries — keep the first pass tiny and reversible.
+    // into a chain of DB queries: keep the first pass tiny and reversible.
     concurrency: 1,
     sampleSize: 25,
     guardSsrf: false,

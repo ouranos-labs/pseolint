@@ -7,7 +7,7 @@ import { auditLog } from "@/lib/audit-log";
 
 /** How long after a domain is added we keep auto-polling its DNS for the
  *  verification record. After this window the user must click Verify
- *  manually — keeps cron work bounded. */
+ *  manually: keeps cron work bounded. */
 const AUTO_POLL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /** Worst-case domains we'll re-check per tick. Tick is 5 min, so even at

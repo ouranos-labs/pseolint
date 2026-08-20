@@ -35,7 +35,7 @@ export default function Terms() {
         These terms are the agreement between you and pseolint (engine v{ENGINE_VERSION};
         @pseolint/core, @pseolint/cli, @pseolint/mcp, all
         MIT-licensed at github.com/ouranos-labs/pseolint). By using the service,
-        you accept them. We wrote them in plain English — if a clause seems
+        you accept them. We wrote them in plain English: if a clause seems
         unreasonable, email us and we&apos;ll explain or fix it. Pro
         subscriptions are $19/month or $180/year via Polar.sh, with a 14-day
         no-questions-asked refund.
@@ -83,9 +83,9 @@ export default function Terms() {
         <ul className="mt-2 list-disc space-y-1.5 pl-5">
           <li>Submit URLs you do not own or do not have permission from the operator to audit.</li>
           <li>Use pseolint to conduct reconnaissance, vulnerability scanning, or any activity that could be construed as unauthorised access under the Computer Fraud and Abuse Act, the UK Computer Misuse Act, the French Loi Godfrain, or equivalent legislation.</li>
-          <li>Attempt to circumvent rate limits, quotas, bot challenges, or IP restrictions — whether via multiple accounts, rotating proxies, or otherwise.</li>
-          <li>Overload, disrupt, or degrade the service — including by submitting malformed requests, exceeding documented rate limits, or running stress tests without prior written permission.</li>
-          <li>Reverse-engineer, decompile, or otherwise attempt to derive the source code of the hosted service (our CLI, core library, action, and MCP server are open source — see their respective licences).</li>
+          <li>Attempt to circumvent rate limits, quotas, bot challenges, or IP restrictions: whether via multiple accounts, rotating proxies, or otherwise.</li>
+          <li>Overload, disrupt, or degrade the service: including by submitting malformed requests, exceeding documented rate limits, or running stress tests without prior written permission.</li>
+          <li>Reverse-engineer, decompile, or otherwise attempt to derive the source code of the hosted service (our CLI, core library, action, and MCP server are open source: see their respective licences).</li>
           <li>Use the service to build a competing product, or use the output to train machine-learning models you intend to distribute or sell, without a separate licence.</li>
           <li>Use the service in violation of any applicable export-control, sanctions, or anti-money-laundering law.</li>
           <li>Upload, link, or cause us to fetch content that is illegal, defamatory, or infringes a third party&apos;s intellectual property or privacy.</li>
@@ -122,7 +122,7 @@ export default function Terms() {
             {CONTACT_EMAIL}
           </a>{" "}
           with proof of domain control (DNS TXT record or link tag we specify). We will act within
-          72 hours of verification. This is our good-faith takedown channel — no lawyers required.
+          72 hours of verification. This is our good-faith takedown channel: no lawyers required.
         </p>
       </Clause>
 
@@ -165,7 +165,7 @@ export default function Terms() {
         </p>
         <p className="mt-3">
           <strong>Refund policy.</strong> We offer a no-questions-asked refund within 7 days of
-          any charge — including renewals. Email{" "}
+          any charge: including renewals. Email{" "}
           <a className="text-primary hover:underline" href={`mailto:${CONTACT_EMAIL}`}>
             {CONTACT_EMAIL}
           </a>{" "}
@@ -181,8 +181,8 @@ export default function Terms() {
         <p>
           We work hard on uptime but we do not guarantee any specific SLA on free or Pro tiers.
           The service is provided <strong>&ldquo;as is&rdquo; and &ldquo;as available&rdquo;</strong>, without warranties of any kind,
-          whether express or implied — including merchantability, fitness for a particular
-          purpose, non-infringement, or uninterrupted operation — to the fullest extent permitted
+          whether express or implied: including merchantability, fitness for a particular
+          purpose, non-infringement, or uninterrupted operation: to the fullest extent permitted
           by applicable law.
         </p>
         <p className="mt-3">
@@ -196,9 +196,9 @@ export default function Terms() {
         <p>
           To the maximum extent permitted by applicable law, pseolint and its operators will not
           be liable for any indirect, incidental, special, consequential, exemplary, or punitive
-          damages — including lost profits, lost revenue, lost data, loss of goodwill, business
+          damages: including lost profits, lost revenue, lost data, loss of goodwill, business
           interruption, cost of substitute services, or damages relating to decisions made on the
-          basis of an audit report — arising out of or related to your use of the service, even if
+          basis of an audit report: arising out of or related to your use of the service, even if
           we have been advised of the possibility of such damages.
         </p>
         <p className="mt-3">
@@ -226,8 +226,8 @@ export default function Terms() {
         We may suspend or terminate your access if you materially violate these terms, if we are
         required to by law, or if we reasonably believe your account has been compromised. You may
         terminate at any time by cancelling your subscription and deleting your account. On
-        termination, sections that by their nature should survive — ownership, liability,
-        indemnification, governing law — survive.
+        termination, sections that by their nature should survive: ownership, liability,
+        indemnification, governing law: survive.
       </Clause>
 
       <Clause n="13" title="Changes to these terms">
@@ -246,10 +246,10 @@ export default function Terms() {
       </Clause>
 
       <Clause n="15" title="Force majeure">
-        Neither party is liable for failure or delay caused by events beyond reasonable control —
+        Neither party is liable for failure or delay caused by events beyond reasonable control:
         including natural disasters, acts of war or terrorism, civil disturbance, failures of
         third-party infrastructure (hosting providers, internet backbones), government action, or
-        labour disputes — provided the affected party gives prompt notice and resumes performance
+        labour disputes: provided the affected party gives prompt notice and resumes performance
         as soon as reasonably possible.
       </Clause>
 
@@ -321,8 +321,8 @@ function LegalDisclaimer() {
         This document is a plain-language draft prepared by the pseolint team. It is not legal
         advice and has not been reviewed by counsel in every jurisdiction where the service is
         offered. Operators: have a qualified lawyer review these terms against the laws of the
-        jurisdictions you serve — particularly the liability, indemnification, consumer-rights,
-        and governing-law clauses — before relying on them.
+        jurisdictions you serve: particularly the liability, indemnification, consumer-rights,
+        and governing-law clauses: before relying on them.
       </p>
     </aside>
   );

@@ -22,6 +22,12 @@
  *   node scripts/no-em-dash.mjs --check --diff       only added lines vs merge-base
  *                                                    with main (CI gate for new text)
  *   node scripts/no-em-dash.mjs --self-test          run the built-in cases
+ *   --fallback (with --write)                        after the tiers, force any
+ *                                                    leftover dash to a comma
+ *                                                    (hyphen between digits).
+ *                                                    Good enough for internal
+ *                                                    docs; never use it on
+ *                                                    user-facing copy.
  *
  * ponytail: rule-based tiers cover the common shapes; upgrade path if the
  * leftovers ever get annoying is an LLM pass over just the reported lines.
@@ -31,7 +37,9 @@ import { execSync } from "node:child_process";
 import assert from "node:assert";
 
 const DASH = "\u2014";
-const SKIP = /node_modules|(^|\/)dist\/|\.min\.|\.(png|jpe?g|gif|svg|ico|pdf|zip|gz|woff2?|ttf|lock|snap|map)$/i;
+// calibration/fixtures holds scraped real-site HTML the engine calibrates
+// against: that is DATA whose bytes must stay stable, never prose to fix.
+const SKIP = /node_modules|(^|\/)dist\/|(^|\/)calibration\/fixtures\/|\.min\.|\.(png|jpe?g|gif|svg|ico|pdf|zip|gz|woff2?|ttf|lock|snap|map)$/i;
 
 /** Apply the safe tiers to one line. Returns the rewritten line. */
 export function fixLine(line) {
@@ -61,6 +69,32 @@ export function fixLine(line) {
   return out;
 }
 
+/**
+ * Force-resolve every remaining dash. The leftover shape is nearly always
+ * "clause <dash> elaboration", so pick by what FOLLOWS the dash:
+ *
+ *   numeric range          2019<dash>2024        -> hyphen
+ *   independent clause     "<dash> it detects"   -> semicolon
+ *   everything else        "<dash> a shortcut"   -> colon, or comma when the
+ *                                                   line already has a colon
+ *                                                   (avoids "label: x: y")
+ *
+ * Grammatical in all three branches. User-facing copy still deserves a human
+ * rewrite; this is the bulk-cleanup path for internal prose and comments.
+ */
+const CLAUSE_START = /^(it|they|you|we|i|he|she|there|that|this|these|those|whoever|whatever|everyone|everything|nothing|no one|the \w+ (is|are|was|were|has|have|does|do|will|can|must|should))\b/i;
+
+export function fallbackLine(line) {
+  let out = line.replace(new RegExp(`(\\d)\\s*${DASH}\\s*(\\d)`, "g"), "$1-$2");
+  const hasColon = out.includes(":");
+  out = out.replace(new RegExp(`\\s*${DASH}${DASH}?\\s*`, "g"), (_m, offset, full) => {
+    const rest = full.slice(offset).replace(new RegExp(`^\\s*${DASH}${DASH}?\\s*`), "");
+    if (CLAUSE_START.test(rest)) return "; ";
+    return hasColon ? ", " : ": ";
+  });
+  return out;
+}
+
 function selfTest() {
   const cases = [
     // T1 paired
@@ -82,7 +116,21 @@ function selfTest() {
   for (const [input, expected] of cases) {
     assert.strictEqual(fixLine(input), expected, `fixLine(${JSON.stringify(input)})`);
   }
-  console.log(`self-test: ${cases.length} cases passed`);
+  const fallbackCases = [
+    // independent clause after the dash -> semicolon
+    [`per file ${DASH} there is no ceiling`, "per file; there is no ceiling"],
+    [`reads the page ${DASH} it never fetches`, "reads the page; it never fetches"],
+    // noun-phrase elaboration -> colon
+    [`full-lifecycle SEO ${DASH} design, build, audit`, "full-lifecycle SEO: design, build, audit"],
+    // line already carries a colon -> comma, so we never emit "a: b: c"
+    [`level: active ${DASH} a shortcut with a ceiling`, "level: active, a shortcut with a ceiling"],
+    // numeric range -> hyphen
+    [`the 2019${DASH}2024 era`, "the 2019-2024 era"],
+  ];
+  for (const [input, expected] of fallbackCases) {
+    assert.strictEqual(fallbackLine(input), expected, `fallbackLine(${JSON.stringify(input)})`);
+  }
+  console.log(`self-test: ${cases.length + fallbackCases.length} cases passed`);
 }
 
 function listTargets(args) {
@@ -114,6 +162,7 @@ function main() {
   if (args.includes("--self-test")) return selfTest();
   const write = args.includes("--write");
   const diffOnly = args.includes("--diff");
+  const fallback = args.includes("--fallback");
 
   let remaining = 0;
   let fixed = 0;
@@ -130,7 +179,8 @@ function main() {
     lines.forEach((line, i) => {
       if (!line.includes(DASH)) return;
       if (scope && !scope.has(i + 1)) return;
-      const next = write ? fixLine(line) : line;
+      let next = write ? fixLine(line) : line;
+      if (write && fallback && next.includes(DASH)) next = fallbackLine(next);
       if (next !== line) {
         lines[i] = next;
         changed = true;

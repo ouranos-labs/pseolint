@@ -52,7 +52,7 @@ export function MonitorDomainButton({
             try {
               const host = new URL(sourceUrl).hostname.toLowerCase().replace(/^www\./, "");
               track({ name: "monitoring_domain_added", props: { host } });
-            } catch { /* malformed URL — skip tracking */ }
+            } catch { /* malformed URL: skip tracking */ }
             router.push("/dashboard");
           })
         }

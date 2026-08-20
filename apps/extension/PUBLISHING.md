@@ -1,4 +1,4 @@
-# pseolint extension — Publishing & security runbook
+# pseolint extension: Publishing & security runbook
 
 Build-seq step 6 (`docs/extension-architecture.md` §10). A privileged extension
 with auto-update is a prime supply-chain target; as a solo maintainer the whole
@@ -6,7 +6,7 @@ blast radius is on you. Do these **before the first public listing**.
 
 ## Account hardening
 - **Chrome Web Store account on a hardware key (FIDO2/WebAuthn).** Not TOTP, not
-  SMS. This account is the crown jewel — whoever holds it can push code to every
+  SMS. This account is the crown jewel; whoever holds it can push code to every
   install under your name.
 - Separate, dedicated Google account for the listing (not your daily account).
 - Record the publisher account recovery details in your password manager only.
@@ -23,7 +23,7 @@ blast radius is on you. Do these **before the first public listing**.
 
 ## Dependencies
 - The bundle has **zero runtime deps** today (core Tier-1 rules inline, ~478B
-  each; verified by the leak grep). Keep it that way — every package would run in
+  each; verified by the leak grep). Keep it that way: every package would run in
   users' authenticated browsers under your name.
 - Lockfile committed; scope CVE scanning (Dependabot/Snyk) to `apps/extension`.
 - Pin `chrome-devtools-mcp`-style dev tooling; it never ships in the bundle.
@@ -39,13 +39,13 @@ blast radius is on you. Do these **before the first public listing**.
 
 ## Credential-compromise runbook (write it BEFORE you need it)
 If the publisher account or CI token is suspected compromised:
-1. **Pull the listing** — Web Store dashboard → unpublish (stops new installs).
-2. **Revoke + rotate** — kill the CI refresh token, rotate the FIDO2-protected
+1. **Pull the listing**: Web Store dashboard → unpublish (stops new installs).
+2. **Revoke + rotate**: kill the CI refresh token, rotate the FIDO2-protected
    account credentials, audit recent publish history for an unauthorized version.
-3. **Notify users** — post an advisory (GitHub release + site banner) naming the
+3. **Notify users**: post an advisory (GitHub release + site banner) naming the
    bad version range and what to do (remove/reinstall the clean build).
-4. **Roll a clean build** — publish a known-good version from CI off a verified tag.
-5. **Post-mortem** — how the credential leaked; close that path before re-listing.
+4. **Roll a clean build**: publish a known-good version from CI off a verified tag.
+5. **Post-mortem**: how the credential leaked; close that path before re-listing.
 
 ## Manual functional verification (until CI/MCP can load the unpacked build)
 Automated load via chrome-devtools MCP needs its server started with

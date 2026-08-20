@@ -73,7 +73,7 @@ export default async function ComparePage({
   if (!left.storageKey || !right.storageKey) {
     return (
       <main className="mx-auto max-w-5xl px-5 py-10">
-        <p className="text-sm text-muted-foreground">One of these audits is not yet complete — try again in a minute.</p>
+        <p className="text-sm text-muted-foreground">One of these audits is not yet complete: try again in a minute.</p>
         <p className="mt-2 text-xs"><Link href="/dashboard" className="text-primary hover:underline">← Back to dashboard</Link></p>
       </main>
     );
@@ -110,7 +110,7 @@ export default async function ComparePage({
   const classChanged = aClass && bClass && aClass.type !== bClass.type;
 
   // Category-delta strip is only meaningful when both summaries share a shape.
-  // Mixed v0.3↔v0.4 comparisons skip the strip — the headline risk delta + the
+  // Mixed v0.3↔v0.4 comparisons skip the strip: the headline risk delta + the
   // resolved/added finding panels carry the story without it.
   const sameShape = isV04Summary(aS) === isV04Summary(bS);
   type CatDelta = { name: string; before: number; after: number; delta: number };
@@ -160,7 +160,7 @@ export default async function ComparePage({
           )}
           {classChanged && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/40 bg-warning/5 px-2.5 py-1 text-warning">
-              Site type reclassified — applicable rule set changed
+              Site type reclassified: applicable rule set changed
             </span>
           )}
         </div>
@@ -214,7 +214,7 @@ export default async function ComparePage({
       </section>
 
       {resolved.length === 0 && added.length === 0 && (
-        <p className="mt-6 text-sm text-muted-foreground">The finding set is identical — score change comes from severity adjustments only.</p>
+        <p className="mt-6 text-sm text-muted-foreground">The finding set is identical: score change comes from severity adjustments only.</p>
       )}
     </main>
   );

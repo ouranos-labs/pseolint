@@ -4,7 +4,7 @@
  * Five policy filters live here, each gated by an AuditOption:
  *   - `detectNoindex(page)` honours `<meta name="robots" content="noindex">`
  *     and `X-Robots-Tag: noindex` HTTP headers. The site owner already told
- *     Google not to index these pages — auditing them produces noise the
+ *     Google not to index these pages: auditing them produces noise the
  *     reader can't act on.
  *   - `detectAuthPage(page)` heuristically classifies pages as
  *     login / signup / password-reset based on three signals (password input
@@ -19,7 +19,7 @@
  *   - `detectSearchResultPage(page)` (v0.4.2) flags pages that look like
  *     internal search-result URLs (query parameter `q` / `query` / `search` /
  *     `s` / `keyword`, or path under `/search`). Per Google's own guidance
- *     these should be noindex'd — auditing them generates noise.
+ *     these should be noindex'd: auditing them generates noise.
  *   - `detectEmptyBodyPage(page)` (v0.4.2) flags un-hydrated SPA shells:
  *     body text < 100 chars, script tags present, and no substantive
  *     `<noscript>` fallback. These fail every content rule but the underlying
@@ -36,7 +36,7 @@ import type { ParsedPage } from "./types.js";
  * `<meta name="robots">` content or the `X-Robots-Tag` HTTP response header.
  * Match is case-insensitive and substring-based to tolerate combined
  * directives like `"noindex, nofollow"` or `"index, noindex"` (the latter is
- * a common bug — `noindex` wins per spec).
+ * a common bug: `noindex` wins per spec).
  */
 export function detectNoindex(page: ParsedPage): boolean {
   const metaRobots = (page.robotsMeta ?? "").toLowerCase();
@@ -55,12 +55,12 @@ const AUTH_TITLE_REGEX =
 
 /**
  * Common brand-suffix separators. We split on the FIRST occurrence and keep
- * everything before it — typical pattern is `Sign in | MyApp` or
+ * everything before it: typical pattern is `Sign in | MyApp` or
  * `Sign in - MyApp` or `Sign in · MyApp`. Without this strip, the regex
  * would never match because the title would be `Sign in | MyApp`, not just
  * `Sign in`.
  */
-const BRAND_SEPARATORS = [" | ", " - ", " — ", " · ", " : ", " :: "];
+const BRAND_SEPARATORS = [" | ", " - ", "; ", " · ", " : ", " :: "];
 
 function stripBrandSuffix(title: string): string {
   let cut = title.length;
@@ -79,7 +79,7 @@ export interface AuthDetectionResult {
 /**
  * Heuristic auth-page detection. Returns `isAuth: true` when 2+ signals
  * fire (high confidence). Single-signal pages return `isAuth: false` but
- * still expose the signal list for diagnostics — useful for tracking
+ * still expose the signal list for diagnostics: useful for tracking
  * borderline cases that might warrant a manual config exclude.
  */
 export function detectAuthPage(page: ParsedPage): AuthDetectionResult {
@@ -128,7 +128,7 @@ export interface BoilerplateDetectionResult {
 
 /**
  * Heuristic boilerplate-page detection. Single-signal trigger (1+ = positive)
- * because the patterns are anchored and specific — a marketing page that
+ * because the patterns are anchored and specific: a marketing page that
  * merely mentions "privacy" in its body won't fire any signal. Cookie / legal
  * / consent / imprint pages exist for compliance, never as SEO targets, so
  * auditing them produces routine findings the user already knows about.
@@ -202,7 +202,7 @@ export interface EmptyBodyDetectionResult {
  *   2. The HTML contains at least one `<script src=...>` tag (script-driven)
  *   3. No substantive `<noscript>` fallback (combined noscript content
  *      <= 200 chars). A page with a long noscript block is doing
- *      progressive enhancement, not failing — don't flag it.
+ *      progressive enhancement, not failing: don't flag it.
  *
  * Returns `{ isEmpty: true, reason: "spa-shell" }` when all three hold.
  */
@@ -231,7 +231,7 @@ export function detectEmptyBodyPage(page: ParsedPage): EmptyBodyDetectionResult 
 /**
  * Combined skip decision for the auditor pipeline. Returns the reason string
  * to surface in `summary.skippedUrls` diagnostics, or `null` when the page
- * should be audited normally. Order matters — the priority is:
+ * should be audited normally. Order matters: the priority is:
  *   `noindex` > `auth-detected` > `boilerplate` > `search-result` > `spa-shell`.
  *
  *   - `noindex` first: the site-owner-declared signal beats every heuristic.

@@ -4,10 +4,10 @@
 
 ### Patch Changes
 
-- v0.7.4 — pluggable cache backend + internal refinements.
+- v0.7.4: pluggable cache backend + internal refinements.
 
-  - **Pluggable HTTP cache backend (`@pseolint/core`).** The audit cache's storage now sits behind a `CacheBackend { get, set }` interface. The default `FilesystemCacheBackend` preserves the existing dir-based behaviour byte-for-byte (the CLI is unchanged), so a host can supply its own store — e.g. an R2-backed cache on ephemeral-filesystem serverless — via `AuditOptions.cache.backend`. New exports: `CacheBackend`, `FilesystemCacheBackend`, `AnyCacheEntry`, `RedirectPointerEntry`, `CACHE_ENTRY_SCHEMA_VERSION`. All fetch revalidation (ETag/304), redirect-pointer, and negative-cache logic stays backend-agnostic, and every backend call is fail-safe — a backend error degrades to a cache miss (read) or a logged no-op (write), never aborting an audit.
-  - **`./rules/scope` subpath export (`@pseolint/core`).** A dependency-light entry exposing `SCORED_RULE_COUNT`, `RULE_SCOPE`, and `isRuleAllowedInDiff` without pulling the full engine barrel — for consumers (browser/edge bundles) that only need rule-scope metadata.
+  - **Pluggable HTTP cache backend (`@pseolint/core`).** The audit cache's storage now sits behind a `CacheBackend { get, set }` interface. The default `FilesystemCacheBackend` preserves the existing dir-based behaviour byte-for-byte (the CLI is unchanged), so a host can supply its own store: e.g. an R2-backed cache on ephemeral-filesystem serverless, via `AuditOptions.cache.backend`. New exports: `CacheBackend`, `FilesystemCacheBackend`, `AnyCacheEntry`, `RedirectPointerEntry`, `CACHE_ENTRY_SCHEMA_VERSION`. All fetch revalidation (ETag/304), redirect-pointer, and negative-cache logic stays backend-agnostic, and every backend call is fail-safe: a backend error degrades to a cache miss (read) or a logged no-op (write), never aborting an audit.
+  - **`./rules/scope` subpath export (`@pseolint/core`).** A dependency-light entry exposing `SCORED_RULE_COUNT`, `RULE_SCOPE`, and `isRuleAllowedInDiff` without pulling the full engine barrel: for consumers (browser/edge bundles) that only need rule-scope metadata.
   - **MCP JSON char-cap is now read per call (`@pseolint/mcp`).** `PSEOLINT_MCP_JSON_CHAR_CAP` is resolved at request time instead of frozen at module load, so the oversized-payload envelope threshold can be tuned/tested without a restart. No protocol change.
 
 - Updated dependencies
@@ -17,7 +17,7 @@
 
 ### Patch Changes
 
-- 3361782: v0.7.3 — render-aware checks, AI content-effort, and bring-your-own inputs.
+- 3361782: v0.7.3: render-aware checks, AI content-effort, and bring-your-own inputs.
 
   Verdict moderators never change the raw `risk` number, so CI gates keyed off `--ci-threshold` stay stable.
 
@@ -42,14 +42,14 @@
   on pseolint.dev's own audit). Now it compares each page's @type SET signature and
   fires only when pages in the same template cluster genuinely disagree.
 
-- 3c9cb0d: fix(core): v0.7.2 rule-design batch — graded thresholds + presence-quality.
+- 3c9cb0d: fix(core): v0.7.2 rule-design batch: graded thresholds + presence-quality.
 
   Follow-up to the v0.7.1 FP-elimination batch, addressing the two deferred root
   causes (C: binary/absolute thresholds, D: presence-not-quality). Verified
   against the 24-fixture calibration corpus: zero new false positives vs the prior
   metrics, and the crawl-size verdict flips are gone.
 
-  C — binary-threshold redesigns:
+  C: binary-threshold redesigns:
 
   - spam/boilerplate-ratio: continuous document-frequency weighting replaces the
     floor(N\*0.8)+1 skeleton cliff; 2-band severity. Verdict no longer flips when
@@ -63,7 +63,7 @@
   - content/wikipedia-paraphrase: min-length guard + threshold 0.40→0.55 above the
     legal/medical topic-overlap baseline; advisory language, stays low-confidence.
 
-  D — presence-quality (validate the value, not just its presence):
+  D: presence-quality (validate the value, not just its presence):
 
   - schema/required-fields: empty arrays / whitespace / nameless author objects
     count as missing.
@@ -82,23 +82,23 @@
 
 ### Patch Changes
 
-- ce06ef7: v0.7.1 — rule false-positive elimination batch (post unique-value design review).
+- ce06ef7: v0.7.1: rule false-positive elimination batch (post unique-value design review).
 
   Stops the engine flagging healthy sites without weakening real detection. Each fix
   is TDD'd and validated against the reputable-pSEO fixtures.
 
-  - **links/orphan-pages, links/cluster-connectivity** — suppressed on sampled crawls
+  - **links/orphan-pages, links/cluster-connectivity**: suppressed on sampled crawls
     (the linking/target page is often un-fetched; reliable only on a full crawl).
-  - **tech/canonical-consistency** — collapse "canonicalizes outside crawl scope" to
+  - **tech/canonical-consistency**: collapse "canonicalizes outside crawl scope" to
     one site-level note when all pages point at the same alternate host (staging/
     preview/localhost), instead of one finding per page; dedup HTTP-vs-HTML.
-  - **tech/sitemap-completeness** — normalize sitemap URLs before the set-diff (kills
+  - **tech/sitemap-completeness**: normalize sitemap URLs before the set-diff (kills
     trailing-slash/query false "missing"); demote the missing aggregate to warning.
-  - **schema/consistency** — flag @type variance per template cluster (structureSignature),
+  - **schema/consistency**: flag @type variance per template cluster (structureSignature),
     not site-wide (was a guaranteed FP on any multi-template site).
-  - **aeo/crawler-access** — honor robots `Allow` directives per RFC 9309 (allow-all
+  - **aeo/crawler-access**: honor robots `Allow` directives per RFC 9309 (allow-all
     no longer reported as fully blocked).
-  - **Severity/confidence bands** — error/critical demoted to warning on weak or
+  - **Severity/confidence bands**: error/critical demoted to warning on weak or
     forecast signals: thin-content medium band, summary-bait, translation-no-op,
     entity-swap (low mask coverage), soft-404 (OR-weighted confidence model).
 
@@ -113,11 +113,11 @@
 
 ### Minor Changes
 
-- v0.7.0 — Calibration & authority foundations
+- v0.7.0: Calibration & authority foundations
 
-  - **Two-sided calibration harness + score-vs-outcome instrument.** New `calibrationMetrics()` reports how well the risk score tracks real winning/penalized outcomes against a labeled corpus — threshold-free AUC, class-separation gap, per-band empirical penalty rate, and the over-flag / recall-leak confusion-zone sites. A `detectability` corpus field separates the engine's addressable ceiling from structurally-undetectable (off-page) cases.
+  - **Two-sided calibration harness + score-vs-outcome instrument.** New `calibrationMetrics()` reports how well the risk score tracks real winning/penalized outcomes against a labeled corpus: threshold-free AUC, class-separation gap, per-band empirical penalty rate, and the over-flag / recall-leak confusion-zone sites. A `detectability` corpus field separates the engine's addressable ceiling from structurally-undetectable (off-page) cases.
   - **Corpus-derived entity auto-masking** (`deriveEntityPatterns`): clusters pages by URL template and masks tokens that vary across siblings, lifting policy-violating recall (44% → 56% on the calibration corpus) and fixing the reputable-vs-spam risk inversion.
-  - **Domain-authority moderation scaffolding**: a pluggable `AuthorityProvider` (`CompositeAuthorityProvider` max-combine, `OpenPageRankProvider`, `CommonCrawlProvider`) feeds the existing verdict-shift. Fail-safe no-op until an authority source is configured — no behaviour change by default.
+  - **Domain-authority moderation scaffolding**: a pluggable `AuthorityProvider` (`CompositeAuthorityProvider` max-combine, `OpenPageRankProvider`, `CommonCrawlProvider`) feeds the existing verdict-shift. Fail-safe no-op until an authority source is configured: no behaviour change by default.
 
 ### Patch Changes
 
@@ -132,7 +132,7 @@
 - surface partial-coverage (`truncated`) audits in the MCP structured output
 
   The core engine flushes a `truncated: true` report (with `truncatedReason`) when
-  its backpressure watchdog aborts a crawl mid-flight on a degraded origin — counts,
+  its backpressure watchdog aborts a crawl mid-flight on a degraded origin; counts,
   risk, and the verdict are then lower bounds. The MCP server hand-builds the
   `structuredContent` payload per tool and omitted `truncated`, so an AI client saw
   a partial audit as if it were complete. It also omitted `schemaVersion`, leaving
@@ -198,7 +198,7 @@
   - `pseolint_audit_site` and `pseolint_explain_score` now expose the
     `authorityScore` (bring-your-own domain authority, 0-100) and `sampleSeed`
     (deterministic stratified sampling) parameters that the engine already
-    supported — previously documented in the README but not wired up.
+    supported; previously documented in the README but not wired up.
   - All numeric inputs are range-constrained with descriptive errors. The
     orchestrator budget ceilings are explicit MCP-surface safety bounds (core
     itself imposes none): max $50 / 500 tool calls / 900s, well above the
@@ -271,13 +271,13 @@
 
 ### Patch Changes
 
-- Track `@pseolint/core` 0.5.10 (v0.6 phase 3 — CLI + MCP). The `audit_site` tool description now documents the `templates` array that appears in the JSON output when ≥2 URL templates are detected: each entry carries `signature`, `verdict`, `risk`, `categories`, `auditedUrls`, `variance.uniformityScore`, and `variance.topDriver`. The `explain_score` tool's text output now includes a "Per-template breakdown" section when templates are present. Both are additive — existing consumers reading `findings` are unaffected.
+- Track `@pseolint/core` 0.5.10 (v0.6 phase 3: CLI + MCP). The `audit_site` tool description now documents the `templates` array that appears in the JSON output when ≥2 URL templates are detected: each entry carries `signature`, `verdict`, `risk`, `categories`, `auditedUrls`, `variance.uniformityScore`, and `variance.topDriver`. The `explain_score` tool's text output now includes a "Per-template breakdown" section when templates are present. Both are additive: existing consumers reading `findings` are unaffected.
 
 ## 0.5.9
 
 ### Patch Changes
 
-- Track `@pseolint/core` 0.5.9: v0.6 phase 1 — `templates` field now appears in audit-tool output when the site has ≥2 detected templates. Additive; existing consumers unaffected.
+- Track `@pseolint/core` 0.5.9: v0.6 phase 1: `templates` field now appears in audit-tool output when the site has ≥2 detected templates. Additive; existing consumers unaffected.
 
 ## 0.5.8
 
@@ -319,13 +319,13 @@
 
 ### Minor Changes
 
-- v0.5.0 — AI orchestrator MCP tool + tracks `@pseolint/core` v0.5.0
+- v0.5.0: AI orchestrator MCP tool + tracks `@pseolint/core` v0.5.0
 
-  New tool: **`orchestrate_audit`** — exposes the AI-orchestrated auditor
+  New tool: **`orchestrate_audit`** exposes the AI-orchestrated auditor
   (added in `@pseolint/core` v0.5.0) to MCP hosts (Claude Desktop, Cursor,
   Windsurf, Claude Code). Unlike `audit_site` which lists rule findings,
   `orchestrate_audit` drives an LLM through 25 deterministic tools to
-  produce a **fix manifest** — concrete copy-paste patches (rewritten H1s,
+  produce a **fix manifest**: concrete copy-paste patches (rewritten H1s,
   JSON-LD blocks, robots.txt diffs, internal-link suggestions) validated
   against deterministic schemas before the result is returned.
 
@@ -343,7 +343,7 @@
   conversation stays grounded in what actually shipped vs what was
   proposed.
 
-  Tracks `@pseolint/core` v0.5.0 — also pulls in change-driven monitoring
+  Tracks `@pseolint/core` v0.5.0; also pulls in change-driven monitoring
   (audit_site monitoring runs are ~95% cheaper on sites with sitemap
   `<lastmod>`).
 
@@ -351,11 +351,11 @@
 
 ### Patch Changes
 
-- v0.4.3 — classification-driven scoring, fixes credibility crisis
+- v0.4.3: classification-driven scoring, fixes credibility crisis
 
   Trigger: an external reviewer ran pseolint on his own site and didn't
   believe the verdict. Three-site dogfood (nextjs.org, wordpress.com,
-  shopify.com) confirmed the issue — nextjs.org would score `concerning`
+  shopify.com) confirmed the issue: nextjs.org would score `concerning`
   (60) on a meaningful sample, with 7 of 11 actionable findings being
   AEO-style "your marketing page doesn't read like a fact database."
   Citation category alone drove 25 risk points just from the AEO bucket
@@ -387,13 +387,13 @@
     as `programmatic-directory` because of `/[lang]/` URL prefixes.
   - Re-tuned tech rule impacts: `tech/hreflang-consistency` is now a
     single base-impact finding regardless of how many language pairs
-    break (one declaration breaks them all — count shouldn't compound).
+    break (one declaration breaks them all; count shouldn't compound).
     `tech/canonical-consistency` lowered to base 8, perInstance 1.
   - Formatters surface "Audited as &lt;type&gt; (NN% confidence)." prominently.
     Confidence caveats render after low-/speculative-confidence findings.
   - Marketing copy on /, /tools, /rules, /symptoms, /limits clarifies
     scope: "pseolint audits programmatic-SEO + AI Overview readiness.
-    Not a general SEO audit — for Core Web Vitals and broken links use
+    Not a general SEO audit; for Core Web Vitals and broken links use
     Sitebulb, Screaming Frog, or Ahrefs."
 
   **Dogfood results (post-change):**
@@ -406,7 +406,7 @@
   shopify.com     concerning(58)→ caution(28) -30 risk; remaining findings real
   ```
 
-  Tests: 663/663 pass (was 646 in v0.4.2 — +17 new tests for classifier
+  Tests: 663/663 pass (was 646 in v0.4.2; +17 new tests for classifier
   types, scoring profiles, confidence emission, formatter output).
 
   **Reasoning trail:** see
@@ -420,24 +420,24 @@
 
 ### Patch Changes
 
-- v0.4.2 — page-skip extensions, framework-aware web defaults, template bucketing, fixplan artifact
+- v0.4.2: page-skip extensions, framework-aware web defaults, template bucketing, fixplan artifact
 
   **@pseolint/core (0.4.1 → 0.4.2)**
 
   Three new page-skip filters extending the v0.4.1 noindex / auth machinery:
 
-  - `skipBoilerplate?: boolean` (default `false`) — skip cookie / legal /
+  - `skipBoilerplate?: boolean` (default `false`): skip cookie / legal /
     consent / imprint pages via title, H1, or URL pathname matching
     well-known compliance-page patterns (`/privacy`, `/terms`, `/cookies`,
     `/gdpr`, `/ccpa`, `/impressum`, `/disclaimer`, `/accessibility`,
     `/do-not-sell`, etc.). Single-signal trigger because patterns are
-    anchored — a marketing page that mentions "privacy" in its body won't
+    anchored; a marketing page that mentions "privacy" in its body won't
     fire. New `detectBoilerplatePage(page)` exported from `./page-filter.js`.
-  - `skipSearchPages?: boolean` (default `false`) — skip pages with
+  - `skipSearchPages?: boolean` (default `false`): skip pages with
     search-result URL hallmarks: query parameter `q` / `query` / `search` /
     `s` / `keyword`, or pathname starting with `/search`. Per Google's own
     guidance these should be `noindex`'d but many sites don't tag them.
-  - `skipEmptyBody?: boolean` (default `false`) — skip un-hydrated SPA
+  - `skipEmptyBody?: boolean` (default `false`): skip un-hydrated SPA
     shells: body text < 100 chars, script tags present, no substantive
     `<noscript>` fallback. The right fix is `--render`, not content rules.
 
@@ -451,7 +451,7 @@
   - New `bucketByTemplate(findings)` helper at `./formatters/bucket-findings.js`.
     Console + markdown formatters now collapse findings sharing a template
     signature into one line (`× 23 instances on /templates/[state]-llc-fees
-template — fix once, resolve all 23.`). Single-instance findings keep
+    template: fix once, resolve all 23.`). Single-instance findings keep
     the legacy format. Site-wide / non-template buckets render as
     `× 2 affected pages`.
   - New `formatFixplan(summary)` formatter at `./formatters/fixplan.js`.
@@ -500,11 +500,11 @@ shopify | webflow | astro | nuxt | remix`. Each framework's
 
 ### Patch Changes
 
-- v0.4.1 — config UX fixes + page-skip policy
+- v0.4.1: config UX fixes + page-skip policy
 
   **@pseolint/core (0.4.0 → 0.4.1)**
 
-  - New `respectNoindex?: boolean` (default `true`) — pages explicitly marked
+  - New `respectNoindex?: boolean` (default `true`): pages explicitly marked
     `noindex` (via `<meta name="robots">` or `X-Robots-Tag` header) are
     excluded from rule evaluation. The site owner already opted out of SEO
     indexing for them; auditing produces noise the reader can't act on. The
@@ -512,22 +512,22 @@ shopify | webflow | astro | nuxt | remix`. Each framework's
     `tech/robots-noindex-conflict`) and `tech/hreflang-consistency` still
     receive noindex'd pages so they can flag accidental noindex'ing /
     inconsistent hreflang declarations.
-  - New `skipDetectedAuth?: boolean` (default `false`) — heuristic detection
+  - New `skipDetectedAuth?: boolean` (default `false`): heuristic detection
     of login / signup / password-reset / verify-email pages via password-input
     density, page title pattern (brand-suffix-stripped), and H1 pattern.
     Requires 2+ signals for a positive verdict, keeping false-positives low
     on marketing pages with single-signal characteristics.
   - New `audit/skipped-by-policy` diagnostic surfaces every URL skipped by the
-    above policies in `summary.diagnostics.auditFindings` — the
+    above policies in `summary.diagnostics.auditFindings`; the
     accidentally-noindex'd page now shows up as a visible skip line instead of
     being absent without explanation.
-  - New `warnUnmatchedIgnore?: boolean` (default `false`) — per-pattern warning
+  - New `warnUnmatchedIgnore?: boolean` (default `false`): per-pattern warning
     for unmatched `--ignore` patterns is now opt-in. The CLI sets it to true
     only when `--ignore` came from the command line. Config-loaded patterns
     (e.g. `pseolint.config.ts` with broad safety patterns like `**/api/**`)
     no longer spam warnings when the patterns legitimately don't match a
     small site's surface. A consolidated `none of the N ignore patterns
-matched any URLs — check config or --ignore for typos` warning still
+    matched any URLs: check config or --ignore for typos` warning still
     fires when ALL patterns miss, regardless of source.
   - New helpers exported from the entry point: `detectNoindex`,
     `detectAuthPage`, `pageSkipReason` from `./page-filter.js`.
@@ -539,9 +539,9 @@ matched any URLs — check config or --ignore for typos` warning still
     picked up; `.ts` files silently fell through, forcing users to inline
     `--ignore` patterns. Both `pseolint.config.ts` and `.mts` variants are
     now in the searchPlaces list.
-  - New flag `--no-respect-noindex` — audit pages marked noindex anyway
+  - New flag `--no-respect-noindex`: audit pages marked noindex anyway
     (useful when investigating an accidentally-noindex'd page).
-  - New flag `--skip-detected-auth` — opt into the heuristic auth-page skip.
+  - New flag `--skip-detected-auth`: opt into the heuristic auth-page skip.
 
   **@pseolint/mcp (0.4.0 → 0.4.1)**
 
@@ -566,7 +566,7 @@ matched any URLs — check config or --ignore for typos` warning still
 
 ### Minor Changes
 
-- v0.4.0 — engine redesign
+- v0.4.0: engine redesign
 
   Breaking-change release coordinated across all three packages.
 
@@ -598,7 +598,7 @@ directory | unknown` and suppress pSEO-only rules
   - New flags: `--ci-threshold <severity>` (replaces numeric `--threshold`
     for CI gating), `--explain` (full bucketed finding view), `--strict`
     (bypass pSEO-only rule suppression).
-  - `--threshold` deprecated with a runtime warning — still functional for
+  - `--threshold` deprecated with a runtime warning: still functional for
     one minor.
   - New `pseolint diff <baseline> <current>` subcommand: verdict-rank
     deltas + fixed/regressed/new findings between two AuditSummary JSON
@@ -619,7 +619,7 @@ directory | unknown` and suppress pSEO-only rules
 
   **Migration**
 
-  Pre-existing v0.3 JSON reports remain readable — `/r/[slug]` and
+  Pre-existing v0.3 JSON reports remain readable: `/r/[slug]` and
   `/r/compare` in the web app detect `summary.schemaVersion` and route
   through legacy renderers. New CI gates should switch from
   `--threshold 40` (numeric) to `--ci-threshold concerning` (semantic).
@@ -647,17 +647,17 @@ directory | unknown` and suppress pSEO-only rules
   Incremental over 0.3.2 (which shipped SSRF guard, AbortSignal support,
   and robots.txt honour for our own crawler):
 
-  - `safeMode: "saas" | "cli"` preset on `AuditOptions` — flips
+  - `safeMode: "saas" | "cli"` preset on `AuditOptions`: flips
     `guardSsrf`, `respectRobotsTxt`, `followRedirects`, `maxCrawlDiscovered`,
     and `maxFetchBytes` defaults in one knob. Individual option overrides
     still win.
-  - `safeFetch(url, options?)` — SSRF-safe fetch for non-audit use cases
+  - `safeFetch(url, options?)`: SSRF-safe fetch for non-audit use cases
     (webhook URL verification, favicon lookups, etc.). Wraps `cachedFetch`
     with `validateTargetHost` baked in.
-  - `maxCrawlDiscovered` — hard ceiling on link-discovery fan-out so a
+  - `maxCrawlDiscovered`: hard ceiling on link-discovery fan-out so a
     malicious site with many self-links can't extend crawl up to the byte
     budget. Default 5000 (2000 under `safeMode: "saas"`).
-  - `followRedirects: false` option — returns 3xx as-is so security-
+  - `followRedirects: false` option: returns 3xx as-is so security-
     sensitive audits can report redirects without following them.
 
   New exports: `safeFetch`, `SafeMode` type.
@@ -671,11 +671,11 @@ directory | unknown` and suppress pSEO-only rules
     `--block-host <host>` (repeatable). Prevents rendered audits from
     firing GA / Plausible / PostHog / Mixpanel / Hotjar / Sentry beacons
     on every page.
-  - `--safe-mode <saas|cli>` — applies the core preset.
-  - `--no-respect-robots` — audit sitemap URLs even when the target's
+  - `--safe-mode <saas|cli>`: applies the core preset.
+  - `--no-respect-robots`: audit sitemap URLs even when the target's
     robots.txt Disallow's them (use for your own staging sites).
-  - `--no-follow-redirects` — report 3xx as-is.
-  - `ctrl-C` handler — SIGINT triggers a clean abort via `AbortController`;
+  - `--no-follow-redirects`: report 3xx as-is.
+  - `ctrl-C` handler: SIGINT triggers a clean abort via `AbortController`;
     in-flight fetches cancel cleanly instead of the process being hard-
     killed mid-read. Second `ctrl-C` within ~1 s forces exit.
   - `pseolint.config.ts` schema extended for `safeMode`, `respectRobotsTxt`,
@@ -694,7 +694,7 @@ directory | unknown` and suppress pSEO-only rules
 
   ## Not changed
 
-  `@pseolint/action` — runs in GitHub-public-network runners, auto-
+  `@pseolint/action`: runs in GitHub-public-network runners, auto-
   propagates new core features through its existing `AuditSummary`
   rendering. No separate bump.
 
@@ -711,7 +711,7 @@ directory | unknown` and suppress pSEO-only rules
 
 - 01627a8: feat: add AEO rule category with 8 rules for AI Overview readiness
 
-  Introduces `aeo/*` — a new scored rule category focused on Answer Engine
+  Introduces `aeo/*`, a new scored rule category focused on Answer Engine
   Optimization. Brings the total to **42 rules across 8 categories** (7 scored
 
   - `data/*`). While SpamBrain rules protect against Google penalties, AEO
@@ -721,29 +721,29 @@ directory | unknown` and suppress pSEO-only rules
 
   New rules:
 
-  - `aeo/llms-txt` — checks for `/llms.txt` at the origin and validates the
+  - `aeo/llms-txt`: checks for `/llms.txt` at the origin and validates the
     minimal shape (H1 title, at least one `##` section, markdown link entries).
-  - `aeo/crawler-access` — parses `robots.txt` per user-agent and flags blocked
+  - `aeo/crawler-access`: parses `robots.txt` per user-agent and flags blocked
     AI crawlers (GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Bytespider,
     Google-Extended, CCBot, Applebot-Extended). Warns per blocked crawler,
     errors when all are blocked.
-  - `aeo/freshness-signals` — checks each page for a dateModified signal
+  - `aeo/freshness-signals`: checks each page for a dateModified signal
     (JSON-LD, `article:modified_time`, visible "Last updated" text). Warns when
     absent, emits info when older than 180 days.
-  - `aeo/faq-coverage` — detects FAQ-style content (question-phrased H2s or
+  - `aeo/faq-coverage`: detects FAQ-style content (question-phrased H2s or
     URL patterns like `/how-to-*`, `/what-is-*`, `*-faq`) that lacks FAQPage
     or HowTo JSON-LD.
-  - `aeo/answer-first` — scores the first paragraph after the H1 for
+  - `aeo/answer-first`: scores the first paragraph after the H1 for
     extractable-answer quality: concrete facts, named entities, complete
     sentence, boilerplate detection, and template-opener detection via entity
     masking across the corpus.
-  - `aeo/citable-facts` — counts unique, entity-specific citable facts per page
+  - `aeo/citable-facts`: counts unique, entity-specific citable facts per page
     (dollar amounts, percentages, timeframes, dates, Form numbers). Filters out
     template facts shared across the majority of masked pages.
-  - `aeo/non-replicable-value` — detects pages that are pure informational text
-    with no interactive element, downloadable asset, or gated content — pages
+  - `aeo/non-replicable-value`: detects pages that are pure informational text
+    with no interactive element, downloadable asset, or gated content: pages
     AI can fully summarize without sending a click.
-  - `aeo/content-modularity` — splits pages by H2/H3 and flags sections that
+  - `aeo/content-modularity`: splits pages by H2/H3 and flags sections that
     aren't independently extractable (cross-references like "as mentioned above",
     vague headings like "More Info", paragraphs over 200 words).
 
@@ -761,26 +761,26 @@ directory | unknown` and suppress pSEO-only rules
   New flat threshold keys in `AuditOptions.rules` (all optional, sensible
   defaults):
 
-  - `answerFirstMaxWords` (default 100) — opener length cap for `aeo/answer-first`
-  - `citableFactsMin` (default 3) — below this a page errors
-  - `citableFactsTarget` (default 8) — at or above this a page passes
-  - `freshnessMaxStaleDays` (default 180) — age at which `dateModified` is flagged stale
-  - `modularityMaxParagraphWords` (default 200) — `aeo/content-modularity`
-  - `modularityMinSelfContainedRatio` (default 0.7) — `aeo/content-modularity`
-  - `faqMinQuestionHeadings` (default 2) — `aeo/faq-coverage`
+  - `answerFirstMaxWords` (default 100): opener length cap for `aeo/answer-first`
+  - `citableFactsMin` (default 3): below this a page errors
+  - `citableFactsTarget` (default 8): at or above this a page passes
+  - `freshnessMaxStaleDays` (default 180): age at which `dateModified` is flagged stale
+  - `modularityMaxParagraphWords` (default 200): `aeo/content-modularity`
+  - `modularityMinSelfContainedRatio` (default 0.7): `aeo/content-modularity`
+  - `faqMinQuestionHeadings` (default 2): `aeo/faq-coverage`
 
   Page-group `overrides` still apply normally for severity tuning.
 
   ### AEO sub-score and console section
 
-  `categoryScores.aeo` is the sub-score (raw 0–100 damage — lower is better) and
+  `categoryScores.aeo` is the sub-score (raw 0–100 damage; lower is better) and
   has its own label scheme distinct from the SpamBrain Risk label:
 
-  - 0–20 **AI-Ready** — pages structured for citation
-  - 21–40 **Partial** — some citable, others vulnerable
-  - 41–60 **Vulnerable** — most pages will be summarized away without clicks
-  - 61–80 **Invisible** — pages offer nothing AI can't synthesize itself
-  - 81–100 **Ghost** — blocked from AI + no citable structure; traffic will crater
+  - 0–20 **AI-Ready**: pages structured for citation
+  - 21–40 **Partial**: some citable, others vulnerable
+  - 41–60 **Vulnerable**: most pages will be summarized away without clicks
+  - 61–80 **Invisible**: pages offer nothing AI can't synthesize itself
+  - 81–100 **Ghost**: blocked from AI + no citable structure; traffic will crater
 
   `aeoScoreLabel(score)` is exported from `@pseolint/core` so downstream formatters
   can surface the label. The console formatter renders a dedicated
@@ -790,8 +790,8 @@ directory | unknown` and suppress pSEO-only rules
   ### AI triage
 
   Prompt bumped to `1.1.0` (additive). The system prompt now explicitly
-  distinguishes two threat families — **SpamBrain penalty risk** (spam/cannibal/
-  content/data/tech/schema/links) and **AI Overview invisibility** (aeo/\*) — and
+  distinguishes two threat families: **SpamBrain penalty risk** (spam/cannibal/
+  content/data/tech/schema/links) and **AI Overview invisibility** (aeo/\*), and
   asks for at least one root cause from each when both families are present. A
   new `findingCountByCategory` field in the prompt payload gives the model
   per-category totals for weighting.

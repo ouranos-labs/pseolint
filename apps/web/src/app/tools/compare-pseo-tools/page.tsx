@@ -98,7 +98,7 @@ export default function CompareToolsPage() {
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Many programmatic SEO campaigns fail because they focus on generation volume instead of
           <span className="text-foreground font-semibold"> indexation quality</span>. Generating 50,000 pages
-          using credit-based AI writers is simple—but if Googlebot flags the shared template as thin content,
+          using credit-based AI writers is simple, but if Googlebot flags the shared template as thin content,
           your entire investment remains unindexed. Use our interactive calculator below to evaluate costs,
           sync fees, and the real value of running pre-flight audits with pseolint.
         </p>

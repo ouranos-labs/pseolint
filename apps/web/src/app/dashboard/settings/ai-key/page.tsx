@@ -22,7 +22,7 @@ export default async function AiKeySettings() {
       <h1 className="text-xl font-medium">Bring your own AI key</h1>
       {plan === "free" ? (
         <p className="text-sm text-muted-foreground">
-          Free tier uses your own LLM key for triage — you pay the provider directly, no quotas
+          Free tier uses your own LLM key for triage; you pay the provider directly, no quotas
           from us. Add an Anthropic / OpenAI / Google / Ollama key below. Audits without a key
           still produce rule-based findings, but the AI-written remediation steps are skipped.
         </p>
@@ -30,7 +30,7 @@ export default async function AiKeySettings() {
         <p className="text-sm text-muted-foreground">
           Pro includes managed AI triage (we pay the LLM bill). You can swap in your own
           Anthropic / OpenAI / Google key to bypass our managed quotas and pay the provider
-          directly — unlimited triage on any tier.
+          directly: unlimited triage on any tier.
         </p>
       )}
 

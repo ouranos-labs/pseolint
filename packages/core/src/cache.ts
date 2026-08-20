@@ -47,7 +47,7 @@ export function isRedirectPointer(entry: AnyCacheEntry): entry is RedirectPointe
  * Pluggable cache storage. The default is {@link FilesystemCacheBackend}
  * (dir-based); a host can supply its own (e.g. an R2-backed store) to persist
  * the cache across ephemeral-filesystem runs. The freshness / revalidation /
- * redirect / negative-cache logic in cachedFetch is backend-agnostic — a
+ * redirect / negative-cache logic in cachedFetch is backend-agnostic: a
  * backend is dumb `get`/`set` storage and nothing more.
  */
 export interface CacheBackend {
@@ -116,7 +116,7 @@ export async function writeCacheEntry(
   await rename(tmpPath, finalPath);
 }
 
-/** Default cache backend — the original dir-based filesystem store. */
+/** Default cache backend: the original dir-based filesystem store. */
 export class FilesystemCacheBackend implements CacheBackend {
   constructor(private readonly dir: string) {}
   get(url: string): Promise<AnyCacheEntry | null> {
@@ -177,7 +177,7 @@ export function shouldNegativeCache(status: number): boolean {
 export type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface CacheConfig {
-  /** Filesystem cache dir — used by the default FilesystemCacheBackend when no `backend` is given. */
+  /** Filesystem cache dir: used by the default FilesystemCacheBackend when no `backend` is given. */
   dir?: string;
   /** Custom storage backend; overrides `dir` (e.g. an R2-backed store on ephemeral-fs serverless). */
   backend?: CacheBackend;
@@ -191,7 +191,7 @@ export interface CachedFetchOptions {
   method?: "GET";
   /**
    * External abort signal, e.g. from an audit-level AbortController. Combined
-   * with the per-request timeout — whichever fires first cancels the fetch.
+   * with the per-request timeout: whichever fires first cancels the fetch.
    */
   signal?: AbortSignal;
   /**
@@ -389,7 +389,7 @@ const PSEOLINT_USER_AGENT = (() => {
   }
 })();
 
-/** Cap on Retry-After honour — adversarial sites could declare hours. */
+/** Cap on Retry-After honour: adversarial sites could declare hours. */
 const RETRY_AFTER_MAX_MS = 30_000;
 
 function parseRetryAfterMs(headerVal: string | null): number {
@@ -420,7 +420,7 @@ async function performFetch(
   let backoffRetried = false;
   for (let hop = 0; hop < 10; hop += 1) {
     // Re-validate every hop when a validator is provided. An SSRF-clean
-    // source URL can 302 to http://127.0.0.1/ — if we blindly followed
+    // source URL can 302 to http://127.0.0.1/, if we blindly followed
     // without re-checking, we'd hit loopback. `redirect: "manual"` below
     // ensures we control every hop; this call blocks malicious redirects.
     if (validateHop) await validateHop(currentUrl);
@@ -437,7 +437,7 @@ async function performFetch(
       disposeSignal();
     }
 
-    // Target-declared backoff — honor Retry-After on 429/503 once per URL.
+    // Target-declared backoff: honor Retry-After on 429/503 once per URL.
     if ((res.status === 429 || res.status === 503) && !backoffRetried) {
       const waitMs = parseRetryAfterMs(res.headers.get("retry-after"));
       if (waitMs > 0) {
@@ -566,7 +566,7 @@ export async function getCacheSizeInfo(dir: string): Promise<CacheSizeInfo> {
 
 /**
  * Prune cache dir so total size stays under `maxBytes`. Evicts oldest-mtime
- * entries first (approximate LRU — `writeCacheEntry` touches mtime on fetch
+ * entries first (approximate LRU: `writeCacheEntry` touches mtime on fetch
  * and on 304 revalidation, so hot entries keep their mtime fresh; cold entries
  * that are never re-crawled age out). Also sweeps leftover `.tmp` files from
  * crashed writes.

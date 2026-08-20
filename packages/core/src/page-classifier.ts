@@ -35,7 +35,7 @@ function tokenize(pattern: string): Token[] {
   return tokens;
 }
 
-// Linear glob matcher — no RegExp construction, immune to ReDoS.
+// Linear glob matcher: no RegExp construction, immune to ReDoS.
 // Supports * (any non-slash chars) and ** (any chars including slash).
 // Anchored to the end of value; pattern may match at any slash-delimited
 // segment boundary within the string.

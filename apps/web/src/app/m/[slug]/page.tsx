@@ -38,7 +38,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const row = await findManifest(slug);
-  // Manifests describe third-party sites with LLM-proposed rewrites — never
+  // Manifests describe third-party sites with LLM-proposed rewrites: never
   // index. Same posture as audit reports per the v0.4 design.
   const robots: Metadata["robots"] = { index: false, follow: false };
   if (!row) return { title: "Manifest not found · pseolint", robots };
@@ -64,7 +64,7 @@ export default async function Page({
   // Per spec §11.7:
   //   - Owner: full view with rewrites + diffs
   //   - Public + foreign visitor: paraphrased view (verdict, categories,
-  //     patch counts) — no LLM rewrites or diffs
+  //     patch counts): no LLM rewrites or diffs
   //   - Private + foreign visitor: 404 (avoids leaking slug existence)
   if (!ownedByUser && !row.manifest.isPublic) notFound();
   const showRewrites = ownedByUser;
@@ -78,7 +78,7 @@ export default async function Page({
   try {
     payload = JSON.parse(blob) as ManifestPayload;
   } catch {
-    // Corrupted blob — distinct from expired but rare enough to share UX.
+    // Corrupted blob: distinct from expired but rare enough to share UX.
     return <ExpiredManifest domain={row.manifest.domain} expiredAt={row.manifest.expiresAt} />;
   }
 
@@ -315,7 +315,7 @@ export default async function Page({
 
       {showRewrites && diff.pages.length === 0 && diff.templates.length === 0 && diff.domainLevel.length === 0 && (
         <section className="mt-10 rounded-[22px] border border-dashed border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
-          The orchestrator found nothing actionable on this domain. (Or every patch was dropped by validators — see above.)
+          The orchestrator found nothing actionable on this domain. (Or every patch was dropped by validators: see above.)
         </section>
       )}
 

@@ -35,7 +35,7 @@ export function schemaConsistencyRule(pages: ParsedPage[]): RuleResult[] {
 
   // Within each cluster of ≥2 pages, fire only when pages carry DIFFERENT @type
   // SETS. A single page legitimately emits several JSON-LD blocks (e.g. Article +
-  // FAQPage + Organization) — that multi-type set is not an inconsistency. The
+  // FAQPage + Organization); that multi-type set is not an inconsistency. The
   // problem is two pages on the SAME template disagreeing on their type set
   // (e.g. one Article, one NewsArticle). Comparing per-page set signatures (not
   // the union) avoids the false positive where every page shares the same set.

@@ -1,4 +1,4 @@
-// pseolint extension — fetched-page signal extraction (architecture §8/§9).
+// pseolint extension: fetched-page signal extraction (architecture §8/§9).
 //
 // ponytail: regex <head>/meta + tag-strip, NOT a DOM parse. Two reasons, both
 //   load-bearing: (1) this runs in the MV3 service worker, which has no
@@ -6,12 +6,12 @@
 //   we refuse to ship into users' authenticated browsers (§10). It is held to
 //   core's output by tests/parse-parity.test.js, which runs the SAME fixtures
 //   through core's real cheerio parser and asserts the word counts + og/title
-//   agree — so a SERP badge can't silently disagree with the hosted audit (§6).
+//   agree, so a SERP badge can't silently disagree with the hosted audit (§6).
 //
 // Fetched third-party HTML is hostile input: we extract from it, never execute
 // it (§8). String ops in a DOM-less worker have no execution surface at all.
 
-// Minimal HTML entity decode — enough to match cheerio for word counts and for
+// Minimal HTML entity decode: enough to match cheerio for word counts and for
 // exact og/title parity. Unknown named entities are left as-is (rare, and they
 // don't shift a word count). Numeric refs are range-checked so a malicious
 // &#999999999; can't throw out of fromCodePoint (§8 hostile input).
@@ -34,7 +34,7 @@ function clean(text) {
 }
 
 // content of the first <meta property|name="<key>"> tag, either attribute order.
-// ponytail: hardcoded scan, not a dynamic RegExp(key) — `key` is always one of a
+// ponytail: hardcoded scan, not a dynamic RegExp(key), `key` is always one of a
 //   fixed literal set, and a built-from-input regex is a ReDoS smell (and flimsier).
 function metaContent(html, key) {
   const k = key.toLowerCase();
@@ -56,7 +56,7 @@ function titleText(html) {
 // Mirror core's `$("body").text()` after removing boilerplate: scope to <body>
 // (so the <head> title/meta never leak into the count), drop
 // script/style/noscript and header/footer/nav, then strip remaining tags.
-// ponytail: tags are replaced with "" (NOT a space) on purpose — cheerio's
+// ponytail: tags are replaced with "" (NOT a space) on purpose, cheerio's
 //   .text() concatenates text nodes with no separator, so "<li>a</li><li>b</li>"
 //   is "ab", not "a b". Matching that keeps our word count equal to core's (the
 //   thresholds were tuned against it). The block regexes handle non-nested tags
@@ -73,7 +73,7 @@ function bodyText(html) {
 
 // Text of each matched heading, mirroring cheerio's `$("h1").map(text)`:
 // inner tags stripped, decoded, collapsed, empties dropped.
-// ponytail: `re` is a hardcoded literal (h1/h2), never built from input — no
+// ponytail: `re` is a hardcoded literal (h1/h2), never built from input, no
 //   dynamic RegExp, no ReDoS surface.
 function tagTexts(html, re) {
   const out = [];
@@ -100,10 +100,10 @@ function buildStructureSignature(html) {
 // (og.*, httpMeta.statusCode, title, contentText, headings.h1, url). The rules
 // are pure JS after the type-only build, so a subset object is all they touch.
 // ponytail: this subset must grow whenever an imported rule starts reading a new
-//   ParsedPage field — rules-client.test.js fails loudly when it doesn't (e.g.
+//   ParsedPage field: rules-client.test.js fails loudly when it doesn't (e.g.
 //   v0.7.1 soft-404 began reading headings.h1). That test IS the coupling guard.
 export function parseSignals(html, url, status) {
-  // Drop comments up front — cheerio ignores them, so they must not count (a
+  // Drop comments up front: cheerio ignores them, so they must not count (a
   // commented-out <nav> or paragraph would otherwise inflate the body text).
   const doc = html.replace(/<!--[\s\S]*?-->/g, "");
   const contentText = bodyText(doc);
@@ -141,11 +141,11 @@ export function parseSignals(html, url, status) {
     },
     httpMeta: { statusCode: status },
     // AEO signal: JSON-LD structured data present (citation-friendly). Browser-safe
-    // proxy — core's full aeo/* rules use cheerio, so they stay in the SaaS audit.
+    // proxy: core's full aeo/* rules use cheerio, so they stay in the SaaS audit.
     hasSchema: /<script\b[^>]*type\s*=\s*["']application\/ld\+json["']/i.test(doc),
     // Un-hydrated SPA shell: a raw fetch sees the empty pre-JS HTML, not the
-    // rendered DOM Google indexes (§2). Mirror core's skipEmptyBody proxy —
-    // body text under ~100 chars with scripts present — and fail closed (§9):
+    // rendered DOM Google indexes (§2). Mirror core's skipEmptyBody proxy:
+    // body text under ~100 chars with scripts present, and fail closed (§9):
     // better to miss a genuinely tiny page than to badge a shell wrongly.
     // (A word threshold would mis-fire here: almost every real page has a
     // <script>, so "few words + a script" would suppress the very doorways we

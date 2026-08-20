@@ -20,8 +20,8 @@ const NOINDEX_PREFIXES = ["/r/", "/a/", "/api/", "/dashboard/", "/signin"];
 
 export function proxy(req: NextRequest) {
   // Canonical-host redirect (apex vs www consolidation). The target host is
-  // derived from BETTER_AUTH_URL — the same source robots.ts, sitemap.ts, and
-  // every `<link rel="canonical">` use — so it can never disagree with the
+  // derived from BETTER_AUTH_URL: the same source robots.ts, sitemap.ts, and
+  // every `<link rel="canonical">` use, so it can never disagree with the
   // canonical tags. Skips localhost, *.vercel.app previews, and /api (OAuth
   // callbacks must stay on the host they were issued for). 301 so crawl budget
   // and ranking signals consolidate on one host. GSC crawl stats showed apex +
@@ -31,7 +31,7 @@ export function proxy(req: NextRequest) {
     try {
       canonicalHost = new URL(process.env.BETTER_AUTH_URL ?? "").host;
     } catch {
-      /* malformed/unset env — skip the redirect */
+      /* malformed/unset env: skip the redirect */
     }
     const reqHost = req.headers.get("host") ?? "";
     if (
@@ -66,7 +66,7 @@ export function proxy(req: NextRequest) {
   }
 
   // OpenPanel analytics is proxied same-origin through /api/op (script + events),
-  // so the CSP stays 'self' — no external analytics origin needed.
+  // so the CSP stays 'self'; no external analytics origin needed.
   const scriptSrc = isProd
     ? "'self' 'unsafe-inline' challenges.cloudflare.com"
     : `'self' 'unsafe-inline' ${CSP_DEV_DYNAMIC_CODE} challenges.cloudflare.com`;

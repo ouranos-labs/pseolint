@@ -1,19 +1,19 @@
 /**
- * bestfirenze.com calibration regression — v0.5.3–v0.5.6 stack guard.
+ * bestfirenze.com calibration regression: v0.5.3–v0.5.6 stack guard.
  *
  * bestfirenze.com is a 6-page Florence tourism directory whose pages are
  * 100% identical Google Places regurgitation with 0 unique content. Before
  * v0.5.3 the engine classified it as `small-marketing` → applied severity
  * demotions → verdict "caution" / risk 37. The v0.5.3 degeneration-guard
  * (median word count < 50) trips the guard: classification downgrades to
- * `unclear` and a synthetic profile with EMPTY severityOverrides applies —
+ * `unclear` and a synthetic profile with EMPTY severityOverrides applies:
  * so spam/thin-content and aeo/citable-facts fire at native error severity.
  * This drives the blocker density ≥ 0.5 → risk floor 60 → verdict
  * "concerning". Contrast: the old small-marketing path demoted all these
  * rules to "info", leaving risk at 37 / "caution" (a false-negative).
  *
  * Guards:
- *  v0.5.3  applyDegenerationGuard — median-thin corpus resets classification
+ *  v0.5.3  applyDegenerationGuard: median-thin corpus resets classification
  *          to `unclear` and profileFor returns empty severityOverrides so
  *          no demotion table fires.
  *  v0.5.4  appliedSeverityDemotions is absent/empty because the synthetic
@@ -24,7 +24,7 @@
  *  v0.5.6  content/regurgitated-content detects Google Places signals
  *          (attribution link + >60% googleusercontent images).
  *
- * Fixtures are minimal synthetic HTML — empty body (0 words), single shared
+ * Fixtures are minimal synthetic HTML: empty body (0 words), single shared
  * title, Google Maps attribution link + 6 googleusercontent.com images.
  */
 
@@ -43,7 +43,7 @@ const TITLE = "Best of Florence - Discover Authentic Florence | BestFirenze.com"
  * Synthetic page HTML. Key signals that trip content/regurgitated-content:
  *   1. Google Maps attribution link with rel="noopener" (checkGoogleAttribution)
  *   2. 6 googleusercontent.com img srcs, >=60% of all images (checkGoogleImagesDominate)
- * Body text is intentionally empty (0 words) — mirrors the real site, trips
+ * Body text is intentionally empty (0 words): mirrors the real site, trips
  * spam/thin-content at native error severity, and causes translation-no-op to
  * skip (all variants below MIN_WORDS_FOR_TRANSLATION_CHECK=30).
  */
@@ -56,11 +56,11 @@ const PAGE_HTML = `<!DOCTYPE html>
   <link rel="canonical" href="https://bestfirenze.com/" />
 </head>
 <body>
-  <!-- Google Places attribution — trips checkGoogleAttribution -->
+  <!-- Google Places attribution: trips checkGoogleAttribution -->
   <a href="https://google.com/maps/place/Florence+Italy" rel="noopener">Powered by Google</a>
 
   <!-- 6 googleusercontent images out of 6 total images (100% >= 60% threshold)
-       — trips checkGoogleImagesDominate (MIN_IMAGES_FOR_RATIO_CHECK=3) -->
+: trips checkGoogleImagesDominate (MIN_IMAGES_FOR_RATIO_CHECK=3) -->
   <img src="https://lh3.googleusercontent.com/p/photo1.jpg" alt="" />
   <img src="https://lh3.googleusercontent.com/p/photo2.jpg" alt="" />
   <img src="https://lh3.googleusercontent.com/p/photo3.jpg" alt="" />
@@ -183,7 +183,7 @@ describe("bestfirenze.com calibration regression (v0.5.3–v0.5.6)", () => {
   });
 
   it("[v0.5.5] content/translation-no-op produces no findings (all pages below 30-word floor)", () => {
-    // All 6 pages have 0 words — below MIN_WORDS_FOR_TRANSLATION_CHECK.
+    // All 6 pages have 0 words: below MIN_WORDS_FOR_TRANSLATION_CHECK.
     // The rule skips clusters where every variant is under the floor, so no
     // findings should fire even though similarity is 1.0 across all variants.
     expect(byRule(summary, "content/translation-no-op")).toHaveLength(0);

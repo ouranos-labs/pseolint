@@ -5,13 +5,13 @@ const MAX_TITLE_LENGTH = 70;
 const TRUNCATION_RISK_LENGTH = 60;
 
 /**
- * content/title-uniqueness — three checks rolled into one rule:
+ * content/title-uniqueness: three checks rolled into one rule:
  *   1. Pages missing a title element (or with empty/whitespace-only titles).
  *   2. Pages whose title is so short that Google fills it from H1 / link
  *      text instead.
  *   3. Two or more pages sharing the EXACT raw title (templated catalog
  *      titles like "Slack to Google Sheets" vs "Slack to Airtable" are
- *      DIFFERENT raw titles, so this rule does NOT entity-mask — that
+ *      DIFFERENT raw titles, so this rule does NOT entity-mask: that
  *      would false-positive on every catalog directory in existence).
  *
  * Title is the highest-impact on-page signal Google ranks against. The

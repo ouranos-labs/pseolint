@@ -17,7 +17,7 @@ const Body = z.object({ isPublic: z.boolean() });
  * view (deterministic findings + summary, no LLM-proposed rewrites). The
  * actual diff content stays owner-only regardless of this toggle. Toggling
  * this is a curation choice (publish to a leaderboard / share for feedback /
- * include in `/research/`) — not a "make my fixes public" choice.
+ * include in `/research/`): not a "make my fixes public" choice.
  */
 export async function PATCH(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -30,7 +30,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ slug: 
   const body = Body.safeParse(await req.json().catch(() => ({})));
   if (!body.success) return NextResponse.json({ error: "invalid body" }, { status: 400 });
 
-  // Verify ownership via the join — the manifest's session must belong to
+  // Verify ownership via the join: the manifest's session must belong to
   // the requesting user. Doing this in one query rather than two round-trips.
   const [row] = await db
     .select({

@@ -26,10 +26,10 @@ function genUrls(pattern: string, n: number): string[] {
 }
 
 // ---------------------------------------------------------------------------
-// detectTemplates — filter math
+// detectTemplates: filter math
 // ---------------------------------------------------------------------------
 
-describe("detectTemplates — cluster filter (ratio ≥ 1%, count ≥ 5)", () => {
+describe("detectTemplates: cluster filter (ratio ≥ 1%, count ≥ 5)", () => {
   it("returns empty array for empty input", () => {
     expect(detectTemplates([])).toEqual([]);
   });
@@ -42,7 +42,7 @@ describe("detectTemplates — cluster filter (ratio ≥ 1%, count ≥ 5)", () =>
     ];
     const result = detectTemplates(urls);
     const sigs = result.map((c) => c.signature).filter((s) => s !== LONGTAIL_SIGNATURE);
-    // /listing/:slug has 4 items — below count threshold
+    // /listing/:slug has 4 items, below count threshold
     expect(sigs).not.toContain("/listing/:slug");
   });
 
@@ -54,7 +54,7 @@ describe("detectTemplates — cluster filter (ratio ≥ 1%, count ≥ 5)", () =>
     ];
     const result = detectTemplates(urls);
     const sigs = result.map((c) => c.signature).filter((s) => s !== LONGTAIL_SIGNATURE);
-    // /rare/:slug at 5/600 = 0.83% — below ratio threshold
+    // /rare/:slug at 5/600 = 0.83%, below ratio threshold
     expect(sigs).not.toContain("/rare/:slug");
   });
 
@@ -86,10 +86,10 @@ describe("detectTemplates — cluster filter (ratio ≥ 1%, count ≥ 5)", () =>
 });
 
 // ---------------------------------------------------------------------------
-// shouldActivateTemplateScoring — ≥2 qualifying templates
+// shouldActivateTemplateScoring: ≥2 qualifying templates
 // ---------------------------------------------------------------------------
 
-describe("shouldActivateTemplateScoring — requires ≥2 qualifying templates", () => {
+describe("shouldActivateTemplateScoring: requires ≥2 qualifying templates", () => {
   it("returns false when fewer than 2 qualifying templates", () => {
     // One qualifying template + longtail
     const urls = [
@@ -141,7 +141,7 @@ describe("shouldActivateTemplateScoring — requires ≥2 qualifying templates",
 // URL → template lookup correctness
 // ---------------------------------------------------------------------------
 
-describe("buildUrlToTemplateMap — URL lookup", () => {
+describe("buildUrlToTemplateMap: URL lookup", () => {
   it("maps each URL to its template signature", () => {
     const urls = [
       ...genUrls("https://example.com/listing/item-{i}", 5),
@@ -179,7 +179,7 @@ describe("buildUrlToTemplateMap — URL lookup", () => {
 // Long-tail bucket
 // ---------------------------------------------------------------------------
 
-describe("detectTemplates — long-tail bucket", () => {
+describe("detectTemplates: long-tail bucket", () => {
   it("groups non-qualifying URLs into _longtail", () => {
     // 10 listing URLs qualify; 3 singleton URLs should go to longtail
     const urls = [

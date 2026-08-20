@@ -1,4 +1,4 @@
-# Actionable Output Improvements — Implementation Plan
+# Actionable Output Improvements: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -218,7 +218,7 @@ git commit -m "feat: add similarity field to pairwise rule findings for enrichme
 
 ---
 
-### Task 3: Create enrichment pipeline — union-find clustering
+### Task 3: Create enrichment pipeline: union-find clustering
 
 **Files:**
 - Create: `packages/core/src/enrich-findings.ts`
@@ -263,7 +263,7 @@ function makePage(url: string, content: string = "default content"): ParsedPage 
   };
 }
 
-describe("enrichFindings — clustering", () => {
+describe("enrichFindings, clustering", () => {
   it("collapses transitive pairwise findings into one cluster", () => {
     const findings: RuleResult[] = [
       makeFinding("spam/near-duplicate", "https://a.com/1", "https://a.com/2", 0.90),
@@ -362,7 +362,7 @@ describe("enrichFindings — clustering", () => {
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `cd packages/core && npx vitest run tests/enrich-findings.test.ts`
-Expected: FAIL — `enrichFindings` does not exist
+Expected: FAIL, `enrichFindings` does not exist
 
 - [ ] **Step 3: Implement union-find clustering in `enrich-findings.ts`**
 
@@ -591,12 +591,12 @@ function rewriteClusterFix(
     const base = `Your template produces ${clusterSize} near-identical pages (${rangeStr} similar).`;
     const content = contentSummary ? ` ${contentSummary}` : "";
     if (ruleId === "spam/entity-swap") {
-      return `${base}${content} Add conditional content sections per entity dimension — local regulations, pricing, requirements, or statistics specific to each entity.`;
+      return `${base}${content} Add conditional content sections per entity dimension, local regulations, pricing, requirements, or statistics specific to each entity.`;
     }
     if (ruleId === "cannibal/keyword-collision" || ruleId === "cannibal/title-overlap") {
       return `${base}${content} Differentiate each page's keyword focus and title to target distinct search intents.`;
     }
-    return `${base}${content} Add conditional content sections per entity dimension — local regulations, pricing, requirements, or statistics specific to each entity.`;
+    return `${base}${content} Add conditional content sections per entity dimension, local regulations, pricing, requirements, or statistics specific to each entity.`;
   }
 
   const base = `${clusterSize} pages form a near-duplicate cluster (${rangeStr} similar).`;
@@ -800,7 +800,7 @@ git commit -m "feat: add enrichment pipeline with union-find clustering, content
 Append to `packages/core/tests/enrich-findings.test.ts`:
 
 ```typescript
-describe("enrichFindings — template detection", () => {
+describe("enrichFindings, template detection", () => {
   it("detects template when entity-swap >= 10 pages and template-diversity fires", () => {
     const findings: RuleResult[] = [];
     // 10 entity-swap pairs covering 11 unique pages
@@ -840,7 +840,7 @@ describe("enrichFindings — template detection", () => {
   });
 });
 
-describe("enrichFindings — effort assignment", () => {
+describe("enrichFindings, effort assignment", () => {
   it("assigns quick effort to og-completeness with few pages", () => {
     const findings: RuleResult[] = [
       { ruleId: "tech/og-completeness", severity: "warning", message: "Missing.", pageUrl: "https://a.com/1" },
@@ -887,7 +887,7 @@ describe("enrichFindings — effort assignment", () => {
   });
 });
 
-describe("enrichFindings — rawFindingCount", () => {
+describe("enrichFindings, rawFindingCount", () => {
   it("preserves the pre-enrichment finding count", () => {
     const findings: RuleResult[] = [
       makeFinding("spam/near-duplicate", "https://a.com/1", "https://a.com/2", 0.90),
@@ -960,7 +960,7 @@ function makePage(url: string, content: string = "default content for testing pu
   };
 }
 
-describe("fix strings — template-aware", () => {
+describe("fix strings, template-aware", () => {
   it("includes 'template' language when template detected", () => {
     const findings: RuleResult[] = [];
     for (let i = 0; i < 10; i++) {
@@ -1280,7 +1280,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
     lines.push("");
   }
 
-  // Top Issues — transformed with cluster info and effort
+  // Top Issues, transformed with cluster info and effort
   const ruleMeta = new Map<string, { count: number; severity: Severity; effort?: FixEffort; clusterCount: number; totalPages: number; similarityRange?: [number, number] }>();
   for (const f of summary.findings) {
     const existing = ruleMeta.get(f.ruleId);
@@ -1347,7 +1347,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
         desc = meta.count === 1 ? "1 page" : `${meta.totalPages} pages`;
       }
       const effort = effortLabelPlain(meta.effort);
-      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId} — ${desc}. ${effort}`);
+      lines.push(`  ${sColor}${i + 1}.${RESET} ${ruleId}, ${desc}. ${effort}`);
     }
     lines.push("");
   }
@@ -1821,7 +1821,7 @@ const enrichedSummary: AuditSummary = {
   ],
 };
 
-describe("formatConsole — enriched output", () => {
+describe("formatConsole, enriched output", () => {
   it("shows template banner when templateDetected is true", () => {
     const output = formatConsole(enrichedSummary);
     expect(output).toContain("Template-generated content detected");
@@ -1840,7 +1840,7 @@ describe("formatConsole — enriched output", () => {
   });
 });
 
-describe("formatHtml — enriched output", () => {
+describe("formatHtml, enriched output", () => {
   it("renders collapsible details element for clusters", () => {
     const output = formatHtml(enrichedSummary);
     expect(output).toContain("<details>");
@@ -1861,7 +1861,7 @@ describe("formatHtml — enriched output", () => {
   });
 });
 
-describe("formatMarkdown — enriched output", () => {
+describe("formatMarkdown, enriched output", () => {
   it("includes effort badge inline", () => {
     const output = formatMarkdown(enrichedSummary);
     expect(output).toContain("(**structural fix**)");
@@ -1874,7 +1874,7 @@ describe("formatMarkdown — enriched output", () => {
   });
 });
 
-describe("formatJson — enriched output", () => {
+describe("formatJson, enriched output", () => {
   it("preserves context and effort in JSON output", () => {
     const parsed = JSON.parse(formatJson(enrichedSummary));
     expect(parsed.templateDetected).toBe(true);
@@ -1913,7 +1913,7 @@ In `packages/action/src/index.ts`, modify the `formatPrComment` function (lines 
 function formatPrComment(summary: AuditSummary): string {
   const lines: string[] = [COMMENT_MARKER];
 
-  lines.push(`## pSEO Lint — Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
+  lines.push(`## pSEO Lint, Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
   lines.push("");
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
 

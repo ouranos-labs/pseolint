@@ -10,11 +10,11 @@ export type OrchestratorCompleteEmailProps = {
   validPatchCount: number;
   totalPatchCount: number;
   spentUsd: number;
-  /** Session USD cap this run was bounded by — shown alongside spend for context. */
+  /** Session USD cap this run was bounded by: shown alongside spend for context. */
   budgetUsd: number;
   durationSeconds: number;
   /**
-   * Terminal status — "completed" sends the success template; "failed"
+   * Terminal status: "completed" sends the success template; "failed"
    * sends a failure template that points back to the session-progress
    * page so the user can see what went wrong.
    */
@@ -50,7 +50,7 @@ export default function OrchestratorCompleteEmail(props: OrchestratorCompleteEma
             pseolint orchestrator
           </Text>
           <Heading style={{ margin: "8px 0 0", fontSize: 22, fontWeight: 600 }}>
-            {failed ? `Session failed — ${props.domain}` : `Audit complete — ${props.domain}`}
+            {failed ? `Session failed, ${props.domain}` : `Audit complete, ${props.domain}`}
           </Heading>
 
           {failed ? (
@@ -70,7 +70,7 @@ export default function OrchestratorCompleteEmail(props: OrchestratorCompleteEma
               </Section>
               <Section style={{ marginTop: 16 }}>
                 <Text style={{ margin: 0, color: "#374151", fontSize: 14, lineHeight: 1.6 }}>
-                  The orchestrator started running but didn&apos;t finish — common causes are budget
+                  The orchestrator started running but didn&apos;t finish: common causes are budget
                   cap reached, model rate limits, or transient provider errors. You were charged
                   ${props.spentUsd.toFixed(3)} for the LLM tokens consumed before failure.
                 </Text>

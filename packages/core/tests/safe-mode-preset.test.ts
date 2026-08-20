@@ -39,12 +39,12 @@ describe("resolveSafeModeKey", () => {
     expect(resolveSafeModeKey("https://paperforge.dev/r/foo")).toBe("__none");
   });
 
-  it("respects autoDevPreset: false — does not promote localhost", () => {
+  it("respects autoDevPreset: false, does not promote localhost", () => {
     expect(resolveSafeModeKey("http://localhost:3000", { autoDevPreset: false })).toBe("__none");
   });
 
   it("explicit safeMode wins over auto-detection on localhost", () => {
-    // User ran `pseolint http://localhost --safe-mode cli` — respect that.
+    // User ran `pseolint http://localhost --safe-mode cli`, respect that.
     expect(resolveSafeModeKey("http://localhost", { safeMode: "cli" })).toBe("cli");
     expect(resolveSafeModeKey("http://localhost", { safeMode: "saas" })).toBe("saas");
   });

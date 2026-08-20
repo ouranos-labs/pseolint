@@ -19,7 +19,7 @@ function makePage(url: string, content: string = "default content for testing pu
   };
 }
 
-describe("fix strings — template-aware", () => {
+describe("fix strings: template-aware", () => {
   it("includes 'template' language when template detected", () => {
     const findings: RuleResult[] = [];
     for (let i = 0; i < 10; i++) {

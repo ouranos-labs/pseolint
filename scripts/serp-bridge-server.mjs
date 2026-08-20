@@ -16,7 +16,7 @@
  *   4. For each SERP query the script prompts you for, open Google Search
  *      in the ACTIVE Chrome tab; the script captures landscape + deep-scan data.
  *
- * Press Ctrl-C at any time — partial results are saved automatically.
+ * Press Ctrl-C at any time: partial results are saved automatically.
  */
 
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -54,7 +54,7 @@ const server = Bun.serve({
   fetch(req, server) {
     // Upgrade every incoming request to WebSocket
     if (server.upgrade(req)) return; // handled
-    return new Response("pseolint bridge — WebSocket only", { status: 426 });
+    return new Response("pseolint bridge: WebSocket only", { status: 426 });
   },
   websocket: {
     open(ws) {
@@ -79,7 +79,7 @@ const server = Bun.serve({
       }
     },
     close(ws) {
-      console.log("⚡ Extension disconnected — waiting for reconnect...");
+      console.log("⚡ Extension disconnected; waiting for reconnect...");
       extWs = null;
       for (const [id, { reject, timer }] of Object.entries(pending)) {
         clearTimeout(timer);
@@ -98,7 +98,7 @@ const server = Bun.serve({
 /**
  * Enqueue a typed request to the extension and resolve when it replies.
  * The message is sent immediately if connected, or queued until the next
- * chrome.alarms-triggered reconnect — no polling, no race conditions.
+ * chrome.alarms-triggered reconnect: no polling, no race conditions.
  */
 function sendToExtension(type, payloadData = {}, timeoutMs = 30_000) {
   return new Promise((resolve, reject) => {
@@ -108,14 +108,14 @@ function sendToExtension(type, payloadData = {}, timeoutMs = 30_000) {
       // Also remove from queue if it was never sent
       const qi = msgQueue.findIndex((m) => m.includes(`"id":"${id}"`) || m.includes(`"id": "${id}"`) );
       if (qi !== -1) msgQueue.splice(qi, 1);
-      reject(new Error(`Timeout — extension did not respond to ${type} within ${timeoutMs / 1000}s`));
+      reject(new Error(`Timeout: extension did not respond to ${type} within ${timeoutMs / 1000}s`));
     }, timeoutMs);
     pending[id] = { resolve, reject, timer };
 
     const payload = JSON.stringify({ id, type, payload: payloadData });
     if (extWs) {
       try { extWs.send(payload); }
-      catch { msgQueue.push(payload); } // closed between check and send — queue it
+      catch { msgQueue.push(payload); } // closed between check and send; queue it
     } else {
       msgQueue.push(payload); // sent when extension next reconnects via alarm
     }
@@ -172,7 +172,7 @@ const QUERIES = [
 // ── Opportunity Scoring & Summary ─────────────────────────────────────────────
 function printOpportunitySummary() {
   console.log("\n╔═══════════════════════════════════════════════════════╗");
-  console.log("║           SERP Opportunity Summary — podcurator.io    ║");
+  console.log("║           SERP Opportunity Summary - podcurator.io    ║");
   console.log("╚═══════════════════════════════════════════════════════╝\n");
 
   const opps = [];
@@ -213,7 +213,7 @@ function printOpportunitySummary() {
 
   const highPseo = opps.filter((o) => o.pSEORatio >= 40 && o.score >= 20);
   if (highPseo.length) {
-    console.log("\nHigh pSEO ratio queries (≥40% templated — quality content can outrank):");
+    console.log("\nHigh pSEO ratio queries (≥40% templated; quality content can outrank):");
     for (const op of highPseo) {
       console.log(`  • "${op.query}"  →  ${op.pSEORatio}% templated results`);
     }
@@ -225,7 +225,7 @@ function printOpportunitySummary() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log("\n═══════════════════════════════════════════════════════════");
-  console.log("  pseolint SERP Bridge  —  podcurator.io opportunity scan");
+  console.log("  pseolint SERP Bridge  -  podcurator.io opportunity scan");
   console.log("═══════════════════════════════════════════════════════════");
   console.log(`\n  Bridge listening on ws://localhost:${PORT}`);
   console.log("  Make sure you have:\n");
@@ -242,7 +242,7 @@ async function main() {
       for (const r of existing.queries) results.push(r);
       console.log(`  Resuming: loaded ${results.length} existing result(s) from ${outFile}`);
     }
-  } catch { /* no existing file — start fresh */ }
+  } catch { /* no existing file; start fresh */ }
 
   // Build a set of already-captured labels so we can skip them
   const done = new Set(results.map((r) => r.label));
@@ -285,7 +285,7 @@ async function main() {
     let landscape = null;
     let deepScan = null;
 
-    // Tier 1 — landscape (fast, no fetch) with retries if the content script is not ready
+    // Tier 1: landscape (fast, no fetch) with retries if the content script is not ready
     const maxRetries = 3;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -334,7 +334,7 @@ async function main() {
 }
 
 process.on("SIGINT", () => {
-  console.log("\n\n⚡ Interrupted — saving partial results...");
+  console.log("\n\n⚡ Interrupted; saving partial results...");
   writeResultsFile();
   if (results.length > 0) printOpportunitySummary();
   rl.close();

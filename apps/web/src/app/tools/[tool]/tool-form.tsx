@@ -59,7 +59,7 @@ export function ToolForm({ tool }: ToolFormProps) {
   const [err, setErr] = useState<FormError | null>(null);
   const [authorized, setAuthorized] = useState(false);
   // True only when authorization was restored from localStorage on mount (a
-  // returning user) — used to hide the checkbox entirely for them.
+  // returning user): used to hide the checkbox entirely for them.
   const [rememberedAuthorization, setRememberedAuthorization] = useState(false);
   // Turnstile is deferred until the user engages the form (focuses the URL
   // field, or arrives with a prefilled URL) so the ~65px widget stays out of
@@ -86,7 +86,7 @@ export function ToolForm({ tool }: ToolFormProps) {
         setRememberedAuthorization(true);
       }
     } catch {
-      // localStorage unavailable — checkbox stays visible and unchecked.
+      // localStorage unavailable: checkbox stays visible and unchecked.
     }
   }, []);
 
@@ -96,7 +96,7 @@ export function ToolForm({ tool }: ToolFormProps) {
       if (checked) window.localStorage.setItem(TOS_STORAGE_KEY, "1");
       else window.localStorage.removeItem(TOS_STORAGE_KEY);
     } catch {
-      // localStorage write failed — non-fatal, the in-memory state still gates submit.
+      // localStorage write failed: non-fatal, the in-memory state still gates submit.
     }
   };
 
@@ -128,7 +128,7 @@ export function ToolForm({ tool }: ToolFormProps) {
         try {
           window.turnstile.remove(widgetId);
         } catch {
-          // Widget already removed by a prior unmount — safe to ignore.
+          // Widget already removed by a prior unmount: safe to ignore.
         }
       }
     };
@@ -140,7 +140,7 @@ export function ToolForm({ tool }: ToolFormProps) {
     if (!normalized) {
       setErr({
         message: "That doesn't look like a valid URL.",
-        hint: "Use a full URL starting with https:// — e.g. https://yoursite.com.",
+        hint: "Use a full URL starting with https://, e.g. https://yoursite.com.",
       });
       return;
     }
@@ -195,7 +195,7 @@ export function ToolForm({ tool }: ToolFormProps) {
 
   return (
     <>
-      {/* Load the Turnstile script only once the form is armed — its `onload`
+      {/* Load the Turnstile script only once the form is armed: its `onload`
           callback (window.onTurnstileReady) is registered by the armed render
           effect, so loading it eagerly would warn about a missing callback. */}
       {siteKey && turnstileArmed && (
@@ -263,7 +263,7 @@ export function ToolForm({ tool }: ToolFormProps) {
         )}
 
         <Button type="submit" disabled={submitting} className="h-11 w-full font-semibold">
-          {submitting ? "Starting audit…" : `Run ${tool.primaryKeyword} — free`}
+          {submitting ? "Starting audit…" : `Run ${tool.primaryKeyword}, free`}
         </Button>
 
         <p className="text-[10px] leading-relaxed text-muted-foreground">
@@ -325,7 +325,7 @@ function mapApiError(status: number, message: string): FormError {
     if (lower.includes("private") || lower.includes("loopback") || lower.includes("not allowed")) {
       return {
         message: "Can't audit that URL.",
-        hint: "We only audit public sites — localhost, private networks, and non-http(s) URLs are blocked.",
+        hint: "We only audit public sites, localhost, private networks, and non-http(s) URLs are blocked.",
       };
     }
     return { message: "That URL couldn't be processed.", hint: message };

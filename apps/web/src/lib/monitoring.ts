@@ -9,7 +9,7 @@ import { generateVerificationToken } from "@/lib/domain-verify";
 import { autoBindGscPropertiesForUser } from "@/lib/gsc";
 
 /**
- * Webhook-safe variant of addDomainAction — no session required.
+ * Webhook-safe variant of addDomainAction: no session required.
  * Called from the Polar webhook when monitor-intent checkout completes.
  * Caller is responsible for verifying that the userId + audit ownership match.
  */
@@ -40,7 +40,7 @@ export async function ensureMonitoredDomainForUser(
       if (active >= MAX_PRO_DOMAINS) {
         throw new Error(`Pro domain cap reached (${MAX_PRO_DOMAINS})`);
       }
-      // Ownership must be re-proven on every re-add — same rule as
+      // Ownership must be re-proven on every re-add, same rule as
       // addDomainAction's reactivate branch.
       await db
         .update(monitoredDomains)
@@ -68,7 +68,7 @@ export async function ensureMonitoredDomainForUser(
       cadence: "daily",
       nextRunAt: new Date(),
       // Without a token the auto-verify cron skips the row and the workspace
-      // verify banner has nothing to display — the domain would be stuck
+      // verify banner has nothing to display; the domain would be stuck
       // unverifiable until the user clicked Verify twice.
       verificationToken: generateVerificationToken(),
     });
@@ -77,7 +77,7 @@ export async function ensureMonitoredDomainForUser(
   // Checkout usually follows a free audit, so the user may already have Search
   // Console connected. Binding it here also verifies the domain when the
   // property proves ownership, which spares a fresh Pro subscriber the TXT
-  // record. Best-effort by contract — returns zero counts on any failure.
+  // record. Best-effort by contract: returns zero counts on any failure.
   await autoBindGscPropertiesForUser(userId);
 
   const [domRow] = await db
@@ -86,7 +86,7 @@ export async function ensureMonitoredDomainForUser(
     .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
     .limit(1);
 
-  // Ownership gate — mirrors addDomainAction. No kickoff crawl for an
+  // Ownership gate: mirrors addDomainAction. No kickoff crawl for an
   // unverified domain; monitor-domains picks it up once `verifiedAt` lands.
   if (!domRow?.verifiedAt) return { host };
 
@@ -104,7 +104,7 @@ export async function ensureMonitoredDomainForUser(
     })
     .returning({ id: audits.id });
 
-  // v0.5.3 — load any existing watched URLs for the domain (re-activated
+  // v0.5.3: load any existing watched URLs for the domain (re-activated
   // domains may already have a list) so the kickoff audit forces them.
   const watchedUrls = await loadWatchedUrlsForDomain(domRow.id);
 
@@ -124,7 +124,7 @@ export async function ensureMonitoredDomainForUser(
 
 /**
  * Domains eligible for a monitoring run right now: due, not paused, not
- * soft-removed, and — the gate that matters — ownership-verified. A row failing
+ * soft-removed, and: the gate that matters, ownership-verified. A row failing
  * any of these must never reach the auditor.
  *
  * Extracted from the `monitor-domains` cron (its only production caller) so the
@@ -133,7 +133,7 @@ export async function ensureMonitoredDomainForUser(
  */
 /**
  * Either the pooled client or an open transaction. Accepting a transaction lets
- * the DB-backed eligibility test seed rows, assert against them, and roll back —
+ * the DB-backed eligibility test seed rows, assert against them, and roll back:
  * so a suite pointed at a live database commits nothing and the monitoring cron
  * can never observe its fixtures.
  */
@@ -155,7 +155,7 @@ export function selectDueDomains(limit: number, conn: Conn = db) {
 }
 
 /**
- * v0.5.3 — load watched-page URLs for a monitored domain, deduped + ordered.
+ * v0.5.3: load watched-page URLs for a monitored domain, deduped + ordered.
  * Keep this lightweight (single column, single index hit). Used by every
  * monitoring entry point to thread `opts.force.urls` into the engine.
  */
@@ -181,12 +181,12 @@ export async function loadWatchedUrlsForDomain(monitoredDomainId: string): Promi
  *
  * Storage choice: Postgres only. We considered reading per-audit URL lists
  * from R2 to compute *distinct* URL coverage, but `ScrapePlanSummary`
- * (mirrored on `audits.scrapePlan`) carries only counts — no URLs — and
+ * (mirrored on `audits.scrapePlan`) carries only counts: no URLs, and
  * round-tripping to R2 on every workspace render is too heavy for a domain
  * with weeks-to-months of audits. We pay the honesty cost in the card
  * label: "URLs audited (cumulative)" rather than "distinct URLs observed".
  *
- * Caller is responsible for authorization — pass a domainId you have already
+ * Caller is responsible for authorization: pass a domainId you have already
  * proven the current user owns. The query also matches on `audits.userId`
  * defensively so a leaked domainId can't surface another user's audit
  * counts.
@@ -196,7 +196,7 @@ export async function loadWatchedUrlsForDomain(monitoredDomainId: string): Promi
  *          has no completed audit history yet.
  */
 // TODO(v0.6): precompute as a materialized view if a single domain ever
-// accumulates more than O(100) completed audits — current scan is fine
+// accumulates more than O(100) completed audits; current scan is fine
 // for v0.5.3 (12 weeks of weekly audits = 12 rows).
 export async function getCumulativeCoverage(args: {
   monitoredDomainId: string;
@@ -216,7 +216,7 @@ export async function getCumulativeCoverage(args: {
     like(audits.sourceUrl, `${origin}/%`),
   );
   // NOTE: pass `since` as an ISO string, NOT a raw Date. drizzle-orm/postgres-js
-  // cannot serialize a JS Date interpolated into a raw sql`` template — it throws
+  // cannot serialize a JS Date interpolated into a raw sql`` template; it throws
   // ERR_INVALID_ARG_TYPE ("Received an instance of Date"). (The old
   // @neondatabase/serverless driver tolerated it; postgres.js does not. This was
   // the cause of the /dashboard/[host] render crash after the 2026-06-05 driver
@@ -244,7 +244,7 @@ export async function getCumulativeCoverage(args: {
 /**
  * Reduce a stored `sourceUrl` to `${protocol}//${host}` (lowercased). Both
  * `monitored_domain.source_url` and `audits.source_url` are server-set, so the
- * only hostnames that flow through here come from validated URL parsing —
+ * only hostnames that flow through here come from validated URL parsing:
  * they never legally contain `%` / `_` / `\` (LIKE wildcards). Returns "" on
  * parse failure so a single corrupt DB row can't bleed wildcard characters
  * into the LIKE pattern downstream and inflate the match set.

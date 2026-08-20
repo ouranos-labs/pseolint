@@ -112,7 +112,7 @@ function buildArticleJsonLd(rule: MarketingRule): TechArticleJsonLd {
     inLanguage: "en",
     about: { "@type": "Thing", name: rule.primaryKeyword },
     keywords: [rule.primaryKeyword, rule.ruleId, "SpamBrain", "programmatic SEO"],
-    // Freshness signals — mirrors the /symptoms template, which already emits
+    // Freshness signals: mirrors the /symptoms template, which already emits
     // both. Their absence here fired aeo/freshness-signals across all rule
     // pages (surfaced dogfooding the pseolint skill against our own pSEO).
     datePublished: RULES_PUBLISHED,
@@ -296,14 +296,14 @@ export default async function RulePage({ params }: PageProps) {
         <InlineAuditWidget
           headline={`Test your site for ${rule.title.toLowerCase()}`}
           cta="Run a SpamBrain check"
-          // Pass the rule's tool so the report renders a focused-lens card —
+          // Pass the rule's tool so the report renders a focused-lens card:
           // only then is a "spotlight this rule" promise actually delivered.
           // A rule without a relatedTool falls back to a plain full audit.
           tool={rule.relatedTool || undefined}
           ruleHint={
             rule.relatedTool
               ? `Your report will spotlight the \`${rule.ruleId}\` lens, with a link to the full audit.`
-              : `Runs the full audit — look for \`${rule.ruleId}\` in the findings.`
+              : `Runs the full audit, look for \`${rule.ruleId}\` in the findings.`
           }
         />
       </div>
@@ -520,7 +520,7 @@ export default async function RulePage({ params }: PageProps) {
                     {sibling.ruleId}
                   </span>
                   <span className="mt-2 text-sm font-medium text-foreground">
-                    {sibling.title.split("—")[0]?.trim() ?? sibling.title}
+                    {sibling.title.split("; ")[0]?.trim() ?? sibling.title}
                   </span>
                   <span className="mt-1 text-xs text-muted-foreground">{sibling.oneLiner}</span>
                   <span className="mt-3 text-xs text-primary transition-transform group-hover:translate-x-0.5">
@@ -539,7 +539,7 @@ export default async function RulePage({ params }: PageProps) {
         </p>
         <p className="mt-2">
           Run pseolint against your sitemap. The audit is free, takes about a minute, and
-          returns a per-URL list of every rule that fired — including this one — with the
+          returns a per-URL list of every rule that fired (including this one) with the
           exact metric values so you can prioritise the fix queue.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -575,7 +575,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 /**
  * Render a long-form field as one paragraph per blank-line-separated block.
  * Keeps each rendered <p> independently extractable and under the
- * aeo/content-modularity word ceiling — split the source string with `\n\n`.
+ * aeo/content-modularity word ceiling: split the source string with `\n\n`.
  */
 /**
  * Renders inline `backtick` spans as <code>.
@@ -584,7 +584,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * EXAMPLE_REGION_SELECTOR ("pre, code, blockquote, figure, samp, kbd,
  * [data-example]") before scanning, precisely so a page that *documents* a
  * pattern isn't scored as if it were committing it. A rule page naming
- * "hidden gem" as a specimen is quoting, not writing clichés — marking the
+ * "hidden gem" as a specimen is quoting, not writing clichés: marking the
  * specimen as code is how we say that in markup rather than special-casing
  * our own domain in the engine.
  */

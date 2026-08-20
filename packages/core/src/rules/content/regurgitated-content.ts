@@ -13,7 +13,7 @@ const RULE_ID = "content/regurgitated-content";
  * External corpus checks (Wikipedia / Tripadvisor n-gram overlap) deferred to v0.6.
  */
 
-// Text-search regexes — kept as-is (no DOM-parsing fragility).
+// Text-search regexes: kept as-is (no DOM-parsing fragility).
 const GOOGLE_ATTRIBUTION_RE = /powered by google/i;
 
 const GOOGLE_IMG_HOSTS = [

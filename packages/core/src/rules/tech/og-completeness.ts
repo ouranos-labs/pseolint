@@ -1,7 +1,7 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/og-completeness — flags pages missing the core Open Graph metadata
+ * tech/og-completeness: flags pages missing the core Open Graph metadata
  * that drives social-share previews and is increasingly used by AI Overviews
  * as a fallback summary signal.
  *
@@ -14,7 +14,7 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * Severity gradation:
  *   - warning: og:title or og:description is missing (core social-card identity
  *              fields that affect how a link appears in feeds and AI summaries).
- *   - info:    only og:image is missing (cosmetic — the card still has a title
+ *   - info:    only og:image is missing (cosmetic: the card still has a title
  *              and description; the missing image is low-priority), or the core
  *              three are all present and only og:type / og:url is missing.
  *

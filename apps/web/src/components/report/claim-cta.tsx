@@ -14,7 +14,7 @@ export function ClaimCta({ host, claimed, ownedByViewer }: { host: string; claim
     return (
       <div className="mt-6 rounded-[22px] border border-success/25 bg-success/5 p-5">
         <p className="text-sm font-medium text-foreground">✓ You own this listing.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Embed your verified badge — it links back to the leaderboard:</p>
+        <p className="mt-1 text-xs text-muted-foreground">Embed your verified badge; it links back to the leaderboard:</p>
         <pre className="mt-2 overflow-x-auto rounded-[10px] border border-border/60 bg-background/60 p-2 font-mono text-[11px] text-muted-foreground">{snippet}</pre>
       </div>
     );
@@ -24,7 +24,7 @@ export function ClaimCta({ host, claimed, ownedByViewer }: { host: string; claim
   function attempt() {
     start(async () => {
       const res = await claimHostAction(host);
-      if ("ok" in res) { toast.success(`Verified via ${res.method.toUpperCase()} — listing claimed.`); location.reload(); }
+      if ("ok" in res) { toast.success(`Verified via ${res.method.toUpperCase()}: listing claimed.`); location.reload(); }
       else {
         toast.error(res.error);
         if (!dns) setDns(await getDnsClaimInstructionsAction(host));

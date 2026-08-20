@@ -88,7 +88,7 @@ describe("stratifiedSample", () => {
 
 describe("seeded sampling (mulberry32)", () => {
   // 2026-05-03 calibration credibility fix: round-to-round verdict drift
-  // was partially driven by Math.random — same engine, same site,
+  // was partially driven by Math.random: same engine, same site,
   // different sample, different verdict. With sampleSeed plumbed through
   // stratifiedSample, repeated runs against the same URL set produce the
   // same audit, so verdicts are reproducible for CI gates and calibration.
@@ -105,7 +105,7 @@ describe("seeded sampling (mulberry32)", () => {
     const a = stratifiedSample(urls, 25, mulberry32(1));
     const b = stratifiedSample(urls, 25, mulberry32(2));
     // Both contain the same number of items and are subsets of the input,
-    // but the chosen URLs should differ — they were drawn from a different
+    // but the chosen URLs should differ; they were drawn from a different
     // PRNG state.
     expect(a).not.toEqual(b);
   });

@@ -6,7 +6,7 @@ import { shiftVerdictForEffort } from "../../src/auditor.js";
 // is a "no-reputable zone" where a 2-tier escalation flags a farm on its own,
 // while effort 4–5 keeps the conservative ±1 nudge that protects winners.
 describe("shiftVerdictForEffort", () => {
-  it("very-low effort (≤3) escalates TWO tiers — flags a farm on its own", () => {
+  it("very-low effort (≤3) escalates TWO tiers: flags a farm on its own", () => {
     expect(shiftVerdictForEffort("ready", 2)).toBe("concerning"); // healthyceleb case
     expect(shiftVerdictForEffort("ready", 0)).toBe("concerning");
     expect(shiftVerdictForEffort("caution", 1)).toBe("critical"); // popularnetworth case
@@ -19,11 +19,11 @@ describe("shiftVerdictForEffort", () => {
   });
 
   it("mid effort (6–24) does not move the verdict", () => {
-    expect(shiftVerdictForEffort("ready", 9)).toBe("ready"); // wikibioworth — correctly not flagged
+    expect(shiftVerdictForEffort("ready", 9)).toBe("ready"); // wikibioworth: correctly not flagged
     expect(shiftVerdictForEffort("caution", 12)).toBe("caution");
   });
 
-  it("high effort (≥25) softens one tier — rescues proprietary-data winners", () => {
+  it("high effort (≥25) softens one tier: rescues proprietary-data winners", () => {
     expect(shiftVerdictForEffort("concerning", 28)).toBe("caution"); // numbeo case
     expect(shiftVerdictForEffort("critical", 100)).toBe("concerning");
   });
