@@ -100,7 +100,7 @@ describe("sitemapHygieneRule", () => {
 
     test("lastmod within the 24h tolerance does NOT fire", () => {
       const set = urls("https://example.com/a");
-      // 12h ahead of NOW — inside the tolerance window
+      // 12h ahead of NOW, inside the tolerance window
       const lastmods = new Map([["https://example.com/a", "2026-08-20T00:00:00Z"]]);
       const findings = sitemapHygieneRule(set, lastmods, SOURCE, NOW);
       expect(findings.every((f) => !f.message.includes("future"))).toBe(true);

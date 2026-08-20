@@ -1,14 +1,14 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/meta-robots-conflict — flags pages whose robots directives contradict
+ * tech/meta-robots-conflict flags pages whose robots directives contradict
  * each other across the three places they can be declared: `<meta name="robots">`
  * tags, `<meta name="googlebot">` tags, and the `X-Robots-Tag` HTTP header.
  *
  * When directives conflict, Google applies the MOST RESTRICTIVE one
  * (https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag),
- * so an accidental `noindex` — e.g. left over from staging in a header while the
- * meta tag says `index` — silently wins and deindexes the page.
+ * so an accidental `noindex` (e.g. left over from staging in a header while the
+ * meta tag says `index`) silently wins and deindexes the page.
  *
  *   - error:   a directive and its opposite both appear (index vs noindex,
  *              follow vs nofollow) anywhere across the sources.
@@ -93,9 +93,9 @@ export function metaRobotsConflictRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/meta-robots-conflict",
         severity: "error",
         confidence: "high",
-        message: `${page.url} declares both "${positive}" (${[...posSources].join(", ")}) and "${negative}" (${[...negSources].join(", ")}) — Google applies the most restrictive directive, so "${negative}" silently wins.`,
+        message: `${page.url} declares both "${positive}" (${[...posSources].join(", ")}) and "${negative}" (${[...negSources].join(", ")}). Google applies the most restrictive directive, so "${negative}" silently wins.`,
         pageUrl: page.url,
-        fix: `Remove the unintended directive so all sources (meta robots, meta googlebot, X-Robots-Tag header) agree. If "${negative}" is accidental — e.g. a staging header that shipped to production — it is currently deindexing/restricting this page.`,
+        fix: `Remove the unintended directive so all sources (meta robots, meta googlebot, X-Robots-Tag header) agree. If "${negative}" is accidental (e.g. a staging header that shipped to production), it is currently deindexing/restricting this page.`,
       });
     }
 
@@ -110,7 +110,7 @@ export function metaRobotsConflictRule(pages: ParsedPage[]): RuleResult[] {
           ruleId: "tech/meta-robots-conflict",
           severity: "warning",
           confidence: "high",
-          message: `${page.url} has ${contents.length} <meta name="${metaName}"> tags with different content (${[...distinct].map((c) => `"${c}"`).join(" vs ")}) — it is ambiguous which one wins.`,
+          message: `${page.url} has ${contents.length} <meta name="${metaName}"> tags with different content (${[...distinct].map((c) => `"${c}"`).join(" vs ")}); it is ambiguous which one wins.`,
           pageUrl: page.url,
           fix: `Keep a single <meta name="${metaName}"> tag; Google combines duplicates by applying the most restrictive directives found across them.`,
         });

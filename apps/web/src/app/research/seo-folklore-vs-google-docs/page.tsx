@@ -65,73 +65,73 @@ const FOLKLORE: ReadonlyArray<FolkloreEntry> = [
     claim: "Meta descriptions must stay under 155–160 characters",
     verdict: "False",
     reality:
-      "Google's snippet documentation says outright: “There's no limit on how long a meta description can be.” Truncation is a display behavior that varies by device width. What actually costs you is a MISSING description (Google composes the snippet itself) or the same description duplicated across a template — both real checks, neither about length.",
+      "Google's snippet documentation says outright: “There's no limit on how long a meta description can be.” Truncation is a display behavior that varies by device width. What actually costs you is a MISSING description (Google composes the snippet itself) or the same description duplicated across a template; both are real checks, and neither is about length.",
   },
   {
     claim: "Title tags over 60 characters get rewritten or penalized",
     verdict: "False",
     reality:
-      "No character limit is documented anywhere. SERP truncation is pixel-based display cropping, not an indexing event. Google documents that title REWRITES are triggered by quality problems — half-empty templates, boilerplate repetition, stale year numbers — which are exactly the failure modes of an unfilled pSEO template field, and exactly what a linter can catch.",
+      "No character limit is documented anywhere. SERP truncation is pixel-based display cropping, not an indexing event. Google documents that title REWRITES are triggered by quality problems (half-empty templates, boilerplate repetition, stale year numbers), which are exactly the failure modes of an unfilled pSEO template field, and exactly what a linter can catch.",
   },
   {
     claim: "og:description should be 70 characters for Facebook",
     verdict: "Unsupported",
     reality:
-      "No such number exists in any spec. Meta's sharing guide says a description is “usually between 2 and 4 sentences”; ogp.me asks for “a one to two sentence description.” Open Graph tags aren't a ranking input at all — they shape the social/AI-summary card. What IS in the spec and widely missed: og:type and og:url are REQUIRED properties, not optional ones.",
+      "No such number exists in any spec. Meta's sharing guide says a description is “usually between 2 and 4 sentences”; ogp.me asks for “a one to two sentence description.” Open Graph tags aren't a ranking input at all: they shape the social/AI-summary card. What IS in the spec and widely missed: og:type and og:url are REQUIRED properties, not optional ones.",
   },
   {
     claim: "Search engines can only process 2 MB of total website size",
     verdict: "Misread",
     reality:
-      "A real number attached to the wrong object. Googlebot's documented limit is 2 MB per fetched FILE (uncompressed) — each HTML page, each CSS file, each script gets its own budget, and PDFs get 64 MB. There is no total-site or total-page-weight crawl ceiling. A 21 MB page with 112 kB of HTML has a Core Web Vitals problem, not a crawl-truncation problem.",
+      "A real number attached to the wrong object. Googlebot's documented limit is 2 MB per fetched FILE, uncompressed: each HTML page, each CSS file, each script gets its own budget, and PDFs get 64 MB. There is no total-site or total-page-weight crawl ceiling. A 21 MB page with 112 kB of HTML has a Core Web Vitals problem, not a crawl-truncation problem.",
   },
   {
     claim: "Googlebot indexes the first 15 MB of your HTML",
     verdict: "Outdated",
     reality:
-      "This one was TRUE — the 15 MB figure lived in Google's docs for years and most SEO tools still cite it. The February 2026 revision of the Googlebot page cut the documented per-file crawl limit to 2 MB. Folklore and fact swap places when the source document changes; the only defense is citing the living doc, not the blog post that summarized it in 2023.",
+      "This one was TRUE: the 15 MB figure lived in Google's docs for years and most SEO tools still cite it. The February 2026 revision of the Googlebot page cut the documented per-file crawl limit to 2 MB. Folklore and fact swap places when the source document changes; the only defense is citing the living doc, not the blog post that summarized it in 2023.",
   },
   {
     claim: "A missing <meta keywords> tag hurts your ranking",
     verdict: "False",
     reality:
-      "Google's supported-tags documentation lists keywords as a tag it does NOT use: no effect on indexing or ranking at all — and it has said so since 2009. Any audit that flags a missing keywords tag is dating itself.",
+      "Google's supported-tags documentation lists keywords as a tag it does NOT use: no effect on indexing or ranking at all, and it has said so since 2009. Any audit that flags a missing keywords tag is dating itself.",
   },
   {
     claim: "A wrong or missing <html lang> attribute is an SEO problem",
     verdict: "Misread",
     reality:
-      "Google is explicit: “We don't use any code-level language information such as lang attributes.” Language is detected from the visible text. The subtle consequence cuts the other way: if your declared language and your actual content diverge — hreflang=\"ja\" on Cyrillic text — Google indexes by what it DETECTS, and your entire declared targeting silently fails. The attribute still matters for accessibility.",
+      "Google is explicit: “We don't use any code-level language information such as lang attributes.” Language is detected from the visible text. The subtle consequence cuts the other way: if your declared language and your actual content diverge (hreflang=\"ja\" on Cyrillic text), Google indexes by what it DETECTS, and your entire declared targeting silently fails. The attribute still matters for accessibility.",
   },
   {
     claim: "Sitemaps need <priority> and <changefreq>",
     verdict: "False",
     reality:
-      "Google documents that it ignores both values. It does use <lastmod> — but only “if it's consistently and verifiably accurate.” A sitemap that stamps every URL with the same generated timestamp teaches Google to ignore the one sitemap field that actually works.",
+      "Google documents that it ignores both values. It does use <lastmod>, but only “if it's consistently and verifiably accurate.” A sitemap that stamps every URL with the same generated timestamp teaches Google to ignore the one sitemap field that actually works.",
   },
   {
     claim: "Paginated archives need rel=next/prev",
     verdict: "Obsolete",
     reality:
-      "Google retired rel=next/prev as an indexing signal in 2019 — years after most checklists canonized it. Bing still reads it, so it isn't harmful, but adding it for Google is cargo culting.",
+      "Google retired rel=next/prev as an indexing signal in 2019, years after most checklists canonized it. Bing still reads it, so it isn't harmful, but adding it for Google is cargo culting.",
   },
   {
     claim: "Pages need 300+ (or 500+, or 1,000+) words to rank",
     verdict: "False",
     reality:
-      "Google's helpful-content guidance answers this verbatim: “Are you writing to a particular word count because you've heard Google has a preferred word count? (No, we don't.)” Word-count floors exist in spam DETECTION at template scale — a thousand 40-word pages differing by one city name is a doorway pattern — but that's a policy-risk signal, not a per-page ranking factor.",
+      "Google's helpful-content guidance answers this verbatim: “Are you writing to a particular word count because you've heard Google has a preferred word count? (No, we don't.)” Word-count floors exist in spam DETECTION at template scale (a thousand 40-word pages differing by one city name is a doorway pattern), but that's a policy-risk signal, not a per-page ranking factor.",
   },
   {
     claim: "Multiple meta description tags trigger a penalty",
     verdict: "Unsupported",
     reality:
-      "Neither Google's docs nor Lighthouse checks for it. Duplicated tags with different content are undefined behavior worth cleaning up for predictability. The place where duplicate metas genuinely hurt is robots directives: Google applies the MOST RESTRICTIVE robots rule it finds across meta robots, meta googlebot, and the X-Robots-Tag header — so one forgotten noindex in a conflicting pair silently wins.",
+      "Neither Google's docs nor Lighthouse checks for it. Duplicated tags with different content are undefined behavior worth cleaning up for predictability. The place where duplicate metas genuinely hurt is robots directives: Google applies the MOST RESTRICTIVE robots rule it finds across meta robots, meta googlebot, and the X-Robots-Tag header, so one forgotten noindex in a conflicting pair silently wins.",
   },
   {
     claim: "hreflang sets require an x-default entry",
     verdict: "Unsupported",
     reality:
-      "Google's wording is “consider adding” — a recommendation, not a requirement. What the same page DOES document as fatal: invalid codes. en_US (underscore), jp (a country code where a language code belongs), en-UK (the United Kingdom is GB) — each makes Google ignore the annotation entirely, with no error reported anywhere.",
+      "Google's wording is “consider adding”: a recommendation, not a requirement. What the same page DOES document as fatal: invalid codes. en_US (underscore), jp (a country code where a language code belongs), en-UK (the United Kingdom is GB). Each of those makes Google ignore the annotation entirely, with no error reported anywhere.",
   },
   {
     claim: "CSS complexity (rule count, !important, old prefixes) hurts ranking",
@@ -146,15 +146,15 @@ type Faq = { q: string; a: string };
 const FAQS: ReadonlyArray<Faq> = [
   {
     q: "Is there a character limit for meta descriptions or title tags?",
-    a: "No. Google's snippet documentation states there is no limit on meta description length, and no title-tag character limit is documented anywhere. Truncation in search results is display-side cropping that varies by device. The documented failure modes are different: missing descriptions, descriptions duplicated across a template, and low-quality titles (half-empty, boilerplate-repeated, stale) — those trigger Google to rewrite or replace your snippet and title.",
+    a: "No. Google's snippet documentation states there is no limit on meta description length, and no title-tag character limit is documented anywhere. Truncation in search results is display-side cropping that varies by device. The documented failure modes are different: missing descriptions, descriptions duplicated across a template, and low-quality titles (half-empty, boilerplate-repeated, stale). Those trigger Google to rewrite or replace your snippet and title.",
   },
   {
     q: "How much of a website can Googlebot actually crawl?",
-    a: "As of the February 2026 revision of Google's Googlebot documentation, Googlebot crawls the first 2 MB of each fetched file, uncompressed (64 MB for PDFs). The limit is per resource — every HTML page, stylesheet, and script gets its own budget — and there is no documented total-site or total-page-weight ceiling. The old 15 MB figure that most tools still cite was retired in that revision.",
+    a: "As of the February 2026 revision of Google's Googlebot documentation, Googlebot crawls the first 2 MB of each fetched file, uncompressed (64 MB for PDFs). The limit is per resource (every HTML page, stylesheet, and script gets its own budget), and there is no documented total-site or total-page-weight ceiling. The old 15 MB figure that most tools still cite was retired in that revision.",
   },
   {
     q: "Does the lang attribute on <html> affect Google rankings?",
-    a: "No. Google documents that it ignores code-level language information, including the lang attribute, and detects language from visible content instead. The attribute still matters for accessibility (screen readers), and a declaration that contradicts the detected language — hreflang=\"ja\" on Russian-script text — means every piece of declared language targeting silently fails, because Google indexes by what it detected.",
+    a: "No. Google documents that it ignores code-level language information, including the lang attribute, and detects language from visible content instead. The attribute still matters for accessibility (screen readers), and a declaration that contradicts the detected language (hreflang=\"ja\" on Russian-script text) means every piece of declared language targeting silently fails, because Google indexes by what it detected.",
   },
   {
     q: "Are sitemap priority, changefreq, and lastmod used by Google?",
@@ -162,11 +162,11 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: "Is noindex in robots.txt still supported?",
-    a: "No — Google stopped honoring noindex directives inside robots.txt in September 2019. Pages you 'noindexed' that way are not excluded from the index. Use a robots meta tag or an X-Robots-Tag header instead, and watch for conflicts: when directives disagree across those sources, Google applies the most restrictive one, so an accidental noindex anywhere wins.",
+    a: "No. Google stopped honoring noindex directives inside robots.txt in September 2019. Pages you 'noindexed' that way are not excluded from the index. Use a robots meta tag or an X-Robots-Tag header instead, and watch for conflicts: when directives disagree across those sources, Google applies the most restrictive one, so an accidental noindex anywhere wins.",
   },
   {
     q: "How do I check my site against the real documented rules instead of folklore?",
-    a: "Run npx pseolint https://your-site.com. Every one of its 59 rules cites the primary source that documents the behavior — the finding links straight to the Google, sitemaps.org, or ogp.me page that backs it. The checks this article debunks (character limits, keyword tags, word-count floors) are deliberately absent, and the project's docs/folklore.md explains each refusal with its contradicting source.",
+    a: "Run npx pseolint https://your-site.com. Every one of its 59 rules cites the primary source that documents the behavior: the finding links straight to the Google, sitemaps.org, or ogp.me page that backs it. The checks this article debunks (character limits, keyword tags, word-count floors) are deliberately absent, and the project's docs/folklore.md explains each refusal with its contradicting source.",
   },
 ];
 
@@ -251,7 +251,7 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
         SEO Folklore vs. What Google Actually Documents
       </h1>
       <p className="mt-3 max-w-2xl text-base text-muted-foreground">
-        We traced 13 of the most-repeated SEO rules back to their primary sources — Google Search
+        We traced 13 of the most-repeated SEO rules back to their primary sources: Google Search
         Central, sitemaps.org, ogp.me, Lighthouse. Ten are contradicted by the documentation
         outright, one quietly <em>became</em> true this year, and the real documented limits are
         stranger than the folklore. Every verdict below links to the doc that settles it.
@@ -265,7 +265,7 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
         <p className="font-semibold text-foreground">The one-sentence version.</p>
         <p className="mt-2 text-muted-foreground">
           Almost every folklore rule is a real documented behavior with the numbers garbled and the
-          mechanism misattributed — a display behavior promoted to a penalty, a per-file limit
+          mechanism misattributed: a display behavior promoted to a penalty, a per-file limit
           promoted to a site-wide one, a retired signal kept on the checklist. The fix isn&apos;t
           cynicism about SEO advice; it&apos;s citing the living document instead of the blog post
           that paraphrased it three years ago.
@@ -278,15 +278,15 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
           &ldquo;beyond the budget of robots&rdquo; because crawlers &ldquo;can process a maximum of
           2 MB of website size,&rdquo; the <code>og:description</code> was wrong because &ldquo;70
           characters is optimal,&rdquo; and a stack of CSS-complexity metrics was presented as
-          ranking evidence. The teardown was roughly one-third right — the site really did declare{" "}
+          ranking evidence. The teardown was roughly one-third right: the site really did declare{" "}
           <code>hreflang=&quot;ja&quot;</code> over Cyrillic text, and 21 MB of unoptimized images
-          really is a problem — but every correct observation was attached to an invented number or
+          really is a problem. But every correct observation was attached to an invented number or
           the wrong mechanism.
         </p>
         <p className="mt-4">
           That mix is the norm, not the exception. So we did the boring thing: pulled each claim,
           found the primary source, and read it. The result became both this article and a permanent
-          policy file in the open-source repo —{" "}
+          policy file in the open-source repo:{" "}
           <a
             href="https://github.com/ouranos-labs/pseolint/blob/main/docs/folklore.md"
             target="_blank"
@@ -307,7 +307,7 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
         </div>
         <p className="mt-5 text-sm text-muted-foreground">
           The remaining two are misreadings: a real documented number attached to the wrong object.
-          Those are the most dangerous kind — they survive fact-checks because the number itself
+          Those are the most dangerous kind, because they survive fact-checks; the number itself
           is findable.
         </p>
       </Section>
@@ -334,14 +334,14 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
           Claim #5 deserves its own section, because it breaks the comfortable story that folklore
           is simply wrong. For years, &ldquo;Googlebot reads the first 15 MB&rdquo; was the correct,
           documented answer, and the skeptics repeating &ldquo;2 MB&rdquo; were garbling it. Then the
-          February 2026 revision of the Googlebot documentation cut the per-file figure to 2 MB —
-          and overnight, the garbled number was closer to the truth than the well-sourced one.
+          February 2026 revision of the Googlebot documentation cut the per-file figure to 2 MB,
+          and overnight the garbled number was closer to the truth than the well-sourced one.
         </p>
         <p className="mt-4">
           Two lessons. First, the folklore is still wrong in the way that matters: the limit is per
           fetched file, never &ldquo;total website size,&rdquo; so the panic it powers is
           misdirected. Second, any tool or article that hard-codes a number without citing the
-          living document will eventually be confidently outdated — which is why every pseolint
+          living document will eventually be confidently outdated. That is why every pseolint
           finding links to the doc that backs it, and why this article will be revised with a dated
           note when one of these sources moves again.
         </p>
@@ -350,7 +350,7 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
       <Section title="What the docs say to check instead" id="instead">
         <p>
           Debunking is only useful if the real checks replace the fake ones. Each folklore rule
-          above has a documented counterpart — and because they&apos;re documented, they&apos;re
+          above has a documented counterpart, and because they&apos;re documented, they&apos;re
           lintable. This research shipped as code: an 11-rule batch in the open-source engine, every
           rule citing its source.
         </p>
@@ -373,7 +373,7 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
           </Swap>
           <Swap folklore="Worrying about duplicate description tags" real="Check for conflicting robots directives">
             Across meta robots, meta googlebot, and X-Robots-Tag, the most restrictive directive
-            wins — an accidental <code>noindex</code> in any one of them deindexes the page.{" "}
+            wins: an accidental <code>noindex</code> in any one of them deindexes the page.{" "}
             <code>tech/meta-robots-conflict</code>.
           </Swap>
           <Swap folklore="Tuning sitemap priority and changefreq" real="Check lastmod is honest and URLs are on-host">
@@ -383,8 +383,8 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
             no-longer-supported <code>noindex:</code> directive.
           </Swap>
           <Swap folklore="Auditing CSS selector counts" real="Check your links are crawlable at all">
-            An onclick-handler div styled as a link is invisible navigation — Google only follows{" "}
-            <code>&lt;a href&gt;</code>. On a programmatic site this silently orphans entire
+            An onclick-handler div styled as a link is invisible navigation, because Google only
+            follows <code>&lt;a href&gt;</code>. On a programmatic site this silently orphans entire
             templates. <code>links/crawlable-anchors</code>.
           </Swap>
         </ol>
@@ -392,15 +392,15 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
 
       <Section title="Run the real checks" id="run">
         <p>
-          One command runs all 59 documented checks — and none of the folklore — against your site:
+          One command runs all 59 documented checks, and none of the folklore, against your site:
         </p>
         <pre className="mt-3 overflow-x-auto rounded-[18px] border border-border/70 bg-card/60 p-4 text-xs leading-relaxed text-foreground">
 {`npx pseolint https://your-site.com`}
         </pre>
         <p className="mt-3 text-sm text-muted-foreground">
           Every finding links to the primary source that documents the behavior, so you can verify
-          the rule before you act on it — the same standard this article holds itself to. The rule
-          index with per-rule explainers is at{" "}
+          the rule before you act on it; that is the same standard this article holds itself to. The
+          rule index with per-rule explainers is at{" "}
           <Link href="/rules" className="text-primary hover:underline">
             /rules
           </Link>
@@ -440,27 +440,27 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
         sources={[
           {
             source: "snippets",
-            note: "States there is no limit on meta description length and explains when Google rewrites snippets — the source behind verdicts #1 and #11.",
+            note: "States there is no limit on meta description length and explains when Google rewrites snippets; the source behind verdicts #1 and #11.",
           },
           {
             source: "titleLinks",
-            note: "Documents the quality triggers for title rewrites (half-empty, boilerplate, stale) with no character limit anywhere — verdict #2.",
+            note: "Documents the quality triggers for title rewrites (half-empty, boilerplate, stale) with no character limit anywhere; verdict #2.",
           },
           {
             source: "googlebot",
-            note: "The February 2026 revision documenting the 2 MB per-file crawl limit (64 MB for PDFs) — verdicts #4 and #5.",
+            note: "The February 2026 revision documenting the 2 MB per-file crawl limit (64 MB for PDFs); verdicts #4 and #5.",
           },
           {
             source: "specialTags",
-            note: "Google's list of supported meta tags, which excludes keywords from any indexing or ranking role — verdict #6.",
+            note: "Google's list of supported meta tags, which excludes keywords from any indexing or ranking role; verdict #6.",
           },
           {
             source: "multiRegional",
-            note: "States that Google ignores code-level language information like lang attributes and detects language from visible content — verdict #7.",
+            note: "States that Google ignores code-level language information like lang attributes and detects language from visible content; verdict #7.",
           },
           {
             source: "buildSitemap",
-            note: "Documents that priority and changefreq are ignored and lastmod is used only when consistently and verifiably accurate — verdict #8.",
+            note: "Documents that priority and changefreq are ignored and lastmod is used only when consistently and verifiably accurate; verdict #8.",
           },
           {
             source: "sitemapsProtocol",
@@ -468,19 +468,19 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
           },
           {
             source: "pagination",
-            note: "Confirms rel=next/prev is no longer used as an indexing signal — verdict #9.",
+            note: "Confirms rel=next/prev is no longer used as an indexing signal; verdict #9.",
           },
           {
             source: "helpfulContent",
-            note: "Google's own words on word counts: “No, we don't” have a preferred one — verdict #10.",
+            note: "Google's own words on word counts: “No, we don't” have a preferred one; verdict #10.",
           },
           {
             source: "robotsMetaTag",
-            note: "Documents that the most restrictive robots directive wins across meta tags and X-Robots-Tag headers — the real risk behind verdict #11.",
+            note: "Documents that the most restrictive robots directive wins across meta tags and X-Robots-Tag headers; the real risk behind verdict #11.",
           },
           {
             source: "hreflang",
-            note: "Documents x-default as a recommendation and invalid language/region codes as silently ignored — verdict #12.",
+            note: "Documents x-default as a recommendation and invalid language/region codes as silently ignored; verdict #12.",
           },
           {
             source: "robotsTxtSpec",
@@ -488,11 +488,11 @@ export default function SeoFolkloreVsGoogleDocsPage(): React.ReactElement {
           },
           {
             source: "ogp",
-            note: "The Open Graph specification: og:type and og:url are among the four required properties; descriptions are “one to two sentences” with no character count — verdict #3.",
+            note: "The Open Graph specification: og:type and og:url are among the four required properties; descriptions are “one to two sentences” with no character count. Verdict #3.",
           },
           {
             source: "linksCrawlable",
-            note: "Google only follows <a> elements with resolvable hrefs — the documented check that replaces CSS-complexity folklore in the final section.",
+            note: "Google only follows <a> elements with resolvable hrefs; the documented check that replaces CSS-complexity folklore in the final section.",
           },
         ]}
       />

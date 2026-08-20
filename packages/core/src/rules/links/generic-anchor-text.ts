@@ -2,7 +2,7 @@ import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * links/generic-anchor-text — flags pages where most internal links carry
+ * links/generic-anchor-text flags pages where most internal links carry
  * generic anchor text ("click here", "read more", …). Google uses anchor text
  * (and the img alt for image links) to understand what the target page is
  * about; generic anchors waste that signal on every templated page that
@@ -12,7 +12,7 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  *   https://developers.google.com/search/docs/crawling-indexing/links-crawlable#anchor-text
  *   (Lighthouse ships the same check as the `link-text` audit.)
  *
- * Scope: only INTERNAL links count — hrefs that resolve to the same host as
+ * Scope: only INTERNAL links count: hrefs that resolve to the same host as
  * page.url (relative hrefs are internal). Pages with empty html or an
  * unparseable page.url are skipped.
  *
@@ -113,7 +113,7 @@ export function genericAnchorTextRule(pages: ParsedPage[]): RuleResult[] {
       confidence: "medium",
       message: `${page.url}: ${genericCount} of ${internalLinks} internal links (${Math.round(ratio * 100)}%) use generic anchor text${exampleSuffix}.`,
       pageUrl: page.url,
-      fix: "Make each anchor's text describe the destination page (its topic or title) instead of a generic call to action — descriptive anchors are also how AI answer engines label citations.",
+      fix: "Make each anchor's text describe the destination page (its topic or title) instead of a generic call to action; descriptive anchors are also how AI answer engines label citations.",
     });
   }
   return findings;

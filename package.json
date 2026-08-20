@@ -15,6 +15,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
+    "lint:emdash": "node scripts/no-em-dash.mjs --check --diff",
     "gen:okf": "bun scripts/gen-okf.ts",
     "calibrate:intent": "bun scripts/calibrate-intent.ts",
     "changeset": "changeset",

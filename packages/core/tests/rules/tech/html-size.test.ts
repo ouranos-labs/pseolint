@@ -52,7 +52,7 @@ describe("htmlSizeRule", () => {
   });
 
   test("measures utf8 bytes, not string length (multibyte chars count fully)", () => {
-    // "é" is 2 bytes in utf8 — 1M chars = 2 MB of bytes, at the error boundary.
+    // "é" is 2 bytes in utf8, so 1M chars = 2 MB of bytes, at the error boundary.
     const findings = htmlSizeRule([page("https://ex.com/a", "é".repeat(MB))]);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("error");

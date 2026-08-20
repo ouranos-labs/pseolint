@@ -1,15 +1,15 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/html-size — flags HTML documents approaching or exceeding Googlebot's
+ * tech/html-size flags HTML documents approaching or exceeding Googlebot's
  * crawl cutoff. Googlebot fetches only the FIRST 2 MB of a file (uncompressed,
- * per resource — the limit was updated from the old 15 MB figure in the
+ * per resource; the limit was updated from the old 15 MB figure in the
  * Feb 2026 documentation revision;
  * https://developers.google.com/search/docs/crawling-indexing/googlebot).
  * Content, links, and JSON-LD past the cutoff are simply invisible to Google.
  *
  * This is a PER-FILE limit on the HTML document itself, NOT total page weight
- * with images/CSS/JS — each referenced resource is fetched (and truncated)
+ * with images/CSS/JS; each referenced resource is fetched (and truncated)
  * separately.
  *
  *   - error:   >= 2 MB   (content beyond the cutoff is already being dropped)
@@ -31,8 +31,8 @@ export function htmlSizeRule(pages: ParsedPage[]): RuleResult[] {
       severity: overLimit ? "error" : "warning",
       confidence: "high",
       message: overLimit
-        ? `${page.url} is ${sizeMb} MB of HTML — Googlebot only crawls the first 2 MB of a file, so content, links, and JSON-LD past the cutoff are invisible to Google.`
-        : `${page.url} is ${sizeMb} MB of HTML — approaching Googlebot's 2 MB per-file crawl cutoff; anything past it will be invisible to Google.`,
+        ? `${page.url} is ${sizeMb} MB of HTML; Googlebot only crawls the first 2 MB of a file, so content, links, and JSON-LD past the cutoff are invisible to Google.`
+        : `${page.url} is ${sizeMb} MB of HTML, approaching Googlebot's 2 MB per-file crawl cutoff; anything past it will be invisible to Google.`,
       pageUrl: page.url,
       fix: "Shrink the HTML document itself (this limit is per-file, not total page weight with images): move inlined data/scripts/styles to separate files, trim server-rendered payloads, and make sure critical content, links, and JSON-LD appear early in the document.",
     });

@@ -5,7 +5,7 @@
 **Engine version at writing:** v0.5.2
 
 This is the honest counterpart to the README and `/methodology` page. The
-README lists 59 rules across 8 categories — what we *do* detect. This
+README lists 59 rules across 8 categories, what we *do* detect. This
 document lists what we *don't*. We treat blind spots as a credibility
 asset: a tool that names its limits is more trustworthy than one that
 implies omniscience.
@@ -94,11 +94,11 @@ captures the data.
 **Roadmap fix:** `tech/og-completeness` (despite the irony of having
 mentioned it in v0.4.x README without implementing it). v0.5.3 target.
 
-**2026-08-19 update — partially closed:** `tech/og-completeness` now also
+**2026-08-19 update (partially closed):** `tech/og-completeness` now also
 checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at
 info severity. Still open: image dimension validity and `twitter:card`.
 Note for whoever picks those up: og:description length has NO documented
-optimum (Meta says "2 to 4 sentences") — see docs/folklore.md #3 before
+optimum (Meta says "2 to 4 sentences"); see docs/folklore.md #3 before
 adding any character-count check.
 
 ### 1.5 Title tag uniqueness + length
@@ -259,7 +259,7 @@ simple integration are very different.) Requires topic understanding.
 Beyond `tech/hreflang-consistency` (which validates declarations), we
 don't check whether translations are actually high-quality. Requires
 language understanding.
-**2026-08-19 update — partially closed:** `tech/hreflang-validity` now
+**2026-08-19 update (partially closed):** `tech/hreflang-validity` now
 validates the code values themselves (`en_US`, `jp`, `en-UK` → ignored by
 Google), and `tech/language-mismatch` catches declared-vs-detected script
 mismatches (e.g. `lang="ja"` on Cyrillic content) via Unicode script

@@ -17,7 +17,7 @@ const SHELL = `<!doctype html><html><head><title>s</title></head><body>
 </script></body></html>`;
 
 function hasBrowser(): boolean {
-  // The package being installed isn't enough — the pinned Chromium build must
+  // The package being installed isn't enough; the pinned Chromium build must
   // actually exist on disk, or launch() throws instead of the test skipping.
   const override = process.env.PSEOLINT_BROWSER_EXECUTABLE;
   if (override) return existsSync(override);

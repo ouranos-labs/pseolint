@@ -39,7 +39,7 @@ export function normalizeAuditUrl(url: string, options?: NormalizeUrlOptions): s
     }
   }
   // Drive-letter (D:\…) and UNC (\\host\…) paths are Windows paths regardless
-  // of the host OS — posix normalize() treats their backslashes as filename
+  // of the host OS; posix normalize() treats their backslashes as filename
   // characters and leaves "D:\a\b\..\c" unresolved. Anything else stays on the
   // platform normalizer (posix filenames may legitimately contain backslashes).
   if (/^[a-zA-Z]:[\\/]/.test(trimmed) || trimmed.startsWith("\\\\")) {

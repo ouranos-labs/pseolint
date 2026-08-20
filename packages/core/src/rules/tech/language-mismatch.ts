@@ -1,12 +1,12 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/language-mismatch — compares the page's DECLARED language (html lang
+ * tech/language-mismatch compares the page's DECLARED language (html lang
  * attribute + the self-referencing hreflang) against the language actually
  * DETECTED from the visible text's Unicode script.
  *
  * Why it matters: Google determines a page's language from its visible
- * content only — "We don't use any code-level language information such as
+ * content only: "We don't use any code-level language information such as
  * `lang` attributes, or the URL"
  * (https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites).
  * So a page declared `ja` but written in Russian Cyrillic is indexed as
@@ -19,10 +19,10 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  *                       (e.g. Cyrillic body under lang="ja").
  *   - warning (medium): dominant script matches, but a second incompatible
  *                       non-Latin script covers ≥30% of letters (side-by-side
- *                       translations — Google recommends one language per page).
+ *                       translations; Google recommends one language per page).
  *   - info    (high):   html lang missing while the page has hreflang
  *                       annotations or a non-Latin body. Deliberately info:
- *                       Google IGNORES the lang attribute for ranking — it's an
+ *                       Google IGNORES the lang attribute for ranking; it's an
  *                       accessibility signal and the prerequisite for this
  *                       rule's mismatch detection, nothing more. Never present
  *                       it as a ranking factor (see docs/folklore.md #7).
@@ -92,7 +92,7 @@ function stripForCompare(url: string): string {
   return url.replace(/\/+$/, "").toLowerCase();
 }
 
-/** Only the SELF-referencing hreflang declares THIS page's language — the
+/** Only the SELF-referencing hreflang declares THIS page's language; the
  * other entries declare the alternates' languages by design. */
 function selfHreflang(page: ParsedPage): string | undefined {
   const self = stripForCompare(page.url);
@@ -166,7 +166,7 @@ export function languageMismatchRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/language-mismatch",
         severity: "error",
         confidence: "high",
-        message: `${page.url} declares language "${declaredLabel}" but ${pct}% of its text is in the ${worstDisallowed.script} script — Google indexes by the DETECTED language, so the declared targeting (hreflang, localized sitemaps) silently fails.`,
+        message: `${page.url} declares language "${declaredLabel}" but ${pct}% of its text is in the ${worstDisallowed.script} script. Google indexes by the DETECTED language, so the declared targeting (hreflang, localized sitemaps) silently fails.`,
         pageUrl: page.url,
         fix: `Either fix the declaration (html lang / self-referencing hreflang) to match the actual content language, or replace the content with text in "${declaredLabel}".`,
       });
@@ -176,7 +176,7 @@ export function languageMismatchRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/language-mismatch",
         severity: "warning",
         confidence: "medium",
-        message: `${page.url} declares language "${declaredLabel}" but ${pct}% of its text is in the ${worstDisallowed.script} script — mixed-language pages dilute language detection; Google recommends a single language for content and navigation on each page.`,
+        message: `${page.url} declares language "${declaredLabel}" but ${pct}% of its text is in the ${worstDisallowed.script} script. Mixed-language pages dilute language detection; Google recommends a single language for content and navigation on each page.`,
         pageUrl: page.url,
         fix: `Split the ${worstDisallowed.script}-script content onto its own URL with its own language declaration, and connect the two with hreflang.`,
       });

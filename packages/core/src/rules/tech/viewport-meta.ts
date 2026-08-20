@@ -1,7 +1,7 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/viewport-meta — flags pages with no usable `<meta name="viewport">` tag.
+ * tech/viewport-meta flags pages with no usable `<meta name="viewport">` tag.
  *
  * Google indexes mobile-first, so a page that renders as a shrunken desktop
  * layout on phones is evaluated in exactly that state
@@ -38,7 +38,7 @@ export function viewportMetaRule(pages: ParsedPage[]): RuleResult[] {
       ruleId: "tech/viewport-meta",
       severity: "warning",
       confidence: "high",
-      message: `${page.url} has no <meta name="viewport"> configuring a width — Google indexes mobile-first, and without a viewport the page renders (and is evaluated) as a shrunken desktop layout on phones.`,
+      message: `${page.url} has no <meta name="viewport"> configuring a width. Google indexes mobile-first, and without a viewport the page renders (and is evaluated) as a shrunken desktop layout on phones.`,
       pageUrl: page.url,
       fix: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to <head>.',
     });

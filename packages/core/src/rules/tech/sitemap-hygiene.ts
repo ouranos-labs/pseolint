@@ -3,7 +3,7 @@ import type { RuleResult } from "../../types.js";
 /** Max URLs listed in a rollup finding's relatedUrls (total count goes in the message). */
 const RELATED_URLS_CAP = 10;
 
-/** 24 hours in milliseconds — tolerance before a lastmod counts as "in the future". */
+/** 24 hours in milliseconds: tolerance before a lastmod counts as "in the future". */
 const FUTURE_TOLERANCE_MS = 24 * 60 * 60 * 1000;
 
 /** Generated-lastmod heuristic: minimum URLs carrying a lastmod before the check applies. */
@@ -33,20 +33,20 @@ function capRelated(urls: string[]): string[] {
 
 /**
  * Sitemap hygiene checks over the collected sitemap URL set + lastmod map.
- * Emits ROLLUP findings — one per issue kind, never per-URL.
+ * Emits ROLLUP findings: one per issue kind, never per-URL.
  *
  * Checks:
- *  - Cross-host URLs — per the Sitemaps protocol, URLs in a sitemap must reside
+ *  - Cross-host URLs: per the Sitemaps protocol, URLs in a sitemap must reside
  *    on the same host as the sitemap; non-compliant URLs are dropped from
  *    consideration (https://www.sitemaps.org/protocol.html). Google's exception:
  *    cross-host submission works only for Search-Console-verified sites or via a
  *    robots.txt `Sitemap:` declaration on the target host
  *    (https://developers.google.com/search/docs/crawling-indexing/sitemaps/large-sitemaps,
  *    https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
- *  - Unparseable URLs — entries `new URL()` rejects.
- *  - Future lastmod — parseable lastmod more than 24h ahead of `now`.
- *  - Unparseable lastmod — neither `YYYY-MM-DD` nor valid W3C datetime.
- *  - Generated/fake lastmod — ≥100 URLs have a lastmod and ≥95% share the exact
+ *  - Unparseable URLs: entries `new URL()` rejects.
+ *  - Future lastmod: parseable lastmod more than 24h ahead of `now`.
+ *  - Unparseable lastmod: neither `YYYY-MM-DD` nor valid W3C datetime.
+ *  - Generated/fake lastmod: ≥100 URLs have a lastmod and ≥95% share the exact
  *    same value. Google uses lastmod only when it is "consistently and verifiably
  *    accurate" and ignores it otherwise
  *    (https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
@@ -93,7 +93,7 @@ export function sitemapHygieneRule(
       confidence: "high",
       message:
         `${crossHost.length} sitemap URL(s) are on a different host than ${sourceUrl}. ` +
-        `Per the Sitemaps protocol, URLs must reside on the same host as the sitemap — non-compliant URLs are dropped from consideration.`,
+        `Per the Sitemaps protocol, URLs must reside on the same host as the sitemap; non-compliant URLs are dropped from consideration.`,
       relatedUrls: capRelated(crossHost),
       fix:
         `Move these URLs to a sitemap served from their own host. ` +
@@ -171,7 +171,7 @@ export function sitemapHygieneRule(
           severity: "warning",
           confidence: "medium",
           message:
-            `${topCount} of ${withLastmod} sitemap URLs share the exact same <lastmod> value ("${topValue}") — ` +
+            `${topCount} of ${withLastmod} sitemap URLs share the exact same <lastmod> value ("${topValue}"); ` +
             `this looks generated at build time rather than reflecting real modification dates. ` +
             `Google uses lastmod only when it is "consistently and verifiably accurate" and ignores it otherwise.`,
           fix: "Emit each page's actual last-modification time, or omit <lastmod> entirely rather than stamping every URL with the sitemap-generation time.",

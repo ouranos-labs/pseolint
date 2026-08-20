@@ -1,18 +1,18 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/snippet-suppression — flags pages that suppress their own SERP snippet
+ * tech/snippet-suppression flags pages that suppress their own SERP snippet
  * via `nosnippet` or `max-snippet:0` in any robots source (`<meta name="robots">`,
  * `<meta name="googlebot">`, or the `X-Robots-Tag` header).
  *
- * Suppressing the snippet doesn't just blank the SERP description — it also
+ * Suppressing the snippet doesn't just blank the SERP description; it also
  * makes the page ineligible for AI Overviews and answer-engine citation
  * (https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag),
  * which defeats the whole point of optimizing for citability (see the aeo/*
  * rule category). Flagged loudly for that reason.
  *
  *   - warning: nosnippet or max-snippet:0 in any robots source.
- *   - info:    data-nosnippet attributes in the body — PARTIAL suppression,
+ *   - info:    data-nosnippet attributes in the body, i.e. PARTIAL suppression,
  *              which may well be intentional (e.g. hiding boilerplate), so it
  *              is only surfaced, not judged.
  *
@@ -73,7 +73,7 @@ export function snippetSuppressionRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/snippet-suppression",
         severity: "warning",
         confidence: "high",
-        message: `${page.url} suppresses its SERP snippet (nosnippet / max-snippet:0 via ${[...suppressingSources].join(", ")}) — this also makes the page ineligible for AI Overviews and answer-engine citation.`,
+        message: `${page.url} suppresses its SERP snippet (nosnippet / max-snippet:0 via ${[...suppressingSources].join(", ")}); this also makes the page ineligible for AI Overviews and answer-engine citation.`,
         pageUrl: page.url,
         fix: "Remove nosnippet / max-snippet:0 (or set a positive max-snippet limit, or max-snippet:-1 for unlimited) unless you deliberately want no snippet AND no AI-answer citations for this page.",
       });
@@ -85,7 +85,7 @@ export function snippetSuppressionRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/snippet-suppression",
         severity: "info",
         confidence: "high",
-        message: `${page.url} contains ${dataNosnippetCount} data-nosnippet attribute${dataNosnippetCount === 1 ? "" : "s"} — those sections are excluded from snippets and AI answers. Partial suppression may be intentional (e.g. hiding boilerplate); verify nothing citable is hidden.`,
+        message: `${page.url} contains ${dataNosnippetCount} data-nosnippet attribute${dataNosnippetCount === 1 ? "" : "s"}; those sections are excluded from snippets and AI answers. Partial suppression may be intentional (e.g. hiding boilerplate); verify nothing citable is hidden.`,
         pageUrl: page.url,
         fix: "Review each data-nosnippet section: keep it on boilerplate/legal text, remove it from content you want quoted in snippets or AI answers.",
       });

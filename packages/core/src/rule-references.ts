@@ -45,7 +45,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "aeo/citable-facts": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "aeo/content-modularity": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",
   "aeo/summary-bait": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
-  // 2026-08-19 folklore-vs-fact batch — every ref is the primary source that
+  // 2026-08-19 folklore-vs-fact batch: every ref is the primary source that
   // documents the behavior (see docs/folklore.md for the checks we refuse to run).
   "links/crawlable-anchors": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
   "links/generic-anchor-text": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable#anchor-text",

@@ -2,7 +2,7 @@ import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * links/crawlable-anchors — flags pages whose navigation relies on JS-driven
+ * links/crawlable-anchors flags pages whose navigation relies on JS-driven
  * pseudo-links. Google only follows `<a>`/`<area>` elements with a resolvable
  * `href`; it does not simulate clicks, so `<a onclick>`, `href="javascript:"`,
  * and framework router attributes without a real href are invisible to
@@ -23,7 +23,7 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  *
  * Firing: warning when nonCrawlable >= 3, or when the non-crawlable share is
  * >= 20% of at least 5 anchors. Escalates to error when nonCrawlable >= 5 AND
- * the page has fewer than 2 crawlable same-host hrefs — its navigation is
+ * the page has fewer than 2 crawlable same-host hrefs: its navigation is
  * effectively invisible to Googlebot.
  */
 
@@ -90,7 +90,7 @@ export function crawlableAnchorsRule(pages: ParsedPage[]): RuleResult[] {
         continue;
       }
 
-      // Crawlable anchor — count same-host navigation targets for the
+      // Crawlable anchor: count same-host navigation targets for the
       // error-escalation check. Fragment-only hrefs stay on the same page and
       // mailto:/tel: are not navigation, so they don't count.
       if (href && pageHost && !href.startsWith("#") && !/^(mailto:|tel:)/i.test(href)) {
@@ -103,7 +103,7 @@ export function crawlableAnchorsRule(pages: ParsedPage[]): RuleResult[] {
             crawlableSameHost += 1;
           }
         } catch {
-          // Unresolvable href — ignore.
+          // Unresolvable href: ignore.
         }
       }
     }
@@ -119,9 +119,9 @@ export function crawlableAnchorsRule(pages: ParsedPage[]): RuleResult[] {
       ruleId: "links/crawlable-anchors",
       severity,
       confidence: "high",
-      message: `${page.url}: ${nonCrawlable} of ${totalAnchors} <a> elements are not crawlable — no resolvable href${exampleSuffix}.`,
+      message: `${page.url}: ${nonCrawlable} of ${totalAnchors} <a> elements are not crawlable: no resolvable href${exampleSuffix}.`,
       pageUrl: page.url,
-      fix: 'Render real <a href="..."> links — server-side or via your framework\'s Link component — instead of JS click handlers. Google does not simulate clicks, so anchors without a resolvable href are invisible to crawling.',
+      fix: 'Render real <a href="..."> links (server-side or via your framework\'s Link component) instead of JS click handlers. Google does not simulate clicks, so anchors without a resolvable href are invisible to crawling.',
     });
   }
   return findings;

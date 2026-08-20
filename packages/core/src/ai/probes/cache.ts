@@ -36,7 +36,7 @@ export async function readProbeCache<T>(dir: string, key: string, ttlMs: number)
   if (typeof entry.cachedAt !== "string") return null;
   const ageMs = Date.now() - new Date(entry.cachedAt).getTime();
   // >= so ttlMs=0 means "always expired" even when the write and the read land
-  // in the same millisecond (ageMs 0 > ttlMs 0 was false — a same-ms race).
+  // in the same millisecond (ageMs 0 > ttlMs 0 was false: a same-ms race).
   if (Number.isNaN(ageMs) || ageMs >= ttlMs) return null;
   return entry.data;
 }

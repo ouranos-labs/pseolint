@@ -89,7 +89,7 @@ describe("genericAnchorTextRule", () => {
          <a href="/p/5">Read more</a>`
       ),
     ]);
-    // 2 generic of 5 internal = 40% < 50% — the descriptive alts keep it clean.
+    // 2 generic of 5 internal = 40% < 50%; the descriptive alts keep it clean.
     expect(findings).toEqual([]);
   });
 

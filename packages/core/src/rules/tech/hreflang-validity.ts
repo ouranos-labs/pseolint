@@ -1,14 +1,14 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/hreflang-validity — validates hreflang CODE VALUES. Google: an hreflang
+ * tech/hreflang-validity validates hreflang CODE VALUES. Google: an hreflang
  * annotation with an invalid language or region code is simply IGNORED
  * (https://developers.google.com/search/docs/specialty/international/localized-versions),
  * so `en_US`, `jp`, or `en-UK` silently disables the alternate it was meant to
- * declare — no error anywhere, the targeting just doesn't work.
+ * declare: no error anywhere, the targeting just doesn't work.
  *
  * Scope: code values only. Reciprocity, duplicates, and malformed hrefs are
- * tech/hreflang-consistency's job — never duplicated here.
+ * tech/hreflang-consistency's job, never duplicated here.
  *
  * Validation uses Intl.DisplayNames (CLDR ships with Node) instead of bundled
  * ISO tables: an unknown language/region subtag resolves to undefined.
@@ -105,7 +105,7 @@ export function hreflangValidityRule(pages: ParsedPage[]): RuleResult[] {
       if (region && /^[a-zA-Z]{2}$/.test(region)) {
         if (region.toUpperCase() === "UK") {
           push(
-            `"UK" is not an ISO 3166-1 Alpha-2 region — the United Kingdom's code is "GB".`,
+            `"UK" is not an ISO 3166-1 Alpha-2 region; the United Kingdom's code is "GB".`,
             `Use hreflang="${[...parts.slice(0, -1), "GB"].join("-")}".`
           );
         } else if (!isKnownRegion(region)) {

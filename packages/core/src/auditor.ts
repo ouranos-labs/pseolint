@@ -979,7 +979,7 @@ function runRulesOnPages(
     pushAll(findings, tag(ogCompletenessRule(pages)));
   }
 
-  // 2026-08-19 folklore-vs-fact batch — statically-checkable rules cross-
+  // 2026-08-19 folklore-vs-fact batch: statically-checkable rules cross-
   // referenced against Google Search Central / Lighthouse / sitemaps.org /
   // ogp.me primary sources. See docs/folklore.md for the counterpart list of
   // checks we deliberately DON'T run.
@@ -1003,7 +1003,7 @@ function runRulesOnPages(
 
   if (isEnabled("tech/meta-robots-conflict") && modeOk("tech/meta-robots-conflict")) {
     // Needs the noindex-aware set: a page dropped by respectNoindex may be
-    // noindex'd BY ACCIDENT via a conflicting directive — the exact bug this
+    // noindex'd BY ACCIDENT via a conflicting directive, the exact bug this
     // rule exists to surface.
     pushAll(findings, tag(metaRobotsConflictRule(noindexAwarePages)));
   }
@@ -2936,7 +2936,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
 
     // Sitemap hygiene (cross-host scope, lastmod sanity) only makes sense for
-    // HTTP sources — filesystem audits have no host to compare against.
+    // HTTP sources; filesystem audits have no host to compare against.
     if (/^https?:\/\//i.test(source)) {
       const hygieneFindings = sitemapHygieneRule(sitemapUrlSet, sitemapLastmodByUrl, source);
       pushAll(allFindings, hygieneFindings.map((f) => ({ ...f, ref: f.ref ?? RULE_REFERENCES[f.ruleId] })));

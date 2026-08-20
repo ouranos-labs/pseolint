@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { languageMismatchRule } from "../../../src/rules/tech/language-mismatch.js";
 import type { ParsedPage } from "../../../src/types.js";
 
-const CYRILLIC = "Токио — столица Японии и крупнейший город страны. Здесь расположены императорский дворец, множество музеев и парков. ".repeat(4);
+const CYRILLIC = "Токио является столицей Японии и крупнейшим городом страны. Здесь расположены императорский дворец, множество музеев и парков. ".repeat(4);
 const JAPANESE = "東京は日本の首都であり、最大の都市です。皇居、博物館、公園などがあります。ひらがなとカタカナのテキストサンプル。".repeat(6);
 const ENGLISH = "Tokyo is the capital of Japan and its largest city, home to the imperial palace and many museums and parks worth visiting. ".repeat(4);
 

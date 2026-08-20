@@ -5,10 +5,10 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * that drives social-share previews and is increasingly used by AI Overviews
  * as a fallback summary signal.
  *
- * Required: og:title, og:description, og:image — plus og:type and og:url,
+ * Required: og:title, og:description, og:image, plus og:type and og:url,
  * which ogp.me lists among "The four required properties" for every page
  * (https://ogp.me/). ParsedPage.og only carries title/description/image, so
- * og:type and og:url are detected via regex on page.html — and therefore only
+ * og:type and og:url are detected via regex on page.html, and therefore only
  * checked when page.html is non-empty.
  *
  * Severity gradation:
