@@ -62,6 +62,7 @@ import { soft404Rule } from "./rules/tech/soft-404.js";
 import { evaluateProbe } from "./rules/tech/soft-404-probe.js";
 import { csrBailoutRule } from "./rules/tech/csr-bailout.js";
 import { coreWebVitalsRule } from "./rules/tech/core-web-vitals.js";
+import { resourceWeightRule } from "./rules/tech/resource-weight.js";
 import { fetchCruxFieldVitals } from "./crux.js";
 import { jsonLdValidRule } from "./rules/schema/json-ld-valid.js";
 import { requiredFieldsRule } from "./rules/schema/required-fields.js";
@@ -965,6 +966,11 @@ function runRulesOnPages(
   if (isEnabled("tech/core-web-vitals") && modeOk("tech/core-web-vitals")) {
     // No-op unless --render populated page.webVitals (the rule guards internally).
     pushAll(findings, tag(coreWebVitalsRule(pages)));
+  }
+
+  if (isEnabled("tech/resource-weight") && modeOk("tech/resource-weight")) {
+    // No-op unless --render populated page.resources (the rule guards internally).
+    pushAll(findings, tag(resourceWeightRule(pages)));
   }
 
   if (isEnabled("tech/hreflang-consistency") && modeOk("tech/hreflang-consistency")) {
@@ -2722,6 +2728,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         const r = renderedByUrl.get(p.url);
         if (r?.html) (p as { renderedHtml?: string }).renderedHtml = r.html;
         if (r?.webVitals) (p as { webVitals?: ParsedPage["webVitals"] }).webVitals = r.webVitals;
+        if (r?.resources) (p as { resources?: ParsedPage["resources"] }).resources = r.resources;
       }
     } catch (err) {
       // eslint-disable-next-line no-console

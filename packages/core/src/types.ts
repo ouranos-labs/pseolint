@@ -913,7 +913,28 @@ export interface ParsedPage {
    * field data Google ranks on, and it's the only source of INP.
    */
   fieldVitals?: FieldVitals;
+  /** Subresource byte totals from Resource Timing. Absent outside `--render`. */
+  resources?: PageResources;
   httpMeta?: HttpMeta;
+}
+
+/**
+ * Subresource byte totals captured from the browser's Resource Timing buffer
+ * during `--render`. Absent in static mode: nothing here can be known without
+ * actually fetching the page's assets, and we will not issue speculative
+ * requests just to produce a number.
+ *
+ * `transferSize` reads 0 for cross-origin responses that omit
+ * Timing-Allow-Origin, so these totals UNDER-report on asset CDNs rather than
+ * guessing. Treat them as a floor.
+ */
+export interface PageResources {
+  /** Sum of per-resource transfer sizes (headers + compressed body). */
+  totalBytes: number;
+  /** Byte totals by resource kind, so a heavy page can be attributed. */
+  byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
+  /** The ten largest resources, descending. */
+  largest: Array<{ url: string; bytes: number; kind: string }>;
 }
 
 export interface WebVitals {

@@ -61,7 +61,7 @@ export const FOLKLORE: readonly FolkloreEntry[] = [
       "A real number attached to the wrong object. Googlebot's documented limit is 2 MB per fetched FILE, uncompressed: every HTML page, stylesheet and script gets its own budget, and PDFs get 64 MB. There is no total-site or total-page-weight crawl ceiling. A 21 MB page whose HTML is 112 kB has a Core Web Vitals problem, not a crawl-truncation one.",
     sourceTitle: "Google Search Central: Googlebot",
     sourceUrl: "https://developers.google.com/search/docs/crawling-indexing/googlebot",
-    insteadRules: ["tech/html-size", "tech/core-web-vitals"],
+    insteadRules: ["tech/html-size", "tech/resource-weight", "tech/core-web-vitals"],
   },
   {
     claim: "Googlebot indexes the first 15 MB of your HTML",

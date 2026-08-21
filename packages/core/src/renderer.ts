@@ -72,10 +72,20 @@ interface WebVitals {
   ttfb: number | null;
 }
 
+interface PageResources {
+  /** Sum of transferSize across every subresource the page fetched. */
+  totalBytes: number;
+  /** Per-kind byte totals, so a heavy page can be attributed rather than just flagged. */
+  byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
+  /** Resources at or above the reporting floor, largest first, capped. */
+  largest: Array<{ url: string; bytes: number; kind: string }>;
+}
+
 interface RenderedPage {
   url: string;
   html: string;
   webVitals?: WebVitals;
+  resources?: PageResources;
 }
 
 const MIME_TYPES: Record<string, string> = {
@@ -304,7 +314,39 @@ export async function renderPages(
           const nav = performance.getEntriesByType("navigation")[0] as { responseStart?: number } | undefined;
           return { lcp: v.lcp, cls: v.cls, ttfb: nav?.responseStart ?? null };
         }).catch(() => ({ lcp: null, cls: null, ttfb: null }));
-        results.push({ url: entry.url, html, webVitals });
+        // Resource Timing is already populated by the time networkidle fires, so
+        // subresource byte totals cost one more evaluate and zero extra requests.
+        // `transferSize` is 0 for cross-origin responses without Timing-Allow-Origin;
+        // fall back to encodedBodySize (also 0 when opaque) so we under-report
+        // rather than invent numbers.
+        const resources: PageResources = await page.evaluate(() => {
+          const KIND: Record<string, string> = {
+            img: "image", image: "image", script: "script", css: "stylesheet",
+            link: "stylesheet", font: "font",
+          };
+          const byKind = { image: 0, script: 0, stylesheet: 0, font: 0, other: 0 };
+          const all: Array<{ url: string; bytes: number; kind: string }> = [];
+          let totalBytes = 0;
+          // @ts-ignore -- browser global
+          for (const e of performance.getEntriesByType("resource") as Array<{
+            name: string; initiatorType: string; transferSize?: number; encodedBodySize?: number;
+          }>) {
+            const bytes = e.transferSize || e.encodedBodySize || 0;
+            if (bytes <= 0) continue;
+            let kind = KIND[e.initiatorType] ?? "other";
+            if (kind === "stylesheet" && /\.(woff2?|ttf|otf|eot)(\?|$)/i.test(e.name)) kind = "font";
+            (byKind as Record<string, number>)[kind] += bytes;
+            totalBytes += bytes;
+            all.push({ url: e.name, bytes, kind });
+          }
+          all.sort((a, b) => b.bytes - a.bytes);
+          return { totalBytes, byKind, largest: all.slice(0, 10) };
+        }).catch(() => ({
+          totalBytes: 0,
+          byKind: { image: 0, script: 0, stylesheet: 0, font: 0, other: 0 },
+          largest: [],
+        }));
+        results.push({ url: entry.url, html, webVitals, resources });
       } catch {
         // Skip pages that fail to render
       } finally {

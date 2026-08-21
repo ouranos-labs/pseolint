@@ -5,7 +5,7 @@
 **Engine version at writing:** v0.5.2
 
 This is the honest counterpart to the README and `/methodology` page. The
-README lists 59 rules across 8 categories, what we *do* detect. This
+README lists 60 rules across 8 categories, what we *do* detect. This
 document lists what we *don't*. We treat blind spots as a credibility
 asset: a tool that names its limits is more trustworthy than one that
 implies omniscience.
@@ -62,6 +62,16 @@ focus on rendered DOM not load timing.
 **Roadmap fix:** `tech/page-speed` rule running in render mode, leveraging
 Playwright's PerformanceObserver. v0.6 target.
 
+**2026-08-19 update (partially closed):** `tech/core-web-vitals` shipped
+(lab LCP/CLS under `--render`, real-user p75 including INP with a CrUX
+key), and `tech/resource-weight` now reads the browser's Resource Timing
+buffer in the same render pass to report total page weight with a
+per-kind breakdown. Still open: render-blocking-resource detection and
+JavaScript execution time. Note for whoever picks those up: total page
+weight has NO documented crawl limit, so it is reported at info severity
+as a Core Web Vitals input and must never be presented as one. See
+docs/folklore.md #4.
+
 ### 1.3 Image SEO
 
 **What we don't detect:** alt-text presence/quality, `<img>` width/height
@@ -77,6 +87,13 @@ parsed HTML; no architectural blocker.
 
 **Roadmap fix:** `content/image-alt-text` rule (alt-text presence + per-
 template uniqueness). v0.5.3 target.
+
+**2026-08-19 update (partially closed):** `content/image-alt-text` shipped,
+and `tech/resource-weight` now reports image BYTES (the dominant-kind
+breakdown) under `--render`, which covers the "oversized images" signal.
+Still open: width/height attributes, format choice, `srcset`, lazy-loading
+and filename quality, all of which are parse-time checks needing no
+network.
 
 ### 1.4 Open Graph / Twitter Card metadata
 

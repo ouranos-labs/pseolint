@@ -1,7 +1,7 @@
 {
   "name": "@pseolint/core",
   "version": "0.7.5",
-  "description": "Programmatic SEO audit engine: 59 rules across 4 categories (integrity, discoverability, citation, data) for SpamBrain risk + AI Overview citability. Verdict ladder + site classifier.",
+  "description": "Programmatic SEO audit engine: 60 rules across 4 categories (integrity, discoverability, citation, data) for SpamBrain risk + AI Overview citability. Verdict ladder + site classifier.",
   "license": "MIT",
   "author": "Ouranos Labs <contact@ouranos-labs.dev>",
   "homepage": "https://pseolint.dev",

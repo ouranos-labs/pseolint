@@ -53,6 +53,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "tech/language-mismatch": "https://developers.google.com/search/docs/specialty/international/managing-multi-regional-sites",
   "tech/hreflang-validity": "https://developers.google.com/search/docs/specialty/international/localized-versions",
   "tech/html-size": "https://developers.google.com/search/docs/crawling-indexing/googlebot",
+  "tech/resource-weight": "https://developers.google.com/search/docs/crawling-indexing/googlebot",
   "tech/meta-robots-conflict": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag",
   "tech/snippet-suppression": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag",
   "tech/viewport-meta": "https://developers.google.com/search/docs/crawling-indexing/mobile/mobile-sites-mobile-first-indexing",

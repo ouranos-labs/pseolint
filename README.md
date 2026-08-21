@@ -35,7 +35,7 @@ npx pseolint http://localhost:3000
 - [Why this exists](#why-this-exists)
 - [How pseolint differs](#how-pseolint-differs)
 - [Quick Start](#quick-start)
-- [What It Checks](#what-it-checks): the 59 rules
+- [What It Checks](#what-it-checks): the 60 rules
 - [CLI Options](#cli-options)
 - [GitHub Action](#github-action)
 - [Fix rail: from audit to pull request](#fix-rail--from-audit-to-pull-request)
@@ -87,7 +87,7 @@ The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 59 rules across 8 categories: SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 60 rules across 8 categories: SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server, browser extension (SERP competitive recon). Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
@@ -191,7 +191,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 
 ## What It Checks
 
-**59 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability. Every rule is backed by a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse); the checks we deliberately *refuse* to run (folklore the primary sources contradict, like title/description character limits) live in [docs/folklore.md](./docs/folklore.md):
+**60 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability. Every rule is backed by a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse); the checks we deliberately *refuse* to run (folklore the primary sources contradict, like title/description character limits) live in [docs/folklore.md](./docs/folklore.md):
 
 ### SpamBrain Risk Detection
 
@@ -252,6 +252,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | `tech/language-mismatch` | Declared language (html lang / self-referencing hreflang) vs the Unicode script of the actual text, e.g. `lang="ja"` on a Cyrillic page. Google indexes by DETECTED language, so mismatched declarations silently break all targeting | Error / Warning / Info |
 | `tech/hreflang-validity` | Invalid hreflang codes (`en_US`, `jp`, `en-UK`); Google silently ignores the whole annotation | Warning |
 | `tech/html-size` | HTML approaching Googlebot's 2 MB per-file crawl cutoff (uncompressed; content/links/JSON-LD past it are invisible). Per-file, not total page weight (see [docs/folklore.md](./docs/folklore.md)) | Error / Warning |
+| `tech/resource-weight` | Subresource bytes from the `--render` pass: any single script/style/image at or past the same 2 MB per-file cutoff (Error), within 25% of it (Warning), plus a total-page-weight breakdown by kind (Info, explicitly not a crawl limit) | Error / Warning / Info |
 | `tech/meta-robots-conflict` | Contradictory robots directives across meta robots / meta googlebot / X-Robots-Tag. Google applies the MOST restrictive, so an accidental `noindex` silently wins | Error / Warning |
 | `tech/snippet-suppression` | `nosnippet` / `max-snippet:0`, which kills SERP snippets and AI Overview / answer-engine citability | Warning / Info |
 | `tech/viewport-meta` | Missing `<meta name="viewport">`; Google indexes mobile-first | Warning |

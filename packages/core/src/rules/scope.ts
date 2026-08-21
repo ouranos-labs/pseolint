@@ -52,6 +52,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "tech/og-completeness": "page",
   "tech/csr-bailout": "page",
   "tech/core-web-vitals": "page",
+  "tech/resource-weight": "page",
   // 2026-08-19 folklore-vs-fact batch (see docs/folklore.md)
   "tech/language-mismatch": "page",
   "tech/hreflang-validity": "page",
