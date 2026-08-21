@@ -1,12 +1,14 @@
 import { type Metadata } from "next";
 import Link from "next/link";
+import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 
 const PUBLISHED_DATE = "2026-08-19";
 const REPORT_PATH = "/research/seo-folklore-vs-google-docs";
 const REPORT_TITLE = "SEO Folklore vs. What Google Actually Documents";
-// Title tag kept ≤60 chars for SERP display.
+// Short title tag: not a length rule (this very article debunks that at #2),
+// just a specific name that survives SERP cropping.
 const REPORT_TITLE_TAG = "SEO Folklore vs. Google's Docs · pseolint";
 const REPORT_DESCRIPTION =
   "We traced 13 widely-repeated SEO rules back to their primary sources. Ten are contradicted by Google's own documentation, one quietly became true, and the real limits are stranger than the folklore. Every claim cited.";
@@ -166,7 +168,7 @@ const FAQS: ReadonlyArray<Faq> = [
   },
   {
     q: "How do I check my site against the real documented rules instead of folklore?",
-    a: "Run npx pseolint https://your-site.com. Every one of its 59 rules cites the primary source that documents the behavior: the finding links straight to the Google, sitemaps.org, or ogp.me page that backs it. The checks this article debunks (character limits, keyword tags, word-count floors) are deliberately absent, and the project's docs/folklore.md explains each refusal with its contradicting source.",
+    a: `Run npx pseolint https://your-site.com. Every one of its ${SCORED_RULE_COUNT} rules cites the primary source that documents the behavior: the finding links straight to the Google, sitemaps.org, or ogp.me page that backs it. The checks this article debunks (character limits, keyword tags, word-count floors) are deliberately absent, and the project's docs/folklore.md explains each refusal with its contradicting source.`,
   },
 ];
 

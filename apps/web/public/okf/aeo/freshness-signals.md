@@ -1,22 +1,22 @@
 ---
 type: pSEO Audit Rule
-title: "Freshness Signals: When a Page Gives AI Engines No Sign It Is Current"
+title: "Freshness Signals, When a Page Gives AI Engines No Sign It Is Current"
 description: "AI engines favour pages that prove they are current. How aeo/freshness-signals flags a missing dateModified and content older than the 180 days staleness default."
 resource: https://pseolint.dev/rules/freshness-signals
 ruleId: "aeo/freshness-signals"
 tags: [aeo, "content freshness signals SEO"]
 ---
 
-# Freshness Signals: When a Page Gives AI Engines No Sign It Is Current
+# Freshness Signals, When a Page Gives AI Engines No Sign It Is Current
 
-> aeo/freshness-signals checks every page for a real modification signal: a JSON-LD dateModified, an article:modified_time meta tag, or a visible 'Last updated' line: warns at medium confidence when none exists, then drops to an info note when the best date it can parse is older than the staleness default of 180 days Google has long associated with how AI Overviews weigh recency.
+> aeo/freshness-signals checks every page for a real modification signal (a JSON-LD dateModified, an article:modified_time meta tag, or a visible 'Last updated' line) warns at medium confidence when none exists, then drops to an info note when the best date it can parse is older than the staleness default of 180 days Google has long associated with how AI Overviews weigh recency.
 
 _Rule `aeo/freshness-signals` · [live explainer](https://pseolint.dev/rules/freshness-signals)_
 
 # What it detects
 aeo/freshness-signals asks one question of every crawled page: does it carry evidence that it has been touched recently. The rule looks for a true modification signal in three places, a dateModified field anywhere in the page's JSON-LD (found by a recursive walk), a modification meta tag (article:modified_time, last-modified, dc.date.modified, or a <time datetime> element), or visible 'Last updated', 'updated on', 'revised', or 'last modified' text in the rendered content.
 
-A datePublished alone is deliberately not enough. A page born in 2019 and never edited has a publication date but no modification signal, so it falls through to a warning at medium confidence: medium because evergreen pages like an about, pricing, or policy page may legitimately omit a modified date, and re-stamping them would mislead readers.
+A datePublished alone is deliberately not enough. A page born in 2019 and never edited has a publication date but no modification signal, so it falls through to a warning at medium confidence, medium because evergreen pages like an about, pricing, or policy page may legitimately omit a modified date, and re-stamping them would mislead readers.
 
 When a modification signal does exist, the rule parses the best date it can find and measures its age. If that age exceeds maxStaleDays (180 days by default) it emits an info finding at low confidence, because stale by the clock is not always stale by meaning. The two findings sit at different severities on purpose: a missing signal is a warning, an old-but-present date is only an info note.
 

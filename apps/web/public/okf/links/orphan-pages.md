@@ -1,15 +1,15 @@
 ---
 type: pSEO Audit Rule
-title: "Orphan Pages: URLs No Other Page Links To"
+title: "Orphan Pages, URLs No Other Page Links To"
 description: "Orphan pages have zero inbound internal links, so Googlebot can't crawl them from your site. How links/orphan-pages finds every unreachable URL in your corpus."
 resource: https://pseolint.dev/rules/orphan-pages
 ruleId: "links/orphan-pages"
 tags: [links, "orphan pages SEO"]
 ---
 
-# Orphan Pages: URLs No Other Page Links To
+# Orphan Pages, URLs No Other Page Links To
 
-> links/orphan-pages scans every URL in the crawl, counts the inbound internal links pointing at each one, and fires at error severity on any page with exactly 0 of them: the dead-zone shape that leaves Googlebot unable to reach a URL through your own navigation, a structural gap the March 27, 2026 core update treats as a discoverability failure rather than a content one.
+> links/orphan-pages scans every URL in the crawl, counts the inbound internal links pointing at each one, and fires at error severity on any page with exactly 0 of them, the dead-zone shape that leaves Googlebot unable to reach a URL through your own navigation, a structural gap the March 27, 2026 core update treats as a discoverability failure rather than a content one.
 
 _Rule `links/orphan-pages` · [live explainer](https://pseolint.dev/rules/orphan-pages)_
 
@@ -31,7 +31,7 @@ The error severity reflects that this is a structural defect, not a stylistic on
 A beekeeping-supplies shop ships a /hives/ catalog whose index template paginates to the first 24 products, but the store stocks 310 SKUs. The $420 cedar Langstroth deep brood box, the nuc box, and roughly 280 other hive components live at real URLs that return 200, yet no page in the crawl links to them. The rule counts 0 inbound internal links for each and fires at error severity 286 times, naming every unreachable product. Googlebot arriving at the homepage has no internal path to 92% of the hive inventory, and 3 months after launch those pages still hold no rankings.
 
 # Passing example
-The same beekeeping-supplies shop rebuilds the /hives/ index as a fully linked, filterable grid: every brood box, queen excluder, and Langstroth frame is reachable from the catalog, and each product also appears in a 'goes with this hive' block on related pages, so a smoker links to the apiary-starter bundle and the honey extractor links back to the frames it spins. Every one of the 310 SKUs now carries at least 1 inbound internal link. The rule counts no zero-inbound URLs and stays silent, because Googlebot can walk from the homepage to any product in 3 clicks.
+The same beekeeping-supplies shop rebuilds the /hives/ index as a fully linked, filterable grid, every brood box, queen excluder, and Langstroth frame is reachable from the catalog, and each product also appears in a 'goes with this hive' block on related pages, so a smoker links to the apiary-starter bundle and the honey extractor links back to the frames it spins. Every one of the 310 SKUs now carries at least 1 inbound internal link. The rule counts no zero-inbound URLs and stays silent, because Googlebot can walk from the homepage to any product in 3 clicks.
 
 # How to fix
 - Link every orphan from a relevant hub or category index so it joins the site's internal link graph and a crawler can actually reach it.
@@ -47,6 +47,6 @@ The same beekeeping-supplies shop rebuilds the /hives/ index as a fully linked, 
 - [host-section-divergence](../links/host-section-divergence.md)
 
 # Sources
-- [Google Search Central: Large site owner's guide to managing crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget) (Google's crawl-budget guidance explains that Googlebot discovers pages by following internal links) a URL with zero inbound internal links sits outside every navigation path, so the crawler cannot reach it organically. links/orphan-pages flags exactly this zero-inbound-link condition, counting the inbound-link total the crawler accumulated while walking internal hrefs and exempting only the root URL, which is reached directly.
+- [Google Search Central: Large site owner's guide to managing crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget): Google's crawl-budget guidance explains that Googlebot discovers pages by following internal links; a URL with zero inbound internal links sits outside every navigation path, so the crawler cannot reach it organically. links/orphan-pages flags exactly this zero-inbound-link condition, counting the inbound-link total the crawler accumulated while walking internal hrefs and exempting only the root URL, which is reached directly.
 - [Google Search Central: Build and submit a sitemap](https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview): Google's sitemaps documentation acknowledges that a sitemap can surface URLs Googlebot would not find through crawling alone, but also warns that a sitemap submission does not substitute for internal links that transfer authority. A page with zero inbound internal links survives only on sitemap declaration, a structurally weak position the March 27, 2026 core update treated as a discoverability failure.
-- [Google Search Central: Search Essentials](https://developers.google.com/search/docs/essentials): Search Essentials states that Google must be able to find a page to index it, and the primary discovery mechanism is link-following. When links/orphan-pages fires at error severity on a URL, that page has no internal referrer in the crawled corpus at all; it cannot be found by traversing your own navigation, only by direct URL knowledge or an external signal.
+- [Google Search Central: Search Essentials](https://developers.google.com/search/docs/essentials): Search Essentials states that Google must be able to find a page to index it, and the primary discovery mechanism is link-following. When links/orphan-pages fires at error severity on a URL, that page has no internal referrer in the crawled corpus at all: it cannot be found by traversing your own navigation, only by direct URL knowledge or an external signal.

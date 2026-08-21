@@ -31,7 +31,7 @@ Word count alone is a weak quality signal, which is precisely why SpamBrain (pub
 - Replace boilerplate intros and 'why choose us' filler with structured, page-specific facts: dimensions, prices, cohort statistics, change logs. Facts add words and quality at the same time.
 - Connect a real data source (CSV, JSON, or your DB) so each entity contributes its own attributes. Pages should diverge on the facts, not just the H1.
 - Raise your `thinMinWords` threshold gradually as you fix pages. Catching the next batch is easier when the floor moves up.
-- Do not pad with FAQ accordions copied across the site: that triggers `spam/boilerplate-ratio` instead and you end up worse off.
+- Do not pad with FAQ accordions copied across the site; that triggers `spam/boilerplate-ratio` instead and you end up worse off.
 
 # Related rules
 - [doorway-pattern](../spam/doorway-pattern.md)

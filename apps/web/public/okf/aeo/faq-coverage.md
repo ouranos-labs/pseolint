@@ -9,12 +9,12 @@ tags: [aeo, "FAQPage schema"]
 
 # FAQ Coverage: Question Content That Ships With No FAQPage Schema
 
-> aeo/faq-coverage flags any page that reads like an FAQ: at least 2 question-phrased H2 headings starting with how, what, or why, or a /faq, /how-to, or /what-is URL path, yet ships no FAQPage or HowTo JSON-LD, the structured-data gap that matters far more for AI extraction since Google narrowed FAQ rich results to government and health sites in August 2023.
+> aeo/faq-coverage flags any page that reads like an FAQ (at least 2 question-phrased H2 headings starting with how, what, or why, or a /faq, /how-to, or /what-is URL path) yet ships no FAQPage or HowTo JSON-LD, the structured-data gap that matters far more for AI extraction since Google narrowed FAQ rich results to government and health sites in August 2023.
 
 _Rule `aeo/faq-coverage` · [live explainer](https://pseolint.dev/rules/faq-coverage)_
 
 # What it detects
-aeo/faq-coverage looks at each page and asks two questions in sequence. First, does this page look like FAQ or how-to content? It looks that way if 2 or more of its H2 headings are phrased as questions: a heading that ends in a question mark, or one that opens with a question word like how, what, why, when, where, who, can, does, is, are, should, or which, or if the URL path matches a question pattern such as /faq, /how-to-, /what-is-, /guide-, or /questions. The trigger threshold is the faqMinQuestionHeadings option, which defaults to 2.
+aeo/faq-coverage looks at each page and asks two questions in sequence. First, does this page look like FAQ or how-to content? It looks that way if 2 or more of its H2 headings are phrased as questions, a heading that ends in a question mark, or one that opens with a question word like how, what, why, when, where, who, can, does, is, are, should, or which, or if the URL path matches a question pattern such as /faq, /how-to-, /what-is-, /guide-, or /questions. The trigger threshold is the faqMinQuestionHeadings option, which defaults to 2.
 
 Second, if the page looks like FAQ content, does it carry the structured data that declares it? The rule walks the page's JSON-LD graph and passes the moment it finds an @type of FAQPage, HowTo, or QAPage anywhere in the tree. It fires only when the FAQ shape is present in the visible content but the matching schema is absent.
 
@@ -23,7 +23,7 @@ The finding lands at info severity with medium confidence. Medium is deliberate:
 # Why it matters
 When a page already answers questions in its headings, a few lines of FAQPage or HowTo JSON-LD hand machines a clean, paired list of every question and its answer, no parsing, no guessing where one answer ends and the next begins. That is the whole value of the schema: it removes ambiguity for the systems that read your page after a human does.
 
-Be honest about which systems those are. Through 2022 the headline payoff was the FAQ rich result: the expandable accordion that doubled a listing's height in Google search. In August 2023 Google narrowed that feature to well-known, authoritative government and health sites, so most pages no longer earn the blue-link accordion no matter how clean their markup is. The schema did not become worthless; its audience shifted. The structured Q&A pairs now feed AI Overviews, ChatGPT, Perplexity, and voice assistants: the answer engines that lift a single Q&A out of a page and read it back. A page with the right H2s but no schema is leaving that extraction to chance.
+Be honest about which systems those are. Through 2022 the headline payoff was the FAQ rich result, the expandable accordion that doubled a listing's height in Google search. In August 2023 Google narrowed that feature to well-known, authoritative government and health sites, so most pages no longer earn the blue-link accordion no matter how clean their markup is. The schema did not become worthless; its audience shifted. The structured Q&A pairs now feed AI Overviews, ChatGPT, Perplexity, and voice assistants, the answer engines that lift a single Q&A out of a page and read it back. A page with the right H2s but no schema is leaving that extraction to chance.
 
 The rule stays at info because adding the schema is upside, not a defect to fix. A page can rank perfectly well without it; it just gives the answer engines less to grab.
 
@@ -46,6 +46,6 @@ The same espresso dial-in guide after the author adds FAQPage JSON-LD generated 
 - [eeat-signals](../content/eeat-signals.md)
 
 # Sources
-- [Google Search Central: Introduction to structured data markup](https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data) (FAQPage and HowTo JSON-LD are the exact schema types aeo/faq-coverage verifies are present) the rule fires an error when question-phrased H2 headings or a /faq URL path confirm FAQ intent yet neither markup type appears in the page's JSON-LD.
+- [Google Search Central: Introduction to structured data markup](https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data): FAQPage and HowTo JSON-LD are the exact schema types aeo/faq-coverage verifies are present: the rule fires an error when question-phrased H2 headings or a /faq URL path confirm FAQ intent yet neither markup type appears in the page's JSON-LD.
 - [Schema.org: full hierarchy of structured-data types](https://schema.org/): Schema.org defines the FAQPage and HowTo types that aeo/faq-coverage expects; the rule's detection logic keys on whether the page's JSON-LD contains either type after the heading-question or URL-path check confirms FAQ content.
 - [Google Search Central: AI features and your website](https://developers.google.com/search/docs/appearance/ai-features): Google narrowed FAQ rich results to government and health publishers in August 2023, shifting the remaining value of FAQPage markup squarely to AI extraction, the reason aeo/faq-coverage treats a missing schema as a missed AI Overviews eligibility signal rather than a cosmetic gap.

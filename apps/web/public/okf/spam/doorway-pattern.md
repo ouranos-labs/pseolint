@@ -1,7 +1,7 @@
 ---
 type: pSEO Audit Rule
 title: "Doorway Pages: How Google Detects Templated Funnels"
-description: "Doorway pages are against Google policy. The spam/doorway-pattern rule fires only when three independent signals converge, here's the exact stack and how to break it."
+description: "Doorway pages are against Google policy. The spam/doorway-pattern rule fires only when three independent signals converge: here's the exact stack and how to break it."
 resource: https://pseolint.dev/rules/doorway-pattern
 ruleId: "spam/doorway-pattern"
 tags: [spam, "doorway pages SEO"]
@@ -41,7 +41,7 @@ Two URLs on the same B2B SaaS site, redesigned: /seo-tool-vs-ahrefs and /seo-too
 - [template-diversity](../spam/template-diversity.md)
 
 # Sources
-- [Google Search Central: Spam policies: doorways](https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages) (Google's doorway-pages policy) in force since March 16, 2015: defines pages that exist for query or location variants while funneling visitors to a shared destination; spam/doorway-pattern demands exactly three converging signals before firing at weight-25 error severity: a 64-bit SimHash above the 0.85 ceiling, entity-swap confirmation, and a structural hash match.
+- [Google Search Central: Spam policies: doorways](https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages): Google's doorway-pages policy (in force since March 16, 2015) defines pages that exist for query or location variants while funneling visitors to a shared destination; spam/doorway-pattern demands exactly three converging signals before firing at weight-25 error severity: a 64-bit SimHash above the 0.85 ceiling, entity-swap confirmation, and a structural hash match.
 - [Google Search Central: Spam policies: scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies): The March 5, 2024 scaled-content-abuse update reaffirmed that city-by-city or service-by-service template clusters built to capture keyword permutations constitute spam; doorway-pattern's convergence guard (requiring corroboration from spam/near-duplicate output) ensures only the highest-confidence clusters reach error severity, not incidental similarity.
 - [Google Search Central: Consolidate duplicate URLs (canonicalization)](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls): Doorway clusters collapse to one canonical result in Google's index because sibling pages cross the 0.85 SimHash similarity ceiling; Google's canonicalisation guidance explains how the crawler elects one representative URL and suppresses the rest, the indexing outcome that doorway-pattern fires at weight 25 to predict before demotion occurs.
 - [Google Search Central: Large site owner's guide to managing crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget): Large doorway clusters inflate crawl-budget consumption across near-identical fetches; the crawl-budget guidance for large sites notes that pages scoring above the 0.85 SimHash boundary are deprioritised as low-information duplicates, making doorway detection an early-warning indicator of wasted Googlebot capacity on programmatic domains.

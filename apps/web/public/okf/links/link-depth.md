@@ -37,7 +37,7 @@ The same scuba school flattens its architecture. The homepage links straight to 
 
 # How to fix
 - Link your deepest money pages directly from a hub or category page so the BFS reaches them in 2 to 3 clicks instead of 5 or 6.
-- Audit any page reported as unreachable-from-root first: that is a structural island, and adding a single navigational link from a reachable page fixes it.
+- Audit any page reported as unreachable-from-root first; that is a structural island, and adding a single navigational link from a reachable page fixes it.
 - Flatten deep taxonomies: collapse redundant intermediate index pages that add a click without adding value to a visitor or a crawler.
 - Add contextual in-content links from popular shallow pages down to important deep ones, so equity has a short path to follow.
 - Re-run the audit after restructuring, because moving one hub link can lift an entire subtree of pages back inside the 3-click ceiling at once.

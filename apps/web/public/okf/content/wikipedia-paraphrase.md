@@ -38,7 +38,7 @@ The same /fossils/ammonite page, rewritten from the collector's own field notes.
 - Replace reworded background with two or three linked sentences, then send the reader to Wikipedia for the textbook taxonomy rather than rephrasing it on your page.
 - Add page-specific facts that exist nowhere else: your matrix-removal technique, the failed prep that cracked a trilobite, the locality coordinates, the date you collected it.
 - Photograph and describe your own material. A theropod tooth you found, scaled and lit, is content no corpus contains; a reworded description of theropod dentition is not.
-- Re-run the audit and sort by overlap percentage. Clear pages above 45% first: those are almost entirely reference text and need the most original substance grafted in.
+- Re-run the audit and sort by overlap percentage. Clear pages above 45% first; those are almost entirely reference text and need the most original substance grafted in.
 - Treat the warning as a prompt, not a verdict. On a legitimately encyclopedic topic the heuristic can over-fire, so confirm the page actually reads as reworded Wikipedia before rewriting it.
 
 # Related rules

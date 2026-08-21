@@ -14,7 +14,7 @@ tags: [content, "page value-add score SEO"]
 _Rule `content/value-add` · [live explainer](https://pseolint.dev/rules/value-add)_
 
 # What it detects
-content/value-add does not parse a page. It runs after every other rule has finished and reads their findings, turning seven separate originality checks into one number. Each signal is scored 0, 0.5, or 1 for the page, and the rule takes the plain average: every signal weighted at one-seventh, about 14%.
+content/value-add does not parse a page. It runs after every other rule has finished and reads their findings, turning seven separate originality checks into one number. Each signal is scored 0, 0.5, or 1 for the page, and the rule takes the plain average, every signal weighted at one-seventh, about 14%.
 
 The seven signals are: originality (1 unless content/regurgitated-content fired here, then 0), freshness (from aeo/freshness-signals, 1 if silent, 0.5 at warning, 0 otherwise), citable facts (from aeo/citable-facts, 1 if silent, 0.5 at info or warning, 0 otherwise), E-E-A-T (a four-category count, 1 at four signals, 0.5 at two or three, 0 below two), translation (0 if content/translation-no-op named this page, else 1), cliche reuse (0 if content/common-phrase-reuse fired, else 1), and Wikipedia paraphrase (0 if content/wikipedia-paraphrase fired, else 1).
 
@@ -36,8 +36,8 @@ The same oolong page, rebuilt with material that exists nowhere else: a first-fl
 # How to fix
 - Lift originality first: rewrite any copy that tripped regurgitated-content into a page-specific tasting note, because that signal is binary and recovering it adds a full one-seventh to the score.
 - Add a real published or updated date so the freshness signal climbs from 0 toward 1: an undated page scores zero on a signal that costs one line of markup to fix.
-- Bind citable facts a buyer can quote: a harvest window, a steeping temperature, an estate elevation, so the citable-facts signal stops scoring zero on a page of pure prose.
-- Reach four E-E-A-T categories: a byline, an about link, a date, and a sources block: since two or three only earns 0.5 while four earns the full point.
+- Bind citable facts a buyer can quote (a harvest window, a steeping temperature, an estate elevation) so the citable-facts signal stops scoring zero on a page of pure prose.
+- Reach four E-E-A-T categories (a byline, an about link, a date, and a sources block) since two or three only earns 0.5 while four earns the full point.
 - Clear cliche reuse and any translation-no-op flag: both are binary signals, and a page padded with common phrases or a hollow auto-translation each forfeits a full one-seventh.
 - Re-run the audit after fixing the worst two signals: because the score is an average, recovering two zeros to ones usually moves a 43% page past the 50% floor in one pass.
 
@@ -47,7 +47,7 @@ The same oolong page, rebuilt with material that exists nowhere else: a first-fl
 - [regurgitated-content](../content/regurgitated-content.md)
 
 # Sources
-- [Google Search Central: Creating helpful, reliable, people-first content](https://developers.google.com/search/docs/fundamentals/creating-helpful-content): People-first guidance is the conceptual frame content/value-add makes computable: the rule converts seven separate originality signals, regurgitation absence, dateModified freshness, citable-fact density, E-E-A-T category count, locale-translation fidelity, bundled-cliché density, and trigram encyclopedia overlap, into a single 0-to-1 composite score.
+- [Google Search Central: Creating helpful, reliable, people-first content](https://developers.google.com/search/docs/fundamentals/creating-helpful-content): People-first guidance is the conceptual frame content/value-add makes computable: the rule converts seven separate originality signals (regurgitation absence, dateModified freshness, citable-fact density, E-E-A-T category count, locale-translation fidelity, bundled-cliché density, and trigram encyclopedia overlap) into a single 0-to-1 composite score.
 - [Google Search Central: Spam policies: scaled content abuse](https://developers.google.com/search/docs/essentials/spam-policies): Scaled-content-abuse policy penalises volume production yielding little per-page differentiation; content/value-add makes the enforcement threshold explicit: each of seven contributing signals is weighted at one-seventh (≈14%), so a page failing four signals sits at roughly 0.43 (below the 50% error floor) even if the remaining three pass cleanly.
 - [Google Search Central: Search Essentials](https://developers.google.com/search/docs/essentials): Search Essentials lists originality and usefulness as foundational quality expectations; content/value-add translates those principles into a deterministic second-pass composite (reading prior rule findings rather than re-parsing HTML) and emits a critical finding below 0.30 to mark URLs where fewer than three of the seven dimensions of substantive contribution pass.
 - [Google Search Central: AI features and your website](https://developers.google.com/search/docs/appearance/ai-features): AI Overviews and similar extraction pipelines prefer content that clears multiple originality dimensions simultaneously; content/value-add's 0-to-1 composite score surfaces URLs that individually pass each contributing rule at warning level but collectively fall short of the 50% average originality floor that separates extractable depth from surface filler.

@@ -9,7 +9,7 @@ tags: [aeo, "AI crawler robots.txt"]
 
 # Crawler Access: Is Your robots.txt Blocking AI Answer Engines?
 
-> aeo/crawler-access parses your robots.txt user-agent by user-agent and checks 8 named AI crawlers: GPTBot from OpenAI, ClaudeBot from Anthropic, PerplexityBot, Google-Extended, and four more: warning once per fully blocked bot and escalating to an error only when every one is disallowed, so blocking them stays a deliberate choice you make, not a verdict the rule hands down.
+> aeo/crawler-access parses your robots.txt user-agent by user-agent and checks 8 named AI crawlers (GPTBot from OpenAI, ClaudeBot from Anthropic, PerplexityBot, Google-Extended, and four more) warning once per fully blocked bot and escalating to an error only when every one is disallowed, so blocking them stays a deliberate choice you make, not a verdict the rule hands down.
 
 _Rule `aeo/crawler-access` · [live explainer](https://pseolint.dev/rules/crawler-access)_
 
@@ -61,11 +61,11 @@ User-agent: Bytespider
 Disallow: /
 ```
 
-GPTBot now has its own block, but it is narrow: only the secret setting is hidden, so GPTBot is not counted as fully blocked. ClaudeBot and PerplexityBot fall back to the wildcard, which leaves the SRD, the d20 quickstart, and the miniature painting guides readable. Only Bytespider is fully disallowed, a deliberate single choice. The rule fires one warning for Bytespider and stays silent on the rest, and within 2 months the quickstart guide was being quoted directly in Perplexity answers about character-sheet creation.
+GPTBot now has its own block, but it is narrow, only the secret setting is hidden, so GPTBot is not counted as fully blocked. ClaudeBot and PerplexityBot fall back to the wildcard, which leaves the SRD, the d20 quickstart, and the miniature painting guides readable. Only Bytespider is fully disallowed, a deliberate single choice. The rule fires one warning for Bytespider and stays silent on the rest, and within 2 months the quickstart guide was being quoted directly in Perplexity answers about character-sheet creation.
 
 # How to fix
 - Open robots.txt and find every block with a root `Disallow: /`. For each named AI crawler you want quotable, delete that root rule so the bot can reach your public pages again.
-- If you only meant to hide private areas, replace `Disallow: /` with the specific paths: for example `Disallow: /drafts/` and `Disallow: /admin/`, so the rest of the site stays crawlable by answer engines.
+- If you only meant to hide private areas, replace `Disallow: /` with the specific paths (for example `Disallow: /drafts/` and `Disallow: /admin/`) so the rest of the site stays crawlable by answer engines.
 - Decide deliberately which bots you keep out. Blocking a scraper like Bytespider while allowing GPTBot and ClaudeBot is a valid stance; just confirm it is the stance you actually want.
 - Remember the wildcard fallback: a `User-agent: *` block with `Disallow: /` silently blocks every AI crawler that has no rule of its own. Give bots you want to allow their own narrower block to escape it.
 - After editing, re-run the audit. The rule downgrades from a site-wide error to per-bot warnings to silence as you reopen access, so you can watch each decision take effect.

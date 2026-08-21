@@ -13,7 +13,8 @@ Generated from the catalog at [https://pseolint.dev/rules](https://pseolint.dev/
 
 # Categories
 - [spam](./spam/index.md): 8 rules
-- [links](./links/index.md): 5 rules
-- [content](./content/index.md): 12 rules
+- [links](./links/index.md): 7 rules
+- [content](./content/index.md): 13 rules
 - [cannibal](./cannibal/index.md): 1 rule
 - [aeo](./aeo/index.md): 5 rules
+- [tech](./tech/index.md): 8 rules
