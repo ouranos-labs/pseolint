@@ -35,7 +35,7 @@ npx pseolint http://localhost:3000
 - [Why this exists](#why-this-exists)
 - [How pseolint differs](#how-pseolint-differs)
 - [Quick Start](#quick-start)
-- [What It Checks](#what-it-checks): the 60 rules
+- [What It Checks](#what-it-checks): the 61 rules
 - [CLI Options](#cli-options)
 - [GitHub Action](#github-action)
 - [Fix rail: from audit to pull request](#fix-rail--from-audit-to-pull-request)
@@ -87,7 +87,7 @@ The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 60 rules across 8 categories: SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 61 rules across 8 categories: SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server, browser extension (SERP competitive recon). Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
@@ -191,7 +191,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 
 ## What It Checks
 
-**60 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability. Every rule is backed by a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse); the checks we deliberately *refuse* to run (folklore the primary sources contradict, like title/description character limits) live in [docs/folklore.md](./docs/folklore.md):
+**61 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability. Every rule is backed by a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse); the checks we deliberately *refuse* to run (folklore the primary sources contradict, like title/description character limits) live in [docs/folklore.md](./docs/folklore.md):
 
 ### SpamBrain Risk Detection
 
@@ -215,6 +215,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | `content/title-uniqueness` | Empty/missing title, very short or excessively long title, or two pages sharing the exact title (raw, not entity-masked: catalog templates with per-record entity values pass) | Error / Warning / Info |
 | `content/heading-structure` | No `<h1>`, multiple `<h1>` elements, or long pages (>600 words) with no `<h2>` sub-headings | Error / Warning / Info |
 | `content/image-alt-text` | `<img>` tags missing `alt` attribute (decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""` are skipped) | Warning / Info |
+| `content/image-attributes` | `<img>` tags with no width/height (and no inline sizing), which leaves the browser no aspect ratio to reserve and shows up as layout shift; plus pages serving 3+ images where none uses `srcset`/`<picture>` | Warning / Info |
 | `content/missing-author` | No author schema, meta, byline, or rel="author" | Warning |
 | `content/eeat-signals` | Missing E-E-A-T signals (author, dates, sources, about links) | Info |
 | `content/citation-coverage` | Pages making 3+ quantified claims with no authoritative citations | Warning |

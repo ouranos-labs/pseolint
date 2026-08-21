@@ -26,6 +26,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "content/title-uniqueness": "corpus",
   "content/heading-structure": "page",
   "content/image-alt-text": "page",
+  "content/image-attributes": "page",
   "content/citation-coverage": "page",
   "content/meta-description-presence": "page",
 

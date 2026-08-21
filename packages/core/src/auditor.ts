@@ -27,6 +27,7 @@ import { ogCompletenessRule } from "./rules/tech/og-completeness.js";
 import { titleUniquenessRule } from "./rules/content/title-uniqueness.js";
 import { headingStructureRule } from "./rules/content/heading-structure.js";
 import { imageAltTextRule } from "./rules/content/image-alt-text.js";
+import { imageAttributesRule } from "./rules/content/image-attributes.js";
 import { translationNoOpRule } from "./rules/content/translation-no-op.js";
 import { regurgitatedContentRule } from "./rules/content/regurgitated-content.js";
 import { commonPhraseReuseRule } from "./rules/content/common-phrase-reuse.js";
@@ -900,6 +901,10 @@ function runRulesOnPages(
   }
   if (isEnabled("content/image-alt-text") && modeOk("content/image-alt-text")) {
     pushAll(findings, tag(imageAltTextRule(pages)));
+  }
+
+  if (isEnabled("content/image-attributes") && modeOk("content/image-attributes")) {
+    pushAll(findings, tag(imageAttributesRule(pages)));
   }
   if (isEnabled("content/translation-no-op") && modeOk("content/translation-no-op")) {
     pushAll(findings, tag(translationNoOpRule(pages)));

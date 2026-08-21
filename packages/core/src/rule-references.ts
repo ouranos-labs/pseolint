@@ -15,6 +15,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "content/title-uniqueness": "https://developers.google.com/search/docs/appearance/title-link",
   "content/heading-structure": "https://developers.google.com/search/docs/appearance/title-link#headings",
   "content/image-alt-text": "https://developers.google.com/search/docs/appearance/google-images#descriptive-alt-text",
+  "content/image-attributes": "https://web.dev/articles/optimize-cls",
   "links/orphan-pages": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
   "links/dead-ends": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
   "links/cluster-connectivity": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable",
