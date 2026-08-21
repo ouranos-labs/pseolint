@@ -25,7 +25,7 @@ export type MarketingTool = {
   slug: string;
   /** Page <h1> and <title>. Concise, keyword-led, human. */
   title: string;
-  /** <meta name="description">, ~150-160 chars. */
+  /** <meta name="description">. No length rule: Google documents none (docs/folklore.md #1). */
   metaDescription: string;
   /** Hero subhead, ~20 words. Sets the promise above the fold. */
   shortPitch: string;

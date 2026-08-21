@@ -87,12 +87,12 @@ const CHECKLIST_STEPS = [
     text: "Ensure the Article or WebPage schema features an Author Person block to establish trust and satisfy E-E-A-T signals.",
   },
   {
-    name: "Keep titles under 60 characters",
-    text: "Write unique titles containing primary target keywords that are short enough to fit inside standard SERP widths without clipping.",
+    name: "Give every page a unique, specific title",
+    text: "Google documents no title-length limit; SERP cropping is display-side and pixel-based. What triggers a rewritten title is a quality problem: a half-empty template field, boilerplate repeated across the cluster, or a stale year. Front-load what makes THIS record different.",
   },
   {
-    name: "Match meta descriptions to page context",
-    text: "Ensure each page generates a descriptive meta text between 140 and 155 characters that naturally includes the key target search phrase.",
+    name: "Give every page its own meta description",
+    text: "Google documents no character limit; snippets are truncated to the device width at display time. The real failures are a missing description (Google writes the snippet for you) and one templated description repeated across thousands of records.",
   },
   {
     name: "Provide freshness timestamps",
@@ -226,8 +226,10 @@ export default function ProgrammaticSeoChecklistPage() {
 
           <h3 className="text-base font-semibold text-foreground mt-4 mb-2">4. Metadata Excellence</h3>
           <p>
-            Ensure every page computes unique titles and meta descriptions that fit standard widths. Titles
-            should stay under 60 characters and descriptions under 155 characters, with primary keyword target matching.
+            Ensure every page computes a unique title and meta description from the record&apos;s own fields.
+            Neither has a documented character limit: truncation in the SERP is display-side cropping, not an
+            indexing event. Uniqueness and specificity are what actually move the needle, so spend the effort
+            there instead of on a character counter.
           </p>
         </div>
       </section>

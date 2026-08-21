@@ -6,7 +6,8 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/llms-txt-programmatic-seo";
 const REPORT_TITLE = "llms.txt for Programmatic Sites: The AEO Index 80% of Sites Skip";
-// Title tag kept under 60 chars for SERP display.
+// Short title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "llms.txt for Programmatic Sites · pseolint";
 const REPORT_DESCRIPTION =
   "In a 20-site benchmark, 80% of production pSEO sites shipped no llms.txt. It is the widest, lowest-effort answer-engine gap on the web. What the file is, what goes in it, and how to verify yours.";

@@ -6,7 +6,8 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/pseo-audit-benchmark-2026";
 const REPORT_TITLE = "We Audited 20 Production pSEO Sites: What Actually Fails";
-// Title tag stays ≤60 chars for SERP display.
+// Short title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "20 pSEO Sites Audited: What Fails · pseolint";
 const REPORT_DESCRIPTION =
   "We ran pseolint against 20 live programmatic-SEO sites, ~25 pages each. Only 3 scored ready; 80% ship no llms.txt and 75% fail citation coverage. Full per-site results, CC BY 4.0.";

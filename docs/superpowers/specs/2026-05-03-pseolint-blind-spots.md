@@ -101,11 +101,19 @@ Note for whoever picks those up: og:description length has NO documented
 optimum (Meta says "2 to 4 sentences"); see docs/folklore.md #3 before
 adding any character-count check.
 
-### 1.5 Title tag uniqueness + length
+### 1.5 Title tag uniqueness
 
-**What we don't detect:** title tag length (Google truncates ~60 chars),
-title-tag uniqueness across the site (we have meta-description
-uniqueness but not title), title-vs-H1 alignment.
+**What we don't detect:** title-tag uniqueness across the site (we have
+meta-description uniqueness but not title), title-vs-H1 alignment.
+
+**Correction (2026-08-19):** this section used to list "title tag length
+(Google truncates ~60 chars)" as a gap to close. That was folklore in our
+own blind-spot doc: Google documents NO title-length limit, and SERP
+cropping is display-side, not an indexing event. Closing that "gap" would
+have shipped a rule the primary source contradicts. See docs/folklore.md
+#2. What Google does document is the rewrite triggers (half-empty,
+boilerplate-repeated, stale titles), which are template smells and are
+worth detecting.
 
 **Why it's a real blind spot:** title is the single highest-impact on-page
 signal. Templated pSEO sites very commonly ship duplicate titles

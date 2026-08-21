@@ -24,6 +24,8 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${base}/sitemap.xml`,
-    host: base,
+    // No `host:` directive: Google does not support it (our own
+    // tech/robots-txt-limits rule flags it). Canonical URLs handle host
+    // preference. Yandex is the only notable consumer.
   };
 }

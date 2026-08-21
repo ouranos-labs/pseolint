@@ -8,7 +8,7 @@ const CHECKS = [
     label: "Dynamic <title> per route",
     rule: "content/title-uniqueness",
     critical: true,
-    hint: "Use generateMetadata() in Next.js App Router. Ensure each slug produces a unique title under 60 chars.",
+    hint: "Use generateMetadata() in Next.js App Router. Ensure each slug produces a title that is unique, not just a swapped entity in a shared template.",
   },
   {
     id: "canonical",
@@ -19,10 +19,10 @@ const CHECKS = [
   },
   {
     id: "description",
-    label: "Unique meta description (140–155 chars)",
+    label: "Unique meta description on every page",
     rule: "content/meta-uniqueness",
     critical: true,
-    hint: "Each page needs its own description that contains the primary keyword and a clear value proposition.",
+    hint: "Each page needs its own description built from the record's fields. There is no documented character limit; Google crops snippets to the device width at display time.",
   },
   {
     id: "og",
