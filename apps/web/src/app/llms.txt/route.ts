@@ -21,6 +21,7 @@ export function GET(): Response {
 ## Rule explainers
 
 - [SpamBrain rules index](/rules): ${SCORED_RULE_COUNT} rules across 8 categories: SpamBrain + AEO + site-reputation-abuse detection + content-quality (title/heading/alt/OG), with classification-driven scoring.
+- [SEO folklore, the checks we refuse to run](/folklore): 13 widely-repeated SEO rules (title/description character limits, meta keywords, sitemap priority/changefreq, word-count minimums, the "2 MB total site size" misread) that Google's own documentation contradicts, each with the primary source and the documented check pseolint runs instead.
 - [Calibration methodology](/methodology): how pseolint's verdicts are calibrated against in-production reputable pSEO sites, with dated snapshot results, the open-source corpus + runner, and the trade-offs we accepted.
 - [Thin content rule](/rules/thin-content)
 - [Doorway pattern rule](/rules/doorway-pattern)

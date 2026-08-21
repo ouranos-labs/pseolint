@@ -662,6 +662,20 @@ export default function MethodologyPage(): React.ReactElement {
             blind-spots spec
           </a>.
         </p>
+
+        {/* The mirror image of a blind spot: things we COULD flag and refuse
+            to, because the primary source contradicts them. Same credibility
+            argument, opposite direction, so it belongs next to this section. */}
+        <p className="mt-3 text-xs text-muted-foreground">
+          The inverse list matters too. Thirteen checks that competing tools ship, and that
+          Google&apos;s own documentation contradicts, are ones we deliberately do not run:
+          title and meta-description character limits, meta keywords, sitemap priority and
+          changefreq, word-count minimums. Each is documented with its primary source on{" "}
+          <Link href="/folklore" className="underline decoration-dotted underline-offset-2">
+            the folklore page
+          </Link>
+          .
+        </p>
       </section>
 
       <section className="mt-12">

@@ -37,6 +37,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Credibility hub (calibration methodology). Was missing from the sitemap:
     // a high-trust, link-worthy page that should be crawled.
     { path: "/methodology", changeFrequency: "monthly", priority: 0.7 },
+    // Differentiator page: the checks we refuse to run, with primary sources.
+    { path: "/folklore", changeFrequency: "monthly", priority: 0.8 },
     // MCP server setup (remote + stdio): acquisition surface for the AI-assistant channel.
     { path: "/mcp-server", changeFrequency: "monthly", priority: 0.8 },
   ];
