@@ -484,6 +484,148 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
       "source": "aiFeatures",
       "note": "AI Overviews and similar extraction pipelines prefer content that clears multiple originality dimensions simultaneously; content/value-add's 0-to-1 composite score surfaces URLs that individually pass each contributing rule at warning level but collectively fall short of the 50% average originality floor that separates extractable depth from surface filler."
     }
+  ],
+  "crawlable-anchors": [
+    {
+      "source": "linksCrawlable",
+      "note": "Google's make-your-links-crawlable guidance is the primary basis for the rule's classification set: only <a> elements with a resolvable href are followed, so pseolint counts a missing or empty href, a javascript: href, and href=\"#\" paired with onclick or a router attribute as unreachable navigation."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guide explains why the error escalation matters: a rental hub left with fewer than 2 crawlable same-host links passes almost no internal signal onward, so its 2,400 listing URLs are refetched less often and seasonal stock changes reach the index late."
+    },
+    {
+      "source": "googlebot",
+      "note": "The Googlebot reference documents the evergreen Chromium renderer that made JavaScript execution routine after May 2019, which is exactly the capability this rule bounds: scripts run and the DOM is built, but the crawler never clicks a handler to discover a route hidden inside onClick."
+    }
+  ],
+  "generic-anchor-text": [
+    {
+      "source": "linksCrawlable",
+      "note": "The anchor-text section of Google's links documentation states that link text is how Google works out what the destination is about, which is what the rule measures when it counts the 16 tracked generic phrases against a page's internal links and reports at the 0.5 ratio."
+    },
+    {
+      "source": "aiFeatures",
+      "note": "Google's AI-features guidance ties eligibility for generated answers to pages whose subject is plainly stated; a clinic card linked as its practice name plus its emergency-hours policy supplies that label directly, whereas 24 anchors reading read more supply none."
+    },
+    {
+      "source": "searchEssentials",
+      "note": "Search Essentials frames descriptive linking as baseline quality rather than a spam boundary, which is why this rule stays at info severity with medium confidence instead of joining the critical stack that near-duplicate and doorway findings feed."
+    }
+  ],
+  "meta-description-presence": [
+    {
+      "source": "snippets",
+      "note": "Google's snippet documentation supplies both halves of this rule: absence means Google composes the result text itself from page content, and the same page states no character limit exists for descriptions, which is why pseolint checks presence and declines to grade length."
+    },
+    {
+      "source": "specialTags",
+      "note": "The supported-tags reference lists description as a meta tag Google reads and keywords as one it does not use, so the rule tests for the one tag that changes snippet output and ignores the tag that has had no effect on indexing since 2009."
+    },
+    {
+      "source": "robotsMetaTag",
+      "note": "The robots meta tag specification documents the directives that genuinely control snippet output, including max-snippet and data-nosnippet; a connector catalog wanting shorter results should reach for those rather than for a folklore character count."
+    }
+  ],
+  "language-mismatch": [
+    {
+      "source": "multiRegional",
+      "note": "Google's multi-regional guidance states it does not use code-level language information such as lang attributes or the URL, and detects language from visible content instead; that is the exact asymmetry tech/language-mismatch measures by comparing declared subtags against the Unicode script of the rendered letters. It is also why a missing lang attribute is reported at info severity here rather than as a ranking defect."
+    },
+    {
+      "source": "hreflang",
+      "note": "The localized-versions documentation defines the self-referencing annotation that this rule treats as the page's second declaration, alongside html lang; only the entry whose href matches the page's own URL is read, since every other entry describes an alternate. x-default is skipped because it names a fallback rather than a language."
+    },
+    {
+      "source": "scaledContent",
+      "note": "The March 5, 2024 scaled-content-abuse policy lists translating content from another source without adding sufficient value as a violation, which is the pipeline failure that most often produces a whole directory of ja declarations sitting over untranslated Cyrillic body text. The 70% incompatible-script threshold is what makes that residue visible from a crawl."
+    }
+  ],
+  "hreflang-validity": [
+    {
+      "source": "hreflang",
+      "note": "Google's localized-versions page states that an hreflang annotation with an invalid language or region code is ignored, which is the entire premise of this rule: en_US, jp, and en-UK are discarded rather than corrected, with no error surfaced in Search Console. The same page frames x-default as a recommendation, so the rule skips that value instead of requiring it."
+    },
+    {
+      "source": "multiRegional",
+      "note": "The multi-regional guidance defines the language[-script][-region] shape this rule enforces via a narrow BCP-47 grammar, including the UN M.49 numeric regions that let es-419 validate. Region subtags are resolved uppercase against CLDR because Intl.DisplayNames is case-sensitive there, and UK is rejected because ISO 3166-1 Alpha-2 assigns the United Kingdom GB."
+    },
+    {
+      "source": "canonicalization",
+      "note": "When three of nine locale annotations are discarded, the orphaned regional pages lose the signal that distinguishes them and Google's canonicalisation elects one representative URL, suppressing the rest. Google's duplicate-URL consolidation guidance describes that election, and it explains why an invalid code presents as a ranking problem in the dropped market rather than as a markup error."
+    }
+  ],
+  "sitemap-hygiene": [
+    {
+      "source": "buildSitemap",
+      "note": "Google's build-a-sitemap guidance says lastmod is used only when it is consistently and verifiably accurate and ignored otherwise, and documents that priority and changefreq are ignored outright. That is the basis for the generated-lastmod heuristic (at least 100 URLs with the field, 95% sharing one value) and for the rule checking neither of the two ignored fields."
+    },
+    {
+      "source": "sitemapsProtocol",
+      "note": "The sitemaps.org protocol requires every URL in a sitemap to reside on the same host as the sitemap itself and specifies that non-compliant entries are dropped from consideration; that rule is why cross-host entries are the single error-severity finding here. It also defines <loc> as a fully-qualified absolute URL, which is what the unparseable-entry check enforces."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guidance describes Googlebot deprioritising low-information fetches, which is the mechanism that turns a build-stamped sitemap into slower recrawls of genuinely updated listings. Combined with 436 cross-host URLs falling back to internal-link discovery, it explains why the symptom appears as sluggish indexing rather than as a reported error."
+    }
+  ],
+  "meta-robots-conflict": [
+    {
+      "source": "robotsMetaTag",
+      "note": "Google's robots meta tag specification is the primary source for the combination rule this page rests on: directives declared in the HTML tag and in the X-Robots-Tag header are merged and the most restrictive result applies, which is why a leftover staging header overrides a production meta tag saying index."
+    },
+    {
+      "source": "blockIndexing",
+      "note": "The block-indexing guidance documents that a noindex directive removes a URL from the index outright rather than demoting it, the outcome a docs-and-pricing SaaS site suffers when 412 documentation URLs inherit a proxy header that was only ever meant for staging."
+    }
+  ],
+  "snippet-suppression": [
+    {
+      "source": "robotsMetaTag",
+      "note": "The robots meta tag specification defines nosnippet and the max-snippet family, including -1 for unlimited; pseolint's snippet-killer test matches only the bare nosnippet token and max-snippet:0, leaving every positive character budget and the unlimited value alone."
+    },
+    {
+      "source": "aiFeatures",
+      "note": "Google's AI-features guidance ties AI Overview citation eligibility to ordinary snippet eligibility, which is the exact mechanism by which a recipe publisher's anti-scraper nosnippet removed 2,400 URLs from the pool of sources a generated answer can quote and link."
+    }
+  ],
+  "robots-txt-limits": [
+    {
+      "source": "robotsTxtSpec",
+      "note": "Google's robots.txt specification documents both halves of this rule: the 500 KiB parse ceiling of 512,000 bytes beyond which rules are ignored, and the directives its parser does not support, with noindex unsupported since September 1, 2019."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guidance names faceted navigation as a leading source of wasted crawling, which is why a 717 KiB generated exclusion list is treated here as evidence of an unbounded URL space rather than merely a file-size problem."
+    }
+  ],
+  "html-size": [
+    {
+      "source": "googlebot",
+      "note": "Google's Googlebot documentation sets the crawl limit at the first 2 MB of each fetched file, uncompressed, with 64 MB for PDFs; the February 2026 revision replaced the older 15 MB figure, and tech/html-size flags against the current number by warning at 1.5 MB and erroring at 2,097,152 bytes."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "Crawl-budget guidance for large sites warns that low-information fetches get deprioritised, which is what a 1,840-page open-data portal invites when every dataset document carries a 2.4 MB inline payload: a full pass moves roughly 4.7 GB to deliver content Googlebot stops reading partway through."
+    },
+    {
+      "source": "webVitals",
+      "note": "Core Web Vitals guidance is where total page weight belongs, and this rule deliberately leaves it there. A dataset page with 118 kB of HTML pulling 21 MB of vector tiles is a performance question, not a truncation one, and tech/html-size stays silent on it."
+    }
+  ],
+  "viewport-meta": [
+    {
+      "source": "webVitals",
+      "note": "Core Web Vitals are measured on the render a real visitor gets, and for Midland Works's 12,000 listing pages that render is a 980-pixel layout scaled to roughly 40 percent on a 390-pixel phone, where tap targets land near 17 pixels and reflow around the fixed wrapper is unavoidable."
+    },
+    {
+      "source": "specialTags",
+      "note": "Google's list of supported meta tags documents viewport as the tag that tells a mobile browser how to lay out the page. This rule counts it only when the content attribute declares a width, which is exactly the part a content=\"initial-scale=1\" tag leaves undone."
+    },
+    {
+      "source": "searchEssentials",
+      "note": "Search Essentials sets the baseline that a page must work for the crawler fetching it, and since July 5, 2024 that crawler is a smartphone agent for every site, which makes a viewport missing from 12,000 listing pages an indexing-eligibility concern rather than a cosmetic one."
+    }
   ]
 };
 
