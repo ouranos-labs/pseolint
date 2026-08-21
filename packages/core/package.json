@@ -59,7 +59,7 @@
     "build": "tsc -p tsconfig.json",
     "build-wikipedia-bloom": "bun run scripts/build-wikipedia-bloom.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --passWithNoTests tests/**/*.test.ts",
+    "test": "vitest run --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {

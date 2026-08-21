@@ -17,11 +17,17 @@ async function call(name: string, args: Record<string, unknown>): Promise<CallRe
 }
 
 // The airbyte_com fixture's full formatJson payload exceeds the default 100k
-// MCP JSON char cap, which would replace the text with a {truncated:true} marker
-// (no verdict) and fail the formatJson assertion below. Raise the cap for this
-// suite so the real-engine JSON path is exercised end to end.
+// MCP JSON char cap, which would replace the text with a {truncated:true}
+// envelope (no verdict) and fail the formatJson assertion below. This suite is
+// about core<->MCP drift, not about payload size, so lift the cap out of the way.
+//
+// Deliberately absurd rather than "current payload + headroom": the payload
+// grows every time a rule is added, and a tuned number silently becomes a
+// tripwire that fails on an unrelated change. It was 150000 and a rule batch
+// took the fixture to ~159k. The envelope branch this bypasses has its own
+// test below, with a cap small enough that IT can never drift either.
 beforeAll(() => {
-  process.env.PSEOLINT_MCP_JSON_CHAR_CAP = "150000";
+  process.env.PSEOLINT_MCP_JSON_CHAR_CAP = "100000000";
 });
 
 afterAll(() => {
@@ -60,6 +66,29 @@ describe("integration (real engine, filesystem fixture)", () => {
     const parsed = JSON.parse(textOf(r)); // real formatJson output must be valid JSON
     expect(parsed).toHaveProperty("verdict");
     expect(parsed).toHaveProperty("risk");
+  }, 30_000);
+
+  it("collapses an oversized JSON payload to the documented envelope", async () => {
+    // The other side of the branch the cap above bypasses. A 1-char cap makes
+    // this independent of how many rules exist or how big the fixture is.
+    const previous = process.env.PSEOLINT_MCP_JSON_CHAR_CAP;
+    process.env.PSEOLINT_MCP_JSON_CHAR_CAP = "1";
+    try {
+      const r = await call("pseolint_audit_site", { source: FIXTURE, format: "json" });
+      const parsed = JSON.parse(textOf(r)) as Record<string, unknown>;
+      expect(parsed.truncated).toBe(true);
+      expect(typeof parsed.note).toBe("string");
+      expect(typeof parsed.hint).toBe("string");
+      // The envelope keeps the summary (minus findings) so a client still gets
+      // the verdict without re-running the audit through the CLI.
+      const summary = parsed.summary as Record<string, unknown>;
+      expect(summary).toBeDefined();
+      expect(summary.findings).toBeUndefined();
+      expect(VERDICTS).toContain(summary.verdict);
+    } finally {
+      if (previous === undefined) delete process.env.PSEOLINT_MCP_JSON_CHAR_CAP;
+      else process.env.PSEOLINT_MCP_JSON_CHAR_CAP = previous;
+    }
   }, 30_000);
 
   it("renders a real human-readable console report", async () => {
