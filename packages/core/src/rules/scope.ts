@@ -29,6 +29,17 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "content/image-attributes": "page",
   "content/citation-coverage": "page",
   "content/meta-description-presence": "page",
+  // v0.5.x originality/value batch. These ship and are dispatched by
+  // auditor.ts, so they belong in the registry: an id missing here is silently
+  // treated as corpus-scoped and skipped in every diff audit.
+  "content/translation-no-op": "corpus",
+  "content/regurgitated-content": "page",
+  "content/common-phrase-reuse": "page",
+  "content/wikipedia-paraphrase": "page",
+  // Second-pass composite. Page-shaped output, but one of its seven input
+  // signals (content/translation-no-op) is corpus-only, so the score it
+  // produces is not reproducible from a single page: corpus.
+  "content/value-add": "corpus",
 
   // links
   "links/crawlable-anchors": "page",
