@@ -195,4 +195,38 @@ describe("sitemapHygieneRule", () => {
     expect(findings).toHaveLength(4);
     expect(findings.every((f) => f.ruleId === "tech/sitemap-hygiene")).toBe(true);
   });
+  // The W3C NOTE-datetime profile this finding cites lists six formats, the
+  // first two of which are "Year: YYYY" and "Year and month: YYYY-MM". Rejecting
+  // them contradicted the very document the message points at, and there is
+  // nothing stricter to cite: Google's build-sitemap page states only that it
+  // uses lastmod when it is "consistently and verifiably accurate" and delegates
+  // the format to sitemaps.org, which points back at this same profile.
+  describe("lastmod: coarse W3C datetime forms the cited profile permits", () => {
+    test.each(["2026", "2026-08", "2026-08-20", "2026-08-20T09:30:00Z", "2026-08-20T09:30:00.500+02:00"])(
+      "%s is a valid W3C datetime and does not fire",
+      (lastmod) => {
+        const set = new Set(["https://example.com/a"]);
+        const lastmods = new Map([["https://example.com/a", lastmod]]);
+        const findings = sitemapHygieneRule(set, lastmods, SOURCE, NOW);
+        expect(findings.filter((f) => f.message.includes("<lastmod>"))).toEqual([]);
+      },
+    );
+
+    test("the unparseable-lastmod message lists the forms that are actually accepted", () => {
+      const set = new Set(["https://example.com/a"]);
+      const lastmods = new Map([["https://example.com/a", "last tuesday"]]);
+      const findings = sitemapHygieneRule(set, lastmods, SOURCE, NOW);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("YYYY, YYYY-MM, YYYY-MM-DD");
+      expect(findings[0].fix).toContain("https://www.w3.org/TR/NOTE-datetime");
+    });
+
+    test("a future year-only lastmod is still caught by the future check", () => {
+      const set = new Set(["https://example.com/a"]);
+      const lastmods = new Map([["https://example.com/a", "2099"]]);
+      const findings = sitemapHygieneRule(set, lastmods, SOURCE, NOW);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("in the future");
+    });
+  });
 });

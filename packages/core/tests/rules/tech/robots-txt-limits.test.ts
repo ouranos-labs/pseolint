@@ -119,4 +119,28 @@ describe("robotsTxtLimitsRule", () => {
       expect(findings[0].message).toContain("crawl-delay");
     });
   });
+  // The cited robots.txt reference documents the 500 KiB limit and says
+  // crawl-delay is not a supported field. It does NOT mention noindex,
+  // nofollow, host, or September 2019 anywhere: that claim comes from
+  // https://developers.google.com/search/blog/2019/07/a-note-on-unsupported-rules-in-robotstxt
+  // and has to carry its own citation rather than borrowing the reference doc's.
+  describe("claim sourcing", () => {
+    test("the September 2019 noindex claim carries the announcement that documents it", () => {
+      const findings = robotsTxtLimitsRule("User-agent: *\nNoindex: /private\n");
+      expect(findings).toHaveLength(1);
+      expect(findings[0].severity).toBe("warning");
+      expect(findings[0].message).toContain("1 September 2019");
+      expect(findings[0].message).toContain(
+        "https://developers.google.com/search/blog/2019/07/a-note-on-unsupported-rules-in-robotstxt",
+      );
+    });
+
+    test("crawl-delay is attributed to the reference doc, not to the 2019 announcement", () => {
+      const findings = robotsTxtLimitsRule("User-agent: *\nCrawl-delay: 10\n");
+      expect(findings).toHaveLength(1);
+      expect(findings[0].severity).toBe("info");
+      expect(findings[0].message).toContain("robots.txt reference");
+      expect(findings[0].message).not.toContain("2019");
+    });
+  });
 });

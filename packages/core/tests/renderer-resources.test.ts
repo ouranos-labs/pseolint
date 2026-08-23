@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
-import { renderPages } from "../src/renderer.js";
+import { renderPages, RESOURCE_BYTE_FIELDS, resourceEntryBytes } from "../src/renderer.js";
 
 // A trivial document that pulls one deliberately fat script. The HTML is tiny,
 // so tech/html-size would stay silent: only Resource Timing sees the payload.
@@ -47,4 +47,40 @@ describe("renderPages resource timing (Node only)", () => {
       await rm(dir, { recursive: true, force: true });
     }
   }, 40000);
+});
+
+// Googlebot: "Googlebot crawls the first 2MB of a supported file type" and
+// "The file size limit is applied on the uncompressed data."
+// https://developers.google.com/search/docs/crawling-indexing/googlebot
+// Reading the compressed transferSize meant a 6.2 MB bundle served gzipped at
+// 1.1 MB reported nothing while Googlebot truncated it at 2 MB: the check
+// inverted on exactly the files it exists for. This runs without a browser.
+describe("resource byte selection", () => {
+  it("prefers uncompressed decodedBodySize over the compressed fields", () => {
+    const gzippedBundle = {
+      name: "https://ex.com/bundle.js",
+      initiatorType: "script",
+      transferSize: 1.1 * 1024 * 1024,
+      encodedBodySize: 1.1 * 1024 * 1024,
+      decodedBodySize: 6.2 * 1024 * 1024,
+    };
+    expect(resourceEntryBytes(gzippedBundle)).toBe(6.2 * 1024 * 1024);
+    // Above Googlebot's 2 MB per-file cutoff; the compressed value is below it.
+    expect(resourceEntryBytes(gzippedBundle)).toBeGreaterThan(2 * 1024 * 1024);
+    expect(gzippedBundle.transferSize).toBeLessThan(2 * 1024 * 1024);
+  });
+
+  it("falls back to the compressed fields when decodedBodySize is absent", () => {
+    expect(resourceEntryBytes({ transferSize: 4321, encodedBodySize: 4000 })).toBe(4321);
+    expect(resourceEntryBytes({ encodedBodySize: 4000 })).toBe(4000);
+  });
+
+  it("reports 0 for an opaque cross-origin entry rather than inventing a number", () => {
+    expect(resourceEntryBytes({ transferSize: 0, encodedBodySize: 0, decodedBodySize: 0 })).toBe(0);
+    expect(resourceEntryBytes({})).toBe(0);
+  });
+
+  it("keeps decodedBodySize first in the documented priority order", () => {
+    expect(RESOURCE_BYTE_FIELDS[0]).toBe("decodedBodySize");
+  });
 });
