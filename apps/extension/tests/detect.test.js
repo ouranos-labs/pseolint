@@ -62,15 +62,17 @@ assert.ok(isGoogleSearch("https://www.google.com/search?q=x&tbm=isch"), "vertica
 assert.ok(!isGoogleSearch("https://www.google.com/maps"), "maps is not /search");
 
 // --- selectResults: snippet date split (em/en dash delimiter only) ---
-// The delimiter class is DATA: a codemod that rewrites `[^—–]`/`[—–]` into
-// space/paren classes silently turns "first token + space" into a date on every
-// snippet. These two rows pin the real behaviour.
+// The dash in detect.js's delimiter class is DATA, not prose: a codemod that
+// rewrote that class into a space/paren one silently turned "first token + a
+// space" into a date on EVERY snippet. These two rows pin the real behaviour.
+// Written as a \u escape so the file itself stays clean under `lint:emdash`.
+const EM_DASH = "\u2014";
 const withSnippet = (href, text) => ({
   href,
   querySelector: () => null, // no <h3> in this stand-in
   closest: () => ({ querySelector: () => ({ textContent: text }) }),
 });
-const dated = selectResults([withSnippet("https://a.com/1", "Oct 12, 2025 — How to pick a CRM")])[0];
+const dated = selectResults([withSnippet("https://a.com/1", `Oct 12, 2025 ${EM_DASH} How to pick a CRM`)])[0];
 assert.strictEqual(dated.serpDate, "Oct 12, 2025", "dash-delimited date is split off");
 assert.strictEqual(dated.serpSnippet, "How to pick a CRM", "snippet keeps only the text after the dash");
 // No dash → no date, and the snippet (incl. a leading number) is left intact.

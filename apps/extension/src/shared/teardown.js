@@ -98,8 +98,8 @@ export function takeaway(model) {
 }
 
 // The "Win this opening" hand-off: a context-rich deep-link to the hosted audit,
-// adapted to where the user stands on this SERP (climb / insert / set-domain). Pure
-//: the caller passes the tracked host + the SERP query. Returns null when there's
+// adapted to where the user stands on this SERP (climb / insert / set-domain). Pure:
+// the caller passes the tracked host + the SERP query. Returns null when there's
 // no opening (caller falls back to a generic CTA). The opening is the page to beat;
 // the SaaS reads from=serp/q/against to frame the audit as "win this SERP" and
 // echoes q/against as display-only: encoded here via URLSearchParams (§11).

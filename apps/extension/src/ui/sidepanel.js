@@ -147,7 +147,7 @@ function renderYourSite() {
   const t = teardown(lastResults);
   const mine = t.rows.find((r) => r.host === myHost);
   el.textContent = mine
-    ? `Your site (${myHost}): #${mine.rank} · ${mine.words}w` + (mine.belowBar ? `, below the ${t.bar}w bar` : "; clears the bar")
+    ? `Your site (${myHost}): #${mine.rank} · ${mine.words}w` + (mine.belowBar ? `, below the ${t.bar}w bar` : ", clears the bar")
     : `${myHost} isn't on this SERP; the field is open.`;
 }
 

@@ -23,12 +23,12 @@ Nothing is fetched until **you open the side panel (toolbar icon) and click
    with **no cookies and no session** (`credentials: "omit"`).
 2. Each page is analysed **entirely inside your browser** for a few SEO signals
    (title, Open Graph tags, word count, HTTP status, headings); the result becomes
-   a coloured badge and the **page content is discarded**: never stored or sent.
+   a coloured badge and the **page content is discarded**; it is never stored or sent.
 3. Risk badges appear on the results, and a summary list appears in the side panel.
 
 ## What leaves your browser
 
-- **To pseolint: nothing: unless you click a badge or audit link**, which opens
+- **To pseolint: nothing, unless you click a badge or audit link**, which opens
   `https://pseolint.dev` in a new tab, passing as query parameters only public
   context read from the results page you're on: that result's URL, your search
   query, and the top-ranked competitor's host (an ordinary navigation you
@@ -42,7 +42,7 @@ Nothing is fetched until **you open the side panel (toolbar icon) and click
 - Nothing about your browsing is stored. The only stored value is the domain you
   *optionally* type to track your own position: kept locally (`chrome.storage`)
   and **never transmitted**.
-- It only ever reads the Google results page you're on, and: on deep scan: the
+- It only ever reads the Google results page you're on and, on a deep scan, the
   ranked results you ask it to check. It cannot read your email, banking, or any
   other site, because it never holds standing access to them.
 

@@ -5,7 +5,7 @@ Copy + form answers for submission. Keep this in sync with `manifest.json` and
 behaviour.
 
 ## Name
-pseolint: pSEO risk on the SERP
+pseolint – pSEO risk on the SERP
 
 ## Short description (≤132 chars)
 Competitive recon for any Google SERP: how programmatic it is, who's beatable, the content bar, and who's AI-Overview-ready. Free.
@@ -18,7 +18,7 @@ pseolint surfaces programmatic-SEO failure patterns on the page you're already
 looking at: the live Google results page.
 
 The moment you land on a results page, pseolint shows the **landscape**: how many
-of the results are templated and across how many hosts: with **no permission
+of the results are templated and across how many hosts, with **no permission
 prompt and nothing fetched**. It reads only what's already on the page.
 
 Want the detail? Open the side panel and hit **Deep scan**: pseolint fetches the
@@ -44,9 +44,9 @@ sites suppressed.
 ## Permission justifications (per-permission, required at submission)
 - **sidePanel**: shows the deep-scan results panel.
 - **storage**: remembers the domain you optionally type to track your position (local only, never transmitted).
-- **Host access: www.google.com/search**: reads the results page and draws badges
+- **Host access to www.google.com/search**: reads the results page and draws badges
   on it (the zero-permission landscape layer).
-- **Optional host access: https://\*/\***: requested only when the user clicks
+- **Optional host access to https://\*/\***: requested only when the user clicks
   Deep scan, so the background worker can fetch the ranked result pages to analyse
   them. Granted by the user per scan; not standing access.
 - **Remote code**: None. Everything ships in the signed bundle; CSP forbids eval
@@ -66,4 +66,4 @@ sites suppressed.
 Source in `marketing/directory-submissions/assets/`: `screenshot-1.png`,
 `screenshot-2.png`, `banner-1200x630.png`, `logo-128/256/512.png`.
 Still needed: screenshots of (1) the auto landscape chip + templated markers and
-(2) the side panel after a deep scan: capture via load-unpacked.
+(2) the side panel after a deep scan; capture via load-unpacked.
