@@ -84,9 +84,14 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
       svgTitleSample = svgTitle;
     }
   }
-  const metaDescription = normalizedText($('meta[name="description"]').attr("content") ?? "");
+  // HTML metadata names are ASCII case-insensitive, but cheerio/css-select only
+  // folds case for a fixed list of attributes (rel, lang, …) that does NOT
+  // include `name`. Without the `i` flag a spec-valid <meta name="Description">
+  // reads as absent and every consumer sees an empty string. Same for the other
+  // meta[name=…] reads below.
+  const metaDescription = normalizedText($('meta[name="description" i]').attr("content") ?? "");
   const canonical = normalizedText($('link[rel="canonical"]').attr("href") ?? "");
-  const robotsMeta = normalizedText($('meta[name="robots"]').attr("content") ?? "");
+  const robotsMeta = normalizedText($('meta[name="robots" i]').attr("content") ?? "");
   const ogTitle = normalizedText($('meta[property="og:title"]').attr("content") ?? "");
   const ogDescription = normalizedText($('meta[property="og:description"]').attr("content") ?? "");
   const ogImage = normalizedText($('meta[property="og:image"]').attr("content") ?? "");
@@ -99,7 +104,7 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
     .filter((entry) => entry.lang.length > 0);
   const publishedDate = normalizedText(
     $('meta[property="article:published_time"]').attr("content") ??
-      $('meta[name="datePublished"]').attr("content") ??
+      $('meta[name="datepublished" i]').attr("content") ??
       $("time[datetime]").first().attr("datetime") ??
       ""
   );
@@ -132,7 +137,7 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
     }
   });
 
-  const metaAuthor = normalizedText($('meta[name="author"]').attr("content") ?? "");
+  const metaAuthor = normalizedText($('meta[name="author" i]').attr("content") ?? "");
   const schemaAuthor = jsonLd.some((ld) => {
     if (typeof ld !== "object" || ld === null) return false;
     return "author" in ld;
