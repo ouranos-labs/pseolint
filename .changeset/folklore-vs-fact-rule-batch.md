@@ -19,4 +19,4 @@ New rules:
 - **`content/meta-description-presence`** (warning): missing/empty meta description. Length is deliberately NOT linted: Google documents no character limit.
 - **`links/generic-anchor-text`** (info): ≥50% of a page's internal links anchored on "click here"/"read more"/empty text.
 
-Also: `tech/og-completeness` now checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at info severity; `CORE_RULESET_VERSION` bumped to 16 so change-driven monitoring re-fetches previously-skipped URLs.
+Also: `tech/og-completeness` now checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at info severity; `CORE_RULESET_VERSION` bumped so change-driven monitoring re-fetches previously-skipped URLs. (This batch bumped it to 16; two later rules in the same release, `tech/resource-weight` and `content/image-attributes`, bumped it again, so the value this release ships is **18**.)

@@ -19,6 +19,9 @@ const INCOMPLETE_TITLE_LENGTH = 10;
  * Separators a title template puts between its per-record slot and its
  * boilerplate. Used only to locate an EMPTY slot; nothing here measures length.
  */
+// The en/em dashes here are DATA: they are separators this rule must detect in
+// other people's titles, not prose in ours. Escaped so the repo em-dash sweep
+// reads them as literals.
 const TITLE_SEPARATOR = String.raw`[|\u2013\u2014\u00bb\u2022\u00b7:\-]`;
 
 /**
@@ -157,7 +160,7 @@ export function titleUniquenessRule(pages: ParsedPage[]): RuleResult[] {
       findings.push({
         ruleId: "content/title-uniqueness",
         severity: "warning",
-        message: `${page.url} has the title "${title}", where ${emptySlot} \u2014 the shape left when a template field renders empty.`,
+        message: `${page.url} has the title "${title}", where ${emptySlot}: the shape left when a template field renders empty.`,
         pageUrl: page.url,
         fix: "Bind the page's own entity into the title, and skip the separator when that field is empty rather than emitting a bare one. Google documents replacing the title link when part of the title text is missing, its own example being the literal \"| Site Name\". Nothing here is about how long the title is.",
       });
