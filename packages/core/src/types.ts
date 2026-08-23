@@ -929,7 +929,12 @@ export interface ParsedPage {
  * guessing. Treat them as a floor.
  */
 export interface PageResources {
-  /** Sum of per-resource transfer sizes (headers + compressed body). */
+  /**
+   * Sum of per-resource UNCOMPRESSED sizes (`decodedBodySize`), because
+   * Googlebot's per-file cutoff is applied to uncompressed data. Falls back to
+   * the compressed `transferSize`/`encodedBodySize` where an entry does not
+   * expose it, which understates compressible text; see RESOURCE_BYTE_FIELDS.
+   */
   totalBytes: number;
   /** Byte totals by resource kind, so a heavy page can be attributed. */
   byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
