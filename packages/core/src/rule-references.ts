@@ -41,7 +41,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "aeo/llms-txt": "https://llmstxt.org",
   "aeo/crawler-access": "https://www.robotstxt.org/robotstxt.html",
   "aeo/freshness-signals": "https://developers.google.com/search/docs/appearance/publication-dates",
-  "aeo/faq-coverage": "https://developers.google.com/search/docs/appearance/structured-data/faqpage",
+  "aeo/faq-coverage": "https://developers.google.com/search/updates#removing-faq-rich-result",
   "aeo/answer-first": "https://developers.google.com/search/docs/appearance/featured-snippets",
   "aeo/citable-facts": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "aeo/content-modularity": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data",

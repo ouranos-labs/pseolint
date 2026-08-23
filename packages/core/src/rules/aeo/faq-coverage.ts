@@ -18,6 +18,19 @@ function isQuestionHeading(heading: string): boolean {
   return trimmed.endsWith("?") || QUESTION_STARTERS.test(trimmed);
 }
 
+/**
+ * Any of these types means the page already carries its question/answer pairs
+ * in a machine-readable form, so a crawl has nothing further to say about it.
+ *
+ * Note what this does NOT mean: that the markup earns a Google rich result.
+ * Google removed the FAQ rich result from Search on 2026-05-07 (changelog
+ * 2026-05-08) and deleted the FAQPage documentation on 2026-06-15, and the
+ * HowTo rich result went the same way. QAPage still has a live rich result but
+ * Google documents it as being for pages where "users must be able to submit
+ * answers", explicitly not for a site's own FAQ. So this rule recommends the
+ * visible-content fix, never the markup. See docs/folklore.md.
+ * https://developers.google.com/search/updates#removing-faq-rich-result
+ */
 function hasFaqLikeSchema(entries: unknown[]): boolean {
   const stack: unknown[] = [...entries];
   while (stack.length > 0) {
@@ -77,12 +90,18 @@ export function faqCoverageRule(
       // pages with question-style headings aren't actually FAQ content (e.g. blog
       // posts titled "How we built X").
       confidence: "medium",
-      message: `${page.url} contains FAQ-style content (${detail}) but no FAQPage/HowTo JSON-LD.`,
+      message:
+        `${page.url} reads as FAQ content (${detail}) but carries no machine-readable question/answer pairs.`,
       pageUrl: page.url,
       fix:
-        `Add FAQPage JSON-LD that mirrors the existing Q&A content. For pSEO templates, generate the ` +
-        `schema programmatically from the same data source that renders the headings: don't ship identical ` +
-        `questions with only the entity name swapped.`,
+        `Fix this in the visible page, not in markup: give each question its own heading and put the ` +
+        `complete answer in the first paragraph directly beneath it, so an answer engine can lift a whole ` +
+        `question/answer pair without reassembling it. Do NOT add FAQPage JSON-LD expecting a rich result: ` +
+        `Google removed the FAQ rich result from Search on 2026-05-07 and deleted its documentation on ` +
+        `2026-06-15, and QAPage is documented as being only for pages where users can submit answers, not ` +
+        `for a site's own FAQ. If a non-Google consumer of your schema needs the markup, generate it from ` +
+        `the same per-record data that renders the headings: don't ship identical questions with only the ` +
+        `entity name swapped.`,
     });
   }
 

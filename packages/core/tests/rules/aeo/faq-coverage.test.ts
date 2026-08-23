@@ -16,7 +16,11 @@ describe("aeo/faq-coverage", () => {
     const findings = faqCoverageRule([p]);
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("info");
-    expect(findings[0].message).toMatch(/no FAQPage/);
+    expect(findings[0].message).toMatch(/no machine-readable question\/answer pairs/);
+    // The recommendation must not push a retired rich result: Google removed
+    // the FAQ rich result from Search on 2026-05-07. See docs/folklore.md.
+    expect(findings[0].fix).not.toMatch(/^Add FAQPage/);
+    expect(findings[0].fix).toContain("2026-05-07");
     // FAQ-shape detection is heuristic → always medium confidence.
     expect(findings[0].confidence).toBe("medium");
   });

@@ -16,13 +16,26 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * page.url (relative hrefs are internal). Pages with empty html or an
  * unparseable page.url are skipped.
  *
- * An anchor's effective text is its text content, falling back to its first
- * img's alt. Text is trimmed, lowercased, and trailing punctuation is
- * stripped before matching against the generic set; an empty effective text
- * also counts as generic.
+ * An anchor's effective text is its ACCESSIBLE NAME, resolved the way a
+ * browser does, in order: visible text content, then `aria-label`, then
+ * `title`, then the first child `<img>`'s alt. An icon link such as
+ *
+ *     <a href="/search" aria-label="Search products"><svg aria-hidden="true"/></a>
+ *
+ * is correctly labelled markup, not an empty anchor, and reading only the text
+ * node reported a whole correctly-built header as generic. Text is trimmed,
+ * lowercased, and trailing punctuation is stripped before matching against the
+ * generic set; an effective name that is still empty after all four fallbacks
+ * counts as generic.
  *
  * Firing: info (confidence medium) when the page has >= 5 internal links and
- * at least half of them are generic.
+ * at least half of them are generic. Both numbers are ARBITRARY REPORTING
+ * FLOORS. Google documents no share of generic anchors at which a page is
+ * penalised, and there is no published threshold to cite; they were picked so
+ * the finding surfaces on templated pages that repeat a "Learn more" card and
+ * stays quiet on a page with one stray "read more". Never present them as a
+ * documented limit (see docs/folklore.md). The finding stays at `info`
+ * precisely because the threshold is ours, not Google's.
  */
 
 const GENERIC_TEXTS = new Set([
@@ -87,11 +100,12 @@ export function genericAnchorTextRule(pages: ParsedPage[]): RuleResult[] {
 
       internalLinks += 1;
 
-      // Effective text: text content, else the first img's alt (image links).
+      // Effective name, browser accessible-name order: text content, else
+      // aria-label, else title, else the first child img's alt (image links).
       let text = $(el).text().trim();
-      if (!text) {
-        text = ($(el).find("img").first().attr("alt") ?? "").trim();
-      }
+      if (!text) text = ($(el).attr("aria-label") ?? "").trim();
+      if (!text) text = ($(el).attr("title") ?? "").trim();
+      if (!text) text = ($(el).find("img").first().attr("alt") ?? "").trim();
 
       const normalized = normalize(text);
       if (normalized === "" || GENERIC_TEXTS.has(normalized)) {

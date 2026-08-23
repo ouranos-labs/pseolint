@@ -13,12 +13,21 @@ const GENERATED_LASTMOD_MIN_URLS = 100;
 const GENERATED_LASTMOD_SHARE = 0.95;
 
 /**
- * W3C Datetime / sitemap `<lastmod>` format: `YYYY-MM-DD` optionally followed by
- * a time (`Thh:mm` / `Thh:mm:ss` / fractional seconds) and a timezone designator.
- * https://www.w3.org/TR/NOTE-datetime
+ * W3C Datetime / sitemap `<lastmod>` format, matching every form the cited NOTE
+ * permits (https://www.w3.org/TR/NOTE-datetime): year `YYYY`, year and month
+ * `YYYY-MM`, complete date `YYYY-MM-DD`, and a complete date followed by a time
+ * (`Thh:mm` / `Thh:mm:ss` / fractional seconds) with a timezone designator.
+ *
+ * `YYYY` and `YYYY-MM` used to be rejected here. That contradicted the very
+ * document the finding cites, and there is nothing else to cite instead:
+ * Google's build-sitemap page states only that it "uses the <lastmod> value if
+ * it's consistently and verifiably accurate" and delegates the format to
+ * sitemaps.org, which in turn points at this same W3C profile. A coarse-grained
+ * lastmod may be a WEAK signal, but it is not a malformed one, and this rule
+ * only reports values that cannot be parsed at all.
  */
 const W3C_DATETIME_RE =
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?$/;
+  /^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?)?)?)?$/;
 
 /** Lowercase a hostname and strip a leading `www.` so www.x.com and x.com compare equal. */
 function normalizeHost(hostname: string): string {
@@ -45,7 +54,10 @@ function capRelated(urls: string[]): string[] {
  *    https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap).
  *  - Unparseable URLs: entries `new URL()` rejects.
  *  - Future lastmod: parseable lastmod more than 24h ahead of `now`.
- *  - Unparseable lastmod: neither `YYYY-MM-DD` nor valid W3C datetime.
+ *  - Unparseable lastmod: not one of the W3C datetime forms the NOTE permits
+ *    (`YYYY`, `YYYY-MM`, `YYYY-MM-DD`, or a complete date plus time;
+ *    https://www.w3.org/TR/NOTE-datetime). Coarse forms are valid per that
+ *    profile and are NOT reported here.
  *  - Generated/fake lastmod: ≥100 URLs have a lastmod and ≥95% share the exact
  *    same value. Google uses lastmod only when it is "consistently and verifiably
  *    accurate" and ignores it otherwise
@@ -150,9 +162,9 @@ export function sitemapHygieneRule(
         ruleId: "tech/sitemap-hygiene",
         severity: "warning",
         confidence: "high",
-        message: `${unparseableLastmod.length} sitemap URL(s) have a <lastmod> value that is not a valid W3C datetime (YYYY-MM-DD or full datetime).`,
+        message: `${unparseableLastmod.length} sitemap URL(s) have a <lastmod> value that is not a valid W3C datetime (YYYY, YYYY-MM, YYYY-MM-DD, or a full date and time).`,
         relatedUrls: capRelated(unparseableLastmod),
-        fix: "Format <lastmod> as W3C datetime, e.g. 2026-01-15 or 2026-01-15T09:30:00Z.",
+        fix: "Format <lastmod> as W3C datetime (https://www.w3.org/TR/NOTE-datetime), e.g. 2026-01-15 or 2026-01-15T09:30:00Z. A complete date is the most useful form: Google only uses lastmod when it is consistently and verifiably accurate, which a year-only value cannot demonstrate.",
       });
     }
 

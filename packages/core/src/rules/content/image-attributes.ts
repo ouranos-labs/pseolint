@@ -1,3 +1,4 @@
+import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
@@ -31,30 +32,39 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * Sizing counted as present when EITHER the width/height attributes are set,
  * OR inline styles supply width/height/aspect-ratio, so a CSS-sized layout is
  * not reported as broken.
+ *
+ * Attributes are read off the parsed DOM, not matched with regexes over the
+ * raw HTML. Two bugs made that necessary:
+ *   - `\bwidth\s*=` also matches inside `data-width`, so the standard
+ *     lazysizes/LQIP shape `<img src="…" data-width="800" data-height="600">`
+ *     scored as sized even though the browser has no dimensions to derive
+ *     `aspect-ratio` from: exactly the failure this check exists to catch.
+ *     `data-src` hid the real src in report samples the same way.
+ *   - a document-wide scan double-counted the `<noscript><img></noscript>`
+ *     lazy-load fallback, listing one URL twice in a single finding. Under a
+ *     real parser the noscript fallback is inert text (scripting is enabled
+ *     for Googlebot), so it is neither counted nor sampled.
  */
 
-const IMG_RE = /<img\b[^>]*>/gi;
-const PICTURE_RE = /<picture\b/i;
-const ATTR = (name: string) =>
-  new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]*))`, "i");
-const WIDTH_RE = ATTR("width");
-const HEIGHT_RE = ATTR("height");
-const SRC_RE = ATTR("src");
-const STYLE_RE = ATTR("style");
-const SRCSET_RE = /\bsrcset\s*=/i;
-const ARIA_HIDDEN_RE = /\baria-hidden\s*=\s*(?:"true"|'true'|true)/i;
 /** Inline sizing that makes the attribute pair unnecessary for layout stability. */
 const STYLE_SIZED_RE = /(^|;)\s*(aspect-ratio|width|height)\s*:/i;
 
-/** At least this many images before the responsive-candidates check applies. */
+/**
+ * At least this many images before the responsive-candidates check applies.
+ * ARBITRARY REPORTING FLOOR, not a documented limit: Google's image guidance
+ * recommends responsive images without naming any image count. Chosen so a
+ * page with a logo and an avatar does not get a responsive-images lecture.
+ */
 const MIN_IMAGES_FOR_RESPONSIVE = 3;
-/** Fire the dimensions finding at warning once at least half are unsized. */
+/**
+ * Fire the dimensions finding at warning once at least half are unsized.
+ * ARBITRARY REPORTING FLOOR, not a documented limit: web.dev's CLS guidance
+ * says to set dimensions on images, and publishes no share at which a page
+ * becomes a problem. Chosen so a single unsized decorative image reports as
+ * info while a template that omits dimensions everywhere reports as a warning.
+ * Never present either number as a threshold anyone published (docs/folklore.md).
+ */
 const UNSIZED_WARNING_RATIO = 0.5;
-
-function attr(tag: string, re: RegExp): string {
-  const m = tag.match(re);
-  return m ? (m[1] ?? m[2] ?? m[3] ?? "").trim() : "";
-}
 
 export function imageAttributesRule(pages: ParsedPage[]): RuleResult[] {
   const findings: RuleResult[] = [];
@@ -62,28 +72,30 @@ export function imageAttributesRule(pages: ParsedPage[]): RuleResult[] {
   for (const page of pages) {
     const html = page.html ?? "";
     if (!html) continue;
-    const tags = html.match(IMG_RE) ?? [];
-    if (tags.length === 0) continue;
+    const $ = load(html);
+    const imgs = $("img").toArray();
+    if (imgs.length === 0) continue;
 
     let considered = 0;
     let unsized = 0;
     let responsive = 0;
     const samples: string[] = [];
 
-    for (const tag of tags) {
+    for (const el of imgs) {
+      const attribs = el.attribs ?? {};
       // A decorative image still shifts layout, so role="presentation" is NOT
       // skipped for the dimensions check; only aria-hidden images (removed
       // from the a11y tree, typically zero-size spacers) are.
-      if (ARIA_HIDDEN_RE.test(tag)) continue;
+      if ((attribs["aria-hidden"] ?? "").trim().toLowerCase() === "true") continue;
       considered += 1;
 
-      if (SRCSET_RE.test(tag)) responsive += 1;
+      if (attribs.srcset !== undefined) responsive += 1;
 
-      const hasAttrs = attr(tag, WIDTH_RE) !== "" && attr(tag, HEIGHT_RE) !== "";
-      const styleSized = STYLE_SIZED_RE.test(attr(tag, STYLE_RE));
+      const hasAttrs = (attribs.width ?? "").trim() !== "" && (attribs.height ?? "").trim() !== "";
+      const styleSized = STYLE_SIZED_RE.test(attribs.style ?? "");
       if (!hasAttrs && !styleSized) {
         unsized += 1;
-        const src = attr(tag, SRC_RE);
+        const src = (attribs.src ?? "").trim();
         // data: URIs are usually inline spacers and add nothing to a report.
         if (samples.length < 3 && src && !src.startsWith("data:")) samples.push(src);
       }
@@ -104,7 +116,7 @@ export function imageAttributesRule(pages: ParsedPage[]): RuleResult[] {
       });
     }
 
-    if (considered >= MIN_IMAGES_FOR_RESPONSIVE && responsive === 0 && !PICTURE_RE.test(html)) {
+    if (considered >= MIN_IMAGES_FOR_RESPONSIVE && responsive === 0 && $("picture").length === 0) {
       findings.push({
         ruleId: "content/image-attributes",
         severity: "info",
