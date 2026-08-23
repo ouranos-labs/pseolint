@@ -1,6 +1,7 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
+import { FOLKLORE } from "@/lib/folklore";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
@@ -23,10 +24,15 @@ function safeJsonLd(value: unknown): string {
 }
 
 /**
- * FAQ pairs mirrored from the visible Q&A on this page. The audit's
- * `aeo/faq-coverage` rule wants FAQPage JSON-LD whose questions/answers match
- * on-page content: these paraphrase the sections below and are kept in sync
- * by hand (not entity-swapped boilerplate).
+ * FAQ pairs mirrored from the visible Q&A on this page: these paraphrase the
+ * sections below and are kept in sync by hand (not entity-swapped boilerplate).
+ *
+ * The FAQPage node below no longer earns a rich result. Google removed the FAQ
+ * rich result from Search on May 7, 2026 and deleted its documentation on
+ * June 15, 2026, and `aeo/faq-coverage` stopped recommending the markup in the
+ * same change. This page keeps it pending a site-wide sweep; see
+ * docs/folklore.md and /folklore.
+ * https://developers.google.com/search/updates#removing-faq-rich-result
  */
 const METHODOLOGY_FAQ: { q: string; a: string }[] = [
   {
@@ -667,10 +673,11 @@ export default function MethodologyPage(): React.ReactElement {
             to, because the primary source contradicts them. Same credibility
             argument, opposite direction, so it belongs next to this section. */}
         <p className="mt-3 text-xs text-muted-foreground">
-          The inverse list matters too. Thirteen checks that competing tools ship, and that
-          Google&apos;s own documentation contradicts, are ones we deliberately do not run:
-          title and meta-description character limits, meta keywords, sitemap priority and
-          changefreq, word-count minimums. Each is documented with its primary source on{" "}
+          The inverse list matters too. {FOLKLORE.length} checks that competing tools ship, and
+          that the primary sources contradict, are ones we deliberately do not run: title and
+          meta-description character limits, meta keywords, sitemap priority and changefreq,
+          word-count minimums, FAQPage markup for a rich result Google has retired. Each is
+          documented with its primary source on{" "}
           <Link href="/folklore" className="underline decoration-dotted underline-offset-2">
             the folklore page
           </Link>

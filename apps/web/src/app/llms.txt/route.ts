@@ -1,4 +1,5 @@
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
+import { FOLKLORE } from "@/lib/folklore";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,7 @@ export function GET(): Response {
 ## Authoritative reports
 
 - [State of pSEO 2026](/research/state-of-pseo-2026): original research on SpamBrain risk patterns across programmatic SEO sites in 2026, with category-level failure rates and methodology.
-- [SEO folklore vs. Google's docs](/research/seo-folklore-vs-google-docs): 13 widely-repeated SEO rules traced to their primary sources. Covers which are contradicted by Google's documentation (meta description length, title character limits, meta keywords, word counts), which one became true in 2026 (Googlebot's per-file crawl limit), and the documented checks to run instead.
+- [SEO folklore vs. Google's docs](/research/seo-folklore-vs-google-docs): ${FOLKLORE.length} widely-repeated SEO rules traced to their primary sources. Covers which are contradicted by Google's documentation (meta description length, title character limits, meta keywords, word counts), which one became true in 2026 (Googlebot's per-file crawl limit), and the documented checks to run instead.
 
 ## Free tools
 
@@ -21,7 +22,7 @@ export function GET(): Response {
 ## Rule explainers
 
 - [SpamBrain rules index](/rules): ${SCORED_RULE_COUNT} rules across 8 categories: SpamBrain + AEO + site-reputation-abuse detection + content-quality (title/heading/alt/OG), with classification-driven scoring.
-- [SEO folklore, the checks we refuse to run](/folklore): 13 widely-repeated SEO rules (title/description character limits, meta keywords, sitemap priority/changefreq, word-count minimums, the "2 MB total site size" misread) that Google's own documentation contradicts, each with the primary source and the documented check pseolint runs instead.
+- [SEO folklore, the checks we refuse to run](/folklore): ${FOLKLORE.length} widely-repeated SEO rules (title/description character limits, meta keywords, sitemap priority/changefreq, word-count minimums, FAQPage rich-result markup, the "2 MB total site size" misread) that the primary sources contradict, each with the document that settles it and the check pseolint runs instead.
 - [Calibration methodology](/methodology): how pseolint's verdicts are calibrated against in-production reputable pSEO sites, with dated snapshot results, the open-source corpus + runner, and the trade-offs we accepted.
 - [Thin content rule](/rules/thin-content)
 - [Doorway pattern rule](/rules/doorway-pattern)

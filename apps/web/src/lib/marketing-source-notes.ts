@@ -548,7 +548,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "multiRegional",
-      "note": "The multi-regional guidance is the source for treating language targeting as a site-architecture decision rather than a markup one; it names no code standard, so the language[-script][-region] shape this rule enforces is taken from the localized-versions page instead, which restricts support to ISO 639-1 languages and ISO 3166-1 Alpha 2 regions and names es-419 as an unsupported example. Region subtags are resolved uppercase against CLDR because Intl.DisplayNames is case-sensitive there, and UK is reported because ISO 3166-1 Alpha-2 assigns the United Kingdom GB and reserves UK."
+      "note": "The multi-regional guidance is the source for treating language targeting as a site-architecture decision rather than a markup one; it names no code standard, so the language[-script][-region] shape this rule enforces is taken from the localized-versions page instead, which restricts support to ISO 639-1 languages and ISO 3166-1 Alpha 2 regions and names es-419 as an unsupported example. Region subtags are resolved uppercase because Intl is case-sensitive there, and a single CLDR lookup is not sufficient on its own: CLDR resolves withdrawn aliases and reserved non-country codes that ISO 3166-1 does not assign, so the rule stacks a canonicalisation check and an exclusion list on top of it. UK is reported because ISO 3166-1 Alpha-2 assigns the United Kingdom GB and reserves UK."
     },
     {
       "source": "canonicalization",
