@@ -76,18 +76,41 @@ describe("titleUniquenessRule", () => {
     expect(findings.find((f) => f.message.includes("share the exact title"))).toBeUndefined();
   });
 
-  test("warns on very short titles", () => {
-    const findings = titleUniquenessRule([page("https://ex.com/a", "Hi")]);
-    const short = findings.find((f) => f.message.includes("short title"));
+  test("warns on titles short enough to read as an unfilled template field", () => {
+    const findings = titleUniquenessRule([page("https://ex.com/a", "| Acme")]);
+    const short = findings.find((f) => f.message.includes("template field"));
     expect(short).toBeDefined();
     expect(short!.severity).toBe("warning");
+    // The wording must cite the documented rewrite trigger, not a character limit.
+    expect(short!.fix).toContain("Site Name");
   });
 
-  test("emits info on excessively long titles", () => {
-    const longTitle = "A".repeat(80);
-    const findings = titleUniquenessRule([page("https://ex.com/a", longTitle)]);
-    const long = findings.find((f) => f.message.includes("long title"));
-    expect(long).toBeDefined();
-    expect(long!.severity).toBe("info");
+  // docs/folklore.md entry #2: Google documents no <title> character limit at
+  // all ("While there's no limit on how long a <title> element can be"), and
+  // SERP cropping is display-side and pixel-based. A rule that flagged a long
+  // title would be the exact folklore the /folklore page refuses to ship.
+  test("never flags a long title, at any length", () => {
+    const findings = titleUniquenessRule([
+      page("https://ex.com/a", "A".repeat(80)),
+      page("https://ex.com/b", "B".repeat(300)),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("makes no claim about truncation or character counts anywhere in its output", () => {
+    const findings = titleUniquenessRule([
+      page("https://ex.com/a", ""),
+      page("https://ex.com/b", "Hi"),
+      page("https://ex.com/c", "Shared title"),
+      page("https://ex.com/d", "Shared title"),
+      page("https://ex.com/e", "C".repeat(120)),
+    ]);
+    expect(findings.length).toBeGreaterThan(0);
+    for (const f of findings) {
+      const text = `${f.message} ${f.fix ?? ""}`;
+      expect(text).not.toMatch(/truncat/i);
+      expect(text).not.toMatch(/\b60 characters\b/);
+      expect(text).not.toMatch(/\b70 characters\b/);
+    }
   });
 });

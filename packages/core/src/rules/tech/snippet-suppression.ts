@@ -1,4 +1,6 @@
+import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
+import { gatherRobotsDeclarations } from "./meta-robots-conflict.js";
 
 /**
  * tech/snippet-suppression flags pages that suppress their own SERP snippet
@@ -17,36 +19,14 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  *              is only surfaced, not judged.
  *
  * `max-snippet:-1` (unlimited) and positive limits are fine and not flagged.
+ *
+ * Both halves read the parsed DOM, never the raw HTML. Robots declarations come
+ * from tech/meta-robots-conflict's shared gatherer, which skips comment nodes
+ * and understands the documented user-agent-prefixed header form
+ * (`X-Robots-Tag: googlebot: nosnippet`). The `data-nosnippet` count is an
+ * attribute-selector match, so the string "data-nosnippet" inside a <script>
+ * body or an HTML comment is not miscounted as a live attribute.
  */
-
-interface RobotsDeclaration {
-  /** Human-readable source label, e.g. `meta robots` or `X-Robots-Tag header`. */
-  source: string;
-  /** Raw content string as declared. */
-  content: string;
-}
-
-/** Extract every robots/googlebot meta declaration plus the X-Robots-Tag header. */
-function gatherRobotsDeclarations(page: ParsedPage): RobotsDeclaration[] {
-  const declarations: RobotsDeclaration[] = [];
-
-  const metaTagRe = /<meta\b[^>]*>/gi;
-  for (const [tag] of page.html.matchAll(metaTagRe)) {
-    const nameMatch = /\bname\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-    const name = (nameMatch?.[2] ?? nameMatch?.[3] ?? nameMatch?.[4] ?? "").trim().toLowerCase();
-    if (name !== "robots" && name !== "googlebot") continue;
-    const contentMatch = /\bcontent\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-    const content = contentMatch?.[2] ?? contentMatch?.[3] ?? contentMatch?.[4] ?? "";
-    declarations.push({ source: `meta ${name}`, content });
-  }
-
-  const xRobots = page.httpMeta?.xRobotsTag ?? "";
-  if (xRobots.trim()) {
-    declarations.push({ source: "X-Robots-Tag header", content: xRobots });
-  }
-
-  return declarations;
-}
 
 /** True when the directive token kills the snippet: `nosnippet` or `max-snippet:0` (space tolerated). */
 function isSnippetKiller(directive: string): boolean {
@@ -59,11 +39,7 @@ export function snippetSuppressionRule(pages: ParsedPage[]): RuleResult[] {
   for (const page of pages) {
     const suppressingSources = new Set<string>();
     for (const decl of gatherRobotsDeclarations(page)) {
-      const directives = decl.content
-        .split(",")
-        .map((d) => d.trim().toLowerCase())
-        .filter((d) => d.length > 0);
-      if (directives.some(isSnippetKiller)) {
+      if (decl.directives.some(isSnippetKiller)) {
         suppressingSources.add(decl.source);
       }
     }
@@ -79,7 +55,7 @@ export function snippetSuppressionRule(pages: ParsedPage[]): RuleResult[] {
       });
     }
 
-    const dataNosnippetCount = (page.html.match(/\bdata-nosnippet\b/gi) ?? []).length;
+    const dataNosnippetCount = page.html ? load(page.html)("[data-nosnippet]").length : 0;
     if (dataNosnippetCount > 0) {
       findings.push({
         ruleId: "tech/snippet-suppression",

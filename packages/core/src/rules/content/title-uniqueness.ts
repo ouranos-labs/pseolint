@@ -1,14 +1,25 @@
 import type { ParsedPage, RuleResult } from "../../types.js";
 
-const MIN_TITLE_LENGTH = 10;
-const MAX_TITLE_LENGTH = 70;
-const TRUNCATION_RISK_LENGTH = 60;
+/**
+ * Heuristic floor for "this template field never got filled in".
+ *
+ * This is NOT a documented character limit, and deliberately has no upper
+ * counterpart. Google's title-link documentation states: "While there's no
+ * limit on how long a `<title>` element can be, the title link is truncated in
+ * Google Search results as needed, typically to fit the device width." That is
+ * display-side cropping measured in pixels, not an indexing or ranking event,
+ * so pseolint does not flag long titles at any length (see docs/folklore.md
+ * entry #2). What the same page DOES document is that Google may replace the
+ * title link "when part of the title text is missing", with `<title>| Site
+ * Name</title>` as its own example. A title this short is that shape.
+ */
+const INCOMPLETE_TITLE_LENGTH = 10;
 
 /**
  * content/title-uniqueness: three checks rolled into one rule:
  *   1. Pages missing a title element (or with empty/whitespace-only titles).
- *   2. Pages whose title is so short that Google fills it from H1 / link
- *      text instead.
+ *   2. Titles short enough to read as an unfilled template field, which is a
+ *      documented trigger for Google replacing the title link.
  *   3. Two or more pages sharing the EXACT raw title (templated catalog
  *      titles like "Slack to Google Sheets" vs "Slack to Airtable" are
  *      DIFFERENT raw titles, so this rule does NOT entity-mask: that
@@ -18,6 +29,11 @@ const TRUNCATION_RISK_LENGTH = 60;
  * 2026-05-03 blind-spot audit surfaced it as a tier-1 gap that the
  * existing `content/meta-uniqueness` rule didn't cover (titles ≠ meta
  * descriptions).
+ *
+ * Every check here maps to a documented reason Google replaces a title link.
+ * None of them is a character limit: there is no documented maximum, so this
+ * rule has no upper length check and never will.
+ * https://developers.google.com/search/docs/appearance/title-link
  */
 export function titleUniquenessRule(pages: ParsedPage[]): RuleResult[] {
   const findings: RuleResult[] = [];
@@ -48,21 +64,13 @@ export function titleUniquenessRule(pages: ParsedPage[]): RuleResult[] {
       });
       continue;
     }
-    if (title.length < MIN_TITLE_LENGTH) {
+    if (title.length < INCOMPLETE_TITLE_LENGTH) {
       findings.push({
         ruleId: "content/title-uniqueness",
         severity: "warning",
-        message: `${page.url} has a very short title (${title.length} chars: "${title}").`,
+        message: `${page.url} has a title of only ${title.length} characters ("${title}"), which reads like a template field that was never filled in.`,
         pageUrl: page.url,
-        fix: `Expand the title to ${MIN_TITLE_LENGTH}-${TRUNCATION_RISK_LENGTH} characters. Short titles get rewritten by Google from H1 / anchor text.`,
-      });
-    } else if (title.length > MAX_TITLE_LENGTH) {
-      findings.push({
-        ruleId: "content/title-uniqueness",
-        severity: "info",
-        message: `${page.url} has a long title (${title.length} chars). Google truncates around ${TRUNCATION_RISK_LENGTH} chars in SERPs.`,
-        pageUrl: page.url,
-        fix: `Tighten the title to under ${TRUNCATION_RISK_LENGTH} characters so the full text shows in the SERP snippet.`,
+        fix: "Bind the page's own entity into the title. Google documents replacing the title link when part of the title text is missing (its example is the literal \"| Site Name\"), so a near-empty title gets rewritten from the H1 or anchor text. There is no documented upper limit, so nothing here asks you to shorten a title.",
       });
     }
 
@@ -79,7 +87,7 @@ export function titleUniquenessRule(pages: ParsedPage[]): RuleResult[] {
       message: `${group.length} pages share the exact title "${title}".`,
       pageUrl: group[0].url,
       relatedUrls: group.slice(1, 6).map((p) => p.url),
-      fix: "Each page needs a unique title that reflects its specific content. Templated titles must include the per-record entity (e.g. include the integration name, currency pair, or city in the title).",
+      fix: "Each page needs a unique title that reflects its specific content. Templated titles must include the per-record entity (e.g. include the integration name, currency pair, or city in the title). Google documents repeated boilerplate across a subset of pages as a reason it replaces the title link.",
     });
   }
 

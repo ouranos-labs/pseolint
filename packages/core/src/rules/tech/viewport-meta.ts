@@ -1,3 +1,4 @@
+import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
@@ -12,6 +13,11 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * A viewport tag only counts when its content configures a width
  * (contains "width=", e.g. width=device-width); an empty or width-less
  * viewport tag leaves the mobile layout undefined.
+ *
+ * Parsed with cheerio rather than regexes over the raw HTML. A commented-out
+ * tag (`<!-- <meta name="viewport" content="width=device-width"> -->`) is a
+ * comment node, so a genuinely non-responsive page is still reported instead of
+ * being waved through by markup the browser never sees.
  */
 export function viewportMetaRule(pages: ParsedPage[]): RuleResult[] {
   const findings: RuleResult[] = [];
@@ -19,19 +25,14 @@ export function viewportMetaRule(pages: ParsedPage[]): RuleResult[] {
   for (const page of pages) {
     if (!page.html) continue;
 
-    let hasViewport = false;
-    const metaTagRe = /<meta\b[^>]*>/gi;
-    for (const [tag] of page.html.matchAll(metaTagRe)) {
-      const nameMatch = /\bname\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-      const name = (nameMatch?.[2] ?? nameMatch?.[3] ?? nameMatch?.[4] ?? "").trim().toLowerCase();
-      if (name !== "viewport") continue;
-      const contentMatch = /\bcontent\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-      const content = (contentMatch?.[2] ?? contentMatch?.[3] ?? contentMatch?.[4] ?? "").toLowerCase();
-      if (content.includes("width=")) {
-        hasViewport = true;
-        break;
-      }
-    }
+    // Metadata names are ASCII case-insensitive, so fold before comparing.
+    const hasViewport = load(page.html)("meta")
+      .toArray()
+      .some(
+        (el) =>
+          (el.attribs?.name ?? "").trim().toLowerCase() === "viewport" &&
+          (el.attribs?.content ?? "").toLowerCase().includes("width="),
+      );
     if (hasViewport) continue;
 
     findings.push({
