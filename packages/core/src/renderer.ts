@@ -81,6 +81,38 @@ interface PageResources {
   largest: Array<{ url: string; bytes: number; kind: string }>;
 }
 
+/**
+ * Resource Timing fields to read a subresource's size from, in priority order.
+ *
+ * `decodedBodySize` FIRST, and this order is the whole point: Googlebot's
+ * per-file crawl cutoff is documented as "The file size limit is applied on the
+ * uncompressed data"
+ * (https://developers.google.com/search/docs/crawling-indexing/googlebot).
+ * Reading the compressed `transferSize` and comparing it against a 2 MB
+ * uncompressed cutoff silently passed a 6.2 MB bundle.js served gzipped at
+ * 1.1 MB, which Googlebot truncates at 2 MB. `decodedBodySize` is populated on
+ * the same entries that expose `transferSize`, so preferring it costs nothing.
+ *
+ * The compressed fields remain as fallbacks. They understate a compressible
+ * text asset by roughly 3-4x, and both read 0 for cross-origin responses
+ * without Timing-Allow-Origin, so every total is a FLOOR either way; the rule
+ * that consumes them (tech/resource-weight) says so and never escalates on a
+ * total alone.
+ *
+ * Exported so the choice is testable without a browser: the array is passed
+ * into the page.evaluate callback, which cannot close over module scope.
+ */
+export const RESOURCE_BYTE_FIELDS = ["decodedBodySize", "transferSize", "encodedBodySize"] as const;
+
+/** Size of one Resource Timing entry, per RESOURCE_BYTE_FIELDS. 0 when opaque. */
+export function resourceEntryBytes(entry: Record<string, unknown>): number {
+  for (const field of RESOURCE_BYTE_FIELDS) {
+    const value = entry[field];
+    if (typeof value === "number" && value > 0) return value;
+  }
+  return 0;
+}
+
 interface RenderedPage {
   url: string;
   html: string;
@@ -202,6 +234,22 @@ export async function renderPages(
     // @ts-ignore -- evaluated in the browser, window is the page's window
     const w = window as unknown as Record<string, unknown>;
     w.__pseolint_audit = true;
+    // Chromium's resource-timing buffer defaults to 250 entries and drops the
+    // rest SILENTLY. Entries fill in load order, not size order, so on a heavy
+    // page the late-loading assets are exactly the ones lost, and those are
+    // what tech/resource-weight exists to flag: a 2.4 MB bundle requested 300th
+    // would produce no entry and no finding. Raised here, before any page
+    // script runs, so the buffer is already large when the first request lands.
+    // ponytail: a flat raise, not a `resourcetimingbufferfull` handler. 5000 is
+    // far above any real page's subresource count; if one ever exceeds it the
+    // totals silently become a floor again, same as the opaque-response case
+    // that tech/resource-weight already documents.
+    try {
+      // @ts-ignore -- performance is a browser global
+      performance.setResourceTimingBufferSize(5000);
+    } catch {
+      // Non-fatal: an old engine without the method just keeps the default 250.
+    }
     // Core Web Vitals: install observers BEFORE page scripts run so no entries
     // are missed. LCP takes the last (largest) entry; CLS sums layout shifts
     // that weren't triggered by user input. Both use buffered:true so entries
@@ -316,16 +364,9 @@ export async function renderPages(
         }).catch(() => ({ lcp: null, cls: null, ttfb: null }));
         // Resource Timing is already populated by the time networkidle fires, so
         // subresource byte totals cost one more evaluate and zero extra requests.
-        //
-        // We read `decodedBodySize` FIRST: Googlebot's per-file crawl cutoff is
-        // "applied on the uncompressed data", and comparing a gzipped
-        // transferSize against it silently passed a 6 MB bundle served at 1.1 MB
-        // over the wire. `decodedBodySize` is populated on the same entries that
-        // expose `transferSize`, so this costs no extra visibility.
-        // Fall back to transferSize then encodedBodySize (both compressed, and
-        // both 0 for cross-origin responses without Timing-Allow-Origin) so we
-        // under-report rather than invent numbers.
-        const resources: PageResources = await page.evaluate(() => {
+        // Sizes are read UNCOMPRESSED where the entry exposes them: see
+        // RESOURCE_BYTE_FIELDS for why the order matters.
+        const resources: PageResources = await page.evaluate((byteFields: readonly string[]) => {
           const KIND: Record<string, string> = {
             img: "image", image: "image", script: "script", css: "stylesheet",
             link: "stylesheet", font: "font",
@@ -334,11 +375,17 @@ export async function renderPages(
           const all: Array<{ url: string; bytes: number; kind: string }> = [];
           let totalBytes = 0;
           // @ts-ignore -- browser global
-          for (const e of performance.getEntriesByType("resource") as Array<{
-            name: string; initiatorType: string;
-            transferSize?: number; encodedBodySize?: number; decodedBodySize?: number;
-          }>) {
-            const bytes = e.decodedBodySize || e.transferSize || e.encodedBodySize || 0;
+          for (const e of performance.getEntriesByType("resource") as Array<
+            Record<string, unknown> & { name: string; initiatorType: string }
+          >) {
+            let bytes = 0;
+            for (const field of byteFields) {
+              const value = e[field];
+              if (typeof value === "number" && value > 0) {
+                bytes = value;
+                break;
+              }
+            }
             if (bytes <= 0) continue;
             let kind = KIND[e.initiatorType] ?? "other";
             if (kind === "stylesheet" && /\.(woff2?|ttf|otf|eot)(\?|$)/i.test(e.name)) kind = "font";
@@ -348,7 +395,7 @@ export async function renderPages(
           }
           all.sort((a, b) => b.bytes - a.bytes);
           return { totalBytes, byKind, largest: all.slice(0, 10) };
-        }).catch(() => ({
+        }, RESOURCE_BYTE_FIELDS as unknown as string[]).catch(() => ({
           totalBytes: 0,
           byKind: { image: 0, script: 0, stylesheet: 0, font: 0, other: 0 },
           largest: [],
