@@ -22,6 +22,12 @@ export interface FolkloreEntry {
   /** Human-readable citation title. */
   sourceTitle: string;
   sourceUrl: string;
+  /**
+   * Additional primary sources, when the entry rests on more than one. Every
+   * claim in `reality` must be traceable to `sourceUrl` or to one of these; a
+   * sentence that cites neither belongs in neither place.
+   */
+  alsoSee?: readonly { title: string; url: string }[];
   /** Rule IDs that cover the real, documented failure mode. */
   insteadRules?: string[];
 }
@@ -40,7 +46,7 @@ export const FOLKLORE: readonly FolkloreEntry[] = [
     claim: "Title tags over 60 characters get penalised or rewritten",
     verdict: "False",
     reality:
-      "No character limit is documented anywhere. SERP cropping is pixel-based and display-side. Google does document what triggers a REWRITTEN title, and none of it is length: half-empty template fields, boilerplate repeated across a cluster, stale year numbers, titles that do not match the page. Those are template smells worth catching.",
+      "Google's title-link page opens with the opposite of the folklore: while there is no limit on how long a title element can be, the title link is truncated in Search results as needed, typically to fit the device width. That is display-side cropping measured in pixels, not an indexing or ranking event, and no character count appears anywhere on the page. What the same page DOES document is why Google replaces a title link, and none of it is length: part of the title text missing (its own example is the literal \"| Site Name\"), boilerplate repeated across a subset of pages, a stale year on a page reused annually, a title that does not describe the page. pseolint checks the first two, which are mechanical; the last two need editorial judgement a crawler does not have, so we leave them to you rather than guess.",
     sourceTitle: "Google Search Central: influencing your title links",
     sourceUrl: "https://developers.google.com/search/docs/appearance/title-link",
     insteadRules: ["content/title-uniqueness"],
@@ -52,6 +58,12 @@ export const FOLKLORE: readonly FolkloreEntry[] = [
       "No such number exists in any specification. Meta's sharing guide says a description is usually between 2 and 4 sentences; ogp.me asks for one to two sentences. Open Graph tags are not a ranking input at all, they shape the social and AI-summary card. What IS in the spec and widely missed: og:type and og:url are required properties.",
     sourceTitle: "ogp.me: the Open Graph protocol",
     sourceUrl: "https://ogp.me/",
+    alsoSee: [
+      {
+        title: "Meta: a guide to sharing for webmasters",
+        url: "https://developers.facebook.com/documentation/sharing/webmasters",
+      },
+    ],
     insteadRules: ["tech/og-completeness"],
   },
   {
@@ -103,7 +115,7 @@ export const FOLKLORE: readonly FolkloreEntry[] = [
     claim: "Paginated archives need rel=next and rel=prev",
     verdict: "Obsolete",
     reality:
-      "Google retired rel=next/prev as an indexing signal in 2019, years after most checklists canonised it. Bing still reads it, so it is not harmful, but adding it for Google is cargo cult.",
+      "Google's pagination guidance is one sentence long and carries no date: in the past Google used rel=next and rel=prev to identify next-page and previous-page relationships, Google no longer uses these tags, although these links may still be used by other search engines. The 2019 announcement that made the rounds said support had already been dropped years earlier, so nobody outside Google knows when it actually stopped. Harmless to keep for whichever other engines read it; pointless to add for Google.",
     sourceTitle: "Google Search Central: pagination and incremental page loading",
     sourceUrl:
       "https://developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading",
@@ -130,10 +142,25 @@ export const FOLKLORE: readonly FolkloreEntry[] = [
     claim: "An hreflang set is invalid without x-default",
     verdict: "Unsupported",
     reality:
-      "Google's wording is consider adding x-default: a recommendation, not a requirement. What the same page does document as fatal is invalid codes. en_US with an underscore, jp where a language code belongs, en-UK when the United Kingdom is GB: each makes Google ignore the annotation entirely, with no error surfaced anywhere.",
+      "Google's wording is consider adding a fallback page and use the x-default value: a recommendation, not a requirement. What the same page does document as a hard constraint is the code itself: only ISO 639-1 languages and ISO 3166-1 Alpha 2 regions are supported, and it names es-419 outright as a code that is not. Read the failure precisely, because the popular summary overstates it: for a code reserved for something else, Google ignores THAT PART of the annotation, naming EU, UN and UK as examples. So en-UK is not discarded, it degrades to a bare en that now collides with whatever real en alternate the set already declares. Either way nothing is surfaced in Search Console.",
     sourceTitle: "Google Search Central: localized versions of your pages",
     sourceUrl: "https://developers.google.com/search/docs/specialty/international/localized-versions",
     insteadRules: ["tech/hreflang-validity", "tech/hreflang-consistency"],
+  },
+  {
+    claim: "FAQPage JSON-LD earns you an FAQ rich result",
+    verdict: "Obsolete",
+    reality:
+      "It did, for anyone, until September 2023, when Google narrowed the FAQ rich result to well-known authoritative government and health sites. It then stopped appearing at all: the changelog entry dated May 8, 2026 announced the feature would no longer appear in Google Search starting May 7, 2026, and on June 15, 2026 Google deleted the FAQPage documentation outright. There is no successor. QAPage still has a live rich result, but its own documentation restricts it to pages where users can submit answers, which a site-authored FAQ is not. Writing real question-and-answer content still pays, as extractable prose that an answer engine can lift whole; the markup no longer buys anything in Google Search.",
+    sourceTitle: "Google Search Central: removing the FAQ rich result",
+    sourceUrl: "https://developers.google.com/search/updates#removing-faq-rich-result",
+    alsoSee: [
+      {
+        title: "Google Search Central: Q&A (QAPage) structured data",
+        url: "https://developers.google.com/search/docs/appearance/structured-data/qapage",
+      },
+    ],
+    insteadRules: ["aeo/faq-coverage", "aeo/answer-first"],
   },
   {
     claim: "CSS complexity hurts your ranking",

@@ -9,7 +9,7 @@ tags: [spam, "doorway pages SEO"]
 
 # Doorway Pages: How Google Detects Templated Funnels
 
-> Google has banned doorway pages since the March 16, 2015 Search Central post: pseolint's spam/doorway-pattern rule mirrors SpamBrain's convergence logic by requiring 3 independent signals to stack (SimHash near-duplicate above 0.85, entity-swap, and structural confirmation) before firing at error severity (weight 25), the highest-confidence spam pattern reported by @pseolint/core v0.4.3.
+> Google has banned doorway pages since the March 16, 2015 Search Central post: pseolint's spam/doorway-pattern rule mirrors SpamBrain's convergence logic by requiring 3 independent signals to stack (SimHash near-duplicate above 0.85, entity-swap, and structural confirmation) before firing at error severity (weight 25), the highest-confidence spam pattern @pseolint/core reports.
 
 _Rule `spam/doorway-pattern` · [live explainer](https://pseolint.dev/rules/doorway-pattern)_
 

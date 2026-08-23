@@ -69,7 +69,7 @@ const STEPS = [
   },
   {
     name: "Design Semantic HTML Page Structure",
-    text: "Lay out your page using semantic HTML5 elements. Ensure the main content block contains at least 300 words of page-unique prose, keeping the overall boilerplate-to-content ratio below 60%.",
+    text: "Lay out your page using semantic HTML5 elements. Aim the main content block past 300 words of page-unique prose and keep the boilerplate-to-content ratio below 60%. Neither number is a Google ranking requirement (Google documents no preferred word count); both are the thresholds pseolint uses to spot bulk-generated pages that carry no copy of their own.",
   },
   {
     name: "Inject Nested JSON-LD Schemas",

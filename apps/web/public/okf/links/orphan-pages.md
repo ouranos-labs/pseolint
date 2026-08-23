@@ -1,13 +1,13 @@
 ---
 type: pSEO Audit Rule
-title: "Orphan Pages, URLs No Other Page Links To"
+title: "Orphan Pages: URLs No Other Page Links To"
 description: "Orphan pages have zero inbound internal links, so Googlebot can't crawl them from your site. How links/orphan-pages finds every unreachable URL in your corpus."
 resource: https://pseolint.dev/rules/orphan-pages
 ruleId: "links/orphan-pages"
 tags: [links, "orphan pages SEO"]
 ---
 
-# Orphan Pages, URLs No Other Page Links To
+# Orphan Pages: URLs No Other Page Links To
 
 > links/orphan-pages scans every URL in the crawl, counts the inbound internal links pointing at each one, and fires at error severity on any page with exactly 0 of them, the dead-zone shape that leaves Googlebot unable to reach a URL through your own navigation, a structural gap the March 27, 2026 core update treats as a discoverability failure rather than a content one.
 

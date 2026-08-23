@@ -544,15 +544,15 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "hreflang-validity": [
     {
       "source": "hreflang",
-      "note": "Google's localized-versions page states that an hreflang annotation with an invalid language or region code is ignored, which is the entire premise of this rule: en_US, jp, and en-UK are discarded rather than corrected, with no error surfaced in Search Console. The same page frames x-default as a recommendation, so the rule skips that value instead of requiring it."
+      "note": "Google's localized-versions page is the whole premise of this rule, and it is worth quoting exactly rather than paraphrasing: only language codes listed in ISO 639-1 and region codes listed in ISO 3166-1 Alpha 2 are supported, and if you use codes reserved for something else, Google Search ignores that part of the annotation, with EU, UN and UK given as the examples. So en_US and jp name values Google does not support, while en-UK loses only its region and degrades to a bare en. Nothing is corrected and nothing is surfaced in Search Console. The same page frames x-default as something to consider adding, so the rule skips that value instead of requiring it."
     },
     {
       "source": "multiRegional",
-      "note": "The multi-regional guidance defines the language[-script][-region] shape this rule enforces via a narrow BCP-47 grammar, including the UN M.49 numeric regions that let es-419 validate. Region subtags are resolved uppercase against CLDR because Intl.DisplayNames is case-sensitive there, and UK is rejected because ISO 3166-1 Alpha-2 assigns the United Kingdom GB."
+      "note": "The multi-regional guidance is the source for treating language targeting as a site-architecture decision rather than a markup one; it names no code standard, so the language[-script][-region] shape this rule enforces is taken from the localized-versions page instead, which restricts support to ISO 639-1 languages and ISO 3166-1 Alpha 2 regions and names es-419 as an unsupported example. Region subtags are resolved uppercase against CLDR because Intl.DisplayNames is case-sensitive there, and UK is reported because ISO 3166-1 Alpha-2 assigns the United Kingdom GB and reserves UK."
     },
     {
       "source": "canonicalization",
-      "note": "When three of nine locale annotations are discarded, the orphaned regional pages lose the signal that distinguishes them and Google's canonicalisation elects one representative URL, suppressing the rest. Google's duplicate-URL consolidation guidance describes that election, and it explains why an invalid code presents as a ranking problem in the dropped market rather than as a markup error."
+      "note": "When three of nine locale annotations go unread, the orphaned regional pages lose the signal that distinguishes them and Google's canonicalisation elects one representative URL, suppressing the rest. Google's duplicate-URL consolidation guidance describes that election, and it explains why an invalid code presents as a ranking problem in the dropped market rather than as a markup error."
     }
   ],
   "sitemap-hygiene": [

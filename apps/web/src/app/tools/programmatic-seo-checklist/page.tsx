@@ -51,8 +51,8 @@ const FAQS = [
 
 const CHECKLIST_STEPS = [
   {
-    name: "Write at least 300 words of unique content",
-    text: "Verify that the main body text (excluding shared menus and footers) contains at least 300 words of page-unique copy that does not appear on sibling paths.",
+    name: "Give each page enough of its own copy to be worth a URL",
+    text: "Google publishes no preferred word count, so treat 300 words of page-unique body text (excluding shared menus and footers) as pseolint's spam-detection floor at template scale, not as a ranking requirement: a thousand near-identical 40-word pages is a doorway pattern, whereas one short page that answers its question is fine.",
   },
   {
     name: "Inject real-world entity databases",
@@ -206,8 +206,11 @@ export default function ProgrammaticSeoChecklistPage() {
           <h3 className="text-base font-semibold text-foreground mt-6 mb-2">1. Data & Content Quality</h3>
           <p>
             Google&apos;s March 2024 core update targeted unoriginal content generated at scale. Sibling pages must
-            not look like a simple mail-merge template. You must include at least 300 words of page-unique copy,
-            backed by real entity data (such as localized metrics, practitioner names, or real reviews).
+            not look like a simple mail-merge template. Note what this is not: Google states plainly that it has no
+            preferred word count, so the 300-word figure below is pseolint&apos;s spam-detection floor for pages
+            generated in bulk, not a ranking threshold. Below it, at template scale, a page rarely carries enough
+            page-unique copy to distinguish it from its siblings. Back that copy with real entity data (localized
+            metrics, practitioner names, or real reviews) rather than padding it to hit a number.
           </p>
 
           <h3 className="text-base font-semibold text-foreground mt-4 mb-2">2. Technical SEO Compliance</h3>

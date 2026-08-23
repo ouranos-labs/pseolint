@@ -9,6 +9,10 @@ import {
   answerFirstRule,
   citationCoverageRule,
   commonPhraseReuseRule,
+  freshnessSignalsRule,
+  missingAuthorRule,
+  eeatSignalsRule,
+  faqCoverageRule,
   type ParsedPage,
   type EntityMaskPattern,
   type RuleResult,
@@ -16,6 +20,7 @@ import {
 import { MARKETING_RULES, type MarketingRule } from "@/lib/marketing-rules";
 import { MARKETING_SYMPTOMS } from "@/lib/marketing-symptoms";
 import { MARKETING_TOOLS } from "@/lib/marketing-tools";
+import { FOLKLORE } from "@/lib/folklore";
 import {
   resolveSources,
   SOURCE_LIBRARY,
@@ -152,11 +157,63 @@ const toolPages: ParsedPage[] = MARKETING_TOOLS.map((t) =>
   ),
 );
 
-const corpus: ParsedPage[] = [...rulePages, ...symptomPages, ...toolPages];
-const ruleUrls = new Set(rulePages.map((p) => p.url));
+/**
+ * Reconstruct /folklore the way app/folklore/page.tsx renders it: the byline
+ * row (visible "Last updated" + rel=author link), the claim list, and the
+ * Article JSON-LD carrying datePublished/dateModified/author.
+ *
+ * /folklore is the page that advertises the citation policy, so it is held to
+ * the same bar as a /rules explainer rather than exempted from it. It shipped
+ * outside this corpus once and immediately fell below that bar.
+ */
+const FOLKLORE_UPDATED = "2026-08-23";
+const FOLKLORE_ARTICLE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "SEO folklore: checks we refuse to run",
+  datePublished: "2026-08-19",
+  dateModified: FOLKLORE_UPDATED,
+  author: { "@type": "Person", name: "Philippe Kam" },
+  publisher: { "@type": "Organization", name: "Ouranos Labs" },
+};
+
+function buildFolkloreHtml(): string {
+  const claims = FOLKLORE.map(
+    (f, i) =>
+      `<li><span>#${i + 1}</span><span>${esc(f.verdict)}</span>` +
+      `<h3>&ldquo;${esc(f.claim)}&rdquo;</h3><p>${esc(f.reality)}</p>` +
+      `<div><a href="${esc(f.sourceUrl)}">${esc(f.sourceTitle)}</a>` +
+      (f.alsoSee ?? [])
+        .map((a) => `<a href="${esc(a.url)}">${esc(a.title)}</a>`)
+        .join("") +
+      `</div></li>`,
+  ).join("");
+  return [
+    "<!doctype html><html><head>",
+    "<title>SEO Folklore: Checks We Refuse to Run · pseolint</title>",
+    `<meta name="description" content="${esc(
+      `${FOLKLORE.length} widely-repeated SEO rules that the primary sources contradict, and which pseolint therefore does not flag. Every entry cites the document that settles it, with the check we run instead.`,
+    )}">`,
+    `<script type="application/ld+json">${JSON.stringify(FOLKLORE_ARTICLE_JSONLD)}</script>`,
+    "</head><body><main>",
+    `<div>Policy · Last updated <time datetime="${FOLKLORE_UPDATED}">August 23, 2026</time>`,
+    ` · By <a rel="author" href="https://x.com/Pipolmpk">Philippe Kam</a> · ${FOLKLORE.length} claims</div>`,
+    "<h1>The checks we refuse to run.</h1>",
+    `<p>Most SEO tools compete on rule count. That rewards adding checks, including the ones the documentation contradicts, because nobody audits an audit tool. This is the opposite list: ${FOLKLORE.length} rules we could easily ship, that would make our number bigger, and that we decline to implement because the primary source says they are wrong.</p>`,
+    "<h2>The claims</h2>",
+    `<ol>${claims}</ol>`,
+    "</main></body></html>",
+  ].join("");
+}
+
+const folklorePage: ParsedPage = parseHtmlPage(buildFolkloreHtml(), `${SITE}/folklore`);
+
+const corpus: ParsedPage[] = [...rulePages, ...symptomPages, ...toolPages, folklorePage];
+const ruleUrls = new Set([...rulePages.map((p) => p.url), folklorePage.url]);
 const ruleSlugs = new Set(MARKETING_RULES.map((r) => r.slug));
 const toolSlugs = new Set(MARKETING_TOOLS.map((t) => t.slug));
 
+/** Findings landing on a page held to the /rules bar: every rule explainer, plus /folklore. */
 function onRulePages(findings: RuleResult[]): RuleResult[] {
   return findings.filter(
     (f) =>
@@ -247,6 +304,35 @@ describe("MARKETING_RULES dogfood: must clear pseolint's own rules", () => {
     const findings = citableFactsRule(corpus, NO_ENTITY_PATTERNS);
     const errors = onRulePages(findings.filter((f) => f.severity === "error"));
     expect(errors, `citable-facts errored on rule pages:\n${describeFindings(errors)}`).toEqual([]);
+  });
+
+  // /folklore is the page that promises pseolint cites a primary source for
+  // every claim. It shipped failing four of the engine's own rules; these
+  // hold the line rather than exempting it.
+  it("/folklore clears aeo/freshness-signals (visible date + JSON-LD dateModified)", () => {
+    const findings = freshnessSignalsRule([folklorePage], {
+      now: () => Date.parse(`${FOLKLORE_UPDATED}T00:00:00Z`),
+    });
+    expect(findings, `freshness fired on /folklore:\n${describeFindings(findings)}`).toEqual([]);
+  });
+
+  it("/folklore clears content/missing-author and content/eeat-signals", () => {
+    expect(
+      missingAuthorRule([folklorePage]),
+      `missing-author fired on /folklore:\n${describeFindings(missingAuthorRule([folklorePage]))}`,
+    ).toEqual([]);
+    expect(
+      eeatSignalsRule([folklorePage]),
+      `eeat-signals fired on /folklore:\n${describeFindings(eeatSignalsRule([folklorePage]))}`,
+    ).toEqual([]);
+  });
+
+  // The page argues that FAQPage markup is obsolete, so it must not emit any:
+  // aeo/faq-coverage has to stay silent for the honest reason (the page is not
+  // FAQ-shaped), never because a FAQPage node bought the exemption.
+  it("/folklore ships no FAQ-like JSON-LD and still clears aeo/faq-coverage", () => {
+    expect(JSON.stringify(folklorePage.jsonLd)).not.toContain("FAQPage");
+    expect(faqCoverageRule([folklorePage])).toEqual([]);
   });
 });
 

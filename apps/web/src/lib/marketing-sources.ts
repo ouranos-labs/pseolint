@@ -133,6 +133,10 @@ export const SOURCE_LIBRARY = {
     title: "Google Search Central: How Google interprets the robots.txt specification",
     url: `${SC}/crawling-indexing/robots/robots_txt`,
   },
+  faqRichResultRemoval: {
+    title: "Google Search Central: Search updates: removing the FAQ rich result",
+    url: "https://developers.google.com/search/updates#removing-faq-rich-result",
+  },
   pagination: {
     title: "Google Search Central: Pagination and incremental page loading",
     url: `${SC}/specialty/ecommerce/pagination-and-incremental-page-loading`,

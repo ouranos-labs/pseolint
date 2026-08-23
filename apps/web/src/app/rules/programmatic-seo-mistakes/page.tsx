@@ -48,7 +48,7 @@ const MISTAKES = [
   {
     title: "3. High Boilerplate-to-Content Ratio",
     description:
-      "If 85% of your page's words live in the navigation bar, sidebars, related links, and the footer, Google classifies the URL as near-duplicate boilerplate. Programmatic pages must have at least 300 words of substantive, template-unique text that doesn't repeat across sibling pages.",
+      "If 85% of your page's words live in the navigation bar, sidebars, related links, and the footer, what is left is not enough for Google to tell the URL apart from its siblings. There is no ranking requirement to hit here: Google documents no preferred word count. The 300-word figure pseolint uses is a spam-detection floor for pages generated in bulk, and below it a template is almost always shipping boilerplate with a swapped entity name.",
     severity: "Major Warning",
     remedy: "Keep boilerplate ratio under 60% by stripping filler blocks and expanding page-specific details.",
   },

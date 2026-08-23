@@ -1,13 +1,13 @@
 ---
 type: pSEO Audit Rule
-title: "Freshness Signals, When a Page Gives AI Engines No Sign It Is Current"
+title: "Freshness Signals: When a Page Gives AI Engines No Sign It Is Current"
 description: "AI engines favour pages that prove they are current. How aeo/freshness-signals flags a missing dateModified and content older than the 180 days staleness default."
 resource: https://pseolint.dev/rules/freshness-signals
 ruleId: "aeo/freshness-signals"
 tags: [aeo, "content freshness signals SEO"]
 ---
 
-# Freshness Signals, When a Page Gives AI Engines No Sign It Is Current
+# Freshness Signals: When a Page Gives AI Engines No Sign It Is Current
 
 > aeo/freshness-signals checks every page for a real modification signal (a JSON-LD dateModified, an article:modified_time meta tag, or a visible 'Last updated' line) warns at medium confidence when none exists, then drops to an info note when the best date it can parse is older than the staleness default of 180 days Google has long associated with how AI Overviews weigh recency.
 
