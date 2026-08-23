@@ -12,19 +12,40 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * (Lighthouse ships the same check as the `crawlable-anchors` audit.)
  *
  * Counted as non-crawlable:
- *   - `<a>` with no href attribute, or an empty/whitespace-only href
- *     (this also covers router-attribute-only anchors with no href)
  *   - href starting with "javascript:" (case-insensitive)
  *   - href="#" combined with an onclick attribute OR a router attribute
  *     (routerlink, data-router-link, to, ng-click, @click, v-on:click)
+ *   - an empty/whitespace-only href (a deliberate deviation: Lighthouse
+ *     resolves `href=""` against the page URL and passes it, but a self-link
+ *     discovers nothing, so it stays counted here)
+ *   - an href-less `<a>` that is NOT a placeholder: i.e. one that carries an
+ *     href-associated attribute (target, download, ping, rel, hreflang, type,
+ *     referrerpolicy) or a router attribute, or that has a click handler
  *
- * NOT counted: href="#fragment" with a real fragment name, mailto:/tel:
- * links, and `<button>` elements (buttons are legitimately not links).
+ * NOT counted, matching the exclusions in Lighthouse's `crawlable-anchors`
+ * audit (core/audits/seo/crawlable-anchors.js) so the docstring's claim that
+ * this is "the same check" is true rather than aspirational:
+ *   - any anchor with a `role` attribute (`if (role.length > 0) return;`)
+ *   - `<a id="…">` with no href, i.e. a jump target (`if (rawHref === '' && id)
+ *     return;`)
+ *   - `<a name="…">`, the legacy jump-target form (`if (name.length > 0)
+ *     return;`)
+ *   - an href-less anchor with no href-associated attributes, which the HTML
+ *     spec defines as "a placeholder for where a link might otherwise have been
+ *     placed": Lighthouse fails it only `if (listeners.length)`
+ *   - mailto:/tel: links, href="#fragment" with a real fragment name, and
+ *     `<button>` elements (buttons are legitimately not links)
  *
- * Firing: warning when nonCrawlable >= 3, or when the non-crawlable share is
- * >= 20% of at least 5 anchors. Escalates to error when nonCrawlable >= 5 AND
- * the page has fewer than 2 crawlable same-host hrefs: its navigation is
- * effectively invisible to Googlebot.
+ * Heading anchors, footnote back-references and icon buttons rendered as
+ * href-less `<a>` are ordinary, correct markup; counting them was reporting
+ * "5 of 8 <a> elements are not crawlable" on a page whose navigation works.
+ *
+ * Firing thresholds (nonCrawlable >= 3; or >= 20% of at least 5 anchors;
+ * escalating to error at >= 5 with fewer than 2 crawlable same-host hrefs) are
+ * ARBITRARY REPORTING FLOORS. Google documents no ratio at which a page's
+ * navigation is deemed uncrawlable, and Lighthouse's audit fails on a single
+ * bad anchor. These floors exist only to keep one stray anchor off the report;
+ * do not present them as a documented limit (see docs/folklore.md).
  */
 
 const ROUTER_ATTRS = new Set([
@@ -34,6 +55,22 @@ const ROUTER_ATTRS = new Set([
   "ng-click",
   "@click",
   "v-on:click",
+]);
+
+/**
+ * Attributes the HTML spec says "must be omitted if the href attribute is not
+ * present". Their presence on an href-less anchor means a link was intended and
+ * the href went missing, rather than the element being a spec placeholder.
+ * Same list as Lighthouse's `hrefAssociatedAttributes`.
+ */
+const HREF_ASSOCIATED_ATTRS = new Set([
+  "target",
+  "download",
+  "ping",
+  "rel",
+  "hreflang",
+  "type",
+  "referrerpolicy",
 ]);
 
 const SAMPLE_LIMIT = 3;
@@ -71,9 +108,24 @@ export function crawlableAnchorsRule(pages: ParsedPage[]): RuleResult[] {
       const rawHref = $(el).attr("href");
       const href = rawHref === undefined ? undefined : rawHref.trim();
 
+      // Lighthouse exclusions, in its order: a role-annotated anchor is not
+      // being used as a link, and id-/name-only anchors are jump targets.
+      const role = ($(el).attr("role") ?? "").trim();
+      if (role.length > 0) continue;
+      // Lighthouse's rawHref is "" both for a missing and for an empty href, so
+      // one id check covers `<a id="x">` and `<a id="x" href="">`.
+      if ((href === undefined || href === "") && ($(el).attr("id") ?? "") !== "") continue;
+      if (($(el).attr("name") ?? "").trim().length > 0) continue;
+
       let bad = false;
-      if (href === undefined || href === "") {
-        // No href at all (covers router-attribute-only anchors) or empty href.
+      if (href === undefined) {
+        // No href attribute. Per the HTML spec this is a placeholder unless an
+        // href-associated (or router) attribute says a link was meant; even
+        // then Lighthouse only fails a bare placeholder when it has a listener.
+        const looksLikeIntendedLink =
+          attrNames.some((n) => HREF_ASSOCIATED_ATTRS.has(n)) || hasRouterAttr;
+        bad = looksLikeIntendedLink || hasOnclick;
+      } else if (href === "") {
         bad = true;
       } else if (/^javascript:/i.test(href)) {
         bad = true;

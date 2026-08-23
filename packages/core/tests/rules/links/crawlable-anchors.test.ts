@@ -38,14 +38,14 @@ describe("crawlableAnchorsRule", () => {
     expect(findings).toEqual([]);
   });
 
-  test("3 href-less nav anchors → warning with counts and confidence high", () => {
+  test("3 href-less nav anchors with click handlers → warning with counts and confidence high", () => {
     const findings = crawlableAnchorsRule([
       page(
         "https://ex.com/a",
         `<nav>
-          <a class="nav-item">Home</a>
-          <a class="nav-item">Products</a>
-          <a class="nav-item">About us</a>
+          <a class="nav-item" onclick="go('/home')">Home</a>
+          <a class="nav-item" onclick="go('/products')">Products</a>
+          <a class="nav-item" onclick="go('/about')">About us</a>
           <a href="/contact">Contact</a>
         </nav>`
       ),
@@ -138,7 +138,7 @@ describe("crawlableAnchorsRule", () => {
          <a href="javascript:go('/b')">Solutions</a>
          <a href="javascript:go('/c')">Pricing</a>
          <a href="#" onclick="go('/d')">Company</a>
-         <a>Careers</a>
+         <a onclick="go('/e')">Careers</a>
          <a href="https://twitter.com/ex">Twitter</a>`
       ),
     ]);
@@ -223,10 +223,10 @@ describe("crawlableAnchorsRule", () => {
     const findings = crawlableAnchorsRule([
       page(
         "https://ex.com/a",
-        `<a>${longText}</a>
-         <a>Products</a>
-         <a>Solutions</a>
-         <a>Company</a>`
+        `<a onclick="go(0)">${longText}</a>
+         <a onclick="go(1)">Products</a>
+         <a onclick="go(2)">Solutions</a>
+         <a onclick="go(3)">Company</a>`
       ),
     ]);
     expect(findings).toHaveLength(1);
@@ -237,7 +237,7 @@ describe("crawlableAnchorsRule", () => {
   });
 
   test("one finding per page across multiple pages", () => {
-    const bad = `<a>One</a><a>Two</a><a>Three</a>`;
+    const bad = `<a onclick="go(1)">One</a><a onclick="go(2)">Two</a><a onclick="go(3)">Three</a>`;
     const findings = crawlableAnchorsRule([
       page("https://ex.com/a", bad),
       page("https://ex.com/b", `<a href="/x">X</a>`),
@@ -245,5 +245,88 @@ describe("crawlableAnchorsRule", () => {
     ]);
     expect(findings).toHaveLength(2);
     expect(findings.map((f) => f.pageUrl)).toEqual(["https://ex.com/a", "https://ex.com/c"]);
+  });
+  // Lighthouse's crawlable-anchors audit, which this rule's docstring cites as
+  // "the same check", excludes these outright. Counting them reported
+  // "5 of 8 <a> elements are not crawlable" on a ToS page whose navigation was
+  // fine: heading anchors, footnote back-references and role-annotated icon
+  // controls are ordinary, correct markup.
+  describe("Lighthouse exclusions", () => {
+    test('<a id="..."> jump targets are not counted (if (rawHref === "" && id) return)', () => {
+      const findings = crawlableAnchorsRule([
+        page(
+          "https://ex.com/tos",
+          `<h2><a id="section-1"></a>Acceptable use</h2>
+           <h2><a id="section-2"></a>Termination</h2>
+           <h2><a id="section-3"></a>Liability</h2>
+           <h2><a id="section-4"></a>Governing law</h2>
+           <h2><a id="section-5"></a>Contact</h2>
+           <a href="/legal">Legal</a>
+           <a href="/privacy">Privacy</a>
+           <a href="/terms">Terms</a>`
+        ),
+      ]);
+      expect(findings).toEqual([]);
+    });
+
+    test('<a name="..."> legacy jump targets are not counted (if (name.length > 0) return)', () => {
+      const findings = crawlableAnchorsRule([
+        page(
+          "https://ex.com/tos",
+          `<a name="fn1"></a><a name="fn2"></a><a name="fn3"></a>
+           <a href="/legal">Legal</a>
+           <a href="/privacy">Privacy</a>`
+        ),
+      ]);
+      expect(findings).toEqual([]);
+    });
+
+    test("role-annotated anchors are not counted (if (role.length > 0) return)", () => {
+      const findings = crawlableAnchorsRule([
+        page(
+          "https://ex.com/a",
+          `<a role="button" onclick="openMenu()">Menu</a>
+           <a role="button" onclick="openSearch()">Search</a>
+           <a role="tab" href="#panel-1">Overview</a>
+           <a href="/docs">Docs</a>
+           <a href="/blog">Blog</a>`
+        ),
+      ]);
+      expect(findings).toEqual([]);
+    });
+
+    test("a bare href-less anchor is a spec placeholder, not an uncrawlable link", () => {
+      // Per the HTML spec an <a> with no href "represents a placeholder for
+      // where a link might otherwise have been placed". Lighthouse fails it
+      // only when it has a listener, which static HTML cannot observe.
+      const findings = crawlableAnchorsRule([
+        page(
+          "https://ex.com/a",
+          `<a class="disabled">Coming soon</a>
+           <a class="disabled">Also coming soon</a>
+           <a class="disabled">Still coming soon</a>
+           <a href="/docs">Docs</a>
+           <a href="/blog">Blog</a>`
+        ),
+      ]);
+      expect(findings).toEqual([]);
+    });
+
+    test("an href-less anchor carrying an href-associated attribute still counts", () => {
+      // target/rel/download "must be omitted if the href attribute is not
+      // present", so their presence means a link was meant and the href is
+      // missing, which is a real crawl loss rather than a placeholder.
+      const findings = crawlableAnchorsRule([
+        page(
+          "https://ex.com/a",
+          `<a target="_blank">Report</a>
+           <a rel="noopener">Dashboard</a>
+           <a download>Invoice</a>
+           <a href="/docs">Docs</a>`
+        ),
+      ]);
+      expect(findings).toHaveLength(1);
+      expect(findings[0].message).toContain("3 of 4");
+    });
   });
 });
