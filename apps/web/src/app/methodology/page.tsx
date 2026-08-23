@@ -459,13 +459,13 @@ export default function MethodologyPage(): React.ReactElement {
         <ul className="mt-2 grid gap-2 text-sm leading-relaxed text-muted-foreground">
           <li>
             <strong className="text-foreground">Zapier (concerning)</strong>{" "}
-: <code className="font-mono text-xs">tech/canonical-consistency</code>{" "}
+            — <code className="font-mono text-xs">tech/canonical-consistency</code>{" "}
             fires on integration pages with tracking parameters that don&apos;t
             canonicalise back to the parameter-free URL. Real tech-debt.
           </li>
           <li>
             <strong className="text-foreground">Typeform (critical)</strong>{" "}
-: <code className="font-mono text-xs">content/title-uniqueness</code>{" "}
+            — <code className="font-mono text-xs">content/title-uniqueness</code>{" "}
             fires on 6 template-gallery cards that share the exact same
             title (templates with different content but identical heading
             text). The new title-uniqueness rule (v0.5.2) caught this. A
@@ -474,7 +474,7 @@ export default function MethodologyPage(): React.ReactElement {
           </li>
           <li>
             <strong className="text-foreground">Segment (critical)</strong>{" "}
-: <code className="font-mono text-xs">spam/boilerplate-ratio</code>{" "}
+            — <code className="font-mono text-xs">spam/boilerplate-ratio</code>{" "}
             and <code className="font-mono text-xs">tech/redirect-chain</code>{" "}
             both fire on 25 of 41 sampled pages. Catalog-shape findings,
             but real ones.
@@ -714,7 +714,7 @@ export default function MethodologyPage(): React.ReactElement {
           <strong className="text-success">Shipped in v0.5.2:</strong>{" "}
           <code className="font-mono text-xs">AuditOptions.authorityScore</code>{" "}
           (CLI: <code className="font-mono text-xs">--authority-score 0-100</code>)
-: bring-your-own-DA verdict ladder shift. Pass-through to formatter
+          — bring-your-own-DA verdict ladder shift. Pass-through to formatter
           callers via <code className="font-mono text-xs">summary.appliedSeverityDemotions</code>.
           What remains:
         </p>

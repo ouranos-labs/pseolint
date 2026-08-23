@@ -100,7 +100,7 @@
       "humanGrade": "ready",
       "detectedFramework": "nextjs",
       "audit": null,
-      "error": "audit failed: Origin looks degraded; aborting audit. rolling p95 812ms is 2.5× the warmup baseline 319ms. p95=812ms, baseline=319ms, 5xx=0%, fetches=16."
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 812ms is 2.5× the warmup baseline 319ms. p95=812ms, baseline=319ms, 5xx=0%, fetches=16."
     },
     {
       "url": "https://linear.app",
@@ -154,7 +154,7 @@
       "humanGrade": "ready",
       "detectedFramework": "shopify",
       "audit": null,
-      "error": "audit failed: Origin looks degraded; aborting audit. rolling p95 1806ms is 5.9× the warmup baseline 304ms. p95=1806ms, baseline=304ms, 5xx=0%, fetches=34."
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 1806ms is 5.9× the warmup baseline 304ms. p95=1806ms, baseline=304ms, 5xx=0%, fetches=34."
     },
     {
       "url": "https://wordpress.com",
@@ -253,7 +253,7 @@
       "expectedType": "programmatic-directory",
       "humanGrade": "concerning",
       "audit": null,
-      "error": "audit failed: Origin looks degraded; aborting audit. rolling p95 2033ms is 3.4× the warmup baseline 590ms. p95=2033ms, baseline=590ms, 5xx=0%, fetches=31."
+      "error": "audit failed: Origin looks degraded — aborting audit. rolling p95 2033ms is 3.4× the warmup baseline 590ms. p95=2033ms, baseline=590ms, 5xx=0%, fetches=31."
     }
   ]
 }

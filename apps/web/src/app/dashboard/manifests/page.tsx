@@ -82,7 +82,7 @@ export default async function ManifestsPage() {
               row.status === "completed" && row.manifestSlug
                 ? `/m/${row.manifestSlug}`
                 : `/o/${row.sessionId}`;
-            const dur = row.durationMs ? `${(row.durationMs / 1000).toFixed(0)}s` : "; ";
+            const dur = row.durationMs ? `${(row.durationMs / 1000).toFixed(0)}s` : "—";
             return (
               <li key={row.sessionId}>
                 <Link

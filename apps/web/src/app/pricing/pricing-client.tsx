@@ -13,16 +13,16 @@ type Interval = "monthly" | "yearly";
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
   { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
   { feature: "Sampling model (web UI)", free: "up to 200 pages, stratified across templates", pro: "up to 500 pages on manual re-audit, 200 per monitoring run, stratified across templates" },
-  { feature: "Background monitoring", free: "; ", pro: "Per-domain, change-driven (only re-fetches URLs that changed); fires template_degraded alerts on regression" },
+  { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed); fires template_degraded alerts on regression" },
   { feature: "Per-template verdict", free: "Included (up to free-tier budget)", pro: "Included, shows which template is dragging your score down" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
   { feature: "BYO AI key", free: "CLI only", pro: "Anthropic / OpenAI, no markup" },
-  { feature: "Data sources", free: "; ", pro: "CSV/JSON upload + GSC integration" },
+  { feature: "Data sources", free: "—", pro: "CSV/JSON upload + GSC integration" },
   { feature: "Rule overrides", free: "Defaults only", pro: "Per-rule severity + thresholds" },
   { feature: "Audit retention", free: "30 days", pro: "Unlimited history" },
   { feature: "Integrations", free: "GitHub Action", pro: "GitHub Action + Google & IndexNow Instant Indexing + GSC + Webflow + WP" },
-  { feature: "Domain ownership verification", free: "; ", pro: "DNS / meta-tag verified" },
-  { feature: "GDPR export + audit log", free: "; ", pro: "Included" },
+  { feature: "Domain ownership verification", free: "—", pro: "DNS / meta-tag verified" },
+  { feature: "GDPR export + audit log", free: "—", pro: "Included" },
   { feature: "Support", free: "Community + GitHub issues", pro: "Email, 1 business day" },
 ];
 
@@ -248,7 +248,7 @@ function PricingInner() {
                     { row.feature }
                   </th>
                   <td className="px-5 py-3 text-xs text-muted-foreground">
-                    { row.free === "; " ? (
+                    { row.free === "—" ? (
                       <span className="inline-flex items-center gap-1.5 text-muted-foreground/60">
                         <X className="h-3 w-3" aria-hidden /> Not included
                       </span>

@@ -96,7 +96,7 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
 
       <div className="mt-8 overflow-hidden rounded-[28px] border border-border/70 bg-card/60 backdrop-blur-sm">
         <div className="flex items-center justify-between border-b border-border/60 px-6 py-3.5 text-xs">
-          <span className="font-mono text-muted-foreground">{host ?? "; "}</span>
+          <span className="font-mono text-muted-foreground">{host ?? "—"}</span>
           <span className="font-mono tabular-nums text-muted-foreground">{elapsed}s</span>
         </div>
 

@@ -22,7 +22,7 @@ function coverageLine(template: Template, totalDiscoveredUrls: number): string {
   const pct =
     totalDiscoveredUrls > 0
       ? ((template.totalUrls / totalDiscoveredUrls) * 100).toFixed(1)
-      : "; ";
+      : "—";
   return `${template.totalUrls.toLocaleString()} / ${totalDiscoveredUrls.toLocaleString()} URLs (${pct}%)`;
 }
 
@@ -105,10 +105,13 @@ describe("TemplateCard: coverageLine", () => {
     expect(result).toContain("URLs (2.9%)");
   });
 
-  it("shows: percentage when totalDiscoveredUrls is 0", () => {
+  it("shows an em-dash placeholder percentage when totalDiscoveredUrls is 0", () => {
     const t = makeTemplate({ totalUrls: 5 });
     const result = coverageLine(t, 0);
-    expect(result).toContain("; ");
+    // Mirrors template-card.tsx: the empty-denominator cell renders "(—%)",
+    // never a stray separator like "(; %)".
+    expect(result).toContain("(—%)");
+    expect(result).not.toContain("; ");
   });
 
   it("shows 100.0% when totalUrls === totalDiscoveredUrls", () => {

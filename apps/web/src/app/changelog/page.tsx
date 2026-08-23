@@ -86,11 +86,11 @@ function inline(text: string): ReactNode[] {
 
 function load(): { name: string; channel: string; version: string; entries: Entry[] }[] {
   return PACKAGES.map((p) => {
-    let version = "; ";
+    let version = "—";
     const pkgJson = read(join(p.dir, "package.json"));
     if (pkgJson) {
       try {
-        version = (JSON.parse(pkgJson).version as string) ?? "; ";
+        version = (JSON.parse(pkgJson).version as string) ?? "—";
       } catch {
         /* keep: */
       }

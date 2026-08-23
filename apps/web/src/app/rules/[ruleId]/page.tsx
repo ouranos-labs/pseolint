@@ -6,6 +6,7 @@ import {
   MARKETING_RULES,
   findMarketingRule,
   getRelatedMarketingRules,
+  ruleShortTitle,
   type MarketingRule
 } from "@/lib/marketing-rules";
 import { env } from "@/lib/env";
@@ -520,7 +521,7 @@ export default async function RulePage({ params }: PageProps) {
                     {sibling.ruleId}
                   </span>
                   <span className="mt-2 text-sm font-medium text-foreground">
-                    {sibling.title.split("; ")[0]?.trim() ?? sibling.title}
+                    {ruleShortTitle(sibling.title)}
                   </span>
                   <span className="mt-1 text-xs text-muted-foreground">{sibling.oneLiner}</span>
                   <span className="mt-3 text-xs text-primary transition-transform group-hover:translate-x-0.5">

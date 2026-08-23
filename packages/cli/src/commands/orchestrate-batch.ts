@@ -174,7 +174,7 @@ function buildMarkdownSummary(results: SiteResult[], opts: BatchCliOptions): str
   for (const r of results) {
     const patches = `${r.validPatches}/${r.totalPatches}`;
     lines.push(
-      `| \`${r.domain}\` | ${r.ok ? "✅ completed" : `❌ ${r.reason}`} | ${r.verdict ?? "; "} | ${patches} | $${r.spentUsd.toFixed(3)} | ${r.toolCallCount} | ${r.durationSeconds.toFixed(0)}s |`,
+      `| \`${r.domain}\` | ${r.ok ? "✅ completed" : `❌ ${r.reason}`} | ${r.verdict ?? "—"} | ${patches} | $${r.spentUsd.toFixed(3)} | ${r.toolCallCount} | ${r.durationSeconds.toFixed(0)}s |`,
     );
   }
   lines.push("");

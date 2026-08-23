@@ -896,7 +896,7 @@ const RULES_BASE = [
   {
   "slug": "orphan-pages",
   "ruleId": "links/orphan-pages",
-  "title": "Orphan Pages, URLs No Other Page Links To",
+  "title": "Orphan Pages: URLs No Other Page Links To",
   "metaDescription": "Orphan pages have zero inbound internal links, so Googlebot can't crawl them from your site. How links/orphan-pages finds every unreachable URL in your corpus.",
   "primaryKeyword": "orphan pages SEO",
   "oneLiner": "links/orphan-pages scans every URL in the crawl, counts the inbound internal links pointing at each one, and fires at error severity on any page with exactly 0 of them, the dead-zone shape that leaves Googlebot unable to reach a URL through your own navigation, a structural gap the March 27, 2026 core update treats as a discoverability failure rather than a content one.",
@@ -1158,7 +1158,7 @@ const RULES_BASE = [
   {
   "slug": "freshness-signals",
   "ruleId": "aeo/freshness-signals",
-  "title": "Freshness Signals, When a Page Gives AI Engines No Sign It Is Current",
+  "title": "Freshness Signals: When a Page Gives AI Engines No Sign It Is Current",
   "metaDescription": "AI engines favour pages that prove they are current. How aeo/freshness-signals flags a missing dateModified and content older than the 180 days staleness default.",
   "primaryKeyword": "content freshness signals SEO",
   "oneLiner": "aeo/freshness-signals checks every page for a real modification signal (a JSON-LD dateModified, an article:modified_time meta tag, or a visible 'Last updated' line) warns at medium confidence when none exists, then drops to an info note when the best date it can parse is older than the staleness default of 180 days Google has long associated with how AI Overviews weigh recency.",
@@ -2226,6 +2226,24 @@ export const MARKETING_RULES: readonly MarketingRule[] = RULES_BASE.map((entry) 
   sources: RULE_SOURCES[entry.slug] ?? [],
   extra: RULE_EXTRA[entry.slug] ?? [],
 }));
+
+/**
+ * Short display name for a rule: the part of `title` before the first ": ".
+ *
+ * Titles are authored as `"<Short name>: <descriptive clause>"`. The cards on
+ * /rules and the sibling nav on /rules/[ruleId] show only the short name; the
+ * full title is the page <h1> and SEO title. Keep this in lockstep with the
+ * separator actually used in the title data above (see the test in
+ * tests/unit/marketing-rules-title.test.ts, which asserts every entry splits).
+ *
+ * A title with no separator falls back to the whole string rather than
+ * rendering empty.
+ */
+export function ruleShortTitle(title: string): string {
+  const [head] = title.split(": ");
+  const short = head?.trim();
+  return short && short.length > 0 ? short : title.trim();
+}
 
 export function findMarketingRule(slug: string): MarketingRule | undefined {
   return MARKETING_RULES.find((rule) => rule.slug === slug);

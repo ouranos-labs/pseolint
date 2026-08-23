@@ -237,7 +237,7 @@ function renderBucketVerbose(label: string, items: RuleResult[]): string[] {
   lines.push(`${BOLD}${label} (${items.length})${RESET}`);
   for (const f of items) {
     const ruleCol = f.ruleId.padEnd(28);
-    const urlCol = (shortenUrl(f.pageUrl) || "; ").padEnd(28);
+    const urlCol = (shortenUrl(f.pageUrl) || "—").padEnd(28);
     const fixCol = f.fix ?? f.message;
     lines.push(`  ${ruleCol} ${DIM}${urlCol}${RESET} ${fixCol}`);
     const caveat = confidenceCaveat(f.confidence);

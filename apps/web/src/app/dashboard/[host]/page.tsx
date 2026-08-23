@@ -462,7 +462,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         <section className="flex flex-col gap-6">
           <div className="flex items-baseline justify-between">
             <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              <span>Latest audit · { latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleString() : "; " }</span>
+              <span>Latest audit · { latestAudit.completedAt ? new Date(latestAudit.completedAt).toLocaleString() : "—" }</span>
               { summary.truncated && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full border border-warning/50 bg-warning/10 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-warning"

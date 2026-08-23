@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
-import { MARKETING_RULES } from "@/lib/marketing-rules";
+import { MARKETING_RULES, ruleShortTitle } from "@/lib/marketing-rules";
 import { guidesForSection } from "@/lib/marketing-guides";
 import { env } from "@/lib/env";
 
@@ -175,7 +175,7 @@ export default function RulesIndexPage() {
                 </span>
               </div>
               <h2 className="mt-3 text-lg font-semibold tracking-tight text-foreground">
-                {rule.title.split("; ")[0]?.trim() ?? rule.title}
+                {ruleShortTitle(rule.title)}
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {rule.oneLiner}
@@ -233,7 +233,7 @@ export default function RulesIndexPage() {
           <span className="font-medium text-foreground">uniformity score</span>{" "}
           (0–1) and a{" "}
           <span className="font-medium text-foreground">top driver</span>{" "}
-: the single rule responsible for the most findings on that template.
+          — the single rule responsible for the most findings on that template.
           The site verdict is determined by{" "}
           <code className="font-mono text-xs">siteVerdictFromTemplates</code>:
           the worst template that covers ≥5% of the site&apos;s URLs (spec

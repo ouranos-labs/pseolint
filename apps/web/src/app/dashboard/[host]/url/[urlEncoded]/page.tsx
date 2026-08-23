@@ -205,7 +205,7 @@ export default async function UrlDeepDive({
         <Stat label="Findings" value={String(total)} tone="text-foreground" />
         <Stat label="Open" value={String(open)} tone={open > 0 ? "text-destructive" : "text-foreground"} />
         <Stat label="Suppressed" value={String(suppressed)} tone="text-muted-foreground" />
-        <Stat label="Last seen" value={lastSeen ? relTime(lastSeen) : "; "} tone="text-foreground" />
+        <Stat label="Last seen" value={lastSeen ? relTime(lastSeen) : "—"} tone="text-foreground" />
       </dl>
 
       {sorted.length === 0 ? (

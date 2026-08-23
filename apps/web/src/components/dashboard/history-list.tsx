@@ -157,7 +157,7 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
               </div>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
-              <span className="font-mono tabular-nums text-foreground">{r.risk ?? "; "}</span>
+              <span className="font-mono tabular-nums text-foreground">{r.risk ?? "—"}</span>
               <span className="hidden text-xs text-muted-foreground sm:inline">{r.findingCount ?? 0} findings</span>
               <Link href={`/r/${r.slug}`} className="rounded-[12px] bg-secondary px-3 py-1 text-xs hover:bg-secondary/80">
                 View

@@ -252,7 +252,7 @@ export default async function Leaderboard() {
                     </TrackedLink>
                   </h3>
                   <p className="mt-0.5 mx-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">
-                    { r.ogDescription || `Audited ${r.pageCount ?? "; "} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
+                    { r.ogDescription || `Audited ${r.pageCount ?? "—"} ${r.pageCount === 1 ? "page" : "pages"} · scored ${timeAgo(r.createdAt)} ago.` }
                   </p>
 
                   <div className="mt-4 mr-2 flex items-center justify-end">

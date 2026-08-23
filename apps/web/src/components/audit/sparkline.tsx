@@ -18,7 +18,7 @@ export function Sparkline({ points }: { points: TrendPoint[] }) {
         className="inline-block font-mono text-[11px] text-muted-foreground/60"
         title="Need two completed runs to chart a trend"
       >
-:
+        —
       </span>
     );
   }

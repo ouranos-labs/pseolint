@@ -468,10 +468,10 @@ function renderMarkdown(out: CalibrationResults): string {
     const actual = r.audit ? r.audit.verdict : "ERROR";
     const delta = r.audit && r.expectedVerdictCeiling != null
       ? VERDICT_RANK[r.audit.verdict] - VERDICT_RANK[r.expectedVerdictCeiling]
-      : "; ";
-    const driver = r.audit?.topDrivers[0]?.ruleId ?? "; ";
+      : "—";
+    const driver = r.audit?.topDrivers[0]?.ruleId ?? "—";
     const deltaCell = typeof delta === "number" && delta > 0 ? `**+${delta}**` : `${delta}`;
-    lines.push(`| ${r.url} | ${r.vertical} | ${r.expectedVerdictCeiling ?? "; "} | ${actual} | ${deltaCell} | \`${driver}\` |`);
+    lines.push(`| ${r.url} | ${r.vertical} | ${r.expectedVerdictCeiling ?? "—"} | ${actual} | ${deltaCell} | \`${driver}\` |`);
   }
   lines.push("");
   if (out.scorecard) {

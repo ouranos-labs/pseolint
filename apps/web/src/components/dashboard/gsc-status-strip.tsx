@@ -148,12 +148,12 @@ function BoundWithDataCard({
         <Stat
           label="CTR"
           sub="clicks / impr"
-          value={ctr != null ? `${(ctr * 100).toFixed(2)}%` : "; "}
+          value={ctr != null ? `${(ctr * 100).toFixed(2)}%` : "—"}
         />
         <Stat
           label="Avg position"
           sub="impressions-weighted"
-          value={weightedAvgPosition != null ? weightedAvgPosition.toFixed(1) : "; "}
+          value={weightedAvgPosition != null ? weightedAvgPosition.toFixed(1) : "—"}
           tone={positionTone(weightedAvgPosition)}
         />
       </dl>

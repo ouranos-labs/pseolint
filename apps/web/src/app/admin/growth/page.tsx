@@ -67,8 +67,8 @@ export default async function GrowthDashboard() {
               <td>{displayPath(r.url)}</td>
               <td>{r.impressions}</td>
               <td>{r.clicks}</td>
-              <td>{r.positionAvg == null ? "; " : r.positionAvg.toFixed(1)}</td>
-              <td>{r.ctrAvg == null ? "; " : `${(r.ctrAvg * 100).toFixed(1)}%`}</td>
+              <td>{r.positionAvg == null ? "—" : r.positionAvg.toFixed(1)}</td>
+              <td>{r.ctrAvg == null ? "—" : `${(r.ctrAvg * 100).toFixed(1)}%`}</td>
             </tr>
           ))}
         </tbody>

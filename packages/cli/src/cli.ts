@@ -941,7 +941,7 @@ function isVerdict(v: string): v is Verdict {
 import type { TelemetryStats } from "@pseolint/core";
 
 function renderStats(stats: TelemetryStats): void {
-  const NA = "; ";
+  const NA = "—";
   const formatDuration = (ms: number | null): string => {
     if (ms === null) return NA;
     return `${(ms / 1000).toFixed(1)}s`;

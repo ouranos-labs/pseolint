@@ -129,7 +129,7 @@ export default function SymptomsIndexPage() {
         it looks like in Google Search Console, the few things that actually cause it, and
         the order to investigate. The audit tells you{" "}
         <span className="font-medium text-foreground">which template</span> is responsible
-: not just which URLs. The free pseolint audit covers up to 200 pages, stratified
+        — not just which URLs. The free pseolint audit covers up to 200 pages, stratified
         across templates, with 30-day retention at $0; comparable tools like Screaming Frog
         ($259/year), Sitebulb ($35/month), or Ahrefs Site Audit ($129/month) charge for
         the same triage surface and do not produce per-template verdicts. When you&apos;ve
@@ -226,7 +226,7 @@ export default function SymptomsIndexPage() {
         <p>
           Median observed recovery time for sites that fix the underlying rule
           violations is <span className="font-medium text-foreground">30–90 days</span>{" "}
-: Google needs to recrawl, rescore through SpamBrain, and let the
+          — Google needs to recrawl, rescore through SpamBrain, and let the
           classifier&apos;s rolling signal stabilize. Manual actions surface
           faster (usually one reconsideration cycle, 1–2 weeks) but require a
           documented fix in the request. Algorithmic suppression has no

@@ -58,7 +58,7 @@ function coverageLine(template: Template): string {
     template.totalDiscoveredUrls > 0
       ? template.totalDiscoveredUrls
       : template.totalUrls;
-  const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "; ";
+  const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "—";
   return `${template.totalUrls.toLocaleString()} / ${denom.toLocaleString()} URLs (${pct}%)`;
 }
 

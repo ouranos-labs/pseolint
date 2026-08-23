@@ -15,7 +15,7 @@
  */
 
 export interface Grade {
-  letter: "A" | "B" | "C" | "D" | "F" | "; ";
+  letter: "A" | "B" | "C" | "D" | "F" | "—";
   band: string;
   /** Tailwind background utility for chip backgrounds. */
   bg: string;
@@ -27,7 +27,7 @@ export interface Grade {
 
 export function gradeOf(risk: number | null): Grade {
   if (risk == null) {
-    return { letter: "; ", band: "no score yet", bg: "bg-muted/40", text: "text-muted-foreground", dot: "bg-muted-foreground" };
+    return { letter: "—", band: "no score yet", bg: "bg-muted/40", text: "text-muted-foreground", dot: "bg-muted-foreground" };
   }
   if (risk < 21) return { letter: "A", band: "ready · 0–20", bg: "bg-success/15", text: "text-success", dot: "bg-success" };
   // B reads "caution" (not "good"): its risk range matches verdictForRisk's

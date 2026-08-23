@@ -1019,7 +1019,7 @@ function Stat({
     <div className="flex flex-col text-nowrap">
       <dt className="text-[11px] uppercase tracking-wider text-muted-foreground text-nowrap">{ label }</dt>
       <dd className={ `font-mono text-lg tabular-nums text-nowrap ${placeholder ? "text-muted-foreground/50" : tone}` }>
-        { placeholder ? "; " : value }
+        { placeholder ? "—" : value }
       </dd>
       { sub && (
         <span className="font-mono text-[10px] text-muted-foreground/70">{ sub }</span>
