@@ -65,16 +65,31 @@ describe("metaRobotsConflictRule", () => {
     expect(findings[0].message).toContain("meta googlebot");
   });
 
-  test("warning when two meta robots tags carry different content strings", () => {
+  // Google documents the multi-tag form as valid and deterministic: "the search
+  // engine will use the sum of the negative rules", with two separate robots
+  // tags as its own worked example. noindex + "noindex, noarchive" therefore
+  // resolves to noindex, noarchive. Nothing is ambiguous, so nothing is
+  // reported. https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
+  test("no finding when two meta robots tags differ but do not contradict", () => {
     const findings = metaRobotsConflictRule([
       page(
         "https://ex.com/a",
         '<head><meta name="robots" content="noindex"><meta name="robots" content="noindex, noarchive"></head>'
       ),
     ]);
-    expect(findings).toHaveLength(1);
-    expect(findings[0].severity).toBe("warning");
-    expect(findings[0].message).toContain("2");
+    expect(findings).toEqual([]);
+  });
+
+  // The common split-directive shape: indexing rules in one tag, snippet
+  // budgets in another. Also not a contradiction.
+  test("no finding for split directives across two meta robots tags", () => {
+    const findings = metaRobotsConflictRule([
+      page(
+        "https://ex.com/a",
+        '<head><meta name="robots" content="index, follow"><meta name="robots" content="max-snippet:-1, max-image-preview:large"></head>'
+      ),
+    ]);
+    expect(findings).toEqual([]);
   });
 
   test("no finding for duplicate meta robots tags with identical content", () => {

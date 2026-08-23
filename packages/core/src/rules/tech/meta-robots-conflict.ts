@@ -1,8 +1,9 @@
+import { load } from "cheerio";
 import type { ParsedPage, RuleResult } from "../../types.js";
 
 /**
- * tech/meta-robots-conflict flags pages whose robots directives contradict
- * each other across the three places they can be declared: `<meta name="robots">`
+ * tech/meta-robots-conflict flags pages whose robots directives CONTRADICT each
+ * other across the three places they can be declared: `<meta name="robots">`
  * tags, `<meta name="googlebot">` tags, and the `X-Robots-Tag` HTTP header.
  *
  * When directives conflict, Google applies the MOST RESTRICTIVE one
@@ -10,52 +11,131 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * so an accidental `noindex` (e.g. left over from staging in a header while the
  * meta tag says `index`) silently wins and deindexes the page.
  *
- *   - error:   a directive and its opposite both appear (index vs noindex,
- *              follow vs nofollow) anywhere across the sources.
- *   - warning: the same meta name appears in 2+ tags with different content
- *              strings (ambiguous which one wins).
+ *   - error: a directive and its opposite both appear (index vs noindex,
+ *            follow vs nofollow) anywhere across the sources.
+ *
+ * Deliberately NOT flagged: several robots meta tags carrying DIFFERENT content
+ * strings. That is a documented, deterministic pattern, not an ambiguity: the
+ * same doc shows
+ *
+ *     <meta name="robots" content="noindex">
+ *     <meta name="robots" content="nofollow">
+ *
+ * as a supported way to write `noindex, nofollow`, and states that where
+ * multiple rules are specified "the search engine will use the sum of the
+ * negative rules". Split directives (`index, follow` in one tag,
+ * `max-snippet:-1, max-image-preview:large` in another) are likewise fine. A
+ * genuine contradiction between two such tags is already caught by the error
+ * check above, which spans every source.
  *
  * Note: page.robotsMeta only holds the FIRST robots meta tag, so this rule
- * re-scans page.html to see every tag.
+ * re-parses page.html to see every tag. It parses with cheerio rather than
+ * regexes over the raw HTML: a commented-out staging directive
+ * (`<!-- <meta name="robots" content="noindex"> -->`) is a comment node, not a
+ * live declaration, and must never be read as one.
  */
 
 interface RobotsDeclaration {
   /** Human-readable source label, e.g. `meta robots` or `X-Robots-Tag header`. */
   source: string;
-  /** Meta name for duplicate detection ("robots" / "googlebot"), undefined for the header. */
-  metaName?: string;
-  /** Raw content string as declared. */
-  content: string;
+  /** Lowercased, trimmed directive tokens. */
+  directives: string[];
 }
 
-/** Extract every robots/googlebot meta declaration plus the X-Robots-Tag header. */
-function gatherRobotsDeclarations(page: ParsedPage): RobotsDeclaration[] {
-  const declarations: RobotsDeclaration[] = [];
-
-  const metaTagRe = /<meta\b[^>]*>/gi;
-  for (const [tag] of page.html.matchAll(metaTagRe)) {
-    const nameMatch = /\bname\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-    const name = (nameMatch?.[2] ?? nameMatch?.[3] ?? nameMatch?.[4] ?? "").trim().toLowerCase();
-    if (name !== "robots" && name !== "googlebot") continue;
-    const contentMatch = /\bcontent\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'>]+))/i.exec(tag);
-    const content = contentMatch?.[2] ?? contentMatch?.[3] ?? contentMatch?.[4] ?? "";
-    declarations.push({ source: `meta ${name}`, metaName: name, content });
-  }
-
-  const xRobots = page.httpMeta?.xRobotsTag ?? "";
-  if (xRobots.trim()) {
-    declarations.push({ source: "X-Robots-Tag header", content: xRobots });
-  }
-
-  return declarations;
-}
+/**
+ * Directive keywords that legitimately carry a `:value` suffix. A colon after
+ * one of these is part of the directive, not a user-agent prefix.
+ */
+const VALUE_DIRECTIVES = new Set([
+  "max-snippet",
+  "max-image-preview",
+  "max-video-preview",
+  "unavailable_after",
+]);
 
 /** Normalize a robots content string into lowercase, trimmed directive tokens. */
-function normalizeDirectives(content: string): string[] {
+export function normalizeDirectives(content: string): string[] {
   return content
     .split(",")
     .map((d) => d.trim().toLowerCase())
     .filter((d) => d.length > 0);
+}
+
+/**
+ * Split an `X-Robots-Tag` header value into per-user-agent directive groups.
+ *
+ * Google: "The X-Robots-Tag may optionally specify a user agent before the
+ * rules", e.g. `X-Robots-Tag: googlebot: nofollow`. Several header lines are
+ * folded into one comma-joined value by the HTTP stack, so a user-agent prefix
+ * can appear mid-string and governs every token after it until the next prefix.
+ * Without this split the token reads as the literal directive
+ * `"googlebot: noindex"`, which matches nothing.
+ */
+export function parseXRobotsTag(value: string): Array<{ userAgent: string; directives: string[] }> {
+  const groups: Array<{ userAgent: string; directives: string[] }> = [];
+  let current = { userAgent: "", directives: [] as string[] };
+  groups.push(current);
+
+  for (const rawToken of value.split(",")) {
+    const token = rawToken.trim();
+    if (!token) continue;
+    const colon = token.indexOf(":");
+    if (colon > 0) {
+      const key = token.slice(0, colon).trim().toLowerCase();
+      if (!VALUE_DIRECTIVES.has(key)) {
+        current = { userAgent: key, directives: [] };
+        groups.push(current);
+        const rest = token.slice(colon + 1).trim().toLowerCase();
+        if (rest) current.directives.push(rest);
+        continue;
+      }
+    }
+    current.directives.push(token.toLowerCase());
+  }
+
+  return groups.filter((g) => g.directives.length > 0);
+}
+
+/**
+ * True when a user-agent prefix governs Googlebot. An unprefixed group and `*`
+ * apply to everyone; every Google crawler token contains "google"
+ * (googlebot, googlebot-news, storebot-google, adsbot-google, …). Rules
+ * addressed to another engine are none of this rule's business, and flagging
+ * them would invent conflicts that do not exist for Google.
+ */
+export function xRobotsAppliesToGoogle(userAgent: string): boolean {
+  return userAgent === "" || userAgent === "*" || userAgent.includes("google");
+}
+
+/** Extract every robots/googlebot meta declaration plus the X-Robots-Tag header. */
+export function gatherRobotsDeclarations(page: ParsedPage): RobotsDeclaration[] {
+  const declarations: RobotsDeclaration[] = [];
+
+  if (page.html) {
+    const $ = load(page.html);
+    for (const el of $("meta").toArray()) {
+      // Metadata names are ASCII case-insensitive, so fold before comparing.
+      const name = (el.attribs?.name ?? "").trim().toLowerCase();
+      if (name !== "robots" && name !== "googlebot") continue;
+      const content = el.attribs?.content ?? "";
+      declarations.push({ source: `meta ${name}`, directives: normalizeDirectives(content) });
+    }
+  }
+
+  const xRobots = page.httpMeta?.xRobotsTag ?? "";
+  if (xRobots.trim()) {
+    for (const group of parseXRobotsTag(xRobots)) {
+      if (!xRobotsAppliesToGoogle(group.userAgent)) continue;
+      declarations.push({
+        source: group.userAgent
+          ? `X-Robots-Tag header (${group.userAgent})`
+          : "X-Robots-Tag header",
+        directives: group.directives,
+      });
+    }
+  }
+
+  return declarations.filter((d) => d.directives.length > 0);
 }
 
 const OPPOSITE_PAIRS: Array<[string, string]> = [
@@ -73,7 +153,7 @@ export function metaRobotsConflictRule(pages: ParsedPage[]): RuleResult[] {
     // Which sources declare each directive token.
     const directiveSources = new Map<string, Set<string>>();
     for (const decl of declarations) {
-      for (const directive of normalizeDirectives(decl.content)) {
+      for (const directive of decl.directives) {
         let sources = directiveSources.get(directive);
         if (!sources) {
           sources = new Set();
@@ -97,24 +177,6 @@ export function metaRobotsConflictRule(pages: ParsedPage[]): RuleResult[] {
         pageUrl: page.url,
         fix: `Remove the unintended directive so all sources (meta robots, meta googlebot, X-Robots-Tag header) agree. If "${negative}" is accidental (e.g. a staging header that shipped to production), it is currently deindexing/restricting this page.`,
       });
-    }
-
-    // warning: same meta name declared in 2+ tags with different content strings.
-    for (const metaName of ["robots", "googlebot"] as const) {
-      const contents = declarations
-        .filter((d) => d.metaName === metaName)
-        .map((d) => d.content.trim().toLowerCase());
-      const distinct = new Set(contents);
-      if (contents.length >= 2 && distinct.size > 1) {
-        findings.push({
-          ruleId: "tech/meta-robots-conflict",
-          severity: "warning",
-          confidence: "high",
-          message: `${page.url} has ${contents.length} <meta name="${metaName}"> tags with different content (${[...distinct].map((c) => `"${c}"`).join(" vs ")}); it is ambiguous which one wins.`,
-          pageUrl: page.url,
-          fix: `Keep a single <meta name="${metaName}"> tag; Google combines duplicates by applying the most restrictive directives found across them.`,
-        });
-      }
     }
   }
 
