@@ -57,7 +57,16 @@ interface CalibrationResults {
   rulesetVersion: string;
   corpusVersion: string;
   results: SiteResult[];
-  ruleAggregates: Record<string, { sitesFired: number; sitesAudited: number; firingRatio: number }>;
+  ruleAggregates: Record<
+    string,
+    {
+      sitesFired: number;
+      sitesAudited: number;
+      firingRatio: number;
+      /** Finding count by emitted severity, AFTER severityOverrides are applied. */
+      severityCounts: Record<string, number>;
+    }
+  >;
 }
 
 function loadResults(): { state: "ok"; data: CalibrationResults } | { state: "missing" } | { state: "stale"; ageDays: number } {
@@ -137,8 +146,24 @@ describe("reputable-pSEO calibration regression", () => {
       // corpus must be either suppressed for programmatic-directory or
       // demoted to info via severityOverrides. If a rule still fires on
       // >80% AND was never demoted, that's a calibration debt.
+      //
+      // The AND was documented here but never implemented: the check looked
+      // only at firingRatio, so it also failed rules that HAD been demoted,
+      // which is the remedy it exists to demand. aeo/freshness-signals has
+      // been demoted to info in every profile since the 2026-05-03 round
+      // (auditor.ts) and still counted as a violator. severityCounts is
+      // already recorded per rule, so "was it demoted" is answerable from the
+      // data rather than by re-deriving the profile.
       if (agg.firingRatio > 0.8) {
-        violators.push(`${ruleId} firing on ${(agg.firingRatio * 100).toFixed(0)}% of reputable-pSEO sites`);
+        const firedAboveInfo = Object.entries(agg.severityCounts)
+          .filter(([severity]) => severity !== "info")
+          .reduce((sum, [, count]) => sum + count, 0);
+        if (firedAboveInfo > 0) {
+          violators.push(
+            `${ruleId} firing on ${(agg.firingRatio * 100).toFixed(0)}% of reputable-pSEO sites` +
+              ` at ${firedAboveInfo} finding(s) above info`,
+          );
+        }
       }
     }
     expect(violators, [
