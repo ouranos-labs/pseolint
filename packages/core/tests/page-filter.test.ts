@@ -126,7 +126,7 @@ describe("detectAuthPage", () => {
   test("marketing page with single password-input signal stays not-auth", () => {
     const result = detectAuthPage(
       makePage({
-        title: "How to choose a strong password: security guide",
+        title: "How to choose a strong password — security guide",
         contentText: Array(300).fill("word").join(" "), // 300 words → not thin
         html: '<input type="password"/>',
       }),
@@ -139,13 +139,31 @@ describe("detectAuthPage", () => {
   test("returns no signals for plain marketing page", () => {
     const result = detectAuthPage(
       makePage({
-        title: "Pricing: MyApp",
+        title: "Pricing — MyApp",
         contentText: Array(300).fill("word").join(" "),
         html: "<h1>Pricing</h1>",
       }),
     );
     expect(result.signals).toEqual([]);
     expect(result.isAuth).toBe(false);
+  });
+
+  // Regression: BRAND_SEPARATORS must contain " — " (em dash) and must NOT
+  // contain "; ". Both directions are load-bearing, so both are asserted:
+  // dropping the em dash makes real auth pages slip through the filter and
+  // pollute thin-content findings; adding "; " truncates ordinary titles at
+  // the semicolon and misclassifies them as auth pages.
+  test("em-dash brand suffix is stripped, semicolon is not a separator", () => {
+    // Direction 1: " — " IS a separator, so the title strips to "Sign in".
+    expect(detectAuthPage(makePage({ title: "Sign in — MyApp" })).signals).toContain(
+      "auth-title",
+    );
+
+    // Direction 2: "; " is NOT a separator, so the title strips at " — " to
+    // "Sign up; free", which is not an auth title.
+    expect(
+      detectAuthPage(makePage({ title: "Sign up; free — Widgets" })).signals,
+    ).not.toContain("auth-title");
   });
 });
 
@@ -227,7 +245,7 @@ describe("detectBoilerplatePage", () => {
     const result = detectBoilerplatePage(
       makePage({
         url: "https://example.com/blog/privacy-by-design",
-        title: "Privacy by Design: Why It Matters | MyApp",
+        title: "Privacy by Design — Why It Matters | MyApp",
         headings: { h1: ["Why Privacy by Design Matters"], h2: [] },
         contentText: "We talk about privacy a lot in this article...",
       }),

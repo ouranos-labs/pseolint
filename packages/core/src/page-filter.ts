@@ -60,7 +60,7 @@ const AUTH_TITLE_REGEX =
  * would never match because the title would be `Sign in | MyApp`, not just
  * `Sign in`.
  */
-const BRAND_SEPARATORS = [" | ", " - ", "; ", " · ", " : ", " :: "];
+const BRAND_SEPARATORS = [" | ", " - ", " — ", " · ", " : ", " :: "];
 
 function stripBrandSuffix(title: string): string {
   let cut = title.length;

@@ -61,4 +61,25 @@ assert.ok(!isWebSerp("garbage"), "unparseable");
 assert.ok(isGoogleSearch("https://www.google.com/search?q=x&tbm=isch"), "vertical is still a google search");
 assert.ok(!isGoogleSearch("https://www.google.com/maps"), "maps is not /search");
 
+// --- selectResults: snippet date split (em/en dash delimiter only) ---
+// The delimiter class is DATA: a codemod that rewrites `[^—–]`/`[—–]` into
+// space/paren classes silently turns "first token + space" into a date on every
+// snippet. These two rows pin the real behaviour.
+const withSnippet = (href, text) => ({
+  href,
+  querySelector: () => null, // no <h3> in this stand-in
+  closest: () => ({ querySelector: () => ({ textContent: text }) }),
+});
+const dated = selectResults([withSnippet("https://a.com/1", "Oct 12, 2025 — How to pick a CRM")])[0];
+assert.strictEqual(dated.serpDate, "Oct 12, 2025", "dash-delimited date is split off");
+assert.strictEqual(dated.serpSnippet, "How to pick a CRM", "snippet keeps only the text after the dash");
+// No dash → no date, and the snippet (incl. a leading number) is left intact.
+const undated = selectResults([withSnippet("https://b.com/2", "10 best CRMs for small teams in 2025")])[0];
+assert.strictEqual(undated.serpDate, "", "no dash → no date");
+assert.strictEqual(
+  undated.serpSnippet,
+  "10 best CRMs for small teams in 2025",
+  "leading number is not eaten as a date",
+);
+
 console.log("detect: all url + selection checks passed");

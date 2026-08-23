@@ -76,14 +76,14 @@ export function selectResults(anchors) {
     const snippetEl = gContainer ? gContainer.querySelector(".VwiC3b, .yXK7c, .MUbCcc") : null;
     let serpSnippet = snippetEl ? snippetEl.textContent.trim() : "";
 
-    // Extract date from snippet if present (e.g., "Oct 12, 2025: ...")
+    // Extract date from snippet if present (e.g., "Oct 12, 2025 — ...")
     let serpDate = "";
-    const dateMatch = serpSnippet.match(/^([^ (–]+)\s*[) –]\s*/);
+    const dateMatch = serpSnippet.match(/^([^—–]+)\s*[—–]\s*/);
     if (dateMatch) {
       const dateText = dateMatch[1].trim();
       if (/\b(\d+|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(dateText)) {
         serpDate = dateText;
-        serpSnippet = serpSnippet.replace(/^[^ (–]+[) –]\s*/, "");
+        serpSnippet = serpSnippet.replace(/^[^—–]+[—–]\s*/, "");
       }
     }
 

@@ -252,12 +252,12 @@ async function main() {
               let serpSnippet = snippetEl ? snippetEl.textContent.trim() : "";
 
               let serpDate = "";
-              const dateMatch = serpSnippet.match(/^([^ (–]+)\s*[) –]\s*/);
+              const dateMatch = serpSnippet.match(/^([^—–]+)\s*[—–]\s*/);
               if (dateMatch) {
                 const dateText = dateMatch[1].trim();
                 if (/\b(\d+|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i.test(dateText)) {
                   serpDate = dateText;
-                  serpSnippet = serpSnippet.replace(/^[^ (–]+[) –]\s*/, "");
+                  serpSnippet = serpSnippet.replace(/^[^—–]+[—–]\s*/, "");
                 }
               }
 
