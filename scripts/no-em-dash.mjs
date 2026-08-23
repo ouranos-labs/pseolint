@@ -39,9 +39,11 @@
  *                                                    docs; never use it on
  *                                                    user-facing copy.
  *
- * --check also reports ESCAPED em dashes (&mdash;, &#8212;, &#x2014;, \\u2014),
- * which render as a dash but are invisible to a literal-character search. They
- * are reported only: rewriting an escape means editing code, not prose.
+ * --check labels what it finds, because the fix differs: [literal] is a dash
+ * inside code (data: leave it), [escaped] is &mdash; / &#8212; / &#x2014; /
+ * \\u2014, which render as a dash but hide from a literal-character search
+ * (reported only, since rewriting an escape means editing code), and an
+ * unlabelled line is prose someone has to rewrite. All three exit 1.
  *
  * ponytail: rule-based tiers cover the common shapes; upgrade path if the
  * leftovers ever get annoying is an LLM pass over just the reported lines.
@@ -224,8 +226,10 @@ export function fixLine(line) {
 }
 
 /**
- * Force-resolve every remaining dash. The leftover shape is nearly always
- * "clause <dash> elaboration", so pick by what FOLLOWS the dash:
+ * Force-resolve every remaining dash THAT HAS A CLAUSE IN FRONT OF IT (a dash
+ * opening a line is a wrapped continuation or a placeholder glyph, and stays).
+ * The leftover shape is nearly always "clause <dash> elaboration", so pick by
+ * what FOLLOWS the dash:
  *
  *   numeric range          2019<dash>2024        -> hyphen
  *   independent clause     "<dash> it detects"   -> semicolon
