@@ -525,6 +525,24 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "content/title-uniqueness": { baseImpact: 8,  perInstance: 2,  maxImpact: 25 }, // 2026-05-03 round 11: title is high-impact but the original 50-cap was disproportionate to other content rules and tipped Typeform into critical on a 6-finding cluster. Keep the rule at native error severity (duplicate titles ARE real bugs); just don't let one rule dominate the integrity bucket.
   "content/heading-structure":{ baseImpact: 5,  perInstance: 1,  maxImpact: 20 },
   "content/image-alt-text":   { baseImpact: 3,  perInstance: 1,  maxImpact: 20 },
+  // 2026-08-23 folklore-vs-fact batch. Every rule below is PAGE-scoped and
+  // fires once per audited page, so on a templated site its count is the
+  // SAMPLE SIZE, not the number of distinct defects. That is the same hazard
+  // `tech/hreflang-consistency` is pinned for (see its note): 350 findings
+  // from one missing reciprocal pair is not 350x the impact. Where one
+  // template edit fixes every finding, `perInstance` is 0 and the cap equals
+  // the base, so the rule contributes what the single defect is worth.
+  //
+  // Both signals (missing width/height, no srcset) come from one template's
+  // <img> markup, and both are page-experience RECOMMENDATIONS, not crawl or
+  // index requirements. The CLS outcome they predict is already measured
+  // directly by tech/core-web-vitals, so scaling this per page would
+  // double-count the cause and the effect.
+  "content/image-attributes": { baseImpact: 4,  perInstance: 0,  maxImpact: 4  },
+  // Google composes a snippet when the description is absent, so this costs
+  // control of the SERP pitch, not indexing. One template binding emits (or
+  // fails to emit) the tag for the whole cluster: one defect, one fix.
+  "content/meta-description-presence": { baseImpact: 5, perInstance: 0, maxImpact: 5 },
   // Citation coverage is low-confidence (block-level grounded-claim heuristic);
   // keep its impact modest so it nudges rather than dominates the score.
   "content/citation-coverage":{ baseImpact: 3,  perInstance: 1,  maxImpact: 15 },
@@ -556,12 +574,76 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "tech/hreflang-consistency":           { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
   "tech/og-completeness":                { baseImpact: 4,  perInstance: 1, maxImpact: 20 },
   "tech/core-web-vitals":                { baseImpact: 5,  perInstance: 1, maxImpact: 25 },
+  // Same code-value surface as tech/hreflang-consistency, split out only so the
+  // two checks stay separable; an invalid code lives in one shared <head>
+  // alternates block and is silently ignored by Google on every page that
+  // repeats it. Pinned identically to its sibling for the same reason.
+  "tech/hreflang-validity":              { baseImpact: 5,  perInstance: 0, maxImpact: 5  },
+  // The only rule in this batch whose count is genuinely per-page: each page
+  // past the 2 MB per-file cutoff loses its OWN content, links and JSON-LD, so
+  // a second oversized page is a second set of invisible content. Modest
+  // scaling, cap in line with tech/sitemap-completeness.
+  "tech/html-size":                      { baseImpact: 8,  perInstance: 1, maxImpact: 25 },
+  // Dominant firing is the `info` half (html lang absent), and the rule's own
+  // docstring records that Google IGNORES the lang attribute for ranking, so
+  // it must not accumulate. The `error` half (body script contradicts every
+  // declared language) is genuinely serious, but it fires at error severity
+  // and so already reaches the verdict through the blocker-density floor; the
+  // impact table must not charge for it a second time. lang comes from one
+  // layout, so perInstance 0.
+  "tech/language-mismatch":              { baseImpact: 6,  perInstance: 0, maxImpact: 6  },
+  // A real contradiction deindexes the page (most restrictive directive wins),
+  // which is the most consequential finding in this batch. But the conflict is
+  // one misconfiguration - typically a single CDN X-Robots-Tag against a
+  // template's meta tag - so the count is the sample size. Base above its
+  // siblings tech/canonical-noindex-conflict and tech/robots-noindex-conflict
+  // because the outcome is deterministic rather than probable; per-instance
+  // kept to 1 so widespread conflicts still read worse than a single page.
+  "tech/meta-robots-conflict":           { baseImpact: 12, perInstance: 1, maxImpact: 20 },
+  // Companion to tech/html-size for subresources - and the same bundle.js is
+  // counted once per page that loads it, so the count multiplies ONE truncated
+  // file by the sample size. The rule also documents that its byte totals are
+  // floors (cross-origin assets report 0) and that it never escalates on the
+  // total alone, so it should nudge, not accumulate.
+  "tech/resource-weight":                { baseImpact: 6,  perInstance: 0, maxImpact: 6  },
+  // Corpus-scoped: one robots.txt per site, at most two distinct defects (past
+  // the 500 KiB parse limit; unsupported directives). Each is a real, separate
+  // problem, so a small per-instance step is honest and the cap is naturally low.
+  "tech/robots-txt-limits":              { baseImpact: 5,  perInstance: 2, maxImpact: 10 },
+  // Emits ROLLUP findings - one per issue kind, never per URL - so unlike the
+  // rest of this batch the count really is a count of distinct defects
+  // (foreign-host URLs, unparseable lastmod, future lastmod, generated
+  // lastmod). This is the one rule in the batch that should scale.
+  "tech/sitemap-hygiene":                { baseImpact: 6,  perInstance: 3, maxImpact: 20 },
+  // The `warning` half (nosnippet / max-snippet:0) is a real self-inflicted
+  // wound: it also removes AI Overview and answer-engine eligibility. The
+  // `info` half (data-nosnippet attributes) is explicitly "surfaced, not
+  // judged" per the rule's docstring, and is the half that actually fires at
+  // scale, from one shared component. One directive, one fix: perInstance 0.
+  "tech/snippet-suppression":            { baseImpact: 6,  perInstance: 0, maxImpact: 6  },
+  // A missing viewport is one line in one base layout. Real - Google indexes
+  // mobile-first and Lighthouse's SEO audit requires the tag - but it degrades
+  // page experience rather than blocking crawl or indexing, and N pages
+  // missing it is the same single missing line.
+  "tech/viewport-meta":                  { baseImpact: 6,  perInstance: 0, maxImpact: 6  },
 
   // Links
   "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
   "links/dead-ends":           { baseImpact: 3, perInstance: 1, maxImpact: 20 },
   "links/cluster-connectivity":{ baseImpact: 5, perInstance: 1, maxImpact: 25 },
   "links/link-depth":          { baseImpact: 3, perInstance: 1, maxImpact: 20 },
+  // One navigation component repeated across the cluster: 24 findings on a
+  // 25-page sample is one uncrawlable <a> pattern, not 24. Pinned at the same
+  // 8/0/8 as tech/robots-sitemap-presence and aeo/crawler-access, the other
+  // "one site-wide crawl-access defect" rules. The downstream damage - pages
+  // Google cannot reach - is already measured by links/orphan-pages and
+  // links/unreachable-from-root, so scaling here would double-count it.
+  "links/crawlable-anchors":   { baseImpact: 8, perInstance: 0, maxImpact: 8  },
+  // info severity, medium confidence, and the rule's own docstring calls both
+  // of its firing thresholds arbitrary reporting floors with no Google-
+  // published equivalent. Lowest-stakes rule in the batch; a repeated
+  // "Learn more" card is one template string.
+  "links/generic-anchor-text": { baseImpact: 3, perInstance: 0, maxImpact: 3  },
   // host-section-divergence is a reputation/integrity-grade signal that happens
   // to live in the links namespace (it reads the link graph). It escalates to
   // `error` and maps to manual-action risk, so it gets an explicit weight rather

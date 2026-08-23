@@ -85,6 +85,48 @@ describe("titleUniquenessRule", () => {
     expect(short!.fix).toContain("Site Name");
   });
 
+  // Google's documented example of a title link it replaces is the literal
+  // "| Site Name": the separator and boilerplate survive, the record does not.
+  // Detecting that SHAPE is what recovers the case a length floor cannot see -
+  // "Equity Atlas -" is 14 characters and was previously waved through.
+  test.each([
+    ["| Acme Corp", "opens with a separator"],
+    ["Equity Atlas -", "ends with a separator"],
+    ["Best Plumbers \u2013", "ends with a separator"],
+    ["Reviews | | Acme", "two separators in a row"],
+    ["{{city}} Plumbers | Acme", "unsubstituted template placeholder"],
+    ["${city} Plumbers | Acme", "unsubstituted template placeholder"],
+    ["Plumbers in %s | Acme", "unsubstituted template placeholder"],
+    ["[CITY] Plumbers | Acme", "unsubstituted template placeholder"],
+    ["undefined | Acme", 'rendered as "undefined"'],
+    ["Acme | null", 'rendered as "null"'],
+  ])("flags the empty-slot shape %j regardless of length", (title, reason) => {
+    const findings = titleUniquenessRule([page("https://ex.com/a", title)]);
+    const f = findings.find((x) => x.message.includes("template field"));
+    expect(f, `expected an empty-slot finding for ${title}`).toBeDefined();
+    expect(f!.severity).toBe("warning");
+    expect(f!.message).toContain(reason);
+  });
+
+  // The empty-slot check must not become a tax on ordinary punctuation. Every
+  // title here is well-formed; a false positive costs the reader's attention on
+  // a correct page, which is the same failure mode as the length folklore.
+  test.each([
+    "Emergency Plumber in Phoenix | FastPlumb",
+    "Best burial insurance companies of 2024 | CNN Underscored Money",
+    "Amex Gold Vs. Platinum: Which Is Better For You? \u2013 Forbes Advisor",
+    "Understanding null in JavaScript",
+    "None of the Above: A History",
+    // `--` as an em dash must not read as an empty middle slot.
+    "Best Plumbers--Phoenix Edition",
+    "10% Off In March 2024 | Ace Hardware Coupons | SFGate",
+    "The Hair Pin - Empower. Engage. Enlighten.",
+    "Anna Baryshnikov Height, Weight, Age, Boyfriend, Family, Biography",
+  ])("leaves the well-formed title %j alone", (title) => {
+    const findings = titleUniquenessRule([page("https://ex.com/a", title)]);
+    expect(findings).toEqual([]);
+  });
+
   // docs/folklore.md entry #2: Google documents no <title> character limit at
   // all ("While there's no limit on how long a <title> element can be"), and
   // SERP cropping is display-side and pixel-based. A rule that flagged a long
