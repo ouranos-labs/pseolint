@@ -144,7 +144,13 @@ export function hreflangValidityRule(pages: ParsedPage[]): RuleResult[] {
           ruleId: "tech/hreflang-validity",
           severity: "warning",
           confidence: "high",
-          message: `${page.url} has hreflang="${raw}": ${problem} Google ignores invalid hreflang annotations, so this alternate is silently dropped.`,
+          // Google's wording is "Google Search ignores THAT PART of the
+          // annotation" (its examples are EU/UN/UK), so an invalid REGION
+          // degrades to the bare language rather than voiding the annotation.
+          // Saying "silently dropped" sends the reader hunting for a missing
+          // alternate when the real symptom is usually a duplicate: en-UK
+          // becomes en and then collides with a genuine en alternate.
+          message: `${page.url} has hreflang="${raw}": ${problem} Google ignores the invalid part of an annotation, so this alternate is not indexed as declared.`,
           pageUrl: page.url,
           fix,
         });
