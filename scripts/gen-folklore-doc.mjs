@@ -15,7 +15,9 @@ const rows = FOLKLORE.map(
   (f, i) =>
     `| ${i + 1} | "${f.claim}" | **${f.verdict}.** ${f.reality}${
       f.insteadRules?.length ? ` We check instead: ${f.insteadRules.map((r) => `\`${r}\``).join(", ")}.` : ""
-    } | [${f.sourceTitle}](${f.sourceUrl}) |`,
+    } | ${[{ title: f.sourceTitle, url: f.sourceUrl }, ...(f.alsoSee ?? [])]
+      .map((src) => `[${src.title}](${src.url})`)
+      .join("<br>")} |`,
 ).join("\n");
 
 writeFileSync(
