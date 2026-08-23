@@ -72,4 +72,36 @@ describe("viewportMetaRule", () => {
     expect(findings).toHaveLength(2);
     expect(findings.map((f) => f.pageUrl)).toEqual(["https://ex.com/a", "https://ex.com/c"]);
   });
+  // The rule used to regex the raw HTML, so a commented-out tag read as a live
+  // viewport and a genuinely non-responsive page passed silently: the failure
+  // mode is the opposite of a false positive, and worse.
+  test("a commented-out viewport tag is not a viewport", () => {
+    const findings = viewportMetaRule([
+      page(
+        "https://ex.com/a",
+        `<html><head>
+           <!-- <meta name="viewport" content="width=device-width, initial-scale=1"> -->
+         </head><body>hi</body></html>`
+      ),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].ruleId).toBe("tech/viewport-meta");
+  });
+
+  test("the string width= inside a script body is not a viewport", () => {
+    const findings = viewportMetaRule([
+      page(
+        "https://ex.com/a",
+        `<html><head><script>var tag = '<meta name="viewport" content="width=device-width">';</script></head><body>hi</body></html>`
+      ),
+    ]);
+    expect(findings).toHaveLength(1);
+  });
+
+  test("a mixed-case name attribute still counts (metadata names are case-insensitive)", () => {
+    const findings = viewportMetaRule([
+      page("https://ex.com/a", '<head><meta name="Viewport" content="width=device-width"></head>'),
+    ]);
+    expect(findings).toEqual([]);
+  });
 });

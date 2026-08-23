@@ -180,4 +180,50 @@ describe("genericAnchorTextRule", () => {
     const quoted = findings[0].message.match(/"Read more"/g) ?? [];
     expect(quoted.length).toBe(3);
   });
+  // An anchor's accessible name is what a browser (and Google) reads. Ignoring
+  // aria-label/title reported a correctly labelled icon header as
+  // "3 of 6 internal links (50%) use generic anchor text (e.g. "" (empty), ...)".
+  test("aria-label supplies the accessible name for icon-only links", () => {
+    const findings = genericAnchorTextRule([
+      page(
+        "https://ex.com/a",
+        `<a href="/search" aria-label="Search products"><svg aria-hidden="true"></svg></a>
+         <a href="/cart" aria-label="Shopping cart"><svg aria-hidden="true"></svg></a>
+         <a href="/account" aria-label="Your account"><svg aria-hidden="true"></svg></a>
+         <a href="/pricing">Pricing plans</a>
+         <a href="/docs">Developer docs</a>
+         <a href="/blog">Engineering blog</a>`
+      ),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("title is the next fallback after aria-label", () => {
+    const findings = genericAnchorTextRule([
+      page(
+        "https://ex.com/a",
+        `<a href="/rss" title="Subscribe by RSS"><svg></svg></a>
+         <a href="/x" title="Follow on X"><svg></svg></a>
+         <a href="/gh" title="Source on GitHub"><svg></svg></a>
+         <a href="/pricing">Pricing plans</a>
+         <a href="/docs">Developer docs</a>`
+      ),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("an anchor with no name at all is still generic", () => {
+    const findings = genericAnchorTextRule([
+      page(
+        "https://ex.com/a",
+        `<a href="/one"><svg aria-hidden="true"></svg></a>
+         <a href="/two"><svg aria-hidden="true"></svg></a>
+         <a href="/three"><svg aria-hidden="true"></svg></a>
+         <a href="/pricing">Pricing plans</a>
+         <a href="/docs">Developer docs</a>`
+      ),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("3 of 5");
+  });
 });

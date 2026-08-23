@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { metaDescriptionPresenceRule } from "../../../src/rules/content/meta-description-presence.js";
+import { parseHtmlPage } from "../../../src/parser.js";
 import type { ParsedPage } from "../../../src/types.js";
 
 function page(url: string, metaDescription: string, html: string): ParsedPage {
@@ -61,5 +62,17 @@ describe("metaDescriptionPresenceRule", () => {
     ]);
     expect(findings).toHaveLength(2);
     expect(findings.map((f) => f.pageUrl)).toEqual(["https://ex.com/a", "https://ex.com/c"]);
+  });
+  // End-to-end through the real parser: <meta name="Description"> is spec-valid
+  // (HTML metadata names are ASCII case-insensitive) but the case-sensitive
+  // cheerio selector read it as absent, so the rule warned about a page that
+  // ships a perfectly good description.
+  test("a spec-valid <meta name=\"Description\"> does not produce a false warning", () => {
+    const parsed = parseHtmlPage(
+      '<html><head><meta name="Description" content="Capital D description."></head><body>hi</body></html>',
+      "https://ex.com/a",
+    );
+    expect(parsed.metaDescription).toBe("Capital D description.");
+    expect(metaDescriptionPresenceRule([parsed])).toEqual([]);
   });
 });

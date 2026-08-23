@@ -112,4 +112,64 @@ describe("snippetSuppressionRule", () => {
     const findings = snippetSuppressionRule([page("https://ex.com/a", "")]);
     expect(findings).toEqual([]);
   });
+  // The count used to be a regex over the raw HTML, so the literal string in a
+  // script body and a commented-out block each scored as a live attribute:
+  // one real attribute was reported as three.
+  test("only real data-nosnippet attributes are counted", () => {
+    const findings = snippetSuppressionRule([
+      page(
+        "https://ex.com/a",
+        `<html><body>
+           <script>var attr = "data-nosnippet";</script>
+           <!-- <div data-nosnippet>staging boilerplate</div> -->
+           <div data-nosnippet>Legal boilerplate</div>
+         </body></html>`
+      ),
+    ]);
+    const info = findings.filter((f) => f.severity === "info");
+    expect(info).toHaveLength(1);
+    expect(info[0].message).toContain("1 data-nosnippet attribute");
+    expect(info[0].message).not.toContain("3 data-nosnippet");
+  });
+
+  test("a page whose only mention of data-nosnippet is in a script reports nothing", () => {
+    const findings = snippetSuppressionRule([
+      page("https://ex.com/a", '<html><body><script>el.setAttribute("data-nosnippet", "")</script></body></html>'),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  // Google: "The X-Robots-Tag may optionally specify a user agent before the
+  // rules. For instance ... X-Robots-Tag: googlebot: nofollow"
+  // https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag
+  test("a user-agent-prefixed X-Robots-Tag header is parsed", () => {
+    const findings = snippetSuppressionRule([
+      page("https://ex.com/a", "<html><body>hi</body></html>", "googlebot: nosnippet"),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+    expect(findings[0].message).toContain("googlebot");
+  });
+
+  test("max-snippet:0 survives the user-agent split (its colon is part of the directive)", () => {
+    const findings = snippetSuppressionRule([
+      page("https://ex.com/a", "<html><body>hi</body></html>", "googlebot: noarchive, max-snippet:0"),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("warning");
+  });
+
+  test("rules addressed to another engine are not Google's behaviour and do not fire", () => {
+    const findings = snippetSuppressionRule([
+      page("https://ex.com/a", "<html><body>hi</body></html>", "otherbot: nosnippet"),
+    ]);
+    expect(findings).toEqual([]);
+  });
+
+  test("a commented-out meta robots tag is not a live directive", () => {
+    const findings = snippetSuppressionRule([
+      page("https://ex.com/a", '<head><!-- <meta name="robots" content="nosnippet"> --></head>'),
+    ]);
+    expect(findings).toEqual([]);
+  });
 });

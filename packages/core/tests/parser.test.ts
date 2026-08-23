@@ -116,4 +116,28 @@ describe("parseHtmlPage", () => {
     expect(parsed.resolvedHrefs.some((u) => u.includes("local.html"))).toBe(true);
     expect(parsed.resolvedHrefs.some((u) => u.includes("javascript"))).toBe(false);
   });
+  // HTML metadata names are ASCII case-insensitive, but cheerio/css-select only
+  // folds case for a fixed attribute list that does not include `name`. Without
+  // the `i` flag every one of these read as absent, so a spec-valid
+  // <meta name="Description"> produced a false "no meta description" warning.
+  test("meta[name] is read case-insensitively, as the HTML spec requires", () => {
+    const html = `
+      <html>
+        <head>
+          <title>Mixed-case metadata</title>
+          <meta name="Description" content="Capital D description." />
+          <meta name="ROBOTS" content="noindex" />
+          <meta name="Author" content="Ada Lovelace" />
+          <meta name="datePublished" content="2026-04-01" />
+        </head>
+        <body><main><p>Body text.</p></main></body>
+      </html>`;
+
+    const parsed = parseHtmlPage(html, "https://example.dev/mixed-case");
+
+    expect(parsed.metaDescription).toBe("Capital D description.");
+    expect(parsed.robotsMeta).toBe("noindex");
+    expect(parsed.authorSignals.metaAuthor).toBe("Ada Lovelace");
+    expect(parsed.publishedDate).toBe("2026-04-01");
+  });
 });

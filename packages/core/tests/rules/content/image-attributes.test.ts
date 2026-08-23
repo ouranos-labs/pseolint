@@ -112,4 +112,36 @@ describe("imageAttributesRule", () => {
     const html = `<html><img src='/a.jpg' width='800' height='600' srcset='/a2.jpg 2x'><img src=/b.jpg width=800 height=600></html>`;
     expect(imageAttributesRule([page("https://ex.com/", html)])).toEqual([]);
   });
+  // ATTR("width") used \b, which matches inside data-width, so the standard
+  // lazysizes/LQIP shape scored as sized while the browser has no dimensions to
+  // derive aspect-ratio from: the exact CLS failure the rule exists to catch.
+  test("data-width / data-height do not count as dimensions", () => {
+    const html = `<html><img src="/a.jpg" data-width="800" data-height="600"></html>`;
+    const findings = imageAttributesRule([page("https://ex.com/", html)]);
+    const dims = findings.filter((f) => f.message.includes("1 of 1"));
+    expect(dims).toHaveLength(1);
+    expect(dims[0].severity).toBe("warning");
+  });
+
+  test("data-src is not mistaken for src in report samples", () => {
+    const html = `<html><img data-src="/real-lazy.jpg" src="data:image/gif;base64,R0lGOD"></html>`;
+    const findings = imageAttributesRule([page("https://ex.com/", html)]);
+    expect(findings[0].message).not.toContain("/real-lazy.jpg");
+    expect(findings[0].message).not.toContain("data:image");
+  });
+
+  test("a <noscript> lazy-load fallback is not double-counted", () => {
+    const html = `<html><img src="/hero.jpg" class="lazy"><noscript><img src="/hero.jpg"></noscript></html>`;
+    const findings = imageAttributesRule([page("https://ex.com/", html)]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("1 of 1");
+    // The same URL must not appear twice in one sample list.
+    expect(findings[0].message.split("/hero.jpg").length - 1).toBe(1);
+  });
+
+  test("data-srcset alone does not count as a responsive candidate", () => {
+    const html = `<html>${sized(3, ' data-srcset="/p.jpg 2x"')}</html>`;
+    const findings = imageAttributesRule([page("https://ex.com/", html)]);
+    expect(findings.filter((f) => f.message.includes("srcset"))).toHaveLength(1);
+  });
 });

@@ -137,4 +137,58 @@ describe("metaRobotsConflictRule", () => {
     ]);
     expect(findings).toEqual([]);
   });
+  // Google: "The X-Robots-Tag may optionally specify a user agent before the
+  // rules. For instance ... X-Robots-Tag: googlebot: nofollow"
+  // normalizeDirectives split on commas only, so the header yielded the token
+  // "googlebot: noindex", which matched nothing: the rule missed the exact
+  // conflict that deindexes the page.
+  test("user-agent-prefixed X-Robots-Tag conflicts with a meta index directive", () => {
+    const findings = metaRobotsConflictRule([
+      page(
+        "https://ex.com/a",
+        '<head><meta name="robots" content="index, follow"></head>',
+        "googlebot: noindex, nofollow"
+      ),
+    ]);
+    expect(findings).toHaveLength(2);
+    expect(findings.every((f) => f.severity === "error")).toBe(true);
+    expect(findings[0].message).toContain("googlebot");
+    expect(findings[0].message).toContain("noindex");
+  });
+
+  test("several user-agent groups in one folded header each keep their own rules", () => {
+    // Two X-Robots-Tag response headers are folded into one comma-joined value
+    // by the HTTP stack, so a prefix can appear mid-string.
+    const findings = metaRobotsConflictRule([
+      page(
+        "https://ex.com/a",
+        '<head><meta name="robots" content="index"></head>',
+        "googlebot: nofollow, otherbot: noindex, nofollow"
+      ),
+    ]);
+    // otherbot's noindex is not Google's behaviour, so index/noindex must NOT fire.
+    expect(findings).toEqual([]);
+  });
+
+  test("a value directive's colon is not mistaken for a user-agent prefix", () => {
+    const findings = metaRobotsConflictRule([
+      page(
+        "https://ex.com/a",
+        '<head><meta name="robots" content="noindex"></head>',
+        "max-snippet:-1, index"
+      ),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+    expect(findings[0].message).toContain("X-Robots-Tag header");
+    expect(findings[0].message).not.toContain("max-snippet");
+  });
+
+  test("a wildcard user agent applies to Google", () => {
+    const findings = metaRobotsConflictRule([
+      page("https://ex.com/a", '<head><meta name="robots" content="index"></head>', "*: noindex"),
+    ]);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].severity).toBe("error");
+  });
 });
