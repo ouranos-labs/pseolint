@@ -66,8 +66,28 @@ const LANG_SCRIPTS: Record<string, readonly string[]> = {
   el: ["Greek"],
 };
 
+/**
+ * The three numbers below are ARBITRARY REPORTING FLOORS, not documented
+ * limits. Google publishes NO share of foreign-script text at which a page is
+ * reclassified, and no minimum body length for its language detection; the
+ * cited doc only says language is determined from visible content. Nothing
+ * exists to cite here, so they are labelled rather than dressed up (see
+ * docs/folklore.md). They are judgement calls, not measurements: chosen so that
+ * a correctly-declared page carrying Latin chrome, brand names and inline code
+ * stays silent, and not validated against any corpus. Treat them as adjustable.
+ *
+ * MISMATCH_SHARE drives an ERROR, so it is deliberately set far above any
+ * plausible mixed-content page: at 70% of classified letters in scripts
+ * incompatible with EVERY declared language, the body is not "mixed", it is
+ * written in another language. If you are tempted to lower it, add a corpus
+ * case first; the finding asserts the page is indexed as a different language,
+ * which is only safe to assert when the body is overwhelmingly foreign.
+ */
+/** Below this many script-classified letters, a page is too short to judge. */
 const MIN_CLASSIFIED_LETTERS = 200;
+/** Share of incompatible-script letters at which the mismatch becomes an error. */
 const MISMATCH_SHARE = 0.7;
+/** Share of a single incompatible script at which a mixed page becomes a warning. */
 const SECONDARY_SHARE = 0.3;
 
 function countScripts(text: string): Map<string, number> {

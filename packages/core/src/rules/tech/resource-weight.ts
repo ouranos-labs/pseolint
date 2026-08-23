@@ -24,13 +24,24 @@ import type { ParsedPage, RuleResult } from "../../types.js";
  * surfaces on genuinely heavy pages, NOT a threshold anyone published. See
  * docs/folklore.md #4 before turning it into one.
  *
- * Byte totals come from Resource Timing and under-report: `transferSize` is 0
- * for cross-origin responses without Timing-Allow-Origin, which is the common
- * case on asset CDNs. Every number here is a floor, so the rule never escalates
- * on the total alone.
+ * Byte totals come from Resource Timing, read as UNCOMPRESSED bytes
+ * (`decodedBodySize`), because Google's cutoff is stated as: "The file size
+ * limit is applied on the uncompressed data." Comparing the compressed
+ * `transferSize` against it, as this rule originally did, meant a 6.2 MB
+ * bundle.js served gzipped at 1.1 MB reported nothing while Googlebot truncated
+ * it at 2 MB: the check silently inverted on exactly the files it exists for.
+ * tech/html-size, which measures the decoded HTML string, was always right.
+ *
+ * Two ways the numbers still under-report, so every one of them is a FLOOR and
+ * the rule never escalates on the total alone:
+ *   - Cross-origin responses without Timing-Allow-Origin expose no sizes at
+ *     all (every field reads 0), which is the common case on asset CDNs.
+ *   - Where `decodedBodySize` is unavailable the fallback is the compressed
+ *     `transferSize`/`encodedBodySize`, which understates a compressible text
+ *     asset by roughly 3-4x.
  */
 
-/** Documented Googlebot per-file crawl cutoff (uncompressed). */
+/** Documented Googlebot per-file crawl cutoff, applied to UNCOMPRESSED bytes. */
 const PER_FILE_ERROR_BYTES = 2 * 1024 * 1024;
 /** Within 25% of the cutoff: a growing bundle worth watching before it truncates. */
 const PER_FILE_WARNING_BYTES = 1.5 * 1024 * 1024;
@@ -78,7 +89,7 @@ export function resourceWeightRule(pages: ParsedPage[]): RuleResult[] {
         ruleId: "tech/resource-weight",
         severity: "warning",
         confidence: "medium",
-        message: `${page.url} loads ${near.length} resource${near.length === 1 ? "" : "s"} within 25% of the 2 MB per-file crawl cutoff: ${list}. Measured via Resource Timing, which under-reports cross-origin assets, so the real size may be higher.`,
+        message: `${page.url} loads ${near.length} resource${near.length === 1 ? "" : "s"} within 25% of the 2 MB per-file crawl cutoff: ${list}. Sizes are uncompressed bytes, which is what the cutoff is applied to; Resource Timing under-reports cross-origin assets, so the real size may be higher.`,
         pageUrl: page.url,
         fix: `Budget these files before they cross 2 MB. Tree-shake, split the bundle by route, or move rarely-used code behind a dynamic import.`,
       });

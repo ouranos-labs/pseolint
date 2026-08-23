@@ -73,7 +73,7 @@ interface WebVitals {
 }
 
 interface PageResources {
-  /** Sum of transferSize across every subresource the page fetched. */
+  /** Sum of UNCOMPRESSED subresource sizes (decodedBodySize where available). */
   totalBytes: number;
   /** Per-kind byte totals, so a heavy page can be attributed rather than just flagged. */
   byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
@@ -316,9 +316,15 @@ export async function renderPages(
         }).catch(() => ({ lcp: null, cls: null, ttfb: null }));
         // Resource Timing is already populated by the time networkidle fires, so
         // subresource byte totals cost one more evaluate and zero extra requests.
-        // `transferSize` is 0 for cross-origin responses without Timing-Allow-Origin;
-        // fall back to encodedBodySize (also 0 when opaque) so we under-report
-        // rather than invent numbers.
+        //
+        // We read `decodedBodySize` FIRST: Googlebot's per-file crawl cutoff is
+        // "applied on the uncompressed data", and comparing a gzipped
+        // transferSize against it silently passed a 6 MB bundle served at 1.1 MB
+        // over the wire. `decodedBodySize` is populated on the same entries that
+        // expose `transferSize`, so this costs no extra visibility.
+        // Fall back to transferSize then encodedBodySize (both compressed, and
+        // both 0 for cross-origin responses without Timing-Allow-Origin) so we
+        // under-report rather than invent numbers.
         const resources: PageResources = await page.evaluate(() => {
           const KIND: Record<string, string> = {
             img: "image", image: "image", script: "script", css: "stylesheet",
@@ -329,9 +335,10 @@ export async function renderPages(
           let totalBytes = 0;
           // @ts-ignore -- browser global
           for (const e of performance.getEntriesByType("resource") as Array<{
-            name: string; initiatorType: string; transferSize?: number; encodedBodySize?: number;
+            name: string; initiatorType: string;
+            transferSize?: number; encodedBodySize?: number; decodedBodySize?: number;
           }>) {
-            const bytes = e.transferSize || e.encodedBodySize || 0;
+            const bytes = e.decodedBodySize || e.transferSize || e.encodedBodySize || 0;
             if (bytes <= 0) continue;
             let kind = KIND[e.initiatorType] ?? "other";
             if (kind === "stylesheet" && /\.(woff2?|ttf|otf|eot)(\?|$)/i.test(e.name)) kind = "font";
