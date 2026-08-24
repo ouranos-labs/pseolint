@@ -211,6 +211,24 @@ export const monitoredDomains = pgTable("monitored_domain", {
    */
   gentleAuditMode: boolean("gentle_audit_mode").notNull().default(false),
   /**
+   * Site-level publish opt-in: "this site's audits may be named publicly and
+   * listed on /leaderboard". Default false, because a monitored domain is
+   * someone's real property and silence is the safe default.
+   *
+   * This has to live on the DOMAIN, not only on each audit. Every monitored
+   * insert path (dashboard re-audit, monitoring cron, watched-page runs)
+   * hardcoded `isPublic: false`, so flipping a single report public was undone
+   * by the next scheduled run: the site appeared on the leaderboard, then
+   * silently vanished. Audits now inherit this flag at insert time, so the
+   * choice survives re-audits.
+   *
+   * Opting in is necessary but NOT sufficient for a listing. `isLeaderboardEligible`
+   * still requires a completed audit, >= LEADERBOARD_MIN_PAGES pages and risk
+   * < LEADERBOARD_RISK_MAX. The dashboard says so rather than implying the
+   * toggle alone guarantees a rank.
+   */
+  isPublic: boolean("is_public").notNull().default(false),
+  /**
    * Bring-your-own domain authority (0-100, e.g. Moz DA / Ahrefs DR). When set,
    * moderates the verdict one tier (engine's shiftVerdictForAuthority): >=80
    * lenient, <=30 stricter. Null = unset → no shift. Persisted per-domain (a

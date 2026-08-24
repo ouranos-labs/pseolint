@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains, audits, watchedPages } from "@/db/schema";
 import { requireSession } from "@/lib/session";
@@ -15,6 +15,7 @@ import { devFlags } from "@/lib/dev-flags";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getPlan } from "@/lib/plan";
 import { auditLog } from "@/lib/audit-log";
+import { LEADERBOARD_MIN_PAGES, LEADERBOARD_RISK_MAX, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { loadWatchedUrlsForDomain } from "@/lib/monitoring";
 import { listSites, pickBestGscProperty, provesGscOwnership } from "@/lib/gsc";
 import { integrations } from "@/db/schema";
@@ -138,6 +139,7 @@ export async function addDomainAction(
       id: monitoredDomains.id,
       gscSiteUrl: monitoredDomains.gscSiteUrl,
       verifiedAt: monitoredDomains.verifiedAt,
+      isPublic: monitoredDomains.isPublic,
     })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, session.user.id), eq(monitoredDomains.host, host)))
@@ -207,7 +209,9 @@ export async function addDomainAction(
   const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
   const [audit] = await db.insert(audits).values({
     slug: auditSlug, userId: session.user.id, sourceUrl: origin,
-    status: "queued", expiresAt, isPublic: false,
+    // Inherit the site's publish choice. Hardcoding false here is what made a
+    // manual per-report toggle useless: the next run silently un-published.
+    status: "queued", expiresAt, isPublic: domRow.isPublic,
   }).returning({ id: audits.id });
 
   // A re-added domain can already carry a watched-pages list, so forward it and
@@ -250,6 +254,82 @@ export async function removeDomainAction(
   return { ok: true };
 }
 
+/**
+ * Site-level publish opt-in, surfaced on /dashboard/[host].
+ *
+ * Two writes, deliberately: the DOMAIN flag decides what every future audit
+ * inherits, and the backfill applies the choice to audits that already exist so
+ * the leaderboard reflects it now rather than at the next cadence tick. Without
+ * the backfill, "make public" would appear to do nothing for up to a week.
+ *
+ * Going PRIVATE is Pro-gated, matching api/audits/[id]/visibility: the free
+ * tier's bargain is that its audits are publicly shareable. Going PUBLIC is
+ * always allowed.
+ */
+export async function setDomainVisibilityAction(
+  domainHost: string,
+  isPublic: boolean,
+): Promise<{ ok: true; isPublic: boolean; auditsUpdated: number } | { ok: false; error: string; upgrade?: string }> {
+  let session;
+  try { session = await requireSession(); } catch { return { ok: false, error: "not signed in" }; }
+
+  if (!isPublic && (await getPlan(session.user.id)) !== "pro") {
+    return { ok: false, error: "Keeping a site private is a Pro feature.", upgrade: "/pricing" };
+  }
+
+  const [dom] = await db.update(monitoredDomains)
+    .set({ isPublic })
+    .where(and(
+      eq(monitoredDomains.host, domainHost),
+      eq(monitoredDomains.userId, session.user.id),
+      isNull(monitoredDomains.removedAt),
+    ))
+    .returning({ id: monitoredDomains.id, sourceUrl: monitoredDomains.sourceUrl });
+
+  if (!dom) return { ok: false, error: "not found" };
+
+  // Scope the backfill by sourceUrl + userId, the same pair every insert path
+  // above uses to tie an audit to this domain.
+  const updated = await db.update(audits)
+    .set({ isPublic })
+    .where(and(
+      eq(audits.userId, session.user.id),
+      eq(audits.sourceUrl, dom.sourceUrl),
+    ))
+    .returning({ id: audits.id });
+
+  // Publishing also has to extend retention. run-audit only stamps
+  // PERMANENT_EXPIRES_AT when an audit is eligible AT COMPLETION, and a
+  // monitored audit completes private, so every existing row still carries its
+  // 30/90-day tier expiry. Without this the site appears on the leaderboard and
+  // then silently vanishes when that clock runs out. Mirrors
+  // isLeaderboardEligible(): only rows that actually qualify are made permanent.
+  if (isPublic) {
+    await db.update(audits)
+      .set({ expiresAt: new Date(PERMANENT_EXPIRES_AT) })
+      .where(and(
+        eq(audits.userId, session.user.id),
+        eq(audits.sourceUrl, dom.sourceUrl),
+        eq(audits.status, "completed"),
+        isNotNull(audits.host),
+        sql`length(${audits.host}) > 0`,
+        isNotNull(audits.risk),
+        lt(audits.risk, LEADERBOARD_RISK_MAX),
+        gte(audits.pageCount, LEADERBOARD_MIN_PAGES),
+      ));
+  }
+
+  auditLog("monitor.domain.visibility", {
+    userId: session.user.id, host: domainHost, isPublic, auditsUpdated: updated.length,
+  });
+
+  // The leaderboard is ISR-cached and the workspace shows the current state.
+  revalidatePath("/leaderboard");
+  revalidatePath(`/dashboard/${domainHost}`);
+
+  return { ok: true, isPublic, auditsUpdated: updated.length };
+}
+
 export async function reAuditNowAction(
   domainHost: string,
 ): Promise<{ ok: true; auditId: string } | { ok: false; error: string }> {
@@ -260,6 +340,7 @@ export async function reAuditNowAction(
     id: monitoredDomains.id,
     sourceUrl: monitoredDomains.sourceUrl,
     verifiedAt: monitoredDomains.verifiedAt,
+    isPublic: monitoredDomains.isPublic,
   })
     .from(monitoredDomains)
     .where(and(
@@ -274,7 +355,7 @@ export async function reAuditNowAction(
   const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
   const [audit] = await db.insert(audits).values({
     slug: auditSlug, userId: session.user.id, sourceUrl: dom.sourceUrl,
-    status: "queued", expiresAt, isPublic: false,
+    status: "queued", expiresAt, isPublic: dom.isPublic,
   }).returning({ id: audits.id });
 
   // v0.5.3: thread per-domain watched URLs into the audit so manual re-audits
@@ -309,6 +390,7 @@ export async function verifyDomainAction(
     host: monitoredDomains.host,
     verificationToken: monitoredDomains.verificationToken,
     verifiedAt: monitoredDomains.verifiedAt,
+    isPublic: monitoredDomains.isPublic,
   })
     .from(monitoredDomains)
     .where(and(
@@ -363,6 +445,7 @@ export async function addWatchedPage(
     host: monitoredDomains.host,
     sourceUrl: monitoredDomains.sourceUrl,
     verifiedAt: monitoredDomains.verifiedAt,
+    isPublic: monitoredDomains.isPublic,
   })
     .from(monitoredDomains)
     .where(and(
@@ -444,8 +527,8 @@ export async function addWatchedPage(
     });
 
     // "Audit on add"; fire an immediate audit run forced to refetch this URL.
-    // Reuses the existing audit/requested pipeline; isPublic=false matches the
-    // Pro private-by-default convention, expiresAt mirrors lib/monitoring.ts.
+    // Reuses the existing audit/requested pipeline; isPublic follows the site's
+    // own publish choice (private by default), expiresAt mirrors lib/monitoring.ts.
     //
     // Rate-limit gate: this path bypasses /api/audits, so apply the same
     // suite of gates that route enforces. Without all of them a Pro user
@@ -465,7 +548,7 @@ export async function addWatchedPage(
       const expiresAt = new Date(Date.now() + 30 * 24 * 3600 * 1000);
       const [audit] = await db.insert(audits).values({
         slug: auditSlug, userId: session.user.id, sourceUrl: dom.sourceUrl,
-        status: "queued", expiresAt, isPublic: false,
+        status: "queued", expiresAt, isPublic: dom.isPublic,
       }).returning({ id: audits.id });
 
       // Best-effort: the watched page is already saved; a queue failure here

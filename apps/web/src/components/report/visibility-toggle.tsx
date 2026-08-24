@@ -46,7 +46,11 @@ export function VisibilityToggle({
         onClick={toggle}
         disabled={pending}
         className="inline-flex h-9 items-center gap-1.5 rounded-[14px] border border-border-strong bg-background px-3 text-xs hover:bg-secondary disabled:opacity-50"
-        title={isPublic ? "This report is public (anyone with the link can view it" : "This report is private) only you can view it"}
+        title={
+          isPublic
+            ? "This report is public: anyone with the link can view it"
+            : "This report is private: only you can view it"
+        }
       >
         <span
           aria-hidden

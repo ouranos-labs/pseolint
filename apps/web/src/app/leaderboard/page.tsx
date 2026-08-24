@@ -351,8 +351,10 @@ export default async function Leaderboard() {
           Free-tier audits cost $0 and default to public; that&rsquo;s the trade for unlimited
           one-shot acquisition runs, capped at 3 audits per browser per 24-hour window. Audits that
           score below the bar still produce a full report at their own URL; they just aren&rsquo;t
-          listed publicly. Pro plans start at $19/mo, default to private, and stay private unless an
-          operator flips the visibility toggle.
+          listed publicly. Pro plans start at $19/mo, default to private, and stay private until an
+          operator publishes the site from its dashboard page, under{ " " }
+          <span className="font-mono text-foreground">Site visibility</span>. That choice belongs to
+          the site, not to a single report, so every later re-audit keeps it.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Listings are deduplicated by hostname: the most recent audit per domain shows, and
