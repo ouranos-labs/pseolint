@@ -21,12 +21,12 @@ function flattenIssues(summary) {
 function formatPrComment(summary) {
     const lines = [COMMENT_MARKER];
     const allFindings = flattenIssues(summary);
-    lines.push(`## pseolint — Verdict: ${verdictLabel(summary.verdict)} (risk ${summary.risk}/100, lower is better)`);
+    lines.push(`## pseolint - Verdict: ${verdictLabel(summary.verdict)} (risk ${summary.risk}/100, lower is better)`);
     lines.push("");
     lines.push(`**Pages analysed:** ${summary.pageCount}`);
     if (summary.truncated) {
         lines.push("");
-        lines.push("> ⚠ Partial coverage — crawl aborted (origin degraded). This gate ran on incomplete data; treat a pass as provisional. Verdict/risk/counts are lower bounds.");
+        lines.push("> ⚠ Partial coverage: crawl aborted (origin degraded). This gate ran on incomplete data; treat a pass as provisional. Verdict/risk/counts are lower bounds.");
     }
     if (summary.templateDetected) {
         lines.push("");
@@ -82,7 +82,7 @@ async function run() {
     const summary = await auditSource(source);
     core.info(`Verdict: ${verdictLabel(summary.verdict)} · risk ${summary.risk}/100 (${summary.pageCount} pages)`);
     // Outputs preserved for backwards compatibility with downstream workflow steps
-    // that read `score` — the value now reflects `risk` (numerically identical).
+    // that read `score`: the value now reflects `risk` (numerically identical).
     core.setOutput("score", summary.risk);
     core.setOutput("risk", summary.risk);
     core.setOutput("verdict", summary.verdict);
@@ -90,7 +90,7 @@ async function run() {
     core.setOutput("truncated", String(Boolean(summary.truncated)));
     core.setOutput("truncated-reason", summary.truncatedReason ?? "");
     if (summary.truncated) {
-        core.warning(`Partial coverage: ${summary.truncatedReason ?? "crawl aborted"} — ${summary.pageCount} pages audited before the crawl aborted. Verdict/risk are lower bounds.`);
+        core.warning(`Partial coverage: ${summary.truncatedReason ?? "crawl aborted"}; ${summary.pageCount} pages audited before the crawl aborted. Verdict/risk are lower bounds.`);
     }
     const context = github.context;
     if (token && context.payload.pull_request) {
