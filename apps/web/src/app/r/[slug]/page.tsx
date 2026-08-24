@@ -25,6 +25,7 @@ import { TileLegend } from "@/components/audit/tile-legend";
 import { gradeOf } from "@/lib/grade";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
+import { BadgeEmbed } from "@/components/report/badge-embed";
 import { getClaim } from "@/lib/leaderboard-claims";
 import { ClaimCta } from "@/components/report/claim-cta";
 import { TemplateGridClient } from "@/components/dashboard/template-grid-client";
@@ -232,6 +233,13 @@ export default async function Page({
       </div>
       { eligible ? (
         <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
+      ) : null }
+      { eligible ? (
+        <BadgeEmbed
+          host={ row.host ?? hostOf(row.sourceUrl) }
+          reportUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/r/${row.slug}` }
+          badgeUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/api/badge/${encodeURIComponent(row.host ?? hostOf(row.sourceUrl))}` }
+        />
       ) : null }
       { truncation.truncated ? (
         <TruncatedBanner reason={ truncation.reason } kind={ truncation.kind } />

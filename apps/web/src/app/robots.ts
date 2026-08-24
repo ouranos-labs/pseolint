@@ -15,7 +15,13 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: ["/"],
         disallow: [
-          "/r/",
+          // "/r/" is deliberately NOT blocked. Report privacy comes from the
+          // page itself: a private report 404s for anyone who is not the owner,
+          // and reportRobots() emits noindex for any public-but-ineligible one.
+          // Blocking the path here stopped Google fetching the eligible reports
+          // that declare themselves indexable, while adding nothing to privacy
+          // (robots.txt prevents crawling, not indexing). See
+          // tests/unit/report-indexability.test.ts.
           "/a/",
           "/api/",
           "/dashboard/",
