@@ -4,6 +4,10 @@
 import assert from "node:assert";
 import { badgeView, mountBadge } from "../src/content/serp/overlay.js";
 
+// The fake element grows properties as the code under test sets them
+// (`shadowMode`, `shadow`), which is the point of the double, so it is `any`
+// rather than a partial HTMLElement.
+/** @returns {any} */
 function makeEl(tag, created) {
   const el = { tag, className: "", style: {}, children: [], textSets: [], attrs: {}, listeners: {},
     attachShadow(opts) { el.shadowMode = opts.mode; el.shadow = makeEl("#root", created); return el.shadow; },
@@ -15,6 +19,8 @@ function makeEl(tag, created) {
   created.push(el);
   return el;
 }
+// Stands in for `document`: implements createElement and nothing else.
+/** @type {() => any} */
 const fakeDoc = () => { const created = []; return { created, createElement: (t) => makeEl(t, created) }; };
 
 // badgeView fail-closed cases.
@@ -32,7 +38,7 @@ assert.strictEqual(doc.created.length, 0, "rejected verdict creates no elements"
 
 // Happy path: closed shadow root, label via textContent, innerHTML never touched.
 doc = fakeDoc();
-const host = mountBadge({ level: "flag", label: "3 flags" }, doc); // label could be page-derived
+const host = /** @type {any} */ (mountBadge({ level: "flag", label: "3 flags" }, doc)); // label could be page-derived
 assert.ok(host, "host element returned");
 assert.strictEqual(host.shadowMode, "closed", "shadow root is closed");
 const badge = doc.created.find((e) => e.className === "b");
@@ -45,7 +51,7 @@ assert.strictEqual(badge.tag, "span", "non-clickable badge is a span");
 // textContent (+ ↗ hint), role=link for a11y.
 doc = fakeDoc();
 let opened = null;
-globalThis.window = { open: (u) => { opened = u; } };
+globalThis.window = /** @type {any} */ ({ open: (u) => { opened = u; } });
 const linked = mountBadge({ level: "warn", label: "thin" }, doc, "https://pseolint.dev/?prefill=https%3A%2F%2Fx.com");
 const span = doc.created.find((e) => e.tag === "span" && e.className === "b");
 assert.ok(span, "clickable badge is a span (nests legally inside the result link)");

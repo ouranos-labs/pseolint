@@ -8,6 +8,12 @@ const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
 const NO_SERP = "Open a Google results page to analyze it.";
 const NOT_WEB = "Switch to the All tab: pseolint reads Web results.";
+// Returns `any` deliberately. Every call site here is `$("scan").disabled`,
+// `$("cta").href`, `$("domain").value` and friends: getElementById is typed
+// HTMLElement, so checkJs would reject each of those unless every line carried
+// its own cast. Widening once here keeps the rest of the file under real
+// analysis (typos, arity, undefined identifiers) without 9 inline casts.
+/** @type {(id: string) => any} */
 const $ = (id) => document.getElementById(id);
 
 let lastResults = []; // cached so "your site" can re-render when the domain changes
@@ -323,7 +329,7 @@ chrome.storage?.local?.get?.("domain").then((o) => {
   loadLandscape();
 }).catch(() => {});
 $("domain").addEventListener("input", (e) => {
-  myHost = userHost(e.target.value);
+  myHost = userHost(/** @type {HTMLInputElement} */ (e.target).value);
   chrome.storage?.local?.set?.({ domain: myHost }).catch(() => {});
   renderYourSite();
   loadLandscape();

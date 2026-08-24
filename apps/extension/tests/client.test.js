@@ -12,6 +12,9 @@ const valid = {
   counts: { words: 412, boilerplateRatio: 0.18 },
 };
 
+// Hand-rolled fetch double: `any` because it implements only the two fields
+// sendSignals reads, not the whole Response interface.
+/** @type {(calls: any[]) => any} */
 const okFetch = (calls) => async (url, init) => {
   calls.push({ url, init });
   return { ok: true, status: 200, json: async () => ({ ok: 1 }) };
@@ -36,6 +39,7 @@ await assert.rejects(
 assert.strictEqual(calls.length, 0, "rejected payload never reaches fetch");
 
 // API error surfaces, not swallowed.
+/** @type {any} */
 const errFetch = async () => ({ ok: false, status: 500, json: async () => ({}) });
 await assert.rejects(() => sendSignals(valid, errFetch), /pseolint API 500/);
 

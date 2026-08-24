@@ -9,7 +9,8 @@
     "build": "bun build src/background.js --target=browser --format=iife --define PSEOLINT_MCP_BRIDGE=false --outfile=dist/background.js && bun build src/content/serp/index.js --target=browser --format=iife --outfile=dist/serp.js && bun build src/ui/sidepanel.js --target=browser --format=iife --outfile=dist/sidepanel.js",
     "build:dev": "bun build src/background.js --target=browser --format=iife --define PSEOLINT_MCP_BRIDGE=true --outfile=dist/background.js && bun build src/content/serp/index.js --target=browser --format=iife --outfile=dist/serp.js && bun build src/ui/sidepanel.js --target=browser --format=iife --outfile=dist/sidepanel.js",
     "test": "node tests/signals.test.js && node tests/client.test.js && node tests/overlay.test.js && node tests/pattern.test.js && node tests/parse.test.js && node tests/parse-parity.test.js && node tests/detect.test.js && node tests/rules-client.test.js && node tests/landscape.test.js && node tests/teardown.test.js",
-    "typecheck": "true"
+    "lint": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@pseolint/core": "workspace:*"

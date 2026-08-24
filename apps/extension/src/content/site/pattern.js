@@ -6,6 +6,7 @@
 //   it samples (§5 stratified sampling). This only seeds the crawl with a guess.
 
 // Order matters: the first match wins (uuid/date before the generic slug rule).
+/** @type {Array<[RegExp, string]>} */
 const RULES = [
   [/^\d+$/, ":id"],
   [/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, ":uuid"],

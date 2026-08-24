@@ -123,14 +123,16 @@ export function scrapeAio(doc = document) {
   const citations = [];
   const container = doc.querySelector("div.Kevs9, #Odp5De");
   if (container) {
-    const links = container.querySelectorAll("a[href]");
+    // lib.dom only infers element types from bare tag selectors, so an
+    // attribute selector comes back as Element and `.href` is unknown.
+    const links = /** @type {NodeListOf<HTMLAnchorElement>} */ (container.querySelectorAll("a[href]"));
     for (const a of links) {
       const url = cleanResultUrl(a.href);
       if (url) citations.push(url);
     }
   }
   // Also scan inline badges like a.PMDqCb
-  for (const a of doc.querySelectorAll("a.PMDqCb")) {
+  for (const a of /** @type {NodeListOf<HTMLAnchorElement>} */ (doc.querySelectorAll("a.PMDqCb"))) {
     const url = cleanResultUrl(a.href);
     if (url) citations.push(url);
   }
