@@ -1,5 +1,75 @@
 # @pseolint/web
 
+## 0.8.0
+
+### Minor Changes
+
+- 1aed975: Publish `/folklore`, the list of checks pseolint deliberately does not run. Thirteen widely-repeated SEO rules that Google's own documentation contradicts (title and meta-description character limits, meta keywords, sitemap priority/changefreq, word-count minimums, the "2 MB total site size" misread), each with its primary source, its verdict, and the rule we run instead where a real documented failure sits nearby. Competing tools ship most of these, so refusing them with citations is a positioning asset rather than a missing feature, and it is the natural mirror of the existing blind-spots section on `/methodology`.
+
+  The 13 entries live in `apps/web/src/lib/folklore.ts` and are the single source of truth: `bun run gen:folklore` regenerates `docs/folklore.md` from the same array, so the contributor doc and the public page cannot drift. The page carries FAQPage and BreadcrumbList JSON-LD, and is linked from `/methodology`, `sitemap.xml`, and `llms.txt`.
+
+- 1aed975: Add `/rules` explainer pages for the 11 rules shipped in the folklore-vs-fact batch: `links/crawlable-anchors`, `links/generic-anchor-text`, `content/meta-description-presence`, `tech/language-mismatch`, `tech/hreflang-validity`, `tech/sitemap-hygiene`, `tech/meta-robots-conflict`, `tech/snippet-suppression`, `tech/robots-txt-limits`, `tech/html-size` and `tech/viewport-meta`. `llms.txt` advertised 59 rules while `/rules` indexed 29, so a crawler saw a claim it could not verify; the index, the dynamic route, the sitemap and the JSON-LD all derive from `MARKETING_RULES`, so the entries wire every surface at once.
+
+  Each page documents the real implementation (thresholds, severities, and what the rule deliberately skips) and carries a worked example in its own domain, plus per-page authoritative citations. All 11 clear the existing dogfood contract in `marketing-rules.test.ts`, which runs pseolint's own engine over a reconstruction of every reference page: `spam/thin-content`, `content/unique-value`, `content/citation-coverage`, `content/common-phrase-reuse`, `aeo/content-modularity`, `aeo/answer-first`, `content/meta-uniqueness` and `aeo/citable-facts`.
+
+- cd88581: Move the publish control from the report to the site, and make it stick.
+
+  Publishing was per-audit and reachable only by opening a report. Every path
+  that creates an audit for a monitored domain hardcoded `isPublic: false`: the
+  three dashboard actions, the kickoff crawl in `lib/monitoring.ts`, and the
+  `monitor-domains` cron. So publishing a report worked until the next scheduled
+  run minted a fresh private audit, and the site silently dropped off the
+  leaderboard. The symptom read as "the leaderboard is broken".
+
+  `monitored_domain` gains an `is_public` column (migration 0023, default false)
+  and all five insert paths inherit it, so the choice survives re-audits. The
+  control now lives on `/dashboard/[host]` as a "Site visibility" card; a report
+  for a monitored domain links there instead of offering a toggle that only sets
+  one row. One-off audits keep their per-report toggle, having no site page.
+
+  Publishing also extends retention. `run-audit` stamps permanent expiry only for
+  audits eligible AT COMPLETION, and monitored audits complete private, so
+  existing rows still carried a 30/90-day expiry: without this a freshly published
+  site would list and then vanish when that clock ran out.
+
+  The card states the leaderboard consequence before the click rather than after,
+  and shows the two further bars (at least 5 pages, risk below 40) with whether
+  this site currently meets them, so "public but not listed" is explained instead
+  of looking broken.
+
+  Also fixes a mangled tooltip on the report toggle, where an em-dash rewrite had
+  moved a parenthesis across a ternary and produced "This report is public
+  (anyone with the link can view it".
+
+### Patch Changes
+
+- 1aed975: Remove the SEO folklore our own marketing surfaces were publishing. The checklist tools told users to keep titles under 60 characters and meta descriptions between 140 and 155, which is exactly what `docs/folklore.md` and `/research/seo-folklore-vs-google-docs` document as unsupported: Google states no length limit for either, and SERP truncation is display-side cropping rather than an indexing event. Same-origin contradictions are a real citability problem for a product whose pitch is being cited by answer engines.
+
+  Rewritten to check what the primary sources actually document (presence, uniqueness, and the quality triggers behind Google's title rewrites) across `/tools/programmatic-seo-checklist` (static + interactive), `/tools/nextjs-programmatic-seo`, and five code comments that carried the same belief. Also corrects blind-spots spec section 1.5, which had listed title-length detection as a gap to close, and drops the unsupported `host:` directive from `robots.txt` (flagged by our own new `tech/robots-txt-limits` rule when auditing pseolint.dev).
+
+- 1aed975: Regenerate the OKF bundle so `/okf` and the MCP server's baked rule knowledge match the published catalog. `scripts/gen-okf.ts` derives from `MARKETING_RULES`, and that grew by 11 entries without the generator being re-run, so the statically-served bundle and `packages/mcp/src/okf-knowledge.ts` both sat at 31 rules while the catalog held 42. `llms.txt` points AI clients at `/okf/index.md` as one file per rule, so a stale bundle is an inventory claim the site cannot back.
+
+  Also stops one number from drifting again: the folklore research article hard-coded "59 rules" in an FAQ answer and now reads `SCORED_RULE_COUNT` from the engine, the way `/methodology`, `llms.txt` and the landing-page rule ring already do.
+
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [856c9f2]
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [28f717a]
+- Updated dependencies [1aed975]
+  - @pseolint/core@0.8.0
+  - pseolint@0.8.0
+  - @pseolint/mcp@0.7.5
+
 ## 0.7.5
 
 ### Patch Changes

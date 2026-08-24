@@ -1,5 +1,69 @@
 # pseolint
 
+## 0.8.0
+
+### Minor Changes
+
+- 856c9f2: Add opt-in CrUX field data to `tech/core-web-vitals`. With a free Chrome UX Report API key (`--crux-api-key` / `CRUX_API_KEY`, or the `crux` core option), the auditor fetches real-user p75 LCP, CLS, **and INP**, the Core Web Vitals Google actually ranks on, including INP, which the lab `--render` path structurally cannot produce. The rule prefers field data when present and falls back to the lab render otherwise.
+
+  CrUX only has data for URLs/origins with enough real traffic, so per-URL lookups are capped (default 150, `--crux-max-lookups` to raise) and every page falls back to its origin-level field vitals, findings label the reading as per-URL vs origin-level. The client (`fetchCruxFieldVitals`) hits only Google's fixed CrUX endpoint (no SSRF surface, no external-authority dependency on your own content), makes no calls without a key, and treats any network / no-data condition as "no field data" rather than failing the audit.
+
+### Patch Changes
+
+- 856c9f2: Add `tech/core-web-vitals` rule. Under `--render`, the renderer now installs `largest-contentful-paint` / `layout-shift` PerformanceObservers before navigation and reads them back after networkidle, attaching LCP, CLS, and TTFB to each page. The rule flags pages in Google's "poor" tier (LCP >4000ms, CLS >0.25) as a `warning`, with metric-specific fix guidance. This is a headless-Chromium lab snapshot, a directional signal that catches gross regressions, not CrUX field data; INP is omitted because it needs real interaction a passive crawl can't produce. No-op without `--render` (the rule guards on the presence of measured vitals, exactly like `tech/csr-bailout`).
+- 856c9f2: Harden the CrUX field-data path for `tech/core-web-vitals`:
+
+  - **Pooled fetching.** Origin and per-URL CrUX lookups now run with bounded concurrency instead of one sequential round-trip at a time: removes a multi-second-per-audit wall-clock regression on keyed runs.
+  - **`--crux-max-lookups 0` now means unlimited**, matching the `0 = all` convention of `--sample-size` / `--max-per-template` (previously `0` disabled per-URL lookups entirely).
+  - **Per-metric field/lab selection.** The rule now prefers field data per metric and falls back to the lab render for any metric CrUX lacks, so enabling `--crux-api-key` can no longer drop an LCP/CLS signal the lab render already had.
+  - **Origin-level findings collapse.** A site-wide origin p75 reading emits one finding (with the affected-page count) instead of an identical finding per page: no more N-way duplication in output or scoring. Origin-level readings are reported at `medium` confidence (site aggregate applied to a page); only per-URL field readings are `high`.
+  - **Operational errors surface.** 429 (rate-limit), 401/403 (bad key), 5xx, and network/timeout are reported via a warning instead of being silently swallowed as "no field data" (a genuine 404 stays silent: it really does mean no data).
+  - **Form factor.** New `--crux-form-factor phone|desktop|all` (and `crux.formFactor`) queries the mobile-first field data Google actually ranks on; defaults to `all`.
+
+- 1aed975: Folklore-vs-fact rule batch: 11 new statically-checkable rules, each cross-referenced against a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse), plus `docs/folklore.md`: the counterpart list of widely-repeated checks the primary sources contradict, which pseolint deliberately refuses to run (title/description character limits, "70-char og:description", meta keywords, sitemap priority/changefreq, word-count minimums).
+
+  New rules:
+
+  - **`links/crawlable-anchors`** (warning→error): links Google cannot follow: `<a>` without `href`, `javascript:` hrefs, onclick/router-attribute pseudo-links. Escalates to error when a page's navigation is effectively invisible to crawlers, the classic silent pSEO orphaning failure.
+  - **`tech/language-mismatch`** (error/warning/info): declared language (html `lang` / self-referencing hreflang) vs the Unicode script of the actual text, e.g. `lang="ja"` on Cyrillic content. Google indexes by _detected_ language, so mismatched declarations silently break all targeting. The missing-`lang` finding is info by design and says explicitly that Google ignores the attribute for ranking.
+  - **`tech/hreflang-validity`** (warning): invalid hreflang codes (`en_US`, `jp`, `en-UK`) that Google silently ignores; validation via `Intl.DisplayNames` (no bundled ISO tables), with did-you-mean fixes (jp→ja, UK→GB).
+  - **`tech/meta-robots-conflict`** (error/warning): contradictory directives across meta robots / meta googlebot / `X-Robots-Tag`; Google applies the most restrictive, so an accidental `noindex` silently wins.
+  - **`tech/html-size`** (error/warning): HTML approaching Googlebot's crawl cutoff of 2 MB per file, uncompressed (the limit documented in the Feb 2026 Googlebot-doc revision, down from the widely-cited 15 MB). Per-file, not total page weight.
+  - **`tech/sitemap-hygiene`** (error/warning): cross-host sitemap URLs (dropped per sitemaps.org), unparseable URLs, and lastmod pathologies (future dates, unparseable values, ≥95% mass-identical timestamps; Google ignores lastmod it can't trust).
+  - **`tech/robots-txt-limits`** (warning/info): robots.txt beyond Google's 500 KiB parse limit; unsupported directives, with `noindex:`-in-robots.txt escalated (ignored since 2019, so pages are NOT excluded).
+  - **`tech/snippet-suppression`** (warning/info): `nosnippet` / `max-snippet:0` kill SERP snippets and AI Overview / answer-engine citability; `data-nosnippet` coverage reported as info.
+  - **`tech/viewport-meta`** (warning): missing viewport meta under mobile-first indexing.
+  - **`content/meta-description-presence`** (warning): missing/empty meta description. Length is deliberately NOT linted: Google documents no character limit.
+  - **`links/generic-anchor-text`** (info): ≥50% of a page's internal links anchored on "click here"/"read more"/empty text.
+
+  Also: `tech/og-completeness` now checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at info severity; `CORE_RULESET_VERSION` bumped so change-driven monitoring re-fetches previously-skipped URLs. (This batch bumped it to 16; two later rules in the same release, `tech/resource-weight` and `content/image-attributes`, bumped it again, so the value this release ships is **18**.)
+
+- 1aed975: Punctuation-only sweep: every em dash in the repo is replaced with the punctuation its context calls for (colon for an elaboration or a "Title: Subtitle" heading, semicolon before an independent clause, comma for a loose afterthought, parentheses for a paired aside, hyphen inside numeric ranges). Rule message and fix strings are affected, so consumers doing exact string matching on finding text should re-check their matchers; rule IDs, severities, thresholds, and every documented URL are untouched.
+
+  `scripts/no-em-dash.mjs` is the codemod that did it, kept for future use: `bun run lint:emdash:copy` is the blocking CI gate over newly added lines in source and docs, `bun run lint:emdash` reports the whole repo without blocking, `--write` applies the deterministic tiers, and `--write --fallback` force-resolves the remainder.
+
+- 28f717a: Skip non-SEO pages by default in the engine and CLI. `skipDetectedAuth`, `skipBoilerplate`, and `skipSearchPages` now default to `true` (previously off outside the hosted web form), auth, cookie/legal/consent/imprint, and internal search-result pages are never SEO targets, so auditing them only added noise. Each remains individually disableable via the new negatable CLI flags `--no-skip-detected-auth`, `--no-skip-boilerplate`, and `--no-skip-search-pages` (the old opt-in `--skip-*` forms are replaced). `respectNoindex` was already on; `skipEmptyBody` stays opt-in via `--skip-empty-body`.
+
+  Validated against the calibration fixture corpus: the false-positive rate of these filters is ~0 (`packages/core/calibration/fp-rate.ts`), and a before/after calibration run is identical, same scorecard (P=94% R=65% F1=77%), 31/31 sites pass, zero verdict regressions. The only corpus effect is one legitimate terms-and-conditions page dropped from a site's audit, with no change to that site's verdict.
+
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [856c9f2]
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [28f717a]
+- Updated dependencies [1aed975]
+  - @pseolint/core@0.8.0
+  - @pseolint/mcp@0.7.5
+
 ## 0.7.3
 
 ### Patch Changes
@@ -422,7 +486,7 @@
   - New `bucketByTemplate(findings)` helper at `./formatters/bucket-findings.js`.
     Console + markdown formatters now collapse findings sharing a template
     signature into one line (`× 23 instances on /templates/[state]-llc-fees
-    template: fix once, resolve all 23.`). Single-instance findings keep
+template: fix once, resolve all 23.`). Single-instance findings keep
     the legacy format. Site-wide / non-template buckets render as
     `× 2 affected pages`.
   - New `formatFixplan(summary)` formatter at `./formatters/fixplan.js`.
@@ -499,7 +563,7 @@ shopify | webflow | astro | nuxt | remix`. Each framework's
     (e.g. `pseolint.config.ts` with broad safety patterns like `**/api/**`)
     no longer spam warnings when the patterns legitimately don't match a
     small site's surface. A consolidated `none of the N ignore patterns
-    matched any URLs: check config or --ignore for typos` warning still
+matched any URLs: check config or --ignore for typos` warning still
     fires when ALL patterns miss, regardless of source.
   - New helpers exported from the entry point: `detectNoindex`,
     `detectAuthPage`, `pageSkipReason` from `./page-filter.js`.

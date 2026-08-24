@@ -1,5 +1,24 @@
 # @pseolint/extension
 
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [856c9f2]
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [28f717a]
+- Updated dependencies [1aed975]
+  - @pseolint/core@0.8.0
+
 ## 1.0.1
 
 ### Patch Changes

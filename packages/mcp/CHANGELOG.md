@@ -1,5 +1,46 @@
 # @pseolint/mcp
 
+## 0.7.5
+
+### Patch Changes
+
+- 1aed975: Adds the missing `typecheck` script to `@pseolint/mcp`. `turbo run typecheck`
+  skips a workspace that has no such script, silently and successfully, so this
+  package had no static analysis reachable from `bun run typecheck`: a hard type
+  error in `src/bin.ts` produced `Tasks: 1 successful` and exit 0.
+
+  This lands alongside CI changes that make three existing gates actually run: the
+  calibration verdict ratchet (its input file is gitignored, so it skipped itself
+  on every CI run since it was written), the two renderer tests (they gate on a
+  Chromium binary CI never installed), and the em dash check (never wired at all).
+
+- 1aed975: CI was running a quarter of the core test suite. `@pseolint/core`'s test script passed an unquoted `tests/**/*.test.ts` to vitest; without bash globstar `**` collapses to `*`, so only the 44 files exactly two levels deep matched and the other 118 (everything under `tests/rules/<category>/`, which is most of the rule coverage) never ran under `bun run test`, the command both `ci.yml` and `release.yml` invoke. Dropping the argument lets vitest's own include do the work, matching every other package in the repo: 162 files, 1525 tests.
+
+  Also hardens the MCP real-engine integration test. It pinned `PSEOLINT_MCP_JSON_CHAR_CAP` to a tuned 150000 so the airbyte_com fixture's JSON would stay under the cap, which made it a tripwire that fires whenever rules are added and the payload grows (a rule batch took the fixture to ~159k). The cap is now set far above any plausible payload, and the oversized-payload branch it bypasses, previously untested, gets its own case with a 1-char cap so neither side can drift.
+
+- 1aed975: Punctuation-only sweep: every em dash in the repo is replaced with the punctuation its context calls for (colon for an elaboration or a "Title: Subtitle" heading, semicolon before an independent clause, comma for a loose afterthought, parentheses for a paired aside, hyphen inside numeric ranges). Rule message and fix strings are affected, so consumers doing exact string matching on finding text should re-check their matchers; rule IDs, severities, thresholds, and every documented URL are untouched.
+
+  `scripts/no-em-dash.mjs` is the codemod that did it, kept for future use: `bun run lint:emdash:copy` is the blocking CI gate over newly added lines in source and docs, `bun run lint:emdash` reports the whole repo without blocking, `--write` applies the deterministic tiers, and `--write --fallback` force-resolves the remainder.
+
+- 1aed975: Regenerate the OKF bundle so `/okf` and the MCP server's baked rule knowledge match the published catalog. `scripts/gen-okf.ts` derives from `MARKETING_RULES`, and that grew by 11 entries without the generator being re-run, so the statically-served bundle and `packages/mcp/src/okf-knowledge.ts` both sat at 31 rules while the catalog held 42. `llms.txt` points AI clients at `/okf/index.md` as one file per rule, so a stale bundle is an inventory claim the site cannot back.
+
+  Also stops one number from drifting again: the folklore research article hard-coded "59 rules" in an FAQ answer and now reads `SCORED_RULE_COUNT` from the engine, the way `/methodology`, `llms.txt` and the landing-page rule ring already do.
+
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [856c9f2]
+- Updated dependencies [856c9f2]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [1aed975]
+- Updated dependencies [28f717a]
+- Updated dependencies [1aed975]
+  - @pseolint/core@0.8.0
+
 ## 0.7.4
 
 ### Patch Changes
@@ -451,7 +492,7 @@
   - New `bucketByTemplate(findings)` helper at `./formatters/bucket-findings.js`.
     Console + markdown formatters now collapse findings sharing a template
     signature into one line (`× 23 instances on /templates/[state]-llc-fees
-    template: fix once, resolve all 23.`). Single-instance findings keep
+template: fix once, resolve all 23.`). Single-instance findings keep
     the legacy format. Site-wide / non-template buckets render as
     `× 2 affected pages`.
   - New `formatFixplan(summary)` formatter at `./formatters/fixplan.js`.
@@ -527,7 +568,7 @@ shopify | webflow | astro | nuxt | remix`. Each framework's
     (e.g. `pseolint.config.ts` with broad safety patterns like `**/api/**`)
     no longer spam warnings when the patterns legitimately don't match a
     small site's surface. A consolidated `none of the N ignore patterns
-    matched any URLs: check config or --ignore for typos` warning still
+matched any URLs: check config or --ignore for typos` warning still
     fires when ALL patterns miss, regardless of source.
   - New helpers exported from the entry point: `detectNoindex`,
     `detectAuthPage`, `pageSkipReason` from `./page-filter.js`.
