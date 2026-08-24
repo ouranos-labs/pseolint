@@ -118,3 +118,31 @@ describe("resourceWeightRule", () => {
     expect(findings[0].message).toContain("...");
   });
 });
+
+// Boundary: a file sitting EXACTLY on the 2 MiB cutoff. Found by mutation
+// testing, which flipped `bytes < PER_FILE_ERROR_BYTES` to `<=` in the "near"
+// filter and the suite stayed green: nothing asserted what happens at the
+// cutoff itself. With `<=`, a 2 MiB file matches both `over` and `near` and is
+// reported twice, once as an error and once as a warning, for one asset.
+// Google's limit is "the first 2MB", so 2 MiB exactly IS truncated: error only.
+describe("resource-weight boundary", () => {
+  test("a file exactly at the 2 MiB cutoff is an error, and is not also a warning", () => {
+    const findings = resourceWeightRule([
+      page("https://ex.com/a", res({ largest: [{ url: "https://ex.com/app.js", bytes: 2 * MB, kind: "script" }] })),
+    ]);
+    const errors = findings.filter((f) => f.severity === "error");
+    const warnings = findings.filter((f) => f.severity === "warning");
+    expect(errors).toHaveLength(1);
+    expect(warnings).toHaveLength(0);
+    // and the same asset must not appear in two findings at once
+    expect(findings.filter((f) => f.message.includes("app.js"))).toHaveLength(1);
+  });
+
+  test("a file one byte under the cutoff is a warning, not an error", () => {
+    const findings = resourceWeightRule([
+      page("https://ex.com/a", res({ largest: [{ url: "https://ex.com/app.js", bytes: 2 * MB - 1, kind: "script" }] })),
+    ]);
+    expect(findings.filter((f) => f.severity === "error")).toHaveLength(0);
+    expect(findings.filter((f) => f.severity === "warning")).toHaveLength(1);
+  });
+});

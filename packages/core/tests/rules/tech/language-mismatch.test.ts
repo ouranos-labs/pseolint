@@ -137,3 +137,28 @@ describe("languageMismatchRule", () => {
     expect(findings).toEqual([]);
   });
 });
+
+// Boundary: a page with EXACTLY MIN_CLASSIFIED_LETTERS (200) classified
+// letters. Found by mutation testing, which flipped `total <
+// MIN_CLASSIFIED_LETTERS` to `<=` and the suite stayed green: every fixture
+// sits comfortably above the floor, so nothing pinned the floor itself.
+// The constant is a MINIMUM to analyse, so 200 must be analysed, not skipped.
+// Getting this wrong is silent by construction: the rule just stops reporting.
+describe("language-mismatch classified-letter floor", () => {
+  // One Cyrillic letter per char, so length IS the classified-letter count.
+  const cyr = (n: number) => "б".repeat(n);
+
+  test("a page with exactly 200 classified letters is still analysed", () => {
+    const findings = languageMismatchRule([
+      page("https://ex.com/a", { html: `<html lang="en"></html>`, contentText: cyr(200) }),
+    ]);
+    expect(findings.filter((f) => f.ruleId === "tech/language-mismatch")).not.toHaveLength(0);
+  });
+
+  test("a page one letter below the floor is skipped", () => {
+    const findings = languageMismatchRule([
+      page("https://ex.com/a", { html: `<html lang="en"></html>`, contentText: cyr(199) }),
+    ]);
+    expect(findings.filter((f) => f.severity === "error")).toHaveLength(0);
+  });
+});
