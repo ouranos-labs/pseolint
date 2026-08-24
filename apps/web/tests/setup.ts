@@ -24,10 +24,16 @@ process.env.IP_HASH_SALT ??= "y".repeat(16);
 // ---------------------------------------------------------------------------
 // Stale fixture cleanup for DB-backed suites (RUN_DB_INTEGRATION_TESTS=1 only)
 // ---------------------------------------------------------------------------
-// The DB-backed suites seed users at `<random>@example.test` and clean up in
+// The DB-backed suites seed users at reserved `.test` addresses and clean up in
 // afterEach. An interrupted run skips that, stranding fixture users in a real
-// database: 16 such rows accumulated from two runs in April 2026 before this
-// existed. They are inert (no dependent rows) but they inflate the user table.
+// database: 65 such rows accumulated from runs in April 2026 before this existed
+// (49 at `@ex.test`, 16 at `@example.test`). They are inert (no dependent rows)
+// but they dominated the table, reading as 51 real users when there were 2.
+//
+// Matches on the `.test` TLD rather than a list of fixture domains. RFC 6761
+// reserves `.test` for testing, so no real signup can ever live there: one
+// predicate that is provably safe and catches any fixture domain a future suite
+// invents.
 //
 // Deletes only fixtures created BEFORE this run started. Vitest executes files
 // in parallel, so a blanket delete could rip out fixtures a sibling suite is
@@ -49,7 +55,7 @@ if (process.env.RUN_DB_INTEGRATION_TESTS === "1") {
       ]);
       const removed = await db
         .delete(users)
-        .where(and(like(users.email, "%@example.test"), lt(users.createdAt, RUN_STARTED_AT)))
+        .where(and(like(users.email, "%.test"), lt(users.createdAt, RUN_STARTED_AT)))
         .returning({ id: users.id });
       if (removed.length > 0) {
         console.log(`[db-integration] removed ${removed.length} stale fixture user(s)`);
