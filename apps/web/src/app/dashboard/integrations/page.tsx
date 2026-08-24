@@ -14,7 +14,7 @@ type BannerTone = "success" | "warning" | "destructive";
 const STATUS_BANNERS: Record<string, { tone: BannerTone; text: string }> = {
   disconnected: { tone: "warning", text: "Search Console disconnected. Bound properties have been unlinked." },
   denied: { tone: "warning", text: "Search Console authorization was cancelled." },
-  exchange_failed: { tone: "destructive", text: "Couldn't complete the connection — try again, or check that the redirect URI is whitelisted in Google Cloud Console." },
+  exchange_failed: { tone: "destructive", text: "Couldn't complete the connection, try again, or check that the redirect URI is whitelisted in Google Cloud Console." },
   state_invalid: { tone: "destructive", text: "OAuth state was invalid or expired. Please retry." },
   state_mismatch: { tone: "destructive", text: "OAuth state did not match the signed-in user. Please retry." },
   missing_params: { tone: "destructive", text: "OAuth response was missing required parameters." },
@@ -22,13 +22,13 @@ const STATUS_BANNERS: Record<string, { tone: BannerTone; text: string }> = {
 
 /**
  * Build the post-connection banner from auto-bind counts. Surfaces what got
- * paired automatically vs what still needs the user's attention — the silent
+ * paired automatically vs what still needs the user's attention: the silent
  * "connected ✓" we used to show was the worst possible feedback because it
  * implied the binding step was done when it usually wasn't.
  */
 function buildConnectedBanner(bound: number, ambiguous: number, unmatched: number): { tone: BannerTone; text: string } {
   if (bound === 0 && ambiguous === 0 && unmatched === 0) {
-    // No monitored domains yet — they'll get auto-bound as they're added.
+    // No monitored domains yet; they'll get auto-bound as they're added.
     return { tone: "success", text: "Search Console connected. Domains you add will be auto-paired with their matching property." };
   }
   if (bound > 0 && ambiguous === 0 && unmatched === 0) {
@@ -39,7 +39,7 @@ function buildConnectedBanner(bound: number, ambiguous: number, unmatched: numbe
   }
   const parts: string[] = [];
   if (bound > 0) parts.push(`auto-bound ${bound}`);
-  if (ambiguous > 0) parts.push(`${ambiguous} ambiguous (multiple properties match — pick one in domain settings)`);
+  if (ambiguous > 0) parts.push(`${ambiguous} ambiguous (multiple properties match: pick one in domain settings)`);
   if (unmatched > 0) parts.push(`${unmatched} without a matching property`);
   return {
     tone: bound > 0 ? "success" : "warning",
@@ -103,7 +103,7 @@ export default async function IntegrationsPage({
                 Connected{gscRow.lastSyncAt ? ` · last sync ${new Date(gscRow.lastSyncAt).toLocaleString()}` : " · awaiting first sync"}
               </span>
               <p className="text-xs text-muted-foreground">
-                Each domain still needs a property bound — open a domain → Settings → GSC property.
+                Each domain still needs a property bound: open a domain → Settings → GSC property.
               </p>
               <form action="/api/integrations/gsc/disconnect" method="post">
                 <button type="submit" className="rounded-[14px] border border-destructive/50 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10">
@@ -170,7 +170,7 @@ export default async function IntegrationsPage({
               blurb="Run audits on every PR. Upload results here for cross-run history + regression trends.">
           <pre className="overflow-x-auto rounded-[12px] bg-muted p-4 text-xs">{yaml}</pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            You&apos;ll need an upload token — <Link href="/dashboard/settings/tokens" className="text-primary hover:underline">create one</Link>.
+            You&apos;ll need an upload token, <Link href="/dashboard/settings/tokens" className="text-primary hover:underline">create one</Link>.
           </p>
         </Card>
 
@@ -208,7 +208,7 @@ function Card({ title, status, blurb, children }: { title: string; status: strin
 
 /**
  * Concrete before/after example. Two findings of the same severity rank
- * very differently once impressions are factored in — without GSC the engine
+ * very differently once impressions are factored in: without GSC the engine
  * can't know one template gets 312k impressions and the other gets 90.
  */
 function RankComparison() {

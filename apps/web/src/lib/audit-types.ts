@@ -23,7 +23,7 @@ export type { ReadinessReport, RuleResult, SiteClassification, SiteType };
 
 /**
  * Legacy v0.3 summary shape. Mirrors what the engine wrote prior to the v0.4
- * redesign. Field set is intentionally narrow — only what the renderer reads.
+ * redesign. Field set is intentionally narrow: only what the renderer reads.
  */
 export interface AuditSummaryV03 {
   /** Numeric risk score 0–100 (low = good). */
@@ -32,7 +32,7 @@ export interface AuditSummaryV03 {
   findings: RuleResult[];
   /** 8-category risk breakdown (e.g. spam, content, links, tech, schema, ...). */
   categoryScores: Record<string, number>;
-  /** Origin readiness aggregate. Optional — older runs may lack it. */
+  /** Origin readiness aggregate. Optional: older runs may lack it. */
   readiness?: ReadinessReport;
   pageCount: number;
   groupScores?: Record<string, number>;
@@ -41,7 +41,7 @@ export interface AuditSummaryV03 {
   rawFindingCount?: number;
 }
 
-/** Current v0.4 summary shape — re-exported from the core package. */
+/** Current v0.4 summary shape, re-exported from the core package. */
 export type AuditSummaryV04 = AuditSummaryV04Core;
 
 /** Union accepted by the renderer. Discriminate on `schemaVersion` presence. */
@@ -53,7 +53,7 @@ export type AnyAuditSummary = AuditSummaryV03 | AuditSummaryV04;
  * The `schemaVersion` string carries a version tag that bumps on every public
  * output change (`2026-04-v0.4` → `2026-06-v0.6` → …). Storage holds blobs
  * written by multiple engine versions, so we detect "has a schemaVersion at
- * all" (any dated `YYYY-MM-vX.Y` tag) rather than pinning a single literal —
+ * all" (any dated `YYYY-MM-vX.Y` tag) rather than pinning a single literal:
  * legacy v0.3 blobs have no `schemaVersion` field and fall through to the v0.3
  * branch.
  */

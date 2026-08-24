@@ -1,6 +1,6 @@
 /**
  * Slack incoming-webhook dispatcher for monitoring alerts.
- * SSRF guard: only accepts hooks.slack.com URLs — keeps a webhook column
+ * SSRF guard: only accepts hooks.slack.com URLs: keeps a webhook column
  * from being weaponized to probe internal services.
  */
 

@@ -33,7 +33,7 @@ export function parseRobotsByUserAgent(robotsTxt: string): Map<string, string[]>
     if (/^user-agent\s*:/i.test(line)) {
       const ua = line.replace(/^user-agent\s*:\s*/i, "").trim().toLowerCase();
       if (!expectingRules) {
-        // Stacking consecutive User-agent lines — they all share the next rule block.
+        // Stacking consecutive User-agent lines; they all share the next rule block.
         currentAgents.push(ua);
       } else {
         currentAgents = [ua];
@@ -112,9 +112,9 @@ export function isFullyDisallowed(patterns: string[] | undefined): boolean {
 /**
  * RFC 9309 block status for an agent given its disallow and allow patterns.
  * Returns:
- *   "none"    — not blocked (no root disallow, or root disallow overridden by Allow: /)
- *   "partial" — root disallow with some Allow paths that reopen part of the site (but not all)
- *   "full"    — root disallow with no overriding Allow
+ *   "none": not blocked (no root disallow, or root disallow overridden by Allow: /)
+ *   "partial": root disallow with some Allow paths that reopen part of the site (but not all)
+ *   "full": root disallow with no overriding Allow
  */
 export function blockStatus(
   disallowPatterns: string[] | undefined,
@@ -124,7 +124,7 @@ export function blockStatus(
 
   const allows = allowPatterns ?? [];
 
-  // Allow: / (or Allow: /*) reopens everything — not blocked at all.
+  // Allow: / (or Allow: /*) reopens everything, not blocked at all.
   if (allows.some((p) => p === "/" || p === "/*")) return "none";
 
   // Any Allow directive at all means partial access remains.
@@ -165,7 +165,7 @@ export function crawlerAccessRule(
     const hasOwnGroup = byAgentDisallow.has(key) || byAgentAllow.has(key);
 
     if (!hasOwnGroup) {
-      // No explicit group — inherit the wildcard status.
+      // No explicit group: inherit the wildcard status.
       if (wildcardStatus === "full") fullyBlocked.push(crawler);
       else if (wildcardStatus === "partial") partiallyBlocked.push(crawler);
       continue;
@@ -187,7 +187,7 @@ export function crawlerAccessRule(
       ruleId: "aeo/crawler-access",
       severity: "error",
       // High: blocking ALL crawlers is either deliberate (clear intent) or a clear
-      // mistake — either way the finding is unambiguous.
+      // mistake: either way the finding is unambiguous.
       confidence: "high",
       message: `robots.txt blocks all ${crawlers.length} configured AI crawlers: ${fullyBlocked.join(", ")}.`,
       fix:

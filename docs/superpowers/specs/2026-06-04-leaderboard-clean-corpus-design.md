@@ -1,12 +1,12 @@
-# Leaderboard → Permanent Clean-Corpus + Seeding — Design Spec
+# Leaderboard → Permanent Clean-Corpus + Seeding: Design Spec
 
 **Date:** 2026-06-04
 **Status:** Approved (brainstorm), pending implementation plan
-**Area:** `apps/web` — leaderboard, audit lifecycle, result pages, ownership/claims
+**Area:** `apps/web`, leaderboard, audit lifecycle, result pages, ownership/claims
 
 ## Problem
 
-The leaderboard is barren. Today the listing query (`apps/web/src/app/leaderboard/page.tsx`) gates only on `isPublic = true ∧ completed ∧ host ∧ risk present ∧ pageCount ≥ 5 ∧ expiresAt > now`. Anonymous audits *do* qualify — but anonymous audits get `expiresAt = addDays(1)` (`apps/web/src/app/api/audits/route.ts:285`), so they flicker onto the board for 24h and then expire and vanish. Free accounts persist 30 days; Pro never expires.
+The leaderboard is barren. Today the listing query (`apps/web/src/app/leaderboard/page.tsx`) gates only on `isPublic = true ∧ completed ∧ host ∧ risk present ∧ pageCount ≥ 5 ∧ expiresAt > now`. Anonymous audits *do* qualify, but anonymous audits get `expiresAt = addDays(1)` (`apps/web/src/app/api/audits/route.ts:285`), so they flicker onto the board for 24h and then expire and vanish. Free accounts persist 30 days; Pro never expires.
 
 Two missed opportunities:
 1. **No durable SEO corpus.** Every clean audit is a potential permanent, indexable `/r/[slug]` + leaderboard entry, but anonymous ones (the bulk of acquisition traffic) evaporate in a day.
@@ -23,14 +23,14 @@ Turn the leaderboard into a large, persistent, high-quality public directory tha
 ## Non-negotiable principles
 
 - **Clean-only public listings.** Only passing sites (`risk < 40`) are ever *named* publicly. This dissolves the defamation/abuse surface: a clean listing cannot be weaponized against a competitor, and it keeps the "cleanest pSEO sites on record" brand intact.
-- **Real audits only.** Every score — including seeded entries — is an actual engine run, dated and reproducible. No hand-assigned scores. This protects the "stable, repeatable results" credibility claim.
+- **Real audits only.** Every score: including seeded entries: is an actual engine run, dated and reproducible. No hand-assigned scores. This protects the "stable, repeatable results" credibility claim.
 - **Owner control via claim.** Any listed site can be claimed by its verified owner, who can then customize, pin, or hide (instant takedown) the entry.
 
 ## Key decisions (from brainstorm)
 
 | Decision | Choice |
 |---|---|
-| Listing policy | Hall of fame — clean only (`risk < 40`). Failing/thin audits still get a private `/r/[slug]` result page, but no public listing. |
+| Listing policy | Hall of fame: clean only (`risk < 40`). Failing/thin audits still get a private `/r/[slug]` result page, but no public listing. |
 | Retention for clean public audits | **Permanent archive.** Show audit date; re-audit supersedes. |
 | Ownership / abuse model | **Two-tier (Approach A):** open clean board + *optional* verified claim that unlocks perks and control. Verification never gates *appearing* (that would shrink the corpus). |
 | Conversion hooks | All four: verified badge+embed, monitoring upsell, claim-to-customize/pin, re-audit/improve CTA. |
@@ -38,15 +38,15 @@ Turn the leaderboard into a large, persistent, high-quality public directory tha
 
 ## Architecture
 
-### 0. Indexability flip (the core SEO enabler) — REQUIRED
+### 0. Indexability flip (the core SEO enabler): REQUIRED
 
 This is the load-bearing change the rest of the SEO goal depends on, and it reverses a deliberate existing decision.
 
-Today **every** `/r/[slug]` report page is `robots: { index: false, follow: false }` (`apps/web/src/app/r/[slug]/page.tsx:50–52`), with the explicit rationale "Reports describe third-party sites; we never want them indexed by search engines." With clean-only listings that blanket rule is no longer appropriate — but it must be relaxed *surgically*, not removed:
+Today **every** `/r/[slug]` report page is `robots: { index: false, follow: false }` (`apps/web/src/app/r/[slug]/page.tsx:50–52`), with the explicit rationale "Reports describe third-party sites; we never want them indexed by search engines." With clean-only listings that blanket rule is no longer appropriate, but it must be relaxed *surgically*, not removed:
 
-> A `/r/[slug]` page is set `index: true, follow: true` **only when it is leaderboard-eligible** (clean ∧ public ∧ listed ∧ not hidden ∧ not an expired/failing seed). Every other report — private, failing, thin, expired, owner-only, anon-ephemeral — keeps `index: false, follow: false`.
+> A `/r/[slug]` page is set `index: true, follow: true` **only when it is leaderboard-eligible** (clean ∧ public ∧ listed ∧ not hidden ∧ not an expired/failing seed). Every other report: private, failing, thin, expired, owner-only, anon-ephemeral: keeps `index: false, follow: false`.
 
-The clean-only gate is exactly what makes this defensible: we only ask Google to index pages that say a named site is *clean*. `generateMetadata` already loads the row; it computes eligibility and chooses the robots directive. Listing without this flip yields an internal directory of `noindex` pages — i.e. no organic SEO surface at all, which is the whole point.
+The clean-only gate is exactly what makes this defensible: we only ask Google to index pages that say a named site is *clean*. `generateMetadata` already loads the row; it computes eligibility and chooses the robots directive. Listing without this flip yields an internal directory of `noindex` pages, i.e. no organic SEO surface at all, which is the whole point.
 
 Public-surface copy on these pages stays **verdict/grade-based, never numeric** (consistent with the existing v0.4 "no 84/100 in public/screenshot surfaces" rule).
 
@@ -59,13 +59,13 @@ Public-surface copy on these pages stays **verdict/grade-based, never numeric** 
 
 ### 2. Retention via `expiresAt` (no new retention column)
 
-Eligibility and result-page lifetime stay fused through `expiresAt` — this is deliberate: one lever keeps both the `/r/[slug]` page alive and the listing visible, so a listing can never point at an expired (404) result page.
+Eligibility and result-page lifetime stay fused through `expiresAt`, this is deliberate: one lever keeps both the `/r/[slug]` page alive and the listing visible, so a listing can never point at an expired (404) result page.
 
 At audit completion in `apps/web/src/inngest/functions/run-audit.ts`, after risk is known:
-- If the audit is **leaderboard-eligible**, set `expiresAt` to the far-future sentinel `new Date("9999-12-31T23:59:59.999Z")` (the same value Pro already uses — chosen because JS max date doesn't round-trip through Postgres `timestamptz`). This makes clean public audits permanent **regardless of tier**, including anonymous.
+- If the audit is **leaderboard-eligible**, set `expiresAt` to the far-future sentinel `new Date("9999-12-31T23:59:59.999Z")` (the same value Pro already uses: chosen because JS max date doesn't round-trip through Postgres `timestamptz`). This makes clean public audits permanent **regardless of tier**, including anonymous.
 - If **not eligible** (failing, thin, or private), keep the tier default already set at creation (anon 1 day, free 30 days, Pro far-future).
 
-Implication: anonymous failing audits still expire in 24h (their `/r/slug` page is ephemeral); anonymous *clean* audits become permanent. `expire-reports.ts` continues to delete storage for expired audits — unchanged, and now correctly leaves clean entries alone.
+Implication: anonymous failing audits still expire in 24h (their `/r/slug` page is ephemeral); anonymous *clean* audits become permanent. `expire-reports.ts` continues to delete storage for expired audits, unchanged, and now correctly leaves clean entries alone.
 
 ### 3. Supersede semantics + correctness fix
 
@@ -77,8 +77,8 @@ After the DISTINCT ON pass, JS re-sorts by risk ascending for display order (as 
 
 ### 4. Schema changes (one migration)
 
-- **`audits.source`** — enum-typed text `"user" | "seed"`, `NOT NULL DEFAULT 'user'`. Marks system-seeded entries (for the "Notable" chip and to exclude them from user-facing rate-limit accounting).
-- **`leaderboardClaims`** — new table, one row per claimed host:
+- **`audits.source`**: enum-typed text `"user" | "seed"`, `NOT NULL DEFAULT 'user'`. Marks system-seeded entries (for the "Notable" chip and to exclude them from user-facing rate-limit accounting).
+- **`leaderboardClaims`**: new table, one row per claimed host:
   - `host` text PRIMARY KEY (or unique)
   - `userId` text → `users.id` (cascade)
   - `verifiedAt` timestamptz NOT NULL
@@ -101,10 +101,10 @@ On success, insert/update the `leaderboardClaims` row.
 
 ### 6. Conversion hooks (all map onto the claim)
 
-1. **Verified badge + embed** — claimed hosts get an embeddable snippet linking back to their `/r/[slug]`. Badge copy is **grade/verdict-based, not numeric** ("Audited clean · Grade A" / "Ready"), to honour the existing rule that no numeric `risk` appears on public/screenshot surfaces. Every embed is a *followed* backlink → compounding SEO. Unclaimed sites see a "claim to get your badge" teaser.
-2. **Monitoring upsell** — CTA "Track this score, get alerted if it drops" routes into the existing `monitoredDomains` / Pro flow.
-3. **Claim to customize/pin** — claimed owner sets `ogTitleOverride` / `ogDescriptionOverride` (card copy), `pinnedAuditId` (which audit displays), and `isHidden` (instant takedown).
-4. **Re-audit / improve CTA** — sites *near* the bar (risk 40–55, just off the board) see "Fix N findings and re-audit to make the board" on their result page → pulls re-runs and signups.
+1. **Verified badge + embed**: claimed hosts get an embeddable snippet linking back to their `/r/[slug]`. Badge copy is **grade/verdict-based, not numeric** ("Audited clean · Grade A" / "Ready"), to honour the existing rule that no numeric `risk` appears on public/screenshot surfaces. Every embed is a *followed* backlink → compounding SEO. Unclaimed sites see a "claim to get your badge" teaser.
+2. **Monitoring upsell**: CTA "Track this score, get alerted if it drops" routes into the existing `monitoredDomains` / Pro flow.
+3. **Claim to customize/pin**: claimed owner sets `ogTitleOverride` / `ogDescriptionOverride` (card copy), `pinnedAuditId` (which audit displays), and `isHidden` (instant takedown).
+4. **Re-audit / improve CTA**: sites *near* the bar (risk 40–55, just off the board) see "Fix N findings and re-audit to make the board" on their result page → pulls re-runs and signups.
 
 ### 7. Seeding pipeline (hybrid)
 
@@ -127,8 +127,8 @@ On success, insert/update the `leaderboardClaims` row.
 - Leaderboard query: add `risk < 40`, switch to most-recent-per-host, left-join `leaderboardClaims` to render "verified ✓" / "Notable" chips, apply OG overrides and `pinnedAuditId`, and exclude `isHidden`.
 - Empty-state retained but will rarely render post-seed.
 - Methodology prose (`leaderboard/page.tsx` ~234–308) rewritten: it currently states "anonymous entries fall off after 24 hours" and "most recent audit per domain" inconsistently. New copy describes clean-only permanence, supersede, seeding + the aggregate stat, and the claim flow.
-- **`/r/[slug]` retention copy must be reconciled** — several strings assume the old fixed windows and become false for clean-anon-permanent audits:
-  - The anon "This report auto-deletes in Nh · Save this report" CTA (`r/[slug]/page.tsx:256–273`): for an *eligible* (clean) anon audit, it no longer auto-deletes, so the pitch flips to a leaderboard/claim framing ("This site is on the public leaderboard — sign in to claim it, get your badge, and monitor it"). For *non-eligible* anon audits the 24h "save it" pitch stays.
+- **`/r/[slug]` retention copy must be reconciled**: several strings assume the old fixed windows and become false for clean-anon-permanent audits:
+  - The anon "This report auto-deletes in Nh · Save this report" CTA (`r/[slug]/page.tsx:256–273`): for an *eligible* (clean) anon audit, it no longer auto-deletes, so the pitch flips to a leaderboard/claim framing ("This site is on the public leaderboard: sign in to claim it, get your badge, and monitor it"). For *non-eligible* anon audits the 24h "save it" pitch stays.
   - The "About this audit" auto-delete blurb (`:343–349`) and `ExpiredState` copy (`:908–925`) must branch on eligibility rather than hard-coding "24 hours / 30 days".
 
 ## Out of scope (YAGNI)
@@ -137,11 +137,11 @@ Public user profiles, historical score charts on the board, paid placement, cate
 
 ## Affected files (indicative, not exhaustive)
 
-- `apps/web/src/app/leaderboard/page.tsx` — query, chips, overrides, methodology copy, aggregate stat
-- `apps/web/src/app/api/audits/route.ts` — (no retention change at creation; permanence is applied post-completion)
-- `apps/web/src/inngest/functions/run-audit.ts` — extend `expiresAt` when eligible
-- `apps/web/src/db/schema.ts` + new migration — `audits.source`, `leaderboardClaims`
-- `apps/web/src/app/r/[slug]/page.tsx` — **eligibility-gated `index`/`follow` in `generateMetadata`** (the SEO enabler), claim CTA, badge teaser, re-audit CTA, nofollow logic, and reconciled retention copy (anon CTA / About blurb / ExpiredState)
+- `apps/web/src/app/leaderboard/page.tsx`: query, chips, overrides, methodology copy, aggregate stat
+- `apps/web/src/app/api/audits/route.ts`: (no retention change at creation; permanence is applied post-completion)
+- `apps/web/src/inngest/functions/run-audit.ts`: extend `expiresAt` when eligible
+- `apps/web/src/db/schema.ts` + new migration: `audits.source`, `leaderboardClaims`
+- `apps/web/src/app/r/[slug]/page.tsx`: **eligibility-gated `index`/`follow` in `generateMetadata`** (the SEO enabler), claim CTA, badge teaser, re-audit CTA, nofollow logic, and reconciled retention copy (anon CTA / About blurb / ExpiredState)
 - new: claim verification action(s) (DNS TXT + GSC fast-path), badge embed endpoint, seed list + seeding Inngest function, takedown form
 
 ## Open questions / defaults chosen
@@ -149,4 +149,4 @@ Public user profiles, historical score charts on the board, paid placement, cate
 - **Threshold** = `risk < 40` (A/B). Tunable constant.
 - **Near-the-bar CTA band** = risk 40–55. Tunable.
 - **Seed cron cadence** = monthly + manual trigger. Start manual-only if simpler.
-- **DNS TXT vs GSC** — both supported; GSC is the fast-path when already connected.
+- **DNS TXT vs GSC**: both supported; GSC is the fast-path when already connected.

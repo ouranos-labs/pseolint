@@ -123,18 +123,18 @@ export interface ConsoleFormatOptions {
   /** When true, list every finding bucketed by severity instead of just top fixes. */
   verbose?: boolean;
   /**
-   * v0.5.11 — when true (default), render per-template cards above the
+   * v0.5.11: when true (default), render per-template cards above the
    * per-URL findings list when ≥2 templates were detected.
    */
   perTemplate?: boolean;
   /**
-   * v0.5.11 — when set, filter the per-URL findings list to only findings
+   * v0.5.11: when set, filter the per-URL findings list to only findings
    * whose pageUrl is in the matching template's auditedUrls.
    * Silently ignored when no template matches.
    */
   filterTemplate?: string;
   /**
-   * v0.5.11 — when true, skip the per-template view entirely and render the
+   * v0.5.11: when true, skip the per-template view entirely and render the
    * flat per-URL findings list (opt-out for CI tooling built against the old layout).
    */
   legacyFlat?: boolean;
@@ -147,16 +147,16 @@ function effortPrefix(effort: FixEffort | undefined): string {
 }
 
 /**
- * v0.4.3 — one-line caveat for low-confidence findings. Renders only when
+ * v0.4.3: one-line caveat for low-confidence findings. Renders only when
  * `confidence` is `low` or `speculative` so high/medium-confidence findings
  * don't clutter the output.
  */
 function confidenceCaveat(c: Confidence | undefined): string | null {
   if (c === "low") {
-    return "low confidence — this rule is known to false-positive on this site type";
+    return "low confidence; this rule is known to false-positive on this site type";
   }
   if (c === "speculative") {
-    return "speculative — heuristic match; verify before acting";
+    return "speculative: heuristic match; verify before acting";
   }
   return null;
 }
@@ -215,7 +215,7 @@ function renderBucketLines(b: BucketedFinding, index: number): string[] {
 
 /**
  * Top-fixes section. Buckets blockers first, then should-fix, by template
- * signature so duplicate findings collapse. Limits to 5 buckets — anything
+ * signature so duplicate findings collapse. Limits to 5 buckets: anything
  * past that is verbose-mode territory.
  */
 function renderTopFixes(blockers: RuleResult[], shouldFix: RuleResult[]): string[] {
@@ -253,14 +253,14 @@ function renderBucketVerbose(label: string, items: RuleResult[]): string[] {
  * Render the v0.4 §4.11 classification banner.
  *
  *   ✓ Site type: small-marketing (confidence 92%, 23 URLs, no template cluster)
- *   ✓ Suppressed 4 pSEO-only rules — pass --strict to run all 32
+ *   ✓ Suppressed 4 pSEO-only rules: pass --strict to run all 32
  *
  * For programmatic-directory:
  *   ✓ Site type: programmatic-directory (confidence 90%, 12,453 URLs, /:state/:city/:service covers 90%)
  *     All 32 rules applied.
  *
  * For unclear:
- *   ✓ Site type: unclear — all 32 rules applied.
+ *   ✓ Site type: unclear: all 32 rules applied.
  */
 function classificationLines(c: SiteClassification | undefined): string[] {
   if (!c) return [];
@@ -278,7 +278,7 @@ function classificationLines(c: SiteClassification | undefined): string[] {
 
   if (c.type === "unclear") {
     lines.push(
-      `${GREEN}✓${RESET} Site type: ${fmtType(c.type)} — all ${TOTAL_V04_RULE_COUNT} rules applied.`,
+      `${GREEN}✓${RESET} Site type: ${fmtType(c.type)}, all ${TOTAL_V04_RULE_COUNT} rules applied.`,
     );
     return lines;
   }
@@ -296,7 +296,7 @@ function classificationLines(c: SiteClassification | undefined): string[] {
 
   if (c.suppressedRules.length > 0) {
     lines.push(
-      `${GREEN}✓${RESET} Suppressed ${c.suppressedRules.length} pSEO-only rule${c.suppressedRules.length === 1 ? "" : "s"} — pass --strict to run all ${TOTAL_V04_RULE_COUNT}`,
+      `${GREEN}✓${RESET} Suppressed ${c.suppressedRules.length} pSEO-only rule${c.suppressedRules.length === 1 ? "" : "s"}, pass --strict to run all ${TOTAL_V04_RULE_COUNT}`,
     );
   } else {
     lines.push(`  All ${TOTAL_V04_RULE_COUNT} rules applied.`);
@@ -305,7 +305,7 @@ function classificationLines(c: SiteClassification | undefined): string[] {
 }
 
 /**
- * v0.4.3 — prominent "Audited as <type>" banner shown right under the
+ * v0.4.3: prominent "Audited as <type>" banner shown right under the
  * verdict pill so the operator knows which scoring profile produced the
  * verdict. Surfaces classification confidence as a percent and notes how
  * many pSEO-only rules were suppressed (mirrors the more verbose
@@ -323,7 +323,7 @@ function auditedAsBanner(c: SiteClassification | undefined): string | null {
 }
 
 function categoryLine(categories: CategoryGrades): string {
-  // Display the four user-facing buckets — `audit` is engine-internal and weight-0.
+  // Display the four user-facing buckets: `audit` is engine-internal and weight-0.
   const order: { key: Exclude<CategoryKey, "audit">; label: string }[] = [
     { key: "integrity", label: "Integrity" },
     { key: "discoverability", label: "Discoverability" },
@@ -377,7 +377,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
       : `${demotions.slice(0, 3).map((id) => `\`${id}\``).join(", ")}, +${demotions.length - 3} more`;
     const profileType = summary.siteClassification?.type ?? "unclear";
     lines.push(
-      `${GREEN}✓${RESET} Demoted ${demotions.length} rule${demotions.length === 1 ? "" : "s"} (${list}) — ${profileType} profile; pass --strict to disable`,
+      `${GREEN}✓${RESET} Demoted ${demotions.length} rule${demotions.length === 1 ? "" : "s"} (${list}), ${profileType} profile; pass --strict to disable`,
     );
   }
 
@@ -389,7 +389,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   lines.push(
     `${BOLD}Verdict:${RESET} ${vColor}${summary.verdict.toUpperCase()} ${vGlyph}${RESET}`,
   );
-  // v0.4.3 — "Audited as <type>" sits between the verdict and grade strip
+  // v0.4.3: "Audited as <type>" sits between the verdict and grade strip
   // so the operator immediately sees which scoring profile produced the
   // verdict. Skipped when classification is missing (pre-v0.4 reports).
   const banner = auditedAsBanner(summary.siteClassification);
@@ -440,7 +440,7 @@ export function formatConsole(summary: AuditSummary, options?: ConsoleFormatOpti
   if (blockerCount === 0 && shouldFixCount === 0 && filteredInfo.length === 0) {
     lines.push(`${GREEN}No issues detected.${RESET}`);
   } else {
-    lines.push(`${summary.headline} — top fixes by impact:`);
+    lines.push(`${summary.headline}, top fixes by impact:`);
     const top = renderTopFixes(filteredBlockers, filteredShouldFix);
     lines.push(...top);
   }

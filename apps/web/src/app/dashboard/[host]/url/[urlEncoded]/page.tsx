@@ -222,7 +222,7 @@ export default async function UrlDeepDive({
             No findings on this URL.
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            This page is clean — pSEOLint has no record of any rule firing here.
+            This page is clean: pSEOLint has no record of any rule firing here.
           </p>
         </div>
       ) : (
@@ -305,7 +305,7 @@ export default async function UrlDeepDive({
                             {carriedForward && (
                               <span
                                 className="inline-flex items-center rounded-full border border-border/50 bg-card/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-                                title={`This finding was carried forward from a prior monitoring run — last actually re-verified ${relTime(lastSeenAt)}. The page hasn't changed enough to trigger a re-fetch.`}
+                                title={`This finding was carried forward from a prior monitoring run: last actually re-verified ${relTime(lastSeenAt)}. The page hasn't changed enough to trigger a re-fetch.`}
                               >
                                 Carried forward · verified {relTime(lastSeenAt)}
                               </span>

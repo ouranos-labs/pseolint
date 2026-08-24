@@ -33,7 +33,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
   const alertEmailRaw = String(formData.get("alertEmail") ?? "").trim();
   const alertEmail = alertEmailRaw.length ? alertEmailRaw : null;
 
-  // Gentle audit mode — when set, audits run with concurrency=2 + sample
+  // Gentle audit mode: when set, audits run with concurrency=2 + sample
   // capped to 200 so a fragile origin doesn't trip the engine's
   // BackpressureMonitor mid-crawl. HTML form checkboxes only submit when
   // checked, so a missing field means "off".
@@ -51,7 +51,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
       ? authorityNum
       : null;
 
-  // GSC property URL: empty string means "unbind". Light shape check —
+  // GSC property URL: empty string means "unbind". Light shape check,
   // real validation is the next sync run, which will fail loudly if the
   // URL isn't one of the user's GSC properties or perms were revoked.
   const gscSiteUrlRaw = String(formData.get("gscSiteUrl") ?? "").trim();
@@ -320,7 +320,7 @@ export async function updateIndexNowKeyAction(formData: FormData): Promise<void>
  * (`parseScanOptions`), and persist the JSON to `monitoredDomains.scanOptions`.
  *
  * SECURITY: this never trusts the form. Everything is funneled through
- * `parseScanOptions`, whose `.strict()` schema accepts ONLY the 7 safe knobs —
+ * `parseScanOptions`, whose `.strict()` schema accepts ONLY the 7 safe knobs:
  * no safeMode / SSRF / robots / cache / render / ai / authority lever can be
  * smuggled in here. An empty/all-default submission clears the column.
  */
@@ -377,12 +377,12 @@ export async function updateScanOptionsAction(formData: FormData): Promise<void>
   }
 
   // The allowlist is the gate. Anything outside the 7 safe fields, or a bad
-  // shape/type, fails here — we reject rather than silently strip so the user
+  // shape/type, fails here; we reject rather than silently strip so the user
   // knows their input didn't take.
   const validated = parseScanOptions(raw);
   if (!validated) {
     throw new Error(
-      "Invalid advanced scan options — only crawlDiscovery, fillBudgetViaLinkDiscovery, " +
+      "Invalid advanced scan options: only crawlDiscovery, fillBudgetViaLinkDiscovery, " +
       "samplingStrategy, maxPerTemplate, strict, pageGroups, and entityPatterns are allowed, " +
       "and each must match its expected shape (e.g. maxPerTemplate must be a whole number ≥ 1).",
     );

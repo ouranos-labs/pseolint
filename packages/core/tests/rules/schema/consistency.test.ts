@@ -41,7 +41,7 @@ describe("schema/consistency", () => {
   });
 
   test("no finding when mixed types come from DIFFERENT template clusters", () => {
-    // WebSite on home, Article on blog, Product on listings — all different templates
+    // WebSite on home, Article on blog, Product on listings: all different templates
     const home = page("https://example.dev/", {
       structureSignature: "sig-home",
       jsonLd: [{ "@context": "https://schema.org", "@type": "WebSite" }]

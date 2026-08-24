@@ -3,7 +3,7 @@ import { auditSource } from "../../src/auditor.js";
 
 /**
  * Sitemap-first discovery: a homepage audit should read the site's declared
- * sitemap(s) — via robots.txt `Sitemap:` or a /sitemap.xml probe — and audit
+ * sitemap(s): via robots.txt `Sitemap:` or a /sitemap.xml probe, and audit
  * those URLs even when they are NOT reachable by following links from the
  * homepage. This is the "build-frozen / sparsely-linked programmatic site"
  * case the real dogfood hit. Falls back to link-crawl when no sitemap exists.
@@ -24,6 +24,12 @@ function html(title: string, links: string[] = []): string {
 function urlset(urls: string[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map((u) => `<url><loc>${u}</loc></url>`).join("")}</urlset>`;
 }
+/** Same as `urlset` but each entry carries a `<lastmod>`. */
+function urlsetWithLastmod(entries: Array<[string, string]>): string {
+  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries
+    .map(([u, lm]) => `<url><loc>${u}</loc><lastmod>${lm}</lastmod></url>`)
+    .join("")}</urlset>`;
+}
 function sitemapindex(sitemaps: string[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemaps.map((s) => `<sitemap><loc>${s}</loc></sitemap>`).join("")}</sitemapindex>`;
 }
@@ -40,6 +46,10 @@ function install(handler: (pathname: string) => Reply): void {
       headers: { "content-type": r.contentType ?? "text/html" },
     });
   }) as typeof fetch;
+}
+
+function allFindings(summary: Awaited<ReturnType<typeof auditSource>>) {
+  return [...summary.issues.blockers, ...summary.issues.shouldFix, ...summary.issues.informational];
 }
 
 async function auditedPaths(source: string): Promise<string[]> {
@@ -104,5 +114,61 @@ describe("sitemap-first discovery", () => {
     const paths = await auditedPaths(BASE);
     expect(paths).toContain("/only-linked"); // link-crawl unchanged
     expect(paths).toContain("/"); // homepage itself
+  });
+
+  /**
+   * `tech/sitemap-hygiene`, `tech/sitemap-completeness` and
+   * `tech/robots-compliance` are all gated on the loader returning a sitemap
+   * URL set. The sitemap-URL source path returned one; the homepage/crawl path
+   * discovered the very same sitemaps and then threw the URLs away, so
+   * `pseolint https://example.com` could never produce a single finding from
+   * any of the three. Passing the sitemap URL directly produced all of them.
+   */
+  it("reports sitemap-hygiene defects from a plain homepage audit", async () => {
+    install((p) => {
+      if (p === "/robots.txt") return { body: `User-agent: *\nSitemap: ${BASE}/sitemap.xml\n`, contentType: "text/plain" };
+      if (p === "/sitemap.xml") {
+        return {
+          body: urlsetWithLastmod([
+            [`${BASE}/a`, "2026-01-02"],
+            // Cross-host <loc>: the Sitemaps protocol drops these, and the
+            // loader's same-origin filter used to drop them before the rule
+            // could ever see them.
+            ["https://other-host.example/b", "2026-01-02"],
+            [`${BASE}/c`, "2099-01-01"],
+            [`${BASE}/d`, "nope"],
+          ]),
+          contentType: "application/xml",
+        };
+      }
+      if (p === "/") return { body: html("Home") };
+      return { body: html(p) };
+    });
+    const summary = await auditSource(BASE, { backpressure: false });
+    const messages = allFindings(summary)
+      .filter((f) => f.ruleId === "tech/sitemap-hygiene")
+      .map((f) => f.message);
+    expect(messages.some((m) => /different host/.test(m))).toBe(true);
+    expect(messages.some((m) => /more than 24 hours in the future/.test(m))).toBe(true);
+    expect(messages.some((m) => /not a valid W3C datetime/.test(m))).toBe(true);
+  });
+
+  it("reports a sitemap URL that robots.txt disallows, from a homepage audit", async () => {
+    install((p) => {
+      if (p === "/robots.txt") {
+        return { body: `User-agent: *\nDisallow: /blocked\nSitemap: ${BASE}/sitemap.xml\n`, contentType: "text/plain" };
+      }
+      if (p === "/sitemap.xml") return { body: urlset([`${BASE}/blocked`, `${BASE}/open`]), contentType: "application/xml" };
+      if (p === "/") return { body: html("Home", ["/blocked"]) };
+      return { body: html(p) };
+    });
+    const summary = await auditSource(BASE, {
+      backpressure: false,
+      // The rule reports the CONTRADICTION; our own crawler still has to be
+      // able to fetch the page to have a ParsedPage to attach it to.
+      respectRobotsTxt: false,
+    });
+    const blocked = allFindings(summary).filter((f) => f.ruleId === "tech/robots-compliance");
+    expect(blocked.map((f) => f.pageUrl)).toContain(`${BASE}/blocked`);
   });
 });

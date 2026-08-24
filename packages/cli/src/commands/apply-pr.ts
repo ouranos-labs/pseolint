@@ -19,7 +19,7 @@ export interface ApplyPrOptions extends ApplyCliOptions {
   base?: string;
   /** Head branch. Default `pseolint/fix-<slug>`. */
   branch?: string;
-  /** GitHub API base — override for GHE. Default `https://api.github.com`. */
+  /** GitHub API base; override for GHE. Default `https://api.github.com`. */
   apiBase?: string;
 }
 
@@ -48,7 +48,7 @@ const realApi: PrDeps["api"] = async (method, url, token, body) => {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 };
 
-// ── pure helpers (the parsing/rendering logic — the parts worth a test) ──────
+// ── pure helpers (the parsing/rendering logic, the parts worth a test) ──────
 
 /** `https://Foo.com/` → `foo-com`; used for the fix branch name. */
 export function slugifyDomain(domain: string): string {
@@ -77,10 +77,10 @@ export function renderPrBody(domain: string, applied: number, changedFiles: stri
   if (checklist.length) {
     lines.push("");
     lines.push(`### Needs a human (${checklist.length})`);
-    lines.push("Generative or unmapped patches — pSEO Lint won't auto-write these:");
+    lines.push("Generative or unmapped patches; pSEO Lint won't auto-write these:");
     lines.push("");
     for (const c of checklist) {
-      const where = c.path ? ` — \`${c.path}\`` : c.url ? ` — ${c.url}` : "";
+      const where = c.path ? ` (\`${c.path}\`)` : c.url ? ` (${c.url})` : "";
       lines.push(`- [ ] **${c.kind}**: ${c.title}${where}`);
     }
   }
@@ -92,9 +92,9 @@ export function renderPrBody(domain: string, applied: number, changedFiles: stri
 // ── orchestration ───────────────────────────────────────────────────────────
 
 /**
- * `pseolint apply <manifest> --pr` — apply the deterministic edits, commit them
+ * `pseolint apply <manifest> --pr`: apply the deterministic edits, commit them
  * to a tool-owned branch, push, and open (or update) a PR whose body lists what
- * a human still has to do. Git via child_process, GitHub via a single fetch —
+ * a human still has to do. Git via child_process, GitHub via a single fetch:
  * no octokit dependency in the MIT CLI.
  */
 export async function runApplyPrCommand(opts: ApplyPrOptions, deps: PrDeps = { git: realGit, api: realApi }): Promise<number> {
@@ -109,7 +109,7 @@ export async function runApplyPrCommand(opts: ApplyPrOptions, deps: PrDeps = { g
   const repoRoot = resolve(opts.repo);
   const { git, api } = deps;
 
-  // Guardrail: refuse if there are uncommitted changes to *tracked* files — those
+  // Guardrail: refuse if there are uncommitted changes to *tracked* files; those
   // could get swept into our commit. Untracked files (the manifest itself, build
   // output) are ignored: we only `git add` the specific files we edit, so they
   // can't leak into the PR. Without -uno this refused on an untracked manifest.json,
@@ -121,7 +121,7 @@ export async function runApplyPrCommand(opts: ApplyPrOptions, deps: PrDeps = { g
     return fail(`not a git repo (or git unavailable): ${(e as Error).message}`);
   }
   if (status.length > 0) {
-    return fail(`tracked files have uncommitted changes — commit or stash first, then re-run --pr:\n${status}`);
+    return fail(`tracked files have uncommitted changes; commit or stash first, then re-run --pr:\n${status}`);
   }
 
   // Apply the edits.
@@ -132,19 +132,19 @@ export async function runApplyPrCommand(opts: ApplyPrOptions, deps: PrDeps = { g
     return 1;
   }
   if (result.changedFiles.length === 0) {
-    out.write(paint("Nothing to fix — no deterministic edits applied. Not opening a PR.\n", DIM));
-    if (result.checklist.length) out.write(paint(`(${result.checklist.length} item(s) still need a human — run without --pr to see the checklist.)\n`, DIM));
+    out.write(paint("Nothing to fix: no deterministic edits applied. Not opening a PR.\n", DIM));
+    if (result.checklist.length) out.write(paint(`(${result.checklist.length} item(s) still need a human; run without --pr to see the checklist.)\n`, DIM));
     return 0;
   }
 
   const token = opts.token ?? process.env.GITHUB_TOKEN;
-  if (!token) return fail("no token — pass --token or set GITHUB_TOKEN.");
+  if (!token) return fail("no token; pass --token or set GITHUB_TOKEN.");
 
   let repoSlug = opts.repoSlug;
   if (!repoSlug) {
     const remote = await git(["remote", "get-url", "origin"], repoRoot).catch(() => "");
     repoSlug = parseRepoSlug(remote) ?? undefined;
-    if (!repoSlug) return fail(`cannot derive owner/repo from origin remote — pass --repo-slug owner/repo.`);
+    if (!repoSlug) return fail(`cannot derive owner/repo from origin remote; pass --repo-slug owner/repo.`);
   }
   const [owner, repo] = repoSlug.split("/");
 

@@ -39,7 +39,7 @@ describe("aeo/summary-bait", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].severity).toBe("warning");
     expect(findings[0].message).toMatch(/optimized for summarization/);
-    // Summary-bait is always medium confidence — it's a forecast.
+    // Summary-bait is always medium confidence; it's a forecast.
     expect(findings[0].confidence).toBe("medium");
     expect(findings[0].message).toMatch(/forecast/i);
   });
@@ -105,7 +105,7 @@ describe("aeo/summary-bait", () => {
   });
 
   test("does not fire when opener itself is too weak (answer-first would already flag it)", () => {
-    // Opener has no facts and isn't a complete answer — answer-first would fire.
+    // Opener has no facts and isn't a complete answer: answer-first would fire.
     // summary-bait stays silent to avoid two overlapping findings.
     const html = facts(
       "Welcome to our complete guide for filing.",
@@ -119,7 +119,7 @@ describe("aeo/summary-bait", () => {
     expect(summaryBaitRule([p], STATE_MASK)).toHaveLength(0);
   });
 
-  test("respects minFactsToAnalyze — very-few-fact pages aren't flagged here", () => {
+  test("respects minFactsToAnalyze: very-few-fact pages aren't flagged here", () => {
     // Only 1 fact total; citable-facts should handle that separately.
     const html = facts(
       "California LLC filing costs $70 and takes a long time to process.",

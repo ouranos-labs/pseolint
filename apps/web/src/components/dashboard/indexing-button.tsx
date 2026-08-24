@@ -17,9 +17,9 @@ interface IndexingButtonProps {
 }
 
 export function IndexingButton({ 
-  domainId, 
-  url, 
-  provider, 
+  domainId,
+  url,
+  provider,
   latestAuditRisk,
   disabled,
   recentStatus,
@@ -68,7 +68,7 @@ export function IndexingButton({
   if (googleGated) {
     label = `Google · Soon`;
     themeClass = "border-border/40 bg-card/20 text-muted-foreground/60 pointer-events-none cursor-default opacity-70";
-    titleText = "Direct Google submission is coming soon — use IndexNow + sitemaps for now";
+    titleText = "Direct Google submission is coming soon: use IndexNow + sitemaps for now";
   } else if (alreadyIndexed) {
     label = `Indexed ✓`;
     themeClass = "border-success/30 bg-success/5 text-success/80 pointer-events-none cursor-default opacity-85";

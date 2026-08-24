@@ -30,7 +30,7 @@ export default function AbusePage() {
       </h1>
       <p className="mt-4 max-w-2xl text-sm text-muted-foreground">
         pseolint lets anyone audit any public URL. That&apos;s the OSS-first product. If your site
-        is being audited and you want it to stop, you have two paths — one you control directly,
+        is being audited and you want it to stop, you have two paths: one you control directly,
         one we control on request.
       </p>
 
@@ -89,7 +89,7 @@ export default function AbusePage() {
           <li>Per-host hourly cap of 30 fresh audits (across all users)</li>
           <li>Per-user daily cap of 15 audits against any single host (Pro) / 3 (free) / 1 (anon)</li>
           <li>Per-anon-IP daily cap of 1 audit against any single host</li>
-          <li>1-hour URL-level dedup — repeat audits return cached results, no re-crawl</li>
+          <li>1-hour URL-level dedup: repeat audits return cached results, no re-crawl</li>
           <li>Honour <code className="font-mono text-foreground">robots.txt</code>, <code className="font-mono text-foreground">Crawl-delay</code>, and <code className="font-mono text-foreground">Retry-After</code></li>
           <li>Max 5 parallel fetches per audit, 50 MB per audit, 200 pages per audit</li>
           <li>SSRF guard rejects private/internal addresses</li>
@@ -109,7 +109,7 @@ export default function AbusePage() {
           want pseolint crawling their site. Reports are not a channel for contesting
           audit findings, requesting score adjustments, or flagging competitor misuse.
           Once a domain is blocklisted, all future audit requests for that domain return
-          a 403 before pseolint touches the network — the block applies to every user
+          a 403 before pseolint touches the network: the block applies to every user
           and every plan, including Pro. Blocklist additions are permanent unless the
           domain owner requests removal. Ownership verification is required in both
           directions (add and remove) to prevent the blocklist from becoming a
@@ -145,7 +145,7 @@ export default function AbusePage() {
         sources={[
           {
             source: "spamPolicies",
-            note: "Google's spam policies govern what constitutes crawlable public content — the same framework that determines whether a pseolint audit of a public URL is appropriate.",
+            note: "Google's spam policies govern what constitutes crawlable public content, the same framework that determines whether a pseolint audit of a public URL is appropriate.",
           },
           {
             source: "searchEssentials",

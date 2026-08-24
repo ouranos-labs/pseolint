@@ -1,8 +1,8 @@
 # pseolint SaaS MVP Design
 
-**Status:** Draft — 2026-04-19
+**Status:** Draft, 2026-04-19
 **Author:** philippe.kam27@gmail.com + Claude (Opus 4.7)
-**Motivation:** The OSS `pseolint@0.2.1` is feature-complete for solo CLI use. Turning it into a hosted product opens a revenue channel and a distribution surface (public shareable report URLs → organic acquisition) that the CLI alone can't provide. Zero existing audience — the product must acquire through its own viral loop, not a launch audience.
+**Motivation:** The OSS `pseolint@0.2.1` is feature-complete for solo CLI use. Turning it into a hosted product opens a revenue channel and a distribution surface (public shareable report URLs → organic acquisition) that the CLI alone can't provide. Zero existing audience, the product must acquire through its own viral loop, not a launch audience.
 
 ## Goal
 
@@ -10,7 +10,7 @@ Ship a minimal audit-as-a-service: user pastes a URL, gets a shareable HTML repo
 
 ## Non-Goals (v1)
 
-- **Scheduled audits / monitoring.** Deferred — the one-shot audit wedge must validate first.
+- **Scheduled audits / monitoring.** Deferred: the one-shot audit wedge must validate first.
 - **Email/Slack alerts on regression.** v2, gated on monitoring feature.
 - **Team accounts / RBAC.** Target is solo operators; agencies are v1.1+.
 - **Public API.** v3.
@@ -18,7 +18,7 @@ Ship a minimal audit-as-a-service: user pastes a URL, gets a shareable HTML repo
 - **Headless browser rendering (`--render`).** SSRF/XSS blast radius too wide for v1; users who need rendered pages run the CLI.
 - **Custom rules editor.** v3.
 - **White-label / custom branding.** v3.
-- **Account dashboard / history page.** Deferred to v1.1 — post-audit email is the v1 UX.
+- **Account dashboard / history page.** Deferred to v1.1: post-audit email is the v1 UX.
 - **Multi-site overview dashboard.** v1.1+.
 - **Usage-based or overage billing.** Flat subscription with hard rate-limits is simpler to reason about.
 
@@ -54,7 +54,7 @@ Browser ── Vercel (Next.js) ──┬── /api/audits (POST) ── enqueu
 | Report storage | **Cloudflare R2** (S3-compatible) | Public bucket for anonymous/free reports; signed URLs for paid-private |
 | Transactional email | Resend | `resend` SDK; templates as React Email components; Better Auth delivers magic links through it |
 | Bot gating | Cloudflare Turnstile (free) | Widget on audit form, server-side token verify on `/api/audits` |
-| Payments | Polar.sh | Merchant-of-record — handles global VAT/tax. `@polar-sh/sdk` |
+| Payments | Polar.sh | Merchant-of-record: handles global VAT/tax. `@polar-sh/sdk` |
 | Audit engine | `pseolint@0.2.1` (npm) | Programmatic import: `import { auditSource, formatHtml } from "pseolint"` inside Inngest function |
 
 ### Repository layout
@@ -163,7 +163,7 @@ export const webhookEvents = pgTable("webhook_events", {
 
 `userProfiles` is separated from Better Auth's `users` because Better Auth owns its schema shape. Our subscription/plan data lives in a sibling table keyed by the same user id.
 
-### Authorization (no RLS — app-layer enforcement)
+### Authorization (no RLS: app-layer enforcement)
 
 Authorization happens in every API route and server component that reads or mutates data. Every query is either:
 
@@ -177,7 +177,7 @@ Integration tests (mandatory) assert that:
 - Unauthenticated requests cannot mutate any data.
 - `rate_limits` and `webhook_events` are never exposed to the HTTP surface.
 
-Dropping RLS means **no DB-level safety net for a bug in route authorization** — tests are load-bearing. This is an explicit trade-off for end-to-end typed queries + the cleaner Drizzle/Better Auth stack.
+Dropping RLS means **no DB-level safety net for a bug in route authorization**, tests are load-bearing. This is an explicit trade-off for end-to-end typed queries + the cleaner Drizzle/Better Auth stack.
 
 ### Audit request flow (happy path)
 
@@ -185,7 +185,7 @@ Dropping RLS means **no DB-level safety net for a bug in route authorization** �
 2. **API route:**
    - Verify Turnstile token (`fetch https://challenges.cloudflare.com/turnstile/v0/siteverify`). Reject if invalid.
    - Resolve session via Better Auth (`auth.api.getSession({ headers })`). If none → anonymous path; read/issue a `pseolint_anon` cookie (signed 128-bit random id) to key the anonymous session.
-   - Hash the request IP (SHA-256 with server-side salt) — never store raw IP.
+   - Hash the request IP (SHA-256 with server-side salt): never store raw IP.
    - Check rate limits via the Drizzle helper `bumpRateLimit`:
      - Anonymous: `anon:<anonSessionId>:<date>` (limit 1/session) + `domain:<host>:<date>` (limit 3 globally).
      - Authenticated free: `free:<userId>:<date>` (limit 3).
@@ -236,19 +236,19 @@ export const auth = betterAuth({
 });
 ```
 
-Flow — **new user, magic link:**
+Flow, **new user, magic link:**
 
 1. User clicks "Sign in" on any page → `/signin` form.
 2. Enters email → Better Auth's `signIn.magicLink()` → email sent via Resend.
 3. User clicks link (single-use, 15 min TTL, HMAC-signed) → `/api/auth/magic-link/verify` → session cookie set → redirect target.
 4. First-time user: Better Auth inserts `users` row; our app inserts `userProfiles` row with `plan='free'`.
 
-Flow — **Google OAuth:**
+Flow, **Google OAuth:**
 
 1. Click "Continue with Google" → Better Auth OAuth flow → Google consent → callback.
 2. Session cookie set. Same first-time-user profile insertion.
 
-Flow — **upgrade to Pro:**
+Flow, **upgrade to Pro:**
 
 1. `/pricing` → "Upgrade" → `POST /api/checkout` (requires session).
 2. Creates Polar checkout session with `customer_email = session.user.email` → redirect to Polar.
@@ -258,12 +258,12 @@ Flow — **upgrade to Pro:**
 
 ### Payments flow (Polar.sh)
 
-- **Products:** one subscription product with two prices — `monthly $19 USD` and `yearly $180 USD`.
+- **Products:** one subscription product with two prices: `monthly $19 USD` and `yearly $180 USD`.
 - **Checkout creation** via Polar SDK with `customer_email` pre-filled.
 - **Webhooks handled:** `subscription.created`, `subscription.updated`, `subscription.canceled`.
 - **Idempotency:** each event's `id` is written to `webhook_events` table before processing; duplicate events short-circuit.
 - **Signature verification:** Polar signs webhooks with a shared secret; `webhooks/polar/route.ts` uses `@polar-sh/sdk`'s built-in verifier.
-- **Cancellation:** `plan_expires_at` set to period end; user retains Pro access until that date, then row transitions to `plan='free'` via a nightly cron (Inngest scheduled function) or on next API call — whichever first.
+- **Cancellation:** `plan_expires_at` set to period end; user retains Pro access until that date, then row transitions to `plan='free'` via a nightly cron (Inngest scheduled function) or on next API call: whichever first.
 
 ### Rate limiting
 
@@ -288,10 +288,10 @@ export async function bumpRateLimit(key: string, limit: number): Promise<{ allow
 ```
 
 Keys:
-- `anon:<anonSessionId>:<yyyy-mm-dd>` — limit **1** (anonymous, per cookie-bound session)
-- `domain:<lower(host)>:<yyyy-mm-dd>` — limit **3** (global, applies to anonymous + free)
-- `free:<userId>:<yyyy-mm-dd>` — limit **3**
-- `pro:<userId>:<yyyy-mm-dd>` — limit **50** (only AI-triage audits count here)
+- `anon:<anonSessionId>:<yyyy-mm-dd>`: limit **1** (anonymous, per cookie-bound session)
+- `domain:<lower(host)>:<yyyy-mm-dd>`: limit **3** (global, applies to anonymous + free)
+- `free:<userId>:<yyyy-mm-dd>`: limit **3**
+- `pro:<userId>:<yyyy-mm-dd>`: limit **50** (only AI-triage audits count here)
 
 Cleanup (Inngest scheduled function, runs daily at 02:00 UTC): `DELETE FROM rate_limits WHERE expires_at < now()`.
 
@@ -299,7 +299,7 @@ Cleanup (Inngest scheduled function, runs daily at 02:00 UTC): `DELETE FROM rate
 
 Three layers:
 
-1. **Application layer — `ssrf-req-filter`-backed URL check at ingress AND on every outgoing fetch inside the worker.** The library:
+1. **Application layer: `ssrf-req-filter`-backed URL check at ingress AND on every outgoing fetch inside the worker.** The library:
    - Parses URL, rejects non-HTTP(S) schemes.
    - Resolves DNS A/AAAA.
    - Rejects private, loopback, link-local, multicast, cloud-metadata (`169.254.169.254`, etc.), broadcast ranges.
@@ -331,16 +331,16 @@ Guardrails:
 | Item | Measure |
 |---|---|
 | SSRF | Three-layer defense above |
-| XSS in report | pseolint's HTML formatter already escapes (`escapeHtml` on label, rationale, narrative, ruleIds, URLs, messages) — tested |
+| XSS in report | pseolint's HTML formatter already escapes (`escapeHtml` on label, rationale, narrative, ruleIds, URLs, messages): tested |
 | CSRF on state-changing endpoints | Next.js same-site cookie default + explicit `Origin` header check on `/api/*` POSTs |
-| Clickjacking | `X-Frame-Options: DENY` (helmet.js middleware — suggested in security guidance) |
+| Clickjacking | `X-Frame-Options: DENY` (helmet.js middleware: suggested in security guidance) |
 | Content sniffing | `X-Content-Type-Options: nosniff` |
 | HSTS | `Strict-Transport-Security` for 1y on production |
 | Webhook replay | Polar signature verify + `webhook_events` idempotency table |
 | Magic link leak | 15 min TTL, single-use, delivered via Resend (proper SPF/DKIM) |
-| IP storage | SHA-256 + server-side salt — never store raw IPs |
-| API keys in client | All keys in Vercel env; only `NEXT_PUBLIC_*` visible client-side (Turnstile site-key, Better Auth public base URL — both safe to expose) |
-| Authorization bypass | No RLS — integration tests assert that every endpoint correctly scopes by `session.userId` or `anonSessionId`. Test matrix: each endpoint × each role (anon, free user A, free user B, pro user A) × allowed/denied resources |
+| IP storage | SHA-256 + server-side salt: never store raw IPs |
+| API keys in client | All keys in Vercel env; only `NEXT_PUBLIC_*` visible client-side (Turnstile site-key, Better Auth public base URL: both safe to expose) |
+| Authorization bypass | No RLS: integration tests assert that every endpoint correctly scopes by `session.userId` or `anonSessionId`. Test matrix: each endpoint × each role (anon, free user A, free user B, pro user A) × allowed/denied resources |
 | Rate limiting | IP + domain + user counters; Turnstile on all free audits |
 | Open redirect | Reject URLs containing fragments that could be used for phishing; validate post-auth redirects against allowlist |
 | Dependency CVEs | GitHub Dependabot + weekly `bun audit` in CI |
@@ -356,7 +356,7 @@ All errors fail closed:
 | SSRF-rejected URL | 400 with "URL appears to be internal or unreachable" |
 | Rate limit exceeded | 429 with `Retry-After` header + friendly page |
 | Inngest worker throws unrecoverable | Update `audits.status = 'failed'`, `error_message` = user-safe text, email user if authenticated |
-| pseolint internal throw | Caught, logged to Inngest console with full stack, user sees generic "audit failed — please retry" |
+| pseolint internal throw | Caught, logged to Inngest console with full stack, user sees generic "audit failed: please retry" |
 | Polar webhook bad signature | 400, logged, no side effects |
 | Magic link expired/used | Redirect to `/` with error toast |
 | Neon or R2 down | API returns 503 with `Retry-After`; UI shows maintenance message |
@@ -365,8 +365,8 @@ All errors fail closed:
 ### Testing strategy
 
 - **Unit tests:** SSRF validator (all edge cases in the OWASP list), rate-limit logic, webhook signature verify, email template rendering.
-- **Integration tests (authorization matrix):** spawn a Better Auth test harness with three roles — anon, free user A, free user B, pro user A. For every read/write endpoint, assert the intended allow/deny decision against each role and each target resource (own / other-user / public / private). Also assert that expiry cron deletes R2 objects and nulls `storageKey`.
-- **E2E tests (Playwright):** full flow — anon user pastes URL → audit completes → report visible. Paid flow skipped in CI (Polar is third-party; use a mock checkout route for tests).
+- **Integration tests (authorization matrix):** spawn a Better Auth test harness with three roles: anon, free user A, free user B, pro user A. For every read/write endpoint, assert the intended allow/deny decision against each role and each target resource (own / other-user / public / private). Also assert that expiry cron deletes R2 objects and nulls `storageKey`.
+- **E2E tests (Playwright):** full flow: anon user pastes URL → audit completes → report visible. Paid flow skipped in CI (Polar is third-party; use a mock checkout route for tests).
 - **Load test:** k6 script hitting `/api/audits` at 10 RPS to verify rate limits hold.
 - **SSRF smoke:** deploy-time check that hitting `http://169.254.169.254/` from the Inngest worker is rejected.
 
@@ -377,20 +377,20 @@ Three-tier friction ladder to maximize email capture without killing the viral-l
 | Feature | Anonymous (no auth) | Free (email auth) | Pro ($19/mo or $180/yr) |
 |---|---|---|---|
 | Audits per day | **1 per session** (IP-bound) | 3 per user | 50 AI-triage audits/user |
-| Target-domain rate limit | 3/day global | 3/day global | — |
-| AI triage | — | — | ✓ |
+| Target-domain rate limit | 3/day global | 3/day global |: |
+| AI triage |: |: | ✓ |
 | Page cap per audit | 50 | 50 | 200 |
 | Report retention | 24 hours | 30 days | Permanent |
 | Report default visibility | Public | Public | **Private (toggleable)** |
 | Shareable URL | ✓ | ✓ | ✓ |
-| Report history UI | — (v1.1 for Free+Pro) | — (v1.1) | — (v1.1) |
-| Re-run existing audit | — | ✓ | ✓ |
-| Turnstile bot gate | ✓ | ✓ (first audit only) | — |
-| PDF export | — | — | ✓ |
-| Post-audit email notification | — | ✓ | ✓ |
-| API access | — | — | — (v3) |
+| Report history UI |: (v1.1 for Free+Pro) |: (v1.1) |, (v1.1) |
+| Re-run existing audit |: | ✓ | ✓ |
+| Turnstile bot gate | ✓ | ✓ (first audit only) |: |
+| PDF export |: |: | ✓ |
+| Post-audit email notification |: | ✓ | ✓ |
+| API access |: | (|) (v3) |
 
-**Anonymous tier rationale:** lets a cold visitor reach the "see your score" moment with zero friction — that's the hook. One audit per session with a 24-hour report link nudges them toward email signup for anything more.
+**Anonymous tier rationale:** lets a cold visitor reach the "see your score" moment with zero friction, that's the hook. One audit per session with a 24-hour report link nudges them toward email signup for anything more.
 
 **Free tier rationale:** email capture is the entire point. Without it, zero-audience growth is impossible (no nurture sequence, no retargeting). Magic-link + Google OAuth keeps the email-gate conversion-friendly.
 
@@ -418,7 +418,7 @@ Three-tier friction ladder to maximize email capture without killing the viral-l
 - Polar webhook endpoint deployed and signature-verified; `webhook_events` idempotency tested with replay
 - `DELETE /api/account` GDPR endpoint tested (removes user, profile, audits, R2 objects)
 
-### Out of scope — explicit non-goals for v1
+### Out of scope: explicit non-goals for v1
 
 1. **Monitoring / scheduled audits.** Once per-audit UX lands, v1.1 adds "check this URL daily, email on regression."
 2. **Account dashboard / audit history list.** Post-audit email is the UX. If paid users request it, v1.1.
@@ -431,17 +431,17 @@ Three-tier friction ladder to maximize email capture without killing the viral-l
 9. **White-label reports.**
 10. **On-premise / self-hosted option.** The OSS engine is the self-hosted option.
 
-## Appendix — rejected alternatives
+## Appendix: rejected alternatives
 
-- **Cloudflare Workers end-to-end.** pseolint uses Node-only APIs (`fs/promises`); running in Workers would require a rewrite. Rejected — too much OSS churn for infra savings.
+- **Cloudflare Workers end-to-end.** pseolint uses Node-only APIs (`fs/promises`); running in Workers would require a rewrite. Rejected: too much OSS churn for infra savings.
 - **Stripe instead of Polar.** Stripe is more battle-tested but makes the founder handle VAT/sales tax in 170+ jurisdictions. Polar's merchant-of-record model is the single biggest reason to pick it for a solo indie SaaS.
 - **Supabase (Postgres + Auth + Storage).** Fast to bootstrap but: (a) RLS is foot-guny, (b) Supabase's email delivery to magic-link inboxes is unreliable (spam folder), (c) couples auth to a third party. Swapped to Neon + Drizzle + Better Auth + R2 for type-safe queries, owned auth data, and independent email delivery via Resend.
-- **Prisma instead of Drizzle.** Prisma's query engine is a runtime binary and its migrations feel heavy. Drizzle is a pure-TypeScript query builder with first-class schema inference — better fit for edge/serverless and faster cold starts.
+- **Prisma instead of Drizzle.** Prisma's query engine is a runtime binary and its migrations feel heavy. Drizzle is a pure-TypeScript query builder with first-class schema inference: better fit for edge/serverless and faster cold starts.
 - **NextAuth instead of Better Auth.** NextAuth is battle-tested but its customization story for magic-link UX and multi-provider setup is clunky. Better Auth is the modern successor with a cleaner plugin model.
 - **Anonymous-only free tier (no email capture).** Would kill zero-audience growth. Replaced with three-tier ladder: Anonymous (1 audit per session, 24h link) → Free (email-gated, 3/day) → Pro.
 - **Per-audit pricing ($1/audit).** Every audit becomes a friction point. Subscription aligns with "audit whenever I deploy" mental model.
 - **No free tier.** Kills the viral loop (no shareable public reports). Rejected.
 - **No paid tier at launch.** Delays revenue validation by weeks. Rejected.
 - **Building the monitoring feature as v1 instead.** Monitoring requires the user already believes the product catches real issues. Audit-first establishes belief; monitoring converts it to retention. Order matters.
-- **Renaming the product for the SaaS.** Considered names like *CleanMyPSEO* (CleanMyMac-style). Deferred — `pseolint` stays the product name for v1 to preserve continuity with the OSS package. Revisit after launch if positioning needs a distinct consumer-facing brand.
+- **Renaming the product for the SaaS.** Considered names like *CleanMyPSEO* (CleanMyMac-style). Deferred: `pseolint` stays the product name for v1 to preserve continuity with the OSS package. Revisit after launch if positioning needs a distinct consumer-facing brand.
 - **Concierge/Phase-0 validation.** User explicitly chose to commit to building; this path is noted in brainstorm notes but not executed.

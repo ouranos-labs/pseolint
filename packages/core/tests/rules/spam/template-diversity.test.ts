@@ -21,7 +21,7 @@ function page(url: string, structureSignature: string): ParsedPage {
   };
 }
 
-describe("templateDiversityRule — chrome-tolerant coarsening", () => {
+describe("templateDiversityRule: chrome-tolerant coarsening", () => {
   // (a) The false negative the exact-count fingerprint caused: pages from ONE template
   // whose signatures differ only by trivial count noise (an extra ad div, a conditional
   // nav item) used to read as fully unique. Coarsening collapses them → low ratio → fires.

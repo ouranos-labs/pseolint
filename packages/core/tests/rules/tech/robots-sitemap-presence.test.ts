@@ -41,7 +41,7 @@ describe("robotsSitemapPresenceRule", () => {
 });
 
 describe("parseDisallowPatterns (UA-specific merging)", () => {
-  test("default (no UA arg) reads only the wildcard block — legacy behavior", () => {
+  test("default (no UA arg) reads only the wildcard block: legacy behavior", () => {
     const robots = [
       "User-agent: *",
       "Disallow: /admin",

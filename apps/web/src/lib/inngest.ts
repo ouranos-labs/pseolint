@@ -24,7 +24,7 @@ type Events = {
   /**
    * Dispatched by the DELETE /api/orchestrate/[id] endpoint. Inngest matches
    * this against the function's cancelOn rule and aborts the in-flight
-   * runOrchestratorSession invocation — preventing further LLM steps from
+   * runOrchestratorSession invocation: preventing further LLM steps from
    * billing after a user clicks Cancel.
    */
   "orchestrator/cancel-requested": { data: { sessionId: string } };

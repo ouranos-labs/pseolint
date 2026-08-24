@@ -8,7 +8,7 @@ export function orphanPagesRule(
    * 2026-06-16 calibration FP fix: on a sampled crawl the page that links to a
    * given URL is often simply not in the fetched subset, so "0 inbound in this
    * crawl" is not evidence of a real orphan. Orphan detection is only reliable
-   * on a full crawl — skip it when sampled rather than flag healthy pages.
+   * on a full crawl: skip it when sampled rather than flag healthy pages.
    */
   sampled = false
 ): RuleResult[] {

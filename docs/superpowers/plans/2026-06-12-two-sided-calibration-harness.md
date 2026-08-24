@@ -4,7 +4,7 @@
 
 **Goal:** Complete the existing reputable-only calibration harness so it also measures recall against a labeled policy-violating corpus, emitting a confusion matrix, per-class risk stats, and a per-rule firing table, gated by a no-regression ratchet.
 
-**Architecture:** Extract the corpus types and a new pure scoring module under `packages/core/calibration/`, unit-tested with vitest. The existing `bun` runner (renamed `scripts/calibration-corpus.ts`) becomes a thin orchestrator that audits fixtures, feeds the pure scorer, writes the extended results, and exits non-zero on a verdict regression vs the committed baseline. Detection logic is untouched — this only measures.
+**Architecture:** Extract the corpus types and a new pure scoring module under `packages/core/calibration/`, unit-tested with vitest. The existing `bun` runner (renamed `scripts/calibration-corpus.ts`) becomes a thin orchestrator that audits fixtures, feeds the pure scorer, writes the extended results, and exits non-zero on a verdict regression vs the committed baseline. Detection logic is untouched, this only measures.
 
 **Tech Stack:** TypeScript (NodeNext, `.js` import specifiers), vitest, `bun` for the runner script, the existing `auditSource` engine + fixture directory loader.
 
@@ -15,15 +15,15 @@
 ## File Structure
 
 **New files:**
-- `packages/core/calibration/corpus-types.ts` — shared corpus types (`CorpusSite`, `Corpus`, `SiteClass`, `VERDICT_RANK`). Imported by both the runner and the scorer.
-- `packages/core/calibration/score.ts` — pure scoring functions (alignment, flag, confusion matrix, median + risk stats, per-rule firing table, ratchet). No I/O, no engine calls — fully unit-testable.
-- `packages/core/tests/calibration/score.test.ts` — unit tests for `score.ts`.
+- `packages/core/calibration/corpus-types.ts`: shared corpus types (`CorpusSite`, `Corpus`, `SiteClass`, `VERDICT_RANK`). Imported by both the runner and the scorer.
+- `packages/core/calibration/score.ts`: pure scoring functions (alignment, flag, confusion matrix, median + risk stats, per-rule firing table, ratchet). No I/O, no engine calls: fully unit-testable.
+- `packages/core/tests/calibration/score.test.ts`: unit tests for `score.ts`.
 
 **Modified files:**
 - `packages/core/calibration/reputable-pseo-corpus.json` → renamed `calibration-corpus.json`; every site gets `"class"`.
 - `packages/core/calibration/reputable-pseo-corpus.schema.json` → renamed `calibration-corpus.schema.json`; adds `class` / `expectedVerdictFloor` / `visiblePolicies`, relaxes `expectedVerdictCeiling`, extends `groundTruth.status`.
 - `scripts/calibration-reputable-pseo.ts` → renamed `scripts/calibration-corpus.ts`; imports the new modules, captures all fired/suppressed/demoted rule IDs, wires the scorer into the normal run, and applies the ratchet.
-- `packages/core/tests/calibration/reputable-corpus.test.ts` — updated for the renamed results + new structure.
+- `packages/core/tests/calibration/reputable-corpus.test.ts`: updated for the renamed results + new structure.
 
 **Conventions to follow (already in this codebase):**
 - All relative imports use the `.js` extension even for `.ts` sources (NodeNext). Example: `import { Verdict } from "../src/types.js"`.
@@ -118,7 +118,7 @@ export type Status =
 
 export type TrafficClass = "very-high" | "high" | "medium" | "low";
 
-/** Verdict ladder rank — higher = more concerning (and higher risk). */
+/** Verdict ladder rank, higher = more concerning (and higher risk). */
 export const VERDICT_RANK: Record<Verdict, number> = {
   ready: 0,
   caution: 1,
@@ -134,7 +134,7 @@ export interface CorpusSite {
   class: SiteClass;
   /** Reputable only: engine verdict must be <= this (hard gate). */
   expectedVerdictCeiling?: Verdict;
-  /** Policy-violating only: ASPIRATIONAL target — verdict should be >= this. NOT a CI gate. */
+  /** Policy-violating only: ASPIRATIONAL target, verdict should be >= this. NOT a CI gate. */
   expectedVerdictFloor?: Verdict;
   /** Policy-violating only: named spam policies the site visibly violates. */
   visiblePolicies?: string[];
@@ -166,7 +166,7 @@ import { VERDICT_RANK, type CorpusSite, type Corpus } from "../packages/core/cal
 ```
 (Keep the existing `import type { RuleResult, Verdict } from "../packages/core/src/types.js";`.)
 
-- [ ] **Step 3: Migrate the corpus JSON — add `class: "reputable"` to every site**
+- [ ] **Step 3: Migrate the corpus JSON: add `class: "reputable"` to every site**
 
 Run this one-shot migration (stamps `class` only where missing; idempotent):
 ```bash
@@ -194,7 +194,7 @@ Change `definitions.CorpusSite.required` to:
 ```json
       "required": ["url", "vertical", "expectedSiteType", "class", "groundTruth"],
 ```
-(Removes `expectedVerdictCeiling` from required — reputable sites still have it, policy-violating sites use the floor.) In `groundTruth.properties.status.enum`, extend to:
+(Removes `expectedVerdictCeiling` from required, reputable sites still have it, policy-violating sites use the floor.) In `groundTruth.properties.status.enum`, extend to:
 ```json
             "status": { "type": "string", "enum": ["winning", "stable", "declining", "penalized", "deindexed"] },
 ```
@@ -206,7 +206,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint
 bun run scripts/calibration-corpus.ts 2>&1 | tail -20
 ```
-Expected: it audits the corpus (fixture-backed sites show `[fixture]`), prints a Summary, and writes `scripts/calibration-results.{json,md}`. No type/import errors. (Verdicts should be unchanged from before — this task added a field, not logic.)
+Expected: it audits the corpus (fixture-backed sites show `[fixture]`), prints a Summary, and writes `scripts/calibration-results.{json,md}`. No type/import errors. (Verdicts should be unchanged from before, this task added a field, not logic.)
 
 - [ ] **Step 6: Commit**
 
@@ -217,7 +217,7 @@ git commit -m "feat(calibration): shared corpus types + binary class label; migr
 
 ---
 
-## Task 3: Pure scorer — site alignment
+## Task 3: Pure scorer: site alignment
 
 **Files:**
 - Create: `packages/core/calibration/score.ts`
@@ -275,7 +275,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npx vitest run tests/calibration/score.test.ts
 ```
-Expected: FAIL — cannot resolve `../../calibration/score.js` (module not created yet).
+Expected: FAIL, cannot resolve `../../calibration/score.js` (module not created yet).
 
 - [ ] **Step 3: Write the minimal implementation**
 
@@ -315,7 +315,7 @@ export interface Alignment {
 export function evaluateAlignment(site: CorpusSite, audit: ScoredAudit): Alignment {
   const rank = VERDICT_RANK[audit.verdict];
   if (site.class === "subject") {
-    return { aligned: true, note: `tracked subject — verdict ${audit.verdict} (no gate)` };
+    return { aligned: true, note: `tracked subject, verdict ${audit.verdict} (no gate)` };
   }
   if (site.class === "reputable") {
     const ceiling = site.expectedVerdictCeiling ?? "critical";
@@ -350,7 +350,7 @@ git commit -m "feat(calibration): site alignment scoring (reputable ceiling / po
 
 ---
 
-## Task 4: Pure scorer — flag prediction + confusion matrix
+## Task 4: Pure scorer: flag prediction + confusion matrix
 
 **Files:**
 - Modify: `packages/core/calibration/score.ts`
@@ -410,7 +410,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npx vitest run tests/calibration/score.test.ts
 ```
-Expected: FAIL — `confusionMatrix`/`isFlagged` are not exported.
+Expected: FAIL, `confusionMatrix`/`isFlagged` are not exported.
 
 - [ ] **Step 3: Write the implementation (append to score.ts)**
 
@@ -431,7 +431,7 @@ export interface Confusion {
 export function confusionMatrix(rows: ScoreRow[], threshold: Verdict = DEFAULT_FLAG_THRESHOLD): Confusion {
   let tp = 0, fp = 0, tn = 0, fn = 0;
   for (const r of rows) {
-    if (r.siteClass === "subject") continue; // non-gated dogfood target — excluded from labeled metrics
+    if (r.siteClass === "subject") continue; // non-gated dogfood target, excluded from labeled metrics
     const flagged = isFlagged(r.audit, threshold);
     const positive = r.siteClass === "policy-violating";
     if (positive && flagged) tp++;
@@ -465,7 +465,7 @@ git commit -m "feat(calibration): flag prediction + confusion matrix (P/R/F1)"
 
 ---
 
-## Task 5: Pure scorer — median + per-class risk stats
+## Task 5: Pure scorer: median + per-class risk stats
 
 **Files:**
 - Modify: `packages/core/calibration/score.ts`
@@ -515,7 +515,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npx vitest run tests/calibration/score.test.ts
 ```
-Expected: FAIL — `median`/`perClassRiskStats` not exported.
+Expected: FAIL, `median`/`perClassRiskStats` not exported.
 
 - [ ] **Step 3: Write the implementation (append to score.ts)**
 
@@ -573,7 +573,7 @@ git commit -m "feat(calibration): per-class risk distribution + separation check
 
 ---
 
-## Task 6: Pure scorer — per-rule firing table
+## Task 6: Pure scorer: per-rule firing table
 
 **Files:**
 - Modify: `packages/core/calibration/score.ts`
@@ -618,7 +618,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npx vitest run tests/calibration/score.test.ts
 ```
-Expected: FAIL — `perRuleFiringTable` not exported.
+Expected: FAIL, `perRuleFiringTable` not exported.
 
 - [ ] **Step 3: Write the implementation (append to score.ts)**
 
@@ -676,9 +676,9 @@ git commit -m "feat(calibration): per-rule firing table with suppressed/demoted 
 
 ---
 
-> **Refinement note (post-implementation):** Tasks 7–9 below were refined during execution (see spec §3.4 and commit `0b7d1ee`). The ratchet baseline is a *deliberate* committed artifact `packages/core/calibration/baseline-scorecard.json` (written via a `--write-baseline` flag), NOT the ephemeral `scripts/calibration-results.json` (which stays gitignored). The reputable ratchet is symmetric — "worse than baseline verdict," not "exceeds absolute ceiling" — so pre-existing breaches (segment, numbeo) don't block. Task 9's consumer test is a new `tests/calibration/scorecard.test.ts` reading the committed baseline (the old `reputable-corpus.test.ts` is unchanged, a local soft gate). The code blocks below show the pre-refinement shape; the committed code is the source of truth.
+> **Refinement note (post-implementation):** Tasks 7–9 below were refined during execution (see spec §3.4 and commit `0b7d1ee`). The ratchet baseline is a *deliberate* committed artifact `packages/core/calibration/baseline-scorecard.json` (written via a `--write-baseline` flag), NOT the ephemeral `scripts/calibration-results.json` (which stays gitignored). The reputable ratchet is symmetric: "worse than baseline verdict," not "exceeds absolute ceiling"; so pre-existing breaches (segment, numbeo) don't block. Task 9's consumer test is a new `tests/calibration/scorecard.test.ts` reading the committed baseline (the old `reputable-corpus.test.ts` is unchanged, a local soft gate). The code blocks below show the pre-refinement shape; the committed code is the source of truth.
 
-## Task 7: Pure scorer — ratchet (no-regression gate)
+## Task 7: Pure scorer: ratchet (no-regression gate)
 
 **Files:**
 - Modify: `packages/core/calibration/score.ts`
@@ -741,7 +741,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npx vitest run tests/calibration/score.test.ts
 ```
-Expected: FAIL — `ratchet`/`Baseline` not exported.
+Expected: FAIL, `ratchet`/`Baseline` not exported.
 
 - [ ] **Step 3: Write the implementation (append to score.ts)**
 
@@ -779,10 +779,10 @@ export function ratchet(rows: ScoreRow[], sites: CorpusSite[], baseline: Baselin
     } else if (s.class === "policy-violating") {
       const base = baseline.perSiteVerdict[r.url];
       if (base && curRank < VERDICT_RANK[base]) {
-        verdictRegressions.push(`${r.url}: recall dropped — verdict ${r.audit.verdict} < baseline ${base}`);
+        verdictRegressions.push(`${r.url}: recall dropped, verdict ${r.audit.verdict} < baseline ${base}`);
       }
     }
-    // s.class === "subject": never gated — skipped intentionally.
+    // s.class === "subject": never gated, skipped intentionally.
   }
   const ruleRegressions: string[] = [];
   const current = perRuleFiringTable(rows);
@@ -862,7 +862,7 @@ Then add these three keys into the `result.audit = { ... }` object (after `v6Pat
 
 - [ ] **Step 2b: Make `auditOne`'s pass/fail class-aware**
 
-The existing `result.pass = actualRank <= ceilingRank` assumes every site has an `expectedVerdictCeiling`. That field is now optional (only `reputable` sites have it), so a `policy-violating` or `subject` site would compute `VERDICT_RANK[undefined]` and spuriously "fail," wrongly tripping the `if (failed > 0) process.exitCode = 1` gate. Replace the existing pass block in `auditOne` — the lines:
+The existing `result.pass = actualRank <= ceilingRank` assumes every site has an `expectedVerdictCeiling`. That field is now optional (only `reputable` sites have it), so a `policy-violating` or `subject` site would compute `VERDICT_RANK[undefined]` and spuriously "fail," wrongly tripping the `if (failed > 0) process.exitCode = 1` gate. Replace the existing pass block in `auditOne`, the lines:
 ```ts
       const actualRank = VERDICT_RANK[summary.verdict];
       const ceilingRank = VERDICT_RANK[target.expectedVerdictCeiling];
@@ -902,7 +902,7 @@ Add to the `CalibrationResults` interface (after `ruleAggregates`):
     risk: RiskStats;
     perRule: Record<string, RuleFiring>;
     classCounts: { reputable: number; policyViolating: number; subject: number };
-    /** Non-gated dogfood targets — verdict/risk/top fired rules, no pass/fail. */
+    /** Non-gated dogfood targets, verdict/risk/top fired rules, no pass/fail. */
     trackedSubjects: Array<{ url: string; verdict: string; risk: number; topFired: string[] }>;
   };
 ```
@@ -965,7 +965,7 @@ Still in `mainNormal`, after `writeFileSync(RESULTS_JSON, ...)` and `writeFileSy
       perRule: Object.fromEntries(Object.entries(priorOut.scorecard?.perRule ?? {}).map(([id, f]) => [id, { policyFired: f.policyFired, reputableFired: f.reputableFired }])),
     };
   } catch {
-    baseline = null; // no committed baseline yet (first run) — nothing to ratchet against
+    baseline = null; // no committed baseline yet (first run), nothing to ratchet against
   }
   if (baseline) {
     const rr = ratchet(rows, corpus.sites, baseline);
@@ -976,13 +976,13 @@ Still in `mainNormal`, after `writeFileSync(RESULTS_JSON, ...)` and `writeFileSy
     }
     if (rr.verdictRegressions.length > 0) {
       console.log("");
-      console.log(`${ansi.red}Verdict regressions vs baseline (HARD — gate fails):${ansi.reset}`);
+      console.log(`${ansi.red}Verdict regressions vs baseline (HARD, gate fails):${ansi.reset}`);
       for (const m of rr.verdictRegressions) console.log(`  ${ansi.red}x${ansi.reset} ${m}`);
       process.exitCode = 1;
     }
   }
 ```
-Note: the existing `if (failed > 0) { process.exitCode = 1; }` block stays — reputable ceiling failures already set a non-zero exit. The ratchet adds the policy-violating recall gate.
+Note: the existing `if (failed > 0) { process.exitCode = 1; }` block stays, reputable ceiling failures already set a non-zero exit. The ratchet adds the policy-violating recall gate.
 
 - [ ] **Step 6: Add the scorecard blocks to the markdown report**
 
@@ -1002,7 +1002,7 @@ In `renderMarkdown`, after the existing `## Per-site verdicts` table block (befo
     lines.push(`Precision ${(c.precision * 100).toFixed(0)}% · Recall ${(c.recall * 100).toFixed(0)}% · F1 ${(c.f1 * 100).toFixed(0)}%`);
     const rk = out.scorecard.risk;
     lines.push("");
-    lines.push(`Risk medians — reputable ${rk.reputable.median}, policy-violating ${rk.policyViolating.median}; cleanly separated: ${rk.cleanlySeparated ? "yes" : "no"}.`);
+    lines.push(`Risk medians, reputable ${rk.reputable.median}, policy-violating ${rk.policyViolating.median}; cleanly separated: ${rk.cleanlySeparated ? "yes" : "no"}.`);
     lines.push("");
     if (out.scorecard.trackedSubjects.length > 0) {
       lines.push(`### Tracked subjects (non-gated)`);
@@ -1024,7 +1024,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint
 bun run scripts/calibration-corpus.ts 2>&1 | tail -30
 ```
-Expected: a `## Scorecard` section in `scripts/calibration-results.md` showing `policyViolating: 0` (no bad sites yet — TP/FN are 0, recall 0). NOTE: the run currently **exits 1** because two reputable sites (segment, numbeo) breach their ceilings — this is PRE-EXISTING mis-calibration the harness reveals, NOT caused by this task; do not treat it as a failure of Task 8. Verify instead that (a) the scorecard is produced, (b) the set of failing reputable sites is unchanged from before this task, and (c) the ratchet adds NO new verdict regressions. Confirm `scripts/calibration-results.json` now has a `scorecard` key:
+Expected: a `## Scorecard` section in `scripts/calibration-results.md` showing `policyViolating: 0` (no bad sites yet, TP/FN are 0, recall 0). NOTE: the run currently **exits 1** because two reputable sites (segment, numbeo) breach their ceilings, this is PRE-EXISTING mis-calibration the harness reveals, NOT caused by this task; do not treat it as a failure of Task 8. Verify instead that (a) the scorecard is produced, (b) the set of failing reputable sites is unchanged from before this task, and (c) the ratchet adds NO new verdict regressions. Confirm `scripts/calibration-results.json` now has a `scorecard` key:
 ```bash
 node -e "console.log(Object.keys(require('./scripts/calibration-results.json')))" | grep scorecard && echo OK
 ```
@@ -1082,7 +1082,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npm test
 ```
-Expected: PASS, including `tests/calibration/score.test.ts`, `tests/calibration/reputable-corpus.test.ts`, and `tests/integration/audit-fixture-manifest.test.ts`. If `reputable-corpus.test.ts` fails on the FP assertion, that's a real signal a reputable site regressed — investigate before continuing.
+Expected: PASS, including `tests/calibration/score.test.ts`, `tests/calibration/reputable-corpus.test.ts`, and `tests/integration/audit-fixture-manifest.test.ts`. If `reputable-corpus.test.ts` fails on the FP assertion, that's a real signal a reputable site regressed, investigate before continuing.
 
 - [ ] **Step 4: Typecheck**
 
@@ -1091,7 +1091,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint/packages/core
 npm run typecheck
 ```
-Expected: no errors. (If `typecheck`'s tsconfig does not include `calibration/`, the vitest run in Step 3 is the type safety net — note that in the commit message.)
+Expected: no errors. (If `typecheck`'s tsconfig does not include `calibration/`, the vitest run in Step 3 is the type safety net, note that in the commit message.)
 
 - [ ] **Step 5: Commit**
 
@@ -1103,7 +1103,7 @@ git commit -m "test(calibration): assert two-sided scorecard shape + zero reputa
 
 ---
 
-## Task 10: Add paperforge.dev as a tracked subject (Phase 1 tail — no sign-off needed)
+## Task 10: Add paperforge.dev as a tracked subject (Phase 1 tail: no sign-off needed)
 
 paperforge.dev is the user's own programmatic-SEO site (legal-document templates, ~5,600 pages on a `/templates/{role}-{document}-{state}` matrix, weak E-E-A-T, YMYL). It is added as a non-gated `subject` so we can watch its verdict move as detection improves. This requires no policy-violating sign-off (it's a tracked subject, not a ground-truth label), so it can run as soon as Task 9 is green.
 
@@ -1124,7 +1124,7 @@ Append to `sites[]` in `packages/core/calibration/calibration-corpus.json`:
       "groundTruth": {
         "status": "stable",
         "trafficClass": "low",
-        "evidence": "Own dogfood site; ~5,600 templated role×document×state pages, no E-E-A-T, YMYL (legal). Tracked subject — no pass/fail expectation."
+        "evidence": "Own dogfood site; ~5,600 templated role×document×state pages, no E-E-A-T, YMYL (legal). Tracked subject, no pass/fail expectation."
       },
       "samplingHint": { "sampleSize": 25 },
       "pinnedUrls": []
@@ -1166,9 +1166,9 @@ git commit -m "feat(calibration): track paperforge.dev as a non-gated dogfood su
 
 ---
 
-## Task 11 (Phase 2 — operational, not TDD): source the policy-violating corpus + commit the baseline
+## Task 11 (Phase 2: operational, not TDD): source the policy-violating corpus + commit the baseline
 
-This task adds real labeled data and captures the first two-sided baseline. It is procedural and **gated on user sign-off** — do not capture fixtures before the candidate list is approved.
+This task adds real labeled data and captures the first two-sided baseline. It is procedural and **gated on user sign-off**, do not capture fixtures before the candidate list is approved.
 
 - [ ] **Step 1: Assemble a candidate list (no code)**
 
@@ -1189,7 +1189,7 @@ For currently-live sites:
 cd /d/phili/SSD_Projects/pseolint
 bun run scripts/calibration-corpus.ts --snapshot <filter-substring>
 ```
-For documented-but-dead sites, capture HTML via the Wayback Machine and place it under `packages/core/calibration/fixtures/<host>/` with a hand-written `_manifest.json` (URL→file map) in the same format as existing fixtures, then set `localFixtureDir` on the corpus entry. Exclude any site that cannot be faithfully captured — never fabricate.
+For documented-but-dead sites, capture HTML via the Wayback Machine and place it under `packages/core/calibration/fixtures/<host>/` with a hand-written `_manifest.json` (URL→file map) in the same format as existing fixtures, then set `localFixtureDir` on the corpus entry. Exclude any site that cannot be faithfully captured, never fabricate.
 
 - [ ] **Step 5: Run the full two-sided baseline**
 
@@ -1198,7 +1198,7 @@ Run:
 cd /d/phili/SSD_Projects/pseolint
 bun run scripts/calibration-corpus.ts 2>&1 | tail -40
 ```
-Expected: the scorecard now shows real TP/FN, a recall figure, the per-rule firing table populated on the policy-violating side, and the per-class risk medians. The expected shape (and the point of the exercise): high TN on reputable, **low recall on policy-violating** — the quantified hole. The run exits 0 (first baseline has no prior to regress against).
+Expected: the scorecard now shows real TP/FN, a recall figure, the per-rule firing table populated on the policy-violating side, and the per-class risk medians. The expected shape (and the point of the exercise): high TN on reputable, **low recall on policy-violating**, the quantified hole. The run exits 0 (first baseline has no prior to regress against).
 
 - [ ] **Step 6: Commit the baseline**
 

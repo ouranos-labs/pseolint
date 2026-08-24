@@ -1,24 +1,24 @@
-# pseolint AI Orchestrator — Architecture
+# pseolint AI Orchestrator: Architecture
 
 **Date:** 2026-05-01
 **Target version:** `@pseolint/core` v0.4.4 (additive minor; nothing in v0.4 public API breaks)
-**Status:** DRAFT — pending decisions in §11
+**Status:** DRAFT, pending decisions in §11
 **Depends on:** v0.4 engine ships and proves the rule library; zero external users at time of writing
 **Supersedes:** the AI-triage portion of `2026-04-18-ai-triage-and-adapter-design.md`
 
 ## 1. Problem statement
 
-The current AI surface area in pseolint is one LLM call: a "triage" pass that paraphrases the existing rule library back at the user with a 1-2 sentence rationale. The model receives `ruleId / severity / message / pageUrl` — no page content, no schema, no GSC data, no cross-page context. The output is therefore generic SEO advice the rules already encode.
+The current AI surface area in pseolint is one LLM call: a "triage" pass that paraphrases the existing rule library back at the user with a 1-2 sentence rationale. The model receives `ruleId / severity / message / pageUrl`, no page content, no schema, no GSC data, no cross-page context. The output is therefore generic SEO advice the rules already encode.
 
 This is a low-ROI integration. It costs every audit a non-zero LLM bill, exposes hallucination risk on public third-party reports, and produces nothing that survives `findings.groupBy(f => f.ruleId.split("/")[0])` plus a templated rationale dictionary.
 
-Meanwhile, the things AI is uniquely good at — grounded rewrite proposals, template-cluster anomaly detection, AEO citability probes against actual answer engines, GSC anomaly explanation — are all absent.
+Meanwhile, the things AI is uniquely good at, grounded rewrite proposals, template-cluster anomaly detection, AEO citability probes against actual answer engines, GSC anomaly explanation, are all absent.
 
 This spec assumes a context that disappears the day a single external user runs the SaaS in production: **zero install base, zero retention obligations, zero migration cost.** Every reshape in this spec is free today.
 
 ## 2. Reframe in one sentence
 
-**The AI orchestrator turns pseolint into an AI-driven pSEO auditor that produces a fix manifest, not a report — rules become the LLM's fact-check tools rather than the engine itself.**
+**The AI orchestrator turns pseolint into an AI-driven pSEO auditor that produces a fix manifest, not a report, rules become the LLM's fact-check tools rather than the engine itself.**
 
 The conceptual flip:
 
@@ -29,7 +29,7 @@ Every architectural decision in this spec follows from that flip. No public type
 
 ## 3. Why this is the only window
 
-The same logic that justified v0.4: at zero users every choice is free, and after the first paying user every choice locks in for years. The current architecture is good at shipping incremental AI features that mid-funnel-optimize a product that doesn't have a top-of-funnel yet. The orchestrator flip *is* the top-of-funnel — a launch story that says "we don't audit your pSEO, we patch it" pulls a different audience than "we have 32 rules that mean something."
+The same logic that justified v0.4: at zero users every choice is free, and after the first paying user every choice locks in for years. The current architecture is good at shipping incremental AI features that mid-funnel-optimize a product that doesn't have a top-of-funnel yet. The orchestrator flip *is* the top-of-funnel, a launch story that says "we don't audit your pSEO, we patch it" pulls a different audience than "we have 32 rules that mean something."
 
 Adjacent: [v0.4 engine redesign decision](./2026-04-29-pseolint-v0.4-engine-redesign.md) explicitly invoked zero-user freedom for breaking changes. This spec extends the same principle from "reshape the rules engine" to "add a new product surface on top of it."
 
@@ -37,22 +37,22 @@ Adjacent: [v0.4 engine redesign decision](./2026-04-29-pseolint-v0.4-engine-rede
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  Layer 3 — Output channels                                   │
+│  Layer 3, Output channels                                   │
 │   • Live audit log (SSE) → web UI                            │
 │   • Fix manifest (JSON + patch bundle) → R2                  │
 │   • GitHub PR (deferred to a later iteration)                │
 ├──────────────────────────────────────────────────────────────┤
-│  Layer 2 — Orchestrator (NEW)                                │
+│  Layer 2, Orchestrator (NEW)                                │
 │   Opus 4.7 (1M ctx) + tool use, streaming loop               │
 │   Inngest job, durable session log, budget guardrails        │
 ├──────────────────────────────────────────────────────────────┤
-│  Layer 1 — Tool primitives                                   │
+│  Layer 1, Tool primitives                                   │
 │   fetch_page, fetch_sitemap, detect_templates,               │
 │   check_rule, check_all_rules, validate_jsonld,              │
 │   query_serp [NEW], ask_ai_engine [NEW],                     │
 │   compute_text_metrics, check_robots, sample_template        │
 ├──────────────────────────────────────────────────────────────┤
-│  Layer 0 — Existing pseolint engine (v0.4)                   │
+│  Layer 0, Existing pseolint engine (v0.4)                   │
 │   Rules, crawler, template detection, R2 storage,            │
 │   Inngest, BYOK, Drizzle schema, audit DB, Stripe            │
 └──────────────────────────────────────────────────────────────┘
@@ -76,8 +76,8 @@ Each tool is a TypeScript function exposed via the Vercel `ai` SDK's tool-use AP
 | `compute_text_metrics(html, siblings)` | partial | uniqueness vs sibling pages in same template |
 | `check_robots(url)` | existing | thin wrapper |
 | `check_indexability(url)` | existing | thin wrapper |
-| `query_serp(keyword, locale)` | — | **NEW** — SerpAPI integration |
-| `ask_ai_engine(query, engine)` | — | **NEW** — Anthropic + Perplexity Sonar + Gemini probes |
+| `query_serp(keyword, locale)` |: | **NEW**: SerpAPI integration |
+| `ask_ai_engine(query, engine)` |: | **NEW**: Anthropic + Perplexity Sonar + Gemini probes |
 
 `query_serp` and `ask_ai_engine` are the only new external integrations. Everything else wraps what exists.
 
@@ -85,19 +85,19 @@ Each tool is a TypeScript function exposed via the Vercel `ai` SDK's tool-use AP
 
 ## 6. Orchestrator (Layer 2)
 
-Single agent. Multi-agent (planner + auditor + fixer) was considered and rejected — it adds 2-3x latency and token cost for marginal quality gain at this stage of product maturity. Single agent with a strong system prompt and well-designed tools wins.
+Single agent. Multi-agent (planner + auditor + fixer) was considered and rejected, it adds 2-3x latency and token cost for marginal quality gain at this stage of product maturity. Single agent with a strong system prompt and well-designed tools wins.
 
-**Implementation note**: pseolint already uses the Vercel `ai` SDK (`packages/core` peer-deps `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`, etc.). The orchestrator uses `streamText` with tools — provider-agnostic from day one, so BYOK across providers works natively without per-provider tool-format conversion. The spec assumes Anthropic Opus 4.7 as the default (1M ctx, prompt caching), but nothing pins the orchestrator to it.
+**Implementation note**: pseolint already uses the Vercel `ai` SDK (`packages/core` peer-deps `@ai-sdk/anthropic`, `@ai-sdk/openai`, `@ai-sdk/google`, etc.). The orchestrator uses `streamText` with tools, provider-agnostic from day one, so BYOK across providers works natively without per-provider tool-format conversion. The spec assumes Anthropic Opus 4.7 as the default (1M ctx, prompt caching), but nothing pins the orchestrator to it.
 
 ### 6.1 System prompt structure
 
-Cached aggressively where the provider supports it (Anthropic prompt caching — 5-min TTL, ~$0.30/M cached read vs $3/M fresh; other providers use whatever caching the `ai` SDK exposes):
+Cached aggressively where the provider supports it (Anthropic prompt caching, 5-min TTL, ~$0.30/M cached read vs $3/M fresh; other providers use whatever caching the `ai` SDK exposes):
 
 1. **Role**: "You audit programmatic SEO surfaces and produce a fix manifest."
 2. **Tool list with schemas** (~5K tokens, fully cached).
 3. **Budget contract**: max 100 tool calls, 500K input tokens, $5 USD, 5 min wall.
 4. **Output contract**: must call `finish_audit(manifest)` to terminate.
-5. **Methodology hints** (not script): "start with sitemap, identify templates, sample 3-5 per template, run rules, escalate to AI-engine probes for AEO checks, propose fixes." Hints are guidance — the LLM picks order.
+5. **Methodology hints** (not script): "start with sitemap, identify templates, sample 3-5 per template, run rules, escalate to AI-engine probes for AEO checks, propose fixes." Hints are guidance: the LLM picks order.
 
 ### 6.2 Loop
 
@@ -205,14 +205,14 @@ Every LLM-proposed patch passes a deterministic validator before landing in the 
 | `add_faq_block` | HTML parser; only safe tags; XSS-clean (use DOMPurify on server) |
 | `rewrite_intro` | length 50-500 chars; no promo CTAs; preserves topical anchor |
 | `add_internal_link` | `to` URL must exist on the audited domain (not 404) |
-| `robots_txt` | `robots-parser` round-trip — must parse cleanly |
+| `robots_txt` | `robots-parser` round-trip: must parse cleanly |
 | `sitemap_xml` | XML schema validation against sitemap.org/0.9 |
 
 ### 7.3 Output channels
 
-1. **Web UI manifest view** at `/m/<slug>` — scrollable cards per change with "evidence" links into the session log. Copy-paste buttons per patch.
-2. **ZIP download** — `manifest.json` + `patches/<page>.html.diff` (unified diff format) for users who want to apply offline.
-3. **(later) GitHub PR** — pseolint app installation, opens a PR with the diffs against a code-managed site's repo.
+1. **Web UI manifest view** at `/m/<slug>`: scrollable cards per change with "evidence" links into the session log. Copy-paste buttons per patch.
+2. **ZIP download**: `manifest.json` + `patches/<page>.html.diff` (unified diff format) for users who want to apply offline.
+3. **(later) GitHub PR**: pseolint app installation, opens a PR with the diffs against a code-managed site's repo.
 
 ## 8. Migration map
 
@@ -224,7 +224,7 @@ Every LLM-proposed patch passes a deterministic validator before landing in the 
 - R2 storage (now stores session logs + manifests instead of/in addition to summaries).
 - Inngest infrastructure (orchestrator runs as an Inngest job).
 - Drizzle schema (extends with `sessions` and `manifests` tables, see §9).
-- BYOK plumbing (now load-bearing — see §10).
+- BYOK plumbing (now load-bearing: see §10).
 - Auth, monitoring scheduler, weekly digest infra, Stripe.
 
 ### 8.2 Refactor into tools
@@ -235,17 +235,17 @@ Every LLM-proposed patch passes a deterministic validator before landing in the 
 
 ### 8.3 Delete
 
-- Current `triage()` LLM call (`packages/core/src/ai/triage.ts`) — replaced by orchestrator.
-- Current `triagePayloadSchema` and the prompt at `packages/core/src/ai/prompt.ts` — replaced by orchestrator system prompt.
-- `apps/web/src/app/api/audits/[id]/triage/route.ts` — replaced by orchestrator session API.
-- `audits.triageRootCauseCount`, `audits.triageCostUsd` columns — clean delete; the new `sessions` table tracks orchestrator cost in `spentUsd` instead.
+- Current `triage()` LLM call (`packages/core/src/ai/triage.ts`): replaced by orchestrator.
+- Current `triagePayloadSchema` and the prompt at `packages/core/src/ai/prompt.ts`: replaced by orchestrator system prompt.
+- `apps/web/src/app/api/audits/[id]/triage/route.ts`: replaced by orchestrator session API.
+- `audits.triageRootCauseCount`, `audits.triageCostUsd` columns: clean delete; the new `sessions` table tracks orchestrator cost in `spentUsd` instead.
 
 These deletes are internal: no external consumer of `@pseolint/core` is wired to them, so v0.4.4 stays a minor bump.
 
 ### 8.4 Keep but demote
 
-- v0.4 `/r/<slug>` report view — marked "legacy report mode" for users who just want findings without the manifest. The manifest view at `/m/<slug>` is the new primary surface. Eventually retired but no rush.
-- v0.4 audit pipeline (rules → findings → summary) — runs as the *first* tool the orchestrator typically calls. The orchestrator can short-circuit to it for "I just want the report" users via a flag.
+- v0.4 `/r/<slug>` report view: marked "legacy report mode" for users who just want findings without the manifest. The manifest view at `/m/<slug>` is the new primary surface. Eventually retired but no rush.
+- v0.4 audit pipeline (rules → findings → summary): runs as the *first* tool the orchestrator typically calls. The orchestrator can short-circuit to it for "I just want the report" users via a flag.
 
 ## 9. Database changes
 
@@ -283,7 +283,7 @@ manifests: {
 }
 ```
 
-The existing `audits` table stays — v0.4 audits still flow through it, and the orchestrator can write a row there when it runs the legacy-audit tool, for free continuity.
+The existing `audits` table stays, v0.4 audits still flow through it, and the orchestrator can write a row there when it runs the legacy-audit tool, for free continuity.
 
 ## 10. BYOK becomes load-bearing
 
@@ -292,20 +292,20 @@ In v0.4, BYOK was a hedge for power users who wanted to bypass the (cheap) triag
 - **Free tier**: orchestrator runs only with a user-supplied API key. Zero managed AI cost.
 - **Pro tier**: managed orchestrator runs (we eat $3-5/audit) + optional BYOK to bypass managed quotas for unlimited Pro audits.
 
-The existing key vault (AES-256-GCM at rest, per `apps/web/src/lib/secret-box.ts`) is re-used. The BYOK page copy needs a rewrite — it's no longer "save a few cents on triage," it's "unlock orchestrator audits without paying our managed price."
+The existing key vault (AES-256-GCM at rest, per `apps/web/src/lib/secret-box.ts`) is re-used. The BYOK page copy needs a rewrite, it's no longer "save a few cents on triage," it's "unlock orchestrator audits without paying our managed price."
 
 ## 11. Open questions / decisions needed before Phase 1 starts
 
 These gate the eng plan and need explicit answers:
 
-1. **Pricing** — stay $19/mo, bump to $49/mo, or $0 free + $49 Pro with no middle? Recommendation: $49 Pro (the value step is real).
-2. **Free-tier orchestrator** — BYOK-only, or managed with hard $0.50/session cap? Recommendation: BYOK-only on free.
-3. **GitHub PR mode** — ship now or later? Recommendation: later (saves ~3 weeks; patch download is enough demo).
-4. **SERP source** — SerpAPI ($75/mo / 5K calls) vs Bright Data vs scraping? Recommendation: SerpAPI to start, switch only if volume forces.
-5. **Brand** — keep "pseolint" with new positioning, or rename (e.g. `pseofix`, `pseopatch`)? Decision needed before launch copy is written.
-6. **Model strategy** — Opus 4.7 throughout vs Opus for synthesis + Sonnet 4.6 for routine tool calls? Recommendation: Opus throughout to start; cost delta is rounding error pre-PMF and quality gap shows on long tool sequences.
-7. **Public-share shape** — manifests contain LLM rewrites for third-party sites. Decision: public `/m/<slug>` shows only deterministic findings + paraphrased summary (verdict, categories, finding counts). Owner-only sees the actual rewrites + diffs. Curated audits in `/research/` get explicit owner permission first.
-8. **Legacy v0.4 `/r/<slug>` report** — keep alongside `/m/<slug>` or retire on launch? Recommendation: keep — nothing to gain by killing it, costs ~0.
+1. **Pricing**: stay $19/mo, bump to $49/mo, or $0 free + $49 Pro with no middle? Recommendation: $49 Pro (the value step is real).
+2. **Free-tier orchestrator**: BYOK-only, or managed with hard $0.50/session cap? Recommendation: BYOK-only on free.
+3. **GitHub PR mode**: ship now or later? Recommendation: later (saves ~3 weeks; patch download is enough demo).
+4. **SERP source**: SerpAPI ($75/mo / 5K calls) vs Bright Data vs scraping? Recommendation: SerpAPI to start, switch only if volume forces.
+5. **Brand**: keep "pseolint" with new positioning, or rename (e.g. `pseofix`, `pseopatch`)? Decision needed before launch copy is written.
+6. **Model strategy**: Opus 4.7 throughout vs Opus for synthesis + Sonnet 4.6 for routine tool calls? Recommendation: Opus throughout to start; cost delta is rounding error pre-PMF and quality gap shows on long tool sequences.
+7. **Public-share shape**: manifests contain LLM rewrites for third-party sites. Decision: public `/m/<slug>` shows only deterministic findings + paraphrased summary (verdict, categories, finding counts). Owner-only sees the actual rewrites + diffs. Curated audits in `/research/` get explicit owner permission first.
+8. **Legacy v0.4 `/r/<slug>` report**: keep alongside `/m/<slug>` or retire on launch? Recommendation: keep: nothing to gain by killing it, costs ~0.
 
 ## 12. Eng plan, sized
 
@@ -326,9 +326,9 @@ Solo developer, focused execution. Total ~9 eng-weeks; calendar ~10-12 weeks wit
 | Risk | Mitigation |
 |---|---|
 | Orchestrator stalls / loops | Hard tool-count cap (100), watchdog every 20 calls, max wall (300s) |
-| LLM-generated patch quality | Deterministic validators (§7.2) — schema.org parser, DOMPurify HTML, robots-parser, sitemap XSD. Reject + retry 2x; on 3rd failure drop with logged warning. |
-| SERP/AI-engine ToS exposure | SerpAPI is contractually fine. Anthropic + Gemini APIs explicitly allow this. Perplexity Sonar — confirm citation testing is in-scope before depending on it; have a plan to drop Perplexity probe and rely on Anthropic + Gemini only. |
-| Cost predictability | `max_session_usd` from day one; surface live cost meter; pre-flight estimate per tool call. Pro pricing assumes ≤$3/audit average — alert if real-world drift exceeds $4. |
+| LLM-generated patch quality | Deterministic validators (§7.2): schema.org parser, DOMPurify HTML, robots-parser, sitemap XSD. Reject + retry 2x; on 3rd failure drop with logged warning. |
+| SERP/AI-engine ToS exposure | SerpAPI is contractually fine. Anthropic + Gemini APIs explicitly allow this. Perplexity Sonar: confirm citation testing is in-scope before depending on it; have a plan to drop Perplexity probe and rely on Anthropic + Gemini only. |
+| Cost predictability | `max_session_usd` from day one; surface live cost meter; pre-flight estimate per tool call. Pro pricing assumes ≤$3/audit average: alert if real-world drift exceeds $4. |
 | Live audit log UX | Half the demo. Allocate Phase 5 budget to making SSE feel fluid (debounce, batch tool-result rendering, smooth scroll). Devin/Manus-quality bar. |
 | Libel surface on public manifests | Public-shape projection (§11.7): paraphrase-only, no LLM-generated claims about third-party sites in publicly-indexed URLs. Owner-only sees rewrites. |
 | Patch-apply confusion (HTML diffs against possibly-rendered pages) | Ship diffs *and* full-replacement blocks for each change. Diffs for code-savvy users; blocks for paste-into-CMS users. Later GitHub PR mode resolves the confusion at source. |
@@ -342,7 +342,7 @@ Day 0: launch tweet thread.
 
 > Most pSEO audits give you a list. We give you the patch.
 >
-> We ran pseolint against the 20 biggest programmatic SEO sites in the wild. The orchestrator opened 3,400+ proposed fixes — concrete H1 rewrites, missing JSON-LD blocks, internal-link gaps. Top 10 most surprising findings 👇
+> We ran pseolint against the 20 biggest programmatic SEO sites in the wild. The orchestrator opened 3,400+ proposed fixes: concrete H1 rewrites, missing JSON-LD blocks, internal-link gaps. Top 10 most surprising findings 👇
 >
 > [thread]
 >
@@ -356,13 +356,13 @@ The research page is the SEO content asset and the demo simultaneously. Same art
 - **Quality**: at least 80% of LLM-proposed patches pass deterministic validators on first emit.
 - **Cost**: average managed-tier audit cost ≤ $3.
 - **UX**: manifest view rated as more useful than the legacy `/r/<slug>` report by ≥3 of the first 5 external users.
-- **Demo**: launch thread reaches ≥10K impressions on SEO Twitter within 7 days. (This is the actual PMF gate — quality of the audit is necessary but not sufficient; the launch needs to land.)
+- **Demo**: launch thread reaches ≥10K impressions on SEO Twitter within 7 days. (This is the actual PMF gate: quality of the audit is necessary but not sufficient; the launch needs to land.)
 
 ## 16. What is intentionally NOT in v0.4.4
 
-- **GitHub PR generation** — deferred to a later iteration.
-- **Multi-agent orchestration** — single agent ships first; revisit only if quality plateaus.
-- **Auto-fix application via API/webhook** — out of scope; users apply patches manually or via a future GitHub mode.
-- **Custom rule authoring via natural language** — "tell pseolint about my brand voice in plain English" is a tempting feature but a separate product surface; keep the launch focused.
-- **Audit-level chat ("ask the auditor")** — costs are unpredictable; revisit when there's signal demand.
-- **Auto-fix on user's own pSEO templates without human review** — never. Human-in-the-loop is part of the product, not a limitation to remove.
+- **GitHub PR generation**: deferred to a later iteration.
+- **Multi-agent orchestration**: single agent ships first; revisit only if quality plateaus.
+- **Auto-fix application via API/webhook**: out of scope; users apply patches manually or via a future GitHub mode.
+- **Custom rule authoring via natural language**: "tell pseolint about my brand voice in plain English" is a tempting feature but a separate product surface; keep the launch focused.
+- **Audit-level chat ("ask the auditor")**: costs are unpredictable; revisit when there's signal demand.
+- **Auto-fix on user's own pSEO templates without human review**: never. Human-in-the-loop is part of the product, not a limitation to remove.

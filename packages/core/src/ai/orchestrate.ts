@@ -24,21 +24,21 @@ export interface OrchestrateOptions {
   /** Override default budget caps. Merge with `DEFAULT_BUDGET`. */
   budget?: Partial<BudgetCaps>;
   /**
-   * Optional operator focus note appended to the system prompt — e.g. a prior
+   * Optional operator focus note appended to the system prompt: e.g. a prior
    * triage's root causes. Scopes the run toward a known diagnosis instead of
    * re-deriving everything blind. Truncated to keep the prompt bounded.
    */
   brief?: string;
   /** Optional path for durable NDJSON session log. */
   ndjsonPath?: string;
-  /** Optional event sink — SSE/R2 fanout in the web app, console.log in the CLI. */
+  /** Optional event sink: SSE/R2 fanout in the web app, console.log in the CLI. */
   onEvent?: EventSink;
   /** External abort signal. */
   signal?: AbortSignal;
   /** Per-model-call retry count for transient errors. Default 2. */
   maxRetries?: number;
   /**
-   * @internal Test-only escape hatch — inject a pre-resolved model to skip
+   * @internal Test-only escape hatch: inject a pre-resolved model to skip
    * `createLanguageModel`. Production callers always go through `ai`.
    */
   _resolvedModel?: { model: LanguageModel; providerId: string; modelId: string };

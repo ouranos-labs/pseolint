@@ -25,7 +25,7 @@ function sendLine(stream: PassThrough, line: string): void {
   });
 }
 
-describe("promptTriageFeedback — TTY gating", () => {
+describe("promptTriageFeedback: TTY gating", () => {
   it("returns \"skipped\" when input is not a TTY", async () => {
     const input = new PassThrough(); // no isTTY
     const output = new PassThrough();
@@ -50,7 +50,7 @@ describe("promptTriageFeedback — TTY gating", () => {
   });
 });
 
-describe("promptTriageFeedback — response parsing", () => {
+describe("promptTriageFeedback: response parsing", () => {
   it.each(["y", "yes", "helpful", "Y", "YES", "Helpful", "  yes  "])(
     "returns \"helpful\" for %j",
     async (answer) => {

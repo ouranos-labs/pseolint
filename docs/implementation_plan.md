@@ -1,4 +1,4 @@
-# Implementation Plan — Google SERP Competitive Opportunities Analysis (Chrome Extension)
+# Implementation Plan: Google SERP Competitive Opportunities Analysis (Chrome Extension)
 
 This plan details our approach to focusing the Chrome Extension strictly on competitive opportunity analysis on Google Search results pages. By removing the local "active tab audit" logic (which is already covered by the core pSEO SaaS engine), we focus the extension's browser moat entirely on auditing the organic competitor pages displayed by Google to uncover optimization gaps.
 

@@ -1,12 +1,12 @@
-# pseolint extension UX redesign — Implementation Plan
+# pseolint extension UX redesign: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the extension into a two-tier UX — a zero-permission auto "landscape" on the SERP (reach) plus an opt-in deep scan in a persistent side panel (power) — per `docs/superpowers/specs/2026-06-17-pseolint-extension-ux-redesign-design.md`.
+**Goal:** Turn the extension into a two-tier UX (a zero-permission auto "landscape" on the SERP (reach) plus an opt-in deep scan in a persistent side panel (power)) per `docs/superpowers/specs/2026-06-17-pseolint-extension-ux-redesign-design.md`.
 
 **Architecture:** Tier-1 reads only the SERP DOM (no fetch, no permission) and renders descriptive "templated saturation" + neutral per-result markers, auto on load. Tier-2 reuses the existing service-worker fetch + core Tier-1 rules, triggered from a side panel that replaces the popup (popups die on blur mid-fetch). Inline shadow-DOM badges are the shared payoff; the SaaS deep-link is the funnel.
 
-**Tech Stack:** Plain JS, MV3, `bun build --format=iife` per entry, `@pseolint/core` via subpath exports, runnable `node` assert tests (no framework). Vanilla everywhere (§4) — no UI framework.
+**Tech Stack:** Plain JS, MV3, `bun build --format=iife` per entry, `@pseolint/core` via subpath exports, runnable `node` assert tests (no framework). Vanilla everywhere (§4), no UI framework.
 
 ---
 
@@ -14,27 +14,27 @@
 
 Under `apps/extension/`:
 
-- `src/content/serp/landscape.js` — **new.** Pure Tier-1 analysis: results → templated clusters + summary.
-- `src/content/serp/reach.js` — **new.** In-page landscape chip (shadow DOM glue).
-- `src/content/serp/overlay.js` — **modify.** Add neutral `templated` badge level.
-- `src/content/serp/index.js` — **rewrite.** Auto Tier-1 on load; handle `pseolint:landscape` + `pseolint:deep-scan`.
-- `src/content/serp/detect.js` — unchanged (reused).
-- `src/content/site/pattern.js` — unchanged (reused by landscape).
-- `src/shared/parse.js`, `src/shared/rules-client.js` — unchanged (reused by deep scan).
-- `src/shared/coverage.js` — **new.** Pure coverage summary from scan results.
-- `src/background.js` — **modify.** `analyze` returns `ok`; set side-panel behavior on install.
-- `src/ui/sidepanel.js` — **new.** Side-panel logic (landscape, deep-scan gesture, results list).
-- `sidepanel.html` — **new.** Side-panel page (CSP-safe, external script).
-- `src/ui/popup.js`, `popup.html` — **delete.**
-- `manifest.json` — **modify.** Add `side_panel` + `sidePanel`; drop `default_popup`; drop `activeTab` (re-audited unused).
-- `package.json` — **modify.** Build `sidepanel.js` (not `popup.js`); add new tests.
-- `tests/landscape.test.js`, `tests/coverage.test.js` — **new.**
-- `tests/overlay.test.js` — **modify** (templated level).
-- `PRIVACY.md`, `STORE.md`, `README.md` — **modify** (two-tier behavior).
+- `src/content/serp/landscape.js`: **new.** Pure Tier-1 analysis: results → templated clusters + summary.
+- `src/content/serp/reach.js`: **new.** In-page landscape chip (shadow DOM glue).
+- `src/content/serp/overlay.js`: **modify.** Add neutral `templated` badge level.
+- `src/content/serp/index.js`: **rewrite.** Auto Tier-1 on load; handle `pseolint:landscape` + `pseolint:deep-scan`.
+- `src/content/serp/detect.js`: unchanged (reused).
+- `src/content/site/pattern.js`: unchanged (reused by landscape).
+- `src/shared/parse.js`, `src/shared/rules-client.js`: unchanged (reused by deep scan).
+- `src/shared/coverage.js`: **new.** Pure coverage summary from scan results.
+- `src/background.js`: **modify.** `analyze` returns `ok`; set side-panel behavior on install.
+- `src/ui/sidepanel.js`: **new.** Side-panel logic (landscape, deep-scan gesture, results list).
+- `sidepanel.html`: **new.** Side-panel page (CSP-safe, external script).
+- `src/ui/popup.js`, `popup.html`: **delete.**
+- `manifest.json`: **modify.** Add `side_panel` + `sidePanel`; drop `default_popup`; drop `activeTab` (re-audited unused).
+- `package.json`: **modify.** Build `sidepanel.js` (not `popup.js`); add new tests.
+- `tests/landscape.test.js`, `tests/coverage.test.js`: **new.**
+- `tests/overlay.test.js`: **modify** (templated level).
+- `PRIVACY.md`, `STORE.md`, `README.md`: **modify** (two-tier behavior).
 
 ---
 
-# Phase 1 — Reach tier (auto, zero-permission)
+# Phase 1: Reach tier (auto, zero-permission)
 
 ### Task 1: Tier-1 landscape analysis (pure)
 
@@ -46,7 +46,7 @@ Under `apps/extension/`:
 
 ```js
 // apps/extension/tests/landscape.test.js
-// `node tests/landscape.test.js` — pure, no DOM.
+// `node tests/landscape.test.js`, pure, no DOM.
 import assert from "node:assert";
 import { analyzeLandscape, landscapeChip } from "../src/content/serp/landscape.js";
 
@@ -79,7 +79,7 @@ console.log("landscape: all checks passed");
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd apps/extension && node tests/landscape.test.js`
-Expected: FAIL — `Cannot find module ... landscape.js`.
+Expected: FAIL, `Cannot find module ... landscape.js`.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -105,7 +105,7 @@ export function analyzeLandscape(results) {
     if (!groups.has(key)) groups.set(key, { host, pattern, urls: [] });
     groups.get(key).urls.push(url);
   }
-  // A "templated cluster" = ≥2 visible results sharing host+pattern — the sound
+  // A "templated cluster" = ≥2 visible results sharing host+pattern, the sound
   // signal (siblings are right there), and it avoids marking a lone templated URL.
   const clusters = [...groups.values()]
     .filter((g) => g.urls.length >= 2)
@@ -131,7 +131,7 @@ export function landscapeChip(summary) {
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd apps/extension && node tests/landscape.test.js`
-Expected: PASS — `landscape: all checks passed`.
+Expected: PASS, `landscape: all checks passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -161,9 +161,9 @@ assert.deepStrictEqual(
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/extension && node tests/overlay.test.js`
-Expected: FAIL — color is `undefined` (level not in `LEVELS`).
+Expected: FAIL, color is `undefined` (level not in `LEVELS`).
 
-- [ ] **Step 3: Add the level** — in `overlay.js` change the `LEVELS` const:
+- [ ] **Step 3: Add the level**: in `overlay.js` change the `LEVELS` const:
 
 ```js
 const LEVELS = { ok: "#1a7f37", warn: "#9a6700", flag: "#cf222e", templated: "#0969da" };
@@ -172,7 +172,7 @@ const LEVELS = { ok: "#1a7f37", warn: "#9a6700", flag: "#cf222e", templated: "#0
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `cd apps/extension && node tests/overlay.test.js`
-Expected: PASS — `overlay: all safety checks passed`.
+Expected: PASS, `overlay: all safety checks passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -189,7 +189,7 @@ git commit -m "feat(extension): neutral templated badge level"
 - Create: `apps/extension/src/content/serp/reach.js`
 - Rewrite: `apps/extension/src/content/serp/index.js`
 
-> No unit test: this is DOM/messaging glue (repo convention — pure logic is tested in Tasks 1/2, glue is verified live in Task 4). `mountChip` mirrors `overlay.mountBadge`'s shadow-DOM/`textContent` pattern.
+> No unit test: this is DOM/messaging glue (repo convention: pure logic is tested in Tasks 1/2, glue is verified live in Task 4). `mountChip` mirrors `overlay.mountBadge`'s shadow-DOM/`textContent` pattern.
 
 - [ ] **Step 1: Create `reach.js`**
 
@@ -209,7 +209,7 @@ export function mountChip(text, doc = document) {
     "padding:6px 10px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.3)}";
   const chip = doc.createElement("div");
   chip.className = "c";
-  chip.textContent = `pseolint — ${text}`; // text is our own summary, never page HTML
+  chip.textContent = `pseolint, ${text}`; // text is our own summary, never page HTML
   root.append(style, chip);
   doc.body.appendChild(host);
   return host;
@@ -234,7 +234,7 @@ const auditHref = (url) => AUDIT_PREFILL + encodeURIComponent(url);
 let results = []; // [{ url, anchor }]
 let summary = null;
 
-// Tier 1 — auto, zero permission.
+// Tier 1, auto, zero permission.
 function runLandscape() {
   results = detectResults(document);
   summary = analyzeLandscape(results);
@@ -246,7 +246,7 @@ function runLandscape() {
   mountChip(landscapeChip(summary));
 }
 
-// Tier 2 — opt-in deep scan (side panel asked). Fetch+judge via the SW, paint
+// Tier 2, opt-in deep scan (side panel asked). Fetch+judge via the SW, paint
 // risk badges, and return per-result {verdict, ok} so the panel can show coverage.
 async function deepScan() {
   if (results.length === 0) results = detectResults(document);
@@ -317,7 +317,7 @@ git commit -m "feat(extension): auto Tier-1 landscape on SERP load (reach surfac
 - [ ] **Step 1: Build all bundles**
 
 Run: `cd apps/extension && bun run build`
-Expected: three bundles built (background, serp, popup — popup removed later in Task 8).
+Expected: three bundles built (background, serp, popup, popup removed later in Task 8).
 
 - [ ] **Step 2: Reload + open a SERP**
 
@@ -325,7 +325,7 @@ In Chrome: `chrome://extensions` → reload pseolint → open `https://www.googl
 
 - [ ] **Step 3: Verify reach behavior (no permission prompt)**
 
-Expected: **no Chrome permission prompt**; a `pseolint — N/M results templated · K hosts` chip appears bottom-right; blue `templated` badges sit next to clustered organic results; clicking one opens `pseolint.dev/?prefill=…`. If the chip/badges don't appear, capture the page console + re-tune `detect`/`landscape`.
+Expected: **no Chrome permission prompt**; a `pseolint, N/M results templated · K hosts` chip appears bottom-right; blue `templated` badges sit next to clustered organic results; clicking one opens `pseolint.dev/?prefill=…`. If the chip/badges don't appear, capture the page console + re-tune `detect`/`landscape`.
 
 - [ ] **Step 4: Commit** (only if tuning changed files)
 
@@ -336,7 +336,7 @@ git commit -m "fix(extension): tune reach tier against live SERP"
 
 ---
 
-# Phase 2 — Power tier (side panel + deep scan)
+# Phase 2: Power tier (side panel + deep scan)
 
 ### Task 5: Coverage summary (pure) + SW returns `ok`
 
@@ -348,7 +348,7 @@ git commit -m "fix(extension): tune reach tier against live SERP"
 - [ ] **Step 1: Write the failing test**
 
 ```js
-// apps/extension/tests/coverage.test.js — `node tests/coverage.test.js`
+// apps/extension/tests/coverage.test.js, `node tests/coverage.test.js`
 import assert from "node:assert";
 import { coverage } from "../src/shared/coverage.js";
 
@@ -366,7 +366,7 @@ console.log("coverage: all checks passed");
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/extension && node tests/coverage.test.js`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 - [ ] **Step 3: Implement `coverage.js`**
 
@@ -387,7 +387,7 @@ export function coverage(results) {
 Run: `cd apps/extension && node tests/coverage.test.js`
 Expected: PASS.
 
-- [ ] **Step 5: Make the SW report `ok`** — in `background.js`, replace the `analyze` function body's returns so every path carries `ok`:
+- [ ] **Step 5: Make the SW report `ok`**: in `background.js`, replace the `analyze` function body's returns so every path carries `ok`:
 
 ```js
 async function analyze(url) {
@@ -548,7 +548,7 @@ loadLandscape();
 
 ```bash
 git add apps/extension/sidepanel.html apps/extension/src/ui/sidepanel.js
-git commit -m "feat(extension): side panel — deep scan, coverage, flagged-results list"
+git commit -m "feat(extension): side panel, deep scan, coverage, flagged-results list"
 ```
 
 ---
@@ -561,11 +561,11 @@ git commit -m "feat(extension): side panel — deep scan, coverage, flagged-resu
 - Modify: `apps/extension/package.json` (build + test scripts)
 - Delete: `apps/extension/popup.html`, `apps/extension/src/ui/popup.js`
 
-- [ ] **Step 1: Update `manifest.json`** — replace the `action` + `permissions` region so it reads:
+- [ ] **Step 1: Update `manifest.json`**: replace the `action` + `permissions` region so it reads:
 
 ```json
   "action": {
-    "default_title": "pseolint — scan this SERP",
+    "default_title": "pseolint, scan this SERP",
     "default_icon": { "128": "icons/icon-128.png" }
   },
   "side_panel": { "default_path": "sidepanel.html" },
@@ -579,7 +579,7 @@ git commit -m "feat(extension): side panel — deep scan, coverage, flagged-resu
 
 (Removed `default_popup` and `activeTab`; added `side_panel` + `sidePanel`. `tabs.query`/`sendMessage` to the SERP is covered by the google.com/search host permission.)
 
-- [ ] **Step 2: Set the panel to open on the toolbar click** — in `background.js`, replace the `onInstalled` listener:
+- [ ] **Step 2: Set the panel to open on the toolbar click**: in `background.js`, replace the `onInstalled` listener:
 
 ```js
 chrome.runtime.onInstalled.addListener(() => {
@@ -641,7 +641,7 @@ git commit -m "fix(extension): power-tier fixes from live verification"
 
 ---
 
-# Phase 3 — Visual revamp
+# Phase 3: Visual revamp
 
 ### Task 9: Visual system across all surfaces
 
@@ -651,7 +651,7 @@ git commit -m "fix(extension): power-tier fixes from live verification"
 
 Use `frontend-design` and `ui-ux-pro-max` to produce one cohesive visual system for: the in-page chip, the badges (templated/warn/flag), and the side panel (header, landscape, scan button, progress, list, **a badge legend**, empty/partial/error states). Constraints: brand-aligned with pseolint.dev (dark control surfaces, existing risk palette `#1a7f37`/`#9a6700`/`#cf222e`, neutral `#0969da`, the shipped logo), **vanilla + shadow-DOM** for in-page (§4/§9), accessibility basics (contrast, focus, keyboard, aria).
 
-- [ ] **Step 2: Apply styles** to `reach.js` (chip), `overlay.js` (`STYLE` constant), and `sidepanel.html` (`<style>`). Touch styling only — no behavior changes, so the Task 1/2/5 tests stay green.
+- [ ] **Step 2: Apply styles** to `reach.js` (chip), `overlay.js` (`STYLE` constant), and `sidepanel.html` (`<style>`). Touch styling only: no behavior changes, so the Task 1/2/5 tests stay green.
 
 - [ ] **Step 3: Rebuild + test + live-verify**
 
@@ -667,17 +667,17 @@ git commit -m "feat(extension): visual system across reach chip, badges, side pa
 
 ---
 
-# Phase 4 — Docs
+# Phase 4: Docs
 
 ### Task 10: Update privacy / store / readme to the two-tier behavior
 
 **Files:** `apps/extension/PRIVACY.md`, `apps/extension/STORE.md`, `apps/extension/README.md`
 
-- [ ] **Step 1: PRIVACY.md** — add that the default (Tier-1) reads only the visible SERP and requests **no permission**; deep scan (Tier-2, opt-in) is unchanged. Update the permissions list (no `activeTab`; add side panel; deep-scan host access is gesture-granted).
+- [ ] **Step 1: PRIVACY.md**: add that the default (Tier-1) reads only the visible SERP and requests **no permission**; deep scan (Tier-2, opt-in) is unchanged. Update the permissions list (no `activeTab`; add side panel; deep-scan host access is gesture-granted).
 
-- [ ] **Step 2: STORE.md** — update the description + permission justifications: default is zero-permission landscape; `sidePanel` for the results panel; `https://*/*` optional, requested only on Deep scan. Remove the `activeTab` justification.
+- [ ] **Step 2: STORE.md**: update the description + permission justifications: default is zero-permission landscape; `sidePanel` for the results panel; `https://*/*` optional, requested only on Deep scan. Remove the `activeTab` justification.
 
-- [ ] **Step 3: README.md** — replace the status section with the two-tier flow (auto reach on SERP; toolbar opens side panel; Deep scan opt-in). Update the load-unpacked steps (toolbar opens panel, not popup).
+- [ ] **Step 3: README.md**: replace the status section with the two-tier flow (auto reach on SERP; toolbar opens side panel; Deep scan opt-in). Update the load-unpacked steps (toolbar opens panel, not popup).
 
 - [ ] **Step 4: Commit**
 

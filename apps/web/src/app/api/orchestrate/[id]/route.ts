@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 
 /**
  * Poll endpoint: returns the current state of an orchestrator session,
- * plus the manifest slug if one was produced. Owner-only — surfaces
+ * plus the manifest slug if one was produced. Owner-only: surfaces
  * 404 (not 403) for foreign sessions to avoid leaking session ids.
  *
  * Live event streaming via SSE is Phase 5 batch 2.
@@ -126,7 +126,7 @@ export async function DELETE(
 
   // Dispatch the cancellation event to Inngest. The function declares
   // `cancelOn: [{ event: "orchestrator/cancel-requested", match: "data.sessionId" }]`
-  // — Inngest matches the sessionId and aborts the in-flight function,
+  //: Inngest matches the sessionId and aborts the in-flight function,
   // which stops the next LLM step from billing. The current step's LLM
   // call (if mid-flight) still completes and bills, since the AI SDK has
   // no mid-call cancellation hook for tool-use loops.
@@ -136,7 +136,7 @@ export async function DELETE(
       data: { sessionId: id },
     });
   } catch (e) {
-    // Inngest dispatch failure is non-fatal — DB is the source of truth.
+    // Inngest dispatch failure is non-fatal: DB is the source of truth.
     // The poll endpoint will surface status=aborted regardless. Logging
     // with structured args (not template literal) avoids format-string
     // CWE-134 false-positives from static analysis on user-derived `id`.

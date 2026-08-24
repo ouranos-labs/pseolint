@@ -32,7 +32,7 @@ type Finding = {
   status: "open" | "snoozed" | "dismissed";
   /** GSC traffic for this finding's template signature, when bound + synced. */
   traffic?: { impressions: number; clicks: number } | null;
-  /** Inline remediation pulled from marketing-rules — one-liner + actionable bullets. */
+  /** Inline remediation pulled from marketing-rules: one-liner + actionable bullets. */
   help?: {
     slug: string;
     oneLiner: string;
@@ -46,9 +46,9 @@ type Finding = {
 
 interface FindingsPanelProps {
   findings: Finding[];
-  /** Whether the domain has a GSC property bound — controls rank-source annotation. */
+  /** Whether the domain has a GSC property bound: controls rank-source annotation. */
   gscBound?: boolean;
-  /** Domain host — used to build per-URL deep-dive links. */
+  /** Domain host: used to build per-URL deep-dive links. */
   host: string;
   /** v0.6 Indexing orchestration props */
   domainId: string;
@@ -76,8 +76,8 @@ const SEV_LABEL: Record<Severity, string> = {
 const PAGE_SIZE = 50;
 
 export function FindingsPanel({ 
-  findings, 
-  gscBound = false, 
+  findings,
+  gscBound = false,
   host,
   domainId,
   indexingIntegrations,
@@ -296,7 +296,7 @@ function CleanState({ hasSuppressed, onShow }: { hasSuppressed: boolean; onShow:
       <p className="mt-1.5 text-sm text-muted-foreground">
         {hasSuppressed
           ? "Everything has been snoozed or dismissed."
-          : "Nothing to fix — this domain is clean."}
+          : "Nothing to fix; this domain is clean."}
       </p>
       {hasSuppressed && (
         <button onClick={onShow} className="mt-3 text-xs text-primary hover:underline">
@@ -308,9 +308,9 @@ function CleanState({ hasSuppressed, onShow }: { hasSuppressed: boolean; onShow:
 }
 
 function SeverityGroup({ 
-  sev, 
-  rows, 
-  gscBound, 
+  sev,
+  rows,
+  gscBound,
   host,
   domainId,
   indexingIntegrations,
@@ -318,9 +318,9 @@ function SeverityGroup({
   recentIndexingRequests,
   indexedUrls
 }: { 
-  sev: Severity; 
-  rows: Finding[]; 
-  gscBound: boolean; 
+  sev: Severity;
+  rows: Finding[];
+  gscBound: boolean;
   host: string;
   domainId: string;
   indexingIntegrations: ("google-indexing" | "indexnow")[];
@@ -360,8 +360,8 @@ function SeverityGroup({
 }
 
 function FindingRow({ 
-  f, 
-  gscBound, 
+  f,
+  gscBound,
   host,
   domainId,
   indexingIntegrations,
@@ -369,8 +369,8 @@ function FindingRow({
   recentIndexingRequests,
   indexedUrls
 }: { 
-  f: Finding; 
-  gscBound: boolean; 
+  f: Finding;
+  gscBound: boolean;
   host: string;
   domainId: string;
   indexingIntegrations: ("google-indexing" | "indexnow")[];
@@ -419,7 +419,7 @@ function FindingRow({
             {f.carriedForward && (
               <span
                 className="inline-flex items-center rounded-full border border-border/50 bg-card/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-                title={f.lastVerifiedAt ? `This finding was carried forward from a prior monitoring run — last actually re-verified at ${new Date(f.lastVerifiedAt).toLocaleString()}` : "Carried forward from a prior monitoring run"}
+                title={f.lastVerifiedAt ? `This finding was carried forward from a prior monitoring run, last actually re-verified at ${new Date(f.lastVerifiedAt).toLocaleString()}` : "Carried forward from a prior monitoring run"}
               >
                 Carried forward {f.lastVerifiedAt && `· verified ${relTime(new Date(f.lastVerifiedAt))}`}
               </span>
@@ -439,7 +439,7 @@ function FindingRow({
             <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
               <span
                 className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/5 px-2 py-0.5 text-success"
-                title="Trailing 28-day GSC traffic for this template — used to weight the rank score"
+                title="Trailing 28-day GSC traffic for this template: used to weight the rank score"
               >
                 <span className="h-1 w-1 rounded-full bg-success" />
                 {fmt(f.traffic!.impressions)} impressions
@@ -576,8 +576,8 @@ function RankChip({ rankScore, hasTraffic, gscBound }: { rankScore: string; hasT
       className="hidden items-center gap-1 text-muted-foreground/80 sm:inline-flex"
       title={
         gscBound
-          ? "No GSC traffic recorded for this template — rank uses severity × pages"
-          : "No GSC binding — rank uses severity × pages. Bind a property to weight by traffic."
+          ? "No GSC traffic recorded for this template: rank uses severity × pages"
+          : "No GSC binding, rank uses severity × pages. Bind a property to weight by traffic."
       }
     >
       <span className="text-[10px]">~</span>
@@ -587,7 +587,7 @@ function RankChip({ rankScore, hasTraffic, gscBound }: { rankScore: string; hasT
 }
 
 /**
- * Inline remediation drawer — collapsed by default to keep the row scannable,
+ * Inline remediation drawer: collapsed by default to keep the row scannable,
  * expanded on click for users who want the actionable bullets without opening
  * the marketing-rules page in a separate tab. Closes the "rule fired but how
  * do I fix it?" gap that used to require a context switch.

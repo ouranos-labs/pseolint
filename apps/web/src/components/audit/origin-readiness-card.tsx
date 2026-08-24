@@ -2,7 +2,7 @@ import type { AnyAuditSummary, ReadinessReport } from "@/lib/audit-types";
 import { isV04Summary } from "@/lib/audit-types";
 
 /**
- * Origin-readiness summary card — sits above the Findings list.
+ * Origin-readiness summary card: sits above the Findings list.
  *
  * Reads the structured readiness report from the appropriate location for
  * each schema version:
@@ -72,14 +72,14 @@ export function OriginReadinessCard({ summary }: { summary: AnyAuditSummary }) {
   // it. `crawlStats` lives on the v0.4 `diagnostics` object only; legacy v0.3
   // summaries lack it (don't render "discovered 0" for those). `skippedUrls`
   // is a bare URL list with no per-URL reasons, so we can't build a reason
-  // rollup from it — we report `crawlStats.skipped` as the aggregate instead.
+  // rollup from it; we report `crawlStats.skipped` as the aggregate instead.
   const crawlStats = v04 ? summary.diagnostics.crawlStats : undefined;
 
   const interpretation =
     report.verdict === "ready"
       ? "Your origin handled the crawl cleanly. Under Googlebot / AI-crawler bursts you should be fine."
       : report.verdict === "concerning"
-      ? "Latency is high. Search-engine and AI-crawler bursts will amplify this — consider an edge cache or app-layer query cache."
+      ? "Latency is high. Search-engine and AI-crawler bursts will amplify this: consider an edge cache or app-layer query cache."
       : "Origin looks unprepared for crawl load. A cache-cold dynamic origin at this rate will struggle under bot traffic and may leak to your database bill.";
 
   return (

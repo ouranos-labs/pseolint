@@ -56,7 +56,7 @@ export class SessionState {
    * Mark `finish_audit` was called and capture its manifest. The runner
    * reads this to detect completion. `manifest` may be null only in the
    * pathological case where the AI SDK fired a finish_audit tool_result
-   * event but the matching tool_call's input couldn't be located — keep
+   * event but the matching tool_call's input couldn't be located: keep
    * the session as "finished" so the loop terminates, but the result will
    * carry a null manifest and the caller can detect the partial state.
    */

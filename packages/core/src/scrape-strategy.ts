@@ -52,10 +52,10 @@ export interface ScrapeStrategyInputs {
   ageFloorDays: number;
   now: Date;
   /**
-   * v0.5.3 — caller-supplied "watched pages" list. Any URL appearing here is
+   * v0.5.3: caller-supplied "watched pages" list. Any URL appearing here is
    * marked refetch with reason `"watched"` and short-circuits the rest of the
    * matrix (age, ruleset, lastmod, etc.). Watched URLs that aren't already in
-   * `candidateUrls` are still added to the audit set — the caller may
+   * `candidateUrls` are still added to the audit set: the caller may
    * legitimately watch a page that has been removed from the sitemap and we
    * should still audit it so they find out it's gone.
    *
@@ -65,7 +65,7 @@ export interface ScrapeStrategyInputs {
    */
   forceRefetchUrls?: ReadonlyArray<string>;
   /**
-   * v0.5.4 — optional budget cap for candidate URL selection. When set,
+   * v0.5.4: optional budget cap for candidate URL selection. When set,
    * `planScrapeStrategy` will apply template-stratified sampling to narrow
    * `candidateUrls` down to this budget before running the per-URL decision
    * matrix. Watched URLs (from `forceRefetchUrls`) bypass this budget and
@@ -76,7 +76,7 @@ export interface ScrapeStrategyInputs {
    *      we can take everything)
    *   2. `clusterUrlTemplates` produces ≥2 clusters AND the largest cluster
    *      covers ≤80% of the candidate pool (if one template dominates 90%+,
-   *      there is nothing to balance — falls back to uniform sampling).
+   *      there is nothing to balance: falls back to uniform sampling).
    *
    * When stratification doesn't activate, a simple sequential prefix slice is
    * used (preserving the caller's ordering). The decision matrix runs only
@@ -150,7 +150,7 @@ function stratifiedUrlSample(
 /**
  * Narrow `candidateUrls` to `sampleSize` using template-stratified sampling,
  * falling back to a sequential prefix slice when stratification conditions
- * aren't met. `watchedSet` URLs are excluded from consideration here — the
+ * aren't met. `watchedSet` URLs are excluded from consideration here: the
  * caller handles them separately.
  *
  * "Long-tail" definition: templates that cover ≤1% of the candidate pool OR
@@ -162,7 +162,7 @@ function applyStratifiedSample(
   sampleSize: number,
   watchedSet: ReadonlySet<string> | null,
 ): string[] {
-  // Filter out watched URLs — they bypass the budget entirely.
+  // Filter out watched URLs; they bypass the budget entirely.
   const pool = watchedSet
     ? candidateUrls.filter((u) => !watchedSet.has(u))
     : Array.from(candidateUrls);
@@ -260,7 +260,7 @@ function gscExceedsThreshold(delta: GscDelta, thresholds: GscThresholds): boolea
 /**
  * Returns true when the URL has at least one prior finding whose severity is
  * in `RECHECK_SEVERITIES`. Informational findings alone do NOT trigger
- * recheck — they're carried forward. Pre-v0.5 state files (or carriers from
+ * recheck: they're carried forward. Pre-v0.5 state files (or carriers from
  * older runs) only have `findingIds`; for those we can't tell severity, so we
  * assume worst-case and recheck. New runs persist full Finding records, so
  * the severity-gated path applies on the very next monitoring run.
@@ -269,7 +269,7 @@ function priorFindingsTriggerRecheck(prior: RunState["urls"][string]): boolean {
   if (prior.findings.length > 0) {
     return prior.findings.some((f) => RECHECK_SEVERITIES.has(f.severity));
   }
-  // Fallback: legacy entries with findingIds but no full records — be safe.
+  // Fallback: legacy entries with findingIds but no full records, be safe.
   return prior.findingIds.length > 0;
 }
 

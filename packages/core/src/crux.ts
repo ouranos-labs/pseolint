@@ -39,7 +39,7 @@ function originOf(url: string): string | null {
   }
 }
 
-/** Bounded-concurrency map — runs `fn` over `items` with at most `limit` in flight. */
+/** Bounded-concurrency map: runs `fn` over `items` with at most `limit` in flight. */
 async function mapPool<T, R>(
   items: readonly T[],
   limit: number,
@@ -59,9 +59,9 @@ async function mapPool<T, R>(
 
 /**
  * Chrome UX Report field-data client. Returns real-user p75 for LCP, CLS, and
- * INP — the metrics Google actually ranks on, including INP, which a passive
+ * INP: the metrics Google actually ranks on, including INP, which a passive
  * lab render can't produce. Requires a free CrUX API key; with no key it makes
- * no calls. Any per-key failure resolves to "no data" — never throws, so a
+ * no calls. Any per-key failure resolves to "no data": never throws, so a
  * missing-field-data page just falls back to lab vitals.
  *
  * CrUX only has data for URLs/origins with enough real traffic. Most pSEO
@@ -73,7 +73,7 @@ async function mapPool<T, R>(
  * `maxUrlLookups`: undefined → default cap (150); `0` → unlimited (matches the
  * `--sample-size` / `--max-per-template` "0 = all" convention). Operational
  * failures (429 rate-limit, 401/403 bad key, 5xx, network) are surfaced via
- * `onHttpError` — a 404 is NOT an error (it just means "no field data").
+ * `onHttpError`: a 404 is NOT an error (it just means "no field data").
  */
 export async function fetchCruxFieldVitals(
   urls: readonly string[],

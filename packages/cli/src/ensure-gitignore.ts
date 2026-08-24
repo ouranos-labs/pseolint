@@ -2,7 +2,7 @@ import { access, appendFile, readFile, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
 const GITIGNORE_BLOCK = `
-# pseolint runtime (cache, state, telemetry — can reach 1 GB+ on large pSEO sites)
+# pseolint runtime (cache, state, telemetry: can reach 1 GB+ on large pSEO sites)
 .pseolint/
 `;
 
@@ -26,7 +26,7 @@ async function findRepoRoot(start: string): Promise<string | null> {
       const s = await stat(join(dir, ".git"));
       if (s.isDirectory() || s.isFile()) return dir;
     } catch {
-      // .git not here — keep walking up.
+      // .git not here; keep walking up.
     }
     const parent = dirname(dir);
     if (parent === dir) return null;
@@ -57,7 +57,7 @@ export interface EnsureGitignoreResult {
  * Ensure the nearest git repo's root `.gitignore` excludes `.pseolint/`. No-op
  * if CWD isn't inside a git repo, or the file already ignores the folder.
  *
- * Never creates `.gitignore` from scratch — only appends when the file already
+ * Never creates `.gitignore` from scratch: only appends when the file already
  * exists. (A repo with no `.gitignore` is often intentional; we don't want to
  * surprise users with a new tracked file.)
  */
@@ -70,7 +70,7 @@ export async function ensurePseolintGitignored(cwd: string): Promise<EnsureGitig
   try {
     existing = await readFile(gitignorePath, "utf8");
   } catch {
-    // No .gitignore at repo root — don't create one silently.
+    // No .gitignore at repo root; don't create one silently.
     try {
       await access(gitignorePath);
       return { gitignorePath, modified: false, reason: "error" };

@@ -24,7 +24,7 @@ const outputSchema = z.object({
 export const checkRuleMissingAuthorTool = defineTool({
   name: "check_rule_missing_author",
   description:
-    "Check if a previously-fetched page has any author attribution signal (meta[name=author], JSON-LD author, visible byline, rel=author link). Returns a warning finding when none are present. Severity is `warning` (not `error`) because docs/product/marketing pages legitimately ship without bylines — this matters most on blog/news content.",
+    "Check if a previously-fetched page has any author attribution signal (meta[name=author], JSON-LD author, visible byline, rel=author link). Returns a warning finding when none are present. Severity is `warning` (not `error`) because docs/product/marketing pages legitimately ship without bylines; this matters most on blog/news content.",
   inputSchema,
   outputSchema,
   async execute({ pageId }) {

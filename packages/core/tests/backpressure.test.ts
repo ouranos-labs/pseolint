@@ -19,7 +19,7 @@ function obs(partial: Partial<FetchObservation> = {}): FetchObservation {
 
 describe("BackpressureMonitor", () => {
   it("never trips during the warmup window", () => {
-    // First 10 fetches establish the baseline — no aborts even if slow.
+    // First 10 fetches establish the baseline: no aborts even if slow.
     const m = new BackpressureMonitor({ warmupSize: 10, absoluteP95Ms: 3000, baselineMultiplier: 2, errorRatioThreshold: 0.1 });
     for (let i = 0; i < 10; i++) {
       const decision = m.record(obs({ durationMs: 5000, status: 500 }));
@@ -68,7 +68,7 @@ describe("BackpressureMonitor", () => {
   it("does NOT trip when 5xx ratio equals threshold exactly (regression for prod bug)", () => {
     // 2026-05-03 production fix: the old `>=` comparison aborted at the EXACT
     // threshold. 3 of 15 = 0.2 exactly. With strict `>`, this should NOT trip
-    // — pseolint.dev was aborting every audit because the engine read
+    //: pseolint.dev was aborting every audit because the engine read
     // "5xx rate 10% exceeds threshold 10%" while not actually exceeding.
     const m = new BackpressureMonitor({ warmupSize: 5, absoluteP95Ms: 999_999, baselineMultiplier: 999, errorRatioThreshold: 0.2 });
     for (let i = 0; i < 5; i++) m.record(obs({ status: 200 }));
@@ -81,7 +81,7 @@ describe("BackpressureMonitor", () => {
 
   it("ignores pure cache hits (they're not origin load)", () => {
     const m = new BackpressureMonitor({ warmupSize: 3, absoluteP95Ms: 3000, baselineMultiplier: 2, errorRatioThreshold: 0.1 });
-    // All cache hits regardless of recorded durationMs — monitor should never trip.
+    // All cache hits regardless of recorded durationMs: monitor should never trip.
     for (let i = 0; i < 100; i++) {
       const d = m.record(obs({ fromCache: true, durationMs: 10_000, status: 500 }));
       expect(d.shouldAbort).toBe(false);

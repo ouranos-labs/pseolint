@@ -1,4 +1,4 @@
-// `node tests/landscape.test.js` — pure, no DOM.
+// `node tests/landscape.test.js`: pure, no DOM.
 import assert from "node:assert";
 import { analyzeLandscape, landscapeChip } from "../src/content/serp/landscape.js";
 

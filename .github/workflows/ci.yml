@@ -5,19 +5,181 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a run on main: that is the run whose result the release flow
+  # and the branch history are read from.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   checks:
+    name: Lint, typecheck, build, test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # scripts/no-em-dash.mjs --diff resolves a merge-base with `main`.
+          # actions/checkout defaults to fetch-depth: 1, which leaves the
+          # checkout with neither `main` nor `origin/main`; the script then
+          # degrades to checking EVERY line of every file it is given, which
+          # turns "lines this PR added" into "the whole repo's history" and
+          # fails on prose that predates the gate. Full history keeps the gate
+          # scoped to the diff.
+          fetch-depth: 0
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.14"
+
       - name: Install dependencies
         run: bun install
+
+      # packages/core/tests/renderer.test.ts and renderer-resources.test.ts are
+      # `it.skipIf(!hasBrowser())`: they gate on the pinned Chromium build
+      # existing on disk. There was no install step, so both skipped on every CI
+      # run they have ever had. That mattered: renderer-resources.test.ts is the
+      # only coverage of the Resource Timing plumbing behind tech/resource-weight.
+      # Measured cost: ~40 s to install, ~2.2 s to run both files.
+      - name: Install Chromium for the renderer tests
+        run: bun node_modules/playwright-core/cli.js install --with-deps chromium
+
+      # A skipped browser test is reported identically to a passing one. If the
+      # install above ever silently produces nothing, fail here rather than ship
+      # a green run in which the renderer was never exercised. This mirrors the
+      # tests' own hasBrowser() predicate exactly.
+      - name: Assert the pinned browser is present
+        run: |
+          bun -e '
+            const { existsSync } = require("node:fs");
+            const p = require("playwright-core").chromium.executablePath();
+            if (!existsSync(p)) {
+              console.error("::error::Chromium missing at " + p + " - the renderer tests would skip silently.");
+              process.exit(1);
+            }
+            console.log("Chromium present at " + p);
+          '
+
       - name: Lint
         run: bun run lint
+
+      # `lint` happens to be `tsc --noEmit` per workspace, so type coverage was
+      # incidental rather than declared, and it silently missed the workspaces
+      # with no `lint` script at all. Invoking typecheck explicitly means a
+      # package that lacks the script is a visible gap in the turbo summary
+      # instead of a package nothing ever analysed.
+      - name: Typecheck
+        run: bun run typecheck
+
+      # Guard the gate itself: `emdash:copy-paths` is a git pathspec list, and a
+      # pathspec that stops matching (a renamed directory, a stray quote) makes
+      # the gate below pass by checking nothing. Fail if the covered set
+      # collapses.
+      - name: Assert the em dash gate still covers the copy surfaces
+        run: |
+          n="$(bun run --silent emdash:copy-paths | wc -l)"
+          echo "em dash gate covers $n files"
+          if [ "$n" -lt 400 ]; then
+            echo "::error::em dash gate collapsed to $n files; the pathspec in package.json stopped matching."
+            exit 1
+          fi
+
+      # Hard gate. Scope: source and docs, minus tests and fixtures. In those
+      # paths an em dash is copy, not data, so [literal] and [escaped] findings
+      # fail the build alongside prose ones. That is deliberate: the case this
+      # exists for is user-facing text sitting in a string prop: the terms page
+      # in apps/web/src carries an escaped dash inside a `title=` attribute
+      # today, which is reported as [escaped] and must not be waved through.
+      #
+      # Test files and fixtures are excluded because there the em dash genuinely
+      # is the subject matter (assertions on separator handling, scraped HTML).
+      # packages/core/src/rules/content/title-uniqueness.ts is excluded for one
+      # narrow reason: no-em-dash.mjs matches the escaped spellings against the
+      # RAW line, without the literal masking it applies to bare dashes, so it
+      # flags the escape inside that file's TITLE_SEPARATOR regex character
+      # class. Drop the exclusion once the escaped check is masked like the
+      # literal one.
+      - name: Em dash gate (source and docs)
+        run: bun run lint:emdash:copy
+
+      # Whole-repo report, advisory. Runs unconditionally and publishes to the
+      # job summary so "clean" and "never looked" are different-looking outcomes
+      # even for the surfaces the hard gate does not cover.
+      - name: Em dash report, whole repo (advisory)
+        if: always()
+        run: |
+          {
+            echo "### Em dash report (advisory, whole repo)"
+            echo
+            echo "Findings here do not fail the build; the hard gate is the step above."
+            echo
+            echo '```'
+            bun run lint:emdash 2>&1 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Build
         run: bun run build
+
+      # The calibration ratchet is part of `bun run test`, but this job does not
+      # produce scripts/calibration-results.json: the `calibration` job below
+      # does, and owns that gate. Declare the opt-out here rather than letting
+      # the suite default to skipping, so any future job that runs the tests
+      # without producing the input fails loudly instead of passing quietly.
       - name: Test
+        env:
+          PSEOLINT_CALIBRATION_MAY_SKIP: "1"
         run: bun run test
+
+  calibration:
+    name: Calibration ratchet
+    runs-on: ubuntu-latest
+    # A --fixtures-only run is ~4 minutes locally; the ceiling is generous so a
+    # hang shows up as a timeout rather than a six-hour job.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install
+
+      # The ratchet at packages/core/tests/calibration/reputable-corpus.test.ts
+      # reads scripts/calibration-results.json, which is gitignored and so can
+      # never exist on a fresh checkout: the suite skipped itself on every CI run
+      # since it was written, and a skip reads as a pass. Producing the file here
+      # is what turns it into a gate.
+      #
+      # `--fixtures-only` audits the committed fixtures under
+      # packages/core/calibration/fixtures and makes no network requests, so this
+      # is hermetic and deterministic; the live-HTTP sites are dropped. The
+      # runner itself exits non-zero on a HARD verdict regression against
+      # packages/core/calibration/baseline-scorecard.json.
+      - name: Run the corpus against committed fixtures
+        run: bun run calibrate:corpus
+
+      # Second, independent gate over the same results: per-site verdict
+      # ceilings, the >80% fire-rate rule, a floor on how many reputable sites
+      # were actually gated, and a ratchet on AUC / precision / recall. CI=true
+      # (set by GitHub Actions) makes this suite fail rather than skip when its
+      # input is missing or stale. Runs even if the step above failed, so one run
+      # reports every regression instead of only the first.
+      - name: Ratchet verdict ceilings and the scorecard
+        if: always()
+        env:
+          CI: "true"
+        run: bun run test:calibration
+
+      - name: Upload the calibration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: calibration-results
+          path: |
+            scripts/calibration-results.json
+            scripts/calibration-results.md
+          if-no-files-found: error
+          retention-days: 14

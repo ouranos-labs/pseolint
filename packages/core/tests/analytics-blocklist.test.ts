@@ -24,7 +24,7 @@ describe("isAnalyticsRequest", () => {
   it("allows same-origin when mode is allow-first-party", () => {
     const self = "https://example.com";
     // First-party path on the same origin is allowed even if host substring matches
-    // — the origin check wins before the blocklist is consulted.
+    //: the origin check wins before the blocklist is consulted.
     expect(
       isAnalyticsRequest(`${self}/api/analytics/pageview`, {
         mode: "allow-first-party",
@@ -86,7 +86,7 @@ describe("isAnalyticsRequest", () => {
   });
 
   it("DEFAULT_ANALYTICS_HOSTS contains only host tokens (no paths)", () => {
-    // `host.includes(token)` is the matcher — a token containing `/` can never
+    // `host.includes(token)` is the matcher: a token containing `/` can never
     // match any URL's host and would silently do nothing.
     for (const token of DEFAULT_ANALYTICS_HOSTS) {
       expect(token).not.toMatch(/\//);
@@ -96,7 +96,7 @@ describe("isAnalyticsRequest", () => {
 
   it("allow-first-party: opaque origins (about:blank, data:) never count as first-party", () => {
     // If page origin resolves to "null" (opaque), analytics from real hosts must
-    // still be blocked — the opaque origin must never be treated as matching.
+    // still be blocked: the opaque origin must never be treated as matching.
     expect(
       isAnalyticsRequest("https://www.google-analytics.com/g/collect", {
         mode: "allow-first-party",

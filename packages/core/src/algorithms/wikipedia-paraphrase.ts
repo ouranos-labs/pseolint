@@ -4,7 +4,7 @@
  * Loads the prebuilt Wikipedia trigram bloom filter and provides a
  * paraphrase-rate estimator. Used by content/wikipedia-paraphrase rule.
  *
- * v0.6.2 — bloom filter inlined as base64 to remove filesystem dependency.
+ * v0.6.2: bloom filter inlined as base64 to remove filesystem dependency.
  * Production hotfix: Vercel serverless deployments couldn't resolve the
  * relative file path. Inlining the 8 KB binary into the JS source removes
  * deployment-config dependencies and makes the rule work in any runtime
@@ -17,7 +17,7 @@
  * FP rate ~5% for the curated corpus of ~10 k unique trigrams.
  *
  * If the underlying corpus is regenerated via `bun run build-wikipedia-bloom`,
- * also re-run the inline script that produced BLOOM_BASE64 below — see
+ * also re-run the inline script that produced BLOOM_BASE64 below: see
  * `scripts/inline-wikipedia-bloom.ts` (or regenerate manually):
  *   node -e "console.log(require(node:fs).readFileSync(packages/core/data/wikipedia-trigrams.bin).toString(base64))"
  */
@@ -45,7 +45,7 @@ export function loadWikipediaBloomFilter(): Uint8Array {
   if (_cache !== null) return _cache;
   // Buffer.from is available in Node + Bun. For browser/edge runtimes that
   // lack it, atob + manual conversion would be the fallback (not needed yet
-  // — the engine runs server-side only).
+  //: the engine runs server-side only).
   const decoded = typeof Buffer !== "undefined"
     ? Buffer.from(BLOOM_BASE64, "base64")
     : Uint8Array.from(atob(BLOOM_BASE64), (c) => c.charCodeAt(0));
@@ -76,7 +76,7 @@ function extractTrigrams(text: string): string[] {
 
 /**
  * Compute the paraphrase rate of `text` against the Wikipedia reference
- * corpus. Returns a value in [0, 1] — the fraction of trigrams that are
+ * corpus. Returns a value in [0, 1]: the fraction of trigrams that are
  * present in the bloom filter. Returns 0 for text shorter than 3 tokens.
  */
 export function wikipediaParaphraseRate(text: string): number {

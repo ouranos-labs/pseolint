@@ -74,7 +74,7 @@ function buildSummary(opts: {
         skipped: 0,
       },
     },
-    // Legacy compat shim — the formatters MUST NOT consume these.
+    // Legacy compat shim; the formatters MUST NOT consume these.
     score: opts.risk ?? 42,
     categoryScores: {
       spam: 0,
@@ -180,7 +180,7 @@ const enrichedSummary = buildSummary({
 });
 
 // ── console formatter ──────────────────────────────────────────────────
-describe("formatConsole — v0.4 output", () => {
+describe("formatConsole: v0.4 output", () => {
   it("renders verdict line and category grade strip", () => {
     const out = formatConsole(mockSummary, { noColor: true });
     expect(out).toContain("Verdict: CAUTION");
@@ -270,7 +270,7 @@ describe("formatConsole — v0.4 output", () => {
 });
 
 // ── markdown formatter ─────────────────────────────────────────────────
-describe("formatMarkdown — v0.4 output", () => {
+describe("formatMarkdown: v0.4 output", () => {
   it("renders Verdict and Risk header", () => {
     const out = formatMarkdown(mockSummary);
     expect(out).toContain("# pseolint report");
@@ -289,7 +289,7 @@ describe("formatMarkdown — v0.4 output", () => {
   it("renders three issue buckets with docs links", () => {
     // 2026-05-03 calibration credibility fix: informational findings now
     // collapse behind a <details> block by default. Webflow's templates
-    // gallery had 118 info findings — rendered as 118 markdown bullets,
+    // gallery had 118 info findings: rendered as 118 markdown bullets,
     // they drowned the actionable signal. The summary line preserves the
     // count for visibility.
     const out = formatMarkdown(mockSummary);
@@ -337,7 +337,7 @@ describe("formatMarkdown — v0.4 output", () => {
 });
 
 // ── json formatter ────────────────────────────────────────────────────
-describe("formatJson — v0.4 output", () => {
+describe("formatJson: v0.4 output", () => {
   it("preserves the full v0.4 shape verbatim", () => {
     const parsed = JSON.parse(formatJson(enrichedSummary));
     expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
@@ -363,7 +363,7 @@ describe("formatJson — v0.4 output", () => {
 });
 
 // ── html formatter ────────────────────────────────────────────────────
-describe("formatHtml — v0.4 output", () => {
+describe("formatHtml: v0.4 output", () => {
   it("renders the verdict badge and four category tiles", () => {
     const out = formatHtml(mockSummary);
     expect(out).toContain("verdict-badge");
@@ -502,7 +502,7 @@ describe("aeoScoreLabel", () => {
 });
 
 // ── fixplan formatter ──────────────────────────────────────────────────
-describe("formatFixplan — markdown checklist output", () => {
+describe("formatFixplan: markdown checklist output", () => {
   it("emits the 'no findings' line when there's nothing to fix", () => {
     const summary = buildSummary({ verdict: "ready", risk: 5, findings: [] });
     const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
@@ -640,7 +640,7 @@ describe("formatFixplan — markdown checklist output", () => {
         ruleId: "audit/skipped-by-policy",
         severity: "info",
         message:
-          "Skipped 3 pages from rule evaluation — 1 marked noindex, 2 detected as auth (login/register/etc). First few: a, b, c.",
+          "Skipped 3 pages from rule evaluation, 1 marked noindex, 2 detected as auth (login/register/etc). First few: a, b, c.",
       },
     ];
     const out = formatFixplan(summary, { generatedDate: "2026-04-30" });
@@ -653,7 +653,7 @@ describe("formatFixplan — markdown checklist output", () => {
 });
 
 // ── template bucketing helper ──────────────────────────────────────────
-describe("bucketByTemplate — collapses findings by (ruleId, templateSignature)", () => {
+describe("bucketByTemplate: collapses findings by (ruleId, templateSignature)", () => {
   function mk(over: Partial<RuleResult>): RuleResult {
     return {
       ruleId: "aeo/citable-facts",
@@ -748,8 +748,8 @@ describe("bucketByTemplate — collapses findings by (ruleId, templateSignature)
   });
 });
 
-// ── console formatter — bucketed top fixes ─────────────────────────────
-describe("formatConsole — template bucketing in top fixes", () => {
+// ── console formatter: bucketed top fixes ─────────────────────────────
+describe("formatConsole: template bucketing in top fixes", () => {
   function summaryWithFindings(findings: RuleResult[]): AuditSummary {
     return buildSummary({ verdict: "concerning", risk: 55, findings });
   }
@@ -808,7 +808,7 @@ describe("formatConsole — template bucketing in top fixes", () => {
     // Two findings on the SAME pageUrl with no template signature would bucket
     // by pageUrl. The signature is `/about` (single-segment), still inferred,
     // but template is just the path. Use a root URL where signature == pageUrl
-    // path so the template bucket label still makes sense — instead, simulate
+    // path so the template bucket label still makes sense: instead, simulate
     // by using two findings on the SAME concrete pageUrl that the inference
     // returns as the path itself ("__site__"-style fallback path). To force
     // the "affected pages" branch, use site-wide findings on the same rule.
@@ -831,8 +831,8 @@ describe("formatConsole — template bucketing in top fixes", () => {
   });
 });
 
-// ── markdown formatter — bucketed buckets ──────────────────────────────
-describe("formatMarkdown — template bucketing in severity sections", () => {
+// ── markdown formatter: bucketed buckets ──────────────────────────────
+describe("formatMarkdown: template bucketing in severity sections", () => {
   it("renders a bucket header + 'Fix once, resolve all N' callout for template buckets", () => {
     const summary = buildSummary({
       verdict: "concerning",
@@ -884,7 +884,7 @@ describe("formatMarkdown — template bucketing in severity sections", () => {
       ],
     });
     const out = formatMarkdown(summary);
-    // No `### aeo/...` header — single findings stay as bullets.
+    // No `### aeo/...` header: single findings stay as bullets.
     expect(out).toMatch(/- \*\*`spam\/thin-content`\*\*/);
     expect(out).not.toContain("× 1");
     expect(out).not.toContain("Fix once, resolve all 1");

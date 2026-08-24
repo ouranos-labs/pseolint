@@ -22,7 +22,7 @@ export default async function GrowthDashboard() {
   if (!latest) {
     return (
       <main style={{ padding: 24 }}>
-        <h1>Growth — self-measurement</h1>
+        <h1>Growth: self-measurement</h1>
         <p>No data yet. The first sync runs Monday 04:00 UTC (requires GROWTH_GSC_* configured and an owner GSC grant).</p>
       </main>
     );
@@ -49,7 +49,7 @@ export default async function GrowthDashboard() {
 
   return (
     <main style={{ padding: 24 }}>
-      <h1>Growth — self-measurement</h1>
+      <h1>Growth: self-measurement</h1>
       <p>Week {latest.weekBucket}</p>
       <p>
         <strong>Indexation rate:</strong> {summary.withImpressions}/{summary.published} growth pages

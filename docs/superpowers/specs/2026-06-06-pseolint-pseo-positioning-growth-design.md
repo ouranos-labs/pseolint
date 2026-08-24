@@ -1,4 +1,4 @@
-# pseolint.dev — Positioning & pSEO Growth Design
+# pseolint.dev: Positioning & pSEO Growth Design
 
 **Date:** 2026-06-06
 **Status:** Draft for review
@@ -7,7 +7,7 @@
 ## Origin
 
 The trigger for this work: a feeling that pseolint.dev's *own* programmatic-SEO
-potential is wasted. The irony is sharp — a tool whose entire job is auditing
+potential is wasted. The irony is sharp, a tool whose entire job is auditing
 programmatic-SEO sites publishes only ~20 marketing pages of its own while
 sitting on a self-replenishing firehose of structured audit data.
 
@@ -21,22 +21,22 @@ is not the answer; positioning + measurement are.**
 These were considered and killed. Recording them so they don't get
 re-proposed:
 
-1. **Named-domain firehose** — `/site/[domain]` pages at scale for every
-   audited site. Rejected: (a) it *is* scaled content abuse — pseolint would
+1. **Named-domain firehose**: `/site/[domain]` pages at scale for every
+   audited site. Rejected: (a) it *is* scaled content abuse, pseolint would
    fail its own audit and risk deindexing the root domain; (b) defamation /
    trade-libel exposure, made worse by our own documented blind spots
-   (`blind_spots_audit`); (c) intent mismatch — people looking up a
+   (`blind_spots_audit`); (c) intent mismatch, people looking up a
    competitor's site don't convert to monitoring *their own* site.
-2. **Large prose topic corpus on a young domain** — won't rank without an
+2. **Large prose topic corpus on a young domain**: won't rank without an
    authority/link foundation; won't convert; clonable by any competitor with a
    writer.
-3. **AEO-first reorientation** — *less* measurable than Google SEO (no
+3. **AEO-first reorientation**: *less* measurable than Google SEO (no
    Search Console for LLMs) and *more* zero-click. Wrong response to a
    measurement gap. AEO stays a *byproduct* of good structured pages, not the
    strategy.
-4. **Free public "rate any URL" tool, ungated** — gives away core compute at
+4. **Free public "rate any URL" tool, ungated**: gives away core compute at
    scale, invites abuse/crawler-blacklisting, and cannibalizes Pro.
-5. **Broad "content-quality / SEO audit" repositioning** — commodity
+5. **Broad "content-quality / SEO audit" repositioning**: commodity
    competition vs. Surfer/Clearscope/Semrush/Ahrefs; dilutes the moat;
    un-rankable on a young domain.
 
@@ -63,7 +63,7 @@ publishers, large affiliate/blog operations.
 ### Trigger event
 
 A **traffic drop** or a **core-update scare**. This is when the buyer goes from
-indifferent to urgent — the moment the funnel is built around.
+indifferent to urgent, the moment the funnel is built around.
 
 ### Why A beats the alternatives
 
@@ -71,19 +71,19 @@ indifferent to urgent — the moment the funnel is built around.
   a commodity, because the engine and authority stay specialized.
 - A panicked symptom-searcher converts far better than a curious "best pSEO
   sites" browser.
-- It contains the purist option: we still build `/rules` and `/tools` pages —
+- It contains the purist option: we still build `/rules` and `/tools` pages:
   they become the *authority-proof layer*, not the front door.
 
 ## The surviving kernel (what we build)
 
 Ordered by dependency, not by excitement.
 
-### 1. GSC-live first — the load-bearing dependency
+### 1. GSC-live first: the load-bearing dependency
 
 Currently stubbed (roadmap v1.1). Everything else depends on it:
 
 - **Measurement:** without GSC we cannot measure whether our own pSEO program
-  works — flying blind on our own dogfood, the exact malpractice pseolint sells
+  works, flying blind on our own dogfood, the exact malpractice pseolint sells
   against.
 - **Product value:** GSC-live is what converts a one-time penalty scare into
   ongoing $19/mo monitoring. Without it, Pro isn't compelling enough for the
@@ -92,48 +92,48 @@ Currently stubbed (roadmap v1.1). Everything else depends on it:
 **Decision:** GSC-live is sequenced *before* the growth surfaces below. The
 growth program is designed assuming it exists.
 
-### 2. Symptom / outcome pages — the centerpiece
+### 2. Symptom / outcome pages: the centerpiece
 
 Substantive, schema-rich pages targeting high-intent symptom queries. Buyer
 intent, not jargon. Each must *pass pseolint's own audit by design* (the
-dogfood proof — see Guardrails).
+dogfood proof, see Guardrails).
 
-Candidate surfaces (validated against real demand before building — see
+Candidate surfaces (validated against real demand before building, see
 Validation):
 
 - `/symptoms/traffic-drop-after-core-update`
 - `/symptoms/pages-deindexed`
 - `/symptoms/[symptom]` (extend existing infrastructure)
 - `/penalty-recovery/[type]`
-- `/core-update/[date]` — what changed, who got hit, how to check your risk
+- `/core-update/[date]`: what changed, who got hit, how to check your risk
 
 These reuse the existing `/symptoms` route + `MARKETING_SYMPTOMS` data layer.
 Each page ends in a single clear action: run the free audit.
 
-### 3. One throttled free tool — the wedge
+### 3. One throttled free tool: the wedge
 
 A single emotionally-resonant free tool, e.g. **"Will the next core update hit
-your site?"** — crawls a sample, returns a penalty-*risk* read tied to the
+your site?"**, crawls a sample, returns a penalty-*risk* read tied to the
 symptom.
 
 The cannibalization line is drawn **deliberately**, not by accident:
 
-- **Free shows the *problem*** — your risk read, which symptoms you trip, a
+- **Free shows the *problem***: your risk read, which symptoms you trip, a
   sample of affected pages.
-- **Pro shows the *fix + monitoring*** — the full fix queue, GSC-grounded, and
+- **Pro shows the *fix + monitoring***: the full fix queue, GSC-grounded, and
   ongoing change-driven alerts so you're warned *before* the next update.
 
 Throttling/abuse controls are required (rate limits, sample-size caps) because
 this is public-facing compute. See Open Questions.
 
-### 4. Authority-proof layer — `/rules`, `/tools`, `/symptoms` (jargon)
+### 4. Authority-proof layer: `/rules`, `/tools`, `/symptoms` (jargon)
 
 Keep and expand the existing curated pages, but demote them from "front door"
 to "proof of expertise." They are what a skeptical buyer (or an LLM) reads to
 trust the metric. This also addresses the **metric-independence** concern: open
 methodology + calibration corpus is a credibility strategy, not just content.
 
-### 5. Aggregate / anonymized data — original-data content
+### 5. Aggregate / anonymized data: original-data content
 
 The defensible, citable version of the audit firehose: *"the median jobs-board
 trips 4 doorway signals,"* *"sites like yours score X."* No named domains, no
@@ -211,20 +211,20 @@ This avoids both the "build 200 pages and pray" failure and the
 5. Aggregate-data content (after consent gate).
 6. Measure → kill or scale.
 
-## Strategic refinement — 2026-06-06 (post slice-1/1b)
+## Strategic refinement: 2026-06-06 (post slice-1/1b)
 
-Question raised: "pSEO means volume — are we on the most intelligible path given Google's behavior?" Decision (owner deferred to assistant):
+Question raised: "pSEO means volume, are we on the most intelligible path given Google's behavior?" Decision (owner deferred to assistant):
 
 **The "volume vs. not" axis is wrong. The real axis is data-moat × template, safe to dogfood.**
 
-- What slice 1/1b shipped (11 symptom pages) is **topical-authority editorial SEO on a programmatic shell — not programmatic SEO.** Name it honestly. Stop equating "pSEO potential" with page count.
-- **Volume is the wrong goal for this site**, for three compounding reasons: (1) it fails pseolint's own audit (scaled-content-abuse / dogfood); (2) post-March-2024 Google leaves volume-without-a-data-moat in "Crawled/Discovered — not indexed"; (3) **young, low-authority domain** → volume simply won't index until trust is earned. Reason (3) makes depth-first the mandatory phase 1 regardless of endgame.
-- **Genuine pSEO is bounded, not infinite.** The only dataset that is simultaneously proprietary + demand-relevant + safe-to-template is **aggregate/anonymized audit statistics** (e.g. boilerplate-ratio / template-diversity benchmarks by industry or pattern). That is the real phase-2 engine. The large per-domain dataset stays rejected (unsafe). pseolint will never be a millions-of-pages firehose — by design.
+- What slice 1/1b shipped (11 symptom pages) is **topical-authority editorial SEO on a programmatic shell: not programmatic SEO.** Name it honestly. Stop equating "pSEO potential" with page count.
+- **Volume is the wrong goal for this site**, for three compounding reasons: (1) it fails pseolint's own audit (scaled-content-abuse / dogfood); (2) post-March-2024 Google leaves volume-without-a-data-moat in "Crawled/Discovered: not indexed"; (3) **young, low-authority domain** → volume simply won't index until trust is earned. Reason (3) makes depth-first the mandatory phase 1 regardless of endgame.
+- **Genuine pSEO is bounded, not infinite.** The only dataset that is simultaneously proprietary + demand-relevant + safe-to-template is **aggregate/anonymized audit statistics** (e.g. boilerplate-ratio / template-diversity benchmarks by industry or pattern). That is the real phase-2 engine. The large per-domain dataset stays rejected (unsafe). pseolint will never be a millions-of-pages firehose: by design.
 
 **Refined sequence (supersedes the count-oriented reading of slice 1):**
-1. **GSC-live** (measurement) — load-bearing; build before scaling content further.
-2. **Deepen, don't widen** — interlink the existing 11 symptom↔rule cluster, optimize for conversion, not new slugs. Add a symptom page only when GSC shows a specific validated gap.
-3. **Phase-2 data-moat engine** — aggregate/anonymized stats × template, gated on (a) earned authority and (b) GSC-proven editorial conversion + ToS/consent.
+1. **GSC-live** (measurement): load-bearing; build before scaling content further.
+2. **Deepen, don't widen**: interlink the existing 11 symptom↔rule cluster, optimize for conversion, not new slugs. Add a symptom page only when GSC shows a specific validated gap.
+3. **Phase-2 data-moat engine**: aggregate/anonymized stats × template, gated on (a) earned authority and (b) GSC-proven editorial conversion + ToS/consent.
 4. Throttled free-tool wedge remains a parallel option once measurement exists.
 
-**Do NOT** keep cranking symptom pages for volume's sake — that is cargo-culting the very pattern pseolint audits against.
+**Do NOT** keep cranking symptom pages for volume's sake, that is cargo-culting the very pattern pseolint audits against.

@@ -9,7 +9,7 @@
  *
  * `@/lib/gsc` is imported for real (only `listSites`, which does network I/O, is
  * stubbed) so `pickBestGscProperty` + `provesGscOwnership` are the real
- * implementations here — auto-verification is the one path that can *grant*
+ * implementations here: auto-verification is the one path that can *grant*
  * verification, so it must not be tested against a reimplementation.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -50,7 +50,7 @@ vi.mock("@/db/schema", () => ({
   integrations: { id: {}, userId: {}, kind: {} },
 }));
 
-// Routes each SELECT by table identity + the shape's keys — the action queries
+// Routes each SELECT by table identity + the shape's keys: the action queries
 // monitored_domain three times with three different projections.
 vi.mock("@/db", async () => {
   const schema = await import("@/db/schema");
@@ -212,7 +212,7 @@ describe("addDomainAction ownership gate", () => {
   it("does not verify from an ambiguous property match", async () => {
     STATE.gscConnected = true;
     // Two root properties for the same naked host tie on confidence, so
-    // pickBestGscProperty refuses to choose — and nothing gets verified.
+    // pickBestGscProperty refuses to choose, and nothing gets verified.
     STATE.sites = [
       site("https://example.com/", "siteOwner"),
       site("http://example.com/", "siteOwner"),

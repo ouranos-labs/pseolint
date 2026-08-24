@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ponytail — Claude Code SessionStart activation hook
+// ponytail: Claude Code SessionStart activation hook
 //
 // Runs on every session start:
 //   1. Writes flag file at ~/.claude/.ponytail-active (statusline reads this)
@@ -22,7 +22,7 @@ const settingsPath = path.join(claudeDir, 'settings.json');
 
 const mode = getDefaultMode();
 
-// "off" mode — skip activation entirely, don't write flag or emit rules
+// "off" mode: skip activation entirely, don't write flag or emit rules
 if (mode === 'off') {
   clearMode();
   writeHookOutput('SessionStart', 'off', isCodex ? '' : 'OK');
@@ -39,7 +39,7 @@ try {
 // 2. Emit the ponytail ruleset, filtered to the active intensity level.
 let output = getPonytailInstructions(mode);
 
-// 3. Detect missing statusline config — nudge Claude to help set it up
+// 3. Detect missing statusline config: nudge Claude to help set it up
 if (!isCodex) try {
   let hasStatusline = false;
   if (fs.existsSync(settingsPath)) {
@@ -66,7 +66,7 @@ if (!isCodex) try {
       "Proactively offer to set this up for the user on first interaction.";
   }
 } catch (e) {
-  // Silent fail — don't block session start over statusline detection
+  // Silent fail: don't block session start over statusline detection
 }
 
 writeHookOutput('SessionStart', mode, output);

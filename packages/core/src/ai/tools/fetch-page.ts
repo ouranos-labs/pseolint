@@ -33,7 +33,7 @@ const outputSchema = z.object({
   headers: z.record(z.string(), z.string()),
   /**
    * Reference to the cached page body. Pass this `pageId` into parse_page,
-   * check_rule_*, validate_jsonld, check_indexability, etc. — the HTML
+   * check_rule_*, validate_jsonld, check_indexability, etc.: the HTML
    * itself never travels through the LLM conversation, which keeps token
    * consumption bounded as the orchestrator pulls more pages.
    */
@@ -49,13 +49,13 @@ const outputSchema = z.object({
  * `cachedFetch` primitive plus `validateTargetHost` so private/reserved IPs
  * are rejected on every redirect hop.
  *
- * Returned as a tool to the orchestrator — typically the first call the
+ * Returned as a tool to the orchestrator: typically the first call the
  * model makes when auditing a domain.
  */
 export const fetchPageTool = defineTool({
   name: "fetch_page",
   description:
-    "Fetch the HTML for a single URL with SSRF protection and disk caching. Follows up to 10 redirects. Returns the final URL, status, headers, and a `pageId` reference to the cached body — pass that pageId into parse_page / check_rule_* / validate_jsonld / check_indexability instead of repassing HTML. The HTML itself never travels through tool inputs, keeping token consumption bounded. Errors (private IP, redirect loop, timeout) come back as tool errors — keep going with another URL.",
+    "Fetch the HTML for a single URL with SSRF protection and disk caching. Follows up to 10 redirects. Returns the final URL, status, headers, and a `pageId` reference to the cached body: pass that pageId into parse_page / check_rule_* / validate_jsonld / check_indexability instead of repassing HTML. The HTML itself never travels through tool inputs, keeping token consumption bounded. Errors (private IP, redirect loop, timeout) come back as tool errors: keep going with another URL.",
   inputSchema,
   outputSchema,
   async execute({ url, timeoutMs = 10_000, cacheDir, cacheTtlMs = 300_000 }, ctx) {

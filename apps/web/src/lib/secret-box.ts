@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 
 /**
  * Encrypt a short secret (API key, etc.) using AES-256-GCM with a key derived
- * from BETTER_AUTH_SECRET via scrypt. Not a full KMS — adequate for
+ * from BETTER_AUTH_SECRET via scrypt. Not a full KMS: adequate for
  * per-user-key storage in a server-side DB.
  *
  * Output format: base64url("salt(16) | iv(12) | tag(16) | ciphertext").

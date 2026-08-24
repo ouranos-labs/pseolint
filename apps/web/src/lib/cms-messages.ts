@@ -11,12 +11,12 @@ export function detectCms(pageUrl: string, html?: string): CmsKind | null {
   if (webUrl && !wpUrl) return "webflow";
   if (wpUrl && !webUrl) return "wordpress";
   if (webUrl && wpUrl) {
-    // collision — disambiguate via HTML hint
+    // collision; disambiguate via HTML hint
     if (html && WORDPRESS_HTML.some((r) => r.test(html))) return "wordpress";
     if (html && WEBFLOW_HTML.some((r) => r.test(html))) return "webflow";
     return null;
   }
-  // no URL patterns matched — try HTML hints as a last resort
+  // no URL patterns matched; try HTML hints as a last resort
   if (html) {
     if (WORDPRESS_HTML.some((r) => r.test(html))) return "wordpress";
     if (WEBFLOW_HTML.some((r) => r.test(html))) return "webflow";

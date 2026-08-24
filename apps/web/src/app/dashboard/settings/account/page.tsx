@@ -18,7 +18,7 @@ export default async function AccountSettings() {
       <div className="rounded-[18px] border border-border/60 p-5">
         <h2 className="text-sm font-medium text-foreground">Export my data</h2>
         <p className="mt-2 text-xs text-muted-foreground">
-          Download a JSON dump of everything we store against your account — audits, monitored domains, findings,
+          Download a JSON dump of everything we store against your account: audits, monitored domains, findings,
           usage, and settings. Excludes credentials and billing identifiers.
         </p>
         <a

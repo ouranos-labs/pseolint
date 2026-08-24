@@ -78,7 +78,7 @@ export function WatchedPagesCard({
         <div>
           <h2 id={`${inputId}-heading`} className="text-sm font-medium">Watched pages</h2>
           <p id={helpId} className="mt-1 text-xs text-muted-foreground">
-            Pin URLs that matter most — they&apos;re re-fetched on every monitoring run, even when nothing else has changed. Up to {CAP} per domain.
+            Pin URLs that matter most; they&apos;re re-fetched on every monitoring run, even when nothing else has changed. Up to {CAP} per domain.
           </p>
         </div>
         <span
@@ -126,7 +126,7 @@ export function WatchedPagesCard({
 
       {rows.length === 0 ? (
         <p className="rounded-[10px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
-          No pages watched yet. Pin the URLs that matter most — they&apos;ll be audited on every monitoring run, even when nothing else has changed.
+          No pages watched yet. Pin the URLs that matter most; they&apos;ll be audited on every monitoring run, even when nothing else has changed.
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -147,7 +147,7 @@ export function WatchedPagesCard({
                 <span className="font-mono text-[10px] text-muted-foreground/70">
                   {r.lastAuditedAt
                     ? `Last audited ${new Date(r.lastAuditedAt).toLocaleString()}`
-                    : "Audit pending — first run kicked off"}
+                    : "Audit pending, first run kicked off"}
                 </span>
               </div>
               <button

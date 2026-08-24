@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ponytail — shared configuration resolver
+// ponytail: shared configuration resolver
 //
 // Resolution order for default mode:
 //   1. PONYTAIL_DEFAULT_MODE environment variable
@@ -70,7 +70,7 @@ function getDefaultMode() {
       return config.defaultMode.toLowerCase();
     }
   } catch (e) {
-    // Config file doesn't exist or is invalid — fall through
+    // Config file doesn't exist or is invalid: fall through
   }
 
   // 3. Default

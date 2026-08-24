@@ -111,7 +111,7 @@ const auditOptionsSchema = z.object({
  * v0.4.1 fix: cosmiconfig 9 ships with a `.ts` loader that depends on the
  * `typescript` package being installed at runtime. The CLI does not (and
  * should not) ship `typescript` as a runtime dependency, so config files
- * authored as `pseolint.config.ts` would fail to load — leaving users to
+ * authored as `pseolint.config.ts` would fail to load: leaving users to
  * inline `--ignore` patterns. We replace the `.ts`/`.mts` loaders with
  * `jiti`, which transpiles TS at runtime without any peer deps.
  */

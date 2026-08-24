@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 /**
  * Disconnect GSC. Wipes the OAuth tokens and unbinds the property URL from
  * every monitored domain so the sync cron stops looking for them. We do not
- * delete the historical `gscPageMetrics` rows — the queue still benefits from
+ * delete the historical `gscPageMetrics` rows: the queue still benefits from
  * the snapshot until the next merge runs.
  */
 export async function POST(): Promise<Response> {

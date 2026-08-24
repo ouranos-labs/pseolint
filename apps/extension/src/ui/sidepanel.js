@@ -7,7 +7,13 @@ import { teardown, takeaway, userHost, buildWin } from "../shared/teardown.js";
 const SCAN_PERMISSION = { origins: ["https://*/*"] };
 const AUDIT_PREFILL = "https://pseolint.dev/?prefill=";
 const NO_SERP = "Open a Google results page to analyze it.";
-const NOT_WEB = "Switch to the All tab — pseolint reads Web results.";
+const NOT_WEB = "Switch to the All tab: pseolint reads Web results.";
+// Returns `any` deliberately. Every call site here is `$("scan").disabled`,
+// `$("cta").href`, `$("domain").value` and friends: getElementById is typed
+// HTMLElement, so checkJs would reject each of those unless every line carried
+// its own cast. Widening once here keeps the rest of the file under real
+// analysis (typos, arity, undefined identifiers) without 9 inline casts.
+/** @type {(id: string) => any} */
 const $ = (id) => document.getElementById(id);
 
 let lastResults = []; // cached so "your site" can re-render when the domain changes
@@ -15,7 +21,7 @@ let myHost = ""; // the user's tracked domain (stored locally, never transmitted
 let serpQuery = ""; // the current SERP's query (?q=), carried into the win deep-link
 
 // Wipe the deep-scan scorecard (takeaway/headline/opening/results/cta/opps). Called
-// when we leave a SERP or the user navigates to a new query — the old teardown is
+// when we leave a SERP or the user navigates to a new query: the old teardown is
 // stale. Landscape summary + scan button are handled by the caller.
 function clearScorecard() {
   lastResults = [];
@@ -25,7 +31,7 @@ function clearScorecard() {
   $("serp-opportunities").style.display = "none";
 }
 
-// The SERP query (?q=) — carried into the win-bridge deep-link so the SaaS can
+// The SERP query (?q=): carried into the win-bridge deep-link so the SaaS can
 // frame the audit as "win the '<query>' SERP". "" when absent/unparseable.
 function serpKeyword(url) {
   try { return new URL(url).searchParams.get("q") || ""; } catch { return ""; }
@@ -124,10 +130,10 @@ async function deepScan() {
 }
 
 const TAG_CLASS = { 
-  thin: "thin", 
-  "soft 404": "soft", 
-  "no OG tags": "og", 
-  templated: "templated", 
+  thin: "thin",
+  "soft 404": "soft",
+  "no OG tags": "og",
+  templated: "templated",
   AEO: "aeo",
   "no Author": "eeat",
   "no Date": "eeat",
@@ -139,7 +145,7 @@ const TAG_CLASS = {
 
 // Render the SERP competitive scorecard from the teardown model. All untrusted
 // host strings via textContent (§9); facts on rows, framing only in the summary.
-// "Where do I stand?" — match the tracked domain against this SERP. Recon about
+// "Where do I stand?"; match the tracked domain against this SERP. Recon about
 // the live SERP (descriptive), not a deep audit of your site (that's the SaaS).
 function renderYourSite() {
   const el = $("yoursite");
@@ -147,8 +153,8 @@ function renderYourSite() {
   const t = teardown(lastResults);
   const mine = t.rows.find((r) => r.host === myHost);
   el.textContent = mine
-    ? `Your site (${myHost}): #${mine.rank} · ${mine.words}w` + (mine.belowBar ? ` — below the ${t.bar}w bar` : " — clears the bar")
-    : `${myHost} isn't on this SERP — the field is open.`;
+    ? `Your site (${myHost}): #${mine.rank} · ${mine.words}w` + (mine.belowBar ? `, below the ${t.bar}w bar` : ", clears the bar")
+    : `${myHost} isn't on this SERP; the field is open.`;
 }
 
 function render(results) {
@@ -161,7 +167,7 @@ function render(results) {
   $("cta").hidden = true;
   $("cta-sub").hidden = true;
   if (results.length === 0) {
-    $("status").textContent = "No results found — open a Google results page.";
+    $("status").textContent = "No results found: open a Google results page.";
     return;
   }
   const t = teardown(results);
@@ -276,7 +282,7 @@ function render(results) {
     $("serp-opportunities").style.display = "none";
   }
 
-  // Win bridge — the primary conversion: point the hot "found an opening" moment
+  // Win bridge, the primary conversion: point the hot "found an opening" moment
   // at the hosted audit (the moat), adapted to the user's position on this SERP.
   const win = buildWin(t, myHost, serpQuery);
   const cta = $("cta");
@@ -289,7 +295,7 @@ function render(results) {
     cta.textContent = win.primary;
     cta.href = win.href;
     delete cta.dataset.prompt;
-  } else { // no opening — generic fallback
+  } else { // no opening: generic fallback
     cta.textContent = "Audit your own site →";
     cta.href = "https://pseolint.dev";
     delete cta.dataset.prompt;
@@ -323,13 +329,13 @@ chrome.storage?.local?.get?.("domain").then((o) => {
   loadLandscape();
 }).catch(() => {});
 $("domain").addEventListener("input", (e) => {
-  myHost = userHost(e.target.value);
+  myHost = userHost(/** @type {HTMLInputElement} */ (e.target).value);
   chrome.storage?.local?.set?.({ domain: myHost }).catch(() => {});
   renderYourSite();
   loadLandscape();
 });
 
-// A tab switch or a navigation makes the previous SERP's deep-scan stale — clear
+// A tab switch or a navigation makes the previous SERP's deep-scan stale: clear
 // the scorecard, then re-derive landscape state from the (new) active tab.
 async function onTabChange() {
   clearScorecard();
@@ -339,7 +345,7 @@ async function onTabChange() {
 // Auto-refresh on active tab switching AND navigation. changeInfo.url catches SPA
 // query/vertical changes on the Google SERP that never reach status:"complete".
 // onUpdated fires for EVERY tab, so ignore updates to any tab but the one the panel
-// is showing — otherwise a background tab's load wipes the current scorecard.
+// is showing: otherwise a background tab's load wipes the current scorecard.
 chrome.tabs?.onActivated?.addListener(onTabChange);
 chrome.tabs?.onUpdated?.addListener((tabId, changeInfo) => {
   if (!(changeInfo.status === "complete" || changeInfo.url)) return;
@@ -348,7 +354,7 @@ chrome.tabs?.onUpdated?.addListener((tabId, changeInfo) => {
 
 // Live updates pushed by the SERP content script. runtime.sendMessage is an
 // extension-wide BROADCAST, so a background Google tab's content script reaches
-// this listener too — gate on sender.tab being the active tab before acting, or a
+// this listener too: gate on sender.tab being the active tab before acting, or a
 // background tab's nav would clear the scorecard the user is looking at. `reset`
 // (a real navigation) re-derives full state (vertical hint + drops the stale
 // scorecard); a plain update refreshes the summary only.

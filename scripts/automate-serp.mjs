@@ -125,7 +125,7 @@ function cleanResultUrl(href) {
 // ── Opportunity Scoring ───────────────────────────────────────────────────────
 function printOpportunitySummary() {
   console.log("\n╔═══════════════════════════════════════════════════════╗");
-  console.log("║           SERP Opportunity Summary — pseolint.dev    ║");
+  console.log("║           SERP Opportunity Summary - pseolint.dev    ║");
   console.log("╚═══════════════════════════════════════════════════════╝\n");
 
   const opps = [];
@@ -216,7 +216,7 @@ async function main() {
 
           // Google serves its "unusual traffic" wall at /sorry/ with a recaptcha form.
           // The bare substring "robot" false-positives on any SERP mentioning robots.txt
-          // (e.g. the "llms.txt" query) — anchor on the real block signals instead.
+          // (e.g. the "llms.txt" query); anchor on the real block signals instead.
           const htmlText = document.body.innerText;
           const isCaptcha =
             location.pathname.startsWith("/sorry") ||

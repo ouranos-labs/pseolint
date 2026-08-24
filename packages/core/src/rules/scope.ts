@@ -17,6 +17,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "spam/publication-velocity": "corpus",
   "spam/doorway-pattern": "corpus",
   "spam/template-coverage": "corpus",
+  "spam/keyword-stuffed-title": "page",
 
   // content
   "content/unique-value": "corpus",
@@ -26,9 +27,24 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "content/title-uniqueness": "corpus",
   "content/heading-structure": "page",
   "content/image-alt-text": "page",
+  "content/image-attributes": "page",
   "content/citation-coverage": "page",
+  "content/meta-description-presence": "page",
+  // v0.5.x originality/value batch. These ship and are dispatched by
+  // auditor.ts, so they belong in the registry: an id missing here is silently
+  // treated as corpus-scoped and skipped in every diff audit.
+  "content/translation-no-op": "corpus",
+  "content/regurgitated-content": "page",
+  "content/common-phrase-reuse": "page",
+  "content/wikipedia-paraphrase": "page",
+  // Second-pass composite. Page-shaped output, but one of its seven input
+  // signals (content/translation-no-op) is corpus-only, so the score it
+  // produces is not reproducible from a single page: corpus.
+  "content/value-add": "corpus",
 
   // links
+  "links/crawlable-anchors": "page",
+  "links/generic-anchor-text": "page",
   "links/orphan-pages": "corpus",
   "links/dead-ends": "corpus",
   "links/cluster-connectivity": "corpus",
@@ -49,13 +65,23 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "tech/og-completeness": "page",
   "tech/csr-bailout": "page",
   "tech/core-web-vitals": "page",
+  "tech/resource-weight": "page",
+  // 2026-08-19 folklore-vs-fact batch (see docs/folklore.md)
+  "tech/language-mismatch": "page",
+  "tech/hreflang-validity": "page",
+  "tech/html-size": "page",
+  "tech/meta-robots-conflict": "page",
+  "tech/snippet-suppression": "page",
+  "tech/viewport-meta": "page",
+  "tech/sitemap-hygiene": "corpus",
+  "tech/robots-txt-limits": "corpus",
 
   // schema
   "schema/json-ld-valid": "page",
   "schema/required-fields": "page",
   "schema/consistency": "corpus",
 
-  // cannibal — only url-pattern survives in v0.4 (title-overlap and
+  // cannibal: only url-pattern survives in v0.4 (title-overlap and
   // keyword-collision dropped due to high false-positive rates; see
   // 2026-04-29 v0.4 redesign spec §4.3).
   "cannibal/url-pattern": "corpus",
@@ -84,7 +110,7 @@ export function isRuleAllowedInDiff(ruleId: string): boolean {
 }
 
 /**
- * Canonical count of user-facing **scored** rules — every rule in `RULE_SCOPE`
+ * Canonical count of user-facing **scored** rules: every rule in `RULE_SCOPE`
  * except internal `audit/*` diagnostics (which never enter the scored category
  * buckets; see `auditor.ts` CATEGORY_MAP `audit: "audit"` with weight 0).
  * Derived from the registry so the public "N rules" copy can't drift.

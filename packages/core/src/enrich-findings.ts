@@ -44,6 +44,7 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   "content/missing-author": "quick",
   // moderate
   "spam/thin-content": "moderate",
+  "spam/keyword-stuffed-title": "moderate",
   "spam/publication-velocity": "moderate",
   "content/meta-uniqueness": "moderate",
   "content/eeat-signals": "moderate",
@@ -364,7 +365,7 @@ export function enrichFindings(
       // passes every element as a separate call argument, and V8 caps the
       // argument count (~131072). A single fully-connected near-duplicate /
       // entity-swap component on a large dense site produces C(N,2) pairwise
-      // findings, so `similarities` can hold hundreds of thousands of values —
+      // findings, so `similarities` can hold hundreds of thousands of values:
       // spreading it overflowed the stack ("Maximum call stack size exceeded")
       // while building the cluster finding. See
       // tests/enrich-findings-large-cluster.test.ts.
@@ -390,7 +391,7 @@ export function enrichFindings(
         similarityRange: [minSim, maxSim],
       };
 
-      // Cluster message — rule-specific wording so the report reads honestly.
+      // Cluster message: rule-specific wording so the report reads honestly.
       // doorway-pattern came in via the calibration credibility pass; match
       // its wording to the rule's intent (multi-signal stack, not just
       // textual similarity).

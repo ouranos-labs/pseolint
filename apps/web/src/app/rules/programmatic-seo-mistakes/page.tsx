@@ -48,14 +48,14 @@ const MISTAKES = [
   {
     title: "3. High Boilerplate-to-Content Ratio",
     description:
-      "If 85% of your page's words live in the navigation bar, sidebars, related links, and the footer, Google classifies the URL as near-duplicate boilerplate. Programmatic pages must have at least 300 words of substantive, template-unique text that doesn't repeat across sibling pages.",
+      "If 85% of your page's words live in the navigation bar, sidebars, related links, and the footer, what is left is not enough for Google to tell the URL apart from its siblings. There is no ranking requirement to hit here: Google documents no preferred word count. The 300-word figure pseolint uses is a spam-detection floor for pages generated in bulk, and below it a template is almost always shipping boilerplate with a swapped entity name.",
     severity: "Major Warning",
     remedy: "Keep boilerplate ratio under 60% by stripping filler blocks and expanding page-specific details.",
   },
   {
     title: "4. No Machine-Readable Structured Data (Schema)",
     description:
-      "Search engine AI Overviews (SGE) rely heavily on structured entities to formulate citations. If your pages lack FAQPage, Product, or HowTo JSON-LD schemas, you are missing out on rich snippets and AI recommendations.",
+      "Search engine AI Overviews rely heavily on structured entities to formulate citations. If your pages lack Product, Article/TechArticle, or BreadcrumbList JSON-LD, you are missing out on rich results and AI recommendations. FAQPage and HowTo are not on that list any more: Google retired the HowTo rich result in September 2023 and the FAQ rich result on May 7, 2026, so question and step content earns its citation through visible structure, one question or step per heading with the answer directly beneath it.",
     severity: "Optimization Gap",
     remedy: "Inject valid nested JSON-LD objects matching the page's primary intent.",
   },

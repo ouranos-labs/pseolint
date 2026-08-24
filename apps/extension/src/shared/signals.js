@@ -1,9 +1,9 @@
-// pseolint extension — the exfiltration allowlist (architecture §8).
+// pseolint extension: the exfiltration allowlist (architecture §8).
 //
 // SINGLE SOURCE OF TRUTH for what may leave the browser. The service worker
 // runs assertEmittable() before any transmit; anything not matching the schema
-// throws and is dropped. Allowlist, never blocklist: an unknown key — raw DOM,
-// cookies, session tokens, a stray `html` field — fails closed by default.
+// throws and is dropped. Allowlist, never blocklist: an unknown key, raw DOM,
+// cookies, session tokens, a stray `html` field: fails closed by default.
 //
 // Native validator on purpose: zod would drag a dependency into users'
 // authenticated browsers (§10). The schema below is a few lines; so is checking it.
@@ -61,7 +61,7 @@ function checkValue(value, spec, path) {
     return;
   }
   if (typeof type === "object") {
-    assertEmittable(value, type, path); // nested schema — deep allowlist
+    assertEmittable(value, type, path); // nested schema: deep allowlist
     return;
   }
   checkScalar(value, type, path);

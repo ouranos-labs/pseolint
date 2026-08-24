@@ -26,7 +26,7 @@ const TIER_MAX_BUDGET = { free: 2, pro: 10 };
 
 /**
  * Per-user daily orchestrator-session cap. Prevents runaway abuse on what is
- * a real-money endpoint — even Pro at $3/session × 50 = $150 of LLM spend
+ * a real-money endpoint: even Pro at $3/session × 50 = $150 of LLM spend
  * per user per day is uncomfortable. Free tier capped harder.
  */
 const DAILY_SESSION_LIMIT = { free: 5, pro: 50 };
@@ -37,7 +37,7 @@ const DAILY_SESSION_LIMIT = { free: 5, pro: 50 };
  * dispatches an `orchestrator/requested` Inngest event so the long-running
  * audit happens off the request path.
  *
- * Returns `{ sessionId }` immediately — clients poll `/api/orchestrate/[id]`
+ * Returns `{ sessionId }` immediately: clients poll `/api/orchestrate/[id]`
  * (or subscribe to a future SSE endpoint) for live progress.
  */
 export async function POST(req: Request): Promise<Response> {
@@ -67,7 +67,7 @@ export async function POST(req: Request): Promise<Response> {
   const budgetUsd = Math.min(requested, tierMax);
 
   // Per-user daily cap. Catches both honest over-use and abuse before the
-  // session row + Inngest event are created — cheaper than discovering at
+  // session row + Inngest event are created: cheaper than discovering at
   // the LLM-billing boundary that a user kicked off 200 sessions overnight.
   const rateKey = `orchestrate:${session.user.id}:${new Date().toISOString().slice(0, 10)}`;
   const limit = DAILY_SESSION_LIMIT[plan];

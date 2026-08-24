@@ -99,13 +99,13 @@ export function aggregateTelemetry(
  * (defaults to today). Used to enforce a daily budget before a new triage call.
  * Returns 0 when the telemetry file is missing or empty.
  *
- * **Cache hits are excluded** — they did not incur a real API call, so they must
+ * **Cache hits are excluded**: they did not incur a real API call, so they must
  * not count toward today's spend. Without this filter, re-running the same audit
  * multiple times per day would over-report spend and falsely trip a budget cap.
  *
  * The "UTC day" window is a calendar day in UTC (YYYY-MM-DD from the timestamp).
  * Users in non-UTC timezones see "today" roll over at their local time offset
- * from UTC midnight — documented in the README.
+ * from UTC midnight: documented in the README.
  */
 export async function todayTriageSpendUsd(
   telemetryPath: string,

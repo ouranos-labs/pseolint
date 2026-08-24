@@ -47,7 +47,7 @@ export async function rememberEventOnce(eventId: string): Promise<boolean> {
 
 /**
  * Upsert a user's Pro subscription state. Used by both the webhook handler and the
- * dashboard self-heal sync — keeping a single writer prevents drift between paths.
+ * dashboard self-heal sync: keeping a single writer prevents drift between paths.
  */
 export async function upsertProSubscription(opts: {
   userId: string;
@@ -101,7 +101,7 @@ export async function syncUserSubscriptionFromPolar(opts: {
   let candidates: Sub[] = [];
 
   try {
-    // Filter by metadata.userId — most reliable since we set it at checkout.
+    // Filter by metadata.userId, most reliable since we set it at checkout.
     const byMeta = await client.subscriptions.list({
       metadata: { userId: opts.userId },
       limit: 10,

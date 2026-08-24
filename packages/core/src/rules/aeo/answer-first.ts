@@ -118,7 +118,7 @@ function hasConcreteFact(text: string): boolean {
 function hasNamedEntity(text: string, entityPatterns: EntityMaskPattern[]): boolean {
   if (MULTI_WORD_PROPER_NOUN.test(text)) return true;
   if (SINGLE_WORD_PROPER_NOUN.test(text)) return true;
-  // A user-defined entity pattern matching the opener also counts as a named entity —
+  // A user-defined entity pattern matching the opener also counts as a named entity:
   // this is how pSEO operators declare their primary entity dimension (states, cities, etc.).
   for (const p of entityPatterns) {
     if (p.pattern.test(text)) {

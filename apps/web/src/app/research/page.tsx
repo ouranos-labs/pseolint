@@ -1,8 +1,16 @@
 import { type Metadata } from "next";
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { FOLKLORE } from "@/lib/folklore";
 
 const REPORTS = [
+  {
+    slug: "seo-folklore-vs-google-docs",
+    title: "SEO Folklore vs. What Google Actually Documents",
+    pitch:
+      `${FOLKLORE.length} widely-repeated SEO rules traced back to their primary sources. Most are contradicted by the docs that govern them, one quietly became true in 2026, and every verdict links to the page that settles it, plus the documented checks to run instead.`,
+    published: "2026-08-19",
+  },
   {
     slug: "llms-txt-programmatic-seo",
     title: "llms.txt for Programmatic Sites",
@@ -87,7 +95,7 @@ export default function ResearchIndexPage() {
       </p>
 
       {/* Framing section. The hub was flagged by our own spam/thin-content rule at
-          294 words — fair for a bare index, but /research is meant to be the
+          294 words: fair for a bare index, but /research is meant to be the
           citable authority hub, so it should state how the data is produced and
           where it stops being reliable. Also adds real internal links out. */}
       <section className="mt-10 rounded-[22px] border border-border/60 bg-card/40 p-6">
@@ -104,8 +112,8 @@ export default function ResearchIndexPage() {
             denominator is stated inline rather than left implied.
           </p>
           <p>
-            Snapshots are dated and never silently revised. Search behaviour moves —
-            a core update lands, a platform changes its default templates — so a
+            Snapshots are dated and never silently revised. Search behaviour moves:
+            a core update lands, a platform changes its default templates, so a
             re-measured figure ships as a new dated snapshot with the delta called out,
             and the original stays readable. The scoring model, per-template
             aggregation, and the severity demotions we apply are documented at{" "}

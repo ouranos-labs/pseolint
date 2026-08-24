@@ -2,7 +2,7 @@
  * Stable, dependency-free host→seed hashing for deterministic page sampling.
  *
  * Monitored-domain audits pass `sampleSeed: hashToInt(host)` to the engine so
- * that repeated runs of the same domain sample the same pages — the resulting
+ * that repeated runs of the same domain sample the same pages: the resulting
  * diff then reflects real content change, not stratified-sampling variance.
  * Public one-shot audits omit the seed (single run; variance is irrelevant).
  */

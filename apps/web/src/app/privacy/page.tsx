@@ -16,18 +16,10 @@ const EFFECTIVE = "2026-04-20";
 const CONTROLLER_NAME = "pseolint";
 const CONTACT_EMAIL = "philippe.kam27@gmail.com";
 
-/**
- * Escape `</` sequences inside a JSON-LD payload so a stray closing tag inside
- * a string can't terminate the surrounding `<script>` block.
- */
-function safeJsonLd(obj: unknown): string {
-  return JSON.stringify(obj).replace(/</g, "\\u003c");
-}
-
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Who is the data controller?",
-    a: "pseolint, operating the service at pseolint.dev. Contact philippe.kam27@gmail.com. The policy covers pseolint.dev, its API, the CLI when it communicates with our servers, and transactional email we send you. It does not cover websites we audit on your instruction — those are separately controlled by their operators.",
+    a: "pseolint, operating the service at pseolint.dev. Contact philippe.kam27@gmail.com. The policy covers pseolint.dev, its API, the CLI when it communicates with our servers, and transactional email we send you. It does not cover websites we audit on your instruction; those are separately controlled by their operators.",
   },
   {
     q: "What personal data does pseolint collect, and why?",
@@ -43,30 +35,13 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What rights do I have under GDPR?",
-    a: "Right of access (we respond within 30 days), rectification, erasure (DELETE /api/account or email us — removes everything within 30 days), portability (GET /api/account/export returns JSON), restriction, objection, withdrawing consent, and lodging a complaint with your local data-protection authority (in France: CNIL, cnil.fr). We do not perform automated decision-making with legal effect.",
+    a: "Right of access (we respond within 30 days), rectification, erasure (DELETE /api/account or email us, removes everything within 30 days), portability (GET /api/account/export returns JSON), restriction, objection, withdrawing consent, and lodging a complaint with your local data-protection authority (in France: CNIL, cnil.fr). We do not perform automated decision-making with legal effect.",
   },
 ];
 
 export default function Privacy() {
-  const faqLd = safeJsonLd({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  });
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
-      <script
-        type="application/ld+json"
-        // FAQPage JSON-LD from a compile-time-static FAQS array. safeJsonLd
-        // escapes `<` so a string field cannot prematurely close the script
-        // tag — same pattern used on tools/page.tsx and rules/page.tsx.
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: faqLd }}
-      />
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
         Legal · privacy
@@ -87,7 +62,7 @@ export default function Privacy() {
         endpoints, magic-link authentication flow, billing receipts dispatched via Polar.sh, and the
         pseolint-bot crawler when it fetches pages from sites you submit. It does not extend to
         third-party destinations our outbound links reach, nor to self-hosted CLI runs that never
-        contact our servers — those execute entirely on your machine and never transmit audit
+        contact our servers; those execute entirely on your machine and never transmit audit
         bodies, IP fragments, or telemetry of any kind back to Ouranos Labs. This document was
         first published on April 20, 2026, aligns 100% with the GDPR Article 13 disclosure
         requirements, and was updated on April 30, 2026 to reflect the v0.4.0 engine cut.
@@ -102,18 +77,18 @@ export default function Privacy() {
       <Section title="Who is the data controller">
         <Item k="Controller" v={`${CONTROLLER_NAME}, operating the service at pseolint.dev.`} />
         <Item k="Contact" v={<a className="text-primary hover:underline" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>} />
-        <Item k="Scope" v="This policy covers pseolint.dev, its API, the CLI when it communicates with our servers, and transactional email we send you. It does not cover websites we audit on your instruction — those are separately controlled by their operators." />
+        <Item k="Scope" v="This policy covers pseolint.dev, its API, the CLI when it communicates with our servers, and transactional email we send you. It does not cover websites we audit on your instruction; those are separately controlled by their operators." />
       </Section>
 
       <Section title="What we collect, and why">
         <Item k="Email address" v="Collected when you create an account (magic link or Google OAuth). Used for authentication, sending the magic link, audit-completion notifications, and billing receipts. Legal basis: contract performance + legitimate interest (account security)." />
         <Item k="Account metadata" v="Name (from Google OAuth, if used), timezone, UI preferences. Legal basis: contract performance." />
-        <Item k="Audited URLs and rendered reports" v="The URLs you submit, the HTML we fetch from them, the structured audit summaries we generate, and derived stats (score, counts). Legal basis: contract performance — we can't deliver the service without this." />
+        <Item k="Audited URLs and rendered reports" v="The URLs you submit, the HTML we fetch from them, the structured audit summaries we generate, and derived stats (score, counts). Legal basis: contract performance; we can't deliver the service without this." />
         <Item k="Hashed IP (rate-limit signal)" v="We store a SHA-256 hash of your IP combined with a rotating server-side salt. The raw IP is never written to storage; only the hash is. Legal basis: legitimate interest (abuse prevention). Salt rotates periodically, which unlinks historical hashes from current IPs." />
-        <Item k="Anonymous session cookie" v="One opaque random ID (signed). Lets us tie a pre-sign-in audit to your browser so you can reclaim it on sign-up. Legal basis: strictly necessary (functional — exempt from EU cookie consent)." />
+        <Item k="Anonymous session cookie" v="One opaque random ID (signed). Lets us tie a pre-sign-in audit to your browser so you can reclaim it on sign-up. Legal basis: strictly necessary (functional, exempt from EU cookie consent)." />
         <Item k="Authentication cookie" v="Issued after you sign in. HttpOnly, Secure, SameSite=Lax. Expires after 30 days of inactivity. Legal basis: strictly necessary." />
-        <Item k="Billing metadata" v="Subscription plan, Polar customer ID, renewal date. We do NOT receive your card details — those stay with Polar.sh, our merchant of record. Legal basis: contract + legal obligation (invoicing, VAT)." />
-        <Item k="Analytics" v="Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (api-openpanel.philippekam.dev) — first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest." />
+        <Item k="Billing metadata" v="Subscription plan, Polar customer ID, renewal date. We do NOT receive your card details; those stay with Polar.sh, our merchant of record. Legal basis: contract + legal obligation (invoicing, VAT)." />
+        <Item k="Analytics" v="Aggregate request logs (route, status, response time) retained 30 days for debugging and capacity planning. Product analytics via OpenPanel, self-hosted on our own infrastructure (api-openpanel.philippekam.dev), first-party and cookieless: sessions are counted via a privacy-preserving daily-rotating hash of IP + user-agent, the same technique we use for rate limiting, with nothing persisted past 24 hours. No third-party analytics service, no cross-site identifiers, no advertising. Data is never sold or shared. Legal basis: legitimate interest." />
       </Section>
 
       <Section title="What we do NOT collect">
@@ -121,7 +96,7 @@ export default function Privacy() {
         <Item k="No card / bank data" v="Polar.sh handles payment collection end-to-end." />
         <Item k="No third-party / cross-site tracking" v="No third-party or cross-site tracking. No Google Analytics, Segment, Mixpanel, FB pixel, LinkedIn pixel, or similar. No cross-site identifiers. Our product analytics is first-party and runs on our own servers." />
         <Item k="No advertising" v="We do not sell or rent data. We do not run ads. We do not participate in ad networks." />
-        <Item k="No training on your data" v="Your audit content is not used to train AI models — ours or anyone else's. AI triage calls (Pro) send the minimum necessary snippet to Anthropic under their zero-retention terms." />
+        <Item k="No training on your data" v="Your audit content is not used to train AI models: ours or anyone else's. AI triage calls (Pro) send the minimum necessary snippet to Anthropic under their zero-retention terms." />
       </Section>
 
       <Section title="How long we keep data (retention)">
@@ -168,8 +143,8 @@ export default function Privacy() {
       </Section>
 
       <Section title="Cookies and local storage">
-        <Item k="Strictly necessary cookies" v="Session cookie (auth), anonymous session cookie, CSRF token. Exempt from consent under EU ePrivacy — these are required for the service to function." />
-        <Item k="No analytics cookies" v="Our analytics is cookieless — we set no analytics or tracking cookies. We reuse the strictly-necessary anonymous session identifier as a first-party analytics profile key, setting no additional cookie." />
+        <Item k="Strictly necessary cookies" v="Session cookie (auth), anonymous session cookie, CSRF token. Exempt from consent under EU ePrivacy; these are required for the service to function." />
+        <Item k="No analytics cookies" v="Our analytics is cookieless; we set no analytics or tracking cookies. We reuse the strictly-necessary anonymous session identifier as a first-party analytics profile key, setting no additional cookie." />
         <Item k="No advertising cookies" v="We set none." />
         <Item k="Third-party cookies from embeds" v="We do not embed third-party trackers. Turnstile may set a short-lived functional cookie during the bot challenge." />
         <Item k="Local storage" v="We use localStorage only to remember UI preferences (e.g. theme). No personal identifiers." />
@@ -180,9 +155,23 @@ export default function Privacy() {
       </Section>
 
       <Section title="Changes to this policy">
-        <Item k="Notifications" v="Material changes are announced at least 30 days before they take effect — via an in-app banner and, for signed-in users, email. Non-material edits (typos, clarifications) are made in place with an updated effective date." />
+        <Item k="Notifications" v="Material changes are announced at least 30 days before they take effect: via an in-app banner and, for signed-in users, email. Non-material edits (typos, clarifications) are made in place with an updated effective date." />
         <Item k="History" v="Previous versions of this policy are available on request." />
       </Section>
+
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Frequently asked
+        </h2>
+        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+          {FAQS.map((f) => (
+            <div key={f.q} className="grid gap-2 border-b border-border/60 px-5 py-5 last:border-b-0">
+              <dt className="text-sm font-semibold text-foreground">{f.q}</dt>
+              <dd className="text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <SourcesSection
         sources={[
@@ -228,7 +217,7 @@ function LegalDisclaimer() {
         This document is a plain-language disclosure drafted by the pseolint team. It is not legal
         advice. If you are the operator, have counsel review this policy against the jurisdictions
         you serve before relying on it. If you are a user and believe any statement here is
-        inaccurate or misleading, email us — that&apos;s a bug and we&apos;ll correct it.
+        inaccurate or misleading, email us; that&apos;s a bug and we&apos;ll correct it.
       </p>
     </aside>
   );

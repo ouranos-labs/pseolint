@@ -34,7 +34,7 @@ export async function requestIndexingAction(args: {
 }) {
   const session = await getRequiredSession();
 
-  // 0. Feature gate — Google submission is "Coming soon" until re-enabled.
+  // 0. Feature gate: Google submission is "Coming soon" until re-enabled.
   if (args.provider === "google" && !GOOGLE_INDEXING_ENABLED) {
     return { error: GOOGLE_INDEXING_COMING_SOON };
   }
@@ -187,7 +187,7 @@ export async function requestBatchIndexingAction(args: {
 }) {
   const session = await getRequiredSession();
 
-  // 0. Feature gate — Google submission is "Coming soon" until re-enabled.
+  // 0. Feature gate: Google submission is "Coming soon" until re-enabled.
   if (args.provider === "google" && !GOOGLE_INDEXING_ENABLED) {
     return { error: GOOGLE_INDEXING_COMING_SOON };
   }
@@ -204,7 +204,7 @@ export async function requestBatchIndexingAction(args: {
 
   if (!domain) throw new Error("Domain not found");
 
-  // 1a. Ownership proof — see requestIndexingAction.
+  // 1a. Ownership proof: see requestIndexingAction.
   if (!domain.verifiedAt) {
     return { error: "Verify domain ownership before requesting indexing." };
   }
@@ -313,7 +313,7 @@ export async function requestBatchIndexingAction(args: {
     const message = err instanceof Error ? err.message : String(err);
     console.error("Batch indexing failed:", message);
 
-    // Surface PERMISSION_DENIED specifically — the raw error message already
+    // Surface PERMISSION_DENIED specifically: the raw error message already
     // contains the actionable hint injected by pushToGoogleIndexing.
     const userFacingError = message.startsWith("PERMISSION_DENIED:")
       ? message.replace("PERMISSION_DENIED: ", "")

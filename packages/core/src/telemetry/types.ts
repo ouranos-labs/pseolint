@@ -39,7 +39,7 @@ export const triageTelemetrySchema = z
   })
   .strict();
 
-/** Audit run record — one per audit. */
+/** Audit run record: one per audit. */
 export const auditRecordSchema = z
   .object({
     type: z.literal("audit"),
@@ -57,7 +57,7 @@ export const auditRecordSchema = z
   })
   .strict();
 
-/** Feedback record — one per triage feedback event. */
+/** Feedback record: one per triage feedback event. */
 export const feedbackRecordSchema = z
   .object({
     type: z.literal("feedback"),

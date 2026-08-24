@@ -44,7 +44,7 @@ describe("envInt fallback on invalid value", () => {
       shouldFix: Array.from({ length: 150 }, (_, i) => makeFinding({ ruleId: `r${i}` })),
     }));
     const r = await call("pseolint_audit_site", { source: "./out" });
-    // default cap of 100 applies — proves "not-a-number" was rejected, not treated as 0/NaN
+    // default cap of 100 applies; proves "not-a-number" was rejected, not treated as 0/NaN
     expect((r.structuredContent!.findings as unknown[]).length).toBe(100);
     expect(r.structuredContent!.findingCount).toBe(150);
   });

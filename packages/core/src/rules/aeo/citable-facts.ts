@@ -19,7 +19,7 @@ export function citableFactsRule(
   const findings: RuleResult[] = [];
 
   // Build a global template-fact set: facts that appear verbatim on a majority of pages
-  // after entity masking — those are "template facts", not entity-specific data points.
+  // after entity masking; those are "template facts", not entity-specific data points.
   //
   // Scaling by page count:
   //   n == 1      → no template detection possible, all facts count as entity-specific.
@@ -70,7 +70,7 @@ export function citableFactsRule(
       ? ` (${templateDrag} additional fact${templateDrag === 1 ? "" : "s"} appear on most pages and don't count as entity-specific)`
       : "";
     const lowConfidenceCaveat = confidence === "low"
-      ? " Low confidence: prose-style pages can legitimately cite fewer hard numbers — verify whether AI Overview citation matters for this page."
+      ? " Low confidence: prose-style pages can legitimately cite fewer hard numbers, verify whether AI Overview citation matters for this page."
       : "";
 
     findings.push({

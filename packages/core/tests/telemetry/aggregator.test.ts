@@ -269,8 +269,8 @@ describe("todayTriageSpendUsd", () => {
     });
     await appendTelemetryRecord(path, base("2026-04-18T05:00:00.000Z", 0.05, true));
     await appendTelemetryRecord(path, base("2026-04-18T20:00:00.000Z", 0.10, true));
-    await appendTelemetryRecord(path, base("2026-04-18T09:00:00.000Z", 99, false)); // failed — ignored
-    await appendTelemetryRecord(path, base("2026-04-17T05:00:00.000Z", 99, true)); // yesterday — ignored
+    await appendTelemetryRecord(path, base("2026-04-18T09:00:00.000Z", 99, false)); // failed, ignored
+    await appendTelemetryRecord(path, base("2026-04-17T05:00:00.000Z", 99, true)); // yesterday, ignored
     const now = new Date("2026-04-18T23:00:00.000Z");
     expect(await todayTriageSpendUsd(path, now)).toBeCloseTo(0.15, 6);
   });
@@ -288,8 +288,8 @@ describe("todayTriageSpendUsd", () => {
       },
     });
     await appendTelemetryRecord(path, record("2026-04-18T05:00:00.000Z", 0.05, false)); // real call
-    await appendTelemetryRecord(path, record("2026-04-18T10:00:00.000Z", 0.05, true));  // cached rerun — $0
-    await appendTelemetryRecord(path, record("2026-04-18T15:00:00.000Z", 0.05, true));  // cached rerun — $0
+    await appendTelemetryRecord(path, record("2026-04-18T10:00:00.000Z", 0.05, true));  // cached rerun, $0
+    await appendTelemetryRecord(path, record("2026-04-18T15:00:00.000Z", 0.05, true));  // cached rerun, $0
     const now = new Date("2026-04-18T23:00:00.000Z");
     // Only the real call counts, not the two cache hits
     expect(await todayTriageSpendUsd(path, now)).toBeCloseTo(0.05, 6);

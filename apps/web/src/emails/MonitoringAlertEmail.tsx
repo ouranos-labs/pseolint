@@ -23,7 +23,7 @@ export default function MonitoringAlertEmail(props: MonitoringAlertEmailProps) {
         <Container style={{ maxWidth: 560, margin: "0 auto", backgroundColor: "#ffffff", padding: 32, borderRadius: 12, border: "1px solid #e5e7eb" }}>
           <Text style={{ margin: 0, color: "#6b7280", fontSize: 12, textTransform: "uppercase", letterSpacing: 1 }}>pseolint monitoring</Text>
           <Heading style={{ margin: "8px 0 0", fontSize: 22, fontWeight: 600 }}>
-            {worseNow ? "Risk worsened" : delta === 0 ? "New rule fired" : "Risk changed"} — {props.host}
+            {worseNow ? "Risk worsened" : delta === 0 ? "New rule fired" : "Risk changed"}, {props.host}
           </Heading>
 
           <Section style={{ marginTop: 24, padding: "16px 18px", backgroundColor: "#f3f4f6", borderRadius: 10 }}>

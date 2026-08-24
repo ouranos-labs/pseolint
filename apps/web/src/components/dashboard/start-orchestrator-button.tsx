@@ -10,7 +10,7 @@ import { useAnalytics } from "@/lib/analytics/use-analytics";
  * page at /o/<id>. The progress page auto-redirects to /m/<slug> once the
  * manifest is ready.
  *
- * Copy is placeholder — refine post-§11 (pricing message, BYOK split, etc.).
+ * Copy is placeholder: refine post-§11 (pricing message, BYOK split, etc.).
  */
 export function StartOrchestratorButton() {
   const router = useRouter();

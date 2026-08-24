@@ -1,26 +1,26 @@
-# Leaderboard Claims + Conversion — Implementation Plan (Plan 3 of 3)
+# Leaderboard Claims + Conversion: Implementation Plan (Plan 3 of 3)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax. Tasks are grouped into **waves**; tasks within a wave touch disjoint files and may be implemented by parallel agents. Tasks in a later wave depend on earlier waves.
 
-**Goal:** Let a site owner claim their leaderboard listing by proving ownership (GSC fast-path or DNS TXT), unlocking owner control (hide/customize/pin), an embeddable verified badge (followed backlink), and a "verified ✓" mark — turning the board into a signup + backlink engine, with nofollow-until-verified as the abuse guard.
+**Goal:** Let a site owner claim their leaderboard listing by proving ownership (GSC fast-path or DNS TXT), unlocking owner control (hide/customize/pin), an embeddable verified badge (followed backlink), and a "verified ✓" mark, turning the board into a signup + backlink engine, with nofollow-until-verified as the abuse guard.
 
-**Architecture:** Verification reuses existing primitives — `lib/domain-verify.ts` (DNS TXT) and `gsc.ts` `listSites`/`pickBestGscProperty` (GSC). DNS claim tokens are **deterministic** (`HMAC(secret, userId:host)`) so no pending-claim state is stored; the `leaderboardClaims` table holds only *verified* claims (one row per host). A claims helper centralizes lookup so the leaderboard query, the report page, and the badge endpoint all read the same source of truth.
+**Architecture:** Verification reuses existing primitives, `lib/domain-verify.ts` (DNS TXT) and `gsc.ts` `listSites`/`pickBestGscProperty` (GSC). DNS claim tokens are **deterministic** (`HMAC(secret, userId:host)`) so no pending-claim state is stored; the `leaderboardClaims` table holds only *verified* claims (one row per host). A claims helper centralizes lookup so the leaderboard query, the report page, and the badge endpoint all read the same source of truth.
 
 **Tech Stack:** Next.js (App Router, RSC + server actions + route handlers), Drizzle ORM, Node `crypto`/`dns`, Vitest.
 
-**Scope note:** Plan 3 of 3 from `docs/superpowers/specs/2026-06-04-leaderboard-clean-corpus-design.md` (§5–§8). Builds on Plans 1 & 2 (merged). Monitoring & re-audit CTAs already exist on `/r/[slug]` (`MonitorDomainButton`, `ReauditButton`), so this plan does NOT rebuild them — it adds claim, badge, owner-control, verified-chip, and nofollow-until-verified.
+**Scope note:** Plan 3 of 3 from `docs/superpowers/specs/2026-06-04-leaderboard-clean-corpus-design.md` (§5–§8). Builds on Plans 1 & 2 (merged). Monitoring & re-audit CTAs already exist on `/r/[slug]` (`MonitorDomainButton`, `ReauditButton`), so this plan does NOT rebuild them, it adds claim, badge, owner-control, verified-chip, and nofollow-until-verified.
 
 **Conventions:** Commands from `apps/web`. Tests `npx vitest run <path>`; typecheck `npx tsc --noEmit -p tsconfig.json`. Branch `feat/leaderboard-claims` from `main`. Reuse `BETTER_AUTH_SECRET` (already in env) for HMAC.
 
 ---
 
-## WAVE 1 — independent foundations (parallelizable: Tasks 1, 2 touch disjoint files)
+## WAVE 1: independent foundations (parallelizable: Tasks 1, 2 touch disjoint files)
 
 ### Task 1: `leaderboardClaims` schema + migration
 
 **Files:** `apps/web/src/db/schema.ts`; migration via `drizzle-kit generate`.
 
-- [ ] **Step 1** — In `schema.ts`, after the `seedStats` table, add:
+- [ ] **Step 1**: In `schema.ts`, after the `seedStats` table, add:
 
 ```ts
 /**
@@ -42,12 +42,12 @@ export const leaderboardClaims = pgTable("leaderboard_claim", {
 }));
 ```
 
-(`pgTable`, `text`, `timestamp`, `uuid`, `boolean`, `index`, `users` are all already imported/defined in this file — verify.)
+(`pgTable`, `text`, `timestamp`, `uuid`, `boolean`, `index`, `users` are all already imported/defined in this file, verify.)
 
-- [ ] **Step 2** — `npm run db:generate` → expect `0018_*.sql` creating `leaderboard_claim`. If prompted create-vs-rename, choose CREATE.
-- [ ] **Step 3** — Open the `0018_*.sql`; confirm only `CREATE TABLE "leaderboard_claim"` (+ FK + index). If destructive, STOP/BLOCKED.
-- [ ] **Step 4** — `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 5** — Commit:
+- [ ] **Step 2**: `npm run db:generate` → expect `0018_*.sql` creating `leaderboard_claim`. If prompted create-vs-rename, choose CREATE.
+- [ ] **Step 3**: Open the `0018_*.sql`; confirm only `CREATE TABLE "leaderboard_claim"` (+ FK + index). If destructive, STOP/BLOCKED.
+- [ ] **Step 4**: `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 5**: Commit:
 ```bash
 git add src/db/schema.ts src/db/migrations
 git commit -m "feat(db): add leaderboard_claim table"
@@ -57,9 +57,9 @@ git commit -m "feat(db): add leaderboard_claim table"
 
 **Files:** Create `apps/web/src/app/api/badge/[host]/route.ts`.
 
-This is independent of the claims table (it renders from the host's current grade). It links/embeds regardless; the "only claimed hosts get a badge" gating is enforced in the UI (Task 7), not here — anyone can fetch a badge SVG, which is fine (it's public info).
+This is independent of the claims table (it renders from the host's current grade). It links/embeds regardless; the "only claimed hosts get a badge" gating is enforced in the UI (Task 7), not here, anyone can fetch a badge SVG, which is fine (it's public info).
 
-- [ ] **Step 1** — Create `apps/web/src/app/api/badge/[host]/route.ts`:
+- [ ] **Step 1**: Create `apps/web/src/app/api/badge/[host]/route.ts`:
 
 ```ts
 import { NextRequest } from "next/server";
@@ -72,7 +72,7 @@ import { gradeOf } from "@/lib/grade";
 export const runtime = "nodejs";
 export const revalidate = 600;
 
-/** Minimal SVG badge: "pseolint · Grade A". Verdict/grade only — never a numeric risk. */
+/** Minimal SVG badge: "pseolint · Grade A". Verdict/grade only, never a numeric risk. */
 function badgeSvg(host: string, grade: string): string {
   const label = "pseolint";
   const value = `Grade ${grade}`;
@@ -123,10 +123,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ host: stri
 }
 ```
 
-NOTE: confirm `gradeOf` (in `@/lib/grade`) returns an object with a `.letter` field — read `apps/web/src/lib/grade.ts` first. If the letter accessor differs (e.g. `.grade`), adjust. If `gradeOf` doesn't expose a letter, derive: `risk<20?"A":risk<40?"B":...`.
+NOTE: confirm `gradeOf` (in `@/lib/grade`) returns an object with a `.letter` field, read `apps/web/src/lib/grade.ts` first. If the letter accessor differs (e.g. `.grade`), adjust. If `gradeOf` doesn't expose a letter, derive: `risk<20?"A":risk<40?"B":...`.
 
-- [ ] **Step 2** — `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 3** — Commit:
+- [ ] **Step 2**: `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 3**: Commit:
 ```bash
 git add src/app/api/badge
 git commit -m "feat(leaderboard): SVG badge endpoint for clean hosts"
@@ -134,13 +134,13 @@ git commit -m "feat(leaderboard): SVG badge endpoint for clean hosts"
 
 ---
 
-## WAVE 2 — claims helper (depends on Task 1)
+## WAVE 2: claims helper (depends on Task 1)
 
 ### Task 3: `lib/leaderboard-claims.ts` (+ tests)
 
 **Files:** Create `apps/web/src/lib/leaderboard-claims.ts` and `apps/web/src/lib/leaderboard-claims.test.ts`.
 
-- [ ] **Step 1 (TDD)** — Create `apps/web/src/lib/leaderboard-claims.test.ts`:
+- [ ] **Step 1 (TDD)**: Create `apps/web/src/lib/leaderboard-claims.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest";
@@ -163,9 +163,9 @@ describe("claimToken", () => {
 });
 ```
 
-- [ ] **Step 2** — `npx vitest run src/lib/leaderboard-claims.test.ts` → FAIL (module missing).
+- [ ] **Step 2**: `npx vitest run src/lib/leaderboard-claims.test.ts` → FAIL (module missing).
 
-- [ ] **Step 3** — Create `apps/web/src/lib/leaderboard-claims.ts`:
+- [ ] **Step 3**: Create `apps/web/src/lib/leaderboard-claims.ts`:
 
 ```ts
 import "server-only";
@@ -238,8 +238,8 @@ export async function isClaimedBy(host: string, userId: string): Promise<boolean
 }
 ```
 
-- [ ] **Step 4** — `npx vitest run src/lib/leaderboard-claims.test.ts` → PASS. Then `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 5** — Commit:
+- [ ] **Step 4**: `npx vitest run src/lib/leaderboard-claims.test.ts` → PASS. Then `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 5**: Commit:
 ```bash
 git add src/lib/leaderboard-claims.ts src/lib/leaderboard-claims.test.ts
 git commit -m "feat(leaderboard): claims helper (deterministic DNS token + GSC fast-path)"
@@ -247,13 +247,13 @@ git commit -m "feat(leaderboard): claims helper (deterministic DNS token + GSC f
 
 ---
 
-## WAVE 3 — server actions (depends on Tasks 1, 3)
+## WAVE 3: server actions (depends on Tasks 1, 3)
 
 ### Task 4: claim server actions
 
 **Files:** Create `apps/web/src/app/leaderboard/claim-actions.ts`.
 
-- [ ] **Step 1** — Create `apps/web/src/app/leaderboard/claim-actions.ts`:
+- [ ] **Step 1**: Create `apps/web/src/app/leaderboard/claim-actions.ts`:
 
 ```ts
 "use server";
@@ -312,7 +312,7 @@ export async function claimHostAction(host: string): Promise<{ ok: true; method:
       where: eq(leaderboardClaims.userId, userId),
     });
 
-  // If the conflict row is owned by someone else, the WHERE blocked the update —
+  // If the conflict row is owned by someone else, the WHERE blocked the update,
   // detect by reading back.
   const [claim] = await db.select({ userId: leaderboardClaims.userId }).from(leaderboardClaims).where(eq(leaderboardClaims.host, h)).limit(1);
   if (!claim || claim.userId !== userId) return { error: "This site is already claimed by another account." };
@@ -347,10 +347,10 @@ export async function updateClaimAction(input: {
 }
 ```
 
-NOTE: confirm `getRequiredSession` is exported from `@/lib/session` (it is — used by indexing-actions.ts). Confirm `onConflictDoUpdate` supports a `where` clause in this Drizzle version; if not, replace the upsert with: read existing row → if none insert → if owned by caller update → else return "already claimed". Read another action file (e.g. `dashboard/domain-actions.ts`) for the established session/error pattern and mirror it.
+NOTE: confirm `getRequiredSession` is exported from `@/lib/session` (it is, used by indexing-actions.ts). Confirm `onConflictDoUpdate` supports a `where` clause in this Drizzle version; if not, replace the upsert with: read existing row → if none insert → if owned by caller update → else return "already claimed". Read another action file (e.g. `dashboard/domain-actions.ts`) for the established session/error pattern and mirror it.
 
-- [ ] **Step 2** — `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 3** — Commit:
+- [ ] **Step 2**: `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 3**: Commit:
 ```bash
 git add src/app/leaderboard/claim-actions.ts
 git commit -m "feat(leaderboard): claim + owner-control server actions"
@@ -358,13 +358,13 @@ git commit -m "feat(leaderboard): claim + owner-control server actions"
 
 ---
 
-## WAVE 4 — surfaces (depends on Tasks 1, 3, 4; Tasks 5 & 6 BOTH edit leaderboard/page.tsx → do sequentially, not parallel)
+## WAVE 4: surfaces (depends on Tasks 1, 3, 4; Tasks 5 & 6 BOTH edit leaderboard/page.tsx → do sequentially, not parallel)
 
-### Task 5: leaderboard query — apply claims (verified chip, hide, overrides, pin)
+### Task 5: leaderboard query: apply claims (verified chip, hide, overrides, pin)
 
 **Files:** `apps/web/src/app/leaderboard/page.tsx`.
 
-- [ ] **Step 1** — After the `deduped` rows are fetched, load claims for the visible hosts and apply them:
+- [ ] **Step 1**: After the `deduped` rows are fetched, load claims for the visible hosts and apply them:
 
 Add import:
 ```ts
@@ -391,9 +391,9 @@ After `deduped` is computed (and before JSON-LD), add:
       };
     });
 ```
-Then replace subsequent uses of `deduped` in the render/JSON-LD with `visible` (the mapped list). (`pinnedAuditId` is a deeper change — out of scope for this task; note it as a future refinement. The dedup already shows most-recent; pinning a specific older audit would require a per-host override in the query. Skip pin enforcement here; the column exists and `updateClaimAction` can set it, but the query honoring it is deferred.)
+Then replace subsequent uses of `deduped` in the render/JSON-LD with `visible` (the mapped list). (`pinnedAuditId` is a deeper change, out of scope for this task; note it as a future refinement. The dedup already shows most-recent; pinning a specific older audit would require a per-host override in the query. Skip pin enforcement here; the column exists and `updateClaimAction` can set it, but the query honoring it is deferred.)
 
-- [ ] **Step 2** — In the card render, add a "verified ✓" chip when `r.verified` (alongside the "Notable" chip from Plan 2):
+- [ ] **Step 2**: In the card render, add a "verified ✓" chip when `r.verified` (alongside the "Notable" chip from Plan 2):
 ```tsx
                   { r.verified && (
                     <span className="absolute left-3 bottom-3 z-10 inline-flex items-center gap-0.5 rounded-[8px] bg-success/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-success shadow-sm">
@@ -403,20 +403,20 @@ Then replace subsequent uses of `deduped` in the render/JSON-LD with `visible` (
 ```
 (Adjust the `Row` type usage: the mapped `visible` items have `verified`; update the `.map` callback parameter type accordingly, or let inference handle it.)
 
-- [ ] **Step 3** — `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 4** — Commit:
+- [ ] **Step 3**: `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 4**: Commit:
 ```bash
 git add src/app/leaderboard/page.tsx
-git commit -m "feat(leaderboard): apply claims — verified chip, hide, OG overrides"
+git commit -m "feat(leaderboard): apply claims, verified chip, hide, OG overrides"
 ```
 
 ### Task 6: claim CTA + verified mark + nofollow-until-verified on `/r/[slug]`
 
 **Files:** `apps/web/src/app/r/[slug]/page.tsx`; create `apps/web/src/components/report/claim-cta.tsx`.
 
-- [ ] **Step 1** — Create a client component `apps/web/src/components/report/claim-cta.tsx` that:
+- [ ] **Step 1**: Create a client component `apps/web/src/components/report/claim-cta.tsx` that:
   - takes `{ host: string; claimed: boolean; ownedByViewer: boolean }`,
-  - if `claimed && ownedByViewer`: shows a "✓ You own this listing — get your badge" block linking to `/api/badge/<host>` with copy-embed snippet,
+  - if `claimed && ownedByViewer`: shows a "✓ You own this listing: get your badge" block linking to `/api/badge/<host>` with copy-embed snippet,
   - if `!claimed`: shows a "Claim this site" button that calls `claimHostAction(host)` (from `@/app/leaderboard/claim-actions`) in a transition, and on `{ error }` shows the DNS instructions via `getDnsClaimInstructionsAction(host)` (record name + value to publish, then "Verify" retries `claimHostAction`),
   - uses `toast` (sonner) for feedback. Mirror the structure/styling of an existing client action component (e.g. `components/report/visibility-toggle.tsx`). Keep numeric risk OFF any public-facing copy.
 
@@ -438,17 +438,17 @@ export function ClaimCta({ host, claimed, ownedByViewer }: { host: string; claim
     return (
       <div className="mt-6 rounded-[22px] border border-success/25 bg-success/5 p-5">
         <p className="text-sm font-medium text-foreground">✓ You own this listing.</p>
-        <p className="mt-1 text-xs text-muted-foreground">Embed your verified badge — it links back to the leaderboard:</p>
+        <p className="mt-1 text-xs text-muted-foreground">Embed your verified badge, it links back to the leaderboard:</p>
         <pre className="mt-2 overflow-x-auto rounded-[10px] border border-border/60 bg-background/60 p-2 font-mono text-[11px] text-muted-foreground">{snippet}</pre>
       </div>
     );
   }
-  if (claimed) return null; // claimed by someone else — no CTA
+  if (claimed) return null; // claimed by someone else, no CTA
 
   function attempt() {
     start(async () => {
       const res = await claimHostAction(host);
-      if ("ok" in res) { toast.success(`Verified via ${res.method.toUpperCase()} — listing claimed.`); location.reload(); }
+      if ("ok" in res) { toast.success(`Verified via ${res.method.toUpperCase()}, listing claimed.`); location.reload(); }
       else {
         toast.error(res.error);
         if (!dns) setDns(await getDnsClaimInstructionsAction(host));
@@ -481,7 +481,7 @@ export function ClaimCta({ host, claimed, ownedByViewer }: { host: string; claim
 }
 ```
 
-- [ ] **Step 2** — In `apps/web/src/app/r/[slug]/page.tsx`:
+- [ ] **Step 2**: In `apps/web/src/app/r/[slug]/page.tsx`:
   - Import the claims helper + component:
 ```ts
 import { getClaim } from "@/lib/leaderboard-claims";
@@ -492,14 +492,14 @@ import { ClaimCta } from "@/components/report/claim-cta";
   const claim = row.host ? await getClaim(row.host) : null;
   const claimedByViewer = !!(claim && session?.user.id && claim.userId === session.user.id);
 ```
-  - Render `<ClaimCta host={row.host ?? host} claimed={!!claim} ownedByViewer={claimedByViewer} />` only when `eligible` (claiming only makes sense for listed clean sites) — place it near the existing CTA strip.
+  - Render `<ClaimCta host={row.host ?? host} claimed={!!claim} ownedByViewer={claimedByViewer} />` only when `eligible` (claiming only makes sense for listed clean sites): place it near the existing CTA strip.
   - **nofollow-until-verified:** the outbound link to the audited site (currently `rel="noreferrer noopener"`, around line 220) becomes followed only when claimed+verified:
 ```tsx
           rel={ claim ? "noreferrer noopener" : "nofollow noreferrer noopener" }
 ```
 
-- [ ] **Step 3** — `npx tsc --noEmit -p tsconfig.json` → clean.
-- [ ] **Step 4** — Commit:
+- [ ] **Step 3**: `npx tsc --noEmit -p tsconfig.json` → clean.
+- [ ] **Step 4**: Commit:
 ```bash
 git add src/app/r/[slug]/page.tsx src/components/report/claim-cta.tsx
 git commit -m "feat(report): claim CTA, verified badge embed, nofollow-until-verified"
@@ -514,6 +514,6 @@ git commit -m "feat(report): claim CTA, verified badge embed, nofollow-until-ver
 
 ## Self-review notes (author)
 **Spec coverage:** §5 verification (GSC fast-path + DNS) → Task 3 (reuses domain-verify + gsc). §6 conversion: badge+embed → Tasks 2 + 6; customize/pin/hide → Task 4 (+ query honors hide/OG in Task 5; pin column set but query-enforcement deferred, noted); monitoring/re-audit CTAs already exist (not rebuilt). §8 abuse: nofollow-until-verified → Task 6; takedown via `isHidden` → Tasks 4 + 5; clean-only + caps from Plans 1–2.
-**Deferred/known:** `pinnedAuditId` is stored and settable but the leaderboard query does not yet substitute the pinned audit (most-recent still wins) — explicitly deferred. A dashboard surface for `updateClaimAction` (hide/customize UI) is not built; the action exists and the report-page owner block can be extended later.
+**Deferred/known:** `pinnedAuditId` is stored and settable but the leaderboard query does not yet substitute the pinned audit (most-recent still wins), explicitly deferred. A dashboard surface for `updateClaimAction` (hide/customize UI) is not built; the action exists and the report-page owner block can be extended later.
 **Type consistency:** `claimToken(userId, host)`, `getClaim`, `isClaimedBy`, `verifyDnsClaim`, `verifyGscClaim` used consistently across Tasks 3/4/6. `leaderboardClaims` columns referenced identically in Tasks 1/4/5. HMAC uses `env().BETTER_AUTH_SECRET`.
 **Parallelism:** Wave 1 (T1 schema ‖ T2 badge) disjoint files. Wave 2 (T3) needs T1. Wave 3 (T4) needs T1+T3. Wave 4 (T5, T6) need T1+T3+T4; T5 and T6 are NOT parallel with each other only because both… actually they touch different files (T5=leaderboard/page.tsx, T6=r/[slug] + new component) so T5 ‖ T6 IS safe.

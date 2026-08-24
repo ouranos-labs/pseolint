@@ -178,7 +178,7 @@ describe("sitemapCompletenessRule", () => {
     expect(findings.every((f) => !f.message.includes("HTTP 404"))).toBe(true);
   });
 
-  // FLAW 1: URL-normalization mismatch — page URLs are normalized (trailing slash
+  // FLAW 1: URL-normalization mismatch, page URLs are normalized (trailing slash
   // stripped), but raw sitemap URLs keep their trailing slash → false "missing".
   test("no false positive when sitemap uses trailing slashes but page URLs are normalized", () => {
     // page.url is already normalized (no trailing slash), sitemap has trailing slash

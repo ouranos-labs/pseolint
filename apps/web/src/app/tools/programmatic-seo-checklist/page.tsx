@@ -51,8 +51,8 @@ const FAQS = [
 
 const CHECKLIST_STEPS = [
   {
-    name: "Write at least 300 words of unique content",
-    text: "Verify that the main body text (excluding shared menus and footers) contains at least 300 words of page-unique copy that does not appear on sibling paths.",
+    name: "Give each page enough of its own copy to be worth a URL",
+    text: "Google publishes no preferred word count, so treat 300 words of page-unique body text (excluding shared menus and footers) as pseolint's spam-detection floor at template scale, not as a ranking requirement: a thousand near-identical 40-word pages is a doorway pattern, whereas one short page that answers its question is fine.",
   },
   {
     name: "Inject real-world entity databases",
@@ -80,19 +80,19 @@ const CHECKLIST_STEPS = [
   },
   {
     name: "Add valid JSON-LD metadata",
-    text: "Include intent-matching schemas (like FAQPage, Product, or HowTo) directly in the document template for rich results and AIO indexing.",
+    text: "Include intent-matching schemas that still render (Product, Article/TechArticle, BreadcrumbList) directly in the document template for rich results and AIO indexing; FAQPage and HowTo were retired by Google and earn nothing.",
   },
   {
     name: "Declare author entities",
     text: "Ensure the Article or WebPage schema features an Author Person block to establish trust and satisfy E-E-A-T signals.",
   },
   {
-    name: "Keep titles under 60 characters",
-    text: "Write unique titles containing primary target keywords that are short enough to fit inside standard SERP widths without clipping.",
+    name: "Give every page a unique, specific title",
+    text: "Google documents no title-length limit; SERP cropping is display-side and pixel-based. What triggers a rewritten title is a quality problem: a half-empty template field, boilerplate repeated across the cluster, or a stale year. Front-load what makes THIS record different.",
   },
   {
-    name: "Match meta descriptions to page context",
-    text: "Ensure each page generates a descriptive meta text between 140 and 155 characters that naturally includes the key target search phrase.",
+    name: "Give every page its own meta description",
+    text: "Google documents no character limit; snippets are truncated to the device width at display time. The real failures are a missing description (Google writes the snippet for you) and one templated description repeated across thousands of records.",
   },
   {
     name: "Provide freshness timestamps",
@@ -113,34 +113,6 @@ export default function ProgrammaticSeoChecklistPage() {
       price: "0",
       priceCurrency: "USD",
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Validate a Programmatic SEO Site Before Launch",
-    description: "A comprehensive list of 12 critical checks to perform before deploying programmatic templates to production.",
-    step: CHECKLIST_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -206,8 +178,11 @@ export default function ProgrammaticSeoChecklistPage() {
           <h3 className="text-base font-semibold text-foreground mt-6 mb-2">1. Data & Content Quality</h3>
           <p>
             Google&apos;s March 2024 core update targeted unoriginal content generated at scale. Sibling pages must
-            not look like a simple mail-merge template. You must include at least 300 words of page-unique copy,
-            backed by real entity data (such as localized metrics, practitioner names, or real reviews).
+            not look like a simple mail-merge template. Note what this is not: Google states plainly that it has no
+            preferred word count, so the 300-word figure below is pseolint&apos;s spam-detection floor for pages
+            generated in bulk, not a ranking threshold. Below it, at template scale, a page rarely carries enough
+            page-unique copy to distinguish it from its siblings. Back that copy with real entity data (localized
+            metrics, practitioner names, or real reviews) rather than padding it to hit a number.
           </p>
 
           <h3 className="text-base font-semibold text-foreground mt-4 mb-2">2. Technical SEO Compliance</h3>
@@ -226,8 +201,10 @@ export default function ProgrammaticSeoChecklistPage() {
 
           <h3 className="text-base font-semibold text-foreground mt-4 mb-2">4. Metadata Excellence</h3>
           <p>
-            Ensure every page computes unique titles and meta descriptions that fit standard widths. Titles
-            should stay under 60 characters and descriptions under 155 characters, with primary keyword target matching.
+            Ensure every page computes a unique title and meta description from the record&apos;s own fields.
+            Neither has a documented character limit: truncation in the SERP is display-side cropping, not an
+            indexing event. Uniqueness and specificity are what actually move the needle, so spend the effort
+            there instead of on a character counter.
           </p>
         </div>
       </section>
@@ -293,14 +270,6 @@ export default function ProgrammaticSeoChecklistPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

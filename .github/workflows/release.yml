@@ -26,7 +26,7 @@ jobs:
 
       # Build and test ONLY the npm-publishable packages. The private workspaces
       # (@pseolint/web, @pseolint/action) are deployed through other pipelines
-      # (Vercel, GitHub Actions marketplace) and must not gate the npm release —
+      # (Vercel, GitHub Actions marketplace) and must not gate the npm release:
       # in particular @pseolint/web pulls in Next.js typings that can break a
       # release on an unrelated upstream change.
       - name: Build publishable packages

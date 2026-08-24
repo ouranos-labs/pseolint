@@ -24,7 +24,7 @@ const RENDER_USER_AGENT = `Mozilla/5.0 (compatible; pseolint-render/${RENDER_VER
 
 /**
  * Playwright resource types that can carry analytics beacons. CSS, fonts,
- * images, and media typically don't — skipping them keeps the route handler
+ * images, and media typically don't: skipping them keeps the route handler
  * off most subresource requests and preserves Playwright's fast path.
  */
 const INTERCEPTED_RESOURCE_TYPES = new Set([
@@ -40,16 +40,25 @@ const INTERCEPTED_RESOURCE_TYPES = new Set([
 
 export interface RenderOptions {
   browserWsEndpoint?: string;
+  /**
+   * Path to a Chromium executable to launch instead of the binary Playwright
+   * downloaded for its own pinned build. Falls back to the
+   * `PSEOLINT_BROWSER_EXECUTABLE` env var. Lets environments with a system /
+   * pre-provisioned Chromium (containers, CI images) run render mode without
+   * a `playwright install` step. Ignored when `browserWsEndpoint` connects to
+   * a remote browser instead of launching one.
+   */
+  browserExecutablePath?: string;
   concurrency: number;
   timeoutMs: number;
   /**
    * How to handle analytics / telemetry / session-replay beacons.
-   *   "block" (default) — abort known analytics hosts (Google Analytics, Plausible,
+   *   "block" (default): abort known analytics hosts (Google Analytics, Plausible,
    *     Mixpanel, Hotjar, PostHog, Sentry, etc.). Prevents the audit from injecting
    *     fake pageviews / sessions into the site owner's dashboards.
-   *   "allow-first-party" — block third-party analytics only; keep same-origin
+   *   "allow-first-party": block third-party analytics only; keep same-origin
    *     requests for sites that self-host analytics on their own domain.
-   *   "allow" — don't intercept anything. Use this only when you're auditing a
+   *   "allow": don't intercept anything. Use this only when you're auditing a
    *     site you own and explicitly want render-mode traffic in your analytics.
    */
   analyticsMode?: AnalyticsMode;
@@ -63,10 +72,52 @@ interface WebVitals {
   ttfb: number | null;
 }
 
+interface PageResources {
+  /** Sum of UNCOMPRESSED subresource sizes (decodedBodySize where available). */
+  totalBytes: number;
+  /** Per-kind byte totals, so a heavy page can be attributed rather than just flagged. */
+  byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
+  /** Resources at or above the reporting floor, largest first, capped. */
+  largest: Array<{ url: string; bytes: number; kind: string }>;
+}
+
+/**
+ * Resource Timing fields to read a subresource's size from, in priority order.
+ *
+ * `decodedBodySize` FIRST, and this order is the whole point: Googlebot's
+ * per-file crawl cutoff is documented as "The file size limit is applied on the
+ * uncompressed data"
+ * (https://developers.google.com/search/docs/crawling-indexing/googlebot).
+ * Reading the compressed `transferSize` and comparing it against a 2 MB
+ * uncompressed cutoff silently passed a 6.2 MB bundle.js served gzipped at
+ * 1.1 MB, which Googlebot truncates at 2 MB. `decodedBodySize` is populated on
+ * the same entries that expose `transferSize`, so preferring it costs nothing.
+ *
+ * The compressed fields remain as fallbacks. They understate a compressible
+ * text asset by roughly 3-4x, and both read 0 for cross-origin responses
+ * without Timing-Allow-Origin, so every total is a FLOOR either way; the rule
+ * that consumes them (tech/resource-weight) says so and never escalates on a
+ * total alone.
+ *
+ * Exported so the choice is testable without a browser: the array is passed
+ * into the page.evaluate callback, which cannot close over module scope.
+ */
+export const RESOURCE_BYTE_FIELDS = ["decodedBodySize", "transferSize", "encodedBodySize"] as const;
+
+/** Size of one Resource Timing entry, per RESOURCE_BYTE_FIELDS. 0 when opaque. */
+export function resourceEntryBytes(entry: Record<string, unknown>): number {
+  for (const field of RESOURCE_BYTE_FIELDS) {
+    const value = entry[field];
+    if (typeof value === "number" && value > 0) return value;
+  }
+  return 0;
+}
+
 interface RenderedPage {
   url: string;
   html: string;
   webVitals?: WebVitals;
+  resources?: PageResources;
 }
 
 const MIME_TYPES: Record<string, string> = {
@@ -158,7 +209,13 @@ export async function renderPages(
     validateWsEndpoint(endpoint);
     browser = await pw.chromium.connectOverCDP(endpoint);
   } else {
-    browser = await pw.chromium.launch({ headless: true });
+    const executablePath = options.browserExecutablePath
+      ?? process.env.PSEOLINT_BROWSER_EXECUTABLE
+      ?? undefined;
+    browser = await pw.chromium.launch({
+      headless: true,
+      ...(executablePath ? { executablePath } : {}),
+    });
   }
 
   // One browser context carries the UA + privacy headers + init script for every
@@ -177,6 +234,22 @@ export async function renderPages(
     // @ts-ignore -- evaluated in the browser, window is the page's window
     const w = window as unknown as Record<string, unknown>;
     w.__pseolint_audit = true;
+    // Chromium's resource-timing buffer defaults to 250 entries and drops the
+    // rest SILENTLY. Entries fill in load order, not size order, so on a heavy
+    // page the late-loading assets are exactly the ones lost, and those are
+    // what tech/resource-weight exists to flag: a 2.4 MB bundle requested 300th
+    // would produce no entry and no finding. Raised here, before any page
+    // script runs, so the buffer is already large when the first request lands.
+    // ponytail: a flat raise, not a `resourcetimingbufferfull` handler. 5000 is
+    // far above any real page's subresource count; if one ever exceeds it the
+    // totals silently become a floor again, same as the opaque-response case
+    // that tech/resource-weight already documents.
+    try {
+      // @ts-ignore -- performance is a browser global
+      performance.setResourceTimingBufferSize(5000);
+    } catch {
+      // Non-fatal: an old engine without the method just keeps the default 250.
+    }
     // Core Web Vitals: install observers BEFORE page scripts run so no entries
     // are missed. LCP takes the last (largest) entry; CLS sums layout shifts
     // that weren't triggered by user input. Both use buffered:true so entries
@@ -194,7 +267,7 @@ export async function renderPages(
         for (const e of list.getEntries()) if (!e.hadRecentInput) v.cls += e.value;
       }).observe({ type: "layout-shift", buffered: true });
     } catch {
-      // Older/headless Chromium without these entry types — vitals stay at defaults.
+      // Older/headless Chromium without these entry types: vitals stay at defaults.
     }
   });
 
@@ -204,7 +277,7 @@ export async function renderPages(
     await context.route("**/*", (route: any, request: any) => {
       let blocked = false;
       try {
-        // Skip resource types that can't carry an analytics beacon — CSS, fonts,
+        // Skip resource types that can't carry an analytics beacon: CSS, fonts,
         // images, media. Keeps the fast path for the vast majority of subresources
         // and preserves Playwright's in-browser networking.
         const resourceType = typeof request.resourceType === "function" ? request.resourceType() : "";
@@ -237,7 +310,7 @@ export async function renderPages(
           }
         }
       } catch {
-        // fall through on any interception-time error — better to let the
+        // fall through on any interception-time error: better to let the
         // request proceed than to break rendering over a bad URL parse.
       }
 
@@ -289,7 +362,45 @@ export async function renderPages(
           const nav = performance.getEntriesByType("navigation")[0] as { responseStart?: number } | undefined;
           return { lcp: v.lcp, cls: v.cls, ttfb: nav?.responseStart ?? null };
         }).catch(() => ({ lcp: null, cls: null, ttfb: null }));
-        results.push({ url: entry.url, html, webVitals });
+        // Resource Timing is already populated by the time networkidle fires, so
+        // subresource byte totals cost one more evaluate and zero extra requests.
+        // Sizes are read UNCOMPRESSED where the entry exposes them: see
+        // RESOURCE_BYTE_FIELDS for why the order matters.
+        const resources: PageResources = await page.evaluate((byteFields: readonly string[]) => {
+          const KIND: Record<string, string> = {
+            img: "image", image: "image", script: "script", css: "stylesheet",
+            link: "stylesheet", font: "font",
+          };
+          const byKind = { image: 0, script: 0, stylesheet: 0, font: 0, other: 0 };
+          const all: Array<{ url: string; bytes: number; kind: string }> = [];
+          let totalBytes = 0;
+          // @ts-ignore -- browser global
+          for (const e of performance.getEntriesByType("resource") as Array<
+            Record<string, unknown> & { name: string; initiatorType: string }
+          >) {
+            let bytes = 0;
+            for (const field of byteFields) {
+              const value = e[field];
+              if (typeof value === "number" && value > 0) {
+                bytes = value;
+                break;
+              }
+            }
+            if (bytes <= 0) continue;
+            let kind = KIND[e.initiatorType] ?? "other";
+            if (kind === "stylesheet" && /\.(woff2?|ttf|otf|eot)(\?|$)/i.test(e.name)) kind = "font";
+            (byKind as Record<string, number>)[kind] += bytes;
+            totalBytes += bytes;
+            all.push({ url: e.name, bytes, kind });
+          }
+          all.sort((a, b) => b.bytes - a.bytes);
+          return { totalBytes, byKind, largest: all.slice(0, 10) };
+        }, RESOURCE_BYTE_FIELDS as unknown as string[]).catch(() => ({
+          totalBytes: 0,
+          byKind: { image: 0, script: 0, stylesheet: 0, font: 0, other: 0 },
+          largest: [],
+        }));
+        results.push({ url: entry.url, html, webVitals, resources });
       } catch {
         // Skip pages that fail to render
       } finally {

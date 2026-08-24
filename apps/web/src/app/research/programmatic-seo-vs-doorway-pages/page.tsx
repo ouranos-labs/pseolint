@@ -6,7 +6,8 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/programmatic-seo-vs-doorway-pages";
 const REPORT_TITLE = "Programmatic SEO vs. Doorway Pages: How to Survive a SpamBrain Pass";
-// Title tag kept ≤60 chars for SERP display.
+// Short title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "Programmatic SEO vs. Doorway Pages · pseolint";
 const REPORT_DESCRIPTION =
   "The line between a programmatic catalog that ranks and a doorway that gets deindexed isn't scale, it's three specific signals. How SpamBrain draws it, and the exact checks that tell you which side you're on.";
@@ -139,16 +140,6 @@ export default function ProgrammaticSeoVsDoorwayPagesPage(): React.ReactElement 
     ],
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -162,7 +153,6 @@ export default function ProgrammaticSeoVsDoorwayPagesPage(): React.ReactElement 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

@@ -2,7 +2,7 @@ import type { Severity, TriageResult } from "@pseolint/core";
 import { GenerateFixesButton } from "./generate-fixes-button";
 
 /**
- * AI triage root-causes — the "what to fix first" summary.
+ * AI triage root-causes: the "what to fix first" summary.
  *
  * The engine's triage pass (Pro audits) clusters the raw findings into a small
  * set of root causes and assigns each a `fixOrder`. We render them as a ranked
@@ -11,7 +11,7 @@ import { GenerateFixesButton } from "./generate-fixes-button";
  *
  * Severity chip styling mirrors the findings list (see `sevBorderBg` in
  * `findings-list.tsx`) so the colour vocabulary stays consistent across the
- * report. Rendered nowhere unless `triage.rootCauses` is non-empty — the
+ * report. Rendered nowhere unless `triage.rootCauses` is non-empty: the
  * caller gates on that.
  */
 export function RootCauses({
@@ -29,9 +29,9 @@ export function RootCauses({
   // Brief handed to the orchestrator: the inferred site archetype (so the run
   // is strategy-aware too), then the narrative, then the ranked root causes.
   const brief = [
-    triage.archetype ? `Site archetype: ${triage.archetype}${triage.archetypeRationale ? ` — ${triage.archetypeRationale}` : ""}` : null,
+    triage.archetype ? `Site archetype: ${triage.archetype}${triage.archetypeRationale ? `, ${triage.archetypeRationale}` : ""}` : null,
     triage.narrative,
-    ...ranked.map((rc, i) => `${i + 1}. ${rc.label} — rules: ${rc.affectedRuleIds.join(", ")}`),
+    ...ranked.map((rc, i) => `${i + 1}. ${rc.label}, rules: ${rc.affectedRuleIds.join(", ")}`),
   ]
     .filter(Boolean)
     .join("\n");

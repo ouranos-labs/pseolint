@@ -93,7 +93,7 @@ export function DataSourceForm({ host, hasExisting }: { host: string; hasExistin
 
       {filePreview && (
         <p className="text-xs text-success">
-          ✓ {filePreview.name} parsed — {filePreview.records.toLocaleString()} record
+          ✓ {filePreview.name} parsed: {filePreview.records.toLocaleString()} record
           {filePreview.records === 1 ? "" : "s"} ready to upload.
         </p>
       )}

@@ -1,5 +1,5 @@
 /**
- * v0.6 Template Detection — Phase 1 of the audit-as-template pipeline.
+ * v0.6 Template Detection: Phase 1 of the audit-as-template pipeline.
  *
  * Clusters discovered URLs by path template, filters to qualifying clusters
  * (ratio ≥ 1% AND count ≥ 5), and returns TemplateCandidate[] with each
@@ -43,7 +43,7 @@ export interface TemplateCandidate {
  *
  * A URL is attributed to the FIRST qualifying cluster whose signature matches
  * (clusters are sorted by descending count, so the most specific/largest
- * cluster wins in the case of ambiguity — though URL-to-template mapping is
+ * cluster wins in the case of ambiguity: though URL-to-template mapping is
  * injective: one URL → exactly one normalized template).
  */
 export function detectTemplates(urls: string[]): TemplateCandidate[] {

@@ -143,7 +143,7 @@ describe("classifySite", () => {
       urls.push(`https://example.com/brand-${i}/group/item`);
     }
     const c = classifySite({ urls });
-    // Top 3 templates here = /products/:slug, /:slug/sub, /:slug/group/item — covers 100%.
+    // Top 3 templates here = /products/:slug, /:slug/sub, /:slug/group/item, covers 100%.
     // The clustering CAN succeed here, leading to programmatic-directory.
     // To force ecommerce we need many distinct templates; mix 7 different shapes:
     const ecommerceUrls: string[] = [];
@@ -255,7 +255,7 @@ describe("classifySite", () => {
     expect(c.signals[0]).toEqual({ kind: "sitemap-url-count", value: 1 });
   });
 
-  test("v0.4.3 — docs site detected when /docs/* dominates URL set", () => {
+  test("v0.4.3: docs site detected when /docs/* dominates URL set", () => {
     const urls: string[] = [
       "https://example.com/",
       "https://example.com/about",
@@ -270,20 +270,20 @@ describe("classifySite", () => {
     expect(c.suppressedRules).toEqual([]);
   });
 
-  test("v0.4.3 — docs site detected with mixed /docs + /api + /reference paths", () => {
+  test("v0.4.3: docs site detected with mixed /docs + /api + /reference paths", () => {
     const urls: string[] = [];
     for (let i = 0; i < 40; i += 1) urls.push(`https://example.com/docs/section-${i}`);
     for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/api/endpoint-${i}`);
     for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/reference/symbol-${i}`);
-    // 90 of 100 URLs match docs prefixes — high confidence.
+    // 90 of 100 URLs match docs prefixes: high confidence.
     for (let i = 0; i < 10; i += 1) urls.push(`https://example.com/blog/post-${i}`);
     const c = classifySite({ urls });
     expect(c.type).toBe("docs");
     expect(c.confidence).toBeGreaterThanOrEqual(0.85);
   });
 
-  test("v0.4.3 — docs detector does NOT fire on tiny site with one /docs link", () => {
-    // Only 5 URLs total — below the 50-URL guard. Falls through to small-marketing.
+  test("v0.4.3: docs detector does NOT fire on tiny site with one /docs link", () => {
+    // Only 5 URLs total: below the 50-URL guard. Falls through to small-marketing.
     const urls = [
       "https://example.com/",
       "https://example.com/about",
@@ -295,7 +295,7 @@ describe("classifySite", () => {
     expect(c.type).not.toBe("docs");
   });
 
-  test("v0.4.3 — ecommerce detected when /products/* dominates", () => {
+  test("v0.4.3: ecommerce detected when /products/* dominates", () => {
     const urls: string[] = [];
     for (let i = 0; i < 80; i += 1) urls.push(`https://example.com/products/widget-${i}`);
     for (let i = 0; i < 10; i += 1) urls.push(`https://example.com/collections/spring-${i}`);
@@ -306,7 +306,7 @@ describe("classifySite", () => {
     expect(c.suppressedRules).toEqual([]);
   });
 
-  test("v0.4.3 — ecommerce detected via broader prefix mix at 100+ URLs", () => {
+  test("v0.4.3: ecommerce detected via broader prefix mix at 100+ URLs", () => {
     const urls: string[] = [];
     for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/shop/item-${i}`);
     for (let i = 0; i < 30; i += 1) urls.push(`https://example.com/store/sku-${i}`);
@@ -318,9 +318,9 @@ describe("classifySite", () => {
     expect(c.confidence).toBeGreaterThanOrEqual(0.75);
   });
 
-  test("v0.4.3 — ecommerce takes precedence over docs when both prefixes present", () => {
+  test("v0.4.3: ecommerce takes precedence over docs when both prefixes present", () => {
     const urls: string[] = [];
-    // 80% products vs 20% docs — ecommerce should win.
+    // 80% products vs 20% docs: ecommerce should win.
     for (let i = 0; i < 80; i += 1) urls.push(`https://example.com/products/p-${i}`);
     for (let i = 0; i < 20; i += 1) urls.push(`https://example.com/docs/page-${i}`);
     const c = classifySite({ urls });
@@ -328,7 +328,7 @@ describe("classifySite", () => {
   });
 });
 
-describe("v0.5.3 — corpusStatsFromPages", () => {
+describe("v0.5.3: corpusStatsFromPages", () => {
   test("returns zero stats for empty corpus", () => {
     expect(corpusStatsFromPages([])).toEqual({
       medianWordCount: 0,
@@ -361,7 +361,7 @@ describe("v0.5.3 — corpusStatsFromPages", () => {
   });
 });
 
-describe("v0.5.3 — applyDegenerationGuard", () => {
+describe("v0.5.3: applyDegenerationGuard", () => {
   const baseSmallMarketing: SiteClassification = {
     type: "small-marketing",
     confidence: 0.95,

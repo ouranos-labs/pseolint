@@ -1,4 +1,4 @@
-# Wikipedia Sample Corpus — Licensing Notice
+# Wikipedia Sample Corpus: Licensing Notice
 
 These plain-text excerpts are derived from Wikipedia articles and are used
 solely to build a trigram bloom filter for detecting encyclopedia-style

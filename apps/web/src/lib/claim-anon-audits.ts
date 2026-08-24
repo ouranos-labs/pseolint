@@ -1,7 +1,7 @@
 /**
  * Adopt audits created in an anonymous browser session into a real user account.
  *
- * Fires from better-auth's `session.create.after` hook — covers both first-time
+ * Fires from better-auth's `session.create.after` hook: covers both first-time
  * signup AND returning users who ran an anon audit then signed in. After the
  * UPDATE we clear the anon cookie so a single anon batch can't be re-claimed
  * by a different account on a later sign-in from the same browser.
@@ -21,7 +21,7 @@ export async function claimAnonAudits(userId: string): Promise<void> {
     anonId = store.get(ANON_COOKIE)?.value;
     if (!anonId || !/^[a-zA-Z0-9_-]{21}$/.test(anonId)) return;
 
-    // Only claim audits still owned by this anon session — never overwrite
+    // Only claim audits still owned by this anon session; never overwrite
     // an existing userId, even if the cookie somehow leaked across users.
     const claimed = await db
       .update(audits)

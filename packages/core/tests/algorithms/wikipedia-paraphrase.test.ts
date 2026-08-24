@@ -14,7 +14,7 @@ const VERBATIM_WIKIPEDIA =
   "at the University of Paris, and in 1995 she became the first woman to be entombed on " +
   "her own merits in the Pantheon in Paris.";
 
-// Paraphrased variant (synonym swaps, reordering) — same topic, some trigram overlap expected
+// Paraphrased variant (synonym swaps, reordering): same topic, some trigram overlap expected
 const PARAPHRASED_WIKIPEDIA =
   "Marie Curie was a Polish-born physicist and chemist who performed groundbreaking " +
   "research on radioactivity. She became the inaugural female recipient of a Nobel Prize " +
@@ -45,7 +45,7 @@ describe("loadWikipediaBloomFilter", () => {
     expect(filter.byteLength).toBeGreaterThan(0);
   });
 
-  test("caches correctly — same reference returned on second call", () => {
+  test("caches correctly: same reference returned on second call", () => {
     const first = loadWikipediaBloomFilter();
     const second = loadWikipediaBloomFilter();
     expect(first).toBe(second);

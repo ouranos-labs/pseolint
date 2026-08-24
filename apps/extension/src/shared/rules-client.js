@@ -1,8 +1,8 @@
-// pseolint extension — the Tier-1 client rule subset (architecture §6).
+// pseolint extension: the Tier-1 client rule subset (architecture §6).
 //
 // One implementation, never forked: the rule LOGIC is imported straight from
 // @pseolint/core via its curated subpath exports. Those three export lines in
-// core/package.json ARE the documented Tier-1 boundary — a rule graduates to
+// core/package.json ARE the documented Tier-1 boundary: a rule graduates to
 // client-sound by getting an export, nothing more. Each module imports only
 // `import type` from core, so the built JS is dependency-free (§6 spike: ~478B).
 import { ogCompletenessRule } from "@pseolint/core/rules/tech/og-completeness";
@@ -11,7 +11,7 @@ import { thinContentRule } from "@pseolint/core/rules/spam/thin-content";
 import { parseSignals } from "./parse.js";
 
 // Mirror core's DEFAULTS.thinContentMinWords (auditor.ts). thin-content marks a
-// finding `high` confidence only when words < minWords/2 — that <150-word band is
+// finding `high` confidence only when words < minWords/2; that <150-word band is
 // the only thin-content we badge, so regex word-count slack (parse.js) is moot.
 const THIN_MIN_WORDS = 300;
 
@@ -64,10 +64,24 @@ export function scanPage(html, url, status) {
   const opener = page.contentText.split(/\s+/).slice(0, 60).join(" ");
   const factLed = /(\$[\d,]+|\d+(?:\.\d+)?\s*%|\b(?:19|20)\d{2}\b|\b\d+\s*(?:days?|weeks?|months?|years?|hours?|minutes?)\b)/i.test(opener);
   const aeoReady = page.hasSchema && (faq || factLed);
+  // parseSignals builds a PARTIAL ParsedPage: it has no canonical, robotsMeta,
+  // hreflangs or resolvedHrefs, because the extension parses a SERP result's
+  // HTML with regexes rather than a full DOM. None of the three Tier-1 rules
+  // below reads those fields today, so the cast is sound now; it is narrow and
+  // commented rather than blanket so that the day a rule graduates to Tier-1 and
+  // does read one, this is the line that explains why it saw undefined.
+  const page_ = /** @type {import("@pseolint/core").ParsedPage} */ (/** @type {unknown} */ (page));
+  /**
+   * Locally shaped, not core's RuleResult[]: the two eeat/* entries pushed below
+   * are extension-only findings that carry just the fields `toVerdict` and `TAG`
+   * read. Widening here keeps that explicit instead of pretending they are
+   * fully-formed core findings.
+   * @type {Array<{ ruleId: string; severity: string; confidence?: string }>}
+   */
   const findings = [
-    ...ogCompletenessRule([page]),
-    ...soft404Rule([page]),
-    ...thinContentRule([page], THIN_MIN_WORDS).findings,
+    ...ogCompletenessRule([page_]),
+    ...soft404Rule([page_]),
+    ...thinContentRule([page_], THIN_MIN_WORDS).findings,
   ];
 
   const hasAuthor = !!(page.authorSignals?.metaAuthor || page.authorSignals?.schemaAuthor);

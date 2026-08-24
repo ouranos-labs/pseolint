@@ -3,7 +3,7 @@ import { OpenPanel } from "@openpanel/sdk";
 import { env } from "@/lib/env";
 
 /**
- * Generic OpenPanel server transport — no pseolint event names live here. This
+ * Generic OpenPanel server transport: no pseolint event names live here. This
  * is the file that lifts into a private `packages/analytics` when a second
  * apps/ app needs analytics (see spec §3.5). Lazy singleton so unconfigured
  * environments construct nothing.

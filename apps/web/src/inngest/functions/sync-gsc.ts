@@ -1,5 +1,5 @@
 /**
- * Daily GSC sync — pulls per-page Search Analytics for every monitored
+ * Daily GSC sync: pulls per-page Search Analytics for every monitored
  * domain that has both an active OAuth grant AND a bound property URL,
  * then upserts the rows into `gscPageMetrics` for the current month bucket.
  *
@@ -7,7 +7,7 @@
  * stable ranking key, and we accept some leakage from the previous month
  * around the 1st in exchange for always-fresh data.
  *
- * Per-user errors do not block the rest of the run — a revoked OAuth grant
+ * Per-user errors do not block the rest of the run: a revoked OAuth grant
  * for one user must not stop the cron for everyone else.
  *
  * Per-domain sync logic lives in @/lib/gsc-sync-core and is shared with
@@ -21,7 +21,7 @@ import { auditLog } from "@/lib/audit-log";
 import { monthBucketUtc, rollingDateRange } from "@/lib/gsc";
 import { syncOneDomain } from "@/lib/gsc-sync-core";
 
-/** Cap per cron tick — protects the GSC API quota and keeps the function within Inngest's runtime budget. */
+/** Cap per cron tick: protects the GSC API quota and keeps the function within Inngest's runtime budget. */
 const MAX_DOMAINS_PER_TICK = 50;
 
 export const syncGsc = inngest.createFunction(

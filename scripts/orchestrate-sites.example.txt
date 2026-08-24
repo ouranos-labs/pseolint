@@ -1,11 +1,11 @@
-# pseolint orchestrator batch — sample site list
+# pseolint orchestrator batch: sample site list
 # One URL per line. Blank lines and # comments are skipped.
 # Replace these with the 20 famous pSEO sites for the launch artifact.
 
 # Self-test
 https://pseolint.dev
 
-# Add launch-day targets below — each costs ~$1-3 to audit.
+# Add launch-day targets below: each costs ~$1-3 to audit.
 # https://www.notion.so
 # https://zapier.com
 # https://webflow.com

@@ -3,8 +3,8 @@ import type { AiOptions } from "../../types.js";
 
 /**
  * How the provider factory is constructed from the imported SDK package.
- * - `cloud-apikey` — `factory({ apiKey })` then `provider(modelId)`.
- * - `ollama`       — `factory({ baseURL })` then `provider(modelId)`.
+ * - `cloud-apikey`: `factory({ apiKey })` then `provider(modelId)`.
+ * - `ollama`: `factory({ baseURL })` then `provider(modelId)`.
  */
 export type ProviderKind = "cloud-apikey" | "ollama";
 
@@ -13,7 +13,7 @@ interface ProviderEntry {
   pkg: string;
   /** Named export from the package, e.g. `createAnthropic`. */
   factoryName: string;
-  /** Env var that holds the API key. Optional — Ollama has none. */
+  /** Env var that holds the API key. Optional: Ollama has none. */
   envVar?: string;
   /** Default model id when the user does not specify one. */
   defaultModel: string;
@@ -33,8 +33,8 @@ const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
     factoryName: "createAnthropic",
     envVar: "ANTHROPIC_API_KEY",
     // General default for triage + orchestrator (not calibration-sensitive).
-    // The content-effort JUDGE is pinned separately — see CONTENT_EFFORT_MODEL
-    // in auditor.ts — because its verdict thresholds are tuned to one model's
+    // The content-effort JUDGE is pinned separately: see CONTENT_EFFORT_MODEL
+    // in auditor.ts: because its verdict thresholds are tuned to one model's
     // score distribution and can't move without a re-calibration run.
     defaultModel: "claude-sonnet-5",
     kind: "cloud-apikey",
@@ -173,7 +173,7 @@ export async function createLanguageModel(config: AiOptions): Promise<ResolvedMo
 
   let pkgExports: Record<string, unknown>;
   try {
-    // Variable specifier — prevents tsc from trying to resolve the module at build time.
+    // Variable specifier: prevents tsc from trying to resolve the module at build time.
     const specifier = entry.pkg;
     pkgExports = (await import(specifier)) as Record<string, unknown>;
   } catch (e) {

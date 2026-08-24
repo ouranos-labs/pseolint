@@ -58,7 +58,7 @@ function ProviderToggle({
             type="button"
             onClick={() => googleEnabled && onChange("google")}
             disabled={disabled || !googleEnabled}
-            title={googleEnabled ? undefined : "Direct Google submission is coming soon — use IndexNow + sitemaps for now"}
+            title={googleEnabled ? undefined : "Direct Google submission is coming soon, use IndexNow + sitemaps for now"}
             className={`flex items-center gap-1 rounded-[8px] border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors ${
               !googleEnabled
                 ? "cursor-default border-border/30 bg-card/10 text-muted-foreground/50"
@@ -233,7 +233,7 @@ export function QuickIndexerCard({
   let customValidationNote: string | null = null;
 
   if (isRisky) {
-    customValidationError = `Domain risk too high (${latestAuditRisk}/100) — fix findings first.`;
+    customValidationError = `Domain risk too high (${latestAuditRisk}/100): fix findings first.`;
   } else if (normalizedCustom) {
     try {
       const urlHost = new URL(normalizedCustom).hostname.toLowerCase();
@@ -284,7 +284,7 @@ export function QuickIndexerCard({
         <div>
           <h2 className="text-sm font-medium">Instant Indexing Engine</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Clean pages discovered by the engine — no open findings, not yet indexed.
+            Clean pages discovered by the engine: no open findings, not yet indexed.
             Push them directly to crawlers without touching the findings list.
           </p>
         </div>

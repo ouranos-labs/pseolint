@@ -46,7 +46,7 @@ const goodPatterns: EntityMaskPattern[] = [
   { placeholder: "[CITY]", pattern: /Akron|Toledo|Columbus|Cleveland/i },
 ];
 
-// Pages that are near-identical WITHOUT any entity substitution — they expose
+// Pages that are near-identical WITHOUT any entity substitution; they expose
 // the degenerate case where empty patterns leave masking inert, turning the
 // rule into a plain near-duplicate detector.
 const DUPLICATE_TEXT =
@@ -69,7 +69,7 @@ describe("spam/entity-swap", () => {
   });
 
   test("(b) near-identical pages with NO entity patterns → fires warning + confidence:low (not critical)", () => {
-    // Without patterns, masking does nothing — the rule degenerates into
+    // Without patterns, masking does nothing: the rule degenerates into
     // a plain near-duplicate detector with no entity-swap evidence.
     // Use truly identical pages so similarity always crosses the threshold.
     const { findings } = entitySwapRule([pageDup1, pageDup2], [], 0.9);

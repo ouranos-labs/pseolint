@@ -32,7 +32,7 @@ export interface Alignment {
 export function evaluateAlignment(site: CorpusSite, audit: ScoredAudit): Alignment {
   const rank = VERDICT_RANK[audit.verdict];
   if (site.class === "subject") {
-    return { aligned: true, note: `tracked subject — verdict ${audit.verdict} (no gate)` };
+    return { aligned: true, note: `tracked subject, verdict ${audit.verdict} (no gate)` };
   }
   if (site.class === "reputable") {
     const ceiling = site.expectedVerdictCeiling ?? "critical";
@@ -63,7 +63,7 @@ export interface Confusion {
 export function confusionMatrix(rows: ScoreRow[], threshold: Verdict = DEFAULT_FLAG_THRESHOLD): Confusion {
   let tp = 0, fp = 0, tn = 0, fn = 0;
   for (const r of rows) {
-    if (r.siteClass === "subject") continue; // non-gated dogfood target — excluded from labeled metrics
+    if (r.siteClass === "subject") continue; // non-gated dogfood target: excluded from labeled metrics
     const flagged = isFlagged(r.audit, threshold);
     const positive = r.siteClass === "policy-violating";
     if (positive && flagged) tp++;
@@ -118,7 +118,7 @@ export interface CalibrationBucket {
   /** Gated sites whose risk falls in [lo, hi) (the top band is inclusive of hi). */
   n: number;
   policyViolating: number;
-  /** policyViolating / n — the empirical penalty rate of the band; NaN when empty. */
+  /** policyViolating / n: the empirical penalty rate of the band; NaN when empty. */
   policyRate: number;
 }
 
@@ -135,9 +135,9 @@ export interface CalibrationMetrics {
   auc: number;
   /** min(policy risk) − max(reputable risk); ≤ 0 means the two classes overlap. */
   separationGap: number;
-  /** Reputable sites whose risk ≥ the policy-violating median — over-flag-prone. */
+  /** Reputable sites whose risk ≥ the policy-violating median: over-flag-prone. */
   reputableAbovePolicyMedian: Array<{ url: string; risk: number }>;
-  /** Policy-violating sites whose risk ≤ the reputable median — recall leaks. */
+  /** Policy-violating sites whose risk ≤ the reputable median: recall leaks. */
   policyBelowReputableMedian: Array<{ url: string; risk: number }>;
   /** Risk-band calibration: empirical penalty rate per band (monotone ⇒ calibrated). */
   buckets: CalibrationBucket[];
@@ -163,8 +163,8 @@ const CALIBRATION_BANDS: ReadonlyArray<readonly [number, number]> = [
 /**
  * Score-vs-outcome calibration over the gated corpus (subjects excluded). Treats
  * the continuous risk as a binary classifier of the true label (policy-violating
- * = positive) and reports how well the *number itself* tracks reality — AUC,
- * class separation, the confusion-zone sites, and per-band penalty rates —
+ * = positive) and reports how well the *number itself* tracks reality: AUC,
+ * class separation, the confusion-zone sites, and per-band penalty rates:
  * decoupled from the verdict threshold the confusion matrix uses.
  */
 export function calibrationMetrics(rows: ScoreRow[]): CalibrationMetrics {
@@ -266,15 +266,15 @@ export function ratchet(rows: ScoreRow[], sites: CorpusSite[], baseline: Baselin
     if (s.class === "reputable") {
       const base = baseline.perSiteVerdict[r.url];
       if (base && curRank > VERDICT_RANK[base]) {
-        verdictRegressions.push(`${r.url}: reputable over-flag worsened — verdict ${r.audit.verdict} > baseline ${base}`);
+        verdictRegressions.push(`${r.url}: reputable over-flag worsened, verdict ${r.audit.verdict} > baseline ${base}`);
       }
     } else if (s.class === "policy-violating") {
       const base = baseline.perSiteVerdict[r.url];
       if (base && curRank < VERDICT_RANK[base]) {
-        verdictRegressions.push(`${r.url}: recall dropped — verdict ${r.audit.verdict} < baseline ${base}`);
+        verdictRegressions.push(`${r.url}: recall dropped, verdict ${r.audit.verdict} < baseline ${base}`);
       }
     }
-    // s.class === "subject": never gated — skipped intentionally.
+    // s.class === "subject": never gated, skipped intentionally.
   }
   const ruleRegressions: string[] = [];
   const current = perRuleFiringTable(rows);

@@ -126,7 +126,7 @@ describe("canonical-consistency rule", () => {
 
   test("page with a cross-scope canonical does NOT also emit an HTTP-vs-HTML conflict for the same canonical", () => {
     // HTML canonical → prod host, HTTP Link header also → prod host (they agree);
-    // the only issue is "outside crawl scope" — should fire exactly once.
+    // the only issue is "outside crawl scope"; should fire exactly once.
     const a = page("https://staging.example.com/page", {
       canonical: "https://example.com/page",
       httpMeta: {

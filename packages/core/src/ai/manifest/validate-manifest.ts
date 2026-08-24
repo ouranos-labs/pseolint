@@ -18,7 +18,7 @@ export interface ManifestValidationReport {
 
 /**
  * Walk every patch in the manifest and return a per-failure report. Does
- * NOT mutate the manifest — the caller decides what to do (drop failed
+ * NOT mutate the manifest: the caller decides what to do (drop failed
  * patches, surface them in a "rejected" section, retry the LLM with
  * feedback). Phase 4's manifest-finalization step will use this to filter
  * the manifest before persistence.

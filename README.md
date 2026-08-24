@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="pSEO Lint — audit your pSEO site by template, not by URL" width="720" />
+  <img src="docs/assets/logo.svg" alt="pSEO Lint: audit your pSEO site by template, not by URL" width="720" />
 </p>
 
 <p align="center">
@@ -35,10 +35,10 @@ npx pseolint http://localhost:3000
 - [Why this exists](#why-this-exists)
 - [How pseolint differs](#how-pseolint-differs)
 - [Quick Start](#quick-start)
-- [What It Checks](#what-it-checks) — the 45 rules
+- [What It Checks](#what-it-checks): the 61 rules
 - [CLI Options](#cli-options)
 - [GitHub Action](#github-action)
-- [Fix rail — from audit to pull request](#fix-rail--from-audit-to-pull-request)
+- [Fix rail: from audit to pull request](#fix-rail--from-audit-to-pull-request)
 - [Skills for Claude & coding agents](#skills-for-claude--coding-agents-new)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
@@ -56,51 +56,51 @@ every recommendation is bound to a runnable pseolint rule:
 npx skills add ouranos-labs/pseolint --skill pseolint aeo
 ```
 
-- **`pseolint`** — full-lifecycle programmatic SEO: design → build → audit → fix → gate.
-- **`aeo`** — get cited in AI Overviews / ChatGPT / Perplexity, not just ranked.
+- **`pseolint`**: full-lifecycle programmatic SEO: design → build → audit → fix → gate.
+- **`aeo`**: get cited in AI Overviews / ChatGPT / Perplexity, not just ranked.
 
 Unlike prose checklists, these have teeth: the design-time advice ends in
 `npx pseolint` pass/fail. See [`skills/README.md`](skills/README.md).
 
 ## Why this exists
 
-Programmatic SEO works — when it works. The gap between "1,000 indexed pages" and "1,000 pages that survive a SpamBrain pass" is where most pSEO sites die. The Helpful Content Update made that gap permanent.
+Programmatic SEO works, when it works. The gap between "1,000 indexed pages" and "1,000 pages that survive a SpamBrain pass" is where most pSEO sites die. The Helpful Content Update made that gap permanent.
 
 Existing SEO tools (Screaming Frog, Sitebulb, Ahrefs Site Audit) were built for editorially-curated sites. They check pages one at a time. But the SpamBrain risks of pSEO are *between* pages: doorway clusters, near-duplicates, entity-swap templates, thin-content propagation. You can't catch them with per-page rules.
 
-pseolint audits the graph — it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
+pseolint audits the graph: it groups results by template before surfacing them. Run it before you publish, gate it in CI, fix the broken template before SpamBrain does.
 
 ### How it compares
 
 |  | pseolint | Screaming Frog | Ahrefs Site Audit | Sitebulb |
 |---|:---:|:---:|:---:|:---:|
 | Unit of analysis | **template cluster** | URL | URL | URL |
-| Near-duplicate / doorway / entity-swap detection | ✅ | partial | — | — |
-| SpamBrain-policy risk verdict | ✅ | — | — | — |
-| AEO / AI-Overview citability checks | ✅ | — | — | — |
-| AI fix → pull request | ✅ | — | — | — |
+| Near-duplicate / doorway / entity-swap detection | ✅ | partial | - | - |
+| SpamBrain-policy risk verdict | ✅ | - | - | - |
+| AEO / AI-Overview citability checks | ✅ | - | - | - |
+| AI fix → pull request | ✅ | - | - | - |
 | CLI · GitHub Action · MCP server | ✅ | desktop | SaaS | desktop |
-| Open source | ✅ MIT | — | — | — |
+| Open source | ✅ MIT | - | - | - |
 
 The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, backlink data, log-file analysis). pseolint is the specialist for the one thing they weren't built for: **programmatic-SEO compliance at the template level.**
 
 ## How pseolint differs
 
 - **Graph-level, not page-level.** Detects near-duplicate clusters, doorway patterns, and entity-swap doorways across thousands of pages. Per-page tools can't see these.
-- **SpamBrain + AI Overview.** 45 rules across 8 categories — SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
+- **SpamBrain + AI Overview.** 61 rules across 8 categories: SpamBrain-policy mapping (penalty risk) plus `aeo/*` (AI Overview citability: `llms.txt`, AI-crawler access, citable facts, answer-first, summary-bait).
 - **Developer workflow, not SaaS UI.** CLI, GitHub Action, JSON/HTML reports, MCP server, browser extension (SERP competitive recon). Lives in your repo and your PRs.
 - **Actionable, not advisory.** Every finding has a fix, an effort tag (`quick fix` / `moderate` / `structural`), and a Google docs reference.
 - **Safe for hosted use.** SSRF guard (DNS-validated), robots.txt honoured for our own crawler, analytics-blocking in render mode, `AbortSignal` cancellation, `safeMode: "saas"` preset for embedding in services.
 - **Calibrated against reputable pSEO.** Engine verdicts are calibrated against a curated corpus of in-production pSEO sites that demonstrably win in search. Doorway-pattern findings cluster (no more per-pair noise); verdicts are reproducible at a fixed `sampleSeed`. Dated snapshot results, the open-source corpus, and the trade-offs we accepted live at [pseolint.dev/methodology](https://pseolint.dev/methodology). Spec: [docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md](./docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md).
-- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal — there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
-- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: image SEO dimensions, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md) — every gap categorized by impact tier with the roadmap fix.
+- **Authority-blind by design, with a manual override.** pseolint analyses static content + the link graph it can see. It does NOT measure backlinks, brand mentions, domain age, or any external trust signal: there is no Moz/Ahrefs/Semrush dependency. This means the engine itself is calibrated for the authority tier of the calibration corpus (established brands). It exposes `authorityScore` (0-100, via the `--authority-score` CLI flag, the core API, or the MCP param) so callers can adjust the verdict ladder for their tier: `>= 80` shifts one tier lenient (established brand can absorb shapes a newer site can't); `<= 30` shifts one tier stricter. Raw `risk` number unchanged so CI gates stay stable. Without the flag, treat verdicts as a directional minimum.
+- **Honest about blind spots.** Beyond domain authority, pseolint does not currently detect: image SEO dimensions, schema-content drift (e.g. JSON-LD price ≠ rendered price), outbound-link health, search-intent alignment, parameter-URL crawl-budget waste, and a handful of specialty gaps (mobile-friendliness, cookie-banner detection, AMP/News/Video schema). The complete blind-spot audit lives at [docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md): every gap categorized by impact tier with the roadmap fix.
 
-Full version history — calibration rounds, per-rule changes, safety hardening — is in [CHANGELOG.md](./CHANGELOG.md).
+Full version history (calibration rounds, per-rule changes, safety hardening) is in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Quick Start
 
 ```bash
-# Point it at your local dev server — that's it
+# Point it at your local dev server: that's it
 npx pseolint http://localhost:3000
 ```
 
@@ -165,7 +165,7 @@ Use `--legacy-flat` to suppress the template cards and get the v0.5-style flat f
 
 ### Partial coverage (`truncated`)
 
-If the crawl is interrupted — e.g. the backpressure watchdog aborts because the origin is degrading — pseolint still emits whatever it collected, flagged as partial:
+If the crawl is interrupted (e.g. the backpressure watchdog aborts because the origin is degrading), pseolint still emits whatever it collected, flagged as partial:
 
 ```json
 {
@@ -177,7 +177,7 @@ If the crawl is interrupted — e.g. the backpressure watchdog aborts because th
 }
 ```
 
-When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower bounds** — a partial pass is not a full pass. The CLI prints a `PARTIAL REPORT` banner and exits non-zero; the GitHub Action warns (and can fail with `fail-on-truncated: true`); the MCP tools and web report surface the same flag. Programmatic consumers should branch on it. The full output contract is published as a JSON Schema (`packages/core/schemas/audit-summary.schema.json`, `$id` carries the `schemaVersion`).
+When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower bounds**: a partial pass is not a full pass. The CLI prints a `PARTIAL REPORT` banner and exits non-zero; the GitHub Action warns (and can fail with `fail-on-truncated: true`); the MCP tools and web report surface the same flag. Programmatic consumers should branch on it. The full output contract is published as a JSON Schema (`packages/core/schemas/audit-summary.schema.json`, `$id` carries the `schemaVersion`).
 
 ## Audit Modes
 
@@ -187,11 +187,11 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | **Live site** | `npx pseolint https://yoursite.com` | Same as above against production. Slower (network latency). |
 | **Build directory** | `npx pseolint ./out` | Static HTML files only. No HTTP headers, no redirect detection, no soft-404 detection, no sitemap comparison. Use for CI gates. |
 
-> **Why localhost is recommended:** Build directories contain framework artifacts (Next.js `[slug].html` shells, empty client-rendered pages) that produce false positives. Your dev server renders the actual pages Google will see — with canonicals, meta tags, and full content.
+> **Why localhost is recommended:** Build directories contain framework artifacts (Next.js `[slug].html` shells, empty client-rendered pages) that produce false positives. Your dev server renders the actual pages Google will see: with canonicals, meta tags, and full content.
 
 ## What It Checks
 
-**45 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability:
+**61 rules** across **8 categories** (all 8 scored), producing a weighted **SpamBrain Risk Score** (0-100) and an independent **AEO sub-score** for AI Overview citability. Every rule is backed by a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse); the checks we deliberately *refuse* to run (folklore the primary sources contradict, like title/description character limits) live in [docs/folklore.md](./docs/folklore.md):
 
 ### SpamBrain Risk Detection
 
@@ -212,11 +212,14 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 |------|---------------|----------|
 | `content/unique-value` | Each page must have 100+ words not found on any other page | Error |
 | `content/meta-uniqueness` | Meta descriptions identical after entity masking | Error |
-| `content/title-uniqueness` | Empty/missing title, very short or excessively long title, or two pages sharing the exact title (raw, not entity-masked — catalog templates with per-record entity values pass) | Error / Warning / Info |
+| `content/title-uniqueness` | Empty/missing title, very short or excessively long title, or two pages sharing the exact title (raw, not entity-masked: catalog templates with per-record entity values pass) | Error / Warning / Info |
 | `content/heading-structure` | No `<h1>`, multiple `<h1>` elements, or long pages (>600 words) with no `<h2>` sub-headings | Error / Warning / Info |
 | `content/image-alt-text` | `<img>` tags missing `alt` attribute (decorative images marked `role="presentation"` / `aria-hidden="true"` / `alt=""` are skipped) | Warning / Info |
+| `content/image-attributes` | `<img>` tags with no width/height (and no inline sizing), which leaves the browser no aspect ratio to reserve and shows up as layout shift; plus pages serving 3+ images where none uses `srcset`/`<picture>` | Warning / Info |
 | `content/missing-author` | No author schema, meta, byline, or rel="author" | Warning |
 | `content/eeat-signals` | Missing E-E-A-T signals (author, dates, sources, about links) | Info |
+| `content/citation-coverage` | Pages making 3+ quantified claims with no authoritative citations | Warning |
+| `content/meta-description-presence` | Missing or empty meta description. Length is deliberately NOT linted: Google documents no character limit (see [docs/folklore.md](./docs/folklore.md)) | Warning |
 
 ### Internal Linking
 
@@ -228,6 +231,8 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | `links/cluster-connectivity` | Isolated page clusters with no cross-linking | Warning |
 | `links/unreachable-from-root` | Pages with no path from the start URL (graph-disconnected from the entry point) | Warning |
 | `links/link-depth` | Pages requiring >3 clicks from root | Info |
+| `links/crawlable-anchors` | Links Google cannot follow: `<a>` without `href`, `javascript:` hrefs, onclick/router-attribute pseudo-links. Escalates to Error when a page's navigation is effectively invisible to crawlers | Warning / Error |
+| `links/generic-anchor-text` | ≥50% of a page's internal links anchored on "click here" / "read more" / empty text, wasting the anchor signal Google (and AI answer engines) use to label the target | Info |
 
 ### Technical SEO
 
@@ -235,16 +240,25 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 |------|---------------|----------|
 | `tech/canonical-consistency` | Missing, invalid, or conflicting canonical URLs (HTML + HTTP header) | Error |
 | `tech/sitemap-completeness` | Pages missing from sitemap, phantom 404s, redirecting sitemap URLs | Error |
-| `tech/csr-bailout` | Render-diff: substantive content / interactivity that appears only after client-side JS — invisible to crawlers and the first indexing pass (needs `--render`) | Warning |
-| `tech/core-web-vitals` | Core Web Vitals in Google's "poor" tier. Default: lab LCP/CLS from a headless-Chromium render (needs `--render`). With a free CrUX API key (`--crux-api-key`), uses real-user field p75 for LCP/CLS **and INP** — the numbers Google ranks on | Warning |
-| `tech/soft-404` | HTTP 200 pages that look like error pages — plus a synthetic-URL probe that fetches one nonexistent URL per template cluster (a 200 means the directory will index unbounded junk; needs `--render`) | Error |
+| `tech/csr-bailout` | Render-diff: substantive content / interactivity that appears only after client-side JS: invisible to crawlers and the first indexing pass (needs `--render`) | Warning |
+| `tech/core-web-vitals` | Core Web Vitals in Google's "poor" tier. Default: lab LCP/CLS from a headless-Chromium render (needs `--render`). With a free CrUX API key (`--crux-api-key`), uses real-user field p75 for LCP/CLS **and INP**: the numbers Google ranks on | Warning |
+| `tech/soft-404` | HTTP 200 pages that look like error pages: plus a synthetic-URL probe that fetches one nonexistent URL per template cluster (a 200 means the directory will index unbounded junk; needs `--render`) | Error |
 | `tech/robots-compliance` | Sitemap URLs blocked by `robots.txt` (Disallow patterns matching listed pages) | Error |
 | `tech/robots-noindex-conflict` | Noindexed pages (meta or X-Robots-Tag) with inbound links | Warning |
 | `tech/canonical-noindex-conflict` | Noindex + canonical pointing elsewhere | Warning |
 | `tech/redirect-chain` | Redirect chains longer than 2 hops | Warning |
 | `tech/hreflang-consistency` | Hreflang reciprocity (A->B requires B->A) | Warning |
-| `tech/og-completeness` | Missing `og:title`, `og:description`, or `og:image` — affects social-share previews and AI Overview fallback summaries | Warning |
+| `tech/og-completeness` | Missing `og:title`, `og:description`, or `og:image`: affects social-share previews and AI Overview fallback summaries | Warning |
 | `tech/robots-sitemap-presence` | Missing or unreachable `/robots.txt` or `/sitemap.xml` at the origin | Warning |
+| `tech/language-mismatch` | Declared language (html lang / self-referencing hreflang) vs the Unicode script of the actual text, e.g. `lang="ja"` on a Cyrillic page. Google indexes by DETECTED language, so mismatched declarations silently break all targeting | Error / Warning / Info |
+| `tech/hreflang-validity` | Invalid hreflang codes (`en_US`, `jp`, `en-UK`); Google silently ignores the whole annotation | Warning |
+| `tech/html-size` | HTML approaching Googlebot's 2 MB per-file crawl cutoff (uncompressed; content/links/JSON-LD past it are invisible). Per-file, not total page weight (see [docs/folklore.md](./docs/folklore.md)) | Error / Warning |
+| `tech/resource-weight` | Subresource bytes from the `--render` pass: any single script/style/image at or past the same 2 MB per-file cutoff (Error), within 25% of it (Warning), plus a total-page-weight breakdown by kind (Info, explicitly not a crawl limit) | Error / Warning / Info |
+| `tech/meta-robots-conflict` | Contradictory robots directives across meta robots / meta googlebot / X-Robots-Tag. Google applies the MOST restrictive, so an accidental `noindex` silently wins | Error / Warning |
+| `tech/snippet-suppression` | `nosnippet` / `max-snippet:0`, which kills SERP snippets and AI Overview / answer-engine citability | Warning / Info |
+| `tech/viewport-meta` | Missing `<meta name="viewport">`; Google indexes mobile-first | Warning |
+| `tech/sitemap-hygiene` | Cross-host sitemap URLs (dropped per sitemaps.org), future / unparseable / mass-identical `lastmod` values (Google ignores unreliable lastmod) | Error / Warning |
+| `tech/robots-txt-limits` | robots.txt over Google's 500 KiB parse limit, or unsupported directives (`noindex:` in robots.txt has been ignored since 2019, so pages are NOT excluded) | Warning / Info |
 
 ### Data Consistency
 
@@ -269,7 +283,7 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 
 > `cannibal/title-overlap` and `cannibal/keyword-collision` were dropped in v0.4 due to high false-positive rates on legitimately similar pages (e.g. localized variants, paginated archives). See the [v0.4 redesign spec §4.3](./docs/superpowers/specs/2026-04-29-pseolint-v0.4-engine-redesign.md).
 
-### AEO — AI Overview Readiness (v0.3.x)
+### AEO: AI Overview Readiness (v0.3.x)
 
 | Rule | What It Checks | Severity |
 |------|---------------|----------|
@@ -279,19 +293,19 @@ When `truncated` is `true`, **treat `pageCount`, `risk`, and `verdict` as lower 
 | `aeo/faq-coverage` | FAQ-style content (question-phrased H2s) without `FAQPage` / `HowTo` JSON-LD | Info |
 | `aeo/answer-first` | First paragraph after H1 is boilerplate or lacks facts / named entities | Error |
 | `aeo/citable-facts` | <3 entity-specific citable facts per page after template-fact filtering | Error |
-| `aeo/content-modularity` | Sections that cross-reference each other or use vague headings — not independently extractable | Warning |
+| `aeo/content-modularity` | Sections that cross-reference each other or use vague headings: not independently extractable | Warning |
 | `aeo/summary-bait` | Composite: strong opener + no interactive value + facts packed in opener → guaranteed zero-click loss | Error |
 
 ## Live URL Scanning
 
 When you point pseolint at a URL, it captures what Google sees:
 
-- **HTTP metadata** — status codes, redirect chains, X-Robots-Tag, Link headers
-- **Crawl discovery** — follows internal links from the start page to find all crawlable pages
-- **Sitemap comparison** — if a sitemap exists, compares it against crawl-discovered pages
+- **HTTP metadata**: status codes, redirect chains, X-Robots-Tag, Link headers
+- **Crawl discovery**: follows internal links from the start page to find all crawlable pages
+- **Sitemap comparison**: if a sitemap exists, compares it against crawl-discovered pages
 
 ```bash
-# Just give it your homepage — it discovers everything
+# Just give it your homepage: it discovers everything
 npx pseolint https://paperforge.dev
 ```
 
@@ -329,9 +343,9 @@ Each group gets its own score. Unmatched pages get all rules.
 
 ## SpamBrain Risk Score
 
-The risk score (0–100) aggregates rule penalties into **4 super-categories** — **Integrity** (spam + content + cannibal), **Discoverability** (links + tech), **Citation** (aeo + schema), and **Data** — with site-type-aware weights, so a programmatic directory and a docs site are each scored against the rule weighting that matches their archetype. Since v0.6, scoring runs **per template** and rolls up to a site verdict: the worst-scoring template that covers ≥5% of the audited URLs.
+The risk score (0–100) aggregates rule penalties into **4 super-categories** (**Integrity** (spam + content + cannibal), **Discoverability** (links + tech), **Citation** (aeo + schema), and **Data**) with site-type-aware weights, so a programmatic directory and a docs site are each scored against the rule weighting that matches their archetype. Since v0.6, scoring runs **per template** and rolls up to a site verdict: the worst-scoring template that covers ≥5% of the audited URLs.
 
-The score maps to a 4-rung **verdict ladder**, and CI gates on the verdict (`--ci-threshold`, default `concerning`) — not a raw numeric band:
+The score maps to a 4-rung **verdict ladder**, and CI gates on the verdict (`--ci-threshold`, default `concerning`), not a raw numeric band:
 
 | Verdict | Meaning | CI exit (verdict ≥ threshold) |
 |---------|---------|-------------------------------|
@@ -346,10 +360,10 @@ See [pseolint.dev/methodology](https://pseolint.dev/methodology) for the calibra
 
 Findings are automatically enriched before display:
 
-- **Pairwise clustering** — Thousands of near-duplicate pair comparisons collapse into a handful of cluster findings: "48 pages form a near-duplicate cluster (86–94% similar)."
-- **Content breakdown** — Each cluster shows what's shared vs. unique: "Shared: description of property (31w), buyer acknowledges (35w). Unique: 3324w of 8140w."
-- **Effort tags** — Every finding is tagged `quick fix`, `moderate`, or `structural` so you know where to start.
-- **Template detection** — When the tool detects template-generated content, fix suggestions speak to template authors: "Add conditional content sections per entity."
+- **Pairwise clustering**: Thousands of near-duplicate pair comparisons collapse into a handful of cluster findings: "48 pages form a near-duplicate cluster (86–94% similar)."
+- **Content breakdown**: Each cluster shows what's shared vs. unique: "Shared: description of property (31w), buyer acknowledges (35w). Unique: 3324w of 8140w."
+- **Effort tags**: Every finding is tagged `quick fix`, `moderate`, or `structural` so you know where to start.
+- **Template detection**: When the tool detects template-generated content, fix suggestions speak to template authors: "Add conditional content sections per entity."
 
 ## CLI Options
 
@@ -436,7 +450,7 @@ npx pseolint https://yoursite.com --cache --state
 #   - new URL                         → fetch (reason: new)
 #   - prior fetch ≥ 7 days old        → fetch (reason: age)
 #   - ruleset version bumped          → fetch (reason: ruleset)
-#   - prior warning/error finding     → fetch (reason: recheck) — info findings carry forward
+#   - prior warning/error finding     → fetch (reason: recheck): info findings carry forward
 #   - sitemap <lastmod> newer         → fetch (reason: lastmod)
 #   - none of the above + lastmod present → SKIP (carry findings forward)
 npx pseolint https://yoursite.com --cache --state
@@ -452,7 +466,7 @@ npx pseolint https://yoursite.com --cache --state --exit-on-regression
 ```
 
 Sites whose sitemaps emit `<lastmod>` (Next.js, Yoast/WordPress, Astro) get the
-biggest savings — typically ~95% fewer fetches on steady-state monitoring runs.
+biggest savings: typically ~95% fewer fetches on steady-state monitoring runs.
 Sites without `<lastmod>` hit `no-signal` and refetch every URL; bandwidth is
 still saved via cache.ts conditional GETs but round-trips aren't skipped (a
 HEAD-fallback path is on the roadmap).
@@ -487,7 +501,7 @@ Every call prints a pre-flight cost estimate before hitting the provider. Cache 
 
 ### Local telemetry & stats
 
-Telemetry is **local JSONL only** — zero network, counts + spend + feedback ratings. Off by default.
+Telemetry is **local JSONL only**: zero network, counts + spend + feedback ratings. Off by default.
 
 ```bash
 npx pseolint https://yoursite.com --ai --telemetry
@@ -529,14 +543,14 @@ CRUX_API_KEY=... npx pseolint https://yoursite.com --crux-form-factor phone
 
 Selection is **per-metric**: when a CrUX key is set, `tech/core-web-vitals` uses field
 data for each of LCP/CLS/INP and falls back to the lab render for any metric CrUX
-lacks — so enabling field data never drops a signal the lab render already had.
+lacks, so enabling field data never drops a signal the lab render already had.
 
 CrUX only covers URLs/origins with enough real traffic, so low-traffic pSEO pages get
 their **origin-level** field vitals as a fallback. A site-wide origin reading collapses
 into **one** finding (not one per page). Per-URL lookups are pooled and capped at 150
 (`--crux-max-lookups <n>`, or `0` for unlimited); if the cap forces origin-level
 fallback, or CrUX rate-limits (429) / rejects the key (401/403), pseolint says so rather
-than silently reporting "no data". The CrUX endpoint is a fixed Google host — no
+than silently reporting "no data". The CrUX endpoint is a fixed Google host, so no
 external-authority dependency on your own content, consistent with pseolint's
 offline-runnable design.
 
@@ -562,7 +576,7 @@ jobs:
 
 Posts a score summary as a PR comment and fails the check if score exceeds the threshold.
 
-## Fix rail — from audit to pull request
+## Fix rail: from audit to pull request
 
 The AI orchestrator produces a **fix manifest** (validated patches). `pseolint apply` writes the deterministic ones (meta titles, H1s, `robots.txt`, `sitemap.xml`) straight into your source tree; generative or unmatched patches are demoted to a checklist for a human. `--pr` takes the next step: commit those edits to a tool-owned branch and open a PR.
 
@@ -590,11 +604,11 @@ Audited routes don't know your source layout, so you map them once (route patter
 }
 ```
 
-Route keys accept `:seg` / `[seg]` / `*` wildcards. A patch with no matching entry — or a literal that can't be found in an interpolated template like `Best in ${city}` — lands in the checklist (or the PR body) instead of silently corrupting source.
+Route keys accept `:seg` / `[seg]` / `*` wildcards. A patch with no matching entry (or a literal that can't be found in an interpolated template like `Best in ${city}`) lands in the checklist (or the PR body) instead of silently corrupting source.
 
 ### In CI
 
-`apply --pr` uses `git` + one GitHub API call — no extra dependency. Give the workflow write permissions and let `actions/checkout` configure the push token:
+`apply --pr` uses `git` + one GitHub API call; no extra dependency. Give the workflow write permissions and let `actions/checkout` configure the push token:
 
 ```yaml
 name: pSEO fix PR
@@ -615,7 +629,7 @@ jobs:
         env: { GITHUB_TOKEN: '${{ github.token }}' }
 ```
 
-Re-running updates the same `pseolint/fix-<domain>` branch (force-with-lease, tool-owned branch only) — it never spams new PRs. It no-ops cleanly when there's nothing deterministic to apply.
+Re-running updates the same `pseolint/fix-<domain>` branch (force-with-lease, tool-owned branch only); it never spams new PRs. It no-ops cleanly when there's nothing deterministic to apply.
 
 ## Output Formats
 
@@ -633,8 +647,8 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 | `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.5 | MIT |
 | `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.3 | MIT |
 | `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.4 | MIT |
-| `packages/action` | GitHub Action (`ouranos-labs/pseolint/packages/action@action-v1`) | — | MIT |
-| `apps/web` | pseolint.dev | — | AGPL-3.0 |
+| `packages/action` | GitHub Action (`ouranos-labs/pseolint/packages/action@action-v1`) | - | MIT |
+| `apps/web` | pseolint.dev | - | AGPL-3.0 |
 
 ## Development
 
@@ -646,11 +660,11 @@ bun run test     # 1,203 tests across 126 files (core)
 
 ## Roadmap
 
-- **AI-inferred template mapping** — today `apply --pr` needs a hand-authored `.pseolint/templates.json`; infer route→source automatically.
-- **Closing blind spots** — schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md). (Core Web Vitals landed: lab LCP/CLS via `--render`, real-user field p75 + INP via `--crux-api-key`.)
-- **Web "Open PR" button** — the fix rail runs from the CLI/Action today; a hosted one-click flow is deferred until the GitHub-App auth is justified.
+- **AI-inferred template mapping**: today `apply --pr` needs a hand-authored `.pseolint/templates.json`; infer route→source automatically.
+- **Closing blind spots**: schema-content drift, outbound-link health, search-intent alignment. Every gap is tracked by impact tier in the [blind-spot audit](./docs/superpowers/specs/2026-05-03-pseolint-blind-spots.md). (Core Web Vitals landed: lab LCP/CLS via `--render`, real-user field p75 + INP via `--crux-api-key`.)
+- **Web "Open PR" button**: the fix rail runs from the CLI/Action today; a hosted one-click flow is deferred until the GitHub-App auth is justified.
 
-Found a false positive or a missing check? [Open an issue](https://github.com/ouranos-labs/pseolint/issues) — corpus-backed bug reports move the calibration.
+Found a false positive or a missing check? [Open an issue](https://github.com/ouranos-labs/pseolint/issues). Corpus-backed bug reports move the calibration.
 
 ## Contributing
 

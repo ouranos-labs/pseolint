@@ -29,7 +29,7 @@ describe("parseScanOptions (allowlist)", () => {
 
   it("rejects an unknown / unsafe key (strict allowlist)", () => {
     // safeMode is exactly the kind of safety lever a Pro user must NOT be able
-    // to set via this surface — the strict schema must reject it.
+    // to set via this surface: the strict schema must reject it.
     const out = parseScanOptions({ crawlDiscovery: true, safeMode: "cli" });
     expect(out).toBeNull();
     expect(scanOptionsSchema.safeParse({ crawlDiscovery: true, safeMode: "cli" }).success).toBe(false);

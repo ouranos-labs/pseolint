@@ -11,7 +11,7 @@ import { env } from "@/lib/env";
 import { orchestrate, type SessionEvent } from "@pseolint/core";
 
 /**
- * Manifest retention by tier — mirrors the audit retention pattern.
+ * Manifest retention by tier: mirrors the audit retention pattern.
  *   Free: 30 days
  *   Pro:  90 days (matches monitoring retention)
  */
@@ -24,7 +24,7 @@ const MANIFEST_RETENTION_DAYS_PRO = 90;
  * persists the durable NDJSON log + final manifest+validation+diff payload
  * to R2, and writes terminal stats back to the session row.
  *
- * Event streaming for live UI is Phase 5 batch 2 — this batch persists the
+ * Event streaming for live UI is Phase 5 batch 2: this batch persists the
  * full log at the end of the run. The web app's SSE endpoint can either:
  *   (a) tail the R2 NDJSON object once the session completes, or
  *   (b) be wired to a sidechannel (Redis / Inngest realtime) for live tailing.
@@ -37,7 +37,7 @@ export const runOrchestratorSession = inngest.createFunction(
      * money; an Inngest function-level retry would re-run the whole
      * step.run("orchestrate", ...) and double-bill. Transient model
      * errors are handled inside `orchestrate()` via the AI SDK's per-call
-     * `maxRetries: 5` with backoff — that's the right layer for retries.
+     * `maxRetries: 5` with backoff: that's the right layer for retries.
      * Function-level failure should surface to the user as `failed`
      * status, not silently re-charge them.
      */
@@ -115,7 +115,7 @@ export const runOrchestratorSession = inngest.createFunction(
         },
         onEvent,
       });
-      // Strip the events array from the persisted result — events are
+      // Strip the events array from the persisted result: events are
       // streamed separately to the NDJSON log to avoid duplication.
       return {
         sessionResult: {
@@ -217,9 +217,9 @@ export const runOrchestratorSession = inngest.createFunction(
       spentUsd: result.sessionResult.usage.estimatedUsd,
     });
 
-    // Email notification on terminal status (success OR failure — both warrant
+    // Email notification on terminal status (success OR failure: both warrant
     // an inbox ping since the user paid for the run). User-cancelled
-    // sessions skip the email since the user already knows. Best-effort —
+    // sessions skip the email since the user already knows. Best-effort:
     // delivery failures don't roll back the session.
     const wantsEmail =
       (result.sessionResult.reason === "completed" || terminalStatus === "failed") &&

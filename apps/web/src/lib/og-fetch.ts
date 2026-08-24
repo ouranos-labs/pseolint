@@ -7,7 +7,7 @@ export interface OgData {
 }
 
 const FETCH_TIMEOUT_MS = 5_000;
-/** 256 KB ceiling — every OG <head> ever ships well under this. */
+/** 256 KB ceiling: every OG <head> ever ships well under this. */
 const MAX_BYTES = 256 * 1024;
 const USER_AGENT =
   "Mozilla/5.0 (compatible; pseolint-og-fetcher/1.0; +https://pseolint.dev/leaderboard)";

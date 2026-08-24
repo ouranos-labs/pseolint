@@ -42,7 +42,7 @@ const FAQS = [
   },
   {
     q: "Why should I run pseolint in my CI/CD pipeline?",
-    a: "Automated linting in your build pipeline catches structural errors—such as broken canonical tags, duplicate templates, or too much boilerplate—before they deploy to production, saving your indexation budget.",
+    a: "Automated linting in your build pipeline catches structural errors (such as broken canonical tags, duplicate templates, or too much boilerplate) before they deploy to production, saving your indexation budget.",
   },
   {
     q: "Is it better to use generateMetadata or custom meta tags?",
@@ -69,11 +69,11 @@ const STEPS = [
   },
   {
     name: "Design Semantic HTML Page Structure",
-    text: "Lay out your page using semantic HTML5 elements. Ensure the main content block contains at least 300 words of page-unique prose, keeping the overall boilerplate-to-content ratio below 60%.",
+    text: "Lay out your page using semantic HTML5 elements. Aim the main content block past 300 words of page-unique prose and keep the boilerplate-to-content ratio below 60%. Neither number is a Google ranking requirement (Google documents no preferred word count); both are the thresholds pseolint uses to spot bulk-generated pages that carry no copy of their own.",
   },
   {
     name: "Inject Nested JSON-LD Schemas",
-    text: "Create valid JSON-LD objects matching the page's primary intent (e.g., HowTo, Product, or FAQPage) and safely render them inside a script tag to provide machine-readable context to search bots.",
+    text: "Create valid JSON-LD objects matching the page's primary intent (Article or TechArticle, Product, BreadcrumbList, not the retired FAQPage or HowTo types) and safely render them inside a script tag to provide machine-readable context to search bots.",
   },
   {
     name: "Create a Dynamic sitemap.ts File",
@@ -114,34 +114,6 @@ export default function NextjsProgrammaticSeoPage() {
         "https://linkedin.com/in/philippekam"
       ]
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Build a Next.js Programmatic SEO Engine",
-    description: "Follow these 8 steps to construct a scalable, search-engine-friendly programmatic SEO template in Next.js App Router.",
-    step: STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -244,7 +216,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           </h2>
           <p>
             Google&apos;s SpamBrain model analyzes templates across your entire site to calculate similarity vectors.
-            If you merely swap a single keyword—like a location or vendor name—while keeping the surrounding prose
+            If you merely swap a single keyword (like a location or vendor name) while keeping the surrounding prose
             99% identical, SpamBrain flags the site for doorway page behavior. To prevent this, implement
             <strong> dynamic paragraph variations</strong>. Set up 3 or 4 alternative writing options for
             reused sections, and choose them based on the slug hash or specific data categories.
@@ -315,14 +287,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

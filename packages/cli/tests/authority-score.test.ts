@@ -1,5 +1,5 @@
 /**
- * SP2 — `--authority-score` CLI flag wiring.
+ * SP2: `--authority-score` CLI flag wiring.
  *
  * The flag funnels a user-supplied 0-100 domain authority into
  * AuditOptions.authorityScore, which the engine consumes via

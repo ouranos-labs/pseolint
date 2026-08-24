@@ -1,5 +1,5 @@
 /**
- * Integration test for v0.4 §4.11 — site classifier + rule suppression.
+ * Integration test for v0.4 §4.11: site classifier + rule suppression.
  *
  * Spins up a small "marketing site" fixture (5 distinct top-level pages with
  * varied content), runs `auditSource`, and asserts:
@@ -58,7 +58,7 @@ async function buildSmallMarketingFixture(): Promise<string> {
 
   await writeFile(
     join(dir, "index.html"),
-    `<html><head><title>Acme — Home</title></head><body><h1>Acme platform</h1><p>${longA}</p></body></html>`,
+    `<html><head><title>Acme: Home</title></head><body><h1>Acme platform</h1><p>${longA}</p></body></html>`,
     "utf-8",
   );
   await writeFile(

@@ -137,7 +137,7 @@ const PROVIDERS: Array<{ match: RegExp; info: ProviderInfo }> = [
  * the host has no NS records, lookup fails, or no provider matches.
  *
  * Failure is non-fatal: the verify banner still works without provider
- * detection — it just falls back to the generic instructions.
+ * detection: it just falls back to the generic instructions.
  */
 export async function detectDnsProvider(host: string): Promise<ProviderInfo | null> {
   let nsRecords: string[];

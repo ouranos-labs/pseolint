@@ -1,5 +1,5 @@
 /**
- * Weekly self-measurement sync — pulls pseolint.dev's OWN GSC property
+ * Weekly self-measurement sync: pulls pseolint.dev's OWN GSC property
  * (page+query) for the growth page-sets and upserts into growthSearchMetrics.
  * Distinct from sync-gsc.ts, which syncs customers' domains for the Pro audit.
  * No-ops unless GROWTH_GSC_* env is configured (see growthSyncOnce).

@@ -51,7 +51,7 @@ function categoryUrls(n: number): string[] {
 // Per-template verdict, risk, categories
 // ---------------------------------------------------------------------------
 
-describe("scoreTemplates — per-template verdict and risk", () => {
+describe("scoreTemplates: per-template verdict and risk", () => {
   it("clean template (no findings) gets verdict=ready and risk=0", () => {
     const urls = listingUrls(5);
     const candidate = makeCandidate("/listing/:slug", urls, 10);
@@ -128,7 +128,7 @@ describe("scoreTemplates — per-template verdict and risk", () => {
 // Variance metric
 // ---------------------------------------------------------------------------
 
-describe("scoreTemplates — variance metric", () => {
+describe("scoreTemplates: variance metric", () => {
   it("high-uniformity: all URLs fire the same rules → uniformityScore near 1", () => {
     const urls = listingUrls(10);
     // Every URL fires the same rule
@@ -153,7 +153,7 @@ describe("scoreTemplates — variance metric", () => {
     const templates = scoreTemplates(findings, [candidate], urlToTemplate, 20);
     const variance = templates[0]!.variance;
     // Each rule fires on 5/10 = 50% of URLs. stdev of binary (50%/50%) = 0.527
-    // So uniformity = 1 - 0.527 ≈ 0.47 — not near 1
+    // So uniformity = 1 - 0.527 ≈ 0.47: not near 1
     expect(variance.uniformityScore).toBeLessThan(0.7);
   });
 
@@ -168,7 +168,7 @@ describe("scoreTemplates — variance metric", () => {
 
   it("top driver = highest fire-rate rule", () => {
     const urls = listingUrls(10);
-    // ruleA fires on 8/10, ruleB fires on 3/10 — ruleA should be top driver
+    // ruleA fires on 8/10, ruleB fires on 3/10: ruleA should be top driver
     const findings: RuleResult[] = [
       ...urls.slice(0, 8).map((u) => makeFinding("spam/thin-content", u)),
       ...urls.slice(0, 3).map((u) => makeFinding("aeo/citable-facts", u, "info")),
@@ -182,7 +182,7 @@ describe("scoreTemplates — variance metric", () => {
     expect(variance.topDriver!.fireRate).toBeCloseTo(0.8, 2);
   });
 
-  it("ruleFireRates correct — fires on 5/10 samples = 0.5", () => {
+  it("ruleFireRates correct: fires on 5/10 samples = 0.5", () => {
     const urls = listingUrls(10);
     const findings: RuleResult[] = urls.slice(0, 5).map((u) =>
       makeFinding("spam/thin-content", u),
@@ -196,10 +196,10 @@ describe("scoreTemplates — variance metric", () => {
 });
 
 // ---------------------------------------------------------------------------
-// siteVerdictFromTemplates — §15.1 aggregation
+// siteVerdictFromTemplates: §15.1 aggregation
 // ---------------------------------------------------------------------------
 
-describe("siteVerdictFromTemplates — §15.1 worst-template ≥5% coverage", () => {
+describe("siteVerdictFromTemplates: §15.1 worst-template ≥5% coverage", () => {
   it("worst verdict among qualifying templates wins", () => {
     const urls = listingUrls(10);
     const cu = categoryUrls(10);
@@ -217,13 +217,13 @@ describe("siteVerdictFromTemplates — §15.1 worst-template ≥5% coverage", ()
     ]);
     const templates = scoreTemplates(findings, candidates, urlToTemplate, allUrls.length);
     const siteVerdict = siteVerdictFromTemplates(templates);
-    // listing is critical, category is ready — worst wins
+    // listing is critical, category is ready: worst wins
     expect(siteVerdict).not.toBeNull();
     expect(verdictRank(siteVerdict!)).toBeGreaterThanOrEqual(verdictRank("concerning"));
   });
 
   it("returns null when no template meets 5% coverage threshold", () => {
-    // Total 1000 URLs but each template has only 4 (0.4%) — below 5%
+    // Total 1000 URLs but each template has only 4 (0.4%): below 5%
     const totalDiscovered = 1000;
     const urls = listingUrls(4);
     const findings: RuleResult[] = urls.map((u) =>
@@ -240,7 +240,7 @@ describe("siteVerdictFromTemplates — §15.1 worst-template ≥5% coverage", ()
   });
 
   it("longtail template is excluded from verdict aggregation", () => {
-    // Only longtail template with critical findings — site verdict should be null
+    // Only longtail template with critical findings: site verdict should be null
     const urls = listingUrls(10);
     const findings: RuleResult[] = urls.map((u) =>
       makeFinding("spam/thin-content", u, "critical"),

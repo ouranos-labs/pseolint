@@ -26,14 +26,14 @@ process.env.IP_HASH_SALT ??= "y".repeat(16);
 // ---------------------------------------------------------------------------
 // The DB-backed suites seed users at `<random>@example.test` and clean up in
 // afterEach. An interrupted run skips that, stranding fixture users in a real
-// database — 16 such rows accumulated from two runs in April 2026 before this
+// database: 16 such rows accumulated from two runs in April 2026 before this
 // existed. They are inert (no dependent rows) but they inflate the user table.
 //
 // Deletes only fixtures created BEFORE this run started. Vitest executes files
 // in parallel, so a blanket delete could rip out fixtures a sibling suite is
 // still using; the timestamp guard scopes this to genuine leftovers and leaves
 // the current run to its own afterEach. monitor-eligibility.test.ts needs none
-// of this — it rolls its transactions back and commits nothing.
+// of this; it rolls its transactions back and commits nothing.
 //
 // Imports are dynamic so a normal `vitest run` never constructs a DB pool.
 // (The `export {}` at the bottom makes this a module, which top-level await needs.)
@@ -55,7 +55,7 @@ if (process.env.RUN_DB_INTEGRATION_TESTS === "1") {
         console.log(`[db-integration] removed ${removed.length} stale fixture user(s)`);
       }
     } catch (err) {
-      // Never fail a suite over cleanup — the rows are inert either way.
+      // Never fail a suite over cleanup; the rows are inert either way.
       console.warn(
         `[db-integration] stale fixture cleanup skipped: ${err instanceof Error ? err.message : String(err)}`,
       );

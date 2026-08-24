@@ -6,15 +6,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const resultsPath = path.join(__dirname, '..', 'serp-analysis-results.json');
 const reportPath = path.join(__dirname, '..', 'pseolint-serp-report.md');
 
-// ponytail: generic, niche-agnostic domain buckets — no per-competitor hardcoding.
+// ponytail: generic, niche-agnostic domain buckets; no per-competitor hardcoding.
 // Interpretation of who to attack comes from reading the data, not baked-in guesses.
 const FORUMS = ['reddit.com', 'quora.com', 'stackoverflow.com', 'stackexchange.com'];
 const SEO_PLATFORMS = ['ahrefs.com', 'semrush.com', 'moz.com', 'screamingfrog.co.uk', 'sitebulb.com', 'backlinko.com', 'searchenginejournal.com', 'searchengineland.com', 'searchenginewatch.com', 'seroundtable.com', 'conductor.com'];
 const OFFICIAL_DOCS = ['developers.google.com', 'support.google.com', 'learn.microsoft.com', 'developers.microsoft.com'];
 
 function classify(domain) {
-  if (FORUMS.some(d => domain.includes(d))) return ['Community forum', 'High authority, unstructured/aging answers — beatable with a structured tool page.'];
-  if (SEO_PLATFORMS.some(d => domain.includes(d))) return ['SEO platform / publication', 'Established authority — target comparison and long-tail symptom terms, not head terms.'];
+  if (FORUMS.some(d => domain.includes(d))) return ['Community forum', 'High authority, unstructured/aging answers; beatable with a structured tool page.'];
+  if (SEO_PLATFORMS.some(d => domain.includes(d))) return ['SEO platform / publication', 'Established authority; target comparison and long-tail symptom terms, not head terms.'];
   if (OFFICIAL_DOCS.some(d => domain.includes(d))) return ['Official docs', 'Reference source Google keeps for authority; weak on actionable tooling.'];
   return ['Independent / other', 'Analyze for content gaps or target directly.'];
 }

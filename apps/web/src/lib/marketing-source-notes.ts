@@ -8,7 +8,7 @@
  * also ground the page's quantified claims for content/citation-coverage and
  * contribute genuine page-unique words for content/unique-value.
  *
- * URLs are NOT written here — only library keys (see marketing-sources.ts).
+ * URLs are NOT written here: only library keys (see marketing-sources.ts).
  * Generated/assembled from per-batch authoring; edit notes here directly.
  */
 import { SCORED_RULE_COUNT } from "@pseolint/core/rules/scope";
@@ -36,11 +36,11 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "doorway-pattern": [
     {
       "source": "doorways",
-      "note": "Google's doorway-pages policy — in force since March 16, 2015 — defines pages that exist for query or location variants while funneling visitors to a shared destination; spam/doorway-pattern demands exactly three converging signals before firing at weight-25 error severity: a 64-bit SimHash above the 0.85 ceiling, entity-swap confirmation, and a structural hash match."
+      "note": "Google's doorway-pages policy (in force since March 16, 2015) defines pages that exist for query or location variants while funneling visitors to a shared destination; spam/doorway-pattern demands exactly three converging signals before firing at weight-25 error severity: a 64-bit SimHash above the 0.85 ceiling, entity-swap confirmation, and a structural hash match."
     },
     {
       "source": "scaledContent",
-      "note": "The March 5, 2024 scaled-content-abuse update reaffirmed that city-by-city or service-by-service template clusters built to capture keyword permutations constitute spam; doorway-pattern's convergence guard — requiring corroboration from spam/near-duplicate output — ensures only the highest-confidence clusters reach error severity, not incidental similarity."
+      "note": "The March 5, 2024 scaled-content-abuse update reaffirmed that city-by-city or service-by-service template clusters built to capture keyword permutations constitute spam; doorway-pattern's convergence guard (requiring corroboration from spam/near-duplicate output) ensures only the highest-confidence clusters reach error severity, not incidental similarity."
     },
     {
       "source": "canonicalization",
@@ -72,7 +72,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "boilerplate-ratio": [
     {
       "source": "scaledContent",
-      "note": "The March 5, 2024 scaled-content-abuse update explicitly targets pages where repeated template blocks — sentences appearing on 80%+ of the corpus — consume more than 60% of a URL's word count, leaving individual pages with negligible unique substance; the boilerplate-ratio rule's 60% ceiling operationalises that clause."
+      "note": "The March 5, 2024 scaled-content-abuse update explicitly targets pages where repeated template blocks (sentences appearing on 80%+ of the corpus) consume more than 60% of a URL's word count, leaving individual pages with negligible unique substance; the boilerplate-ratio rule's 60% ceiling operationalises that clause."
     },
     {
       "source": "helpfulContent",
@@ -86,15 +86,15 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "template-diversity": [
     {
       "source": "scaledContent",
-      "note": "SpamBrain's August 25, 2022 rebuild — launched alongside the Helpful Content System to score site-level quality — reads domains where fewer than 30% of pages carry a distinct structureSignature hash as single-template operations; the minUniqueRatio floor enforced by this rule is calibrated to that site-level classifier boundary."
+      "note": "SpamBrain's August 25, 2022 rebuild (launched alongside the Helpful Content System to score site-level quality) reads domains where fewer than 30% of pages carry a distinct structureSignature hash as single-template operations; the minUniqueRatio floor enforced by this rule is calibrated to that site-level classifier boundary."
     },
     {
       "source": "helpfulContent",
-      "note": "Helpful Content guidance evaluates whether a site was built to serve readers or fill a keyword matrix; when 70% or more of pages share the same HTML-structure sequence hash — tag order preserved, text ignored — the domain is structurally indistinguishable from a one-template generator, which the guidance explicitly weighs against."
+      "note": "Helpful Content guidance evaluates whether a site was built to serve readers or fill a keyword matrix; when 70% or more of pages share the same HTML-structure sequence hash (tag order preserved, text ignored) the domain is structurally indistinguishable from a one-template generator, which the guidance explicitly weighs against."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials calls out sites produced primarily for search engines rather than users; a domain where fewer than 30% of pages carry a distinct structureSignature — computed by hashing the DOM skeleton while ignoring all text content — presents machine-readable monotony that operationalises that intent signal."
+      "note": "Search Essentials calls out sites produced primarily for search engines rather than users; a domain where fewer than 30% of pages carry a distinct structureSignature (computed by hashing the DOM skeleton while ignoring all text content) presents machine-readable monotony that operationalises that intent signal."
     },
     {
       "source": "crawlBudget",
@@ -104,7 +104,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "host-section-divergence": [
     {
       "source": "siteReputationAbuse",
-      "note": "Google's May 7, 2024 site-reputation-abuse policy targets subfolders — /coupons/, /deals/, /reviews/ — that borrow a host's ranking authority without earning it through topical alignment; links/host-section-divergence fires only on minority sections (under 50% of the corpus) that diverge from the host on at least 2 of 4 structural signals, the minimum-section-size threshold being 10 pages on each side of the split."
+      "note": "Google's May 7, 2024 site-reputation-abuse policy targets subfolders (/coupons/, /deals/, /reviews/) that borrow a host's ranking authority without earning it through topical alignment; links/host-section-divergence fires only on minority sections (under 50% of the corpus) that diverge from the host on at least 2 of 4 structural signals, the minimum-section-size threshold being 10 pages on each side of the split."
     },
     {
       "source": "spamPolicies",
@@ -118,29 +118,29 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "entity-swap": [
     {
       "source": "doorways",
-      "note": "Google's doorway-pages policy targets pages that differ only in a swapped city, state, or product noun — the precise pattern spam/entity-swap detects by masking all 50 US state names and 5-digit ZIP codes before computing a 64-bit SimHash; two pages scoring 95% or higher after masking are structurally identical doorways under that policy definition."
+      "note": "Google's doorway-pages policy targets pages that differ only in a swapped city, state, or product noun, the precise pattern spam/entity-swap detects by masking all 50 US state names and 5-digit ZIP codes before computing a 64-bit SimHash; two pages scoring 95% or higher after masking are structurally identical doorways under that policy definition."
     },
     {
       "source": "scaledContent",
-      "note": "The March 5, 2024 scaled-content-abuse update identified entity-swap generation as one of the clearest fingerprints of programmatic spam; the 95% post-masking similarity ceiling the rule enforces is set higher than spam/near-duplicate's 85% threshold because entity replacement is a deliberate evasion strategy — the masking step removes the only variable before the fingerprint comparison runs."
+      "note": "The March 5, 2024 scaled-content-abuse update identified entity-swap generation as one of the clearest fingerprints of programmatic spam; the 95% post-masking similarity ceiling the rule enforces is set higher than spam/near-duplicate's 85% threshold because entity replacement is a deliberate evasion strategy: the masking step removes the only variable before the fingerprint comparison runs."
     },
     {
       "source": "helpfulContent",
-      "note": "Google's Helpful Content guidance asks whether a page would exist if search rankings were not the motivation; a URL whose body is indistinguishable from its siblings once the swapped state name or ZIP code is redacted fails that test categorically — the rule's critical-severity firing reflects how directly entity-swap pages violate the 'created for people' criterion."
+      "note": "Google's Helpful Content guidance asks whether a page would exist if search rankings were not the motivation; a URL whose body is indistinguishable from its siblings once the swapped state name or ZIP code is redacted fails that test categorically; the rule's critical-severity firing reflects how directly entity-swap pages violate the 'created for people' criterion."
     },
     {
       "source": "spamPolicies",
-      "note": "Spam policies treat interchangeable pages targeting query variants — {service} in {state}, {service} near {zip} — as a documented enforcement category; the configurable entity-pattern system that lets you extend beyond US states and ZIP codes to cities, SKUs, and job titles maps each custom dimension to the same convergence check Google's classifier applies to geographic doorway clusters."
+      "note": "Spam policies treat interchangeable pages targeting query variants ({service} in {state}, {service} near {zip}) as a documented enforcement category; the configurable entity-pattern system that lets you extend beyond US states and ZIP codes to cities, SKUs, and job titles maps each custom dimension to the same convergence check Google's classifier applies to geographic doorway clusters."
     }
   ],
   "publication-velocity": [
     {
       "source": "scaledContent",
-      "note": "Google's scaled-content-abuse policy — tightened in the March 27, 2026 core update — treats publication-date stacking as a machine-generation fingerprint; spam/publication-velocity flags any calendar day where the page count exceeds the greater of 100 pages or 10% of the total corpus, reading article:published_time, datePublished meta, and the first time[datetime] element to reconstruct each page's publish date."
+      "note": "Google's scaled-content-abuse policy (tightened in the March 27, 2026 core update) treats publication-date stacking as a machine-generation fingerprint; spam/publication-velocity flags any calendar day where the page count exceeds the greater of 100 pages or 10% of the total corpus, reading article:published_time, datePublished meta, and the first time[datetime] element to reconstruct each page's publish date."
     },
     {
       "source": "helpfulContent",
-      "note": "Google's Helpful Content guidance frames mass-scheduling of pages as evidence of ranking-first intent; when a single day's batch exceeds the corpus-relative ceiling, the date-stacking pattern is statistically inconsistent with editorial publishing rhythms — the rule skips pages with no detectable date so only confirmed-date evidence informs the verdict."
+      "note": "Google's Helpful Content guidance frames mass-scheduling of pages as evidence of ranking-first intent; when a single day's batch exceeds the corpus-relative ceiling, the date-stacking pattern is statistically inconsistent with editorial publishing rhythms; the rule skips pages with no detectable date so only confirmed-date evidence informs the verdict."
     },
     {
       "source": "crawlBudget",
@@ -150,11 +150,11 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "template-coverage": [
     {
       "source": "scaledContent",
-      "note": "Google's scaled-content-abuse policy, tightened March 5 2024, targets sites generating permutations of dimension combinations — city × service, state × regulation — precisely the sparse high-dimension matrices spam/template-coverage exposes by computing how many of the theoretically possible filename token combinations a cluster actually fills."
+      "note": "Google's scaled-content-abuse policy, tightened March 5 2024, targets sites generating permutations of dimension combinations (city × service, state × regulation) precisely the sparse high-dimension matrices spam/template-coverage exposes by computing how many of the theoretically possible filename token combinations a cluster actually fills."
     },
     {
       "source": "doorways",
-      "note": "The doorways policy warns that pages created to rank for every variant of a query — without added value per combination — are doorway clusters; spam/template-coverage's coverage ratio is the structural measurement that quantifies how thinly a template's dimensional grid has been populated."
+      "note": "The doorways policy warns that pages created to rank for every variant of a query (without added value per combination) are doorway clusters; spam/template-coverage's coverage ratio is the structural measurement that quantifies how thinly a template's dimensional grid has been populated."
     },
     {
       "source": "helpfulContent",
@@ -162,7 +162,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "crawlBudget",
-      "note": "Crawl-budget guidance recommends avoiding URL sprawl that yields no incremental value; spam/template-coverage's info-severity diagnostic surfaces exactly the low-fill clusters — say, 40 actual pages out of 800 possible permutations — that inflate a sitemap without improving the index."
+      "note": "Crawl-budget guidance recommends avoiding URL sprawl that yields no incremental value; spam/template-coverage's info-severity diagnostic surfaces exactly the low-fill clusters (say, 40 actual pages out of 800 possible permutations) that inflate a sitemap without improving the index."
     }
   ],
   "unique-value": [
@@ -172,11 +172,11 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "helpfulContent",
-      "note": "Helpful Content guidance asks whether a URL delivers original information beyond what neighbouring pages already say; the rule answers that mechanically — lower-casing tokens, stripping leading and trailing punctuation so 'word.', '(word)', and 'word' resolve to one token, then cross-referencing a cross-audit frequency map to isolate page-exclusive vocabulary."
+      "note": "Helpful Content guidance asks whether a URL delivers original information beyond what neighbouring pages already say; the rule answers that mechanically: lower-casing tokens, stripping leading and trailing punctuation so 'word.', '(word)', and 'word' resolve to one token, then cross-referencing a cross-audit frequency map to isolate page-exclusive vocabulary."
     },
     {
       "source": "doorways",
-      "note": "Doorway policy requires that pages differ substantively from their template siblings; a page whose page-exclusive token count falls below 100 after shared boilerplate is subtracted has, by definition, no vocabulary that is not already present across the cluster — the lexical fingerprint doorway enforcement targets most directly."
+      "note": "Doorway policy requires that pages differ substantively from their template siblings; a page whose page-exclusive token count falls below 100 after shared boilerplate is subtracted has, by definition, no vocabulary that is not already present across the cluster, the lexical fingerprint doorway enforcement targets most directly."
     },
     {
       "source": "canonicalization",
@@ -186,7 +186,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "meta-uniqueness": [
     {
       "source": "titleLinks",
-      "note": "Google's title-links guidance notes it rewrites snippets when the provided text does not accurately reflect the page; duplicate masked meta descriptions — byte-for-byte identical after entity tokens are removed — are a direct signal that the snippet was templated rather than authored per URL."
+      "note": "Google's title-links guidance notes it rewrites snippets when the provided text does not accurately reflect the page; duplicate masked meta descriptions (byte-for-byte identical after entity tokens are removed) are a direct signal that the snippet was templated rather than authored per URL."
     },
     {
       "source": "canonicalization",
@@ -198,17 +198,17 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "helpfulContent",
-      "note": "Helpful-content guidance asks whether a page gives readers enough context to decide whether it matches their intent; a meta description that collapses to the same residue as fifty sibling pages provides no such context — it is copy-pasted template text wearing a different noun."
+      "note": "Helpful-content guidance asks whether a page gives readers enough context to decide whether it matches their intent; a meta description that collapses to the same residue as fifty sibling pages provides no such context: it is copy-pasted template text wearing a different noun."
     }
   ],
   "missing-author": [
     {
       "source": "helpfulContent",
-      "note": "Google's Helpful Content framework asks whether expertise and first-hand experience are evident on the page itself; content/missing-author fires at warning severity when all four machine-readable author signals are absent — a non-empty meta author tag, a JSON-LD schema.org author property, a byline element, and a rel=author link — leaving the classifier with zero attribution evidence."
+      "note": "Google's Helpful Content framework asks whether expertise and first-hand experience are evident on the page itself; content/missing-author fires at warning severity when all four machine-readable author signals are absent (a non-empty meta author tag, a JSON-LD schema.org author property, a byline element, and a rel=author link), leaving the classifier with zero attribution evidence."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials states that Google rewards pages demonstrating genuine subject-matter knowledge; the absence of all four author signals content/missing-author checks means no E-E-A-T claim has been made in any form the parser can extract — no byline, no linked-data attribution, no declarative author meta tag."
+      "note": "Search Essentials states that Google rewards pages demonstrating genuine subject-matter knowledge; the absence of all four author signals content/missing-author checks means no E-E-A-T claim has been made in any form the parser can extract: no byline, no linked-data attribution, no declarative author meta tag."
     },
     {
       "source": "structuredData",
@@ -216,17 +216,17 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "aiFeatures",
-      "note": "Google's AI Overviews pipeline preferentially surfaces content with identifiable, attributable authors; when none of the four byline signals passes — not the meta author tag, not the JSON-LD Person node, not the rel=author link, not the in-body byline element — the page is treated as anonymous and deprioritised for passage extraction."
+      "note": "Google's AI Overviews pipeline preferentially surfaces content with identifiable, attributable authors; when none of the four byline signals passes (not the meta author tag, not the JSON-LD Person node, not the rel=author link, not the in-body byline element) the page is treated as anonymous and deprioritised for passage extraction."
     }
   ],
   "eeat-signals": [
     {
       "source": "helpfulContent",
-      "note": "Google's helpful-content guidance grounds E-E-A-T in demonstrable page-level evidence — who wrote it, when, and what sources back it up; content/eeat-signals scores these as four discrete binary signals, firing an info note on any URL that satisfies fewer than 2, the anonymity profile that aligns with low E-E-A-T in the December 2022 Quality Rater Guidelines."
+      "note": "Google's helpful-content guidance grounds E-E-A-T in demonstrable page-level evidence: who wrote it, when, and what sources back it up; content/eeat-signals scores these as four discrete binary signals, firing an info note on any URL that satisfies fewer than 2, the anonymity profile that aligns with low E-E-A-T in the December 2022 Quality Rater Guidelines."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials calls out Experience, Expertise, Authoritativeness, and Trustworthiness as the four quality dimensions Google's ranking systems assess; content/eeat-signals maps three of those dimensions — authorship (Experience/Expertise), publication date (Trustworthiness), and a cited sources marker (Authoritativeness) — into binary pass/fail checks alongside an about-page link."
+      "note": "Search Essentials calls out Experience, Expertise, Authoritativeness, and Trustworthiness as the four quality dimensions Google's ranking systems assess; content/eeat-signals maps three of those dimensions (authorship (Experience/Expertise), publication date (Trustworthiness), and a cited sources marker (Authoritativeness)) into binary pass/fail checks alongside an about-page link."
     },
     {
       "source": "structuredData",
@@ -234,7 +234,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "aiFeatures",
-      "note": "Google's AI Overviews documentation notes that cited, attributed, and datestamped content is more likely to be surfaced in AI-generated answers; content/eeat-signals' four-category check — about-page link, author byline, publish date, sources marker — directly maps to the trust properties AI extraction pipelines weigh when selecting passages."
+      "note": "Google's AI Overviews documentation notes that cited, attributed, and datestamped content is more likely to be surfaced in AI-generated answers; content/eeat-signals' four-category check (about-page link, author byline, publish date, sources marker) directly maps to the trust properties AI extraction pipelines weigh when selecting passages."
     }
   ],
   "title-uniqueness": [
@@ -244,7 +244,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "helpfulContent",
-      "note": "Helpful-content guidance flags pages whose title overpromises or fails to reflect what the page actually delivers; content/title-uniqueness's 70-character ceiling catches titles that are truncated in the SERP, and its duplicate-title check catches template families where every page shares one raw string — a sign that no per-URL editorial decision was made."
+      "note": "Helpful-content guidance flags pages whose title overpromises or fails to reflect what the page actually delivers; content/title-uniqueness's 70-character ceiling catches titles that are truncated in the SERP, and its duplicate-title check catches template families where every page shares one raw string, a sign that no per-URL editorial decision was made."
     },
     {
       "source": "canonicalization",
@@ -252,13 +252,13 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse enforcement looks for mass-produced URL sets that are interchangeable from Google's perspective; a template family where every page shares the identical title — differing only in a city or category variable that was omitted from the <title> — is a textbook scaled-content fingerprint that content/title-uniqueness's collision check is designed to catch."
+      "note": "Scaled-content-abuse enforcement looks for mass-produced URL sets that are interchangeable from Google's perspective; a template family where every page shares the identical title (differing only in a city or category variable that was omitted from the <title>) is a textbook scaled-content fingerprint that content/title-uniqueness's collision check is designed to catch."
     }
   ],
   "heading-structure": [
     {
       "source": "helpfulContent",
-      "note": "Google's helpful-content documentation asks whether a page is well-organized and easy for a reader to navigate; content/heading-structure's three independent checks — missing H1 (error), multiple H1 elements (warning), and no H2 sub-structure past 600 words (info) — each correspond to an organizational failure that reduces scannability and signals a CMS or template defect."
+      "note": "Google's helpful-content documentation asks whether a page is well-organized and easy for a reader to navigate; content/heading-structure's three independent checks (missing H1 (error), multiple H1 elements (warning), and no H2 sub-structure past 600 words (info)) each correspond to an organizational failure that reduces scannability and signals a CMS or template defect."
     },
     {
       "source": "structuredData",
@@ -272,11 +272,11 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "image-alt-text": [
     {
       "source": "helpfulContent",
-      "note": "Google's helpful-content framework rewards pages that serve all users well, including those relying on assistive technology; content/image-alt-text skips images explicitly marked decorative via role=presentation, aria-hidden=true, or empty alt string, and only flags content-bearing images with no alt attribute at all — the gap where visual information is present but entirely inaccessible."
+      "note": "Google's helpful-content framework rewards pages that serve all users well, including those relying on assistive technology; content/image-alt-text skips images explicitly marked decorative via role=presentation, aria-hidden=true, or empty alt string, and only flags content-bearing images with no alt attribute at all: the gap where visual information is present but entirely inaccessible."
     },
     {
       "source": "structuredData",
-      "note": "Schema.org's ImageObject type expects an alt-text equivalent via the description or caption property; when a content image ships with no alt attribute, Google Images cannot index it with an accurate label, and any ImageObject markup referencing that asset is effectively undescribed — content/image-alt-text's per-URL findings make these gaps actionable."
+      "note": "Schema.org's ImageObject type expects an alt-text equivalent via the description or caption property; when a content image ships with no alt attribute, Google Images cannot index it with an accurate label, and any ImageObject markup referencing that asset is effectively undescribed; content/image-alt-text's per-URL findings make these gaps actionable."
     },
     {
       "source": "searchEssentials",
@@ -286,49 +286,49 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "orphan-pages": [
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance explains that Googlebot discovers pages by following internal links — a URL with zero inbound internal links sits outside every navigation path, so the crawler cannot reach it organically. links/orphan-pages flags exactly this zero-inbound-link condition, counting the inbound-link total the crawler accumulated while walking internal hrefs and exempting only the root URL, which is reached directly."
+      "note": "Google's crawl-budget guidance explains that Googlebot discovers pages by following internal links; a URL with zero inbound internal links sits outside every navigation path, so the crawler cannot reach it organically. links/orphan-pages flags exactly this zero-inbound-link condition, counting the inbound-link total the crawler accumulated while walking internal hrefs and exempting only the root URL, which is reached directly."
     },
     {
       "source": "sitemaps",
-      "note": "Google's sitemaps documentation acknowledges that a sitemap can surface URLs Googlebot would not find through crawling alone, but also warns that a sitemap submission does not substitute for internal links that transfer authority. A page with zero inbound internal links survives only on sitemap declaration — a structurally weak position the March 27, 2026 core update treated as a discoverability failure."
+      "note": "Google's sitemaps documentation acknowledges that a sitemap can surface URLs Googlebot would not find through crawling alone, but also warns that a sitemap submission does not substitute for internal links that transfer authority. A page with zero inbound internal links survives only on sitemap declaration, a structurally weak position the March 27, 2026 core update treated as a discoverability failure."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials states that Google must be able to find a page to index it, and the primary discovery mechanism is link-following. When links/orphan-pages fires at error severity on a URL, that page has no internal referrer in the crawled corpus at all — it cannot be found by traversing your own navigation, only by direct URL knowledge or an external signal."
+      "note": "Search Essentials states that Google must be able to find a page to index it, and the primary discovery mechanism is link-following. When links/orphan-pages fires at error severity on a URL, that page has no internal referrer in the crawled corpus at all: it cannot be found by traversing your own navigation, only by direct URL knowledge or an external signal."
     }
   ],
   "dead-ends": [
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance describes how Googlebot advances through a site by following outbound links from each fetched page. links/dead-ends fires when a non-root page's outbound links contain zero targets that also exist in the crawled corpus — every discovered URL on that page points outside the audit boundary, giving the crawler nowhere to go next within your own site."
+      "note": "Google's crawl-budget guidance describes how Googlebot advances through a site by following outbound links from each fetched page. links/dead-ends fires when a non-root page's outbound links contain zero targets that also exist in the crawled corpus: every discovered URL on that page points outside the audit boundary, giving the crawler nowhere to go next within your own site."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials notes that internal links help Google understand your site's structure and pass signals between related pages. A dead-end page — one whose resolved outbound links include no sibling in the known-URL set and no valid self-link — breaks that signal chain entirely, trapping whatever link equity the page carries instead of forwarding it."
+      "note": "Search Essentials notes that internal links help Google understand your site's structure and pass signals between related pages. A dead-end page (one whose resolved outbound links include no sibling in the known-URL set and no valid self-link) breaks that signal chain entirely, trapping whatever link equity the page carries instead of forwarding it."
     }
   ],
   "link-depth": [
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance warns that pages buried deep in a site's link structure are fetched last and least often. links/link-depth runs a breadth-first search from your root URL, records the minimum click-distance to each page, and flags anything beyond 3 hops as info severity — matching the practical crawl-frequency drop-off Google associates with deep internal hierarchies."
+      "note": "Google's crawl-budget guidance warns that pages buried deep in a site's link structure are fetched last and least often. links/link-depth runs a breadth-first search from your root URL, records the minimum click-distance to each page, and flags anything beyond 3 hops as info severity, matching the practical crawl-frequency drop-off Google associates with deep internal hierarchies."
     },
     {
       "source": "sitemaps",
-      "note": "Google's sitemaps documentation recommends that all important pages be reachable within a small number of clicks from the homepage. links/link-depth surfaces a second finding — warning severity — for any URL the BFS cannot reach at all from the root, a gap a sitemap alone cannot fully compensate for if internal links are absent."
+      "note": "Google's sitemaps documentation recommends that all important pages be reachable within a small number of clicks from the homepage. links/link-depth surfaces a second finding (warning severity) for any URL the BFS cannot reach at all from the root, a gap a sitemap alone cannot fully compensate for if internal links are absent."
     }
   ],
   "cluster-connectivity": [
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance explains that authority flows through sites via internal links, and sections with no inbound or outbound cross-links are effectively isolated from the rest of the domain's crawl graph. links/cluster-connectivity groups URLs by their parent directory — collapsing /cheese/affinage/ and /cheese/rind/ under /cheese/ — then checks each cluster of 2 or more pages for at least one link entering from or leaving toward another cluster, firing a warning when neither direction exists. A fully isolated directory receives no authority diffusion from the rest of the site."
+      "note": "Google's crawl-budget guidance explains that authority flows through sites via internal links, and sections with no inbound or outbound cross-links are effectively isolated from the rest of the domain's crawl graph. links/cluster-connectivity groups URLs by their parent directory (collapsing /cheese/affinage/ and /cheese/rind/ under /cheese/) then checks each cluster of 2 or more pages for at least one link entering from or leaving toward another cluster, firing a warning when neither direction exists. A fully isolated directory receives no authority diffusion from the rest of the site."
     },
     {
       "source": "sitemaps",
-      "note": "Google's sitemaps documentation notes that a sitemap helps Google discover URLs but does not substitute for the editorial endorsement that internal cross-links carry. A cluster that is reachable only through the sitemap and has zero links to neighbouring directories is structurally siloed — its pages cannot inherit topical weight from related sections, the opposite of the hub-and-spoke architecture Google's quality guidance associates with authoritative topic coverage."
+      "note": "Google's sitemaps documentation notes that a sitemap helps Google discover URLs but does not substitute for the editorial endorsement that internal cross-links carry. A cluster that is reachable only through the sitemap and has zero links to neighbouring directories is structurally siloed: its pages cannot inherit topical weight from related sections, the opposite of the hub-and-spoke architecture Google's quality guidance associates with authoritative topic coverage."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials states that internal links help Google understand how pages relate to each other. Cluster connectivity failures — where an entire directory neither points to nor receives a link from any other directory in the site — deny Google that relational signal for every page in that folder. The rule fires only on clusters of 2 or more pages, specifically excluding lone-page orphan situations that the orphan-pages rule already covers, so each finding represents a structurally isolated sub-graph rather than a single disconnected URL."
+      "note": "Search Essentials states that internal links help Google understand how pages relate to each other. Cluster connectivity failures (where an entire directory neither points to nor receives a link from any other directory in the site) deny Google that relational signal for every page in that folder. The rule fires only on clusters of 2 or more pages, specifically excluding lone-page orphan situations that the orphan-pages rule already covers, so each finding represents a structurally isolated sub-graph rather than a single disconnected URL."
     }
   ],
   "url-pattern": [
@@ -338,7 +338,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "doorways",
-      "note": "Google's doorways policy targets pages built for query permutations that differ only in word arrangement with no substantive change in destination or content. cannibal/url-pattern fires at info severity when two slugs produce an identical sorted token list — /best-cheap-hotel versus /cheap-best-hotel — the exact reordering pattern the doorways guidance would classify as permutation-driven rather than editorially distinct."
+      "note": "Google's doorways policy targets pages built for query permutations that differ only in word arrangement with no substantive change in destination or content. cannibal/url-pattern fires at info severity when two slugs produce an identical sorted token list (/best-cheap-hotel versus /cheap-best-hotel) the exact reordering pattern the doorways guidance would classify as permutation-driven rather than editorially distinct."
     },
     {
       "source": "sitemaps",
@@ -348,59 +348,59 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "freshness-signals": [
     {
       "source": "helpfulContent",
-      "note": "Google's helpful-content guidance asks site owners to consider whether their content is well-sourced and reflects genuine expertise — a standard that includes temporal accuracy. aeo/freshness-signals checks each page for a true modification signal in three places: a dateModified field in JSON-LD, a modification meta tag such as article:modified_time, or a visible 'Last updated' line. Pages carrying none of these fail to surface even a claimed revision date, leaving AI Overviews with no evidence the content is current."
+      "note": "Google's helpful-content guidance asks site owners to consider whether their content is well-sourced and reflects genuine expertise, a standard that includes temporal accuracy. aeo/freshness-signals checks each page for a true modification signal in three places: a dateModified field in JSON-LD, a modification meta tag such as article:modified_time, or a visible 'Last updated' line. Pages carrying none of these fail to surface even a claimed revision date, leaving AI Overviews with no evidence the content is current."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials identifies freshness as one factor Google weighs for certain query types, particularly informational and evergreen topics. aeo/freshness-signals applies a staleness ceiling of 180 days: when the best parseable date is older than that threshold, the rule drops from a medium-confidence warning to an info note — reflecting that recency matters more for some templates than others, and the rule deliberately calibrates to that spectrum."
+      "note": "Search Essentials identifies freshness as one factor Google weighs for certain query types, particularly informational and evergreen topics. aeo/freshness-signals applies a staleness ceiling of 180 days: when the best parseable date is older than that threshold, the rule drops from a medium-confidence warning to an info note, reflecting that recency matters more for some templates than others, and the rule deliberately calibrates to that spectrum."
     }
   ],
   "llms-txt": [
     {
       "source": "llmsTxt",
-      "note": "The llms.txt proposal — a draft convention championed by Jeremy Howard at Answer.AI and first circulated in September 2023 — defines a plain-text file at the site root that AI agents can read to understand what the site contains and how to use it. aeo/llms-txt fetches ${origin}/llms.txt once per audit with a 10-second timeout, accepts only http and https targets, and runs three lenient shape checks drawn from that specification: the file's presence, a non-empty first line, and at least one markdown URL reference."
+      "note": "The llms.txt proposal, a draft convention championed by Jeremy Howard at Answer.AI and first circulated in September 2023, defines a plain-text file at the site root that AI agents can read to understand what the site contains and how to use it. aeo/llms-txt fetches ${origin}/llms.txt once per audit with a 10-second timeout, accepts only http and https targets, and runs three lenient shape checks drawn from that specification: the file's presence, a non-empty first line, and at least one markdown URL reference."
     },
     {
       "source": "aiFeatures",
-      "note": "Google's AI Overviews documentation explains that AI systems select sources based on quality signals, including how clearly a site communicates its content structure to automated readers. An llms.txt file is one emerging mechanism for making that structure explicit. Because adoption remains low, pseolint treats a missing file as a missed low-effort opportunity and fires only at info severity — not a defect, but a gap worth closing in roughly an hour."
+      "note": "Google's AI Overviews documentation explains that AI systems select sources based on quality signals, including how clearly a site communicates its content structure to automated readers. An llms.txt file is one emerging mechanism for making that structure explicit. Because adoption remains low, pseolint treats a missing file as a missed low-effort opportunity and fires only at info severity: not a defect, but a gap worth closing in roughly an hour."
     },
     {
       "source": "helpfulContent",
-      "note": "Google's helpful-content guidance asks whether pages are created for people or primarily to serve automated systems — a question that runs in both directions. llms.txt is the reverse gesture: a deliberate, human-authored declaration telling AI systems which parts of a site are intended for them. Providing that file aligns with the spirit of transparency Google's guidance rewards, signalling that the site's content strategy is intentional rather than incidental."
+      "note": "Google's helpful-content guidance asks whether pages are created for people or primarily to serve automated systems, a question that runs in both directions. llms.txt is the reverse gesture: a deliberate, human-authored declaration telling AI systems which parts of a site are intended for them. Providing that file aligns with the spirit of transparency Google's guidance rewards, signalling that the site's content strategy is intentional rather than incidental."
     }
   ],
   "crawler-access": [
     {
       "source": "robotsIntro",
-      "note": "Google's robots.txt documentation explains that user-agent directives apply to specific crawlers, and that a Disallow rule for a given agent blocks it completely from the matched paths. aeo/crawler-access parses your robots.txt into a user-agent-to-Disallow-patterns map, lowercases every agent name for case-insensitive matching, and stacks consecutive User-agent lines that share a rule block — the same parsing behaviour Google's own robots.txt specification describes."
+      "note": "Google's robots.txt documentation explains that user-agent directives apply to specific crawlers, and that a Disallow rule for a given agent blocks it completely from the matched paths. aeo/crawler-access parses your robots.txt into a user-agent-to-Disallow-patterns map, lowercases every agent name for case-insensitive matching, and stacks consecutive User-agent lines that share a rule block, the same parsing behaviour Google's own robots.txt specification describes."
     },
     {
       "source": "blockIndexing",
-      "note": "Google's noindex documentation notes that blocking a crawler and blocking indexing are distinct controls: a disallowed bot never fetches content at all, so it cannot participate in answer generation regardless of any index-level directive. aeo/crawler-access checks 8 named AI crawler user-agents — GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Bytespider, Google-Extended, CCBot, and one more — warning once per fully blocked bot and escalating to an error only when every agent in the list is disallowed, so the finding distinguishes a targeted exclusion from an accidental wholesale block."
+      "note": "Google's noindex documentation notes that blocking a crawler and blocking indexing are distinct controls: a disallowed bot never fetches content at all, so it cannot participate in answer generation regardless of any index-level directive. aeo/crawler-access checks 8 named AI crawler user-agents (GPTBot, ChatGPT-User, ClaudeBot, PerplexityBot, Bytespider, Google-Extended, CCBot, and one more) warning once per fully blocked bot and escalating to an error only when every agent in the list is disallowed, so the finding distinguishes a targeted exclusion from an accidental wholesale block."
     },
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance notes that robots.txt is the authoritative gate for crawler access, evaluated before any fetch occurs. The aeo/crawler-access rule reads that gate specifically for AI agents rather than Googlebot, surfacing a category of access restriction that crawl-budget analysis traditionally ignores. A site that inadvertently inherits a broad Disallow: / rule from a template may block every AI answer engine without realising it — which is why the rule separates per-bot warnings from the all-blocked error."
+      "note": "Google's crawl-budget guidance notes that robots.txt is the authoritative gate for crawler access, evaluated before any fetch occurs. The aeo/crawler-access rule reads that gate specifically for AI agents rather than Googlebot, surfacing a category of access restriction that crawl-budget analysis traditionally ignores. A site that inadvertently inherits a broad Disallow: / rule from a template may block every AI answer engine without realising it, which is why the rule separates per-bot warnings from the all-blocked error."
     }
   ],
   "faq-coverage": [
     {
       "source": "structuredData",
-      "note": "FAQPage and HowTo JSON-LD are the exact schema types aeo/faq-coverage verifies are present — the rule fires an error when question-phrased H2 headings or a /faq URL path confirm FAQ intent yet neither markup type appears in the page's JSON-LD."
+      "note": "Google's structured-data guidance is what the rule declines to lean on: FAQPage and HowTo both lost their rich results (HowTo in September 2023, FAQ on May 7, 2026), so aeo/faq-coverage recommends the visible fix, one question per heading with its complete answer beneath, and treats existing FAQPage, HowTo, or QAPage markup only as proof the pairs are already machine-readable."
     },
     {
       "source": "schemaOrg",
-      "note": "Schema.org defines the FAQPage and HowTo types that aeo/faq-coverage expects; the rule's detection logic keys on whether the page's JSON-LD contains either type after the heading-question or URL-path check confirms FAQ content."
+      "note": "Schema.org still defines FAQPage, HowTo, and QAPage as vocabulary, which is why aeo/faq-coverage stays silent when it finds any of them in a page's JSON-LD: the pairs are already declared. It never asks you to add them, because a live schema.org type is not the same thing as a live Google rich result."
     },
     {
       "source": "aiFeatures",
-      "note": "Google narrowed FAQ rich results to government and health publishers in August 2023, shifting the remaining value of FAQPage markup squarely to AI extraction — the reason aeo/faq-coverage treats a missing schema as a missed AI Overviews eligibility signal rather than a cosmetic gap."
+      "note": "Google narrowed FAQ rich results to government and health publishers in August 2023 and removed the feature from Search entirely on May 7, 2026, which is why aeo/faq-coverage frames the gap as an AI-extraction problem in the visible page rather than a missing-markup problem: the answer engines read the prose, not a retired accordion."
     }
   ],
   "summary-bait": [
     {
       "source": "helpfulContent",
-      "note": "People-first guidance asks whether a page gives readers reason to return — aeo/summary-bait operationalises the inverse: when 70% of citable facts (dollar amounts, percentages, timeframes, form numbers) cluster in the first 150 words and nothing original follows, the page is shaped to be consumed without being read."
+      "note": "People-first guidance asks whether a page gives readers reason to return; aeo/summary-bait operationalises the inverse: when 70% of citable facts (dollar amounts, percentages, timeframes, form numbers) cluster in the first 150 words and nothing original follows, the page is shaped to be consumed without being read."
     },
     {
       "source": "aiFeatures",
@@ -410,11 +410,11 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "translation-no-op": [
     {
       "source": "hreflang",
-      "note": "Hreflang is intended to route searchers to a genuinely localised version of a page — content/translation-no-op exposes when that intent is absent: locale folders like /fr/ or /fr-ca/ that score 95% or higher SimHash similarity against their /en/ counterpart are duplicate English masquerading as translated content, making hreflang annotations misleading."
+      "note": "Hreflang is intended to route searchers to a genuinely localised version of a page; content/translation-no-op exposes when that intent is absent: locale folders like /fr/ or /fr-ca/ that score 95% or higher SimHash similarity against their /en/ counterpart are duplicate English masquerading as translated content, making hreflang annotations misleading."
     },
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse policy covers any high-volume production method that yields pages with little added value; locale-folder duplication is a scaled pattern — the same body republished under N language prefixes at once — and the 95% SimHash ceiling is the rule's operationalisation of that low-value threshold."
+      "note": "Scaled-content-abuse policy covers any high-volume production method that yields pages with little added value; locale-folder duplication is a scaled pattern (the same body republished under N language prefixes at once) and the 95% SimHash ceiling is the rule's operationalisation of that low-value threshold."
     },
     {
       "source": "helpfulContent",
@@ -424,7 +424,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "regurgitated-content": [
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse policy prohibits pages produced at volume with little original contribution; content/regurgitated-content operationalises that boundary by requiring at least 2 of 5 Places-API tells — including image CDN saturation above 60% and map embeds — before accusing a directory page of adding nothing beyond a third-party data feed."
+      "note": "Scaled-content-abuse policy prohibits pages produced at volume with little original contribution; content/regurgitated-content operationalises that boundary by requiring at least 2 of 5 Places-API tells (including image CDN saturation above 60% and map embeds) before accusing a directory page of adding nothing beyond a third-party data feed."
     },
     {
       "source": "siteReputationAbuse",
@@ -442,7 +442,7 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse enforcement targets templated prose that varies only the entity token while recycling stock surrounding copy; a page accumulating 3 or more phrases from the bundled phrase list's five cliché categories presents a lexical saturation fingerprint — the density and category spread signal batch generation more reliably than any individual phrase alone."
+      "note": "Scaled-content-abuse enforcement targets templated prose that varies only the entity token while recycling stock surrounding copy; a page accumulating 3 or more phrases from the bundled phrase list's five cliché categories presents a lexical saturation fingerprint: the density and category spread signal batch generation more reliably than any individual phrase alone."
     },
     {
       "source": "searchEssentials",
@@ -460,29 +460,171 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "helpfulContent",
-      "note": "People-first guidance asks whether a page delivers insights or synthesis that readers could not easily find elsewhere; a 40%-trigram match against the Wikipedia reference corpus — checked via a 65,536-bit bloom filter with 3 FNV-1a hashes — is the rule's operationalisation of that originality test."
+      "note": "People-first guidance asks whether a page delivers insights or synthesis that readers could not easily find elsewhere; a 40%-trigram match against the Wikipedia reference corpus (checked via a 65,536-bit bloom filter with 3 FNV-1a hashes) is the rule's operationalisation of that originality test."
     },
     {
       "source": "schemaOrg",
-      "note": "Schema.org vocabulary — Article, DefinedTerm, AboutPage — signals topical authority that Wikipedia paraphrase directly undercuts; content/wikipedia-paraphrase surfaces the trigram-overlap gap so publishers can decide whether to add structured authorship and sourcing before deploying entity-definition pages at scale."
+      "note": "Schema.org vocabulary (Article, DefinedTerm, AboutPage) signals topical authority that Wikipedia paraphrase directly undercuts; content/wikipedia-paraphrase surfaces the trigram-overlap gap so publishers can decide whether to add structured authorship and sourcing before deploying entity-definition pages at scale."
     }
   ],
   "value-add": [
     {
       "source": "helpfulContent",
-      "note": "People-first guidance is the conceptual frame content/value-add makes computable: the rule converts seven separate originality signals — regurgitation absence, dateModified freshness, citable-fact density, E-E-A-T category count, locale-translation fidelity, bundled-cliché density, and trigram encyclopedia overlap — into a single 0-to-1 composite score."
+      "note": "People-first guidance is the conceptual frame content/value-add makes computable: the rule converts seven separate originality signals (regurgitation absence, dateModified freshness, citable-fact density, E-E-A-T category count, locale-translation fidelity, bundled-cliché density, and trigram encyclopedia overlap) into a single 0-to-1 composite score."
     },
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse policy penalises volume production yielding little per-page differentiation; content/value-add makes the enforcement threshold explicit: each of seven contributing signals is weighted at one-seventh (≈14%), so a page failing four signals sits at roughly 0.43 — below the 50% error floor — even if the remaining three pass cleanly."
+      "note": "Scaled-content-abuse policy penalises volume production yielding little per-page differentiation; content/value-add makes the enforcement threshold explicit: each of seven contributing signals is weighted at one-seventh (≈14%), so a page failing four signals sits at roughly 0.43 (below the 50% error floor) even if the remaining three pass cleanly."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials lists originality and usefulness as foundational quality expectations; content/value-add translates those principles into a deterministic second-pass composite — reading prior rule findings rather than re-parsing HTML — and emits a critical finding below 0.30 to mark URLs where fewer than three of the seven dimensions of substantive contribution pass."
+      "note": "Search Essentials lists originality and usefulness as foundational quality expectations; content/value-add translates those principles into a deterministic second-pass composite (reading prior rule findings rather than re-parsing HTML) and emits a critical finding below 0.30 to mark URLs where fewer than three of the seven dimensions of substantive contribution pass."
     },
     {
       "source": "aiFeatures",
       "note": "AI Overviews and similar extraction pipelines prefer content that clears multiple originality dimensions simultaneously; content/value-add's 0-to-1 composite score surfaces URLs that individually pass each contributing rule at warning level but collectively fall short of the 50% average originality floor that separates extractable depth from surface filler."
+    }
+  ],
+  "crawlable-anchors": [
+    {
+      "source": "linksCrawlable",
+      "note": "Google's make-your-links-crawlable guidance is the primary basis for the rule's classification set: only <a> elements with a resolvable href are followed, so pseolint counts a missing or empty href, a javascript: href, and href=\"#\" paired with onclick or a router attribute as unreachable navigation."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guide explains why the error escalation matters: a rental hub left with fewer than 2 crawlable same-host links passes almost no internal signal onward, so its 2,400 listing URLs are refetched less often and seasonal stock changes reach the index late."
+    },
+    {
+      "source": "googlebot",
+      "note": "The Googlebot reference documents the evergreen Chromium renderer that made JavaScript execution routine after May 2019, which is exactly the capability this rule bounds: scripts run and the DOM is built, but the crawler never clicks a handler to discover a route hidden inside onClick."
+    }
+  ],
+  "generic-anchor-text": [
+    {
+      "source": "linksCrawlable",
+      "note": "The anchor-text section of Google's links documentation states that link text is how Google works out what the destination is about, which is what the rule measures when it counts the 16 tracked generic phrases against a page's internal links and reports at the 0.5 ratio."
+    },
+    {
+      "source": "aiFeatures",
+      "note": "Google's AI-features guidance ties eligibility for generated answers to pages whose subject is plainly stated; a clinic card linked as its practice name plus its emergency-hours policy supplies that label directly, whereas 24 anchors reading read more supply none."
+    },
+    {
+      "source": "searchEssentials",
+      "note": "Search Essentials frames descriptive linking as baseline quality rather than a spam boundary, which is why this rule stays at info severity with medium confidence instead of joining the critical stack that near-duplicate and doorway findings feed."
+    }
+  ],
+  "meta-description-presence": [
+    {
+      "source": "snippets",
+      "note": "Google's snippet documentation supplies both halves of this rule: absence means Google composes the result text itself from page content, and the same page states no character limit exists for descriptions, which is why pseolint checks presence and declines to grade length."
+    },
+    {
+      "source": "specialTags",
+      "note": "The supported-tags reference lists description as a meta tag Google reads and keywords as one it does not use, so the rule tests for the one tag that changes snippet output and ignores the tag that has had no effect on indexing since 2009."
+    },
+    {
+      "source": "robotsMetaTag",
+      "note": "The robots meta tag specification documents the directives that genuinely control snippet output, including max-snippet and data-nosnippet; a connector catalog wanting shorter results should reach for those rather than for a folklore character count."
+    }
+  ],
+  "language-mismatch": [
+    {
+      "source": "multiRegional",
+      "note": "Google's multi-regional guidance states it does not use code-level language information such as lang attributes or the URL, and detects language from visible content instead; that is the exact asymmetry tech/language-mismatch measures by comparing declared subtags against the Unicode script of the rendered letters. It is also why a missing lang attribute is reported at info severity here rather than as a ranking defect."
+    },
+    {
+      "source": "hreflang",
+      "note": "The localized-versions documentation defines the self-referencing annotation that this rule treats as the page's second declaration, alongside html lang; only the entry whose href matches the page's own URL is read, since every other entry describes an alternate. x-default is skipped because it names a fallback rather than a language."
+    },
+    {
+      "source": "scaledContent",
+      "note": "The March 5, 2024 scaled-content-abuse policy lists translating content from another source without adding sufficient value as a violation, which is the pipeline failure that most often produces a whole directory of ja declarations sitting over untranslated Cyrillic body text. The 70% incompatible-script threshold is what makes that residue visible from a crawl."
+    }
+  ],
+  "hreflang-validity": [
+    {
+      "source": "hreflang",
+      "note": "Google's localized-versions page is the whole premise of this rule, and it is worth quoting exactly rather than paraphrasing: only language codes listed in ISO 639-1 and region codes listed in ISO 3166-1 Alpha 2 are supported, and if you use codes reserved for something else, Google Search ignores that part of the annotation, with EU, UN and UK given as the examples. So en_US and jp name values Google does not support, while en-UK loses only its region and degrades to a bare en. Nothing is corrected and nothing is surfaced in Search Console. The same page frames x-default as something to consider adding, so the rule skips that value instead of requiring it."
+    },
+    {
+      "source": "multiRegional",
+      "note": "The multi-regional guidance is the source for treating language targeting as a site-architecture decision rather than a markup one; it names no code standard, so the language[-script][-region] shape this rule enforces is taken from the localized-versions page instead, which restricts support to ISO 639-1 languages and ISO 3166-1 Alpha 2 regions and names es-419 as an unsupported example. Region subtags are resolved uppercase because Intl is case-sensitive there, and a single CLDR lookup is not sufficient on its own: CLDR resolves withdrawn aliases and reserved non-country codes that ISO 3166-1 does not assign, so the rule stacks a canonicalisation check and an exclusion list on top of it. UK is reported because ISO 3166-1 Alpha-2 assigns the United Kingdom GB and reserves UK."
+    },
+    {
+      "source": "canonicalization",
+      "note": "When three of nine locale annotations go unread, the orphaned regional pages lose the signal that distinguishes them and Google's canonicalisation elects one representative URL, suppressing the rest. Google's duplicate-URL consolidation guidance describes that election, and it explains why an invalid code presents as a ranking problem in the dropped market rather than as a markup error."
+    }
+  ],
+  "sitemap-hygiene": [
+    {
+      "source": "buildSitemap",
+      "note": "Google's build-a-sitemap guidance says lastmod is used only when it is consistently and verifiably accurate and ignored otherwise, and documents that priority and changefreq are ignored outright. That is the basis for the generated-lastmod heuristic (at least 100 URLs with the field, 95% sharing one value) and for the rule checking neither of the two ignored fields."
+    },
+    {
+      "source": "sitemapsProtocol",
+      "note": "The sitemaps.org protocol requires every URL in a sitemap to reside on the same host as the sitemap itself and specifies that non-compliant entries are dropped from consideration; that rule is why cross-host entries are the single error-severity finding here. It also defines <loc> as a fully-qualified absolute URL, which is what the unparseable-entry check enforces."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guidance describes Googlebot deprioritising low-information fetches, which is the mechanism that turns a build-stamped sitemap into slower recrawls of genuinely updated listings. Combined with 436 cross-host URLs falling back to internal-link discovery, it explains why the symptom appears as sluggish indexing rather than as a reported error."
+    }
+  ],
+  "meta-robots-conflict": [
+    {
+      "source": "robotsMetaTag",
+      "note": "Google's robots meta tag specification is the primary source for the combination rule this page rests on: directives declared in the HTML tag and in the X-Robots-Tag header are merged and the most restrictive result applies, which is why a leftover staging header overrides a production meta tag saying index."
+    },
+    {
+      "source": "blockIndexing",
+      "note": "The block-indexing guidance documents that a noindex directive removes a URL from the index outright rather than demoting it, the outcome a docs-and-pricing SaaS site suffers when 412 documentation URLs inherit a proxy header that was only ever meant for staging."
+    }
+  ],
+  "snippet-suppression": [
+    {
+      "source": "robotsMetaTag",
+      "note": "The robots meta tag specification defines nosnippet and the max-snippet family, including -1 for unlimited; pseolint's snippet-killer test matches only the bare nosnippet token and max-snippet:0, leaving every positive character budget and the unlimited value alone."
+    },
+    {
+      "source": "aiFeatures",
+      "note": "Google's AI-features guidance ties AI Overview citation eligibility to ordinary snippet eligibility, which is the exact mechanism by which a recipe publisher's anti-scraper nosnippet removed 2,400 URLs from the pool of sources a generated answer can quote and link."
+    }
+  ],
+  "robots-txt-limits": [
+    {
+      "source": "robotsTxtSpec",
+      "note": "Google's robots.txt specification documents both halves of this rule: the 500 KiB parse ceiling of 512,000 bytes beyond which rules are ignored, and the directives its parser does not support, with noindex unsupported since September 1, 2019."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "The large-site crawl-budget guidance names faceted navigation as a leading source of wasted crawling, which is why a 717 KiB generated exclusion list is treated here as evidence of an unbounded URL space rather than merely a file-size problem."
+    }
+  ],
+  "html-size": [
+    {
+      "source": "googlebot",
+      "note": "Google's Googlebot documentation sets the crawl limit at the first 2 MB of each fetched file, uncompressed, with 64 MB for PDFs; the February 2026 revision replaced the older 15 MB figure, and tech/html-size flags against the current number by warning at 1.5 MB and erroring at 2,097,152 bytes."
+    },
+    {
+      "source": "crawlBudget",
+      "note": "Crawl-budget guidance for large sites warns that low-information fetches get deprioritised, which is what a 1,840-page open-data portal invites when every dataset document carries a 2.4 MB inline payload: a full pass moves roughly 4.7 GB to deliver content Googlebot stops reading partway through."
+    },
+    {
+      "source": "webVitals",
+      "note": "Core Web Vitals guidance is where total page weight belongs, and this rule deliberately leaves it there. A dataset page with 118 kB of HTML pulling 21 MB of vector tiles is a performance question, not a truncation one, and tech/html-size stays silent on it."
+    }
+  ],
+  "viewport-meta": [
+    {
+      "source": "webVitals",
+      "note": "Core Web Vitals are measured on the render a real visitor gets, and for Midland Works's 12,000 listing pages that render is a 980-pixel layout scaled to roughly 40 percent on a 390-pixel phone, where tap targets land near 17 pixels and reflow around the fixed wrapper is unavoidable."
+    },
+    {
+      "source": "specialTags",
+      "note": "Google's list of supported meta tags documents viewport as the tag that tells a mobile browser how to lay out the page. This rule counts it only when the content attribute declares a width, which is exactly the part a content=\"initial-scale=1\" tag leaves undone."
+    },
+    {
+      "source": "searchEssentials",
+      "note": "Search Essentials sets the baseline that a page must work for the crawler fetching it, and since July 5, 2024 that crawler is a smartphone agent for every site, which makes a viewport missing from 12,000 listing pages an indexing-eligibility concern rather than a cosmetic one."
     }
   ]
 };
@@ -491,7 +633,7 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
   "expired-domain-abuse": [
     {
       "source": "spamPolicies",
-      "note": "Google named expired domain abuse as one of three new spam policies in the March 5, 2024 spam update; the policy text defines the violation as buying an expired domain primarily to boost the ranking of low-value content by exploiting the domain's residual reputation — the exact intent this page's diagnostics test for."
+      "note": "Google named expired domain abuse as one of three new spam policies in the March 5, 2024 spam update; the policy text defines the violation as buying an expired domain primarily to boost the ranking of low-value content by exploiting the domain's residual reputation, the exact intent this page's diagnostics test for."
     },
     {
       "source": "helpfulContent",
@@ -499,7 +641,7 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "redirects",
-      "note": "Google's redirects guidance underpins the 301-continuity check — equity passed through a redirect whose source and target share no topical or link-graph continuity is discounted, so a cluster of unrelated expired-domain redirects into one host is both ineffective and a spam signal."
+      "note": "Google's redirects guidance underpins the 301-continuity check: equity passed through a redirect whose source and target share no topical or link-graph continuity is discounted, so a cluster of unrelated expired-domain redirects into one host is both ineffective and a spam signal."
     },
     {
       "source": "searchEssentials",
@@ -527,47 +669,47 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
   "lost-rankings-after-google-update": [
     {
       "source": "helpfulContent",
-      "note": "The Helpful Content System, baked permanently into core ranking infrastructure after August 25, 2022, produces the cliff-shaped position chart that drops across an entire template family in a single day — money pages survive the same rollout because they carry per-page substance signals the pSEO siblings lack, not because any exclusion list protects them."
+      "note": "The Helpful Content System, baked permanently into core ranking infrastructure after August 25, 2022, produces the cliff-shaped position chart that drops across an entire template family in a single day; money pages survive the same rollout because they carry per-page substance signals the pSEO siblings lack, not because any exclusion list protects them."
     },
     {
       "source": "scaledContent",
-      "note": "The March 5, 2024 scaled-content-abuse update — the policy change most correlated with distributed template-family collapses anchored to an announced rollout window — demoted an estimated 45% of low-effort pages by applying SpamBrain's 60-second triage queue at corpus scale; impressions follow position losses inside 48 hours, a sequencing that distinguishes algorithmic demotion from a CDN canonical regression."
+      "note": "The March 5, 2024 scaled-content-abuse update (the policy change most correlated with distributed template-family collapses anchored to an announced rollout window) demoted an estimated 45% of low-effort pages by applying SpamBrain's 60-second triage queue at corpus scale; impressions follow position losses inside 48 hours, a sequencing that distinguishes algorithmic demotion from a CDN canonical regression."
     },
     {
       "source": "spamPolicies",
-      "note": "Google's spam policy taxonomy distinguishes the May 7, 2024 site-reputation-abuse enforcement from the March 5 scaled-content hit: the former collapses a single subfolder surgically while the main domain holds, the latter drops distributed template families across the property — knowing which mechanism anchors the position chart date narrows the remediation path and the re-crawl wait from weeks to a precise 2-to-10-day rollout window."
+      "note": "Google's spam policy taxonomy distinguishes the May 7, 2024 site-reputation-abuse enforcement from the March 5 scaled-content hit: the former collapses a single subfolder surgically while the main domain holds, the latter drops distributed template families across the property; knowing which mechanism anchors the position chart date narrows the remediation path and the re-crawl wait from weeks to a precise 2-to-10-day rollout window."
     },
     {
       "source": "simhash",
-      "note": "Charikar's 2002 SimHash fingerprinting, adopted by Google's web indexing team in 2007, clusters near-identical template URLs above an 85% cosine-similarity ceiling before SpamBrain scores the cluster as a unit — every URL above that threshold loses authority simultaneously on the rollout day, which is why the Search Console position chart falls off a cliff in a single 24-hour window rather than eroding page by page over weeks."
+      "note": "Charikar's 2002 SimHash fingerprinting, adopted by Google's web indexing team in 2007, clusters near-identical template URLs above an 85% cosine-similarity ceiling before SpamBrain scores the cluster as a unit; every URL above that threshold loses authority simultaneously on the rollout day, which is why the Search Console position chart falls off a cliff in a single 24-hour window rather than eroding page by page over weeks."
     }
   ],
   "pages-deindexed-bulk": [
     {
       "source": "blockIndexing",
-      "note": "Google's noindex documentation distinguishes a deliberate exclusion directive from the crawler's own classifier verdict: a stair-step loss of 30% or more of indexed URLs landing in 'Crawled — currently not indexed' means Google fetched each URL individually and evicted it — a classifier decision — whereas a rise in 'Excluded by noindex' or 'Blocked by robots.txt' points to a configuration regression that can be reversed without a reconsideration request."
+      "note": "Google's noindex documentation distinguishes a deliberate exclusion directive from the crawler's own classifier verdict: a stair-step loss of 30% or more of indexed URLs landing in 'Crawled (currently not indexed' means Google fetched each URL individually and evicted it) a classifier decision, whereas a rise in 'Excluded by noindex' or 'Blocked by robots.txt' points to a configuration regression that can be reversed without a reconsideration request."
     },
     {
       "source": "crawlBudget",
-      "note": "Crawl-budget allocation drives the 'Discovered — currently not indexed' bucket: Googlebot's scheduler deprioritises URL patterns it has historically found low-value, leaving newly submitted sitemap entries seen but never fetched — the indexed-count barely-moves diagnostic that persists even after repeated manual 'Request indexing' submissions, because each slot the scheduler skips compounds the queue behind it."
+      "note": "Crawl-budget allocation drives the 'Discovered - currently not indexed' bucket: Googlebot's scheduler deprioritises URL patterns it has historically found low-value, leaving newly submitted sitemap entries seen but never fetched, the indexed-count barely-moves diagnostic that persists even after repeated manual 'Request indexing' submissions, because each slot the scheduler skips compounds the queue behind it."
     },
     {
       "source": "scaledContent",
-      "note": "The scaled-content-abuse policy is the enforcement clause behind mass deindexation where 80% of one URL template disappears in a single day: Google's documentation names deindexation — removal from the index rather than positional demotion — as the harder enforcement mode reserved for page sets that contribute no incremental value, which is why traffic loss sometimes lags the indexed-URL collapse by a full 48 hours as cached SERPs clear."
+      "note": "The scaled-content-abuse policy is the enforcement clause behind mass deindexation where 80% of one URL template disappears in a single day: Google's documentation names deindexation (removal from the index rather than positional demotion) as the harder enforcement mode reserved for page sets that contribute no incremental value, which is why traffic loss sometimes lags the indexed-URL collapse by a full 48 hours as cached SERPs clear."
     },
     {
       "source": "httpErrors",
-      "note": "Soft-404 classification is Google's internal mechanism behind 'Crawled — currently not indexed' verdicts on HTTP 200 responses: a programmatic page whose extracted body text matches the thin-or-templated pattern Googlebot's renderer recognises triggers the same deprioritisation as a genuine 404, causing a stair-step rise in that bucket that does not correlate one-for-one with traffic loss because cached SERP impressions continue briefly after eviction."
+      "note": "Soft-404 classification is Google's internal mechanism behind 'Crawled - currently not indexed' verdicts on HTTP 200 responses: a programmatic page whose extracted body text matches the thin-or-templated pattern Googlebot's renderer recognises triggers the same deprioritisation as a genuine 404, causing a stair-step rise in that bucket that does not correlate one-for-one with traffic loss because cached SERP impressions continue briefly after eviction."
     }
   ],
   "site-reputation-abuse-penalty": [
     {
       "source": "siteReputationAbuse",
-      "note": "Google's May 7, 2024 site-reputation-abuse policy targets the structural pattern where a trusted host lends domain authority to a subfolder — /coupons/, /casino/, /loans/, or a labelled partner-content section — operated by a third party without the host's editorial involvement; the enforcement is surgical: 70-100% subfolder traffic collapse while the rest of the domain remains indexed and ranking, distinguishing it from a sitewide penalty."
+      "note": "Google's May 7, 2024 site-reputation-abuse policy targets the structural pattern where a trusted host lends domain authority to a subfolder (/coupons/, /casino/, /loans/, or a labelled partner-content section) operated by a third party without the host's editorial involvement; the enforcement is surgical: 70-100% subfolder traffic collapse while the rest of the domain remains indexed and ranking, distinguishing it from a sitewide penalty."
     },
     {
       "source": "spamPolicies",
-      "note": "When a manual action accompanies the subfolder demotion, Search Console's Security and Manual Actions panel displays the description 'The site appears to use third-party content to boost search rankings' — a label whose reconsideration clock requires demonstrating that the parasite section has been removed or that host-level editorial controls now govern what publishes under that path segment, assessed by a human reviewer, not re-scored algorithmically."
+      "note": "When a manual action accompanies the subfolder demotion, Search Console's Security and Manual Actions panel displays the description 'The site appears to use third-party content to boost search rankings'; a label whose reconsideration clock requires demonstrating that the parasite section has been removed or that host-level editorial controls now govern what publishes under that path segment, assessed by a human reviewer, not re-scored algorithmically."
     },
     {
       "source": "helpfulContent",
@@ -575,35 +717,35 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "canonicalization",
-      "note": "During remediation of a site-reputation-abuse subfolder, pointing the evicted subfolder's URLs to a rel=canonical on the original content source — the partner's own domain — and deploying 301 redirects away from the host tells Google's indexer the host never claimed editorial ownership of those resources, which is the structural signal that supports a successful reconsideration request and prevents re-flagging after reinstatement."
+      "note": "During remediation of a site-reputation-abuse subfolder, pointing the evicted subfolder's URLs to a rel=canonical on the original content source (the partner's own domain) and deploying 301 redirects away from the host tells Google's indexer the host never claimed editorial ownership of those resources, which is the structural signal that supports a successful reconsideration request and prevents re-flagging after reinstatement."
     }
   ],
   "traffic-drop-no-update": [
     {
       "source": "helpfulContent",
-      "note": "A 15-40% organic decline over a 14-day window with no announced update is often a delayed Helpful Content System re-score: the classifier runs continuously and can demote pages weeks after content is first crawled, meaning the traffic fall appears unmoored from any single event. When impressions drop before clicks — the Search Console pattern where the performance chart shows declining impressions 3 to 5 days ahead of click losses — it indicates a ranking-position shift, not a CTR-only change, which points to the classifier rather than an AI Overviews snippet displacement."
+      "note": "A 15-40% organic decline over a 14-day window with no announced update is often a delayed Helpful Content System re-score: the classifier runs continuously and can demote pages weeks after content is first crawled, meaning the traffic fall appears unmoored from any single event. When impressions drop before clicks (the Search Console pattern where the performance chart shows declining impressions 3 to 5 days ahead of click losses) it indicates a ranking-position shift, not a CTR-only change, which points to the classifier rather than an AI Overviews snippet displacement."
     },
     {
       "source": "canonicalization",
-      "note": "A silent CDN canonical regression — where a deploy changes which URL variant Googlebot canonicalizes to — can drain indexed-URL authority within 7 days without triggering any manual action or algorithm announcement. The diagnostic marker is a mismatch between the user-declared canonical and the Google-selected canonical visible in URL Inspection: when Google has silently re-elected a different URL as the canonical, the originally ranking page loses its accumulated signals to the new elected URL, producing a position drop that looks algorithmic but is actually a technical regression."
+      "note": "A silent CDN canonical regression (where a deploy changes which URL variant Googlebot canonicalizes to) can drain indexed-URL authority within 7 days without triggering any manual action or algorithm announcement. The diagnostic marker is a mismatch between the user-declared canonical and the Google-selected canonical visible in URL Inspection: when Google has silently re-elected a different URL as the canonical, the originally ranking page loses its accumulated signals to the new elected URL, producing a position drop that looks algorithmic but is actually a technical regression."
     },
     {
       "source": "searchEssentials",
-      "note": "Google's Search Essentials documentation sets out the baseline technical requirements — correct crawling access, no accidental noindex tags, clean canonical signals, and a valid sitemap — that must be verified before attributing a traffic decline to content quality or demand shifts. Ruling out technical causes in this order (robots.txt, meta noindex, canonical drift, sitemap freshness) before examining content is the structured diagnostic sequence that avoids misdiagnosed remediation work on a site with a configuration regression."
+      "note": "Google's Search Essentials documentation sets out the baseline technical requirements (correct crawling access, no accidental noindex tags, clean canonical signals, and a valid sitemap) that must be verified before attributing a traffic decline to content quality or demand shifts. Ruling out technical causes in this order (robots.txt, meta noindex, canonical drift, sitemap freshness) before examining content is the structured diagnostic sequence that avoids misdiagnosed remediation work on a site with a configuration regression."
     },
     {
       "source": "aiFeatures",
-      "note": "An AI Overviews rollout can cut query-level CTR by 20-40% on informational terms without moving average position at all — the SERP adds an AI-generated answer above the organic results, which absorbs the click the first organic result previously captured. This is the traffic-drop-no-update pattern where Search Console shows position holding flat or even improving while clicks erode, because the ranking did not change but the click opportunity above the fold shrunk."
+      "note": "An AI Overviews rollout can cut query-level CTR by 20-40% on informational terms without moving average position at all: the SERP adds an AI-generated answer above the organic results, which absorbs the click the first organic result previously captured. This is the traffic-drop-no-update pattern where Search Console shows position holding flat or even improving while clicks erode, because the ranking did not change but the click opportunity above the fold shrunk."
     }
   ],
   "thin-content-warning-search-console": [
     {
       "source": "scaledContent",
-      "note": "The March 5, 2024 scaled-content-abuse update operationalised the 300-word substantive-body-text floor pseolint applies: Google's SpamBrain triage evicts URLs from the index as 'Crawled — currently not indexed' when extracted visible word count — after stripping nav, footer, and chrome — falls below the classifier's per-template threshold; a growing 'Crawled — currently not indexed' bucket concentrated on one URL template after that date is the canonical enforcement signature, not an explicit notification in Search Console's messaging UI."
+      "note": "The March 5, 2024 scaled-content-abuse update operationalised the 300-word substantive-body-text floor pseolint applies: Google's SpamBrain triage evicts URLs from the index as 'Crawled (currently not indexed' when extracted visible word count) after stripping nav, footer, and chrome (falls below the classifier's per-template threshold; a growing 'Crawled) currently not indexed' bucket concentrated on one URL template after that date is the canonical enforcement signature, not an explicit notification in Search Console's messaging UI."
     },
     {
       "source": "helpfulContent",
-      "note": "Pseolint's 0.4 unique-to-total word ratio threshold targets vocabulary dilution that the Helpful Content System weighs independently of raw word count: a page with 400 total words but only 100 words unique to that URL — the rest shared across navigation copy, repeated CTAs, and templated disclaimers — registers as 75% boilerplate, failing the per-URL substance test within 21 to 45 days of first crawl even though its raw count clears 300."
+      "note": "Pseolint's 0.4 unique-to-total word ratio threshold targets vocabulary dilution that the Helpful Content System weighs independently of raw word count: a page with 400 total words but only 100 words unique to that URL (the rest shared across navigation copy, repeated CTAs, and templated disclaimers) registers as 75% boilerplate, failing the per-URL substance test within 21 to 45 days of first crawl even though its raw count clears 300."
     },
     {
       "source": "httpErrors",
@@ -617,7 +759,7 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
   "manual-action-pure-spam": [
     {
       "source": "spamPolicies",
-      "note": "Google's spam policies define 'Pure Spam' as automatically generated gibberish, cloaking, or scraped content with no substantial transformation; a Search Console Manual Actions entry carrying this label — whether site-wide or partial-match scoped to named URL patterns — suppresses affected templates to null ranking positions rather than demoting them a few places, which is why branded navigational queries survive the same day while every programmatic template falls out of the top 100 entirely."
+      "note": "Google's spam policies define 'Pure Spam' as automatically generated gibberish, cloaking, or scraped content with no substantial transformation; a Search Console Manual Actions entry carrying this label (whether site-wide or partial-match scoped to named URL patterns) suppresses affected templates to null ranking positions rather than demoting them a few places, which is why branded navigational queries survive the same day while every programmatic template falls out of the top 100 entirely."
     },
     {
       "source": "scaledContent",
@@ -629,13 +771,13 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "helpfulContent",
-      "note": "The Helpful Content System's site-level classifier continues running against a domain while the Manual Actions panel shows a 'Pure Spam' or 'Thin content' entry; this means remediating the manually actioned patterns without also lifting the site-level classifier score produces a reconsideration approval that still leaves non-actioned templates in a depressed position state, making the dual-track fix — classifier score plus reconsideration documentation — the only path to full visibility recovery."
+      "note": "The Helpful Content System's site-level classifier continues running against a domain while the Manual Actions panel shows a 'Pure Spam' or 'Thin content' entry; this means remediating the manually actioned patterns without also lifting the site-level classifier score produces a reconsideration approval that still leaves non-actioned templates in a depressed position state, making the dual-track fix (classifier score plus reconsideration documentation) the only path to full visibility recovery."
     }
   ],
   "traffic-dropped-rankings-unchanged": [
     {
       "source": "aiFeatures",
-      "note": "Google's AI Overviews insert a generated answer box above the organic list on informational, top-of-funnel queries — 'what is', 'how to', 'best' head terms — absorbing the click the first organic result previously captured while leaving Search Console average position unchanged; the CTR decline that follows is the diagnostic tell: the Performance report's click line falls while the position line stays flat or improves, a pattern no rank tracker reports as a ranking loss because the rankings did not move."
+      "note": "Google's AI Overviews insert a generated answer box above the organic list on informational, top-of-funnel queries ('what is', 'how to', 'best' head terms) absorbing the click the first organic result previously captured while leaving Search Console average position unchanged; the CTR decline that follows is the diagnostic tell: the Performance report's click line falls while the position line stays flat or improves, a pattern no rank tracker reports as a ranking loss because the rankings did not move."
     },
     {
       "source": "helpfulContent",
@@ -643,39 +785,39 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials' baseline requirement — that each indexed URL deliver standalone value — intersects with the flat-position/falling-CTR pattern when a SERP adds an AI Overview: the page still satisfies Google's indexing bar but no longer wins the above-the-fold click because the generated answer already covered the intent; the structural remedy is moving the page up-funnel toward transactional or comparison queries where AI Overviews appear less frequently and CTR remains organic-list-driven."
+      "note": "Search Essentials' baseline requirement (that each indexed URL deliver standalone value) intersects with the flat-position/falling-CTR pattern when a SERP adds an AI Overview: the page still satisfies Google's indexing bar but no longer wins the above-the-fold click because the generated answer already covered the intent; the structural remedy is moving the page up-funnel toward transactional or comparison queries where AI Overviews appear less frequently and CTR remains organic-list-driven."
     }
   ],
   "new-pages-not-getting-indexed": [
     {
       "source": "crawlBudget",
-      "note": "Google's crawl-budget guidance explains the 'Discovered — currently not indexed' pile-up directly: when a large batch of programmatic URLs is declared in a sitemap simultaneously, Googlebot's scheduler allocates crawl slots by perceived per-template quality; URL patterns that share a skeleton with previously evicted siblings sit at the back of the queue indefinitely, so the indexed-URL count barely moves despite repeated sitemap pings and manual 'Request indexing' submissions."
+      "note": "Google's crawl-budget guidance explains the 'Discovered - currently not indexed' pile-up directly: when a large batch of programmatic URLs is declared in a sitemap simultaneously, Googlebot's scheduler allocates crawl slots by perceived per-template quality; URL patterns that share a skeleton with previously evicted siblings sit at the back of the queue indefinitely, so the indexed-URL count barely moves despite repeated sitemap pings and manual 'Request indexing' submissions."
     },
     {
       "source": "sitemaps",
-      "note": "The sitemap protocol treats a submitted file as a prioritisation hint rather than a crawl guarantee; submitting tens of thousands of programmatic URLs in one sitemap index without per-entry lastmod timestamps or frequency hints signals uniform priority, collapsing the scheduler's ability to distinguish newly monetisable pages from stale boilerplate siblings — a structural omission that keeps the 'Discovered — currently not indexed' bucket growing with no corresponding rise in the indexed count."
+      "note": "The sitemap protocol treats a submitted file as a prioritisation hint rather than a crawl guarantee; submitting tens of thousands of programmatic URLs in one sitemap index without per-entry lastmod timestamps or frequency hints signals uniform priority, collapsing the scheduler's ability to distinguish newly monetisable pages from stale boilerplate siblings (a structural omission that keeps the 'Discovered) currently not indexed' bucket growing with no corresponding rise in the indexed count."
     },
     {
       "source": "blockIndexing",
-      "note": "A robots meta noindex tag or X-Robots-Tag set during staging and never reverted before launch is the misconfiguration that fills both indexation buckets simultaneously: each URL appears in 'Discovered — currently not indexed' with no crawl investment, and a manual 'Request indexing' submission fetches the page only to immediately bounce it back once Google's renderer reads the directive — distinguishing a tag regression from a quality problem before any content work begins."
+      "note": "A robots meta noindex tag or X-Robots-Tag set during staging and never reverted before launch is the misconfiguration that fills both indexation buckets simultaneously: each URL appears in 'Discovered - currently not indexed' with no crawl investment, and a manual 'Request indexing' submission fetches the page only to immediately bounce it back once Google's renderer reads the directive, distinguishing a tag regression from a quality problem before any content work begins."
     },
     {
       "source": "httpErrors",
-      "note": "Google's soft-404 documentation explains the 'Crawled — currently not indexed' verdict that newly published programmatic pages inherit from their template: when Googlebot fetches a fresh URL and finds a 200-status response whose extracted body matches the thin-or-templated skeleton of previously evicted siblings, it withholds the index slot without returning an error code — a verdict that compounds as each new batch shares the same low-substance structure as prior deindexed relatives."
+      "note": "Google's soft-404 documentation explains the 'Crawled - currently not indexed' verdict that newly published programmatic pages inherit from their template: when Googlebot fetches a fresh URL and finds a 200-status response whose extracted body matches the thin-or-templated skeleton of previously evicted siblings, it withholds the index slot without returning an error code, a verdict that compounds as each new batch shares the same low-substance structure as prior deindexed relatives."
     }
   ],
   "scaled-content-abuse-penalty": [
     {
       "source": "scaledContent",
-      "note": "Google's scaled-content-abuse policy, renamed from 'automatically generated content' on March 5, 2024, explicitly covers every high-volume production method — human-written templates, AI-generated prose, and hybrids — when the primary motive is ranking manipulation rather than distinct user assistance; 'what you see' in Search Console depends on the enforcement mode: algorithmic demotion shows as a quiet template-family position collapse in the Performance chart, while the manual 'Thin content with little or no added value' label suppresses URLs to null positions and requires a formal reconsideration request."
+      "note": "Google's scaled-content-abuse policy, renamed from 'automatically generated content' on March 5, 2024, explicitly covers every high-volume production method (human-written templates, AI-generated prose, and hybrids) when the primary motive is ranking manipulation rather than distinct user assistance; 'what you see' in Search Console depends on the enforcement mode: algorithmic demotion shows as a quiet template-family position collapse in the Performance chart, while the manual 'Thin content with little or no added value' label suppresses URLs to null positions and requires a formal reconsideration request."
     },
     {
       "source": "spamPolicies",
-      "note": "The spam policies overview frames the enforcement gradient the March 5, 2024 update deployed: SpamBrain's 60-second triage queue scores the cluster as a unit, so when the confidence threshold clears, a template family of thousands of URLs loses positions on the same rollout day rather than sequentially — the cluster-level scoring that also makes per-URL remediation insufficient unless the structural pattern driving the similarity is dismantled across the entire template."
+      "note": "The spam policies overview frames the enforcement gradient the March 5, 2024 update deployed: SpamBrain's 60-second triage queue scores the cluster as a unit, so when the confidence threshold clears, a template family of thousands of URLs loses positions on the same rollout day rather than sequentially, the cluster-level scoring that also makes per-URL remediation insufficient unless the structural pattern driving the similarity is dismantled across the entire template."
     },
     {
       "source": "helpfulContent",
-      "note": "The helpful-content 'content created for search engines, not people' test is the substantive floor behind the scaled-content classifier: a page that answers its target keyword but adds nothing a SERP competitor or a direct AI Overview does not already provide fails this test regardless of whether a human, template, or AI wrote it, making per-page original-data injection or a genuine editorial angle the operative recovery mechanism — not switching the writing method."
+      "note": "The helpful-content 'content created for search engines, not people' test is the substantive floor behind the scaled-content classifier: a page that answers its target keyword but adds nothing a SERP competitor or a direct AI Overview does not already provide fails this test regardless of whether a human, template, or AI wrote it, making per-page original-data injection or a genuine editorial angle the operative recovery mechanism, not switching the writing method."
     },
     {
       "source": "simhash",
@@ -685,41 +827,41 @@ export const SYMPTOM_SOURCES: Record<string, MarketingSourceRef[]> = {
   "doorway-pages-penalty": [
     {
       "source": "doorways",
-      "note": "Google's doorway-pages policy, enforced since March 16, 2015 and tightened with SpamBrain's 2022 rebuild, defines the exact structural fingerprint that '{service} in {city}', 'cheap {service} {city}', and '{service} near {city}' directories create: multiple gateway URLs targeting slight keyword variants that each hand the visitor off to the same booking form, contact page, or generic offer, where the copy delta between sibling pages is limited to the swapped place name in the title and an introductory sentence — no distinct local phone number, physical address, practitioner biography, or service differentiation justifies the separate URL."
+      "note": "Google's doorway-pages policy, enforced since March 16, 2015 and tightened with SpamBrain's 2022 rebuild, defines the exact structural fingerprint that '{service} in {city}', 'cheap {service} {city}', and '{service} near {city}' directories create: multiple gateway URLs targeting slight keyword variants that each hand the visitor off to the same booking form, contact page, or generic offer, where the copy delta between sibling pages is limited to the swapped place name in the title and an introductory sentence: no distinct local phone number, physical address, practitioner biography, or service differentiation justifies the separate URL."
     },
     {
       "source": "spamPolicies",
-      "note": "The spam policies reference details two enforcement pathways visible in Search Console for a doorway-page cluster: the algorithmic route drops the entire template family out of the top 100 simultaneously on the same rollout day — because SpamBrain scores the cluster as a unit rather than each gateway URL individually — while the manual-action pathway adds a 'Doorway pages' entry to the Security and Manual Actions panel, blocking reconsideration until the gateway pages are consolidated to a single differentiated hub page with 301 redirects from every collapsed variant."
+      "note": "The spam policies reference details two enforcement pathways visible in Search Console for a doorway-page cluster: the algorithmic route drops the entire template family out of the top 100 simultaneously on the same rollout day (because SpamBrain scores the cluster as a unit rather than each gateway URL individually) while the manual-action pathway adds a 'Doorway pages' entry to the Security and Manual Actions panel, blocking reconsideration until the gateway pages are consolidated to a single differentiated hub page with 301 redirects from every collapsed variant."
     },
     {
       "source": "scaledContent",
-      "note": "The scaled-content-abuse policy intersects with the doorway policy whenever a site produces gateway clusters at volume using entity-swap templates: a '{service} near {city}' directory of 10,000 URLs that swaps only the location token fails both policies simultaneously — the doorway rule fires because each URL funnels to the same booking form regardless of city, and the scaled-content rule fires because entity-swap production at that volume constitutes ranking manipulation; pseolint therefore requires three independent signals — SimHash above 0.85, entity-swap detection, and structural template confirmation — before escalating to error severity."
+      "note": "The scaled-content-abuse policy intersects with the doorway policy whenever a site produces gateway clusters at volume using entity-swap templates: a '{service} near {city}' directory of 10,000 URLs that swaps only the location token fails both policies simultaneously: the doorway rule fires because each URL funnels to the same booking form regardless of city, and the scaled-content rule fires because entity-swap production at that volume constitutes ranking manipulation; pseolint therefore requires three independent signals (SimHash above 0.85, entity-swap detection, and structural template confirmation) before escalating to error severity."
     },
     {
       "source": "simhash",
-      "note": "SimHash's locality-sensitive fingerprinting operationalises Google's convergence test on doorway clusters: two gateway pages whose 64-bit fingerprints score at or above 0.85 cosine similarity after entity masking — with the swapped city name, service modifier, or ZIP code stripped out — are treated by SpamBrain as the same page wearing a different noun; the only ranking contribution is the keyword variant in the title, not differentiated content serving a distinct local user intent, which is the cluster-level verdict that triggers the simultaneous position collapse across the entire template family on a rollout day."
+      "note": "SimHash's locality-sensitive fingerprinting operationalises Google's convergence test on doorway clusters: two gateway pages whose 64-bit fingerprints score at or above 0.85 cosine similarity after entity masking (with the swapped city name, service modifier, or ZIP code stripped out) are treated by SpamBrain as the same page wearing a different noun; the only ranking contribution is the keyword variant in the title, not differentiated content serving a distinct local user intent, which is the cluster-level verdict that triggers the simultaneous position collapse across the entire template family on a rollout day."
     },
     {
       "source": "canonicalization",
-      "note": "Remediation of a doorway-page cluster requires both a rel=canonical redirect and a 301: collapsing every '{service} in {city}' gateway URL to a single authoritative hub page via a 301 transfers residual link equity to the surviving destination, while pointing each gateway's canonical tag to that hub signals to Google's indexing pipeline that the permutation URLs were never intended as independent indexable resources — the dual-signal approach that supports a successful Manual Actions reconsideration after the gateway-page pattern has been structurally dismantled."
+      "note": "Remediation of a doorway-page cluster requires both a rel=canonical redirect and a 301: collapsing every '{service} in {city}' gateway URL to a single authoritative hub page via a 301 transfers residual link equity to the surviving destination, while pointing each gateway's canonical tag to that hub signals to Google's indexing pipeline that the permutation URLs were never intended as independent indexable resources, the dual-signal approach that supports a successful Manual Actions reconsideration after the gateway-page pattern has been structurally dismantled."
     }
   ],
   "duplicate-google-chose-different-canonical": [
     {
       "source": "canonicalization",
-      "note": "Google's consolidate-duplicate-URLs guidance explains the 'Duplicate, Google chose a different canonical than user' Search Console verdict precisely: when a page's rel=canonical points at itself but Google's indexing pipeline detects that a sibling URL shares roughly 90% of the same extracted content, the indexer overrides the declared tag and elects the sibling with stronger authority signals — link equity, earlier discovery date, or higher crawl frequency — leaving the audited URL with mismatched 'User-declared canonical' and 'Google-selected canonical' fields in URL Inspection and no index slot despite a technically valid tag."
+      "note": "Google's consolidate-duplicate-URLs guidance explains the 'Duplicate, Google chose a different canonical than user' Search Console verdict precisely: when a page's rel=canonical points at itself but Google's indexing pipeline detects that a sibling URL shares roughly 90% of the same extracted content, the indexer overrides the declared tag and elects the sibling with stronger authority signals (link equity, earlier discovery date, or higher crawl frequency) leaving the audited URL with mismatched 'User-declared canonical' and 'Google-selected canonical' fields in URL Inspection and no index slot despite a technically valid tag."
     },
     {
       "source": "simhash",
-      "note": "Charikar's SimHash fingerprinting is the mechanism behind the canonical override: programmatic pages whose 64-bit content fingerprints cluster above Google's near-duplicate similarity ceiling — the threshold the web indexing team has used since adopting the 2007 implementation — are collapsed into one canonical cluster, with the weakest-authority member overridden, which is why URL Inspection returns the mismatch even when every page in the template carries a self-referencing rel=canonical tag."
+      "note": "Charikar's SimHash fingerprinting is the mechanism behind the canonical override: programmatic pages whose 64-bit content fingerprints cluster above Google's near-duplicate similarity ceiling (the threshold the web indexing team has used since adopting the 2007 implementation) are collapsed into one canonical cluster, with the weakest-authority member overridden, which is why URL Inspection returns the mismatch even when every page in the template carries a self-referencing rel=canonical tag."
     },
     {
       "source": "helpfulContent",
-      "note": "The helpful-content per-page-uniqueness test explains why the 'Duplicate, Google chose a different canonical' verdict is a structural quality warning rather than a trivial label: Google's indexer elected a sibling over the audited URL because the audited page lacks distinct vocabulary, citable data, or original editorial content sufficient to justify a separate index slot — the same uniqueness gap that, at template scale, tips the bucket from canonical override into 'Crawled — currently not indexed' during a core update rollout."
+      "note": "The helpful-content per-page-uniqueness test explains why the 'Duplicate, Google chose a different canonical' verdict is a structural quality warning rather than a trivial label: Google's indexer elected a sibling over the audited URL because the audited page lacks distinct vocabulary, citable data, or original editorial content sufficient to justify a separate index slot (the same uniqueness gap that, at template scale, tips the bucket from canonical override into 'Crawled) currently not indexed' during a core update rollout."
     },
     {
       "source": "crawlBudget",
-      "note": "Every URL earning the 'Duplicate, Google chose a different canonical than user' verdict still consumed a crawl-budget slot — Googlebot fetched, rendered, and fingerprinted it before deferring the index decision — so a template family of several hundred overridden pages drains allocation that would otherwise fund fresh or recently updated URLs; the compound effect is an indexation lag on genuinely new pages that grows in proportion to the size of the duplicated template cluster."
+      "note": "Every URL earning the 'Duplicate, Google chose a different canonical than user' verdict still consumed a crawl-budget slot (Googlebot fetched, rendered, and fingerprinted it before deferring the index decision) so a template family of several hundred overridden pages drains allocation that would otherwise fund fresh or recently updated URLs; the compound effect is an indexation lag on genuinely new pages that grows in proportion to the size of the duplicated template cluster."
     }
   ]
 };
@@ -740,43 +882,43 @@ export const TOOL_SOURCES: Record<string, MarketingSourceRef[]> = {
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials draws the enforceable boundary between acceptable programmatic production and algorithmic demotion; the checker's structured JSON output lets operators triage which URLs cross that line before a recrawl delivers a verdict — no Search Console account or announced rollout required."
+      "note": "Search Essentials draws the enforceable boundary between acceptable programmatic production and algorithmic demotion; the checker's structured JSON output lets operators triage which URLs cross that line before a recrawl delivers a verdict, no Search Console account or announced rollout required."
     }
   ],
   "thin-content-scanner": [
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse enforcement — active March 5, 2024 — targets per-URL vocabulary starvation; the scanner counts whitespace-split tokens after stripping nav and footer chrome, flagging URLs below a 300-word floor configurable per archetype: a FAQ stub and a service directory listing carry different appropriate minimums."
+      "note": "Scaled-content-abuse enforcement (active March 5, 2024) targets per-URL vocabulary starvation; the scanner counts whitespace-split tokens after stripping nav and footer chrome, flagging URLs below a 300-word floor configurable per archetype: a FAQ stub and a service directory listing carry different appropriate minimums."
     },
     {
       "source": "helpfulContent",
-      "note": "People-first guidance operationalises as a satisfaction threshold the scanner approximates with a lexical-uniqueness ratio: pages where fewer than 40 percent of vocabulary tokens are exclusive to that URL — not shared with sibling pages in the same cluster — are flagged as probable soft-404 candidates."
+      "note": "People-first guidance operationalises as a satisfaction threshold the scanner approximates with a lexical-uniqueness ratio: pages where fewer than 40 percent of vocabulary tokens are exclusive to that URL (not shared with sibling pages in the same cluster) are flagged as probable soft-404 candidates."
     },
     {
       "source": "httpErrors",
-      "note": "Soft-404 assignment is how Google responds to substance-deficient 200-OK responses; the scanner's dual-gate check — 300-word minimum plus a 60-percent boilerplate ceiling on recycled phrasing — identifies URLs most at risk of landing in 'Crawled — currently not indexed' before a recrawl confirms that verdict."
+      "note": "Soft-404 assignment is how Google responds to substance-deficient 200-OK responses; the scanner's dual-gate check (300-word minimum plus a 60-percent boilerplate ceiling on recycled phrasing) identifies URLs most at risk of landing in 'Crawled - currently not indexed' before a recrawl confirms that verdict."
     },
     {
       "source": "searchEssentials",
-      "note": "Search Essentials requires each URL offer something beyond what already exists; the scanner delivers per-page word counts, per-archetype substance grades, and recycled-phrasing ratios across 200 free-tier or 500 Pro pages — a concrete pre-submission checklist rather than an abstract quality rubric to interpret retroactively."
+      "note": "Search Essentials requires each URL offer something beyond what already exists; the scanner delivers per-page word counts, per-archetype substance grades, and recycled-phrasing ratios across 200 free-tier or 500 Pro pages, a concrete pre-submission checklist rather than an abstract quality rubric to interpret retroactively."
     }
   ],
   "doorway-page-detector": [
     {
       "source": "doorways",
-      "note": "Google's doorway policy — published March 16, 2015 — defines the cluster geometry the detector targets: city-by-city or modifier-by-modifier permutation sets where every variant routes visitors to one identical booking form; the detector groups URLs by shared path-segment prefix before evaluating destination convergence."
+      "note": "Google's doorway policy (published March 16, 2015) defines the cluster geometry the detector targets: city-by-city or modifier-by-modifier permutation sets where every variant routes visitors to one identical booking form; the detector groups URLs by shared path-segment prefix before evaluating destination convergence."
     },
     {
       "source": "scaledContent",
-      "note": "Scaled-content-abuse enforcement extended doorway detection to machine-generated permutation sets; the detector's entity-masking step — stripping city names, ZIP codes, service modifiers, and product nouns before hashing — isolates the structural template from the swapped variable, exposing clusters differentiated only by a single substituted noun."
+      "note": "Scaled-content-abuse enforcement extended doorway detection to machine-generated permutation sets; the detector's entity-masking step (stripping city names, ZIP codes, service modifiers, and product nouns before hashing) isolates the structural template from the swapped variable, exposing clusters differentiated only by a single substituted noun."
     },
     {
       "source": "simhash",
-      "note": "Charikar's 2002 locality-sensitive hashing — adopted by Google's indexing team in 2007 — provides the 64-bit fingerprint at the detector's similarity gate; pairs at or above 0.85 cosine similarity after entity masking must co-fire with a structural template check before the rule emits at weight-25."
+      "note": "Charikar's 2002 locality-sensitive hashing (adopted by Google's indexing team in 2007) provides the 64-bit fingerprint at the detector's similarity gate; pairs at or above 0.85 cosine similarity after entity masking must co-fire with a structural template check before the rule emits at weight-25."
     },
     {
       "source": "spamPolicies",
-      "note": "Spam policies frame doorways as gateway constructs intercepting query traffic rather than serving distinct informational needs; the detector distinguishes legitimate multi-branch businesses — location pages with differing staff, hours, neighbourhood context — from funnel clusters where removing the swapped modifier leaves 95-percent SimHash overlap."
+      "note": "Spam policies frame doorways as gateway constructs intercepting query traffic rather than serving distinct informational needs; the detector distinguishes legitimate multi-branch businesses (location pages with differing staff, hours, neighbourhood context) from funnel clusters where removing the swapped modifier leaves 95-percent SimHash overlap."
     }
   ]
 };

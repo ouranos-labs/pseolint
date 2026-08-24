@@ -8,7 +8,7 @@ import type { BudgetCaps, StopReason, UsageSnapshot } from "./types.js";
  *
  * Wall time is measured from `start()`. Cost is estimated using the existing
  * `estimateCostUsd` table; for unknown providers/models, cost defaults to 0
- * which means USD caps don't fire — caller is responsible for ensuring
+ * which means USD caps don't fire: caller is responsible for ensuring
  * provider/model are recognized when USD enforcement matters.
  */
 export class BudgetTracker {
@@ -77,7 +77,7 @@ export class BudgetTracker {
 
   /**
    * Returns the StopReason that fires now, or null when no cap is breached.
-   * Order matters — earlier checks take priority when multiple caps exceed
+   * Order matters: earlier checks take priority when multiple caps exceed
    * simultaneously (most informative reason wins).
    */
   nextStopReason(): StopReason | null {
@@ -96,7 +96,7 @@ export class BudgetTracker {
    * Used by `stopWhen` to refuse the next step before it overshoots, rather
    * than reactively after.
    *
-   * Returns null until at least one step has completed — we have nothing
+   * Returns null until at least one step has completed: we have nothing
    * to project from before that.
    */
   projectedNextStopReason(): StopReason | null {

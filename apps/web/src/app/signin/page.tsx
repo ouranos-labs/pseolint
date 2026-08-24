@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: "Sign in · pseolint",
   description:
     "Sign in to pseolint to monitor your domains, set alert thresholds, and get weekly audit digests.",
-  // noindex only — deliberately no rel=canonical. Combining noindex with a
+  // noindex only: deliberately no rel=canonical. Combining noindex with a
   // canonical sends Google contradictory signals, and auth-gated routes
   // (/dashboard/*) redirect here, so a crawler that follows the redirect would
   // otherwise see "noindex but canonicalizes to /signin" (tech/canonical-noindex-conflict).

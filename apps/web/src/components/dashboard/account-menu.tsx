@@ -22,7 +22,7 @@ export function AccountMenu({ email, plan }: { email: string; plan: "free" | "pr
       try {
         await authClient.signOut();
       } catch {
-        // Best-effort: even if the API call fails, navigate away — the cookie
+        // Best-effort: even if the API call fails, navigate away, the cookie
         // may already be cleared and staying on a dashboard page would 500.
       }
       // replace() (not push) so the back button doesn't bounce the user into

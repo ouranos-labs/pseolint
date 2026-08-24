@@ -26,7 +26,7 @@ const outputSchema = z.object({
 
 /**
  * Group URLs into template clusters. Wraps `clusterUrlTemplates` from the
- * site classifier. Lets the orchestrator decide where to focus sampling —
+ * site classifier. Lets the orchestrator decide where to focus sampling:
  * high-ratio templates (e.g. 80% of URLs share `/city/:slug`) deserve
  * deeper inspection than long-tail one-offs.
  */

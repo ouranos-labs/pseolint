@@ -5,10 +5,10 @@ import { isIP } from "node:net";
  * SSRF guard for audit targets.
  *
  * Two layers:
- *   1. `isPrivateOrReservedHost(hostname)` — fast, synchronous string check.
+ *   1. `isPrivateOrReservedHost(hostname)`: fast, synchronous string check.
  *      Catches literal private IPs ("10.0.0.5"), loopback names ("localhost"),
  *      link-local suffixes (".local"), and internal/metadata hostnames.
- *   2. `validateTargetHost(hostname)` — async. Resolves the hostname via DNS
+ *   2. `validateTargetHost(hostname)`: async. Resolves the hostname via DNS
  *      and rejects if the resulting address (v4 or v6) falls into a private /
  *      reserved / link-local / multicast range. Mitigates DNS rebinding where
  *      a public hostname returns 127.0.0.1.
@@ -74,7 +74,7 @@ const BLOCKED_HOSTNAME_SUFFIXES = [
 const IPV4_MAPPED_IPV6 = /^::ffff:(?:0:)?(\d+\.\d+\.\d+\.\d+)$/i;
 
 /**
- * IPv4 range predicate — true if the address is private / reserved /
+ * IPv4 range predicate: true if the address is private / reserved /
  * link-local / loopback / multicast / broadcast / CGNAT. Expects a valid
  * dotted-quad; caller must ensure that (e.g. via `net.isIP`).
  */
@@ -84,25 +84,25 @@ export function isPrivateIPv4(addr: string): boolean {
     return false;
   }
   const [a, b] = parts;
-  if (a === 0) return true; // 0.0.0.0/8 — "this network"
+  if (a === 0) return true; // 0.0.0.0/8: "this network"
   if (a === 10) return true; // 10.0.0.0/8
-  if (a === 127) return true; // 127.0.0.0/8 — loopback
-  if (a === 169 && b === 254) return true; // 169.254.0.0/16 — link-local + cloud metadata
+  if (a === 127) return true; // 127.0.0.0/8: loopback
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16: link-local + cloud metadata
   if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
   if (a === 192 && b === 168) return true; // 192.168.0.0/16
-  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10 — CGNAT
-  if (a === 192 && b === 0 && parts[2] === 0) return true; // 192.0.0.0/24 — IETF
-  if (a === 192 && b === 0 && parts[2] === 2) return true; // 192.0.2.0/24 — TEST-NET-1
-  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15 — benchmark
-  if (a === 198 && b === 51 && parts[2] === 100) return true; // 198.51.100.0/24 — TEST-NET-2
-  if (a === 203 && b === 0 && parts[2] === 113) return true; // 203.0.113.0/24 — TEST-NET-3
-  if (a >= 224 && a <= 239) return true; // 224.0.0.0/4 — multicast
-  if (a >= 240) return true; // 240.0.0.0/4 — reserved + 255.255.255.255 broadcast
+  if (a === 100 && b >= 64 && b <= 127) return true; // 100.64.0.0/10: CGNAT
+  if (a === 192 && b === 0 && parts[2] === 0) return true; // 192.0.0.0/24: IETF
+  if (a === 192 && b === 0 && parts[2] === 2) return true; // 192.0.2.0/24: TEST-NET-1
+  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18.0.0/15: benchmark
+  if (a === 198 && b === 51 && parts[2] === 100) return true; // 198.51.100.0/24: TEST-NET-2
+  if (a === 203 && b === 0 && parts[2] === 113) return true; // 203.0.113.0/24: TEST-NET-3
+  if (a >= 224 && a <= 239) return true; // 224.0.0.0/4: multicast
+  if (a >= 240) return true; // 240.0.0.0/4: reserved + 255.255.255.255 broadcast
   return false;
 }
 
 /**
- * IPv6 range predicate — true for loopback, ULA, link-local, unspecified,
+ * IPv6 range predicate: true for loopback, ULA, link-local, unspecified,
  * multicast, and IPv4-mapped addresses (after unwrapping to the v4 check).
  */
 export function isPrivateIPv6(addr: string): boolean {
@@ -112,7 +112,7 @@ export function isPrivateIPv6(addr: string): boolean {
       normalized.startsWith("fea") || normalized.startsWith("feb")) return true; // fe80::/10
   if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // fc00::/7 ULA
   if (normalized.startsWith("ff")) return true; // ff00::/8 multicast
-  // IPv4-mapped IPv6 (::ffff:a.b.c.d or ::ffff:0:a.b.c.d) — unwrap and delegate
+  // IPv4-mapped IPv6 (::ffff:a.b.c.d or ::ffff:0:a.b.c.d), unwrap and delegate
   const mapped = normalized.match(IPV4_MAPPED_IPV6);
   if (mapped) return isPrivateIPv4(mapped[1]);
   return false;
@@ -134,7 +134,7 @@ export function decodeNumericIPv4(hostname: string): string | null {
     const parsed = Number(s);
     if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 0xffffffff) n = parsed;
   } else if (/^0x[0-9a-f]+$/.test(s)) {
-    // Hex — "0x7f000001".
+    // Hex: "0x7f000001".
     const parsed = Number(s);
     if (Number.isInteger(parsed) && parsed >= 0 && parsed <= 0xffffffff) n = parsed;
   }
@@ -167,11 +167,11 @@ export function isPrivateOrReservedHost(hostname: string): string | null {
     if (lower.endsWith(suffix)) return `reserved TLD / suffix (${suffix})`;
   }
 
-  // Numeric / hex encoding of IPv4 — decode and test.
+  // Numeric / hex encoding of IPv4: decode and test.
   const decoded = decodeNumericIPv4(hostname);
   if (decoded) {
     if (isPrivateIPv4(decoded)) return `private / reserved IPv4 (${decoded}, encoded as ${hostname})`;
-    // Also reject all numeric hostnames that decode to public IPs — they're a
+    // Also reject all numeric hostnames that decode to public IPs; they're a
     // deniability smell. Callers who intentionally audit a literal IP will
     // pass it in dotted-quad form.
     return `ambiguous numeric-encoded IPv4 (${hostname} decodes to ${decoded}); pass dotted-quad form explicitly`;
@@ -187,7 +187,7 @@ export function isPrivateOrReservedHost(hostname: string): string | null {
 }
 
 export interface ValidateTargetHostOptions {
-  /** Override the DNS resolver — useful for tests or custom resolvers. */
+  /** Override the DNS resolver: useful for tests or custom resolvers. */
   resolver?: {
     resolve4: (hostname: string) => Promise<string[]>;
     resolve6: (hostname: string) => Promise<string[]>;
@@ -256,7 +256,7 @@ export async function validateTargetHost(
 /**
  * Convenience check for "is this URL pointing at localhost or a private
  * network?". Used by the CLI to auto-apply a conservative crawl preset when
- * a developer runs `pseolint http://localhost:3000` — a cache-cold local
+ * a developer runs `pseolint http://localhost:3000`: a cache-cold local
  * server can amplify every fetch into a thundering herd of DB queries.
  *
  * Returns false for anything that isn't a parseable URL with a hostname

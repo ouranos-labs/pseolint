@@ -181,7 +181,7 @@ describe("pseolint_audit_site", () => {
       const out = textOf(r);
       expect(out).toContain("[truncated");
       expect(r.structuredContent!.textTruncated).toBe(true);
-      // head (25k) + truncation marker + hint — comfortably under the raw 60k
+      // head (25k) + truncation marker + hint; comfortably under the raw 60k
       expect(out.length).toBeLessThan(26_000);
     });
   });

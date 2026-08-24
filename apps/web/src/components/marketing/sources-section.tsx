@@ -35,7 +35,7 @@ export function SourcesSection({
             >
               { s.title }
             </a>
-            <span className="text-muted-foreground"> — { s.note }</span>
+            <span className="text-muted-foreground">: { s.note }</span>
           </li>
         )) }
       </ul>

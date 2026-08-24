@@ -9,14 +9,14 @@ const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 export const metadata: Metadata = {
   title: "Changelog · pseolint",
   description:
-    "Every published pseolint package and its release history — core engine, CLI, MCP server, GitHub Action, browser extension, and hosted app — read straight from the source at build time.",
+    "Every published pseolint package and its release history (core engine, CLI, MCP server, GitHub Action, browser extension, and hosted app) read straight from the source at build time.",
   alternates: { canonical: `${SITE_URL}/changelog` },
 };
 
 // Read at build time from the workspace, so versions are ground truth and can
 // never drift from what actually ships. Static page → the fs reads happen once
 // at build and bake into HTML; nothing runs at request time.
-// ponytail: no markdown lib — the changesets format is regular enough to parse
+// ponytail: no markdown lib, the changesets format is regular enough to parse
 // in ~15 lines; add react-markdown only if we start rendering richer content.
 export const dynamic = "force-static";
 
@@ -92,7 +92,7 @@ function load(): { name: string; channel: string; version: string; entries: Entr
       try {
         version = (JSON.parse(pkgJson).version as string) ?? "—";
       } catch {
-        /* keep — */
+        /* keep: */
       }
     }
     const md = read(join(p.dir, "CHANGELOG.md"));
@@ -110,7 +110,7 @@ export default function ChangelogPage() {
       </div>
       <h1 className="mt-3 text-balance text-3xl tracking-tight sm:text-4xl">Release history</h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Every shipping pseolint package and its version, read straight from the workspace at build time — so
+        Every shipping pseolint package and its version, read straight from the workspace at build time, so
         what you see here is exactly what ships, never a hand-maintained copy that drifts.
       </p>
 

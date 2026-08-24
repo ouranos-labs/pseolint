@@ -13,7 +13,7 @@ type DomainPatch = FixManifest["domainLevel"][number];
  *   - file_replace → full-file diff (robots.txt / sitemap.xml)
  *   - guidance     → freeform prose (canonical_strategy)
  *
- * Kept deliberately narrow — not a unified-diff library. The manifest
+ * Kept deliberately narrow: not a unified-diff library. The manifest
  * patches are paste-into-CMS-friendly outputs, not source-level diffs.
  */
 export type PatchDiff =
@@ -65,7 +65,7 @@ function serializeJsonLd(block: object): string {
 }
 
 /**
- * Convert a single page-change into a `PatchDiff`. Pure transformation —
+ * Convert a single page-change into a `PatchDiff`. Pure transformation:
  * does not validate (use `validatePageChange` for that). The two should
  * be called in sequence at manifest finalization: validate first, drop
  * failures, then diff the survivors.

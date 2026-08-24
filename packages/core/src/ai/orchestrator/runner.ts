@@ -12,7 +12,7 @@ import type { EventSink as _EventSinkPathReexport } from "./log.js";
  * Loose type for the tool registry. The AI SDK's `Tool<I, O>` is invariant
  * in its generics, so a heterogeneous map of tools with distinct schemas
  * can't be statically typed as `Record<string, Tool<unknown, unknown>>`.
- * We accept the unsoundness at this single boundary — every individual tool
+ * We accept the unsoundness at this single boundary: every individual tool
  * is type-safe at definition site (via `defineTool`), and the AI SDK
  * validates inputs at runtime via Zod regardless.
  */
@@ -37,7 +37,7 @@ export interface RunOrchestratorOptions {
   ndjsonPath?: string;
   /** Optional event sink (e.g. SSE / R2 fanout). */
   onEvent?: EventSink;
-  /** External abort signal — aborting flips the session to `aborted`. */
+  /** External abort signal: aborting flips the session to `aborted`. */
   signal?: AbortSignal;
   /**
    * Override the tool registry. Default = full `orchestratorTools` plus
@@ -67,7 +67,7 @@ const FINISH_TOOL_NAME = "finish_audit";
  * `SessionResult` once the LLM calls `finish_audit`, the budget is
  * exhausted, the abort signal fires, or the model errors out.
  *
- * No streaming yet — uses `generateText` for simpler test ergonomics with
+ * No streaming yet: uses `generateText` for simpler test ergonomics with
  * the existing `MockModel` (which only implements `doGenerate`). Phase 2
  * follow-up swaps to `streamText` once we have a stream-capable mock and a
  * web-app SSE endpoint to wire up.
@@ -92,7 +92,7 @@ export async function runOrchestrator(opts: RunOrchestratorOptions): Promise<Ses
     aiTools[name] = tool.toAiTool();
   }
   // The runner detects finish_audit by name and pulls the manifest from
-  // its tool-call input — the AI SDK ferries the rest through normally.
+  // its tool-call input: the AI SDK ferries the rest through normally.
   aiTools[FINISH_TOOL_NAME] = finishAuditTool.toAiTool();
 
   const systemPrompt = buildSystemPrompt(session.caps, opts.brief);
@@ -166,7 +166,7 @@ export async function runOrchestrator(opts: RunOrchestratorOptions): Promise<Ses
                   `[watchdog] You've made ${toolCount} tool calls. ` +
                   `Hard cap is ${session.caps.maxToolCalls}. ` +
                   `Are you converging on a manifest? If not, summarize remaining gaps now and call finish_audit. ` +
-                  `Partial manifests are still useful — prefer breadth over depth.`,
+                  `Partial manifests are still useful: prefer breadth over depth.`,
               },
             ],
           };
@@ -197,7 +197,7 @@ export async function runOrchestrator(opts: RunOrchestratorOptions): Promise<Ses
           // External-probe cost ingestion. Tools that hit billable APIs
           // (query_serp, ask_ai_engine) include `apiCostUsd` in their data
           // payload. The orchestrator's USD cap would otherwise be fiction
-          // for sessions that lean on probes — this is the only place where
+          // for sessions that lean on probes; this is the only place where
           // non-LLM costs get folded into the session budget.
           const probeCost = extractProbeCost(r.output);
           if (probeCost > 0) session.budget.recordExternalCost(probeCost);
@@ -277,7 +277,7 @@ export async function runOrchestrator(opts: RunOrchestratorOptions): Promise<Ses
  * Best-effort extraction of `apiCostUsd` from a tool result. Tool outputs
  * are wrapped as `{ ok: true, data }` or `{ ok: false, error }` by
  * `defineTool`. We only bill for ok results carrying a non-negative
- * numeric `apiCostUsd` field — every other shape returns 0.
+ * numeric `apiCostUsd` field: every other shape returns 0.
  */
 function extractProbeCost(output: unknown): number {
   if (output === null || typeof output !== "object") return 0;

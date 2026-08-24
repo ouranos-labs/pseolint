@@ -13,10 +13,10 @@ export function probeCacheKey(...parts: string[]): string {
 
 /**
  * Lightweight content-addressable cache for external probe responses
- * (SerpAPI, ask_ai_engine). Simpler than the cachedFetch HTTP cache —
+ * (SerpAPI, ask_ai_engine). Simpler than the cachedFetch HTTP cache:
  * no ETag/Last-Modified, no negative cache, just key → JSON with TTL.
  *
- * Misses (file absent, malformed, expired) all return null silently —
+ * Misses (file absent, malformed, expired) all return null silently:
  * the caller fetches fresh and writes back.
  */
 export async function readProbeCache<T>(dir: string, key: string, ttlMs: number): Promise<T | null> {
@@ -35,7 +35,9 @@ export async function readProbeCache<T>(dir: string, key: string, ttlMs: number)
   }
   if (typeof entry.cachedAt !== "string") return null;
   const ageMs = Date.now() - new Date(entry.cachedAt).getTime();
-  if (Number.isNaN(ageMs) || ageMs > ttlMs) return null;
+  // >= so ttlMs=0 means "always expired" even when the write and the read land
+  // in the same millisecond (ageMs 0 > ttlMs 0 was false: a same-ms race).
+  if (Number.isNaN(ageMs) || ageMs >= ttlMs) return null;
   return entry.data;
 }
 

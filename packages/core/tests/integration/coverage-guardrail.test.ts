@@ -7,7 +7,7 @@ import { auditSource } from "../../src/auditor.js";
  *   (A) a sitemap INDEX referenced child sitemaps we couldn't fetch/parse, OR
  *   (B) we FETCHED far fewer pages than the sitemap declares.
  * Plus the false-positive guards that distinguish under-discovery from the
- * operator's deliberate choices (noindex pages, a small crawl cap) — the bugs
+ * operator's deliberate choices (noindex pages, a small crawl cap): the bugs
  * the first cut of this guardrail shipped with.
  */
 
@@ -52,7 +52,7 @@ describe("declared-vs-discovered coverage guardrail", () => {
     expect(summary.truncatedKind).toBe("coverage");
     expect(summary.truncatedReason ?? "").toMatch(/sitemap-declared/i);
     expect(summary.truncatedReason ?? "").not.toMatch(/degrad/i); // distinct from backpressure
-    // A truncated run is never a clean green — the lone fetched homepage would
+    // A truncated run is never a clean green: the lone fetched homepage would
     // otherwise score "ready"; the verdict floor downgrades it.
     expect(summary.verdict).not.toBe("ready");
   });

@@ -55,7 +55,7 @@ describe("checkOriginHealth", () => {
   it("does not trip on a single transient failure", async () => {
     const report = await probe("https://flaky.example/", {
       probes: 3,
-      // One failure, two clean responses — a blip, not degradation.
+      // One failure, two clean responses: a blip, not degradation.
       fetcher: scriptedFetcher([{ throws: true }, { status: 200 }, { status: 200 }]),
     });
     expect(report.verdict).toBe("ok");
@@ -104,7 +104,7 @@ describe("checkOriginHealth", () => {
     expect(report.medianMs).toBeGreaterThan(50);
   });
 
-  it("fires probes concurrently — wall-clock is ~one probe, not N", async () => {
+  it("fires probes concurrently: wall-clock is ~one probe, not N", async () => {
     // Three 100ms probes run in parallel finish in well under the 300ms a
     // sequential loop would take. This is what lets the check observe the
     // origin under parallel load without taxing the request that triggered it.

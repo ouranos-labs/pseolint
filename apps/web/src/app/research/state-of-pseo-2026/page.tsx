@@ -7,7 +7,8 @@ const PUBLISHED_DATE = "2026-04-29";
 const REPORT_PATH = "/research/state-of-pseo-2026";
 const REPORT_TITLE = "State of pSEO 2026: SpamBrain Risk Across Programmatic SEO";
 // Title tag is assembled as `${REPORT_TITLE} · pseolint research` (78 chars).
-// Trimmed title tag uses a shorter form to stay ≤60 chars for SERP display.
+// Trimmed title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "State of pSEO 2026: SpamBrain risk · pseolint";
 const REPORT_DESCRIPTION =
   "Modeled estimates of programmatic-SEO health in 2026: failure rates across 8 SpamBrain rules, vertical and tech-stack breakdowns. CC BY 4.0.";
@@ -309,16 +310,6 @@ export default function StateOfPseo2026Page(): React.ReactElement {
     spatialCoverage: "Global, English-language pSEO sites",
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -353,10 +344,6 @@ export default function StateOfPseo2026Page(): React.ReactElement {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(datasetSchema) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }}
       />
       <script
         type="application/ld+json"

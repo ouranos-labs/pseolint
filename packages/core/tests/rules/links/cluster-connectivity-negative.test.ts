@@ -15,7 +15,7 @@ function page(url: string, hrefs: string[] = []): ParsedPage {
 // sampled-suppression.test.ts covers the positive (both clusters siloed) and the
 // sampled=true no-op. These pin the branches it doesn't: that a single cross-cluster
 // link clears the silo verdict, and that single-page clusters are ignored.
-describe("clusterConnectivityRule — non-firing branches", () => {
+describe("clusterConnectivityRule: non-firing branches", () => {
   test("an outbound cross-cluster link clears the silo for that cluster", () => {
     const pages = [
       page("https://s/x/1", ["https://s/y/1"]), // x -> y outbound
@@ -26,7 +26,7 @@ describe("clusterConnectivityRule — non-firing branches", () => {
     const known = new Set(pages.map((p) => p.url));
     const findings = clusterConnectivityRule(pages, known, false);
     const flagged = findings.map((f) => f.message);
-    // x has outbound to y; y has inbound from x — neither is fully siloed.
+    // x has outbound to y; y has inbound from x: neither is fully siloed.
     expect(flagged.some((m) => m.includes("/x/"))).toBe(false);
     expect(flagged.some((m) => m.includes("/y/"))).toBe(false);
   });

@@ -32,7 +32,7 @@ export function FocusedLensCard({ tool, summary }: { tool: MarketingTool; summar
 
   return (
     <section
-      aria-label={`${tool.title} — focused result`}
+      aria-label={`${tool.title}: focused result`}
       className="mt-6 rounded-[22px] border border-primary/25 bg-primary/5 p-5"
     >
       <div className="mb-3 flex items-baseline justify-between gap-3">
@@ -45,7 +45,7 @@ export function FocusedLensCard({ tool, summary }: { tool: MarketingTool; summar
 
       {lens.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No <span className="font-mono text-foreground">{tool.ruleLens}</span> issues found — this site is
+          No <span className="font-mono text-foreground">{tool.ruleLens}</span> issues found; this site is
           clean on the {tool.title.toLowerCase()} lens.
         </p>
       ) : (
@@ -65,9 +65,9 @@ export function FocusedLensCard({ tool, summary }: { tool: MarketingTool; summar
         </ul>
       )}
 
-      {/* Funnel — the audit ran the full rule set, so this number is real. */}
+      {/* Funnel: the audit ran the full rule set, so this number is real. */}
       <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-        We ran the <span className="text-foreground">full pSEO audit</span>, not just this lens —{" "}
+        We ran the <span className="text-foreground">full pSEO audit</span>, not just this lens: {" "}
         {otherCount > 0 ? (
           <>
             it flagged <span className="font-semibold text-foreground">{otherCount} more issue{otherCount === 1 ? "" : "s"}</span> across the

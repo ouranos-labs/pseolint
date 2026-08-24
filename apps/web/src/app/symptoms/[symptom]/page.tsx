@@ -83,29 +83,7 @@ interface ArticleSchema {
   dateModified?: string;
 }
 
-interface FaqSchema {
-  "@context": "https://schema.org";
-  "@type": "FAQPage";
-  mainEntity: {
-    "@type": "Question";
-    name: string;
-    acceptedAnswer: { "@type": "Answer"; text: string };
-  }[];
-}
-
-interface HowToSchema {
-  "@context": "https://schema.org";
-  "@type": "HowTo";
-  name: string;
-  description: string;
-  step: { "@type": "HowToStep"; position: number; name: string; text: string }[];
-}
-
-function buildSchemas(entry: MarketingSymptom): {
-  article: ArticleSchema;
-  faq: FaqSchema;
-  howTo: HowToSchema;
-} {
+function buildSchemas(entry: MarketingSymptom): { article: ArticleSchema } {
   const url = `${SITE_URL}/symptoms/${entry.slug}`;
   const article: ArticleSchema = {
     "@context": "https://schema.org",
@@ -130,28 +108,7 @@ function buildSchemas(entry: MarketingSymptom): {
     datePublished: "2026-04-29",
     dateModified: new Date().toISOString().slice(0, 10),
   };
-  const faq: FaqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: entry.faqs.map((f) => ({
-      "@type": "Question" as const,
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer" as const, text: f.a },
-    })),
-  };
-  const howTo: HowToSchema = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: `Diagnose: ${entry.title}`,
-    description: `Step-by-step diagnostic for: ${entry.oneLiner}`,
-    step: entry.diagnosticSteps.map((text, i) => ({
-      "@type": "HowToStep" as const,
-      position: i + 1,
-      name: `Step ${i + 1}`,
-      text,
-    })),
-  };
-  return { article, faq, howTo };
+  return { article };
 }
 
 function checkerHref(_slug: string): string {
@@ -188,9 +145,9 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
   const entry = findSymptom(symptom);
   if (!entry) notFound();
 
-  const { article, faq, howTo } = buildSchemas(entry);
+  const { article } = buildSchemas(entry);
   const otherSymptoms = MARKETING_SYMPTOMS.filter((s) => s.slug !== entry.slug).slice(0, 4);
-  const ldPayload = `${ldString(article)}\n${ldString(faq)}\n${ldString(howTo)}`;
+  const ldPayload = ldString(article);
   const archetype = getSymptomArchetype(entry.slug);
 
   return (
@@ -251,7 +208,7 @@ export default async function SymptomPage({ params }: RouteParams): Promise<Reac
           <InlineAuditWidget
             headline="Diagnose your site"
             cta="Run a SpamBrain check"
-            ruleHint={`Runs the full pSEO audit — the rules most relevant to this symptom: ${entry.relatedRules.join(", ")}.`}
+            ruleHint={`Runs the full pSEO audit, the rules most relevant to this symptom: ${entry.relatedRules.join(", ")}.`}
           />
         </div>
       </header>
@@ -448,7 +405,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 /**
  * Renders one or more JSON-LD documents (newline-separated) as inline
  * application/ld+json scripts. The `payload` is fully producer-controlled,
- * already JSON.stringify'd, and `</` escaped — see ldString().
+ * already JSON.stringify'd, and `</` escaped: see ldString().
  */
 function StructuredData({ payload }: { payload: string }): React.JSX.Element {
   const docs = payload.split("\n").filter(Boolean);

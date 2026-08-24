@@ -4,7 +4,7 @@
  * The five page-skip detectors (page-filter.ts) remove pages from the audit
  * before rules run. A false positive here = a legitimate content page the
  * engine drops. The fixtures are the pages the engine is *meant* to audit, so
- * every skip on them is a candidate FP — the exceptions are fixtures that are
+ * every skip on them is a candidate FP: the exceptions are fixtures that are
  * genuinely non-content (a real `/privacy` page, a `?q=` search URL). The
  * script prints every skip with its reason so those genuine skips can be told
  * apart from real FPs by eye.
@@ -20,7 +20,7 @@
  * skip list is printed for the all-on config so every possible skip is visible.
  *
  * ponytail: skip = candidate FP, human eyeballs the printed list. No attempt
- * to auto-label ground truth we don't have — that would be fake precision.
+ * to auto-label ground truth we don't have: that would be fake precision.
  */
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { join, dirname, basename } from "node:path";

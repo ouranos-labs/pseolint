@@ -12,7 +12,7 @@ import { loadGscTokens, listSites, pickBestGscProperty } from "@/lib/gsc";
  * it's unguessable but reproducible. Host lowercased for stability.
  *
  * Reads BETTER_AUTH_SECRET directly from process.env (with empty-string
- * fallback for module-load safety) so the function stays pure — no env()
+ * fallback for module-load safety) so the function stays pure: no env()
  * call means no zod parse at test time, which keeps unit tests fast and
  * independent of the full env schema.
  */

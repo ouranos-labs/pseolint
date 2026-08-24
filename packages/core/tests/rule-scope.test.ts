@@ -35,7 +35,7 @@ describe("rule scope map", () => {
     expect(isRuleAllowedInDiff("future/unknown-rule")).toBe(false);
   });
 
-  it("covers AEO rules — page-scoped ones run in diff, site-wide ones do not", () => {
+  it("covers AEO rules: page-scoped ones run in diff, site-wide ones do not", () => {
     expect(isRuleAllowedInDiff("aeo/faq-coverage")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/answer-first")).toBe(true);
     expect(isRuleAllowedInDiff("aeo/citable-facts")).toBe(true);

@@ -32,7 +32,7 @@ export function rankScoreFor(severity: Severity, affectedPages: number, impressi
  * the current month. Findings are grouped by template signature (e.g.
  * `/blog/:slug`), so we aggregate URL-level impressions up to the same key.
  *
- * Returns an empty map when GSC isn't synced for this domain — callers fall
+ * Returns an empty map when GSC isn't synced for this domain: callers fall
  * back to severity×pages weighting transparently.
  */
 async function loadDomainImpressionsBySignature(domainId: string): Promise<Map<string, number>> {
@@ -61,7 +61,7 @@ async function loadDomainImpressionsBySignature(domainId: string): Promise<Map<s
  * updates last_seen, affected_page_count, severity_latest, rule_message_latest,
  * representative_url, and rank_score. When GSC metrics exist for the domain,
  * impressions are aggregated per template signature and used to weight the
- * rank — high-traffic templates with the same severity outrank low-traffic ones.
+ * rank: high-traffic templates with the same severity outrank low-traffic ones.
  *
  * Preserves status (does NOT resurrect snoozed or dismissed findings).
  */
@@ -73,7 +73,7 @@ export async function mergeFindings(
   type Group = { ruleId: string; sig: string; severity: Severity; count: number; message: string; repUrl?: string };
   const groups = new Map<string, Group>();
   for (const f of findings) {
-    // v0.5+: carried-forward findings come from prior state — they were not
+    // v0.5+: carried-forward findings come from prior state; they were not
     // re-verified this run. Excluding them keeps `lastSeenAt` honest as
     // "last actually re-evaluated" so the per-URL view can render
     // "verified N days ago" badges that mean what they say.
@@ -95,7 +95,7 @@ export async function mergeFindings(
     }
   }
 
-  // One read across all groups, instead of one per group — keeps the
+  // One read across all groups, instead of one per group; keeps the
   // ratio of GSC reads to findings constant regardless of audit size.
   const sigImpressions = await loadDomainImpressionsBySignature(domainId);
 
@@ -120,7 +120,7 @@ export async function mergeFindings(
         ruleMessageLatest: g.message,
         representativeUrl: g.repUrl,
         lastSeenAt: now,
-        // status intentionally NOT touched — preserves snoozed/dismissed.
+        // status intentionally NOT touched: preserves snoozed/dismissed.
       },
     });
   }

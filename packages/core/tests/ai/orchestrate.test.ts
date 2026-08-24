@@ -114,7 +114,7 @@ describe("orchestrate (public composition entry point)", () => {
   });
 
   it("returns null manifest/validation/diff when the session doesn't call finish_audit", async () => {
-    // Mock returns a stop with no tool call — simulates the model giving up
+    // Mock returns a stop with no tool call: simulates the model giving up
     // without producing a manifest.
     const model = new SequenceMockModel([
       {

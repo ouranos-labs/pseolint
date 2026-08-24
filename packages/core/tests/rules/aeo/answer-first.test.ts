@@ -142,12 +142,12 @@ describe("aeo/answer-first", () => {
       html,
       headings: { h1: ["Paris Travel"], h2: [] },
     });
-    // Lowercase "paris" in opener — no multi-word proper noun, no single-word capitalized
+    // Lowercase "paris" in opener: no multi-word proper noun, no single-word capitalized
     // proper noun (starts sentence → excluded), but the user's entity mask matches → +1.
     expect(answerFirstRule([p], cityMask)).toHaveLength(0);
   });
 
-  test("warns at score=1 — complete sentence only, no concrete facts, no named entity", () => {
+  test("warns at score=1: complete sentence only, no concrete facts, no named entity", () => {
     const html = `
       <h1>Filing Guide</h1>
       <p>Filing is a process that you can complete easily online with preparation.</p>

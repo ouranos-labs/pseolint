@@ -8,8 +8,8 @@ import type { ReactNode } from "react";
  * 1. `lib/marketing-rules.ts` has always used backticks around technical terms
  *    (`thinMinWords`, `spam/boilerplate-ratio`, `<header>`). Nothing interpreted
  *    them, so the rule pages shipped literal backticks to readers.
- * 2. The engine's content rules strip EXAMPLE_REGION_SELECTOR — "pre, code,
- *    blockquote, figure, samp, kbd, [data-example]" — before scanning, so that a
+ * 2. The engine's content rules strip EXAMPLE_REGION_SELECTOR: "pre, code,
+ *    blockquote, figure, samp, kbd, [data-example]": before scanning, so that a
  *    page *documenting* a pattern isn't scored as though it were committing it.
  *    Emitting <code> is how a page says "this is a specimen, not my prose",
  *    which is the engine's designed mechanism rather than an allowlist carve-out.
@@ -34,7 +34,7 @@ export function renderInline(text: string): ReactNode[] {
 }
 
 /**
- * Strips backtick markup for plain-text sinks — JSON-LD, meta descriptions, any
+ * Strips backtick markup for plain-text sinks: JSON-LD, meta descriptions, any
  * place a literal backtick would leak into a SERP or into structured data.
  */
 export function plainText(text: string): string {

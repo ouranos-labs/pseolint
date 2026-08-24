@@ -6,7 +6,8 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/llms-txt-programmatic-seo";
 const REPORT_TITLE = "llms.txt for Programmatic Sites: The AEO Index 80% of Sites Skip";
-// Title tag kept under 60 chars for SERP display.
+// Short title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "llms.txt for Programmatic Sites · pseolint";
 const REPORT_DESCRIPTION =
   "In a 20-site benchmark, 80% of production pSEO sites shipped no llms.txt. It is the widest, lowest-effort answer-engine gap on the web. What the file is, what goes in it, and how to verify yours.";
@@ -137,30 +138,6 @@ export default function LlmsTxtProgrammaticSeoPage(): React.ReactElement {
     ],
   };
 
-  const howToSchema = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to write an llms.txt for a programmatic site",
-    description:
-      "Create a root llms.txt that maps an answer engine to your citable content in four steps.",
-    step: CONTENTS.map((c, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: c.part,
-      text: c.detail,
-    })),
-  };
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -174,8 +151,6 @@ export default function LlmsTxtProgrammaticSeoPage(): React.ReactElement {
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(howToSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

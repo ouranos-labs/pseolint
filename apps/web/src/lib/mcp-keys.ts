@@ -40,7 +40,7 @@ export interface McpKeySummary {
   lastUsedAt: Date | null;
 }
 
-/** Create a key for `userId`. Returns the plaintext token ONCE — it is never recoverable after. */
+/** Create a key for `userId`. Returns the plaintext token ONCE; it is never recoverable after. */
 export async function createMcpKey(userId: string, name: string): Promise<{ token: string; prefix: string }> {
   const token = generateMcpToken();
   const prefix = mcpTokenPrefix(token);

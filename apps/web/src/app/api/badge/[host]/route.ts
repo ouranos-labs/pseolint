@@ -8,7 +8,7 @@ import { gradeOf } from "@/lib/grade";
 export const runtime = "nodejs";
 export const revalidate = 600;
 
-/** Minimal SVG badge: "pseolint · Grade A". Verdict/grade only — never a numeric risk. */
+/** Minimal SVG badge: "pseolint · Grade A". Verdict/grade only, never a numeric risk. */
 function badgeSvg(grade: string): string {
   const label = "pseolint";
   const value = `Grade ${grade}`;

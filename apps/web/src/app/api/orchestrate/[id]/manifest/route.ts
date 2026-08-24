@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 
 /**
  * Owner-only manifest download. Returns the full
- * `{ manifest, validation, diff }` payload as JSON — the same blob
+ * `{ manifest, validation, diff }` payload as JSON: the same blob
  * persisted to R2 by the orchestrator Inngest function. Useful for
  * programmatic consumers (CLI users wanting to apply patches via
  * scripting, third-party integrations, etc.).

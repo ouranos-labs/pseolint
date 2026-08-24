@@ -18,7 +18,7 @@ export function VisibilityToggle({
 
   function toggle() {
     const next = !isPublic;
-    // Making private requires Pro — short-circuit with paywall if free.
+    // Making private requires Pro: short-circuit with paywall if free.
     if (!next && !isPro) {
       setShowPaywall(true);
       return;
@@ -46,7 +46,7 @@ export function VisibilityToggle({
         onClick={toggle}
         disabled={pending}
         className="inline-flex h-9 items-center gap-1.5 rounded-[14px] border border-border-strong bg-background px-3 text-xs hover:bg-secondary disabled:opacity-50"
-        title={isPublic ? "This report is public — anyone with the link can view it" : "This report is private — only you can view it"}
+        title={isPublic ? "This report is public (anyone with the link can view it" : "This report is private) only you can view it"}
       >
         <span
           aria-hidden
@@ -68,7 +68,7 @@ export function VisibilityToggle({
           >
             <h2 className="text-base font-medium text-foreground">Private reports are Pro</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Free and anon audits are publicly shareable via link — that&apos;s the whole point of the
+              Free and anon audits are publicly shareable via link; that&apos;s the whole point of the
               free tier. Toggling a report to private (require auth to view) is a Pro feature.
             </p>
             <div className="mt-5 flex justify-end gap-2">

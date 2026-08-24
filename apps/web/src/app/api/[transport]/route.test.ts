@@ -18,7 +18,7 @@ function mcpPost(body: unknown, headers: Record<string, string> = {}): Request {
   });
 }
 
-// A self-contained `initialize` request — valid stateless-mode entrypoint.
+// A self-contained `initialize` request: valid stateless-mode entrypoint.
 const initReq = {
   jsonrpc: "2.0",
   id: 1,

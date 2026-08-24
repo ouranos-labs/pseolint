@@ -74,7 +74,7 @@ export type AuditLogEvent =
   | "audit.gentle_mode_applied"
   | "audit.degraded.retrying"
   | "audit.degraded.retry_succeeded"
-  /** v0.5.10 — per-template-degraded alert gate event. Firing logic ships in v0.5.11+. */
+  /** v0.5.10: per-template-degraded alert gate event. Firing logic ships in v0.5.11+. */
   | "template_degraded"
   | "seed.stats.recomputed";
 
@@ -86,6 +86,6 @@ export function auditLog(evt: AuditLogEvent, data: Payload = {}): void {
   try {
     console.log(JSON.stringify(line));
   } catch {
-    // Ignore if payload contains unserializable values — we don't want logging to crash a request.
+    // Ignore if payload contains unserializable values; we don't want logging to crash a request.
   }
 }

@@ -6,7 +6,8 @@ import { SourcesSection } from "@/components/marketing/sources-section";
 const PUBLISHED_DATE = "2026-07-18";
 const REPORT_PATH = "/research/pseo-audit-benchmark-2026";
 const REPORT_TITLE = "We Audited 20 Production pSEO Sites: What Actually Fails";
-// Title tag stays ≤60 chars for SERP display.
+// Short title tag: not a length rule (Google documents none), just a
+// specific name that survives SERP cropping. See docs/folklore.md #2.
 const REPORT_TITLE_TAG = "20 pSEO Sites Audited: What Fails · pseolint";
 const REPORT_DESCRIPTION =
   "We ran pseolint against 20 live programmatic-SEO sites, ~25 pages each. Only 3 scored ready; 80% ship no llms.txt and 75% fail citation coverage. Full per-site results, CC BY 4.0.";
@@ -228,16 +229,6 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
     spatialCoverage: "Global, English-language pSEO sites",
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -252,7 +243,6 @@ export default function PseoAuditBenchmark2026Page(): React.ReactElement {
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(datasetSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

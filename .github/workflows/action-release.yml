@@ -24,7 +24,7 @@ jobs:
       - name: Deploy to action-v1 branch
         env:
           # Pass github context through an env var rather than interpolating
-          # ${{ github.ref_name }} directly into the run script — ref names are
+          # ${{ github.ref_name }} directly into the run script: ref names are
           # attacker-influenceable and inlining them enables shell injection
           # (CWE-78). The shell reads the value, never the workflow templater.
           REF_NAME: ${{ github.ref_name }}

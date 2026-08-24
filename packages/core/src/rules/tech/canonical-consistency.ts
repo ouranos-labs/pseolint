@@ -99,12 +99,12 @@ export function canonicalConsistencyRule(
     const isCrossHost = pageHost !== null && canonicalHost !== null && canonicalHost !== pageHost;
 
     if (isOutOfScope && isCrossHost) {
-      // Candidate for collapsing — defer into the bucket keyed by target host
+      // Candidate for collapsing: defer into the bucket keyed by target host
       const bucket = outOfScopeByTargetHost.get(canonicalHost!) ?? [];
       bucket.push({ pageUrl: page.url, canonicalUrl });
       outOfScopeByTargetHost.set(canonicalHost!, bucket);
     } else {
-      // Either within-scope (warning) or same-host out-of-scope — emit per-page
+      // Either within-scope (warning) or same-host out-of-scope: emit per-page
       findings.push({
         ruleId: "tech/canonical-consistency",
         severity: knownUrls.has(canonicalUrl) ? "warning" : "info",
@@ -169,13 +169,13 @@ export function canonicalConsistencyRule(
       findings.push({
         ruleId: "tech/canonical-consistency",
         severity: "info",
-        message: `${count} pages canonicalize to ${targetHost}, outside the crawled host ${crawledHost} — expected if you crawled a staging/preview origin.`,
+        message: `${count} pages canonicalize to ${targetHost}, outside the crawled host ${crawledHost}, expected if you crawled a staging/preview origin.`,
         relatedUrls: entries.map((e) => e.canonicalUrl).slice(0, 10),
         fix: "If this site is live at the canonical host, the canonicals are correct. If not, verify the canonical URLs."
       });
     }
   } else {
-    // Multiple target hosts — inconsistent cross-host canonicals → per-page findings
+    // Multiple target hosts: inconsistent cross-host canonicals → per-page findings
     for (const [, entries] of buckets) {
       for (const { pageUrl, canonicalUrl } of entries) {
         findings.push({

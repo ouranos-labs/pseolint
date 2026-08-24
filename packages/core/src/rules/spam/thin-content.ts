@@ -24,13 +24,13 @@ export function thinContentRule(
     const confidence: Confidence = words < minWords / 2 ? "high" : "medium";
     const shortPageNote =
       confidence === "medium"
-        ? " Some pages — landing pages, contact, status, tools — are legitimately short; verify whether this URL is meant to host substantive content."
+        ? " Some pages (landing pages, contact, status, tools) are legitimately short; verify whether this URL is meant to host substantive content."
         : "";
 
     findings.push({
       ruleId: "spam/thin-content",
-      // High confidence (far below the floor) is an error; the medium band — which
-      // the rule itself flags as "could legitimately be a short page" — is a
+      // High confidence (far below the floor) is an error; the medium band: which
+      // the rule itself flags as "could legitimately be a short page"; is a
       // warning, not a ship-blocker. The page still joins thinContentUrls either
       // way so spam/doorway-pattern can stack on it.
       severity: confidence === "high" ? "error" : "warning",

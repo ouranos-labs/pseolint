@@ -95,7 +95,7 @@ export function validateRewriteMeta(c: Extract<PageChange, { type: "rewrite_meta
 /**
  * HTML-safety check using a cheerio-based allowlist. Rejects script/iframe/
  * object/embed/form/style elements and any href/src that uses
- * javascript:/data:/vbscript: schemes. Defense in depth — the LLM-generated
+ * javascript:/data:/vbscript: schemes. Defense in depth: the LLM-generated
  * patch is being prepared for paste into a CMS, not auto-applied, but a
  * malicious patch in a public manifest is still a footgun.
  */

@@ -11,7 +11,7 @@
  * scheme + host. Reference: tests/integration/auditor.test.ts uses
  * `["**\/api/**"]`.
  *
- * To use: invoke the CLI with `apps/web/` (or a subdirectory) as the cwd —
+ * To use: invoke the CLI with `apps/web/` (or a subdirectory) as the cwd:
  * cosmiconfig walks upward from cwd to find this file.
  *
  *   cd apps/web && node ../../packages/cli/dist/cli.js http://localhost:3003

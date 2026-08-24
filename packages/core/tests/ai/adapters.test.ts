@@ -76,7 +76,7 @@ describe("createLanguageModel", () => {
   });
 
   it("throws with install hint when chosen provider's SDK is missing", async () => {
-    // openai is an optional peer — we never installed it in the dev workspace,
+    // openai is an optional peer; we never installed it in the dev workspace,
     // so this should surface the install hint.
     const prevKey = process.env.OPENAI_API_KEY;
     process.env.OPENAI_API_KEY = "test-key";

@@ -19,7 +19,7 @@ export function VerifyBanner({
   const router = useRouter();
 
   const recordName = `_pseolint-verify.${host}`;
-  const recordValue = token ?? "— regenerating, retry verify —";
+  const recordValue = token ?? " (regenerating, retry verify) ";
 
   function copy(text: string) {
     navigator.clipboard?.writeText(text).then(() => {

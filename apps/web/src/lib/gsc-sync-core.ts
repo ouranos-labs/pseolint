@@ -10,7 +10,7 @@ import { gscPageMetrics } from "@/db/schema";
 import { auditLog } from "@/lib/audit-log";
 import { markGscSynced, querySearchAnalyticsByPage } from "@/lib/gsc";
 
-/** Insert chunk size — keeps individual statements bounded for very large GSC datasets. */
+/** Insert chunk size; keeps individual statements bounded for very large GSC datasets. */
 const UPSERT_CHUNK = 500;
 
 export interface SyncOneDomainInput {

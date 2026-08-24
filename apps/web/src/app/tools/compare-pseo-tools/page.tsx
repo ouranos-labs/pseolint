@@ -46,16 +46,6 @@ const FAQS = [
 ];
 
 export default function CompareToolsPage() {
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const productLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -98,7 +88,7 @@ export default function CompareToolsPage() {
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Many programmatic SEO campaigns fail because they focus on generation volume instead of
           <span className="text-foreground font-semibold"> indexation quality</span>. Generating 50,000 pages
-          using credit-based AI writers is simple—but if Googlebot flags the shared template as thin content,
+          using credit-based AI writers is simple, but if Googlebot flags the shared template as thin content,
           your entire investment remains unindexed. Use our interactive calculator below to evaluate costs,
           sync fees, and the real value of running pre-flight audits with pseolint.
         </p>
@@ -155,7 +145,7 @@ export default function CompareToolsPage() {
               </tr>
               <tr>
                 <td className="p-4 font-medium text-foreground">JSON-LD Schema</td>
-                <td className="p-4 text-primary font-semibold">✅ Full nested schemas (FAQ, HowTo, Product)</td>
+                <td className="p-4 text-primary font-semibold">✅ Full nested schemas (Article, Product, Breadcrumb)</td>
                 <td className="p-4">❌ No schema.org features</td>
                 <td className="p-4">⚠️ Simple schema configs</td>
               </tr>
@@ -223,10 +213,6 @@ export default function CompareToolsPage() {
         </div>
       </div>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd).replace(/</g, "\\u003c") }}

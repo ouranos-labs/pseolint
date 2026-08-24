@@ -1,4 +1,4 @@
-# Commit, CLI Polish, and GitHub Action — Implementation Plan
+# Commit, CLI Polish, and GitHub Action: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -13,7 +13,7 @@
 ### Task 1: Commit all current work
 
 **Files:**
-- All uncommitted files (42 files — see `git status`)
+- All uncommitted files (42 files: see `git status`)
 
 - [ ] **Step 1: Stage all changes**
 
@@ -55,7 +55,7 @@ Expected: 98 tests, 21 files, all passing.
 
 **Files:**
 - Modify: `packages/core/src/types.ts`
-- Test: existing tests still pass (no new test file needed — these are plumbing)
+- Test: existing tests still pass (no new test file needed: these are plumbing)
 
 - [ ] **Step 1: Add fields to AuditOptions**
 
@@ -584,7 +584,7 @@ function scoreLabel(score: number): string {
 function formatPrComment(summary: AuditSummary): string {
   const lines: string[] = [COMMENT_MARKER];
 
-  lines.push(`## pSEO Lint — Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
+  lines.push(`## pSEO Lint, Score: ${summary.score}/100 (${scoreLabel(summary.score)})`);
   lines.push("");
   lines.push(`**Pages analysed:** ${summary.pageCount}`);
   lines.push("");

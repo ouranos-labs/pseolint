@@ -4,9 +4,9 @@
 
 **Goal:** Ship an opt-in AI triage layer that turns enriched findings into 1–5 ranked root causes, plus a vendor-agnostic `LlmAdapter` interface with two reference implementations (Anthropic, Ollama).
 
-**Architecture:** New `packages/core/src/ai/` module: typed adapter interface + two adapters + triage post-processor + disk cache. Triage runs after `enrichFindings` and attaches `summary.triage`. Anthropic SDK is an optional peer dep loaded via lazy import; Ollama is SDK-free (HTTP). All four formatters render the new section. Fail-open on every error path — audit always completes.
+**Architecture:** New `packages/core/src/ai/` module: typed adapter interface + two adapters + triage post-processor + disk cache. Triage runs after `enrichFindings` and attaches `summary.triage`. Anthropic SDK is an optional peer dep loaded via lazy import; Ollama is SDK-free (HTTP). All four formatters render the new section. Fail-open on every error path, audit always completes.
 
-**Tech Stack:** TypeScript (ESM, `.js` extensions in imports), Vitest, Node ≥18 built-ins (`crypto`, `fs/promises`, `fetch`). New optional peer dep: `@anthropic-ai/sdk`. Tests use a deterministic stub adapter — zero live LLM calls in CI.
+**Tech Stack:** TypeScript (ESM, `.js` extensions in imports), Vitest, Node ≥18 built-ins (`crypto`, `fs/promises`, `fetch`). New optional peer dep: `@anthropic-ai/sdk`. Tests use a deterministic stub adapter, zero live LLM calls in CI.
 
 **Spec:** `docs/superpowers/specs/2026-04-18-ai-triage-and-adapter-design.md`
 
@@ -298,7 +298,7 @@ git commit -m "feat(ai): add per-model cost estimation"
 **Files:**
 - Create: `packages/core/tests/helpers/stub-adapter.ts`
 
-- [ ] **Step 3.1: Implement stub adapter (no separate test — exercised by every later test)**
+- [ ] **Step 3.1: Implement stub adapter (no separate test: exercised by every later test)**
 
 Create `packages/core/tests/helpers/stub-adapter.ts`:
 
@@ -1173,7 +1173,7 @@ export async function triageFindings(
         return { result: { ...cached, cacheHit: true } };
       }
     } catch {
-      // cache read errors are non-fatal — fall through to fresh call
+      // cache read errors are non-fatal, fall through to fresh call
     }
   }
 
@@ -1657,7 +1657,7 @@ export function createAnthropicAdapter(config: AnthropicAdapterConfig): LlmAdapt
 - [ ] **Step 8.5: Run, verify pass**
 
 Run: `bun --cwd packages/core test -- ai/adapters/anthropic`
-Expected: tests pass (including the SDK-missing branch). Adjust the brittle "success path" test to skip via `it.skip` if the inline mock proves untestable in this repo's vitest config — coverage is satisfied by Task 14's integration test.
+Expected: tests pass (including the SDK-missing branch). Adjust the brittle "success path" test to skip via `it.skip` if the inline mock proves untestable in this repo's vitest config, coverage is satisfied by Task 14's integration test.
 
 - [ ] **Step 8.6: Typecheck and commit**
 
@@ -1995,7 +1995,7 @@ if (options?.ai?.enabled) {
 }
 ```
 
-> Adapt the `summary.findings`, `summary.pageCount`, and `summary.triage` accessors to match the actual variable names in `auditor.ts`. The relevant variable holding the assembled summary may be named differently — read the surrounding code and use the correct names.
+> Adapt the `summary.findings`, `summary.pageCount`, and `summary.triage` accessors to match the actual variable names in `auditor.ts`. The relevant variable holding the assembled summary may be named differently: read the surrounding code and use the correct names.
 
 - [ ] **Step 11.4: Add discovery hint at end of `auditSource`**
 
@@ -2005,7 +2005,7 @@ Just before the function returns the summary, add:
 const aiHintEnabled = options?.ai?.suggest !== false;
 if (aiHintEnabled && !options?.ai?.enabled && process.env.ANTHROPIC_API_KEY) {
   console.error(
-    `💡 AI triage available — re-run with --ai to prioritize ${summary.findings.length} findings into a fix list.`,
+    `💡 AI triage available, re-run with --ai to prioritize ${summary.findings.length} findings into a fix list.`,
   );
 }
 ```
@@ -2264,7 +2264,7 @@ describe("auditSource + AI triage (integration)", () => {
     });
 
     expect(result.triage).toBeUndefined();
-    // Findings list must still be present — fail-open contract
+    // Findings list must still be present, fail-open contract
     expect(result.findings).toBeDefined();
 
     vi.restoreAllMocks();
@@ -2298,7 +2298,7 @@ git commit -m "test(ai): end-to-end integration test for triage in audit pipelin
 
 ---
 
-### Task 15: Console formatter — render triage section
+### Task 15: Console formatter: render triage section
 
 **Files:**
 - Modify: `packages/core/src/formatters/console.ts`
@@ -2343,7 +2343,7 @@ const triageSection = renderTriageSection(summary.triage);
 if (triageSection) parts.push(triageSection);
 ```
 
-(Adapt to whichever assembly pattern the file uses — string concat, array of parts, etc.)
+(Adapt to whichever assembly pattern the file uses, string concat, array of parts, etc.)
 
 - [ ] **Step 15.3: Add a unit test for the renderer**
 
@@ -2354,7 +2354,7 @@ import { describe, it, expect } from "vitest";
 import { formatConsole } from "../../src/formatters/console.js";
 import type { AuditSummary } from "../../src/types.js";
 
-describe("console formatter — triage", () => {
+describe("console formatter, triage", () => {
   const baseSummary: AuditSummary = {
     score: 80,
     categoryScores: { spam: 80, content: 80, links: 80, tech: 80, schema: 80, cannibal: 80 },
@@ -2408,7 +2408,7 @@ git commit -m "feat(formatters): render AI triage section in console output"
 
 ---
 
-### Task 16: Markdown formatter — triage section
+### Task 16: Markdown formatter: triage section
 
 **Files:**
 - Modify: `packages/core/src/formatters/markdown.ts`
@@ -2496,7 +2496,7 @@ git commit -m "feat(formatters): render AI triage section in markdown output"
 
 ---
 
-### Task 17: HTML formatter — triage card
+### Task 17: HTML formatter: triage card
 
 **Files:**
 - Modify: `packages/core/src/formatters/html.ts`
@@ -2525,7 +2525,7 @@ function renderTriageHtml(triage: NonNullable<import("../types.js").AuditSummary
 <section class="ai-triage">
   <header>
     <h2>AI Triage</h2>
-    <p class="meta">${escapeHtmlText(triage.modelUsed)} (${cacheLabel}) — ${triage.tokenUsage.input.toLocaleString()} in / ${triage.tokenUsage.output.toLocaleString()} out${cost}</p>
+    <p class="meta">${escapeHtmlText(triage.modelUsed)} (${cacheLabel}), ${triage.tokenUsage.input.toLocaleString()} in / ${triage.tokenUsage.output.toLocaleString()} out${cost}</p>
   </header>
   ${triage.narrative ? `<p class="narrative">${escapeHtmlText(triage.narrative)}</p>` : ""}
   <ol>${causes}</ol>
@@ -2607,7 +2607,7 @@ git commit -m "feat(formatters): render AI triage section in HTML output"
 
 ## Phase 7: Documentation
 
-### Task 18: README — add AI triage section
+### Task 18: README: add AI triage section
 
 **Files:**
 - Modify: `packages/cli/README.md`
@@ -2651,14 +2651,14 @@ pseolint https://example.com --ai --ai-provider ollama
 
 ### How it works
 
-After the linter runs, the AI step takes the enriched findings (capped at 200 by severity) and asks the model to identify 1–5 underlying root causes ranked by SEO impact. The findings list is unchanged — triage is an *additional* section above it.
+After the linter runs, the AI step takes the enriched findings (capped at 200 by severity) and asks the model to identify 1–5 underlying root causes ranked by SEO impact. The findings list is unchanged, triage is an *additional* section above it.
 
 ### Cost and budget
 
 - Triage runs as **one** model call per audit. Default cap: 60k input tokens.
 - Estimated cost is printed before/after the call (best-effort lookup; pricing may be stale).
 - Results are cached at `.pseolint/ai-cache/` for 30 days. Re-running on unchanged audit data is free.
-- Cache key includes the prompt version — bumping it auto-invalidates the cache.
+- Cache key includes the prompt version: bumping it auto-invalidates the cache.
 
 ### Privacy
 
@@ -2666,7 +2666,7 @@ Triage sends finding rule IDs, severities, messages, and (optional) page URLs to
 
 ### Failure modes (fail-open)
 
-Any error in the AI step (auth, rate-limit, network, unparseable response, missing SDK) skips triage with a stderr message. The audit completes normally — exit code, JSON output, and findings list are unchanged.
+Any error in the AI step (auth, rate-limit, network, unparseable response, missing SDK) skips triage with a stderr message. The audit completes normally, exit code, JSON output, and findings list are unchanged.
 ```
 
 - [ ] **Step 18.2: Commit**
@@ -2697,7 +2697,7 @@ Expected: all tests pass.
 Run: `bun --cwd packages/core run lint && bun --cwd packages/cli run lint`
 Expected: no errors.
 
-- [ ] **Step 19.4: Smoke — disabled by default**
+- [ ] **Step 19.4: Smoke: disabled by default**
 
 Run an audit against a small static site without `--ai`:
 ```bash
@@ -2705,7 +2705,7 @@ node packages/cli/dist/cli.js ./packages/core/tests/fixtures/<some-existing-fixt
 ```
 Expected: no `AI Triage` section in output. No `[ai-triage]` log lines.
 
-- [ ] **Step 19.5: Smoke — fail-open with no provider configured**
+- [ ] **Step 19.5: Smoke: fail-open with no provider configured**
 
 Run with `--ai` and no `ANTHROPIC_API_KEY`, no Ollama:
 ```bash

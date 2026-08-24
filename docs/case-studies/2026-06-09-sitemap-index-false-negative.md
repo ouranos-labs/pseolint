@@ -1,6 +1,6 @@
 # Case study: a false "READY" on a 5,600-page pSEO site (2026-06-09)
 
-**TL;DR.** Running `pseolint https://paperforge.dev` — the documented quick-start — on a programmatic-SEO site with **5,602 indexable pages** discovered **1 page**, classified the site as `small-marketing`, suppressed the pSEO-only rules, and returned **Verdict: READY ✓**. The real verdict (found only after manually pointing pseolint at a child sitemap) was **CONCERNING · Integrity F**. For a tool whose entire reason to exist is auditing large pSEO sites, silently passing one because its sitemap is a 2-level index is the most damaging failure mode we have. This documents what happened and the changes that would have caught it on the first run.
+**TL;DR.** Running `pseolint https://paperforge.dev` (the documented quick-start) on a programmatic-SEO site with **5,602 indexable pages** discovered **1 page**, classified the site as `small-marketing`, suppressed the pSEO-only rules, and returned **Verdict: READY ✓**. The real verdict (found only after manually pointing pseolint at a child sitemap) was **CONCERNING · Integrity F**. For a tool whose entire reason to exist is auditing large pSEO sites, silently passing one because its sitemap is a 2-level index is the most damaging failure mode we have. This documents what happened and the changes that would have caught it on the first run.
 
 ## Context
 
@@ -22,7 +22,7 @@ Its sitemap is a standard **two-level index**:
    ```
    ✓ Discovered 1 content page
    ✓ Site type: small-marketing (confidence 90%, 1 URLs, / covers 100%)
-   ✓ Suppressed 5 pSEO-only rules — pass --strict to run all 32
+   ✓ Suppressed 5 pSEO-only rules, pass --strict to run all 32
    Verdict: READY ✓
    Integrity A · Discoverability A · Citation A · Data A
    ```
@@ -33,7 +33,7 @@ Its sitemap is a standard **two-level index**:
    ✓ Discovered 392 content pages
    ✓ Site type: programmatic-directory (confidence 70%, /templates/:slug covers 100%)
    Verdict: CONCERNING ⚠   Integrity F · Discoverability A · Citation A · Data A
-   3 ship-blockers — content/unique-value (385 pages, worst 18 unique words),
+   3 ship-blockers, content/unique-value (385 pages, worst 18 unique words),
    spam/near-duplicate (×11), spam/publication-velocity (382 @ one date)
    ```
    The real picture only appears when the operator already knows to bypass the index.
@@ -44,39 +44,39 @@ The gap between (1) and (2) is the whole problem: **the default invocation gives
 
 This dogfood directly drove `96a78dd` ("dogfood reliability hardening + sitemap-first discovery"). Against that source the findings below stand as follows:
 
-- **Gap 1 — FIXED.** `feat(auditor): sitemap-first discovery` reads `robots.txt` `Sitemap:` directives (else probes `/sitemap.xml`) and fetches declared URLs *before* link-crawl, with depth-capped `<sitemapindex>` recursion and a regression test ("follows a nested `<sitemapindex>` discovered from robots.txt"). The repro above was on the stale 0.6.4 dist.
-- **Gap 2 — mostly addressed.** The classifier now emits a `core.warning` naming the reason + page count when it suppresses pSEO rules, and `templateCoverageRule` / `templateCoverageMinPages` were added.
-- **Gap 5 — added.** `spam/template-diversity` (`templateDiversityRule(pages, minUniqueRatio)`) now reports a per-site unique-content ratio — the metric this case study asked for.
-- **Gap 3 — FIXED (#4).** A declared-vs-discovered coverage guardrail flags the run `truncated` with `truncatedKind: "coverage"` (distinct from the backpressure kind) on two independent signals: **(A)** a sitemap **index** referenced child sitemaps that couldn't be fetched/parsed (the unreachable-children case — the original false-negative class, which a URL-count comparison can't see), and **(B)** far fewer pages were **fetched** than the sitemap declares. (B) compares against pages actually fetched and is bounded by every deliberate limit (sample size, crawl cap, declared total), so noindex/non-HTML pages, intentional sampling, and a small crawl cap don't false-fire. Surfaced by the existing CLI/Action/MCP/web `truncated` plumbing. Tests: `tests/integration/coverage-guardrail.test.ts` (5 cases incl. three false-positive guards).
-- **Gap 4 — FIXED (#3).** `content/unique-value` is now axis-aware: the message surfaces the shared-vs-unique word split (`N of its M distinct words also appear on other pages`) and the fix string explicitly warns that content repeated across same-axis sibling pages (boilerplate, per-axis data) does **not** count.
+- **Gap 1: FIXED.** `feat(auditor): sitemap-first discovery` reads `robots.txt` `Sitemap:` directives (else probes `/sitemap.xml`) and fetches declared URLs *before* link-crawl, with depth-capped `<sitemapindex>` recursion and a regression test ("follows a nested `<sitemapindex>` discovered from robots.txt"). The repro above was on the stale 0.6.4 dist.
+- **Gap 2: mostly addressed.** The classifier now emits a `core.warning` naming the reason + page count when it suppresses pSEO rules, and `templateCoverageRule` / `templateCoverageMinPages` were added.
+- **Gap 5: added.** `spam/template-diversity` (`templateDiversityRule(pages, minUniqueRatio)`) now reports a per-site unique-content ratio: the metric this case study asked for.
+- **Gap 3: FIXED (#4).** A declared-vs-discovered coverage guardrail flags the run `truncated` with `truncatedKind: "coverage"` (distinct from the backpressure kind) on two independent signals: **(A)** a sitemap **index** referenced child sitemaps that couldn't be fetched/parsed (the unreachable-children case: the original false-negative class, which a URL-count comparison can't see), and **(B)** far fewer pages were **fetched** than the sitemap declares. (B) compares against pages actually fetched and is bounded by every deliberate limit (sample size, crawl cap, declared total), so noindex/non-HTML pages, intentional sampling, and a small crawl cap don't false-fire. Surfaced by the existing CLI/Action/MCP/web `truncated` plumbing. Tests: `tests/integration/coverage-guardrail.test.ts` (5 cases incl. three false-positive guards).
+- **Gap 4: FIXED (#3).** `content/unique-value` is now axis-aware: the message surfaces the shared-vs-unique word split (`N of its M distinct words also appear on other pages`) and the fix string explicitly warns that content repeated across same-axis sibling pages (boilerplate, per-axis data) does **not** count.
 
-The remainder of this document is the original analysis. **All five gaps are now addressed** — Gaps 1/2/5 in `96a78dd`, Gaps 3/4 in the follow-up (issues #3, #4).
+The remainder of this document is the original analysis. **All five gaps are now addressed**, Gaps 1/2/5 in `96a78dd`, Gaps 3/4 in the follow-up (issues #3, #4).
 
-## Update — live re-run (2026-06-10): the bug also reproduces via backpressure
+## Update: live re-run (2026-06-10): the bug also reproduces via backpressure
 
-Re-running the real `pseolint https://paperforge.dev` (not a fixture) revealed the false-negative still appears by a **different path** than Gap 1. With sitemap-first discovery in place, discovery itself works — with the backpressure watchdog OFF the run finds all **5,680** URLs, classifies `programmatic-directory`, and returns `CAUTION · risk 33`. But with the watchdog ON (the default), paperforge's cold-start origin degrades under crawl (rolling p95 ~2.8s vs a ~0.44s warm baseline), the watchdog **correctly aborts after ~11 fetches** (it exists precisely to stop this origin's uncached-DB fan-out), and the **1-page salvage was then classified `small-marketing`, had its pSEO rules suppressed, and scored `READY ✓`** — the original false-negative, now via the watchdog rather than discovery. Synthetic tests missed it because mock fetches never trip backpressure.
+Re-running the real `pseolint https://paperforge.dev` (not a fixture) revealed the false-negative still appears by a **different path** than Gap 1. With sitemap-first discovery in place, discovery itself works, with the backpressure watchdog OFF the run finds all **5,680** URLs, classifies `programmatic-directory`, and returns `CAUTION · risk 33`. But with the watchdog ON (the default), paperforge's cold-start origin degrades under crawl (rolling p95 ~2.8s vs a ~0.44s warm baseline), the watchdog **correctly aborts after ~11 fetches** (it exists precisely to stop this origin's uncached-DB fan-out), and the **1-page salvage was then classified `small-marketing`, had its pSEO rules suppressed, and scored `READY ✓`**, the original false-negative, now via the watchdog rather than discovery. Synthetic tests missed it because mock fetches never trip backpressure.
 
-Fix (commit follow-up): a run truncated *before* classification is forced to site type `unclear` (no rule suppression), and **any** truncated run's verdict is floored to at least `caution` — it can never read `ready`. The watchdog is unchanged (it's doing its job); the salvaged report is just honest now. The actionable signal for this site: the origin can't sustain a full crawl, so audit a child sitemap directly or a faster environment.
+Fix (commit follow-up): a run truncated *before* classification is forced to site type `unclear` (no rule suppression), and **any** truncated run's verdict is floored to at least `caution`, it can never read `ready`. The watchdog is unchanged (it's doing its job); the salvaged report is just honest now. The actionable signal for this site: the origin can't sustain a full crawl, so audit a child sitemap directly or a faster environment.
 
 ## Gap 1 (critical): root-URL discovery doesn't surface a sitemap-index corpus
 
-pseolint already has the machinery — `isSitemapIndex()`, a depth-capped recursive walker (`packages/core/src/auditor.ts` ~L1471–1509), and `parseSitemapUrlsWithLastmod()` which matches both `<url>` and `<sitemap>` blocks (~L1372–1390). And there is a homepage-crawl fallback: *"Sitemap URL returned non-200 — fallback to crawl from origin homepage"* (~L1657).
+pseolint already has the machinery, `isSitemapIndex()`, a depth-capped recursive walker (`packages/core/src/auditor.ts` ~L1471–1509), and `parseSitemapUrlsWithLastmod()` which matches both `<url>` and `<sitemap>` blocks (~L1372–1390). And there is a homepage-crawl fallback: *"Sitemap URL returned non-200, fallback to crawl from origin homepage"* (~L1657).
 
-Yet from a **root URL** the run discovered only the homepage. So on this path the corpus was never reached through the index — either the index→child recursion isn't invoked for root-URL discovery, or the child fetch fell through to the homepage-crawl fallback and stopped there. Whatever the internal cause, the observable contract is broken: a healthy 2-level index advertised in `robots.txt` produced 1 discovered URL.
+Yet from a **root URL** the run discovered only the homepage. So on this path the corpus was never reached through the index, either the index→child recursion isn't invoked for root-URL discovery, or the child fetch fell through to the homepage-crawl fallback and stopped there. Whatever the internal cause, the observable contract is broken: a healthy 2-level index advertised in `robots.txt` produced 1 discovered URL.
 
 **Recommended fix.** On root-URL discovery, fetch `robots.txt` → each declared sitemap → if `isSitemapIndex`, recurse children before falling back to crawl. The homepage-crawl fallback should be a *last resort after* index recursion fails, not a substitute for it. Add a regression fixture: a root URL whose only sitemap is a 2-level index ⇒ expect N>1 discovered.
 
 ## Gap 2 (compounding): discovery failure silently downgrades the verdict
 
-With 1 URL discovered, pseolint classified the site `small-marketing` at **90% confidence** and **suppressed the 5 pSEO-only rules** — the exact rules (`spam/near-duplicate`, `spam/entity-swap`, doorway/template checks) that would have fired. So a discovery miss cascades into a confidently-wrong site type, which disables the relevant rules, which yields a green verdict. Three layers, each amplifying the first.
+With 1 URL discovered, pseolint classified the site `small-marketing` at **90% confidence** and **suppressed the 5 pSEO-only rules**, the exact rules (`spam/near-duplicate`, `spam/entity-swap`, doorway/template checks) that would have fired. So a discovery miss cascades into a confidently-wrong site type, which disables the relevant rules, which yields a green verdict. Three layers, each amplifying the first.
 
-**Recommended fix.** Site-type classification should treat *very low page count* as **low-confidence / inconclusive**, not as positive evidence of `small-marketing` — especially when a sitemap (let alone a sitemap *index*) was present at discovery time. Never suppress pSEO rules and emit `READY` off a single-URL crawl; downgrade to an explicit "inconclusive — discovery too thin to audit" outcome.
+**Recommended fix.** Site-type classification should treat *very low page count* as **low-confidence / inconclusive**, not as positive evidence of `small-marketing`, especially when a sitemap (let alone a sitemap *index*) was present at discovery time. Never suppress pSEO rules and emit `READY` off a single-URL crawl; downgrade to an explicit "inconclusive, discovery too thin to audit" outcome.
 
 ## Gap 3 (the guardrail that makes the rest non-fatal): discovered-vs-declared mismatch warning
 
 The single highest-leverage change. pseolint sees the sitemap(s) at discovery time and therefore knows roughly how many URLs are *declared*. If it then audits **≪** that many, it should say so, loudly, as a first-class finding:
 
-> ⚠ Discovered 1 page but `sitemap.xml` (a `<sitemapindex>`) references 23 child sitemaps. Discovery likely failed — verdict is not representative. Try a child sitemap URL, or check robots/sitemap reachability.
+> ⚠ Discovered 1 page but `sitemap.xml` (a `<sitemapindex>`) references 23 child sitemaps. Discovery likely failed: verdict is not representative. Try a child sitemap URL, or check robots/sitemap reachability.
 
 This one warning would have flipped our first run from a misleading green to "something's wrong, don't trust this," regardless of any recursion edge case. Cheap, defensive, and exactly the kind of "between-pages" sanity check pseolint is built around.
 
@@ -94,20 +94,20 @@ Acting on exactly this, we surfaced ~**296 words/page** of pre-researched, genui
 
 ## Gap 5 (nice-to-have): no headline "unique-content ratio" for the template
 
-The systemic disease — each page is a thin unique lead (~30–90 words) drowned in a large shared scaffold + axis-shared data — we ultimately quantified with our *own* scripts (entity-masked shingle similarity, per-doc-type word-count distributions). pseolint had the data to say it directly. A per-template headline like *"median 5% of each page is unique vs the template; 354/356 pages below threshold"* would make the real problem the first thing the operator sees, instead of something they reverse-engineer.
+The systemic disease (each page is a thin unique lead (~30–90 words) drowned in a large shared scaffold + axis-shared data) we ultimately quantified with our *own* scripts (entity-masked shingle similarity, per-doc-type word-count distributions). pseolint had the data to say it directly. A per-template headline like *"median 5% of each page is unique vs the template; 354/356 pages below threshold"* would make the real problem the first thing the operator sees, instead of something they reverse-engineer.
 
 ## What we changed on the site side (for completeness)
 
-- Surfaced the unused researched ground truth + uncapped liabilities/statutes (+296 words/page) — good for E-E-A-T, but **did not** clear `unique-value` (see Gap 4).
+- Surfaced the unused researched ground truth + uncapped liabilities/statutes (+296 words/page): good for E-E-A-T, but **did not** clear `unique-value` (see Gap 4).
 - Confirmed the only thing that clears it is genuine per-page regeneration of the lead narrative + FAQs + cited clauses (a stale-data problem: the generation schema already enforces ≥180-word, citation-bearing output; the corpus predated it and was never re-run).
 - Chose a hybrid enrichment path (bulk model regen for the tail + hand-authoring for high-value hubs).
 
 ## Recommended pseolint changes, prioritized
 
-1. **Gap 3 — discovered-vs-declared mismatch warning.** Smallest change, catches the whole failure class even if recursion has edge cases. Do this first.
-2. **Gap 2 — don't classify `small-marketing` / suppress pSEO rules / emit READY off a sub-threshold discovery.** Add an "inconclusive" outcome.
-3. **Gap 1 — root-URL discovery must recurse sitemap indexes before the homepage-crawl fallback.** Add the 2-level-index regression fixture.
-4. **Gap 4 — axis-aware `unique-value` fix guidance.**
-5. **Gap 5 — per-template unique-content-ratio headline metric.**
+1. **Gap 3: discovered-vs-declared mismatch warning.** Smallest change, catches the whole failure class even if recursion has edge cases. Do this first.
+2. **Gap 2: don't classify `small-marketing` / suppress pSEO rules / emit READY off a sub-threshold discovery.** Add an "inconclusive" outcome.
+3. **Gap 1: root-URL discovery must recurse sitemap indexes before the homepage-crawl fallback.** Add the 2-level-index regression fixture.
+4. **Gap 4: axis-aware `unique-value` fix guidance.**
+5. **Gap 5: per-template unique-content-ratio headline metric.**
 
 Gaps 1–3 are one coherent fix to the discovery → classification → verdict pipeline; that pipeline returning a confident green on an undiscovered corpus is the bug that matters most.

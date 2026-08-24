@@ -112,7 +112,7 @@ describe("planScrapeStrategy", () => {
     }
   });
 
-  it("SKIPS when prior findings are info-only — they carry forward without refetch", () => {
+  it("SKIPS when prior findings are info-only; they carry forward without refetch", () => {
     const plan = planScrapeStrategy({
       candidateUrls: ["https://example.com/a"],
       priorState: baseState({
@@ -249,7 +249,7 @@ describe("planScrapeStrategy", () => {
     expect(plan.skip.get("https://example.com/a")).toBe("unchanged");
   });
 
-  // v0.5.4 — template-stratified URL sampling.
+  // v0.5.4: template-stratified URL sampling.
   describe("sampleSize / stratified sampling", () => {
     /** Build N URLs under a given path template, e.g. "/listing/slug-NNN". */
     function makeUrls(prefix: string, count: number, start = 0): string[] {
@@ -287,7 +287,7 @@ describe("planScrapeStrategy", () => {
       expect(plan.refetch.size).toBe(100);
     });
 
-    it("3-cluster corpus 80/15/5 — tiny cluster still gets ≥1 URL", () => {
+    it("3-cluster corpus 80/15/5: tiny cluster still gets ≥1 URL", () => {
       // 1000 URLs: 800 /listing/:slug, 150 /category/:slug, 50 /help/:slug
       const listing = makeUrls("/listing/slug", 800);
       const category = makeUrls("/category/slug", 150);
@@ -322,7 +322,7 @@ describe("planScrapeStrategy", () => {
     });
 
     it("dominant cluster >80% of URLs falls back to sequential slice (no stratification)", () => {
-      // 950 listing / 50 help — top ratio = 0.95 > 0.8 threshold
+      // 950 listing / 50 help: top ratio = 0.95 > 0.8 threshold
       const listing = makeUrls("/listing/slug", 950);
       const help = makeUrls("/help/slug", 50);
       const allUrls = [...listing, ...help];
@@ -347,7 +347,7 @@ describe("planScrapeStrategy", () => {
     });
 
     it("unclustered corpus (single template) falls through to sequential slice", () => {
-      // All URLs collapse to same template — only 1 cluster, no stratification
+      // All URLs collapse to same template: only 1 cluster, no stratification
       const urls = makeUrls("/listing/slug", 300);
       const plan = planScrapeStrategy({
         candidateUrls: urls,
@@ -365,8 +365,8 @@ describe("planScrapeStrategy", () => {
       expect(keys[99]).toBe(urls[99]);
     });
 
-    it("budget < cluster count degrades sensibly — each cluster gets ≥1 if possible", () => {
-      // 3 clusters, budget = 3 — each must get exactly 1
+    it("budget < cluster count degrades sensibly: each cluster gets ≥1 if possible", () => {
+      // 3 clusters, budget = 3: each must get exactly 1
       const listing = makeUrls("/listing/slug", 800);
       const category = makeUrls("/category/slug", 150);
       const help = makeUrls("/help/slug", 50);
@@ -468,7 +468,7 @@ describe("planScrapeStrategy", () => {
     });
   });
 
-  // v0.5.3 — caller-supplied "watched pages" force-include list.
+  // v0.5.3: caller-supplied "watched pages" force-include list.
   describe("forceRefetchUrls (watched pages)", () => {
     it("forces refetch with reason 'watched' on a URL that would otherwise skip", () => {
       // Fresh prior, ruleset matches, no findings, no lastmod change → would skip "unchanged"

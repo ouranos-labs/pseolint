@@ -22,7 +22,7 @@ assert.strictEqual(assertEmittable(valid), valid);
 // Optional fields may be omitted.
 assert.ok(assertEmittable({ ...valid, pattern: undefined, hreflang: undefined }));
 
-// Fail closed on anything off the allowlist — the whole point of §8.
+// Fail closed on anything off the allowlist: the whole point of §8.
 rejects({ ...valid, html: "<body>…</body>" }, "raw DOM smuggled at top level");
 rejects({ ...valid, og: { ...valid.og, cookie: "sid=secret" } }, "unknown nested key");
 rejects({ ...valid, http: { ...valid.http, authorization: "Bearer x" } }, "auth header nested");

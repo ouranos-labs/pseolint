@@ -2,10 +2,10 @@
  * Direct Google Indexing API submission is gated OFF by default.
  *
  * Two independent reasons it isn't ready to expose:
- *  1. Structural — the Indexing API officially only crawls JobPosting /
+ *  1. Structural: the Indexing API officially only crawls JobPosting /
  *     BroadcastEvent schema. Google ignores requests for general pSEO pages,
  *     so "submit for indexing" would be a promise we can't keep.
- *  2. Onboarding — the service-account → GSC delegation path is broken by a
+ *  2. Onboarding: the service-account → GSC delegation path is broken by a
  *     Google-side bug ("email address not found", started ~April 2026, still
  *     unresolved as of June 2026).
  *
@@ -22,4 +22,4 @@ export const GOOGLE_INDEXING_ENABLED =
 
 /** User-facing copy for the gated-off state, shared across UI and server. */
 export const GOOGLE_INDEXING_COMING_SOON =
-  "Direct Google submission is coming soon — use IndexNow + sitemaps for now.";
+  "Direct Google submission is coming soon; use IndexNow + sitemaps for now.";

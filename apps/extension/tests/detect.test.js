@@ -46,13 +46,13 @@ assert.ok(isWebSerp("https://www.google.com/search?q=best+crm"), "plain web SERP
 assert.ok(isWebSerp("https://www.google.com/search?q=x&start=10"), "paginated web SERP");
 assert.ok(isWebSerp("https://www.google.com/search?q=x&udm=14"), "udm=14 is Web");
 assert.ok(isWebSerp("https://www.google.co.uk/search?q=x"), "ccTLD web SERP");
-// Verticals — classic tbm and new-UI udm — are NOT scannable. Allowlist: any tbm,
-// or any udm other than 14, is dormant — incl. verticals we never enumerated.
+// Verticals (classic tbm and new-UI udm) are NOT scannable. Allowlist: any tbm,
+// or any udm other than 14, is dormant: incl. verticals we never enumerated.
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&tbm=isch"), "images (tbm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&tbm=nws"), "news (tbm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=2"), "images (udm)");
 assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=7"), "video (udm)");
-assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=28"), "shopping (udm) — unenumerated, dormant by default");
+assert.ok(!isWebSerp("https://www.google.com/search?q=x&udm=28"), "shopping (udm), unenumerated, dormant by default");
 // Not a results page at all.
 assert.ok(!isWebSerp("https://www.google.com/maps"), "maps path");
 assert.ok(!isWebSerp("https://example.com/search?q=x"), "non-google host");
@@ -60,5 +60,28 @@ assert.ok(!isWebSerp("garbage"), "unparseable");
 // isGoogleSearch is true on verticals too (used to show the "switch to All" hint).
 assert.ok(isGoogleSearch("https://www.google.com/search?q=x&tbm=isch"), "vertical is still a google search");
 assert.ok(!isGoogleSearch("https://www.google.com/maps"), "maps is not /search");
+
+// --- selectResults: snippet date split (em/en dash delimiter only) ---
+// The dash in detect.js's delimiter class is DATA, not prose: a codemod that
+// rewrote that class into a space/paren one silently turned "first token + a
+// space" into a date on EVERY snippet. These two rows pin the real behaviour.
+// Written as a \u escape so the file itself stays clean under `lint:emdash`.
+const EM_DASH = "\u2014";
+const withSnippet = (href, text) => ({
+  href,
+  querySelector: () => null, // no <h3> in this stand-in
+  closest: () => ({ querySelector: () => ({ textContent: text }) }),
+});
+const dated = selectResults([withSnippet("https://a.com/1", `Oct 12, 2025 ${EM_DASH} How to pick a CRM`)])[0];
+assert.strictEqual(dated.serpDate, "Oct 12, 2025", "dash-delimited date is split off");
+assert.strictEqual(dated.serpSnippet, "How to pick a CRM", "snippet keeps only the text after the dash");
+// No dash → no date, and the snippet (incl. a leading number) is left intact.
+const undated = selectResults([withSnippet("https://b.com/2", "10 best CRMs for small teams in 2025")])[0];
+assert.strictEqual(undated.serpDate, "", "no dash → no date");
+assert.strictEqual(
+  undated.serpSnippet,
+  "10 best CRMs for small teams in 2025",
+  "leading number is not eaten as a date",
+);
 
 console.log("detect: all url + selection checks passed");

@@ -53,7 +53,7 @@ describe("detectNoindex", () => {
 
   test("returns false when 'noindex' is a substring of an unrelated word", () => {
     // robotsMeta is parsed from a meta tag content attr, not free body text,
-    // so this case is theoretical — but tightening the regex to word-boundary
+    // so this case is theoretical, but tightening the regex to word-boundary
     // would be a future improvement.
     expect(detectNoindex(makePage({ robotsMeta: "follow" }))).toBe(false);
   });
@@ -146,6 +146,24 @@ describe("detectAuthPage", () => {
     );
     expect(result.signals).toEqual([]);
     expect(result.isAuth).toBe(false);
+  });
+
+  // Regression: BRAND_SEPARATORS must contain " — " (em dash) and must NOT
+  // contain "; ". Both directions are load-bearing, so both are asserted:
+  // dropping the em dash makes real auth pages slip through the filter and
+  // pollute thin-content findings; adding "; " truncates ordinary titles at
+  // the semicolon and misclassifies them as auth pages.
+  test("em-dash brand suffix is stripped, semicolon is not a separator", () => {
+    // Direction 1: " — " IS a separator, so the title strips to "Sign in".
+    expect(detectAuthPage(makePage({ title: "Sign in — MyApp" })).signals).toContain(
+      "auth-title",
+    );
+
+    // Direction 2: "; " is NOT a separator, so the title strips at " — " to
+    // "Sign up; free", which is not an auth title.
+    expect(
+      detectAuthPage(makePage({ title: "Sign up; free — Widgets" })).signals,
+    ).not.toContain("auth-title");
   });
 });
 

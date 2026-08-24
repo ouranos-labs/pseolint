@@ -80,7 +80,7 @@ export function AlertThresholdSimulator({ runs, currentThreshold, host }: Props)
 
       {firedCount === 0 && (
         <p className="mt-1 text-xs text-muted-foreground">
-          No alerts would fire — your threshold is conservative.
+          No alerts would fire: your threshold is conservative.
         </p>
       )}
 

@@ -34,7 +34,7 @@ function toValues(rows: GrowthMetricRow[], weekBucket: string) {
 /**
  * Pull pseolint.dev's own GSC property (page+query), aggregate to growth rows,
  * and upsert them for the current ISO-week bucket. Self-contained and
- * best-effort — any failure is logged and returned as a status, never thrown,
+ * best-effort: any failure is logged and returned as a status, never thrown,
  * so the weekly cron schedule never wedges.
  */
 export async function growthSyncOnce(): Promise<GrowthSyncResult> {

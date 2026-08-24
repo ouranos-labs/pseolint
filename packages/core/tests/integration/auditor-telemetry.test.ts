@@ -128,7 +128,7 @@ describe("auditSource + telemetry (integration)", () => {
 
     await auditSource(siteDir);
 
-    // File should not exist — telemetry was never invoked.
+    // File should not exist: telemetry was never invoked.
     await expect(readFile(telemetryPath, "utf8")).rejects.toThrow();
   });
 });

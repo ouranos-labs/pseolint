@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a pluggable domain-authority provider (OpenPageRank + Common Crawl) and feed its score into the existing `shiftVerdictForAuthority` so high-authority domains get a lenient verdict shift — fixing reputable over-flagging without dropping recall.
+**Goal:** Add a pluggable domain-authority provider (OpenPageRank + Common Crawl) and feed its score into the existing `shiftVerdictForAuthority` so high-authority domains get a lenient verdict shift, fixing reputable over-flagging without dropping recall.
 
-**Architecture:** A pure `AuthorityProvider` interface with a `CompositeAuthorityProvider` (max-combine, fail-safe to `null`), backed by an OpenPageRank API client and a Common-Crawl table lookup. The auditor resolves an authority score (explicit option → provider) before scoring and passes it to the already-wired `shiftVerdictForAuthority`. All of this is unit-testable now with mocked fetch / synthetic data. The **CC data table, per-corpus snapshot seeding, and the end-to-end recall/precision measurement are GATED** on obtaining a real authority dataset (an OpenPageRank API key and/or a processed Common Crawl webgraph) — see Task 5; do not build or measure those until the data exists.
+**Architecture:** A pure `AuthorityProvider` interface with a `CompositeAuthorityProvider` (max-combine, fail-safe to `null`), backed by an OpenPageRank API client and a Common-Crawl table lookup. The auditor resolves an authority score (explicit option → provider) before scoring and passes it to the already-wired `shiftVerdictForAuthority`. All of this is unit-testable now with mocked fetch / synthetic data. The **CC data table, per-corpus snapshot seeding, and the end-to-end recall/precision measurement are GATED** on obtaining a real authority dataset (an OpenPageRank API key and/or a processed Common Crawl webgraph), see Task 5; do not build or measure those until the data exists.
 
 **Tech Stack:** TypeScript (NodeNext, `.js` specifiers), vitest. Reuses `registrableDomain` (`algorithms/fact-extraction.ts`) and `shiftVerdictForAuthority` (`auditor.ts:614`).
 
@@ -14,13 +14,13 @@
 
 ## File Structure
 
-- **Create** `packages/core/src/algorithms/authority/provider.ts` — `AuthorityProvider`, `CompositeAuthorityProvider` (pure).
-- **Create** `packages/core/src/algorithms/authority/openpagerank.ts` — OPR API client (fetch injectable).
-- **Create** `packages/core/src/algorithms/authority/commoncrawl.ts` — CC table-lookup provider (loads an optional bundled table; returns `null` when absent — table itself is gated).
+- **Create** `packages/core/src/algorithms/authority/provider.ts`: `AuthorityProvider`, `CompositeAuthorityProvider` (pure).
+- **Create** `packages/core/src/algorithms/authority/openpagerank.ts`: OPR API client (fetch injectable).
+- **Create** `packages/core/src/algorithms/authority/commoncrawl.ts`: CC table-lookup provider (loads an optional bundled table; returns `null` when absent: table itself is gated).
 - **Create** tests under `packages/core/tests/algorithms/authority/`.
-- **Modify** `packages/core/src/auditor.ts` — resolve authority before scoring; build a default provider from options.
-- **Modify** `packages/core/src/types.ts` — `AuditOptions.openPageRankApiKey?`, `AuditOptions.authorityProvider?`; `AuditSummary.authority?`.
-- **Modify** `packages/core/src/index.ts` — export the authority module.
+- **Modify** `packages/core/src/auditor.ts`: resolve authority before scoring; build a default provider from options.
+- **Modify** `packages/core/src/types.ts`: `AuditOptions.openPageRankApiKey?`, `AuditOptions.authorityProvider?`; `AuditSummary.authority?`.
+- **Modify** `packages/core/src/index.ts`: export the authority module.
 
 Conventions: `.js` import specifiers; run core tests from `packages/core` (`npx vitest run <file>`).
 
@@ -67,7 +67,7 @@ describe("CompositeAuthorityProvider", () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run (from `packages/core`): `npx vitest run tests/algorithms/authority/provider.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 - [ ] **Step 3: Write the implementation**
 
@@ -317,7 +317,7 @@ In `interface AuditSummary` add:
   /** Resolved domain authority used to moderate the verdict (0–100), with sources. Absent when unavailable. */
   authority?: { score: number; domain: string };
 ```
-(`authorityScore?: number` already exists on `AuditOptions` — keep it; explicit value wins.)
+(`authorityScore?: number` already exists on `AuditOptions`, keep it; explicit value wins.)
 
 - [ ] **Step 2: Build a default provider + resolve the score in `auditSource`**
 
@@ -420,15 +420,15 @@ git commit -m "feat(core): resolve domain authority + feed into verdict shift (f
 
 ---
 
-## Task 5 (GATED — do NOT start until a real authority dataset exists): seed corpus + measure
+## Task 5 (GATED: do NOT start until a real authority dataset exists): seed corpus + measure
 
-This task is blocked on obtaining an ownable authority dataset for the corpus domains (an OpenPageRank API key and/or a processed Common Crawl host-webgraph table). Do not build the seeding or run the measurement until then — measuring against synthetic authority would be meaningless.
+This task is blocked on obtaining an ownable authority dataset for the corpus domains (an OpenPageRank API key and/or a processed Common Crawl host-webgraph table). Do not build the seeding or run the measurement until then, measuring against synthetic authority would be meaningless.
 
 When unblocked:
 - [ ] Add `domainAuthority?: number` to `CorpusSite` (`corpus-types.ts`) + the JSON schema.
 - [ ] Add a `--seed-authority` mode to `scripts/calibration-corpus.ts` that resolves each site's registrable-domain authority via the chosen provider and writes `domainAuthority` into the corpus (one-time, committed).
 - [ ] In the runner's `auditOne`, pass `authorityScore: site.domainAuthority` so the harness uses the frozen snapshot (deterministic, no network).
-- [ ] Calibrate: confirm the shift magnitude/threshold actually moves segment & numbeo within their `caution` ceiling — a single lenient tier takes `critical→concerning`, so a two-tier shift for very-high authority (or a risk discount) may be needed; tune against the corpus.
+- [ ] Calibrate: confirm the shift magnitude/threshold actually moves segment & numbeo within their `caution` ceiling: a single lenient tier takes `critical→concerning`, so a two-tier shift for very-high authority (or a risk discount) may be needed; tune against the corpus.
 - [ ] Measure vs `baseline-scorecard.json` (recall 56%): **precision up, recall held, ratchet green**. Only then commit a new baseline.
 
 ---
@@ -437,7 +437,7 @@ When unblocked:
 
 **Spec coverage:** §3.1 provider interface + composite → Task 1; OPR source → Task 2; CC source (table consumer; table gated) → Task 3; §3 wiring into `shiftVerdictForAuthority` + fail-safe + summary surfacing → Task 4. §3.3 reproducibility snapshot + §6 calibration/measurement → Task 5 (gated, per §8). §3.2 Ahrefs display (web app) is a separate plan (out of this core-engine plan, per spec §8). §8 build-gate honored: Tasks 1–4 are buildable/unit-testable now; the data-dependent seeding + measurement are isolated in Task 5.
 
-**Placeholder scan:** every code step is complete; no TBD. Task 5 is intentionally procedural and explicitly gated (not a placeholder — a real blocked-on-data follow-up).
+**Placeholder scan:** every code step is complete; no TBD. Task 5 is intentionally procedural and explicitly gated (not a placeholder, a real blocked-on-data follow-up).
 
 **Type consistency:** `AuthorityProvider.authorityFor(domain) → Promise<number|null>` is identical across Tasks 1–4. `CompositeAuthorityProvider`, `OpenPageRankProvider`, `CommonCrawlProvider` constructors match their tests. `AuditOptions.authorityScore` (existing) + new `openPageRankApiKey`/`authorityProvider`; `AuditSummary.authority` shape `{score, domain}` matches the wiring test assertion (`high.authority?.score`).
 

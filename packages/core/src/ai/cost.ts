@@ -6,12 +6,12 @@ interface ModelPricing {
 }
 
 /**
- * Best-effort pricing table. Missing entries return `undefined` — callers
+ * Best-effort pricing table. Missing entries return `undefined`: callers
  * must treat unknown cost as "not estimable" rather than zero. Ollama and
  * other local providers intentionally return undefined.
  */
 const PRICING: Record<string, ModelPricing> = {
-  // Anthropic — standard per-1M rates. Old IDs kept: they're still served, so
+  // Anthropic, standard per-1M rates. Old IDs kept: they're still served, so
   // historical audits that recorded them still price.
   "anthropic:claude-fable-5": { inputPerM: 10.0, outputPerM: 50.0 },
   "anthropic:claude-opus-4-8": { inputPerM: 5.0, outputPerM: 25.0 },

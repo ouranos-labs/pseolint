@@ -9,7 +9,7 @@ import type { PatchDiff } from "@pseolint/core";
  *   - guidance      → prose card
  *
  * Designed for owner-private manifest pages. Public-share pages (per spec
- * §11.7) should NOT render this — they get a deterministic-findings
+ * §11.7) should NOT render this: they get a deterministic-findings
  * paraphrase instead.
  */
 export function PatchDiffCard({ diff, label }: { diff: PatchDiff; label?: string }) {

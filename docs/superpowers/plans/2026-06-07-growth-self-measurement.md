@@ -16,20 +16,20 @@
 
 ## File Structure
 
-- `apps/web/src/lib/env.ts` — **Modify.** Add 3 optional env vars (`GROWTH_GSC_SITE_URL`, `GROWTH_GSC_OWNER_EMAIL`, `OWNER_EMAILS`).
-- `apps/web/src/lib/owner.ts` — **Create.** Owner-allowlist gate (`emailInAllowlist` pure + `isOwnerEmail` env wrapper).
-- `apps/web/src/lib/owner.test.ts` — **Create.** Unit tests for the gate.
-- `apps/web/src/db/schema.ts` — **Modify.** Add `growthSearchMetrics` table.
-- `apps/web/src/db/migrations/*` — **Generate.** Drizzle migration for the new table.
-- `apps/web/src/lib/gsc.ts` — **Modify.** Add `weekBucketUtc` + `querySearchAnalyticsByPageQuery` + `GscPageQueryRow` type.
-- `apps/web/src/lib/gsc.test.ts` — **Create.** Unit test for `weekBucketUtc`.
-- `apps/web/src/lib/growth-metrics.ts` — **Create.** Pure aggregation: `aggregateGrowthRows`, `growthIndexationSummary`, `publishedGrowthUrls`, `GROWTH_PREFIXES`, types.
-- `apps/web/src/lib/growth-metrics.test.ts` — **Create.** Unit tests (the core).
-- `apps/web/src/lib/growth-sync-core.ts` — **Create.** `growthSyncOnce()` — resolve config → load tokens → query → aggregate → upsert.
-- `apps/web/tests/integration/growth-sync.test.ts` — **Create.** Integration test (mocks gsc/db/env, real aggregation).
-- `apps/web/src/inngest/functions/sync-growth-metrics.ts` — **Create.** Weekly cron wrapping `growthSyncOnce()`.
-- `apps/web/src/app/api/inngest/route.ts` — **Modify.** Register the new cron.
-- `apps/web/src/app/admin/growth/page.tsx` — **Create.** Owner-only dashboard.
+- `apps/web/src/lib/env.ts`: **Modify.** Add 3 optional env vars (`GROWTH_GSC_SITE_URL`, `GROWTH_GSC_OWNER_EMAIL`, `OWNER_EMAILS`).
+- `apps/web/src/lib/owner.ts`: **Create.** Owner-allowlist gate (`emailInAllowlist` pure + `isOwnerEmail` env wrapper).
+- `apps/web/src/lib/owner.test.ts`: **Create.** Unit tests for the gate.
+- `apps/web/src/db/schema.ts`: **Modify.** Add `growthSearchMetrics` table.
+- `apps/web/src/db/migrations/*`: **Generate.** Drizzle migration for the new table.
+- `apps/web/src/lib/gsc.ts`: **Modify.** Add `weekBucketUtc` + `querySearchAnalyticsByPageQuery` + `GscPageQueryRow` type.
+- `apps/web/src/lib/gsc.test.ts`: **Create.** Unit test for `weekBucketUtc`.
+- `apps/web/src/lib/growth-metrics.ts`: **Create.** Pure aggregation: `aggregateGrowthRows`, `growthIndexationSummary`, `publishedGrowthUrls`, `GROWTH_PREFIXES`, types.
+- `apps/web/src/lib/growth-metrics.test.ts`: **Create.** Unit tests (the core).
+- `apps/web/src/lib/growth-sync-core.ts`: **Create.** `growthSyncOnce()`: resolve config → load tokens → query → aggregate → upsert.
+- `apps/web/tests/integration/growth-sync.test.ts`: **Create.** Integration test (mocks gsc/db/env, real aggregation).
+- `apps/web/src/inngest/functions/sync-growth-metrics.ts`: **Create.** Weekly cron wrapping `growthSyncOnce()`.
+- `apps/web/src/app/api/inngest/route.ts`: **Modify.** Register the new cron.
+- `apps/web/src/app/admin/growth/page.tsx`: **Create.** Owner-only dashboard.
 
 ---
 
@@ -85,7 +85,7 @@ describe("emailInAllowlist", () => {
 - [ ] **Step 3: Run test to verify it fails**
 
 Run: `bun run test -- owner`
-Expected: FAIL — `@/lib/owner` cannot be resolved.
+Expected: FAIL, `@/lib/owner` cannot be resolved.
 
 - [ ] **Step 4: Implement the gate**
 
@@ -139,7 +139,7 @@ git commit -m "feat(web): add growth env vars + owner-allowlist gate"
 
 - [ ] **Step 1: Add the table**
 
-In `apps/web/src/db/schema.ts`, add after the `gscPageMetrics` table definition (it already imports `pgTable, uuid, text, integer, numeric, timestamp, uniqueIndex, index` — reuse them):
+In `apps/web/src/db/schema.ts`, add after the `gscPageMetrics` table definition (it already imports `pgTable, uuid, text, integer, numeric, timestamp, uniqueIndex, index`, reuse them):
 
 ```ts
 export const growthSearchMetrics = pgTable("growth_search_metrics", {
@@ -147,7 +147,7 @@ export const growthSearchMetrics = pgTable("growth_search_metrics", {
   url: text("url").notNull(),
   // '' (empty) = page-level aggregate row; non-empty = a page+query row.
   // Empty-string sentinel (not NULL) so the unique index dedupes page-level
-  // rows across weekly runs — Postgres treats NULLs as distinct.
+  // rows across weekly runs, Postgres treats NULLs as distinct.
   query: text("query").notNull().default(""),
   weekBucket: text("week_bucket").notNull(), // ISO week "YYYY-Www" (UTC)
   impressions: integer("impressions").notNull().default(0),
@@ -184,7 +184,7 @@ git commit -m "feat(web): add growth_search_metrics table + migration"
 
 ---
 
-## Task 3: GSC helpers — `weekBucketUtc` + page+query query
+## Task 3: GSC helpers: `weekBucketUtc` + page+query query
 
 **Files:**
 - Modify: `apps/web/src/lib/gsc.ts`
@@ -219,7 +219,7 @@ describe("weekBucketUtc", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bun run test -- gsc.test`
-Expected: FAIL — `weekBucketUtc` is not exported.
+Expected: FAIL, `weekBucketUtc` is not exported.
 
 - [ ] **Step 3: Implement the helpers**
 
@@ -227,7 +227,7 @@ In `apps/web/src/lib/gsc.ts`, add `weekBucketUtc` right after the existing `mont
 
 ```ts
 /** ISO-8601 week key "YYYY-Www" in UTC (e.g. "2026-W02"). The week-year can
- * differ from the calendar year around Jan 1 / Dec 31 — ISO weeks belong to
+ * differ from the calendar year around Jan 1 / Dec 31: ISO weeks belong to
  * the year containing their Thursday. */
 export function weekBucketUtc(d: Date = new Date()): string {
   // Copy to a UTC date at midnight.
@@ -260,7 +260,7 @@ And add this function right after `querySearchAnalyticsByPage`:
 ```ts
 /**
  * Query Search Analytics for a property dimensioned by `page` AND `query`.
- * Used by the growth self-measurement sync (our own property) — distinct from
+ * Used by the growth self-measurement sync (our own property): distinct from
  * the page-only Pro sync. Returns one row per (url, query) in the date range.
  */
 export async function querySearchAnalyticsByPageQuery(
@@ -433,7 +433,7 @@ describe("growthIndexationSummary", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bun run test -- growth-metrics`
-Expected: FAIL — `@/lib/growth-metrics` cannot be resolved.
+Expected: FAIL, `@/lib/growth-metrics` cannot be resolved.
 
 - [ ] **Step 3: Implement the aggregation**
 
@@ -694,7 +694,7 @@ describe("growthSyncOnce", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `bun run test -- growth-sync`
-Expected: FAIL — `@/lib/growth-sync-core` cannot be resolved.
+Expected: FAIL, `@/lib/growth-sync-core` cannot be resolved.
 
 - [ ] **Step 3: Implement the sync core**
 
@@ -738,7 +738,7 @@ function toValues(rows: GrowthMetricRow[], weekBucket: string) {
 /**
  * Pull pseolint.dev's own GSC property (page+query), aggregate to growth rows,
  * and upsert them for the current ISO-week bucket. Self-contained and
- * best-effort — any failure is logged and returned as a status, never thrown,
+ * best-effort: any failure is logged and returned as a status, never thrown,
  * so the weekly cron schedule never wedges.
  */
 export async function growthSyncOnce(): Promise<GrowthSyncResult> {
@@ -813,7 +813,7 @@ Create `apps/web/src/inngest/functions/sync-growth-metrics.ts`:
 
 ```ts
 /**
- * Weekly self-measurement sync — pulls pseolint.dev's OWN GSC property
+ * Weekly self-measurement sync: pulls pseolint.dev's OWN GSC property
  * (page+query) for the growth page-sets and upserts into growthSearchMetrics.
  * Distinct from sync-gsc.ts, which syncs customers' domains for the Pro audit.
  * No-ops unless GROWTH_GSC_* env is configured (see growthSyncOnce).
@@ -858,7 +858,7 @@ git commit -m "feat(web): weekly growth self-measurement sync (cron + core)"
 **Files:**
 - Create: `apps/web/src/app/admin/growth/page.tsx`
 
-This is a read-only server component. The owner gate is already unit-tested (Task 1); the page logic is thin glue over tested units, so no separate test file — keep it minimal.
+This is a read-only server component. The owner gate is already unit-tested (Task 1); the page logic is thin glue over tested units, so no separate test file, keep it minimal.
 
 - [ ] **Step 1: Implement the page**
 
@@ -889,7 +889,7 @@ export default async function GrowthDashboard() {
   if (!latest) {
     return (
       <main style={{ padding: 24 }}>
-        <h1>Growth — self-measurement</h1>
+        <h1>Growth, self-measurement</h1>
         <p>No data yet. The first sync runs Monday 04:00 UTC (requires GROWTH_GSC_* configured and an owner GSC grant).</p>
       </main>
     );
@@ -916,7 +916,7 @@ export default async function GrowthDashboard() {
 
   return (
     <main style={{ padding: 24 }}>
-      <h1>Growth — self-measurement</h1>
+      <h1>Growth, self-measurement</h1>
       <p>Week {latest.weekBucket}</p>
       <p>
         <strong>Indexation rate:</strong> {summary.withImpressions}/{summary.published} growth pages
@@ -934,8 +934,8 @@ export default async function GrowthDashboard() {
               <td>{new URL(r.url).pathname}</td>
               <td>{r.impressions}</td>
               <td>{r.clicks}</td>
-              <td>{r.positionAvg == null ? "—" : r.positionAvg.toFixed(1)}</td>
-              <td>{r.ctrAvg == null ? "—" : `${(r.ctrAvg * 100).toFixed(1)}%`}</td>
+              <td>{r.positionAvg == null ? "; " : r.positionAvg.toFixed(1)}</td>
+              <td>{r.ctrAvg == null ? "; " : `${(r.ctrAvg * 100).toFixed(1)}%`}</td>
             </tr>
           ))}
         </tbody>
@@ -961,7 +961,7 @@ git commit -m "feat(web): owner-only /admin/growth self-measurement dashboard"
 
 ## Done criteria
 
-- `bun run test` green — owner gate, `weekBucketUtc`, aggregation/indexation, and the sync integration tests all pass; no regressions.
+- `bun run test` green: owner gate, `weekBucketUtc`, aggregation/indexation, and the sync integration tests all pass; no regressions.
 - `bun run typecheck` clean.
 - `growth_search_metrics` table + migration exist; `sync-growth-metrics` cron registered in the Inngest route.
 - `/admin/growth` renders for an allowlisted owner (404 otherwise), showing indexation rate + per-page acquisition for the latest week, with a clean empty state before the first sync.

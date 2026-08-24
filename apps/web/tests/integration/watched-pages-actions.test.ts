@@ -167,7 +167,7 @@ vi.mock("@/db", async () => {
             then: (onFulfilled: (v: unknown[]) => unknown, onRejected?: (e: unknown) => unknown) =>
               resolve().then(onFulfilled, onRejected),
           }),
-          // FOR UPDATE row lock — mock just resolves; no real locking semantics.
+          // FOR UPDATE row lock: mock just resolves; no real locking semantics.
           for: async (_mode: string) => resolve(),
         };
 
@@ -218,7 +218,7 @@ vi.mock("@/db", async () => {
                 out.push({ id: row.id });
               }
             } else {
-              // audits / monitored_domain — just stamp an id.
+              // audits / monitored_domain: just stamp an id.
               out.push({ id: newId() });
             }
           }
@@ -430,7 +430,7 @@ describe("addWatchedPage", () => {
   it("commits the watched row but skips the audit fire when rate-limited", async () => {
     STATE.session = { user: { id: "user-A", email: "a@x" } };
     const d = seedDomain();
-    // Match by key prefix instead of relying on gate call order — keeps the
+    // Match by key prefix instead of relying on gate call order: keeps the
     // test robust if the gate suite is reordered. The Pro daily-cap key is
     // `pro:<userId>:<date>`; deny that one specifically and let everything
     // else allow. Result: shouldDeferImmediateAudit returns "per_user" and

@@ -4,13 +4,13 @@ import { cachedFetch, type Fetcher } from "./cache.js";
  * Pre-flight origin health check.
  *
  * `BackpressureMonitor` (./backpressure.ts) protects an origin *during* an
- * audit — but by the time it trips, the crawl has already fired dozens of
+ * audit: but by the time it trips, the crawl has already fired dozens of
  * requests at a struggling server. The paperforge/Neon incident is the
  * canonical case: each fetch fanned out into uncached DB queries and the
  * crawl had already exhausted the egress quota before backpressure noticed.
  *
  * This check runs *before* the audit is dispatched. It fires a handful of
- * concurrent probes at the target's entry URL — concurrent, not sequential, so
+ * concurrent probes at the target's entry URL: concurrent, not sequential, so
  * it observes the origin the way the real crawl will hit it (parallel fetches
  * that fan out into uncached work), rather than the rosier one-request-at-a-time
  * picture. It returns an `ok` / `unreachable` / `degraded` verdict; callers can
@@ -33,14 +33,14 @@ export interface OriginPreflightOptions {
   timeoutMs?: number;
   /**
    * Median response time (ms) above which the origin is judged too slow to
-   * crawl safely. Default 8000 — mirrors `BackpressureMonitor`'s `absoluteP95Ms`
+   * crawl safely. Default 8000: mirrors `BackpressureMonitor`'s `absoluteP95Ms`
    * so the pre-flight and in-flight gates share one definition of "too slow".
    */
   slowMedianMs?: number;
   /**
    * Fraction of *responding* probes that may return 5xx before the origin is
    * judged degraded. Default 0.5 (a strict majority must error). Compared with
-   * `>` so landing exactly on the threshold does not trip — matching the
+   * `>` so landing exactly on the threshold does not trip: matching the
    * backpressure monitor's 2026-05-03 strict-comparison fix.
    */
   errorRatioThreshold?: number;
@@ -107,7 +107,7 @@ async function defaultValidateHop(u: string): Promise<void> {
 /**
  * Probe a target origin and return a health verdict. Probes fire concurrently,
  * so the measured latency reflects the origin under parallel load (the way the
- * crawl hits it), and the wall-clock cost is ~one request, not N. SSRF-safe —
+ * crawl hits it), and the wall-clock cost is ~one request, not N. SSRF-safe:
  * every probe and redirect hop is re-validated against private/loopback ranges.
  * Never throws: any unexpected internal failure resolves to an `ok` verdict so
  * a bug here can never block a legitimate audit (fail-open).
@@ -156,7 +156,7 @@ export async function checkOriginHealth(
 
   const base = { medianMs, maxMs, errorRatio, responded, attempted, samples };
 
-  // Nothing ever responded — the origin is down, blocking us, or unreachable.
+  // Nothing ever responded; the origin is down, blocking us, or unreachable.
   // Requires *every* probe to fail so one transient timeout can't trip it.
   if (attempted > 0 && responded === 0) {
     return {
@@ -177,7 +177,7 @@ export async function checkOriginHealth(
   if (medianMs > slowMedianMs) {
     return {
       verdict: "degraded",
-      reason: `origin median response ${medianMs}ms exceeds ${slowMedianMs}ms — a full crawl would likely make it worse`,
+      reason: `origin median response ${medianMs}ms exceeds ${slowMedianMs}ms, a full crawl would likely make it worse`,
       ...base,
     };
   }

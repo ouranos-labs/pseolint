@@ -4,18 +4,18 @@ import type { FetchObservation } from "./fetch-observer.js";
  * In-flight backpressure watchdog for audit crawls.
  *
  * Goal: protect the user's origin (and their bill) when our crawl triggers a
- * cascade of expensive requests — the paperforge case, where each fetch fanned
+ * cascade of expensive requests: the paperforge case, where each fetch fanned
  * out into a chain of uncached DB queries that exhausted the Neon free-tier
  * egress quota.
  *
  * Design:
  *   - First `warmupSize` origin fetches establish a baseline p95 latency.
- *     During warmup, the monitor never aborts — we don't know what "normal"
+ *     During warmup, the monitor never aborts: we don't know what "normal"
  *     looks like yet.
  *   - After warmup, every new observation updates a rolling window. If the
  *     rolling p95 exceeds `max(baseline × multiplier, absoluteP95Ms)` OR the
  *     5xx ratio exceeds `errorRatioThreshold`, the monitor votes for abort.
- *   - Pure cache hits (no origin round-trip) are ignored — they don't stress
+ *   - Pure cache hits (no origin round-trip) are ignored: they don't stress
  *     the origin and would otherwise mask degradation (a cached page looks
  *     "fast" even when the origin is collapsing).
  *
@@ -41,7 +41,7 @@ export interface BackpressureOptions {
 
 export interface BackpressureDecision {
   shouldAbort: boolean;
-  /** Populated when `shouldAbort` is true — human-readable reason. */
+  /** Populated when `shouldAbort` is true: human-readable reason. */
   reason?: string;
   /** Snapshot of the metrics that drove the decision (for error reporting). */
   snapshot?: BackpressureSnapshot;
@@ -63,7 +63,7 @@ export class OriginDegradedError extends Error {
 
   constructor(reason: string, diagnostics: BackpressureSnapshot) {
     super(
-      `Origin looks degraded — aborting audit. ${reason}. ` +
+      `Origin looks degraded: aborting audit. ${reason}. ` +
         `p95=${diagnostics.p95Ms}ms, baseline=${diagnostics.baselineP95Ms}ms, ` +
         `5xx=${Math.round(diagnostics.errorRatio * 100)}%, fetches=${diagnostics.liveFetchCount}.`,
     );
@@ -100,7 +100,7 @@ export class BackpressureMonitor {
     this.liveDurations.push(o.durationMs);
     this.liveStatuses.push(o.status);
 
-    // Still in warmup — establish baseline, never abort.
+    // Still in warmup: establish baseline, never abort.
     if (this.liveDurations.length <= this.opts.warmupSize) {
       if (this.liveDurations.length === this.opts.warmupSize) {
         this.baselineP95Ms = percentile(this.liveDurations, 95);
@@ -124,7 +124,7 @@ export class BackpressureMonitor {
 
     // 2026-05-03 production fix: all three abort conditions previously used
     // `>=` ("greater than or equal"), which meant they fired at the EXACT
-    // threshold — e.g. 3-of-30 fetches returning 5xx is exactly 10%, so
+    // threshold, e.g. 3-of-30 fetches returning 5xx is exactly 10%, so
     // the abort message read "5xx rate 10% exceeds threshold 10%" while
     // the rate had not actually exceeded anything. Changed to strict `>`
     // so the gate matches the message: only abort when the metric is

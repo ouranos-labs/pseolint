@@ -20,8 +20,8 @@ function tokenize(text: string): string[] {
 
 /**
  * Originality as a corpus-relative DENSITY, not an absolute count. Each distinct
- * token is weighted by normalized IDF (ln(N/df)/ln(N)) — 1 if page-exclusive, ~0
- * if on every page — and averaged over the page's distinct tokens. A near-
+ * token is weighted by normalized IDF (ln(N/df)/ln(N)): 1 if page-exclusive, ~0
+ * if on every page: and averaged over the page's distinct tokens. A near-
  * duplicate / boilerplate page scores low regardless of corpus size or length; a
  * large original page stays high. Continuous, so it doesn't shuffle at the margin.
  * Volume is spam/thin-content's job; exact twins are spam/near-duplicate's.
@@ -37,7 +37,7 @@ export function uniqueValueRule(
   if (N <= 1 || lnN === 0) return []; // can't measure rarity against a single page
 
   // Mask entities (names, numbers, dates) before measuring rarity. Otherwise a
-  // scaled-content farm — same template skeleton, swapped entity per page —
+  // scaled-content farm (same template skeleton, swapped entity per page) 
   // scores HIGH density because each page's entity tokens are page-exclusive.
   // Masking collapses the swapped entities so the residual measures originality
   // of the *non-entity* prose: templated skeleton -> low, genuine analysis -> high.
@@ -67,7 +67,7 @@ export function uniqueValueRule(
         `Most of its vocabulary also appears on other pages.`,
       pageUrl: page.url,
       fix:
-        `Raise originality density: add page-specific text — a distinct lead, this ` +
+        `Raise originality density: add page-specific text, a distinct lead, this ` +
         `record's own facts, page-specific examples. Content repeated across pages on ` +
         `the same axis (boilerplate, shared legal/spec blocks, per-axis data like a ` +
         `role's regulations across that role's documents) is common vocabulary and ` +

@@ -22,7 +22,7 @@ const DEFAULT_CROSS_REF_RULES: CrossRefRule[] = [
   { re: /\bas\s+(noted|stated)\s+above\b/i, label: "'as noted above'" },
 ];
 
-// Intentionally conservative — only flag headings that are truly content-free.
+// Intentionally conservative: only flag headings that are truly content-free.
 // "FAQ", "Summary", "Conclusion", "Getting Started" are common legitimate headings
 // and were removed from this list after feedback.
 const VAGUE_HEADING_PATTERNS: RegExp[] = [
@@ -139,7 +139,7 @@ export function contentModularityRule(
       confidence: "low",
       message:
         `${page.url} has ${issues.length}/${sections.length} sections that are not independently extractable. ` +
-        `Examples — ${examples}.`,
+        `Examples: ${examples}.`,
       pageUrl: page.url,
       fix:
         `Each section should answer one question completely without referencing other parts of the page. ` +

@@ -6,7 +6,7 @@
  * links, because the hubs only iterate MARKETING_RULES / MARKETING_TOOLS and these
  * pages live in neither array.
  *
- * Fixing the 7 is not enough — the next hand-written page would silently repeat it.
+ * Fixing the 7 is not enough: the next hand-written page would silently repeat it.
  * So this test asserts the invariant instead of the instance: every non-dynamic page
  * route in those sections is either a data-driven entry or a registered guide, and
  * every registered guide actually resolves to a route file and is rendered by its hub.
@@ -60,9 +60,9 @@ describe("editorial guide registry", () => {
       const registered = new Set(guidesForSection(section).map((g) => g.slug));
       const known = new Set([...dataSlugs, ...registered]);
       // A standalone page.tsx that is neither a data entry nor a registered guide
-      // has nothing linking to it — that is precisely an orphan.
+      // has nothing linking to it; that is precisely an orphan.
       const orphans = routeSlugs(section).filter((s) => !known.has(s));
-      expect(orphans, `unlinked /${section} pages — add them to MARKETING_GUIDES`).toEqual([]);
+      expect(orphans, `unlinked /${section} pages: add them to MARKETING_GUIDES`).toEqual([]);
     });
 
     it(`resolves every registered /${section} guide to a real route`, () => {
@@ -73,7 +73,7 @@ describe("editorial guide registry", () => {
     });
 
     it(`renders the /${section} guides from the section hub`, () => {
-      // Guards against the registry existing but the hub forgetting to map it —
+      // Guards against the registry existing but the hub forgetting to map it:
       // which would leave the pages orphaned exactly as before.
       const hub = readFileSync(join(APP, section, "page.tsx"), "utf8");
       expect(hub).toContain("guidesForSection");

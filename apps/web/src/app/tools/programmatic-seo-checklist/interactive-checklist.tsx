@@ -56,7 +56,7 @@ const ITEMS = [
   {
     id: "internal-links",
     category: "Technical SEO",
-    title: "No orphan pages — all URLs have ≥1 internal inbound link",
+    title: "No orphan pages: all URLs have ≥1 internal inbound link",
     detail: "Google discovers pages through links. Pages only reachable via sitemap are fragile. Add hub or category pages that link into your templates.",
     severity: "Major",
     ruleSlug: "orphan-pages",
@@ -65,7 +65,7 @@ const ITEMS = [
     id: "schema",
     category: "Structured Data",
     title: "JSON-LD schema matching page intent is present",
-    detail: "Use FAQPage, HowTo, Article, Product, or BreadcrumbList depending on the template's primary content type.",
+    detail: "Use Article/TechArticle, Product, or BreadcrumbList depending on the template's primary content type. FAQPage and HowTo are retired rich results and add nothing.",
     severity: "Major",
     ruleSlug: "faq-coverage",
   },
@@ -80,16 +80,16 @@ const ITEMS = [
   {
     id: "title-unique",
     category: "Metadata",
-    title: "Each page has a unique title under 60 characters",
-    detail: "Titles over 60 chars get truncated. Entity-swap title templates that produce identical titles across sibling pages trigger canonicalization merges.",
+    title: "Each page has its own specific title",
+    detail: "Google documents no title-length limit, and SERP cropping is display-side. The real risk at template scale: entity-swap title templates that produce identical or near-identical titles across sibling pages, which trigger canonicalization merges.",
     severity: "Critical",
     ruleSlug: "title-uniqueness",
   },
   {
     id: "description",
     category: "Metadata",
-    title: "Meta description is 140–155 chars and keyword-matched",
-    detail: "Generic or duplicated meta descriptions are overridden by Google. Each description must contain the primary keyword and a specific value hook.",
+    title: "Meta description is present and unique per page",
+    detail: "Google documents no length limit; snippets are cropped to the device width. Generic or duplicated descriptions get overridden by Google, and a missing one hands the snippet to its rewriter. Build each from the record's own fields.",
     severity: "Major",
     ruleSlug: "meta-uniqueness",
   },
@@ -175,7 +175,7 @@ export function InteractiveChecklist() {
               <p className="text-[10px] text-muted-foreground">{done}/{total} done</p>
             </>
           ) : (
-            <span className="font-mono text-3xl font-bold tabular-nums text-muted-foreground">—</span>
+            <span className="font-mono text-3xl font-bold tabular-nums text-muted-foreground">: </span>
           )}
         </div>
       </div>

@@ -33,7 +33,7 @@ export function sitemapCompletenessRule(
 
   const findings: RuleResult[] = [];
 
-  // "missing from sitemap" — demoted to `warning` because:
+  // "missing from sitemap"; demoted to `warning` because:
   //  • on a sampled crawl many pages were found via link discovery, not sitemap
   //  • even on a full crawl this is advisory (Google discovers via crawl too)
   // The genuine hard-error signal is the 4xx/5xx sub-check below.

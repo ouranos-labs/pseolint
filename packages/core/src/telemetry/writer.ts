@@ -5,7 +5,7 @@ import { telemetryRecordSchema, type TelemetryRecord } from "./types.js";
 /**
  * Append a single telemetry record as one JSON line.
  *
- * Telemetry MUST NEVER throw to the caller — an audit must not fail because a
+ * Telemetry MUST NEVER throw to the caller: an audit must not fail because a
  * log line could not be written. We swallow both I/O errors (expected, e.g.
  * read-only filesystem, path clash) and schema errors (a programmer bug where
  * an internal caller passed the wrong shape). Schema bugs log a single warning
@@ -20,7 +20,7 @@ export async function appendTelemetryRecord(
     const parsed = telemetryRecordSchema.parse(record);
     serialized = JSON.stringify(parsed) + "\n";
   } catch (err) {
-    // Programmer bug: invalid record shape. Warn once and bail — don't throw.
+    // Programmer bug: invalid record shape. Warn once and bail, don't throw.
     try {
       // eslint-disable-next-line no-console
       console.warn(
@@ -28,7 +28,7 @@ export async function appendTelemetryRecord(
         err instanceof Error ? err.message : String(err)
       );
     } catch {
-      // stderr itself failed — nothing we can do.
+      // stderr itself failed; nothing we can do.
     }
     return;
   }
@@ -37,6 +37,6 @@ export async function appendTelemetryRecord(
     await mkdir(dirname(path), { recursive: true });
     await appendFile(path, serialized, "utf8");
   } catch {
-    // Silent failure — telemetry MUST NOT block an audit.
+    // Silent failure: telemetry MUST NOT block an audit.
   }
 }

@@ -1,12 +1,12 @@
 # AI Triage Layer + Adapter Scaffold Design
 
-**Status:** Draft — 2026-04-18
+**Status:** Draft, 2026-04-18
 **Author:** philippe.kam27@gmail.com + Claude (Opus 4.7)
-**Motivation:** Audits routinely produce hundreds of findings. The recently-shipped `enrichFindings` step clusters and groups within a rule, but cannot reason across rules to identify the 2–3 *root causes* driving the noise. Users with 800 findings need "fix the template, 70% disappear" — not a sorted dump. This design introduces a thin, opt-in AI layer that triages enriched findings into ranked root causes, with a vendor-agnostic adapter scaffold so future AI features (semantic dedup, fix synthesis) plug into the same primitives.
+**Motivation:** Audits routinely produce hundreds of findings. The recently-shipped `enrichFindings` step clusters and groups within a rule, but cannot reason across rules to identify the 2–3 *root causes* driving the noise. Users with 800 findings need "fix the template, 70% disappear"; not a sorted dump. This design introduces a thin, opt-in AI layer that triages enriched findings into ranked root causes, with a vendor-agnostic adapter scaffold so future AI features (semantic dedup, fix synthesis) plug into the same primitives.
 
 ## Goal
 
-Turn the post-`enrichFindings` output into a **prioritized fix list** of 1–5 root causes, with cross-rule synthesis and a 1–2 sentence rationale per cause — without removing or rewriting the existing findings list. Establish an `LlmAdapter` interface and two reference implementations (Anthropic, Ollama) so subsequent AI features compose on the same primitives.
+Turn the post-`enrichFindings` output into a **prioritized fix list** of 1–5 root causes, with cross-rule synthesis and a 1–2 sentence rationale per cause, without removing or rewriting the existing findings list. Establish an `LlmAdapter` interface and two reference implementations (Anthropic, Ollama) so subsequent AI features compose on the same primitives.
 
 ## Non-Goals
 
@@ -73,7 +73,7 @@ export interface LlmAdapter {
   chat(req: LlmRequest, opts?: { maxOutputTokens?: number; signal?: AbortSignal }): Promise<LlmResponse>;
   /**
    * Pre-flight input-token estimate. May be a heuristic (chars/4) for adapters
-   * without a tokenizer — exact precision is not required, only consistency.
+   * without a tokenizer: exact precision is not required, only consistency.
    */
   estimateInputTokens(req: LlmRequest): number;
 }
@@ -104,7 +104,7 @@ This keeps the happy path zero-config for both common cases (cloud user with key
 ### Anthropic adapter
 
 - Optional peer dependency: `@anthropic-ai/sdk` (declared in `peerDependencies` and `peerDependenciesMeta` as optional).
-- Lazy import inside `chat()` — never loaded if user never opts in.
+- Lazy import inside `chat()`: never loaded if user never opts in.
 - If import fails (`MODULE_NOT_FOUND`), throws `AdapterError('@anthropic-ai/sdk not installed; run `npm install @anthropic-ai/sdk`', 'sdk-missing')`.
 - API key resolution order: `opts.apiKey` → `process.env.ANTHROPIC_API_KEY` → throw `AdapterError('No Anthropic API key', 'auth')`.
 - Default model: `claude-sonnet-4-6` (overridable via `--ai-model`).
@@ -118,7 +118,7 @@ This keeps the happy path zero-config for both common cases (cloud user with key
 
 ### Ollama adapter
 
-- Zero dependencies — uses Node `fetch`.
+- Zero dependencies: uses Node `fetch`.
 - Default endpoint: `http://localhost:11434` (overridable via `--ai-endpoint`).
 - Default model: `llama3.1:8b` (overridable via `--ai-model`).
 - POST `/api/chat` with `{ model, messages: [{role:'system',content},{role:'user',content}], stream: false, format: 'json' }`. The `format: 'json'` flag forces structured output.
@@ -156,7 +156,7 @@ Output STRICT JSON matching this schema:
 DO NOT include markdown, code fences, or commentary. Output only the JSON object.`;
 ```
 
-The user message is the JSON projection: `{ totalFindings, pageCount, findings: [{ id, ruleId, severity, message, pageUrl, group? }] }`. The projection caps `findings` at 200 entries (sorted by severity desc, then truncated) — beyond that the model degrades and the cost balloons. For audits with >200 findings, we include a `truncated: true` flag and a `findingCountByRule: Record<string, number>` summary so the model still sees the full distribution.
+The user message is the JSON projection: `{ totalFindings, pageCount, findings: [{ id, ruleId, severity, message, pageUrl, group? }] }`. The projection caps `findings` at 200 entries (sorted by severity desc, then truncated), beyond that the model degrades and the cost balloons. For audits with >200 findings, we include a `truncated: true` flag and a `findingCountByRule: Record<string, number>` summary so the model still sees the full distribution.
 
 A stable `id` is assigned to each finding before triage: `<ruleId>:<sha256((pageUrl ?? '') + '|' + message).slice(0,8)>`. The `(pageUrl ?? '')` fallback handles findings with no associated URL (e.g., site-wide rules). Same input → same id (deterministic). Collisions are vanishingly unlikely; if they occur, the second finding wins (irrelevant for triage's grouping use case).
 
@@ -211,7 +211,7 @@ export async function triageFindings(
 
 Control flow:
 
-1. Assign stable `id` to each finding (idempotent — same input → same ids).
+1. Assign stable `id` to each finding (idempotent: same input → same ids).
 2. Build `LlmRequest` from prompt template + projection.
 3. Compute `estimateInputTokens(req)`. If estimate > `maxInputTokens`, return `{ skipReason: 'pre-flight token estimate exceeds cap (<estimate> > <cap>)' }`.
 4. Compute cache key: `sha256(JSON.stringify({findings: projection, model: adapter.model, promptVersion: PROMPT_VERSION}))`.
@@ -252,10 +252,10 @@ summary.triage = triageResult;
 Discovery hint: when `ai.suggest !== false` AND `ANTHROPIC_API_KEY` is set AND `ai.enabled` is false, after the audit completes print to stderr:
 
 ```
-💡 AI triage available — re-run with --ai to prioritize <N> findings into a fix list.
+💡 AI triage available, re-run with --ai to prioritize <N> findings into a fix list.
 ```
 
-Cadence: printed at the end of every qualifying audit (no persistence, no per-directory state — keeps the implementation trivial). Users who find it noisy disable it once via `ai.suggest: false` in config or `--no-ai-suggest` per run.
+Cadence: printed at the end of every qualifying audit (no persistence, no per-directory state, keeps the implementation trivial). Users who find it noisy disable it once via `ai.suggest: false` in config or `--no-ai-suggest` per run.
 
 ### CLI surface
 
@@ -309,7 +309,7 @@ Fixing the template will eliminate most spam-rule violations.
 ───────────────────────────────────────────────────────
 ```
 
-The `[<effort>, <count> findings]` bracket reuses the existing `effort` field on findings — for each root cause, effort is `max` over `relatedFindingIds`'s effort tags.
+The `[<effort>, <count> findings]` bracket reuses the existing `effort` field on findings, for each root cause, effort is `max` over `relatedFindingIds`'s effort tags.
 
 **JSON formatter** (`packages/core/src/formatters/json.ts`): include the full `triage` object as a top-level field. No transformation.
 
@@ -344,7 +344,7 @@ This site shows classic pSEO templating issues. Fixing the template will elimina
 - Atomic write: `<hash>.json.tmp` then `rename`.
 - Entry shape: the `TriageResult` plus `{cachedAt: ISO8601}`.
 - TTL: default 30 days. On read: if `now - cachedAt > ttlMs`, treat as miss.
-- Cache key includes `PROMPT_VERSION` — bumping the prompt template version auto-invalidates all entries.
+- Cache key includes `PROMPT_VERSION`: bumping the prompt template version auto-invalidates all entries.
 - Bypass: `--no-ai-cache` or `cache: false` in config.
 
 ### Cost estimation
@@ -355,7 +355,7 @@ This site shows classic pSEO templating issues. Fixing the template will elimina
 export function estimateCostUsd(providerId: string, model: string, usage: TokenUsage): number | undefined;
 ```
 
-Backed by a hardcoded pricing table (per 1M tokens, input/output) for known models. When the model is unknown (e.g., a custom Ollama tag), returns `undefined`. Pricing is stale-by-design — the field is labeled "est" everywhere it surfaces. Pricing table updates land in patch releases.
+Backed by a hardcoded pricing table (per 1M tokens, input/output) for known models. When the model is unknown (e.g., a custom Ollama tag), returns `undefined`. Pricing is stale-by-design, the field is labeled "est" everywhere it surfaces. Pricing table updates land in patch releases.
 
 Initial table:
 - `claude-sonnet-4-6`: $3.00 / $15.00 per 1M

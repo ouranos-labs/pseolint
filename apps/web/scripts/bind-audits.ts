@@ -91,7 +91,7 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   // --list bypasses the bind path entirely. Useful for diagnosing "where
-  // is my audit row stored?" when a normal --dry-run returns 0 matches —
+  // is my audit row stored?" when a normal --dry-run returns 0 matches:
   // the actual sourceUrl might be `www.host`, an http variant, or already
   // bound to a different user.
   if (args.list) {
@@ -126,7 +126,7 @@ async function main(): Promise<void> {
   const [user] = await db.select({ id: users.id, email: users.email })
     .from(users).where(eq(users.id, args.userId)).limit(1);
   if (!user) {
-    console.error(`User ${args.userId} not found in users table — refusing to bind.`);
+    console.error(`User ${args.userId} not found in users table: refusing to bind.`);
     process.exit(2);
   }
   console.log(`Target user: ${user.email} (${user.id})`);
@@ -159,7 +159,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  // GREATEST so we never SHORTEN the retention window — protects audits that
+  // GREATEST so we never SHORTEN the retention window: protects audits that
   // were already extended past the default 90-day signed-in lifetime.
   const updated = await db.update(audits)
     .set({

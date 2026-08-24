@@ -105,7 +105,7 @@ describe("wikipediaParaphraseRule", () => {
   // --- FP-reduction tests (new behaviour) ---
 
   test("(a) short page (~40 words) does NOT fire even when bloom rate exceeds old threshold", () => {
-    // ~40 words → ~38 trigrams — below the minimum-length guard; bloom is never
+    // ~40 words → ~38 trigrams: below the minimum-length guard; bloom is never
     // consulted for such pages (mockRate should not be called).
     const shortText = "word ".repeat(40).trim();
     const findings = wikipediaParaphraseRule([page("https://example.com/short", shortText)]);

@@ -1,7 +1,7 @@
 import type { AuditSummary } from "@pseolint/core";
 
 /**
- * "Rules the profile softened" disclosure — a credibility signal.
+ * "Rules the profile softened" disclosure: a credibility signal.
  *
  * The engine remaps some rules' severity based on the detected site type
  * (e.g. `aeo/citable-facts` demoted from `error` to `info` on a
@@ -37,7 +37,7 @@ export function SeverityDemotions({ summary }: { summary: AuditSummary }) {
         </span>
       </summary>
       <p className="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-        These rules still ran and emitted findings — the site-type profile lowered
+        These rules still ran and emitted findings: the site-type profile lowered
         their severity so the score reflects how the signal applies to this kind of
         site, not a one-size-fits-all penalty.
       </p>

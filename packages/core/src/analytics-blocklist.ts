@@ -4,7 +4,7 @@
  * Rendered-mode audits would otherwise fire every client-side beacon on every
  * page they visit, injecting fake sessions into the site owner's dashboards.
  * The renderer intercepts outbound requests and aborts any whose hostname
- * includes one of these tokens (substring match — a single entry covers all
+ * includes one of these tokens (substring match: a single entry covers all
  * regional variants like `www.google-analytics.com`, `www1.google-analytics.com`, …).
  *
  * Conservative on the allow side: we don't block `fonts.googleapis.com`,
@@ -86,7 +86,7 @@ export const DEFAULT_ANALYTICS_HOSTS = [
   "nr-data.net",
 ] as const;
 
-// Pre-lower the default list once at module load — the renderer calls
+// Pre-lower the default list once at module load: the renderer calls
 // isAnalyticsRequest for every subresource of every rendered page, so avoiding
 // a per-call `.toLowerCase()` of ~40 tokens matters on large audits.
 const DEFAULT_ANALYTICS_HOSTS_LOWER: readonly string[] = DEFAULT_ANALYTICS_HOSTS.map((h) =>
@@ -126,7 +126,7 @@ export function isAnalyticsRequest(
         return false;
       }
     } catch {
-      // fall through — treat as cross-origin
+      // fall through: treat as cross-origin
     }
   }
 

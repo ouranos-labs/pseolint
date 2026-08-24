@@ -10,7 +10,7 @@ describe("fetch_page tool", () => {
 
   it("rejects private IP targets via SSRF guard", async () => {
     // `validateTargetHost` resolves DNS for non-IP hostnames, so a literal
-    // 127.0.0.1 is the cheap deterministic check — no DNS, no flake.
+    // 127.0.0.1 is the cheap deterministic check: no DNS, no flake.
     const r = await fetchPageTool.run({ url: "http://127.0.0.1:1234/" });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errorCode).toBe("EXECUTE_ERROR");
@@ -35,7 +35,7 @@ describe("fetch_page tool", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) {
       // Either explicit "aborted" or a generic AbortError surfaced as
-      // EXECUTE_ERROR — both prove the signal made it to the fetch layer.
+      // EXECUTE_ERROR: both prove the signal made it to the fetch layer.
       expect(r.errorCode).toBe("EXECUTE_ERROR");
       expect(r.error.toLowerCase()).toMatch(/abort|signal|cancel/);
     }

@@ -10,10 +10,10 @@ import { env } from "@/lib/env";
  * daily IP+UA hash is computed against the real visitor, not our server).
  *
  * Why proxy instead of pointing the browser straight at the instance:
- * - Genuinely first-party — everything loads from pseolint.dev (matches
+ * - Genuinely first-party: everything loads from pseolint.dev (matches
  *   /privacy's "first-party, no third-party SDK" claim).
  * - Ad-blocker resistant (no request to a known analytics domain).
- * - CSP stays `'self'` — no external origin needed in script-src/connect-src.
+ * - CSP stays `'self'`: no external origin needed in script-src/connect-src.
  *
  * No-op safety: when OPENPANEL_API_URL is unset, the client provider never
  * renders (no clientId), so this route is never hit.

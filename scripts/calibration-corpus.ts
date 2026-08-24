@@ -9,8 +9,8 @@
  *
  * This is intentionally separate from `dogfood-v043.ts`. That script
  * validates the engine's classifier against a balanced 5-type sample. This
- * one *challenges* the engine: it asks whether reputable pSEO sites — which
- * Google obviously rewards — actually pass our verdict. If our `concerning`
+ * one *challenges* the engine: it asks whether reputable pSEO sites: which
+ * Google obviously rewards: actually pass our verdict. If our `concerning`
  * verdict fires on a Zapier-shaped site, our verdict ladder is wrong.
  *
  * Usage:
@@ -125,9 +125,9 @@ interface SiteResult {
     durationMs: number;
     /** Top-5 driver rules ordered by total severity-weighted impact. */
     topDrivers: Array<{ ruleId: string; count: number; impact: number; severities: string[] }>;
-    /** v0.6.1 — template count for v0.6 path verification. */
+    /** v0.6.1: template count for v0.6 path verification. */
     templateCount: number;
-    /** v0.6.1 — whether v0.6 siteVerdictFromTemplates fired (templateCount >= 2). */
+    /** v0.6.1: whether v0.6 siteVerdictFromTemplates fired (templateCount >= 2). */
     v6PathExecuted: boolean;
     /** Every rule that emitted >=1 finding (any severity). */
     firedRuleIds: string[];
@@ -153,7 +153,7 @@ interface CalibrationResults {
     calibration: CalibrationMetrics;
     perRule: Record<string, RuleFiring>;
     classCounts: { reputable: number; policyViolating: number; subject: number };
-    /** Non-gated dogfood targets — verdict/risk/top fired rules, no pass/fail. */
+    /** Non-gated dogfood targets: verdict/risk/top fired rules, no pass/fail. */
     trackedSubjects: Array<{ url: string; verdict: string; risk: number; topFired: string[] }>;
   };
   results: SiteResult[];
@@ -276,10 +276,10 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
     audit: null,
   };
 
-  // v0.5.12: use pinned URLs when available (non-empty) — bypasses random sampling
+  // v0.5.12: use pinned URLs when available (non-empty); bypasses random sampling
   const hasPinned = (target.pinnedUrls?.length ?? 0) > 0;
 
-  // v0.5.15: use fixture directory when set and exists — zero network dependency
+  // v0.5.15: use fixture directory when set and exists; zero network dependency
   const fixtureAbsDir = target.localFixtureDir
     ? resolve(dirname(fileURLToPath(import.meta.url)), "..", target.localFixtureDir)
     : null;
@@ -411,7 +411,7 @@ function printCalibration(confusion: Confusion, cal: CalibrationMetrics, label?:
   const pct = (x: number) => (Number.isNaN(x) ? " n/a" : `${(x * 100).toFixed(0)}%`);
   const f2 = (x: number) => (Number.isNaN(x) ? "n/a" : x.toFixed(2));
   console.log("");
-  console.log(`${ansi.bold}Calibration — does the risk score track the real outcome?${label ? `  [${label}]` : ""}${ansi.reset}`);
+  console.log(`${ansi.bold}Calibration: does the risk score track the real outcome?${label ? `  [${label}]` : ""}${ansi.reset}`);
   console.log(
     `  Confusion (verdict ≥ concerning): P=${pct(confusion.precision)} R=${pct(confusion.recall)} F1=${pct(confusion.f1)}` +
       `  (TP ${confusion.tp} · FP ${confusion.fp} · FN ${confusion.fn} · TN ${confusion.tn})`,
@@ -436,12 +436,12 @@ function printCalibration(confusion: Confusion, cal: CalibrationMetrics, label?:
   }
   if (cal.reputableAbovePolicyMedian.length) {
     console.log("");
-    console.log(`  ${ansi.yellow}Over-flag zone${ansi.reset} — reputable winners scoring ≥ policy median (${cal.reputableAbovePolicyMedian.length}):`);
+    console.log(`  ${ansi.yellow}Over-flag zone${ansi.reset}: reputable winners scoring ≥ policy median (${cal.reputableAbovePolicyMedian.length}):`);
     for (const s of cal.reputableAbovePolicyMedian.slice(0, 8)) console.log(`    ${String(s.risk.toFixed(0)).padStart(3)}  ${s.url}`);
   }
   if (cal.policyBelowReputableMedian.length) {
     console.log("");
-    console.log(`  ${ansi.yellow}Recall-leak zone${ansi.reset} — policy farms scoring ≤ reputable median (${cal.policyBelowReputableMedian.length}):`);
+    console.log(`  ${ansi.yellow}Recall-leak zone${ansi.reset}: policy farms scoring ≤ reputable median (${cal.policyBelowReputableMedian.length}):`);
     for (const s of cal.policyBelowReputableMedian.slice(0, 8)) console.log(`    ${String(s.risk.toFixed(0)).padStart(3)}  ${s.url}`);
   }
 }
@@ -488,7 +488,7 @@ function renderMarkdown(out: CalibrationResults): string {
     lines.push(`Precision ${(c.precision * 100).toFixed(0)}% · Recall ${(c.recall * 100).toFixed(0)}% · F1 ${(c.f1 * 100).toFixed(0)}%`);
     const rk = out.scorecard.risk;
     lines.push("");
-    lines.push(`Risk medians — reputable ${rk.reputable.median}, policy-violating ${rk.policyViolating.median}; cleanly separated: ${rk.cleanlySeparated ? "yes" : "no"}.`);
+    lines.push(`Risk medians: reputable ${rk.reputable.median}, policy-violating ${rk.policyViolating.median}; cleanly separated: ${rk.cleanlySeparated ? "yes" : "no"}.`);
     lines.push("");
     if (out.scorecard.trackedSubjects.length > 0) {
       lines.push(`### Tracked subjects (non-gated)`);
@@ -536,7 +536,7 @@ async function mainRepin(): Promise<void> {
     return;
   }
 
-  console.log(`${ansi.bold}Reputable-pSEO calibration — REPIN mode${ansi.reset}`);
+  console.log(`${ansi.bold}Reputable-pSEO calibration: REPIN mode${ansi.reset}`);
   if (repinFilter) {
     console.log(`${ansi.dim}Filter: "${repinFilter}" → ${sitesToRepin.length} site(s)${ansi.reset}\n`);
   } else {
@@ -552,7 +552,7 @@ async function mainRepin(): Promise<void> {
     const tempSite: CorpusSite = { ...site, pinnedUrls: [] };
     const r = await auditOne(tempSite);
     if (r.error) {
-      console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset} (skipped — no URLs to pin)`);
+      console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset} (skipped; no URLs to pin)`);
       continue;
     }
     const fetchedUrls = r._auditedUrls ?? [];
@@ -618,7 +618,7 @@ async function mainNormal(): Promise<void> {
       console.log(`${ansi.red}ERROR${ansi.reset} ${ansi.dim}${r.error}${ansi.reset}`);
     } else if (site.class === "subject") {
       const v = r.audit?.verdict ?? "?";
-      console.log(`${ansi.cyan}TRACKED${ansi.reset} verdict=${v} ${ansi.dim}(subject — no gate)${ansi.reset}`);
+      console.log(`${ansi.cyan}TRACKED${ansi.reset} verdict=${v} ${ansi.dim}(subject; no gate)${ansi.reset}`);
     } else if (r.pass) {
       const v = r.audit?.verdict ?? "?";
       console.log(`${ansi.green}PASS${ansi.reset} verdict=${v} (≤ ${site.expectedVerdictCeiling})`);
@@ -693,9 +693,9 @@ async function mainNormal(): Promise<void> {
   printCalibration(scorecard.confusion, scorecard.calibration, "full corpus");
 
   // Addressable recall: the fair measure of what an on-page score CAN do.
-  // Exclude (a) off-page-only parasites — the violation lives in the host
-  // relationship, invisible to an on-page audit by construction — and (b)
-  // synthetic fixtures — catching a hand-built doorway proves the rule fires,
+  // Exclude (a) off-page-only parasites (the violation lives in the host
+  // relationship, invisible to an on-page audit by construction), and (b)
+  // synthetic fixtures; catching a hand-built doorway proves the rule fires,
   // not that the engine tracks reality. Raw recall over all labelled sites
   // blends these together and understates the true addressable performance.
   const excluded = new Set(
@@ -710,7 +710,7 @@ async function mainNormal(): Promise<void> {
     printCalibration(
       confusionMatrix(addressableRows),
       calibrationMetrics(addressableRows),
-      `addressable subset — ${offPage} off-page-only + ${synthetic} synthetic excluded`,
+      `addressable subset: ${offPage} off-page-only + ${synthetic} synthetic excluded`,
     );
   }
 
@@ -757,7 +757,7 @@ async function mainNormal(): Promise<void> {
     }
     if (rr.verdictRegressions.length > 0) {
       console.log("");
-      console.log(`${ansi.red}Verdict regressions vs baseline (HARD — gate fails):${ansi.reset}`);
+      console.log(`${ansi.red}Verdict regressions vs baseline (HARD; gate fails):${ansi.reset}`);
       for (const m of rr.verdictRegressions) console.log(`  ${ansi.red}x${ansi.reset} ${m}`);
       process.exitCode = 1;
     }
@@ -797,7 +797,7 @@ async function mainSnapshot(): Promise<void> {
     return;
   }
 
-  console.log(`${ansi.bold}Reputable-pSEO calibration — SNAPSHOT mode${ansi.reset}`);
+  console.log(`${ansi.bold}Reputable-pSEO calibration: SNAPSHOT mode${ansi.reset}`);
   if (snapshotFilter) {
     console.log(`${ansi.dim}Filter: "${snapshotFilter}" → ${sitesToSnap.length} site(s)${ansi.reset}\n`);
   } else {
@@ -903,12 +903,12 @@ async function mainSnapshot(): Promise<void> {
 // ----- seed-classifier-urls mode -----------------------------------------
 
 /**
- * v0.6.3 — Parse `Sitemap:` directives from a site's robots.txt.
+ * v0.6.3: Parse `Sitemap:` directives from a site's robots.txt.
  *
  * Fetches `<originUrl>/robots.txt` via `cachedFetch` (20 s timeout) and
  * returns every URL declared with a `Sitemap:` directive (case-insensitive,
  * multiple occurrences allowed per the Sitemaps protocol spec). Returns `[]`
- * on any fetch failure or non-2xx response — never throws.
+ * on any fetch failure or non-2xx response: never throws.
  */
 export async function discoverSitemapsFromRobotsTxt(originUrl: string): Promise<string[]> {
   const robotsUrl = `${new URL(originUrl).origin}/robots.txt`;
@@ -925,7 +925,7 @@ export async function discoverSitemapsFromRobotsTxt(originUrl: string): Promise<
 }
 
 /**
- * v0.6.3 — Fetch each corpus site's live sitemaps, trying robots.txt first
+ * v0.6.3: Fetch each corpus site's live sitemaps, trying robots.txt first
  * before falling back to `/sitemap.xml`. Parses all URLs (recursively
  * resolving sitemap-index entries), dedupes, caps at 5000 per site, and
  * writes them into corpus.json classifierUrls for each site.
@@ -935,7 +935,7 @@ export async function discoverSitemapsFromRobotsTxt(originUrl: string): Promise<
 async function mainSeedClassifierUrls(): Promise<void> {
   const corpus = JSON.parse(readFileSync(CORPUS_PATH, "utf-8")) as Corpus;
 
-  console.log(`${ansi.bold}Reputable-pSEO calibration — SEED-CLASSIFIER-URLS mode${ansi.reset}`);
+  console.log(`${ansi.bold}Reputable-pSEO calibration: SEED-CLASSIFIER-URLS mode${ansi.reset}`);
   console.log(`${ansi.dim}Fetching live sitemaps for ${corpus.sites.length} corpus sites${ansi.reset}\n`);
 
   const MAX_CLASSIFIER_URLS = 5000;

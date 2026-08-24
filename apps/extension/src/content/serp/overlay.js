@@ -1,4 +1,4 @@
-// pseolint extension — SERP health badge, rendered into a shadow root (§9).
+// pseolint extension: SERP health badge, rendered into a shadow root (§9).
 //
 // Injection safety (we are writing into Google's DOM):
 //   - shadow root isolates our UI; the host page can't read or restyle it.
@@ -31,7 +31,7 @@ const STYLE =
   "box-shadow:inset 0 1.5px 0 0 rgba(255,255,255,.2),inset 0 -1.5px 0 0 rgba(0,0,0,.4),0 1.5px 3px 0 rgba(0,0,0,.3)}" +
   ".b:focus-visible{outline:2px solid #36d39a;outline-offset:2px}"; // a11y: keyboard focus ring
 
-// Build the shadow-host element for a verdict, or null (no badge). Glue only —
+// Build the shadow-host element for a verdict, or null (no badge). Glue only:
 // the decision lives in badgeView; this just plumbs it into a closed shadow root.
 // The badge is ALWAYS a <span> (never an <a>): it's inserted inside the result's
 // <h3>, which lives inside the result <a>, so an <a> badge would nest illegally.
@@ -54,7 +54,7 @@ export function mountBadge(verdict, doc = document, href = null) {
   badge.style.color = FG[verdict.level] ?? "#ffffff";
   badge.textContent = href ? `${view.text} ↗` : view.text; // label via textContent, never innerHTML
   // a11y: the "↗" is decorative; give screen readers the meaning + action.
-  badge.setAttribute("aria-label", href ? `pseolint: ${view.text} — open full audit` : `pseolint: ${view.text}`);
+  badge.setAttribute("aria-label", href ? `pseolint: ${view.text}, open full audit` : `pseolint: ${view.text}`);
   if (href) {
     badge.setAttribute("role", "link");
     badge.setAttribute("tabindex", "0");

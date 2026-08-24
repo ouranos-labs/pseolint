@@ -1,8 +1,8 @@
 /**
  * Hand-written editorial guides under `/rules/*` and `/tools/*`.
  *
- * These pages are authored as their own route files, so — unlike `MARKETING_RULES`
- * and `MARKETING_TOOLS` — nothing iterates them. That is exactly how 7 of the 8
+ * These pages are authored as their own route files, so: unlike `MARKETING_RULES`
+ * and `MARKETING_TOOLS`: nothing iterates them. That is exactly how 7 of the 8
  * ended up as orphans (`links/orphan-pages`, the one blocker in pseolint.dev's own
  * audit): they shipped in the sitemap with zero inbound internal links, which
  * starves them of crawl equity no matter how good the content is.
@@ -13,7 +13,7 @@
  */
 
 export type MarketingGuide = {
-  /** Route slug within its section — the path is `/{section}/{slug}`. */
+  /** Route slug within its section; the path is `/{section}/{slug}`. */
   slug: string;
   section: "rules" | "tools";
   /** Card heading on the hub. Kept shorter than the page's own <title>. */

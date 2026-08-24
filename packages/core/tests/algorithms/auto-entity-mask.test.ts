@@ -6,7 +6,7 @@ function page(url: string, contentText: string) {
   return { url, contentText };
 }
 
-describe("deriveEntityPatterns — URL-slug varying tokens", () => {
+describe("deriveEntityPatterns: URL-slug varying tokens", () => {
   test("masks the varying city token, not the constant template words", () => {
     const pages = ["austin", "dallas", "houston"].map((c) =>
       page(`https://x.test/emergency-plumber-${c}`, `Emergency Plumber in ${c}`),
@@ -24,7 +24,7 @@ describe("deriveEntityPatterns — URL-slug varying tokens", () => {
   });
 });
 
-describe("deriveEntityPatterns — content-diff varying tokens", () => {
+describe("deriveEntityPatterns: content-diff varying tokens", () => {
   test("masks a capitalized entity that varies across siblings, not shared headings", () => {
     const pages = ["Austin", "Dallas", "Houston"].map((c, i) =>
       page(`https://x.test/p${i}`, `Overview Section. Our office in ${c} serves clients.`),
@@ -39,7 +39,7 @@ describe("deriveEntityPatterns — content-diff varying tokens", () => {
   });
 });
 
-describe("deriveEntityPatterns — guards & determinism", () => {
+describe("deriveEntityPatterns: guards & determinism", () => {
   test("returns identical patterns on repeat runs (deterministic)", () => {
     const pages = ["austin", "dallas", "houston"].map((c) => page(`https://x.test/plumber-${c}`, `Plumber ${c}`));
     const a = deriveEntityPatterns(pages);

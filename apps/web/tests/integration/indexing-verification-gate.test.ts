@@ -4,7 +4,7 @@
  * These actions ask Google / Bing to index URLs *on the domain's behalf*, so
  * they must not run for a host the caller hasn't proven they control. Google and
  * Bing reject unowned properties themselves, but that makes the block depend on
- * a third party — these tests pin the local check instead.
+ * a third party: these tests pin the local check instead.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 

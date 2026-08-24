@@ -63,7 +63,7 @@ export default async function DashboardHome({
         <section className="rounded-[18px] border border-primary/30 bg-primary/5 p-5">
           <h2 className="mb-1 text-sm font-semibold text-foreground">AI orchestrator (beta)</h2>
           <p className="mb-3 text-xs text-muted-foreground">
-            An LLM drives 25 audit tools and produces concrete fix patches — H1 rewrites, JSON-LD blocks, robots.txt diffs. Owner-private manifest with copy-paste UI. Costs $1-3 per audit.
+            An LLM drives 25 audit tools and produces concrete fix patches: H1 rewrites, JSON-LD blocks, robots.txt diffs. Owner-private manifest with copy-paste UI. Costs $1-3 per audit.
           </p>
           <StartOrchestratorButton />
         </section>

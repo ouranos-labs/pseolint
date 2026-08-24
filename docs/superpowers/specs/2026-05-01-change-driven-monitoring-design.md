@@ -1,6 +1,6 @@
 # Change-Driven Monitoring Design
 
-**Status:** Draft — 2026-05-01
+**Status:** Draft, 2026-05-01
 **Author:** philippe.kam27@gmail.com + Claude (Opus 4.7)
 **Motivation:** Self-challenge of the scraping pipeline (memory: `scraper_refinement_backlog.md`) surfaced that today's `--since` flag does change-detection at the wrong layer. We pay the full network and Playwright cost on every monitoring run, then skip *rule evaluation* on unchanged pages. Rule eval is microseconds; the fetch is seconds. With the Pro pivot to per-domain monitoring, every monitoring tick on a 4k-page site re-fetches everything. This design moves the "should we re-audit this URL?" decision *upstream of the fetch*, using cheap signals (sitemap `<lastmod>`, prior state, GSC delta) to skip work entirely on URLs that haven't moved.
 
@@ -12,7 +12,7 @@ On a steady-state monitoring run, fetch only URLs with evidence of change. Carry
 
 - **GSC delta input wiring.** The decision matrix accepts GSC deltas as an optional input; ingesting GSC and computing the delta lives in Pro v1.1 (separate work).
 - **Sitemap-lastmod trust verification.** v1 trusts `<lastmod>` at face value. HEAD-sampling to detect lying sitemaps is a follow-up. (Mitigation in v1: open-finding recheck + age-floor + ruleset-version invalidation give us defense-in-depth.)
-- **Findings staleness UX in dashboard.** "Verified 8 days ago" badges, confidence demotion after staleness threshold — Pro dashboard work, separate plan.
+- **Findings staleness UX in dashboard.** "Verified 8 days ago" badges, confidence demotion after staleness threshold: Pro dashboard work, separate plan.
 - **HEAD-only fetch path for unchanged-but-no-validators URLs.** v1 falls through to full GET when no `<lastmod>` and no validator. HEAD-fallback can be added later without state schema changes.
 - **Replacing the existing HTTP cache.** The disk cache (cache.ts) and conditional-GET path stay. This design layers *above* the cache: cache decides "do I need to re-download bytes?", monitoring scope decides "do I need to fetch this URL at all?"
 
@@ -28,7 +28,7 @@ Today's flow when `options.state.since` is set (`auditor.ts` ~1556):
 4. Compare to prior state's `contentHash`
 5. If unchanged → skip *rule evaluation* on it
 
-The "savings" is steps 4–5 — microseconds of CPU. We've already paid steps 2–3 — the expensive things. **The decision has to move upstream of the fetch.**
+The "savings" is steps 4–5, microseconds of CPU. We've already paid steps 2–3, the expensive things. **The decision has to move upstream of the fetch.**
 
 ### Pre-fetch signals, ranked by cost-per-information
 
@@ -40,7 +40,7 @@ The "savings" is steps 4–5 — microseconds of CPU. We've already paid steps 2
 | Ruleset version | zero | Universal |
 | GSC delta (Pro) | ~zero (one bulk pull) | High when wired |
 | HEAD request | 1 RTT, no body | Universal |
-| Conditional GET (304) | 1 RTT, sometimes no body | Universal — already done in cache.ts |
+| Conditional GET (304) | 1 RTT, sometimes no body | Universal: already done in cache.ts |
 | Full GET | 1 RTT + body | What we do today |
 
 Today every URL pays the bottom row. The redesign uses the top five to decide *before* paying the round-trip.
@@ -50,15 +50,15 @@ Today every URL pays the bottom row. The redesign uses the top five to decide *b
 For each URL in the candidate set, evaluate in order. First match wins.
 
 1. **Not in prior state** → REFETCH (reason: `new`)
-2. **Prior `fetchedAt` ≥ AGE_FLOOR_DAYS** (default 7) → REFETCH (reason: `age`) — defense against silently-incorrect skips, ensures full coverage at least weekly.
-3. **Prior `rulesetVersion` ≠ current** → REFETCH (reason: `ruleset`) — a new rule added to core wouldn't otherwise run on skipped pages.
-4. **Prior findings include any error/critical/warning severity** → REFETCH (reason: `recheck`) — re-verify pages with open ship-blockers or should-fixes every monitoring run. **Info-only findings carry forward without recheck** (the severity gate is the load-bearing semantic; without it, any URL with any finding would always refetch and the carry-forward primitive would be dead code).
+2. **Prior `fetchedAt` ≥ AGE_FLOOR_DAYS** (default 7) → REFETCH (reason: `age`): defense against silently-incorrect skips, ensures full coverage at least weekly.
+3. **Prior `rulesetVersion` ≠ current** → REFETCH (reason: `ruleset`): a new rule added to core wouldn't otherwise run on skipped pages.
+4. **Prior findings include any error/critical/warning severity** → REFETCH (reason: `recheck`): re-verify pages with open ship-blockers or should-fixes every monitoring run. **Info-only findings carry forward without recheck** (the severity gate is the load-bearing semantic; without it, any URL with any finding would always refetch and the carry-forward primitive would be dead code).
 5. **Sitemap `<lastmod>` > prior `fetchedAt`** → REFETCH (reason: `lastmod`)
 6. **GSC delta crosses threshold** (Pro only, when input provided) → REFETCH (reason: `gsc`)
 7. **No skip evidence available** (no sitemap lastmod and no GSC) → REFETCH (reason: `no-signal`)
 8. Else → **SKIP**, carry findings forward (reason recorded for diagnostics: `unchanged`)
 
-GSC threshold default: ±20% impressions WoW or ±5 absolute clicks WoW. Tuneable, but the value isn't in this spec — it's in the Pro v1.1 GSC plan.
+GSC threshold default: ±20% impressions WoW or ±5 absolute clicks WoW. Tuneable, but the value isn't in this spec, it's in the Pro v1.1 GSC plan.
 
 ### State schema changes
 
@@ -115,7 +115,7 @@ interface RunState {
 }
 ```
 
-`STATE_SCHEMA_VERSION` bumps from `1` to `2`. Migration policy: same as today's renderMode-mismatch path — log a warning, treat as no prior state, perform a baseline full audit. The user pays one full run after upgrading; subsequent runs benefit. No migration code needed.
+`STATE_SCHEMA_VERSION` bumps from `1` to `2`. Migration policy: same as today's renderMode-mismatch path, log a warning, treat as no prior state, perform a baseline full audit. The user pays one full run after upgrading; subsequent runs benefit. No migration code needed.
 
 ### Ruleset version derivation
 
@@ -128,7 +128,7 @@ export const CORE_RULESET_VERSION = "1";
 
 Bump rule: ship a new rule, modify a rule's logic, change a default threshold → bump. Pure refactor → don't bump.
 
-### `planScrapeStrategy()` — the pure decision
+### `planScrapeStrategy()`: the pure decision
 
 New module `packages/core/src/scrape-strategy.ts`. Pure function, fully testable without I/O.
 
@@ -155,20 +155,20 @@ export interface ScrapeStrategyInputs {
 export function planScrapeStrategy(inputs: ScrapeStrategyInputs): ScrapePlan;
 ```
 
-The function is dependency-free (no fetch, no FS) — easy to test the decision matrix exhaustively.
+The function is dependency-free (no fetch, no FS), easy to test the decision matrix exhaustively.
 
 ### Findings carry-forward
 
 For each URL in `plan.skip`:
 - Look up `priorState.urls[url].findingIds`
-- Reconstruct findings from prior state (we need full finding records, not just IDs — see schema note below)
+- Reconstruct findings from prior state (we need full finding records, not just IDs: see schema note below)
 - Mark each carried-forward finding with `carriedForward: true` and `lastVerifiedAt = priorState.urls[url].fetchedAt`
 
 **Schema note:** today's `UrlStateEntry.findingIds` only stores IDs, not full finding records. For carry-forward to work, we either:
 - (A) Store full finding records in state. Larger state file (~tens of KB per URL with findings); easy carry-forward.
 - (B) Store findings separately (e.g., `priorState.findings: Record<findingId, FindingRecord>`) and reference by ID. Slightly more compact when the same finding fires on many URLs (rare).
 
-v1 picks **(A)** — embed findings in state. The biggest pSEO sites cap at low-MB state files which is fine for `.pseolint/state.json`. Add `findings: Finding[]` to `UrlStateEntry` (or rename `findingIds` to keep history of the rename narrow — see plan).
+v1 picks **(A)**, embed findings in state. The biggest pSEO sites cap at low-MB state files which is fine for `.pseolint/state.json`. Add `findings: Finding[]` to `UrlStateEntry` (or rename `findingIds` to keep history of the rename narrow, see plan).
 
 The current `findingIds: string[]` is kept for backward compatibility within v2 schema; the new `findings: Finding[]` is the source of truth, IDs derived from it.
 
@@ -194,9 +194,9 @@ Steps 1 and 4 are subtle: `discoverCandidateUrls` must surface sitemap-lastmod a
 Today: `--since` is a boolean trigger that piggybacks on prior state existence.
 
 v1: keep `--since` working as a back-compat alias for `--mode=monitoring`. Add explicit:
-- `--mode=monitoring` — use the decision matrix (default when prior state exists)
-- `--mode=fresh` — full re-audit, ignore prior state for skip decisions (still write new state)
-- `--age-floor-days=N` — override the 7d age floor
+- `--mode=monitoring`: use the decision matrix (default when prior state exists)
+- `--mode=fresh`: full re-audit, ignore prior state for skip decisions (still write new state)
+- `--age-floor-days=N`: override the 7d age floor
 
 Behavior table:
 
@@ -274,7 +274,7 @@ Single release of `@pseolint/core` v0.5.0:
 
 Web app (`apps/web`) deploys independently after core ships:
 - Inngest monitoring functions get the savings automatically (they call `auditSource` and pass prior state path)
-- Dashboard summary tile reads `scrapePlan` field; falls back to "—" if absent (graceful with older core)
+- Dashboard summary tile reads `scrapePlan` field; falls back to ": " if absent (graceful with older core)
 
 CHANGELOG entries in both `packages/core/CHANGELOG.md` and `apps/web/CHANGELOG.md`.
 
@@ -284,4 +284,4 @@ CHANGELOG entries in both `packages/core/CHANGELOG.md` and `apps/web/CHANGELOG.m
 - **Q4 (cache-busting sites):** Detection beyond post-fetch hash compare?
 - **Q5 (carry-forward staleness UX):** Confidence demotion after N days. Pro dashboard call.
 
-These do not block v1 — the v1 design is correct without them, just less optimal in some adversarial cases.
+These do not block v1, the v1 design is correct without them, just less optimal in some adversarial cases.

@@ -4,7 +4,7 @@ import { detectTemplatesTool } from "../../../src/ai/tools/detect-templates.js";
 describe("detect_templates tool", () => {
   it("groups URLs by template pattern (hyphenated slugs cluster as :slug)", async () => {
     // pseolint's normalizer only collapses hyphenated multi-word slugs and
-    // numeric segments — bare single words like "austin" stay literal so
+    // numeric segments: bare single words like "austin" stay literal so
     // /about and /blog don't collide with detail-page templates.
     const urls = [
       "https://example.com/city/los-angeles",

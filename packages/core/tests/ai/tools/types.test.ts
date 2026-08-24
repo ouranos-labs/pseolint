@@ -62,7 +62,7 @@ describe("defineTool", () => {
   it("toAiTool returns an AI-SDK-compatible tool object", () => {
     const aiTool = okTool.toAiTool();
     // Vercel AI SDK tool() returns an object with description + inputSchema + execute.
-    // We don't assert a specific runtime shape — just that the conversion didn't throw and
+    // We don't assert a specific runtime shape: just that the conversion didn't throw and
     // the returned value is non-null. Real integration is exercised via `streamText`.
     expect(aiTool).toBeDefined();
   });

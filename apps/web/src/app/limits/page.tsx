@@ -13,14 +13,6 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/limits` },
 };
 
-/**
- * Escape `</` sequences inside a JSON-LD payload so a stray closing tag inside
- * a string can't terminate the surrounding `<script>` block.
- */
-function safeJsonLd(obj: unknown): string {
-  return JSON.stringify(obj).replace(/</g, "\\u003c");
-}
-
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Why publish concrete limits at all?",
@@ -33,25 +25,8 @@ const FAQS: { q: string; a: string }[] = [
 ];
 
 export default function LimitsPage() {
-  const faqLd = safeJsonLd({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  });
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
-      <script
-        type="application/ld+json"
-        // FAQPage payload from compile-time-static FAQS array, escaped via
-        // safeJsonLd to prevent script-tag breakout. Same defensive pattern
-        // used on tools/page.tsx and rules/page.tsx.
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: faqLd }}
-      />
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
         Fair-use & limits
@@ -63,7 +38,7 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Free tier: $0, up to 200 pages per audit (50 without an account) — sampled from
+        Free tier: $0, up to 200 pages per audit (50 without an account), sampled from
         your sitemap, stratified across detected templates, 24-hour anonymous retention
         (30-day window for signed-in accounts), 3 audits per day per browser session.
         Pro tier: $19/month ($180/year with 14-day refund), up to 500 pages on a manual
@@ -75,7 +50,7 @@ export default function LimitsPage() {
         <a className="text-primary hover:underline" href="mailto:hello@pseolint.dev">hello@pseolint.dev</a>{" "}
         and we&apos;ll fix it.
       </p>
-      <Section title="Scope — what we actually audit">
+      <Section title="Scope: what we actually audit">
         <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. The sample is stratified across detected templates and the site verdict reflects the worst template, not the average URL. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
         <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml and stratified across detected templates." />
         <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml and stratified across detected templates." />
@@ -83,7 +58,7 @@ export default function LimitsPage() {
         <Item k="Pages per Pro scheduled monitoring run" v="Up to 200 pages per run, stratified across templates. The site verdict reflects the worst template, not the average URL." />
         <Item k="Cumulative coverage (Pro monitoring)" v="Each monitoring run fetches up to 200 URLs; over time, audit history accumulates across runs. Coverage grows faster on sites with URL churn; stable sites converge quickly. The per-domain dashboard shows the running total." />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
-        <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample — respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
+        <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample: respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />
       </Section>
 
@@ -92,7 +67,7 @@ export default function LimitsPage() {
           Why stratified sampling?
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          A flat random sample of 200 URLs across a 100k-URL directory is 0.2% coverage —
+          A flat random sample of 200 URLs across a 100k-URL directory is 0.2% coverage:
           dominated by the largest template cluster, leaving smaller templates barely sampled.
           A broken <code className="font-mono text-[11px]">/listing/*</code>{" "}
           template covering 90k pages would average out with clean category pages and score{" "}
@@ -100,7 +75,7 @@ export default function LimitsPage() {
           <strong className="text-foreground">concerning</strong>.
         </p>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          So we stratify the page budget across detected templates instead of drawing it flat —
+          So we stratify the page budget across detected templates instead of drawing it flat:
           every template gets representation, not just the biggest cluster. The site verdict
           reflects the worst template, not the average URL. Fix the broken template: fix N pages
           in one shot.
@@ -121,21 +96,21 @@ export default function LimitsPage() {
         <Item k="Free account audits" v="5 per day (does not roll over)" />
         <Item k="Pro account audits" v="50 per day" />
         <Item k="Cache between users" v="If anyone audited the same URL in the last 60 minutes, you get that result instantly (no new crawl fired). Free users cannot force a re-crawl." />
-        <Item k="Re-audit cooldown" v="Authenticated accounts can force a fresh audit. Minimum 5 minutes between forced re-audits of the same URL, regardless of plan — target sites pay for our crawls in bandwidth." />
+        <Item k="Re-audit cooldown" v="Authenticated accounts can force a fresh audit. Minimum 5 minutes between forced re-audits of the same URL, regardless of plan: target sites pay for our crawls in bandwidth." />
         <Item k="Per-host ceiling" v="A single domain can receive at most 30 fresh audits per hour across all users, to prevent viral-post amplification from hammering a target." />
       </Section>
 
       <Section title="How we treat the site we&apos;re auditing">
-        {/* UA string matches packages/core/src/cache.ts PSEOLINT_USER_AGENT — built dynamically from package.json version */}
+        {/* UA string matches packages/core/src/cache.ts PSEOLINT_USER_AGENT: built dynamically from package.json version */}
         <Item k="User-Agent" v={<code className="font-mono text-foreground">Mozilla/5.0 (compatible; pseolint/{ENGINE_VERSION}; +https://pseolint.dev/bot)</code>} />
-        <Item k="robots.txt" v="Fully honored — both Disallow paths and Crawl-delay pacing (capped at 60 seconds per request)." />
+        <Item k="robots.txt" v="Fully honored: both Disallow paths and Crawl-delay pacing (capped at 60 seconds per request)." />
         <Item k="Retry-After" v="Honored once per URL, capped at 30 seconds. We don&apos;t hammer sites that ask us to back off." />
         <Item k="Concurrency" v="At most 5 parallel fetches, dropping to 1 if Crawl-delay is declared." />
         <Item k="Total bandwidth per audit" v="Capped at 50 MB of fetched bytes. We stop when we hit it, even if the budget isn&apos;t filled." />
         <Item k="SSRF protection" v="localhost, private networks, and non-http(s) schemes are rejected. We only audit public sites." />
       </Section>
 
-      <Section title="Retention — how long reports live">
+      <Section title="Retention: how long reports live">
         <Item k="Anonymous (no account)" v="24 hours, then auto-deleted" />
         <Item k="Free account" v="30 days" />
         <Item k="Pro account" v="Indefinite (until you delete)" />
@@ -144,8 +119,8 @@ export default function LimitsPage() {
       </Section>
 
       <Section title="What&apos;s public vs private">
-        <Item k="Free-tier audits" v="Public by default — shareable link + eligible for the /leaderboard. The URL + host + score are visible to anyone who has the share link." />
-        <Item k="Pro-tier audits" v="Private by default — only the audit owner can view." />
+        <Item k="Free-tier audits" v="Public by default: shareable link + eligible for the /leaderboard. The URL + host + score are visible to anyone who has the share link." />
+        <Item k="Pro-tier audits" v="Private by default: only the audit owner can view." />
         <Item k="Visibility toggle" v="Authenticated users can flip any of their own audits to private at any time via the audit page. Anonymous audits cannot be flipped (we can&apos;t confirm ownership)." />
         <Item k="Leaderboard inclusion" v="Public + completed + unexpired audits with 5+ pages. One entry per domain. Opt out by flipping to private (authed only) or letting an anonymous audit expire." />
       </Section>
@@ -155,7 +130,7 @@ export default function LimitsPage() {
         <Item k="No JavaScript rendering by default" v="We audit server-rendered HTML. Client-side rendered pages will look empty to us. Pro has optional browser rendering via CDP." />
         <Item k="The rule set is a subset of SpamBrain" v="We infer plausible SpamBrain signals from public documentation, research, and observed patterns. We do not have access to Google&apos;s actual classifier and make no claim of one-to-one correspondence." />
         <Item k="Score is a heuristic" v="Treat it as a structured conversation, not a verdict. A low score isn&apos;t a guarantee of indexing success. A high score isn&apos;t proof SpamBrain will act." />
-        <Item k="We can't see off-page signals" v="We measure on-page structural risk. We can't see the off-page authority and user-behaviour signals Google weighs most heavily — so a thin, templated page on a high-authority domain can rank fine, while a clean-looking page can still be suppressed by signals we don't observe. The audit covers the controllable, on-page surface of risk; pair it with your domain's authority for the off-page half." />
+        <Item k="We can't see off-page signals" v="We measure on-page structural risk. We can't see the off-page authority and user-behaviour signals Google weighs most heavily, so a thin, templated page on a high-authority domain can rank fine, while a clean-looking page can still be suppressed by signals we don't observe. The audit covers the controllable, on-page surface of risk; pair it with your domain's authority for the off-page half." />
       </Section>
 
       <Section title="Operational controls (when things go wrong)">
@@ -167,7 +142,7 @@ export default function LimitsPage() {
       <div className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
         <p>
           This page is the source of truth for what you can expect from pseolint&apos;s hosted audits.
-          If you see behavior on the service that contradicts something here, that&apos;s a bug — please
+          If you see behavior on the service that contradicts something here, that&apos;s a bug: please
           report it.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -191,6 +166,20 @@ export default function LimitsPage() {
           </a>
         </div>
       </div>
+
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Frequently asked
+        </h2>
+        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+          {FAQS.map((f) => (
+            <div key={f.q} className="grid gap-2 border-b border-border/60 px-5 py-5 last:border-b-0">
+              <dt className="text-sm font-semibold text-foreground">{f.q}</dt>
+              <dd className="text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <SourcesSection
         sources={[

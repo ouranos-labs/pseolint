@@ -1,7 +1,7 @@
 /**
  * On-demand GSC sync for a single domain, triggered by the `gsc/sync-requested` event.
  *
- * Called from POST /api/gsc/refresh/[host] — rate-limited at the HTTP layer to
+ * Called from POST /api/gsc/refresh/[host]: rate-limited at the HTTP layer to
  * 1 request/hour per user-host pair. This function does not enforce its own
  * rate limit because the API route already does.
  *

@@ -1,5 +1,5 @@
 // Runnable check for fetched-page signal extraction. `node tests/parse.test.js`.
-// Pure string parsing — no DOM, so it runs anywhere (the point of the regex parse).
+// Pure string parsing: no DOM, so it runs anywhere (the point of the regex parse).
 import assert from "node:assert";
 import { parseSignals } from "../src/shared/parse.js";
 

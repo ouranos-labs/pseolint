@@ -44,13 +44,13 @@ function summarize(value: unknown, max = 80): string {
 
 /**
  * Pretty-print a single SessionEvent to stdout. Designed for live streaming
- * during a session — each event ends with a newline and uses ANSI colors
+ * during a session: each event ends with a newline and uses ANSI colors
  * by default (strippable via `noColor`).
  */
 function renderEvent(event: SessionEvent, strip: boolean): string {
   switch (event.kind) {
     case "session_started":
-      return paint(`◆ session ${event.sessionId.slice(0, 8)} — ${event.domain}`, BOLD + CYAN, strip);
+      return paint(`◆ session ${event.sessionId.slice(0, 8)}: ${event.domain}`, BOLD + CYAN, strip);
     case "tool_call":
       return paint(`→ ${event.toolName}`, CYAN, strip) + " " +
         paint(summarize(event.input, 100), DIM, strip);
@@ -164,7 +164,7 @@ export async function runOrchestrateCommand(opts: OrchestrateCliOptions): Promis
     stream.write(
       paint(
         `No manifest produced (reason: ${result.session.reason}` +
-          (result.session.error ? ` — ${result.session.error}` : "") +
+          (result.session.error ? `: ${result.session.error}` : "") +
           ")",
         YELLOW,
         strip,

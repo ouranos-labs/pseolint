@@ -67,7 +67,7 @@ const PROMPT_STEPS = [
   },
   {
     name: "Inject Machine-Readable Structured Metadata",
-    text: "Embed valid schema.org metadata graphs (FAQPage, HowTo, Product) corresponding to the generated text, establishing E-E-A-T indicators.",
+    text: "Embed valid schema.org metadata graphs that still earn something (Article or TechArticle with a named author, Product, BreadcrumbList) corresponding to the generated text, establishing E-E-A-T indicators. Skip FAQPage and HowTo: Google retired both rich results.",
   },
 ];
 
@@ -100,34 +100,6 @@ export default function ProgrammaticSeoAiContentPage() {
         "https://linkedin.com/in/philippekam"
       ]
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Generate Compliant AI Content for pSEO",
-    description: "5 steps to configure dynamic prompting and validation pipelines to scale helpful AI content.",
-    step: PROMPT_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -287,14 +259,6 @@ function buildPrompt(entity) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

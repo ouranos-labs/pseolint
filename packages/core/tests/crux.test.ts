@@ -103,7 +103,7 @@ describe("fetchCruxFieldVitals", () => {
       onHttpError: (s) => { statuses = s; },
       fetchFn: async (_u, init) => {
         const body = JSON.parse((init?.body as string) ?? "{}");
-        if ("origin" in body) return res({}, 404); // no data — expected, not an error
+        if ("origin" in body) return res({}, 404); // no data: expected, not an error
         return res({ error: "rate limited" }, 429);
       },
     });

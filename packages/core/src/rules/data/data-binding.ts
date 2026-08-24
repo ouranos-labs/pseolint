@@ -44,11 +44,11 @@ export function dataBindingRule(
         if (textValues.length > 0 && found.length === 0) {
           missingFields.push(key);
         } else if (textValues.length > 2 && found.length < textValues.length * 0.3) {
-          // Less than 30% of array items found — partial binding
+          // Less than 30% of array items found: partial binding
           missingFields.push(`${key} (${found.length}/${textValues.length} items rendered)`);
         }
       }
-      // Skip non-string non-array values (numbers, booleans) — too generic to match
+      // Skip non-string non-array values (numbers, booleans): too generic to match
     }
 
     if (missingFields.length > 0) {

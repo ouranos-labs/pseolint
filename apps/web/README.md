@@ -12,7 +12,7 @@ Next.js app hosting the pseolint SaaS at `app.pseolint.dev`.
 - Cloudflare R2 (report storage, rendered via sandboxed iframe)
 - Cloudflare Turnstile (bot gate)
 - Polar.sh (payments, merchant-of-record)
-- `@emailens/*` (email QA — compatibility + spam scoring for transactional templates)
+- `@emailens/*` (email QA: compatibility + spam scoring for transactional templates)
 
 ## Dev setup
 
@@ -52,7 +52,7 @@ bun --cwd apps/web run test -- tests/emails
 
 The test in `tests/emails/templates.test.ts` renders each template via `@react-email/render`, then runs the HTML through `@emailens/engine`:
 
-- `analyzeEmail()` + `generateCompatibilityScore()` — per email-client CSS compatibility (asserts worst client ≥ 70).
-- `analyzeSpam()` — heuristic spam score on a 0–100 scale where higher is cleaner (asserts ≥ 70).
+- `analyzeEmail()` + `generateCompatibilityScore()`: per email-client CSS compatibility (asserts worst client ≥ 70).
+- `analyzeSpam()`: heuristic spam score on a 0–100 scale where higher is cleaner (asserts ≥ 70).
 
 Thresholds are intentionally loose for the initial pass; tighten as templates mature.

@@ -1,4 +1,4 @@
-// pseolint extension — SERP layout detection (architecture §3, Path A).
+// pseolint extension: SERP layout detection (architecture §3, Path A).
 //
 // Recognise the ranked organic results and pull their target URLs. The DOM glue
 // is deliberately thin; the URL-cleaning + selection logic is pure and tested.
@@ -7,13 +7,13 @@
 const SKIP_HOST = /(^|\.)(google\.[a-z.]+|gstatic\.com|googleusercontent\.com|youtube\.com)$/i;
 
 // A real SERP page shows ~10 organic results. Far more than this means our
-// selector matched something that isn't the results list — bail (§9).
+// selector matched something that isn't the results list: bail (§9).
 const MAX_RESULTS = 30;
 
-// Which /search page are we on? The overlay is WEB-results only — a badge on an
+// Which /search page are we on? The overlay is WEB-results only: a badge on an
 // Images strip or a Shopping grid is a wrong verdict, and a wrong verdict is
 // credibility death (§6). So this is an ALLOWLIST, not a blocklist: the "All" page
-// carries no vertical selector — no `tbm` (classic UI) and either no `udm` or
+// carries no vertical selector: no `tbm` (classic UI) and either no `udm` or
 // `udm=14` ("Web", new UI). ANY other value is a vertical → dormant. A new vertical
 // Google invents is therefore excluded by default (dormant = safe; a missed badge
 // beats a wrong one), and pagination (&start=) / query params don't matter.
@@ -26,7 +26,7 @@ export function isGoogleSearch(url) {
   return GOOGLE_HOST.test(u.hostname) && u.pathname === "/search";
 }
 
-// The scannable Web ("All") results page only — false on Images/News/Video/Shopping/…
+// The scannable Web ("All") results page only: false on Images/News/Video/Shopping/…
 export function isWebSerp(url) {
   if (!isGoogleSearch(url)) return false;
   const u = new URL(url);
@@ -123,14 +123,16 @@ export function scrapeAio(doc = document) {
   const citations = [];
   const container = doc.querySelector("div.Kevs9, #Odp5De");
   if (container) {
-    const links = container.querySelectorAll("a[href]");
+    // lib.dom only infers element types from bare tag selectors, so an
+    // attribute selector comes back as Element and `.href` is unknown.
+    const links = /** @type {NodeListOf<HTMLAnchorElement>} */ (container.querySelectorAll("a[href]"));
     for (const a of links) {
       const url = cleanResultUrl(a.href);
       if (url) citations.push(url);
     }
   }
   // Also scan inline badges like a.PMDqCb
-  for (const a of doc.querySelectorAll("a.PMDqCb")) {
+  for (const a of /** @type {NodeListOf<HTMLAnchorElement>} */ (doc.querySelectorAll("a.PMDqCb"))) {
     const url = cleanResultUrl(a.href);
     if (url) citations.push(url);
   }

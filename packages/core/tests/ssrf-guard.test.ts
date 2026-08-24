@@ -212,7 +212,7 @@ describe("decodeNumericIPv4", () => {
   });
 });
 
-describe("isPrivateOrReservedHost — numeric encoding bypass protection", () => {
+describe("isPrivateOrReservedHost: numeric encoding bypass protection", () => {
   it("rejects integer-packed 127.0.0.1", () => {
     expect(isPrivateOrReservedHost("2130706433")).toMatch(/IPv4/);
   });
@@ -228,7 +228,7 @@ describe("isPrivateOrReservedHost — numeric encoding bypass protection", () =>
   });
 
   it("rejects public numeric-encoded IPs as ambiguous", () => {
-    // 8.8.8.8 as integer — rejected even though it's public, because numeric
+    // 8.8.8.8 as integer: rejected even though it's public, because numeric
     // encoding is a deniability smell and legit callers should pass dotted-quad.
     expect(isPrivateOrReservedHost("134744072")).toMatch(/ambiguous numeric-encoded/);
   });

@@ -3,7 +3,7 @@ import { defineTool } from "../tools/types.js";
 
 /**
  * Manifest schema. Mirrors the spec at §7.1 of the orchestrator design doc.
- * Patch unions are kept narrow to constrain LLM output — adding a new patch
+ * Patch unions are kept narrow to constrain LLM output: adding a new patch
  * type is an explicit migration here + a new validator in Phase 4.
  */
 const verdictSchema = z.enum(["ready", "caution", "concerning", "critical"]);
@@ -90,7 +90,7 @@ const manifestSchema = z.object({
   templates: z.array(templatePatchSchema),
   pages: z.array(pagePatchSchema),
   domainLevel: z.array(domainPatchSchema),
-  /** Free-text summary for the orchestrator UI. Optional — dashboard can synthesize one. */
+  /** Free-text summary for the orchestrator UI. Optional: dashboard can synthesize one. */
   summary: z.string().optional(),
 });
 
@@ -107,7 +107,7 @@ export type FixManifest = z.infer<typeof manifestSchema>;
 /**
  * Terminal tool. The orchestrator MUST call this to close out the session;
  * the runner detects the call and stops the LLM loop. Validation happens
- * via Zod at the tool boundary — a malformed manifest produces an
+ * via Zod at the tool boundary: a malformed manifest produces an
  * OUTPUT_VALIDATION error and the LLM gets to retry within budget.
  *
  * The execute() body is a no-op acknowledgement; the runner pulls the
@@ -117,7 +117,7 @@ export type FixManifest = z.infer<typeof manifestSchema>;
 export const finishAuditTool = defineTool({
   name: "finish_audit",
   description:
-    "Terminate the audit session and emit the final fix manifest. Required: call this exactly once, with the full manifest as input. The runner stops the LLM loop on this call. Manifest must include `domain`, `verdict`, `categories`, plus the three patch arrays (templates, pages, domainLevel) — empty arrays are fine when there's nothing actionable in that bucket.",
+    "Terminate the audit session and emit the final fix manifest. Required: call this exactly once, with the full manifest as input. The runner stops the LLM loop on this call. Manifest must include `domain`, `verdict`, `categories`, plus the three patch arrays (templates, pages, domainLevel), empty arrays are fine when there's nothing actionable in that bucket.",
   inputSchema,
   outputSchema,
   async execute() {

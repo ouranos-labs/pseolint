@@ -30,7 +30,7 @@ export default async function TokensPage({ searchParams }: { searchParams: Promi
 
       {issued && (
         <div className="rounded-[14px] border border-success/40 bg-success/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-success">New token (copy now — you won&apos;t see it again)</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">New token (copy now; you won&apos;t see it again)</p>
           <code className="mt-2 block overflow-x-auto font-mono text-xs">{issued}</code>
         </div>
       )}

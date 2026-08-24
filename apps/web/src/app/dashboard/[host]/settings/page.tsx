@@ -98,7 +98,7 @@ export default async function DomainSettings({
         <span>/</span>
         <span className="text-foreground">Settings</span>
       </nav>
-      <h1 className="text-xl font-medium">Settings — {domain.host}</h1>
+      <h1 className="text-xl font-medium">Settings: {domain.host}</h1>
 
       <SaveFeedback saved={saved} gsc={gscState} siteUrl={gscBoundSiteUrl} />
 
@@ -129,7 +129,7 @@ export default async function DomainSettings({
           <span className="text-xs text-muted-foreground">
             Your domain&apos;s authority/reputation, 0–100 (e.g. Moz DA, Ahrefs DR).
             High authority (≥80) relaxes the verdict one tier; low (≤30) tightens it
-            one tier — counters false positives on thin-but-trusted pages. The raw
+            one tier: counters false positives on thin-but-trusted pages. The raw
             risk score is never changed. Leave blank to skip.
           </span>
           <input name="authorityScore" type="number" min={0} max={100} defaultValue={domain.authorityScore ?? ""} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
@@ -163,7 +163,7 @@ export default async function DomainSettings({
           <span className="flex flex-col gap-1">
             <span className="text-sm font-medium">Render JS-heavy pages (browser)</span>
             <span className="text-xs text-muted-foreground">
-              Render pages in a headless browser before auditing — needed for
+              Render pages in a headless browser before auditing: needed for
               JS-heavy / SPA sites (Webflow, Framer, client-rendered Next).
               Slower + heavier; uses the configured browser service.
             </span>
@@ -204,7 +204,7 @@ export default async function DomainSettings({
                 defaultValue={domain.gscSiteUrl ?? gscSuggestion ?? ""}
                 className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
               >
-                <option value="">— unbound —</option>
+                <option value=""> (unbound) </option>
                 {gscSites.map((s) => (
                   <option key={s.siteUrl} value={s.siteUrl}>{s.siteUrl}</option>
                 ))}
@@ -241,7 +241,7 @@ export default async function DomainSettings({
             {domain.gscSiteUrl
               ? "Re-detect the matching property from your Search Console properties."
               : gscSuggestion
-              ? "We found a matching property — bind it in one click."
+              ? "We found a matching property: bind it in one click."
               : "Try matching this host against your Search Console properties."}
           </p>
           <button
@@ -302,7 +302,7 @@ export default async function DomainSettings({
         </header>
         {dataSource && (
           <p className="text-xs text-primary">
-            ✓ {dataSource.recordCount} records loaded — last updated {new Date(dataSource.updatedAt).toLocaleString()}
+            ✓ {dataSource.recordCount} records loaded: last updated {new Date(dataSource.updatedAt).toLocaleString()}
           </p>
         )}
         <DataSourceForm host={domain.host} hasExisting={Boolean(dataSource)} />
@@ -335,7 +335,7 @@ export default async function DomainSettings({
         <header>
           <h2 className="text-sm font-medium">Rule thresholds (advanced)</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            JSON-override for <code className="font-mono">AuditOptions.rules</code> — e.g.
+            JSON-override for <code className="font-mono">AuditOptions.rules</code>, e.g.
             <code className="ml-1 font-mono">{"{"}"thinContentMinWords": 150{"}"}</code> to loosen thin-content on short landing pages.
             Leave blank to use defaults.
           </p>
@@ -412,7 +412,7 @@ export default async function DomainSettings({
               <span className="text-sm font-medium">Strict (run every rule)</span>
               <span className="text-xs text-muted-foreground">
                 Keep site classification but run all rules regardless of detected
-                site type — no pSEO-only rules are suppressed.
+                site type: no pSEO-only rules are suppressed.
               </span>
             </span>
           </label>
@@ -471,7 +471,7 @@ export default async function DomainSettings({
             <span className="text-sm font-medium">Entity patterns (advanced)</span>
             <span className="text-xs text-muted-foreground">
               Custom entity-mask patterns merged with the defaults (US states, ZIP codes).
-              JSON array of <code className="font-mono">{"{ placeholder, pattern, flags? }"}</code> — used to
+              JSON array of <code className="font-mono">{"{ placeholder, pattern, flags? }"}</code>: used to
               normalize templated tokens (e.g. city / SKU) when comparing pages for near-duplication.
               Leave blank to skip.
             </span>
@@ -496,7 +496,7 @@ export default async function DomainSettings({
 /**
  * Transient banner that confirms what the previous server-action submit
  * actually changed. Reads its state from the redirect query string so a
- * page reload (without the params) silently dismisses it — same affordance
+ * page reload (without the params) silently dismisses it: same affordance
  * as the GSC OAuth callback's `?gsc=connected&bound=…` banner.
  */
 function SaveFeedback({
@@ -510,12 +510,12 @@ function SaveFeedback({
 }) {
   if (!saved && !gsc) return null;
 
-  // Error / warning paths — these come from rebindGscPropertyAction and
+  // Error / warning paths; these come from rebindGscPropertyAction and
   // never carry saved=1 (the operation didn't change anything).
   if (gsc === "no_grant") {
     return (
       <Banner tone="warning">
-        Search Console isn&apos;t connected yet —{" "}
+        Search Console isn&apos;t connected yet: {" "}
         <Link href="/dashboard/integrations" className="font-medium underline-offset-2 hover:underline">
           connect it
         </Link>{" "}
@@ -536,7 +536,7 @@ function SaveFeedback({
     return (
       <Banner tone="destructive">
         Couldn&apos;t reach Google to look up your properties. The grant may
-        have been revoked —{" "}
+        have been revoked: {" "}
         <Link href="/dashboard/integrations" className="font-medium underline-offset-2 hover:underline">
           re-connect Search Console
         </Link>
@@ -545,7 +545,7 @@ function SaveFeedback({
     );
   }
 
-  // Success paths — saved=1.
+  // Success paths: saved=1.
   if (gsc === "bound" && siteUrl) {
     return (
       <Banner tone="success">

@@ -1,5 +1,5 @@
 /**
- * v0.5.12 — tests for AuditOptions.pinnedUrls
+ * v0.5.12: tests for AuditOptions.pinnedUrls
  *
  * These tests use a mocked globalThis.fetch so no network calls are made.
  * Strategy: provide a controlled set of pages + sitemap, then verify that
@@ -52,7 +52,7 @@ function makeFetch(pages: Record<string, string>, sitemapUrls?: string[]): typeo
         headers: { "content-type": "application/xml" },
       });
     }
-    // robots.txt — always 404 in tests
+    // robots.txt: always 404 in tests
     if (url === `${SITE}/robots.txt`) {
       return new Response("Not found", { status: 404 });
     }
@@ -91,7 +91,7 @@ describe("pinnedUrls option", () => {
       sampleSize: 1, // should be IGNORED because pinnedUrls is set
     });
 
-    // Only pinned pages fetched — extra-page never touched
+    // Only pinned pages fetched: extra-page never touched
     const auditPageUrls = summary.auditedUrls ?? [];
     expect(auditPageUrls).toContain(pinnedA);
     expect(auditPageUrls).toContain(pinnedB);
@@ -144,7 +144,7 @@ describe("pinnedUrls option", () => {
 
     const pages: Record<string, string> = {
       [pageOk]: RICH_HTML("OK Page", WORD_FILL("hello world content")),
-      // page-404 is intentionally absent — fetch returns 404
+      // page-404 is intentionally absent: fetch returns 404
     };
 
     globalThis.fetch = makeFetch(pages);
@@ -161,7 +161,7 @@ describe("pinnedUrls option", () => {
     expect(summary.pageCount).toBe(1);
   });
 
-  test("combination: pinnedUrls dominates — force.urls is a no-op when pinnedUrls is set", async () => {
+  test("combination: pinnedUrls dominates, force.urls is a no-op when pinnedUrls is set", async () => {
     const pinned = `${SITE}/pinned`;
     const forced = `${SITE}/forced`;
     const extra = `${SITE}/extra`;
@@ -177,7 +177,7 @@ describe("pinnedUrls option", () => {
     const summary = await auditSource(`${SITE}/sitemap.xml`, {
       pinnedUrls: [pinned],
       // force.urls only applies in monitoring mode (prior state), so this is
-      // effectively a no-op in fresh mode regardless — but the audit set is
+      // effectively a no-op in fresh mode regardless, but the audit set is
       // pinned regardless of what force.urls contains.
     });
 
@@ -192,13 +192,13 @@ describe("pinnedUrls option", () => {
     // Wise calibration regression: 22/25 pinned locale pages were flagged as
     // "unreachable from root" because the nav links between locale URLs were
     // not present in the pinned HTML set. Pinned mode is a hand-picked subset
-    // — the same guard that suppresses unreachable-from-root for random-sampled
+    //: the same guard that suppresses unreachable-from-root for random-sampled
     // crawls should also apply.
     const root = `${SITE}/`;
     const pageA = `${SITE}/section-a`;
     const pageB = `${SITE}/section-b`;
 
-    // root has no internal links to pageA or pageB in its HTML — simulates
+    // root has no internal links to pageA or pageB in its HTML: simulates
     // the Wise scenario where locale pages aren't linked from the pinned root.
     const pages: Record<string, string> = {
       [root]: RICH_HTML("Root", WORD_FILL("root content")),

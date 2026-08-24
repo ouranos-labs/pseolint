@@ -6,10 +6,10 @@ import { useState } from "react";
  * Card thumbnail. Renders the audited site's OG image when captured, otherwise
  * a branded gradient + first letter of the host so the card still has visual
  * identity. If the OG image fails to load at runtime (404, CORS, dead CDN),
- * we catch the error via onError and fall back to the gradient placeholder —
+ * we catch the error via onError and fall back to the gradient placeholder:
  * no broken-image icon ever shown to the user.
  *
- * Plain <img> (not Next/Image) — we don't want to allowlist arbitrary
+ * Plain <img> (not Next/Image): we don't want to allowlist arbitrary
  * audited hosts as remote patterns. `referrerPolicy=no-referrer` so we don't
  * leak the visitor's referer to every audited domain on first paint.
  */

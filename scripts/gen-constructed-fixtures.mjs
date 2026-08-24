@@ -23,7 +23,7 @@ function writeFixture(hostDir, manifest, files) {
     writeFileSync(join(dir, name), html, "utf-8");
   }
   writeFileSync(join(dir, "_manifest.json"), JSON.stringify(manifest, null, 2) + "\n", "utf-8");
-  console.log(`wrote ${hostDir}/ — ${Object.keys(files).length} pages`);
+  console.log(`wrote ${hostDir}/ (${Object.keys(files).length} pages)`);
 }
 
 // ---- 1. Doorway: near-identical {city} pages all linking to /contact -------

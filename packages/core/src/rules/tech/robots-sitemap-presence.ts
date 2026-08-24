@@ -147,7 +147,7 @@ export function parseDisallowPatterns(robotsTxt: string, userAgents: readonly st
 
     if (/^disallow\s*:/i.test(line)) {
       const value = line.replace(/^disallow\s*:\s*/i, "").trim();
-      // Empty Disallow means "allow everything" — skip
+      // Empty Disallow means "allow everything"; skip
       if (value) {
         patterns.push(value);
       }
@@ -162,7 +162,7 @@ export function parseDisallowPatterns(robotsTxt: string, userAgents: readonly st
  *
  * Rules:
  *  - Trailing slash: "/foo/" blocks any path starting with "/foo/"
- *  - Wildcard `*`: iterative segment matching (no dynamic RegExp — avoids ReDoS)
+ *  - Wildcard `*`: iterative segment matching (no dynamic RegExp: avoids ReDoS)
  *  - Exact match otherwise
  */
 export function isBlockedByPattern(urlPath: string, pattern: string): boolean {

@@ -2,7 +2,7 @@
  * Phase-1 content-effort re-validation runner (Task 5 of the SP1 plan).
  *
  * For each gated corpus fixture (class policy-violating | reputable with a
- * localFixtureDir), audits it OFFLINE (content-effort OFF — base audit only, no
+ * localFixtureDir), audits it OFFLINE (content-effort OFF: base audit only, no
  * network), judges per-template content effort, and prints two AUCs:
  *   - structural AUC: from summary.risk (the committed baseline ≈ 0.47)
  *   - content-effort AUC: from (100 - siteEffort) as the "risk" signal
@@ -13,7 +13,7 @@
  *
  * STUB mode swaps in a deterministic scorer (distinct-word ratio × length
  * bucket) and a SEPARATE cache dir so it never touches the real LLM or the real
- * cache. The stub AUC is plumbing-only — a fake scorer — NOT the real signal.
+ * cache. The stub AUC is plumbing-only: a fake scorer: NOT the real signal.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
@@ -31,7 +31,7 @@ const CACHE_DIR = resolve(HERE, "..", "calibration", STUB ? ".effort-cache-stub"
 const STRUCTURAL_BASELINE = 0.47;
 
 // Cost guard: tally each call's REAL token usage × model rate and hard-abort if the running
-// total crosses the ceiling — so a thinking-token blow-up can never silently burn the balance
+// total crosses the ceiling, so a thinking-token blow-up can never silently burn the balance
 // again. USD per 1M tokens (output includes thinking tokens). Unknown model → assume priciest.
 const MAX_USD = Number(process.env.PSEO_EFFORT_MAX_USD ?? 3);
 const RATES: Record<string, { in: number; out: number }> = {
@@ -119,7 +119,7 @@ async function main() {
     });
   }
 
-  console.log(`# content-effort validation (${STUB ? "STUB — offline, fake scorer" : "REAL LLM"}); model=${modelId}`);
+  console.log(`# content-effort validation (${STUB ? "STUB, offline, fake scorer" : "REAL LLM"}); model=${modelId}`);
   console.log(`# cache: ${CACHE_DIR}`);
 
   const structuralRows: ScoreRow[] = [];
@@ -132,7 +132,7 @@ async function main() {
     if (cls !== "policy-violating" && cls !== "reputable") continue; // skip subjects (non-gated)
 
     const fixtureDir = resolve(REPO_ROOT, site.localFixtureDir);
-    // Base audit only — content-effort is OFF here (no network, no LLM).
+    // Base audit only: content-effort is OFF here (no network, no LLM).
     const summary = await auditSource(fixtureDir, { safeMode: "saas" });
 
     structuralRows.push({ url: site.url, siteClass: cls, audit: scoredAudit(summary.verdict, summary.risk) });
@@ -190,7 +190,7 @@ async function main() {
   console.log(`content-effort AUC: ${fmt(effort.auc)}  (n_pol=${effort.nPolicy}, n_rep=${effort.nReputable}; skipped null-effort sites)`);
   if (STUB) {
     console.log("");
-    console.log("NOTE: STUB mode — the content-effort AUC above is PLUMBING-ONLY (a fake");
+    console.log("NOTE: STUB mode, the content-effort AUC above is PLUMBING-ONLY (a fake");
     console.log("      distinct-word-ratio scorer), NOT the real LLM signal. The real gate");
     console.log("      still needs ANTHROPIC_API_KEY: bun scripts/content-effort-validate.ts");
   } else {

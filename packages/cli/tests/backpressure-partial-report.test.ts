@@ -1,7 +1,7 @@
 /**
  * CLI behaviour around the backpressure partial-report salvage (Task B):
  *
- *   1. `localhostConcurrencyWarning` — pure helper that warns when a localhost
+ *   1. `localhostConcurrencyWarning`: pure helper that warns when a localhost
  *      target is crawled with concurrency > the dev preset's 1.
  *   2. End-to-end: when the engine returns a `truncated` summary (watchdog
  *      aborted mid-crawl but salvaged pages), the CLI still writes the report
@@ -62,7 +62,7 @@ describe("CLI partial-report on watchdog abort", () => {
 
     globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input.toString();
-      // Real fetch rejects once aborted — this makes the crawl actually stop.
+      // Real fetch rejects once aborted; this makes the crawl actually stop.
       if (init?.signal?.aborted) {
         throw init.signal.reason ?? new DOMException("aborted", "AbortError");
       }

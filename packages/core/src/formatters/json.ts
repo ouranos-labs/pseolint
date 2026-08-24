@@ -9,7 +9,7 @@ export interface JsonFormatOptions {
 
 /**
  * Serialise the full v0.4 AuditSummary verbatim. The CLI / web layer must see
- * every field the engine produced — no field-stripping, no transformation.
+ * every field the engine produced: no field-stripping, no transformation.
  */
 export function formatJson(summary: AuditSummary, _options?: JsonFormatOptions): string {
   return JSON.stringify(summary, null, 2);

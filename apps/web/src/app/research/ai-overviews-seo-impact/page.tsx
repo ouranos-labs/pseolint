@@ -36,11 +36,11 @@ const FAQS = [
   },
   {
     q: "How do AI crawlers choose which programmatic pages to cite?",
-    a: "Google's LLM retrieval models prioritize pages that are highly structured, indexable, and feature machine-readable JSON-LD schemas like TechArticle, HowTo, or Product.",
+    a: "Google's LLM retrieval models prioritize pages that are highly structured, indexable, and feature machine-readable JSON-LD schemas like TechArticle or Product, backed by visible content whose questions and steps each sit under their own heading.",
   },
   {
     q: "What schema types are best for AI Overview optimization?",
-    a: "HowTo (for step-based queries), FAQPage (for answering specific user questions), and Product (for pricing and details) are the most heavily cited schema objects.",
+    a: "Article and TechArticle (for authorship, publisher, and freshness signals) and Product (for pricing and details) are the schema types worth shipping. FAQPage and HowTo are not: Google removed the HowTo rich result in September 2023 and the FAQ rich result on May 7, 2026, deleting both sets of documentation. For question and step content, the thing that earns the citation is the visible page, one question or step per heading with the complete answer directly beneath it.",
   },
   {
     q: "Will thin programmatic pages ever be cited by AI Overviews?",
@@ -99,16 +99,6 @@ export default function AiOverviewsSeoImpactPage() {
     },
   };
 
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       {/* Breadcrumbs */}
@@ -165,7 +155,7 @@ export default function AiOverviewsSeoImpactPage() {
               <strong>aeo/citable-facts</strong>: Scrapes your page to ensure key claims are formatted clearly in tables, charts, or bulleted lists, making them easy for LLM retrieval systems to digest.
             </li>
             <li>
-              <strong>aeo/faq-coverage</strong>: Verifies the presence of structured FAQPage JSON-LD schema matching user intent keywords.
+              <strong>aeo/faq-coverage</strong>: Flags pages that read like FAQ or how-to content (two or more question-phrased H2s, or a /faq, /how-to-, /what-is- URL path) but never present their question/answer pairs in a liftable form. The fix it recommends is visible structure, one question per heading with the complete answer in the paragraph directly beneath it, not FAQPage JSON-LD: Google removed the FAQ rich result from Search on May 7, 2026 and deleted its documentation on June 15, 2026.
             </li>
             <li>
               <strong>aeo/freshness-signals</strong>: Audits datePublished and dateModified timestamp attributes inside dynamic templates.
@@ -231,10 +221,6 @@ export default function AiOverviewsSeoImpactPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

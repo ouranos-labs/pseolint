@@ -5,8 +5,8 @@ const LOCALE_PREFIX_RE = /^\/([a-z]{2}(-[a-z]{2})?)(\/|$)/i;
 const SIMILARITY_THRESHOLD = 0.95;
 /**
  * Minimum body word count before translation-no-op evaluates a page. Below
- * this floor the issue is "no content at all" — better surfaced by
- * `spam/thin-content` — and pairwise simhash similarity collapses to ~1.0
+ * this floor the issue is "no content at all": better surfaced by
+ * `spam/thin-content`: and pairwise simhash similarity collapses to ~1.0
  * for any two empty/near-empty pages, producing a confusingly-redundant
  * "you didn't translate" finding when really there's nothing to translate.
  * v0.5.6 refinement.
@@ -63,7 +63,7 @@ export function translationNoOpRule(pages: ParsedPage[]): RuleResult[] {
   for (const [basePath, members] of groups) {
     if (members.length < 2) continue;
 
-    // Skip the cluster when every variant is below the min-content floor —
+    // Skip the cluster when every variant is below the min-content floor:
     // the real issue is thin-content, not a translation no-op. (Mixed-case
     // clusters where some variants are full-content still evaluate, since a
     // single thin variant against a full one IS a translation issue.)
@@ -97,7 +97,7 @@ export function translationNoOpRule(pages: ParsedPage[]): RuleResult[] {
     findings.push({
       ruleId: "content/translation-no-op",
       // Warning, not error: an untranslated locale variant is a real duplicate-
-      // content gap but a should-fix, not a ship-blocker — and multilingual sites
+      // content gap but a should-fix, not a ship-blocker, and multilingual sites
       // can legitimately share some body text (disclaimers, spec tables).
       severity: "warning",
       confidence: "medium",

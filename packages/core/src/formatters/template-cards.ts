@@ -1,5 +1,5 @@
 /**
- * v0.5.11 — per-template card rendering helpers.
+ * v0.5.11: per-template card rendering helpers.
  *
  * One shared module called by console, markdown, and html formatters.
  * Each exported function takes a `Template[]` and returns a format-specific
@@ -153,7 +153,7 @@ export function renderTemplateCardsMarkdown(
     const topDriver = topDriverLine(t);
     const highlight = opts.filterTemplate === t.signature ? " ◀" : "";
     lines.push(
-      `| \`${t.signature}\`${highlight} | ${glyph} ${t.verdict} | ${grade} | ${coverage} | ${uniformity} | ${topDriver || "—"} |`,
+      `| \`${t.signature}\`${highlight} | ${glyph} ${t.verdict} | ${grade} | ${coverage} | ${uniformity} | ${topDriver || "n/a"} |`,
     );
   }
 
@@ -185,7 +185,7 @@ const GRADE_TONE_HTML: Record<Grade, string> = {
 /**
  * Render per-template cards for the HTML formatter.
  * Returns an empty string when there is nothing to render.
- * The caller must ensure the CSS variables and existing styles are in scope —
+ * The caller must ensure the CSS variables and existing styles are in scope:
  * this helper generates markup only, no <style> block.
  */
 export function renderTemplateCardsHtml(

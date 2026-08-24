@@ -1,8 +1,8 @@
-# pseolint Pro Reframe v1 — Implementation Plan
+# pseolint Pro Reframe v1: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship v1 of the reframed Pro dashboard: hosted findings state, diff+full scheduler, upload endpoint, three dashboard surfaces (portfolio strip / fix queue / integrations panel), CMS-aware messages, gated alerts, and weekly digest email — all on top of the existing OSS engine without hiding OSS capabilities behind Pro.
+**Goal:** Ship v1 of the reframed Pro dashboard: hosted findings state, diff+full scheduler, upload endpoint, three dashboard surfaces (portfolio strip / fix queue / integrations panel), CMS-aware messages, gated alerts, and weekly digest email, all on top of the existing OSS engine without hiding OSS capabilities behind Pro.
 
 **Architecture:** Extend the existing Inngest `monitor-domains` hourly cron to run daily diff-audits + weekly full re-audits against every monitored domain. Audit outputs merge into a new `findings_state` table keyed on `(domain_id, rule_id, template_signature)`; the fix queue reads from this table, ranked by `impressions × severity × page_count` (GSC-weighted once Search Console is connected in v1.1, severity×pages fallback in v1). A new `pseolint upload` CLI command POSTs OSS audit JSON to `/api/audits/upload` for CI integration without coupling the OSS core to Pro. Rule messages are rewritten by a CMS-aware translation layer when URLs match known CMS patterns.
 
@@ -15,41 +15,41 @@
 ## File Structure
 
 **Create:**
-- `apps/web/src/db/migrations/0003_findings_and_integrations.sql` — schema migration
-- `apps/web/src/lib/findings-state.ts` — upsert/merge logic, rank scoring, template signature
-- `apps/web/src/lib/cms-messages.ts` — CMS pattern detection + message rewrite
-- `apps/web/src/lib/alert-gate.ts` — evaluate score delta + new-combination conditions
-- `apps/web/src/lib/upload-token.ts` — token generation, bcrypt hash, verify
-- `apps/web/src/app/api/audits/upload/route.ts` — CLI upload ingestion endpoint
-- `apps/web/src/app/dashboard/queue/page.tsx` — fix queue (paginated)
-- `apps/web/src/app/dashboard/queue/actions.ts` — snooze/dismiss server actions
-- `apps/web/src/app/dashboard/integrations/page.tsx` — integrations panel
-- `apps/web/src/app/dashboard/settings/tokens/page.tsx` — upload token management
-- `apps/web/src/app/api/dashboard/queue/export.csv/route.ts` — CSV export
-- `apps/web/src/emails/WeeklyDigestEmail.tsx` — digest template
-- `apps/web/src/lib/digest-email.ts` — digest composer + send
-- `apps/web/src/inngest/functions/weekly-digest.ts` — Monday 06:00 UTC cron
+- `apps/web/src/db/migrations/0003_findings_and_integrations.sql`: schema migration
+- `apps/web/src/lib/findings-state.ts`: upsert/merge logic, rank scoring, template signature
+- `apps/web/src/lib/cms-messages.ts`: CMS pattern detection + message rewrite
+- `apps/web/src/lib/alert-gate.ts`: evaluate score delta + new-combination conditions
+- `apps/web/src/lib/upload-token.ts`: token generation, bcrypt hash, verify
+- `apps/web/src/app/api/audits/upload/route.ts`: CLI upload ingestion endpoint
+- `apps/web/src/app/dashboard/queue/page.tsx`: fix queue (paginated)
+- `apps/web/src/app/dashboard/queue/actions.ts`: snooze/dismiss server actions
+- `apps/web/src/app/dashboard/integrations/page.tsx`: integrations panel
+- `apps/web/src/app/dashboard/settings/tokens/page.tsx`: upload token management
+- `apps/web/src/app/api/dashboard/queue/export.csv/route.ts`: CSV export
+- `apps/web/src/emails/WeeklyDigestEmail.tsx`: digest template
+- `apps/web/src/lib/digest-email.ts`: digest composer + send
+- `apps/web/src/inngest/functions/weekly-digest.ts`: Monday 06:00 UTC cron
 - `apps/web/tests/integration/findings-state.test.ts`
 - `apps/web/tests/integration/upload-endpoint.test.ts`
 - `apps/web/tests/integration/alert-gate.test.ts`
 - `apps/web/tests/unit/cms-messages.test.ts`
-- `packages/cli/src/commands/upload.ts` — `pseolint upload` subcommand
-- `packages/core/src/rules/scope.ts` — declarative scope annotation map
+- `packages/cli/src/commands/upload.ts`: `pseolint upload` subcommand
+- `packages/core/src/rules/scope.ts`: declarative scope annotation map
 
 **Modify:**
-- `apps/web/src/db/schema.ts` — add new tables, add `lastFullRunAt` to monitoredDomains
-- `apps/web/src/inngest/functions/monitor-domains.ts` — cadence dispatch (diff vs full), scope-aware auditor invocation
-- `apps/web/src/app/dashboard/page.tsx` — replace admin table with portfolio strip + entry points
-- `apps/web/src/app/dashboard/domain-row-actions.tsx` — move pause/resume/delete into per-domain detail view (keep component)
-- `apps/web/src/app/pricing/page.tsx` — copy edits per spec §11
-- `apps/web/src/app/layout.tsx` — expand nav Dashboard pill to include /queue and /integrations when signed in
-- `packages/cli/src/cli.ts` — register `upload` subcommand
-- `packages/core/src/auditor.ts` — read scope map, skip corpus rules when `state.since` is set
-- `packages/core/src/index.ts` — export scope map
+- `apps/web/src/db/schema.ts`: add new tables, add `lastFullRunAt` to monitoredDomains
+- `apps/web/src/inngest/functions/monitor-domains.ts`: cadence dispatch (diff vs full), scope-aware auditor invocation
+- `apps/web/src/app/dashboard/page.tsx`: replace admin table with portfolio strip + entry points
+- `apps/web/src/app/dashboard/domain-row-actions.tsx`: move pause/resume/delete into per-domain detail view (keep component)
+- `apps/web/src/app/pricing/page.tsx`: copy edits per spec §11
+- `apps/web/src/app/layout.tsx`: expand nav Dashboard pill to include /queue and /integrations when signed in
+- `packages/cli/src/cli.ts`: register `upload` subcommand
+- `packages/core/src/auditor.ts`: read scope map, skip corpus rules when `state.since` is set
+- `packages/core/src/index.ts`: export scope map
 
 ---
 
-## Phase A — Core engine: rule scope annotation
+## Phase A: Core engine: rule scope annotation
 
 ### Task 1: Declarative scope map for rules
 
@@ -59,7 +59,7 @@
 - Modify: `packages/core/src/index.ts`
 - Test: `packages/core/tests/rule-scope.test.ts`
 
-Rules are either **page-scoped** (run on a single page's parsed content) or **corpus-scoped** (need the full set — e.g. SimHash clustering, cannibalization). Daily diff-audits must skip corpus rules because the corpus isn't complete.
+Rules are either **page-scoped** (run on a single page's parsed content) or **corpus-scoped** (need the full set, e.g. SimHash clustering, cannibalization). Daily diff-audits must skip corpus rules because the corpus isn't complete.
 
 - [ ] **Step 1: Create the scope map**
 
@@ -124,7 +124,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "cannibal/keyword-collision": "corpus",
   "cannibal/url-pattern": "corpus",
 
-  // data binding (needs a record set, but per-page lookups — treat as page)
+  // data binding (needs a record set, but per-page lookups, treat as page)
   "data/missing-binding": "page",
   "data/identical-across-pages": "corpus",
 
@@ -178,7 +178,7 @@ import { RULE_SCOPE, isRuleAllowedInDiff } from "../src/rules/scope.js";
 
 describe("rule scope map", () => {
   it("has a scope entry for every exported rule id", () => {
-    // Representative sample — drift detector.
+    // Representative sample, drift detector.
     const critical = [
       "spam/near-duplicate",
       "spam/thin-content",
@@ -203,7 +203,7 @@ describe("rule scope map", () => {
     expect(isRuleAllowedInDiff("cannibal/title-overlap")).toBe(false);
   });
 
-  it("defaults unknown ids to corpus (safer — blocks in diff)", () => {
+  it("defaults unknown ids to corpus (safer, blocks in diff)", () => {
     expect(isRuleAllowedInDiff("future/unknown-rule")).toBe(false);
   });
 });
@@ -219,7 +219,7 @@ git commit -m "feat(core): add rule scope annotation + diff-mode gating"
 
 ---
 
-## Phase B — Schema migrations
+## Phase B: Schema migrations
 
 ### Task 2: Extend schema.ts with new tables and lastFullRunAt
 
@@ -328,12 +328,12 @@ git commit -m "feat(db): schema for findings_state, integrations, gsc metrics, u
 
 ---
 
-## Phase C — Findings-state ingest
+## Phase C: Findings-state ingest
 
 ### Task 3: Template signature computation
 
 **Files:**
-- Create: `apps/web/src/lib/findings-state.ts` (partial — signature helper only)
+- Create: `apps/web/src/lib/findings-state.ts` (partial: signature helper only)
 - Test: `apps/web/tests/unit/template-signature.test.ts`
 
 `template_signature` is the key that makes suppressions stable across the churn of individual URLs. We reuse the OSS engine's `inferUrlTemplate` but fall back to `__global__` for findings without a URL (site-wide rules like `tech/robots-compliance`).
@@ -372,7 +372,7 @@ describe("templateSignatureFor", () => {
 });
 ```
 
-- [ ] **Step 2: Run — expect MODULE NOT FOUND**
+- [ ] **Step 2: Run: expect MODULE NOT FOUND**
 
 ```bash
 cd apps/web && npm test -- template-signature && cd ../..
@@ -397,7 +397,7 @@ export function templateSignatureFor(finding: RuleResult): string {
 }
 ```
 
-- [ ] **Step 4: Run — expect PASS**
+- [ ] **Step 4: Run: expect PASS**
 
 ```bash
 cd apps/web && npm test -- template-signature && cd ../..
@@ -410,7 +410,7 @@ git add apps/web/src/lib/findings-state.ts apps/web/tests/unit/template-signatur
 git commit -m "feat(web): template signature helper for findings state"
 ```
 
-### Task 4: Merge function — upsert findings into state
+### Task 4: Merge function: upsert findings into state
 
 **Files:**
 - Modify: `apps/web/src/lib/findings-state.ts`
@@ -499,7 +499,7 @@ export function rankScoreFor(severity: Severity, affectedPages: number, impressi
  *
  * Groups findings by (rule_id, template_signature). For each group: upserts the row,
  * updates last_seen, affected_page_count, severity_latest, rule_message_latest,
- * representative_url, and rank_score (without impressions — GSC join happens in v1.1).
+ * representative_url, and rank_score (without impressions: GSC join happens in v1.1).
  *
  * Preserves status (does NOT resurrect snoozed or dismissed findings).
  */
@@ -547,7 +547,7 @@ export async function mergeFindings(
         ruleMessageLatest: g.message,
         representativeUrl: g.repUrl,
         lastSeenAt: now,
-        // status intentionally NOT touched — preserves snoozed/dismissed.
+        // status intentionally NOT touched, preserves snoozed/dismissed.
       },
     });
   }
@@ -569,7 +569,7 @@ git commit -m "feat(web): findings_state upsert + rank scoring"
 
 ---
 
-## Phase D — Scheduler extension
+## Phase D: Scheduler extension
 
 ### Task 5: Diff vs full cadence dispatch
 
@@ -637,7 +637,7 @@ git commit -m "feat(scheduler): diff/full cadence dispatch + findings_state merg
 
 ---
 
-## Phase E — CLI upload + ingestion endpoint
+## Phase E: CLI upload + ingestion endpoint
 
 ### Task 6: Upload token generation + verification helpers
 
@@ -835,7 +835,7 @@ export async function POST(req: Request): Promise<Response> {
 ```bash
 cd apps/web && npm test -- upload-endpoint && cd ../..
 git add apps/web/src/app/api/audits/upload apps/web/tests/integration/upload-endpoint.test.ts
-git commit -m "feat(web): POST /api/audits/upload — CLI ingestion endpoint"
+git commit -m "feat(web): POST /api/audits/upload, CLI ingestion endpoint"
 ```
 
 ### Task 8: `pseolint upload` CLI subcommand
@@ -893,18 +893,18 @@ if (command === "upload") {
 }
 ```
 
-(If the CLI uses a different parsing convention — inspect the existing dispatch and mirror it.)
+(If the CLI uses a different parsing convention, inspect the existing dispatch and mirror it.)
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add packages/cli/src/commands/upload.ts packages/cli/src/cli.ts
-git commit -m "feat(cli): pseolint upload — POST audit JSON to Pro"
+git commit -m "feat(cli): pseolint upload, POST audit JSON to Pro"
 ```
 
 ---
 
-## Phase F — CMS-aware message layer
+## Phase F: CMS-aware message layer
 
 ### Task 9: CMS detection + message rewrite
 
@@ -969,7 +969,7 @@ export function detectCms(pageUrl: string, html?: string): CmsKind | null {
   if (webUrl && !wpUrl) return "webflow";
   if (wpUrl && !webUrl) return "wordpress";
   if (webUrl && wpUrl) {
-    // collision — disambiguate via HTML hint
+    // collision, disambiguate via HTML hint
     if (html && WORDPRESS_HTML.some((r) => r.test(html))) return "wordpress";
     if (html && WEBFLOW_HTML.some((r) => r.test(html))) return "webflow";
     return null;
@@ -1034,7 +1034,7 @@ git commit -m "feat(web): apply CMS-aware rewrite when merging findings"
 
 ---
 
-## Phase G — Alert gating + weekly digest
+## Phase G: Alert gating + weekly digest
 
 ### Task 11: Alert gate evaluator
 
@@ -1097,7 +1097,7 @@ describe("evaluateAlertGate", () => {
 });
 
 function isoWeekOf(d: Date): string {
-  // Inline duplicate for test clarity — implementation in alert-gate.ts
+  // Inline duplicate for test clarity, implementation in alert-gate.ts
   const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
   const dayNum = t.getUTCDay() || 7;
   t.setUTCDate(t.getUTCDate() + 4 - dayNum);
@@ -1204,7 +1204,7 @@ if (gate.shouldAlert) {
 ```bash
 cd apps/web && npm test -- alert-gate && cd ../..
 git add apps/web/src/lib/alert-gate.ts apps/web/src/inngest/functions/monitor-domains.ts apps/web/tests/integration/alert-gate.test.ts
-git commit -m "feat(web): alert gate — score delta + new error combos, per-week dedup"
+git commit -m "feat(web): alert gate, score delta + new error combos, per-week dedup"
 ```
 
 ### Task 12: Weekly digest email + cron
@@ -1289,7 +1289,7 @@ export async function sendWeeklyDigestTo(userId: string, userEmail: string): Pro
   const resend = new Resend(env().RESEND_API_KEY);
   await resend.emails.send({
     from: env().RESEND_FROM, to: userEmail,
-    subject: `pseolint — 3 fixes worth making this week`,
+    subject: `pseolint, 3 fixes worth making this week`,
     html,
   });
 }
@@ -1335,7 +1335,7 @@ git commit -m "feat(web): weekly digest email + Monday 06:00 UTC Inngest cron"
 
 ---
 
-## Phase H — Dashboard surfaces
+## Phase H: Dashboard surfaces
 
 ### Task 13: Portfolio strip replaces admin table
 
@@ -1410,11 +1410,11 @@ export default async function Dashboard() {
                     {r.host}
                   </Link>
                 </td>
-                <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "—"}</td>
+                <td className="py-3.5 pr-4 font-mono">{r.lastScore ?? "; "}</td>
                 <td className="py-3.5 pr-4">
                   <Link href={`/dashboard/queue?domain=${r.id}`} className="hover:underline">{r.openCount}</Link>
                 </td>
-                <td className="py-3.5 pr-4 text-muted-foreground">{r.lastRunAt ? r.lastRunAt.toISOString().slice(0, 10) : "—"}</td>
+                <td className="py-3.5 pr-4 text-muted-foreground">{r.lastRunAt ? r.lastRunAt.toISOString().slice(0, 10) : "; "}</td>
                 <td className="py-3.5 pr-5 text-right">{gscConnected.length ? "✓" : <Link href="/dashboard/integrations" className="text-primary hover:underline">Connect</Link>}</td>
               </tr>
             ))}
@@ -1426,7 +1426,7 @@ export default async function Dashboard() {
 }
 ```
 
-(Pause/resume/delete actions move to the per-domain page `/dashboard/domains/[id]` which is out of scope for this v1 task — stub the route or keep the existing one if present. Do not delete the `DomainRowActions` component until the detail route replaces it.)
+(Pause/resume/delete actions move to the per-domain page `/dashboard/domains/[id]` which is out of scope for this v1 task, stub the route or keep the existing one if present. Do not delete the `DomainRowActions` component until the detail route replaces it.)
 
 - [ ] **Step 2: Commit**
 
@@ -1488,7 +1488,7 @@ export default async function FixQueuePage({
 
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
-  // Suppressed-findings counter (visible so dismissals don't silently hide the tool's value — per spec §14).
+  // Suppressed-findings counter (visible so dismissals don't silently hide the tool's value, per spec §14).
   const suppressedCountQuery = [eq(monitoredDomains.userId, session.user.id), sql`${findingsState.status} <> 'open'`];
   if (domain) suppressedCountQuery.push(eq(findingsState.domainId, domain));
   const [{ suppressedCount }] = await db.select({ suppressedCount: sql<number>`count(*)::int` })
@@ -1507,7 +1507,7 @@ export default async function FixQueuePage({
 
       {suppressedCount > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
-          {suppressedCount} suppressed finding{suppressedCount === 1 ? "" : "s"} — <Link href="/dashboard/queue/suppressed" className="text-primary hover:underline">review</Link>
+          {suppressedCount} suppressed finding{suppressedCount === 1 ? "" : "s"}, <Link href="/dashboard/queue/suppressed" className="text-primary hover:underline">review</Link>
         </p>
       )}
 
@@ -1602,7 +1602,7 @@ export async function dismissFinding(findingId: string): Promise<void> {
 }
 ```
 
-(If `getRequiredSession` doesn't exist in `@/lib/session`, add it — a thin wrapper that throws when `getOptionalSession` returns null.)
+(If `getRequiredSession` doesn't exist in `@/lib/session`, add it, a thin wrapper that throws when `getOptionalSession` returns null.)
 
 - [ ] **Step 3: Commit**
 
@@ -1711,7 +1711,7 @@ export default async function IntegrationsPage() {
               blurb="Cross-references our findings with real impressions. Rank the fix queue by traffic, not guesswork.">
           {has("gsc") ? <span className="text-xs text-success">Connected</span> : (
             <button className="rounded-[14px] border border-border-strong px-3 py-1.5 text-xs" disabled>
-              Connect (coming soon — OAuth verification pending)
+              Connect (coming soon, OAuth verification pending)
             </button>
           )}
         </Card>
@@ -1720,7 +1720,7 @@ export default async function IntegrationsPage() {
               blurb="Run audits on every PR. Upload results here for cross-run history + regression trends.">
           <pre className="overflow-x-auto rounded-[12px] bg-muted p-4 text-xs">{yaml}</pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            You&apos;ll need an upload token — <Link href="/dashboard/settings/tokens" className="text-primary hover:underline">create one</Link>.
+            You&apos;ll need an upload token, <Link href="/dashboard/settings/tokens" className="text-primary hover:underline">create one</Link>.
           </p>
         </Card>
 
@@ -1812,7 +1812,7 @@ export default async function TokensPage({ searchParams }: { searchParams: Promi
 
       {issued && (
         <div className="mt-6 rounded-[14px] border border-success/40 bg-success/5 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-success">New token (copy now — you won&apos;t see it again)</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">New token (copy now, you won&apos;t see it again)</p>
           <code className="mt-2 block overflow-x-auto font-mono text-xs">{issued}</code>
         </div>
       )}
@@ -1850,7 +1850,7 @@ git add apps/web/src/app/dashboard/integrations apps/web/src/app/dashboard/setti
 git commit -m "feat(dashboard): integrations panel + upload token management"
 ```
 
-### Task 17: Nav updates — expose /queue and /integrations when signed in
+### Task 17: Nav updates: expose /queue and /integrations when signed in
 
 **Files:**
 - Modify: `apps/web/src/app/layout.tsx`
@@ -1879,7 +1879,7 @@ git commit -m "feat(nav): expose fix queue + integrations entries when signed in
 
 ---
 
-## Phase I — Pricing page copy
+## Phase I: Pricing page copy
 
 ### Task 18: Apply spec §11 copy edits
 
@@ -1935,36 +1935,36 @@ git commit -m "docs(pricing): reframe Pro copy around hosted infra + OSS attribu
 After writing, check against the spec §1–§16:
 
 **Spec coverage:**
-- §2 reframe — encoded in positioning; Task 1 (scope) underpins the "every time you ship" promise via diff/full split.
-- §3 personas — P2-led onboarding via portfolio strip + fix queue (Tasks 13–14); P1 via integrations panel + upload (Tasks 7–8, 16).
-- §4 OSS/Pro boundary — encoded: no OSS rules are gated; Pro adds hosted state (Tasks 2–4), scheduling (Task 5), upload endpoint (Task 7).
-- §5.1 portfolio strip — Task 13.
-- §5.2 fix queue — Tasks 14–15 + suppression actions.
-- §5.3 integrations panel — Task 16.
-- §6 core loops — all three (onboarding, day-2, publish-event) are emergent from the surfaces built in Tasks 13–16 and the digest (Task 12).
-- §7 data model — Task 2.
-- §8 scheduler — Tasks 1 (scope) + 5 (cadence).
-- §9 CMS messages — Tasks 9–10.
-- §10 alert gating — Task 11.
-- §11 pricing — Task 18.
-- §12 scope phasing — v1 tasks only; GSC integration card is stubbed (Task 16) per v1.1 plan.
-- §13 non-goals — respected (no prediction, no rewriting, no agency features).
-- §14 risks — GSC stub + rank fallback covered; CMS collision test covered; suppression misuse visual (suppressed counter) deferred to v1.1 — **GAP**.
-- §15 success criteria — measurement surfaces deferred; this plan ships the product, not the metrics dashboard.
-- §16 open questions — rank materialization handled via cached `rank_score` column (Task 4); upload token rotation via revoke (Task 16); Webflow HMAC — v1.1; GSC privacy floor — v1.1.
+- §2 reframe: encoded in positioning; Task 1 (scope) underpins the "every time you ship" promise via diff/full split.
+- §3 personas: P2-led onboarding via portfolio strip + fix queue (Tasks 13–14); P1 via integrations panel + upload (Tasks 7–8, 16).
+- §4 OSS/Pro boundary: encoded: no OSS rules are gated; Pro adds hosted state (Tasks 2–4), scheduling (Task 5), upload endpoint (Task 7).
+- §5.1 portfolio strip: Task 13.
+- §5.2 fix queue: Tasks 14–15 + suppression actions.
+- §5.3 integrations panel: Task 16.
+- §6 core loops: all three (onboarding, day-2, publish-event) are emergent from the surfaces built in Tasks 13–16 and the digest (Task 12).
+- §7 data model: Task 2.
+- §8 scheduler: Tasks 1 (scope) + 5 (cadence).
+- §9 CMS messages: Tasks 9–10.
+- §10 alert gating: Task 11.
+- §11 pricing: Task 18.
+- §12 scope phasing: v1 tasks only; GSC integration card is stubbed (Task 16) per v1.1 plan.
+- §13 non-goals: respected (no prediction, no rewriting, no agency features).
+- §14 risks: GSC stub + rank fallback covered; CMS collision test covered; suppression misuse visual (suppressed counter) deferred to v1.1: **GAP**.
+- §15 success criteria: measurement surfaces deferred; this plan ships the product, not the metrics dashboard.
+- §16 open questions: rank materialization handled via cached `rank_score` column (Task 4); upload token rotation via revoke (Task 16); Webflow HMAC: v1.1; GSC privacy floor, v1.1.
 
 **Gap fix:** add a small "X suppressed findings" pill above the fix queue. Fold into Task 14 as an inline addition rather than new task.
 
 **Placeholder scan:** none found. Every step contains runnable code or commands.
 
-**Type consistency:** `RuleResult`, `Severity`, `findingsState` schema — all referenced consistently. `mergeFindings` signature matches between Task 4 definition and Task 5/7 callers. `isoWeekOf` defined once (alert-gate.ts), duplicated in test for clarity. `getRequiredSession` flagged for creation in Task 14 if absent.
+**Type consistency:** `RuleResult`, `Severity`, `findingsState` schema, all referenced consistently. `mergeFindings` signature matches between Task 4 definition and Task 5/7 callers. `isoWeekOf` defined once (alert-gate.ts), duplicated in test for clarity. `getRequiredSession` flagged for creation in Task 14 if absent.
 
 ---
 
 **Plan complete and saved to `docs/superpowers/plans/2026-04-21-pseolint-pro-reframe-v1.md`. Two execution options:**
 
-**1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration.
+**1. Subagent-Driven (recommended)**, I dispatch a fresh subagent per task, review between tasks, fast iteration.
 
-**2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints.
+**2. Inline Execution**, Execute tasks in this session using executing-plans, batch execution with checkpoints.
 
 **Which approach?**

@@ -56,7 +56,7 @@ describe("aeo/freshness-signals", () => {
       jsonLd: [{ "@type": "Article", dateModified: "2025-11-01" }],
       html: "<html><body>hi</body></html>",
     });
-    // ~172 days ago at now=2026-04-21 — under the large threshold, over the small one.
+    // ~172 days ago at now=2026-04-21: under the large threshold, over the small one.
     expect(freshnessSignalsRule([p], { now, maxStaleDays: 200 })).toHaveLength(0);
     expect(freshnessSignalsRule([p], { now, maxStaleDays: 30 })).toHaveLength(1);
   });
@@ -73,7 +73,7 @@ describe("aeo/freshness-signals", () => {
 
   test("datePublished ALONE does not count as a modification signal", () => {
     const p = page("https://example.dev/a", {
-      // Published in 2019 and never re-edited — has a date signal, but not modification.
+      // Published in 2019 and never re-edited: has a date signal, but not modification.
       jsonLd: [{ "@type": "Article", datePublished: "2019-06-01" }],
       html: "<html><body>hello</body></html>",
     });

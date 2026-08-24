@@ -28,12 +28,12 @@ const MIN_TRIGRAM_COUNT = 200;
  * overlap baseline, making the signal meaningfully indicative of genuine
  * encyclopedic reuse. At this level the rule remains advisory (confidence:
  * "low") because trigram overlap cannot distinguish paraphrase from topic
- * proximity — it is a weak signal, not a verdict.
+ * proximity: it is a weak signal, not a verdict.
  */
 const THRESHOLD = 0.55;
 
 /**
- * content/wikipedia-paraphrase — advisory originality signal (v0.5.14+).
+ * content/wikipedia-paraphrase: advisory originality signal (v0.5.14+).
  *
  * Detects pages whose contentText has unusually high trigram overlap with the
  * bundled Wikipedia reference corpus. This is a weak, advisory signal only:
@@ -43,7 +43,7 @@ const THRESHOLD = 0.55;
  *
  * Two guards reduce false positives:
  *   1. Minimum-length guard: pages below MIN_TRIGRAM_COUNT trigrams (~200
- *      words) are skipped entirely — bloom noise alone dominates on short pages.
+ *      words) are skipped entirely: bloom noise alone dominates on short pages.
  *   2. Raised threshold: THRESHOLD = 0.55, well above the bloom noise floor
  *      (~5%) and typical topical-proximity baseline.
  *
@@ -72,7 +72,7 @@ export function wikipediaParaphraseRule(pages: ParsedPage[]): RuleResult[] {
       pageUrl: page.url,
       message:
         `${page.url} has high trigram overlap (${pct}%) with the bundled Wikipedia ` +
-        `reference corpus. This is an advisory signal — trigram overlap can reflect ` +
+        `reference corpus. This is an advisory signal: trigram overlap can reflect ` +
         `topical proximity as well as copied content and cannot distinguish the two.`,
       fix:
         "Review for borrowed encyclopedic phrasing and replace with original analysis " +

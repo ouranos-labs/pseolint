@@ -97,7 +97,7 @@ describe("POST /api/audits", () => {
     expect(json.code).toBe("origin_unreachable");
   });
 
-  it("proceeds (202) when the origin is degraded — run-audit drops it to gentle, the route does not block", async () => {
+  it("proceeds (202) when the origin is degraded: run-audit drops it to gentle, the route does not block", async () => {
     process.env.DISABLE_ORIGIN_PREFLIGHT = "0";
     preflightMock.mockResolvedValue({ ...HEALTHY, verdict: "degraded", reason: "origin median response 9000ms exceeds 8000ms", medianMs: 9000 });
     const { POST } = await import("@/app/api/audits/route");

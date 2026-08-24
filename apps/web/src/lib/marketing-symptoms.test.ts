@@ -9,7 +9,7 @@ import { MARKETING_RULES } from "@/lib/marketing-rules";
 /**
  * The dogfood contract: every indexable /symptoms page must clear a minimum
  * depth so pseolint's own site passes pseolint's own thin-content bar. These
- * minimums are deliberately below the current hand-authored entries — they are
+ * minimums are deliberately below the current hand-authored entries: they are
  * a floor that prevents regressions and forces new entries to real depth, not
  * a target.
  */

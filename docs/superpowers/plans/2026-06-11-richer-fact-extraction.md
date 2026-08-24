@@ -1,10 +1,10 @@
-# Richer Deterministic Fact Extraction — Implementation Plan
+# Richer Deterministic Fact Extraction: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a shared deterministic fact extractor (`PageFacts`) and a new `content/citation-coverage` rule that counts named entities, authoritative citations, and grounded claims — while keeping `aeo/citable-facts` byte-for-byte frozen.
+**Goal:** Add a shared deterministic fact extractor (`PageFacts`) and a new `content/citation-coverage` rule that counts named entities, authoritative citations, and grounded claims, while keeping `aeo/citable-facts` byte-for-byte frozen.
 
-**Architecture:** A new `algorithms/fact-extraction.ts` module is the single source of truth for "what facts does this page carry." `aeo/citable-facts` delegates its numeric extraction to it (identical output). A new `content/citation-coverage` rule and the `content/value-add` composite consume the richer signals. All detectors are deterministic regex/DOM/URL-string — no LLM, no network.
+**Architecture:** A new `algorithms/fact-extraction.ts` module is the single source of truth for "what facts does this page carry." `aeo/citable-facts` delegates its numeric extraction to it (identical output). A new `content/citation-coverage` rule and the `content/value-add` composite consume the richer signals. All detectors are deterministic regex/DOM/URL-string, no LLM, no network.
 
 **Tech Stack:** TypeScript (ESM, `.js` import specifiers), cheerio (already a core dep), vitest. Package `@pseolint/core`. Build: `bun run build` (tsc). Test: `bunx vitest run <path>` from `packages/core`.
 
@@ -21,18 +21,18 @@
 
 ## File Structure
 
-- **Create** `packages/core/src/algorithms/fact-extraction.ts` — types (`PageFacts`, `FactSpan`, `NamedEntity`, `Citation`, `GroundedClaim`) + detectors (`extractCitableFacts`, `extractMeasurements`, `extractNamedEntities`, `classifyCitations`, `hasAuthoritativeCitation`, `extractGroundedClaims`, `extractPageFacts`, `registrableDomain`, `DEFAULT_CITATION_ALLOWLIST`).
-- **Create** `packages/core/tests/algorithms/fact-extraction.test.ts` — unit tests for every detector + a `citable-facts` characterization test.
-- **Modify** `packages/core/src/rules/aeo/citable-facts.ts` — delegate numeric extraction to the shared module (frozen behavior).
-- **Create** `packages/core/src/rules/content/citation-coverage.ts` — new rule.
-- **Create** `packages/core/tests/rules/content/citation-coverage.test.ts` — rule tests.
-- **Modify** `packages/core/src/index.ts` — export the new module + rule.
-- **Modify** `packages/core/src/types.ts` — add `AuditOptions.rules` knobs.
-- **Modify** `packages/core/src/auditor.ts` — register the rule + thread options/defaults.
-- **Modify** `packages/core/src/rules/scope.ts` — `RULE_SCOPE["content/citation-coverage"] = "page"`.
-- **Modify** `packages/core/src/rule-references.ts` — add the Google policy ref.
-- **Modify** `packages/core/src/site-classifier.ts` — add to `PSEO_ONLY_RULE_IDS` (suppressed on small-marketing/blog).
-- **Modify** `packages/core/src/rules/content/value-add.ts` — fold authoritative-citation detection into the existing E-E-A-T "sources" category (no new signal, weighting preserved).
+- **Create** `packages/core/src/algorithms/fact-extraction.ts`: types (`PageFacts`, `FactSpan`, `NamedEntity`, `Citation`, `GroundedClaim`) + detectors (`extractCitableFacts`, `extractMeasurements`, `extractNamedEntities`, `classifyCitations`, `hasAuthoritativeCitation`, `extractGroundedClaims`, `extractPageFacts`, `registrableDomain`, `DEFAULT_CITATION_ALLOWLIST`).
+- **Create** `packages/core/tests/algorithms/fact-extraction.test.ts`: unit tests for every detector + a `citable-facts` characterization test.
+- **Modify** `packages/core/src/rules/aeo/citable-facts.ts`: delegate numeric extraction to the shared module (frozen behavior).
+- **Create** `packages/core/src/rules/content/citation-coverage.ts`: new rule.
+- **Create** `packages/core/tests/rules/content/citation-coverage.test.ts`: rule tests.
+- **Modify** `packages/core/src/index.ts`: export the new module + rule.
+- **Modify** `packages/core/src/types.ts`: add `AuditOptions.rules` knobs.
+- **Modify** `packages/core/src/auditor.ts`: register the rule + thread options/defaults.
+- **Modify** `packages/core/src/rules/scope.ts`: `RULE_SCOPE["content/citation-coverage"] = "page"`.
+- **Modify** `packages/core/src/rule-references.ts`: add the Google policy ref.
+- **Modify** `packages/core/src/site-classifier.ts`: add to `PSEO_ONLY_RULE_IDS` (suppressed on small-marketing/blog).
+- **Modify** `packages/core/src/rules/content/value-add.ts`: fold authoritative-citation detection into the existing E-E-A-T "sources" category (no new signal, weighting preserved).
 
 ---
 
@@ -88,7 +88,7 @@ describe("extractMeasurements (new, NOT part of citableFacts)", () => {
 - [ ] **Step 2: Run the test to verify it fails**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts`
-Expected: FAIL — cannot resolve `../../src/algorithms/fact-extraction.js`.
+Expected: FAIL, cannot resolve `../../src/algorithms/fact-extraction.js`.
 
 - [ ] **Step 3: Create the module with types + numeric extractors**
 
@@ -200,7 +200,7 @@ Expected: PASS (4 assertions across 3 tests).
 
 ```bash
 git add packages/core/src/algorithms/fact-extraction.ts packages/core/tests/algorithms/fact-extraction.test.ts
-git commit -m "feat(core): fact-extraction module — frozen citable facts + measurements"
+git commit -m "feat(core): fact-extraction module, frozen citable facts + measurements"
 ```
 
 ---
@@ -249,7 +249,7 @@ describe("aeo/citable-facts characterization (frozen after refactor)", () => {
 - [ ] **Step 2: Run to verify it PASSES against the current implementation first**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts -t "characterization"`
-Expected: PASS — this locks current behavior BEFORE the refactor. (If it fails, the expected message strings are wrong; fix the test to match current output before refactoring.)
+Expected: PASS, this locks current behavior BEFORE the refactor. (If it fails, the expected message strings are wrong; fix the test to match current output before refactoring.)
 
 - [ ] **Step 3: Refactor citable-facts.ts to delegate**
 
@@ -277,7 +277,7 @@ Leave everything else (the `applyEntityMask`, template-fact thresholds, severity
 - [ ] **Step 4: Run the characterization test + the existing citable-facts test**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts tests/rules/aeo/citable-facts.test.ts`
-Expected: PASS for both — identical behavior, now backed by the shared module.
+Expected: PASS for both, identical behavior, now backed by the shared module.
 
 - [ ] **Step 5: Commit**
 
@@ -317,7 +317,7 @@ describe("extractNamedEntities", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts -t "extractNamedEntities"`
-Expected: FAIL — `extractNamedEntities` is not exported.
+Expected: FAIL, `extractNamedEntities` is not exported.
 
 - [ ] **Step 3: Implement `extractNamedEntities`**
 
@@ -430,7 +430,7 @@ describe("classifyCitations", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts -t "Citation|registrableDomain"`
-Expected: FAIL — exports missing.
+Expected: FAIL, exports missing.
 
 - [ ] **Step 3: Implement citation classification**
 
@@ -562,7 +562,7 @@ describe("extractPageFacts", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd packages/core && bunx vitest run tests/algorithms/fact-extraction.test.ts -t "Grounded|extractPageFacts"`
-Expected: FAIL — exports missing.
+Expected: FAIL, exports missing.
 
 - [ ] **Step 3: Implement claims + orchestrator**
 
@@ -582,7 +582,7 @@ function resolveHrefs(hrefs: string[], base: string): string[] {
 /**
  * Deterministic approximation of "a verifiable claim": a block (<p>/<li>) that
  * contains a statistic AND an outbound citation. Approximated at block level,
- * not exact sentence level — documented limitation. Detects co-occurrence, not
+ * not exact sentence level: documented limitation. Detects co-occurrence, not
  * semantic truth. Consume at `speculative` confidence.
  */
 export function extractGroundedClaims(
@@ -731,7 +731,7 @@ describe("content/citation-coverage", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd packages/core && bunx vitest run tests/rules/content/citation-coverage.test.ts`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 - [ ] **Step 3: Implement the rule**
 
@@ -786,7 +786,7 @@ export function citationCoverageRule(
         `but cites ${authoritative} authoritative source${authoritative === 1 ? "" : "s"}${entityNote}.`,
       pageUrl: page.url,
       fix:
-        "Cite the primary sources behind your numbers — link the statute, standard, dataset, " +
+        "Cite the primary sources behind your numbers, link the statute, standard, dataset, " +
         ".gov/.edu page, or research that backs each statistic. AI Overviews and Google's " +
         "helpful-content systems weight pages that ground claims in authoritative references. " +
         "Note: this rule detects statistic+citation co-occurrence, not semantic correctness.",
@@ -963,7 +963,7 @@ it("counts an authoritative outbound citation toward the E-E-A-T sources categor
 - [ ] **Step 2: Run to verify it fails or is inconclusive**
 
 Run: `cd packages/core && bunx vitest run tests/rules/content/value-add.test.ts -t "authoritative outbound citation"`
-Expected: FAIL — without the change, the `.gov` link does not affect the E-E-A-T count.
+Expected: FAIL, without the change, the `.gov` link does not affect the E-E-A-T count.
 
 - [ ] **Step 3: Enrich `countEeatCategories` in value-add.ts**
 
@@ -993,7 +993,7 @@ The signal stays one of four E-E-A-T categories; the 7-signal mean denominator i
 - [ ] **Step 4: Run value-add tests**
 
 Run: `cd packages/core && bunx vitest run tests/rules/content/value-add.test.ts`
-Expected: PASS (new test + existing tests unchanged — the change only relaxes, so existing assertions about firing pages should hold; if an existing test asserted an exact E-E-A-T % on a page that happens to have a .gov link, update it).
+Expected: PASS (new test + existing tests unchanged, the change only relaxes, so existing assertions about firing pages should hold; if an existing test asserted an exact E-E-A-T % on a page that happens to have a .gov link, update it).
 
 - [ ] **Step 5: Commit**
 
@@ -1028,7 +1028,7 @@ it("no /rules page trips content/citation-coverage", () => {
 });
 ```
 
-> If this test fails, it means a rule explainer makes ≥4 quantified claims but links to zero `.gov`/allowlisted source. That is expected for some pages — the marketing pages link to `developers.google.com` (not authoritative by TLD). Decision point during execution: either (a) add `developers.google.com` to the dogfood call's `allowlist`, or (b) accept the warning as correct signal and assert it does not ERROR. Prefer (a) for the dogfood since Google's own docs ARE the authoritative source these pages cite.
+> If this test fails, it means a rule explainer makes ≥4 quantified claims but links to zero `.gov`/allowlisted source. That is expected for some pages: the marketing pages link to `developers.google.com` (not authoritative by TLD). Decision point during execution: either (a) add `developers.google.com` to the dogfood call's `allowlist`, or (b) accept the warning as correct signal and assert it does not ERROR. Prefer (a) for the dogfood since Google's own docs ARE the authoritative source these pages cite.
 
 - [ ] **Step 3: Run the web dogfood test**
 
@@ -1052,6 +1052,6 @@ git commit -m "test(web): dogfood content/citation-coverage on /rules pages"
 ## Self-Review (completed by plan author)
 
 - **Spec coverage:** shared extractor (Tasks 1,3,4,5), `PageFacts` shape (Task 1+5), frozen citable-facts + characterization (Task 2), named entities w/ JSON-LD + masking (Task 3), citation classification TLD+allowlist (Task 4), grounded claims speculative (Task 5), new `content/citation-coverage` rule + site-type suppression (Tasks 7,8), value-add wiring without weight shift (Task 9), tests incl. dogfood (Tasks 1-10). Calibration stability via characterization (Task 2) + suppression (Task 8) + relax-only value-add (Task 9). ✓
-- **Out-of-scope** items (LLM verification, 0–100 value score, off-page DA, live URL checks, the `/rules/citation-coverage` marketing page) are not tasked here — correct. ✓
+- **Out-of-scope** items (LLM verification, 0–100 value score, off-page DA, live URL checks, the `/rules/citation-coverage` marketing page) are not tasked here: correct. ✓
 - **Type consistency:** `extractCitableFacts`, `extractMeasurements`, `extractNamedEntities`, `classifyCitations`, `hasAuthoritativeCitation`, `extractGroundedClaims`, `extractPageFacts`, `registrableDomain`, `DEFAULT_CITATION_ALLOWLIST`, `citationCoverageRule`, `CitationCoverageOptions` are used consistently across tasks. ✓
-- **Open execution decisions (flagged inline):** (1) Task 8 Step 4 — update any site-classifier suppressed-count test. (2) Task 9 — adapt to the existing `value-add.test.ts` page helper. (3) Task 10 — allowlist `developers.google.com` for the dogfood. None are placeholders; each has a concrete resolution.
+- **Open execution decisions (flagged inline):** (1) Task 8 Step 4: update any site-classifier suppressed-count test. (2) Task 9: adapt to the existing `value-add.test.ts` page helper. (3) Task 10, allowlist `developers.google.com` for the dogfood. None are placeholders; each has a concrete resolution.

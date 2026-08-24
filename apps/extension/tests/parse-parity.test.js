@@ -1,5 +1,5 @@
 // Parity check: our DOM-less regex parser vs core's real cheerio parser (§6).
-// Runs the SAME html through both and asserts the badge-relevant fields agree —
+// Runs the SAME html through both and asserts the badge-relevant fields agree:
 // so a SERP badge can never silently disagree with the hosted audit. If either
 // parser drifts, this fails. `node tests/parse-parity.test.js` (needs core built).
 import assert from "node:assert";
@@ -41,13 +41,13 @@ for (const html of fixtures) {
   assert.strictEqual(ours.og.title, core.og.title, "og:title parity");
   assert.strictEqual(ours.og.description, core.og.description, "og:description parity");
   assert.strictEqual(ours.og.image, core.og.image, "og:image parity");
-  // headings.h1 feeds soft-404 — must match core (incl. entity decode).
+  // headings.h1 feeds soft-404: must match core (incl. entity decode).
   assert.deepStrictEqual(
     ours.headings.h1, core.headings.h1,
     `h1 parity\n  core: ${JSON.stringify(core.headings.h1)}\n  ours: ${JSON.stringify(ours.headings.h1)}`,
   );
 
-  // Word count drives soft-404 / thin-content. Must track core within a hair —
+  // Word count drives soft-404 / thin-content. Must track core within a hair:
   // exact is the goal; allow ±1 for an isolated entity/edge token.
   const c = words(core.contentText);
   const o = words(ours.contentText);

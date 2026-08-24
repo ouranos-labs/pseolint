@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { BrandMark, BRAND_BG, BRAND_FG, BRAND_MUTED, BRAND_PRIMARY } from "@/lib/brand-mark";
 
 export const runtime = "edge";
-export const alt = "pseolint — SpamBrain-proof your pSEO";
+export const alt = "pseolint: SpamBrain-proof your pSEO";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

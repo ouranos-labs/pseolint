@@ -78,7 +78,7 @@ export const audits = pgTable("audit", {
    * "concerning" | "critical"). Mirrors `AuditSummary.verdict` so the
    * dashboard / portfolio / history surface the moderated signal directly
    * instead of re-deriving it from the raw (unmoderated) `risk`. Nullable for
-   * backfill — legacy rows predate this column.
+   * backfill: legacy rows predate this column.
    */
   verdict: text("verdict").$type<"ready" | "caution" | "concerning" | "critical">(),
   pageCount: integer("page_count"),
@@ -88,10 +88,10 @@ export const audits = pgTable("audit", {
   /** Tier 2: inferred pSEO archetype (from triage) as a queryable signal. Nullable. */
   archetype: text("archetype"),
   /**
-   * v0.4 §4.11 — pre-flight site classification snapshot. Mirrors the
+   * v0.4 §4.11: pre-flight site classification snapshot. Mirrors the
    * `summary.siteClassification` field on AuditSummary so the dashboard /
    * report page / portfolio strip can display site type without re-fetching
-   * the R2 blob. Nullable for backfill — legacy v0.3 audits never had this.
+   * the R2 blob. Nullable for backfill: legacy v0.3 audits never had this.
    */
   siteClassification: jsonb("site_classification").$type<SiteClassification>(),
   /**
@@ -104,7 +104,7 @@ export const audits = pgTable("audit", {
   scrapePlan: jsonb("scrape_plan").$type<ScrapePlanSummary>(),
   /**
    * True when the engine's backpressure watchdog aborted the crawl mid-flight
-   * (degraded origin) and flushed a PARTIAL report — counts/verdict/risk are
+   * (degraded origin) and flushed a PARTIAL report: counts/verdict/risk are
    * lower bounds. Mirrors `AuditSummary.truncated`. Defaults false; legacy rows
    * and complete runs are false. Lets the dashboard filter/flag degraded audits
    * without round-tripping the R2 blob.
@@ -114,7 +114,7 @@ export const audits = pgTable("audit", {
   truncatedReason: text("truncated_reason"),
   storageKey: text("storage_key"),
   errorMessage: text("error_message"),
-  /** OG metadata captured from the audited site's homepage — used by the leaderboard
+  /** OG metadata captured from the audited site's homepage: used by the leaderboard
    *  card layout. Lazily backfilled on leaderboard render for legacy rows. */
   ogTitle: text("og_title"),
   ogDescription: text("og_description"),
@@ -202,7 +202,7 @@ export const monitoredDomains = pgTable("monitored_domain", {
   /** Optional Slack incoming webhook URL. Presence enables Slack alerts; null = disabled. */
   slackWebhookUrl: text("slack_webhook_url"),
   /**
-   * "Gentle audit mode" — caps concurrency to 2 and sample size to 200 for any
+   * "Gentle audit mode": caps concurrency to 2 and sample size to 200 for any
    * audit run against this domain (manual re-audit + monitoring crons). Set
    * by users whose origin is small / un-CDN'd / hits a rate limit when the
    * default 5-parallel / 500-page Pro audit fans out. The engine's existing
@@ -220,7 +220,7 @@ export const monitoredDomains = pgTable("monitored_domain", {
   /**
    * Per-domain render-mode opt-in (Pro). When true, audits against this domain
    * render each page in a headless browser (the operator's Browserless CDP
-   * endpoint, PSEOLINT_BROWSER_WS) before auditing — needed for JS-heavy / SPA
+   * endpoint, PSEOLINT_BROWSER_WS) before auditing: needed for JS-heavy / SPA
    * sites (Webflow, Framer, client-rendered Next) whose server HTML looks empty
    * to a static fetch. Null/false = static fetch. Nullable (no default) to
    * mirror authorityScore: absence means "unset", not an active choice.
@@ -230,7 +230,7 @@ export const monitoredDomains = pgTable("monitored_domain", {
   indexNowKey: text("indexnow_key"),
   /**
    * Per-domain advanced scan options (Pro). JSON-serialized, allowlisted subset
-   * of `AuditOptions` — see lib/scan-options.ts `ScanOptions`. Only the 7 safe
+   * of `AuditOptions`: see lib/scan-options.ts `ScanOptions`. Only the 7 safe
    * engine knobs (crawlDiscovery, fillBudgetViaLinkDiscovery, samplingStrategy,
    * maxPerTemplate, strict, pageGroups, entityPatterns) are ever stored here;
    * the schema's `.strict()` and run-audit's spread order (validated override
@@ -346,7 +346,7 @@ export const growthSearchMetrics = pgTable("growth_search_metrics", {
   url: text("url").notNull(),
   // '' (empty) = page-level aggregate row; non-empty = a page+query row.
   // Empty-string sentinel (not NULL) so the unique index dedupes page-level
-  // rows across weekly runs — Postgres treats NULLs as distinct.
+  // rows across weekly runs: Postgres treats NULLs as distinct.
   query: text("query").notNull().default(""),
   weekBucket: text("week_bucket").notNull(), // ISO week "YYYY-Www" (UTC)
   impressions: integer("impressions").notNull().default(0),
@@ -415,7 +415,7 @@ export const domainDataSources = pgTable("domain_data_source", {
 
 /**
  * BYO AI-provider key. One row per user. When present, triage uses the user's
- * key + provider instead of the server's managed Anthropic key — lets free-tier
+ * key + provider instead of the server's managed Anthropic key: lets free-tier
  * users run unlimited AI triage by paying their own LLM costs, and lets Pro
  * users use a non-default provider.
  */
@@ -439,16 +439,16 @@ export const domainRuleOverrides = pgTable("domain_rule_override", {
 });
 
 /**
- * v0.5.3 — Pro "watched pages" list. Each row pins a single URL on a
+ * v0.5.3: Pro "watched pages" list. Each row pins a single URL on a
  * monitored domain; the engine forces a refetch on every monitoring run for
  * URLs in this list (RefetchReason="watched"), guaranteeing diff-mode never
- * skips them. Free users see an upgrade CTA — no rows are created for them.
+ * skips them. Free users see an upgrade CTA: no rows are created for them.
  *
  * Hard cap of 20 per domain enforced atomically in the add server action.
  * URL is stored verbatim after the same `normalizeUserUrl` pass used by the
  * add-domain flow; uniqueness is on (monitoredDomainId, normalized url).
  * Cascade delete tied to the domain so soft-removing a domain wipes its
- * watched list — domain row removal is soft (sets `removedAt`), so the
+ * watched list: domain row removal is soft (sets `removedAt`), so the
  * explicit cleanup happens in `removeDomainAction`; the FK cascade only
  * fires on hard deletes.
  */
@@ -474,7 +474,7 @@ export const watchedPages = pgTable("watched_page", {
  * NDJSON event log. The actual fix manifest (when produced) lives in
  * `fixManifests`, joined by session_id.
  *
- * Note: not the same as the better-auth `sessions` table — this one is
+ * Note: not the same as the better-auth `sessions` table: this one is
  * specific to orchestrator runs. Distinct table name (`orchestrator_session`)
  * prevents collision.
  */
@@ -483,7 +483,7 @@ export const orchestratorSessions = pgTable("orchestrator_session", {
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   domain: text("domain").notNull(),
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "aborted">().notNull().default("queued"),
-  /** StopReason from `@pseolint/core` — completed | tool_call_limit | usd_limit | etc. */
+  /** StopReason from `@pseolint/core`: completed | tool_call_limit | usd_limit | etc. */
   reason: text("reason"),
   /** Optional focus note from AI triage, appended to the orchestrator system prompt. */
   brief: text("brief"),
@@ -497,7 +497,7 @@ export const orchestratorSessions = pgTable("orchestrator_session", {
   durationMs: integer("duration_ms"),
   modelId: text("model_id"),
   providerId: text("provider_id"),
-  /** R2 key for the durable NDJSON event log — `orchestrator/<id>/log.ndjson`. */
+  /** R2 key for the durable NDJSON event log: `orchestrator/<id>/log.ndjson`. */
   logKey: text("log_key"),
   errorMessage: text("error_message"),
   startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),

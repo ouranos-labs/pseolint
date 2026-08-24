@@ -1,4 +1,4 @@
-# SERP Competitive Gaps & Opportunities Analysis — Walkthrough (Chrome Extension Update)
+# SERP Competitive Gaps & Opportunities Analysis: Walkthrough (Chrome Extension Update)
 
 We refactored the local developer Chrome Extension to focus entirely on **Google SERP competitive opportunity analysis**. The extension detects and summarizes optimization gaps on organic competitor search results to identify high-value entry points for new content.
 

@@ -1,122 +1,114 @@
 {
-  "ranAt": "2026-06-17T21:11:07.367Z",
-  "rulesetVersion": "15",
+  "ranAt": "2026-08-23T22:43:49.170Z",
+  "rulesetVersion": "18",
   "corpusVersion": "2",
   "perSiteVerdict": {
-    "https://zapier.com/apps/slack/integrations": "caution",
-    "https://www.g2.com/categories": "ready",
-    "https://wise.com/us/currency-converter": "concerning",
-    "https://webflow.com/templates": "caution",
-    "https://www.typeform.com/templates": "ready",
-    "https://www.jasper.ai/templates": "ready",
-    "https://ramp.com/spend-management": "ready",
-    "https://www.numbeo.com/cost-of-living": "caution",
     "https://airbyte.com/connectors": "ready",
-    "https://paperforge.dev/": "caution",
-    "https://www.healthyceleb.com/": "caution",
-    "https://www.fresherslive.com/": "concerning",
-    "https://doorwayspam.example/": "critical",
-    "https://hiddentextspam.example/": "critical",
-    "https://zacjohnson.com/": "concerning",
     "https://beingselfish.in/": "critical",
-    "https://www.newsunzip.com/": "caution",
-    "https://popularnetworth.com/": "concerning",
-    "https://www.thehairpin.com/": "ready",
-    "https://equityatlas.org/": "concerning",
+    "https://cookcraze.com/": "concerning",
     "https://coupons.cnn.com/": "critical",
-    "https://www.outlookindia.com/outlook-spotlight/": "caution",
-    "https://www.sfgate.com/coupons": "caution",
-    "https://www.forbes.com/advisor/": "caution",
-    "https://www.cnn.com/cnn-underscored/money/": "caution",
-    "https://www.usatoday.com/money/blueprint/": "ready",
-    "https://thepersonage.com/": "critical",
-    "https://wikibioworth.com/": "ready",
-    "https://trustanalytica.org/": "concerning",
-    "https://www.bestprosintown.com/": "caution",
+    "https://doorwayspam.example/": "critical",
+    "https://equityatlas.org/": "critical",
     "https://fresherslike.com/": "concerning",
     "https://grokipedia.com/": "critical",
-    "https://cookcraze.com/": "concerning"
+    "https://hiddentextspam.example/": "critical",
+    "https://paperforge.dev/": "ready",
+    "https://popularnetworth.com/": "critical",
+    "https://ramp.com/spend-management": "ready",
+    "https://thepersonage.com/": "critical",
+    "https://trustanalytica.org/": "concerning",
+    "https://webflow.com/templates": "caution",
+    "https://wikibioworth.com/": "caution",
+    "https://wise.com/us/currency-converter": "concerning",
+    "https://www.bestprosintown.com/": "concerning",
+    "https://www.cnn.com/cnn-underscored/money/": "caution",
+    "https://www.forbes.com/advisor/": "caution",
+    "https://www.fresherslive.com/": "critical",
+    "https://www.g2.com/categories": "ready",
+    "https://www.healthyceleb.com/": "critical",
+    "https://www.jasper.ai/templates": "ready",
+    "https://www.newsunzip.com/": "caution",
+    "https://www.numbeo.com/cost-of-living": "caution",
+    "https://www.outlookindia.com/outlook-spotlight/": "concerning",
+    "https://www.sfgate.com/coupons": "caution",
+    "https://www.thehairpin.com/": "ready",
+    "https://www.typeform.com/templates": "ready",
+    "https://www.usatoday.com/money/blueprint/": "ready",
+    "https://zacjohnson.com/": "concerning",
+    "https://zapier.com/apps/slack/integrations": "caution"
   },
   "scorecard": {
     "confusion": {
-      "tp": 13,
+      "tp": 16,
       "fp": 1,
-      "tn": 7,
-      "fn": 10,
-      "precision": 0.9285714285714286,
-      "recall": 0.5652173913043478,
-      "f1": 0.7027027027027025
+      "tn": 5,
+      "fn": 7,
+      "precision": 0.9411764705882353,
+      "recall": 0.6956521739130435,
+      "f1": 0.7999999999999999
     },
     "risk": {
       "reputable": {
-        "n": 8,
-        "min": 2,
-        "median": 26.5,
+        "n": 6,
+        "min": 19,
+        "median": 29,
         "max": 60
       },
       "policyViolating": {
         "n": 23,
-        "min": 3,
-        "median": 25,
-        "max": 64
+        "min": 2,
+        "median": 26,
+        "max": 65
       },
       "cleanlySeparated": false
     },
     "calibration": {
-      "nReputable": 8,
+      "nReputable": 6,
       "nPolicy": 23,
-      "auc": 0.5652173913043478,
-      "separationGap": -57,
+      "auc": 0.5289855072463768,
+      "separationGap": -58,
       "reputableAbovePolicyMedian": [
         {
           "url": "https://www.numbeo.com/cost-of-living",
           "risk": 60
         },
         {
+          "url": "https://ramp.com/spend-management",
+          "risk": 35
+        },
+        {
           "url": "https://airbyte.com/connectors",
-          "risk": 34
+          "risk": 30
         },
         {
           "url": "https://wise.com/us/currency-converter",
           "risk": 28
-        },
-        {
-          "url": "https://ramp.com/spend-management",
-          "risk": 28
-        },
-        {
-          "url": "https://webflow.com/templates",
-          "risk": 25
         }
       ],
       "policyBelowReputableMedian": [
         {
+          "url": "https://www.thehairpin.com/",
+          "risk": 2
+        },
+        {
           "url": "https://www.sfgate.com/coupons",
-          "risk": 3
+          "risk": 4
         },
         {
           "url": "https://www.usatoday.com/money/blueprint/",
-          "risk": 5
-        },
-        {
-          "url": "https://www.healthyceleb.com/",
-          "risk": 6
-        },
-        {
-          "url": "https://www.thehairpin.com/",
-          "risk": 6
+          "risk": 8
         },
         {
           "url": "https://www.newsunzip.com/",
-          "risk": 13
+          "risk": 9
         },
         {
           "url": "https://www.bestprosintown.com/",
-          "risk": 15
+          "risk": 11
         },
         {
           "url": "https://wikibioworth.com/",
-          "risk": 20
+          "risk": 21
         },
         {
           "url": "https://www.fresherslive.com/",
@@ -135,12 +127,12 @@
           "risk": 25
         },
         {
-          "url": "https://www.outlookindia.com/outlook-spotlight/",
+          "url": "https://www.forbes.com/advisor/",
           "risk": 25
         },
         {
-          "url": "https://www.forbes.com/advisor/",
-          "risk": 25
+          "url": "https://www.healthyceleb.com/",
+          "risk": 26
         }
       ],
       "buckets": [
@@ -148,17 +140,17 @@
           "label": "0-20",
           "lo": 0,
           "hi": 20,
-          "n": 8,
-          "policyViolating": 6,
-          "policyRate": 0.75
+          "n": 6,
+          "policyViolating": 5,
+          "policyRate": 0.8333333333333334
         },
         {
           "label": "20-40",
           "lo": 20,
           "hi": 40,
-          "n": 13,
+          "n": 12,
           "policyViolating": 8,
-          "policyRate": 0.6153846153846154
+          "policyRate": 0.6666666666666666
         },
         {
           "label": "40-60",
@@ -172,9 +164,9 @@
           "label": "60-80",
           "lo": 60,
           "hi": 80,
-          "n": 8,
-          "policyViolating": 7,
-          "policyRate": 0.875
+          "n": 9,
+          "policyViolating": 8,
+          "policyRate": 0.8888888888888888
         },
         {
           "label": "80-100",
@@ -187,121 +179,153 @@
       ]
     },
     "perRule": {
+      "spam/near-duplicate": {
+        "reputableFired": 3,
+        "reputableTotal": 6,
+        "policyFired": 4,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 2
+      },
+      "content/image-attributes": {
+        "reputableFired": 6,
+        "reputableTotal": 6,
+        "policyFired": 17,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "links/crawlable-anchors": {
+        "reputableFired": 1,
+        "reputableTotal": 6,
+        "policyFired": 5,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
       "content/missing-author": {
         "reputableFired": 8,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 14,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 20
+      },
+      "content/eeat-signals": {
+        "reputableFired": 8,
+        "reputableTotal": 6,
+        "policyFired": 15,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 5
+      },
+      "content/heading-structure": {
+        "reputableFired": 7,
+        "reputableTotal": 6,
+        "policyFired": 12,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 18
+      },
+      "tech/language-mismatch": {
+        "reputableFired": 1,
+        "reputableTotal": 6,
+        "policyFired": 2,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/snippet-suppression": {
+        "reputableFired": 1,
+        "reputableTotal": 6,
+        "policyFired": 0,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "aeo/freshness-signals": {
+        "reputableFired": 8,
+        "reputableTotal": 6,
+        "policyFired": 22,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 28
+      },
+      "aeo/answer-first": {
+        "reputableFired": 7,
+        "reputableTotal": 6,
+        "policyFired": 16,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 22
       },
-      "content/eeat-signals": {
-        "reputableFired": 8,
-        "reputableTotal": 8,
-        "policyFired": 15,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 7
-      },
-      "aeo/freshness-signals": {
-        "reputableFired": 8,
-        "reputableTotal": 8,
-        "policyFired": 22,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 30
-      },
       "aeo/citable-facts": {
         "reputableFired": 8,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 19,
         "policyTotal": 23,
         "suppressedOn": 0,
-        "demotedOn": 27
-      },
-      "spam/near-duplicate": {
-        "reputableFired": 3,
-        "reputableTotal": 8,
-        "policyFired": 4,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 3
-      },
-      "content/title-uniqueness": {
-        "reputableFired": 6,
-        "reputableTotal": 8,
-        "policyFired": 12,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 0
-      },
-      "content/heading-structure": {
-        "reputableFired": 7,
-        "reputableTotal": 8,
-        "policyFired": 12,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 19
-      },
-      "aeo/answer-first": {
-        "reputableFired": 7,
-        "reputableTotal": 8,
-        "policyFired": 16,
-        "policyTotal": 23,
-        "suppressedOn": 0,
-        "demotedOn": 23
+        "demotedOn": 25
       },
       "spam/template-coverage": {
         "reputableFired": 1,
-        "reputableTotal": 8,
-        "policyFired": 2,
+        "reputableTotal": 6,
+        "policyFired": 3,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
         "demotedOn": 0
       },
       "spam/template-diversity": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 0,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
         "demotedOn": 0
       },
       "spam/entity-swap": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 3,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
         "demotedOn": 2
       },
       "cannibal/url-pattern": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 0,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
         "demotedOn": 0
       },
       "links/host-section-divergence": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 0,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
         "demotedOn": 0
       },
       "content/citation-coverage": {
         "reputableFired": 3,
-        "reputableTotal": 8,
-        "policyFired": 5,
+        "reputableTotal": 6,
+        "policyFired": 6,
         "policyTotal": 23,
-        "suppressedOn": 22,
+        "suppressedOn": 21,
+        "demotedOn": 0
+      },
+      "content/title-uniqueness": {
+        "reputableFired": 6,
+        "reputableTotal": 6,
+        "policyFired": 12,
+        "policyTotal": 23,
+        "suppressedOn": 0,
         "demotedOn": 0
       },
       "content/meta-uniqueness": {
         "reputableFired": 2,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 6,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -309,7 +333,7 @@
       },
       "links/orphan-pages": {
         "reputableFired": 3,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 14,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -317,15 +341,15 @@
       },
       "links/unreachable-from-root": {
         "reputableFired": 2,
-        "reputableTotal": 8,
-        "policyFired": 9,
+        "reputableTotal": 6,
+        "policyFired": 10,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "tech/hreflang-consistency": {
         "reputableFired": 3,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 2,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -333,31 +357,31 @@
       },
       "spam/thin-content": {
         "reputableFired": 6,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 10,
         "policyTotal": 23,
         "suppressedOn": 0,
-        "demotedOn": 16
+        "demotedOn": 15
       },
-      "content/image-alt-text": {
-        "reputableFired": 2,
-        "reputableTotal": 8,
-        "policyFired": 10,
+      "spam/keyword-stuffed-title": {
+        "reputableFired": 0,
+        "reputableTotal": 6,
+        "policyFired": 7,
         "policyTotal": 23,
         "suppressedOn": 0,
-        "demotedOn": 12
+        "demotedOn": 0
       },
-      "tech/canonical-consistency": {
+      "content/meta-description-presence": {
         "reputableFired": 3,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 4,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
-      "tech/robots-noindex-conflict": {
+      "schema/required-fields": {
         "reputableFired": 1,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 1,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -365,47 +389,71 @@
       },
       "tech/og-completeness": {
         "reputableFired": 5,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 13,
         "policyTotal": 23,
         "suppressedOn": 0,
-        "demotedOn": 18
+        "demotedOn": 17
       },
-      "schema/required-fields": {
+      "aeo/faq-coverage": {
+        "reputableFired": 2,
+        "reputableTotal": 6,
+        "policyFired": 13,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/canonical-consistency": {
+        "reputableFired": 3,
+        "reputableTotal": 6,
+        "policyFired": 4,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/html-size": {
         "reputableFired": 1,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 1,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
-      "aeo/faq-coverage": {
+      "tech/viewport-meta": {
         "reputableFired": 2,
-        "reputableTotal": 8,
-        "policyFired": 13,
+        "reputableTotal": 6,
+        "policyFired": 2,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "links/dead-ends": {
         "reputableFired": 2,
-        "reputableTotal": 8,
-        "policyFired": 4,
+        "reputableTotal": 6,
+        "policyFired": 5,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "spam/doorway-pattern": {
         "reputableFired": 1,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 2,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 3
       },
+      "content/image-alt-text": {
+        "reputableFired": 2,
+        "reputableTotal": 6,
+        "policyFired": 10,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 11
+      },
       "content/unique-value": {
         "reputableFired": 2,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 7,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -413,15 +461,23 @@
       },
       "schema/json-ld-valid": {
         "reputableFired": 1,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 2,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
+      "tech/robots-noindex-conflict": {
+        "reputableFired": 1,
+        "reputableTotal": 6,
+        "policyFired": 1,
         "policyTotal": 23,
         "suppressedOn": 0,
         "demotedOn": 0
       },
       "aeo/content-modularity": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 1,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -429,7 +485,7 @@
       },
       "spam/boilerplate-ratio": {
         "reputableFired": 0,
-        "reputableTotal": 8,
+        "reputableTotal": 6,
         "policyFired": 1,
         "policyTotal": 23,
         "suppressedOn": 0,
@@ -437,7 +493,7 @@
       }
     },
     "classCounts": {
-      "reputable": 8,
+      "reputable": 6,
       "policyViolating": 23,
       "subject": 2
     },
@@ -445,29 +501,29 @@
       {
         "url": "https://www.jasper.ai/templates",
         "verdict": "ready",
-        "risk": 60,
+        "risk": 54,
         "topFired": [
           "spam/entity-swap",
           "schema/json-ld-valid",
           "content/unique-value",
           "spam/near-duplicate",
           "content/citation-coverage",
+          "content/image-attributes",
           "content/common-phrase-reuse",
-          "spam/template-coverage",
-          "content/missing-author"
+          "spam/template-coverage"
         ]
       },
       {
         "url": "https://paperforge.dev/",
-        "verdict": "caution",
-        "risk": 32,
+        "verdict": "ready",
+        "risk": 20,
         "topFired": [
           "links/orphan-pages",
           "spam/template-diversity",
           "content/citation-coverage",
           "links/unreachable-from-root",
           "spam/template-coverage",
-          "content/title-uniqueness",
+          "tech/og-completeness",
           "aeo/freshness-signals",
           "aeo/citable-facts"
         ]

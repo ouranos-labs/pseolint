@@ -1,11 +1,11 @@
-// pseolint extension — the single network egress point (architecture §3).
+// pseolint extension: the single network egress point (architecture §3).
 //
 // The ONLY component that talks to the network, and it talks to exactly one
 // origin. Every payload passes the §8 allowlist guard BEFORE it leaves the
-// browser, so a non-emittable object fails closed — nothing is sent.
+// browser, so a non-emittable object fails closed; nothing is sent.
 import { assertEmittable } from "../shared/signals.js";
 
-// ponytail: one origin, hardcoded by design (§3/§7) — not config, there is no
+// ponytail: one origin, hardcoded by design (§3/§7), not config, there is no
 // second endpoint to make configurable.
 const API_URL = "https://api.pseolint.com/v1/signals";
 

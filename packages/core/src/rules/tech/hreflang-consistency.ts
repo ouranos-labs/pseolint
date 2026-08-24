@@ -46,7 +46,7 @@ export function hreflangConsistencyRule(
 
       if (!/^https?:\/\/[^\/]/i.test(entry.href)) {
         // Tightened the prefix check to require at least one host character
-        // after `https://` — otherwise malformed hrefs like literal
+        // after `https://`, otherwise malformed hrefs like literal
         // "https://" pass the regex but crash normalizeAuditUrl downstream
         // (calibration round 2 surfaced this on webflow.com/templates).
         findings.push({
@@ -105,7 +105,7 @@ export function hreflangConsistencyRule(
       if (!targetRefs) {
         // 2026-05-03 calibration finding: on a sampled crawl we only audit a
         // subset of pages. If the hreflang target isn't in our sample, we
-        // simply have no data on its annotations — flagging it as "no
+        // simply have no data on its annotations: flagging it as "no
         // hreflang back" is a false positive that scales with sample size
         // (~385 fires on a 25-page Wise sample). Only assert reciprocity on
         // pages we actually parsed.

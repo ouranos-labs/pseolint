@@ -52,7 +52,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     )).limit(1));
   if (!domain) notFound();
 
-  // Latest fix manifest this user generated for this domain — the funnel's
+  // Latest fix manifest this user generated for this domain: the funnel's
   // back-link, so "Generate fixes" results are findable later. Matched via the
   // session, which stored the exact sourceUrl the CTA sent.
   const [latestManifest] = await withDbRetry(() =>
@@ -102,7 +102,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
       .where(eq(findingsState.domainId, domain.id))
       .orderBy(desc(findingsState.rankScore))
       .limit(200),
-    // Latest completed audit — used for the rich snapshot section.
+    // Latest completed audit: used for the rich snapshot section.
     db.select().from(audits)
       .where(and(
         eq(audits.userId, session.user.id),
@@ -129,7 +129,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         eq(gscPageMetrics.monthBucket, monthBucketUtc()),
       ))
       .orderBy(desc(gscPageMetrics.impressions))
-      // Cap 2000 (raised from 500 now that we're on a paid Neon plan — monthly
+      // Cap 2000 (raised from 500 now that we're on a paid Neon plan: monthly
       // transfer is no longer the binding constraint; the original 500 was a
       // free-tier transfer guard after paperforge.dev, 2026-05-06, dumped every
       // row per render). Still bounded for dashboard render perf. Top-500 by
@@ -188,7 +188,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const indexedUrlSet = new Set(indexedUrls);
 
   // Derive clean candidate URLs: pages observed by the engine that currently
-  // have zero open findings — i.e. every finding ever recorded has been
+  // have zero open findings, i.e. every finding ever recorded has been
   // resolved (snoozed or dismissed). Subtract already-indexed URLs so we
   // only surface pages that genuinely need a crawl request.
   const dirtyRepresentativeUrls = openFindings
@@ -265,7 +265,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
   const riskDelta =
     latestAudit?.risk != null && previousRisk != null ? latestAudit.risk - previousRisk : null;
 
-  // Diff vs. the run before the latest — the "what changed" strip needs the
+  // Diff vs. the run before the latest: the "what changed" strip needs the
   // previous completed audit's timestamp to bound the new/recovered windows.
   // findingsState is cumulative (rows persist across runs); we slice it by
   // firstSeenAt / lastSeenAt against the prior run's completedAt.
@@ -295,12 +295,12 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
     const previousCompletedAt = completedRuns[1]?.completedAt ?? null;
     if (previousCompletedAt) {
       // "Recovered" must mean the engine actually RE-CHECKED the page and the
-      // finding no longer fired — not merely that we didn't see it this run.
+      // finding no longer fired: not merely that we didn't see it this run.
       // On monitoring runs that skip pages, a carried-forward finding's
       // lastSeenAt is frozen at its last real verification (mergeFindings skips
       // carried-forward findings), so it lands in the recovered window despite
       // never being re-verified. Counting it as "confirmed fixed" is a false
-      // claim. Exclude any signature the latest summary carried forward — for
+      // claim. Exclude any signature the latest summary carried forward: for
       // those we have no evidence of recovery.
       const carriedForwardKeys = new Set<string>();
       for (const [key, meta] of latestFindingsMap) {
@@ -359,13 +359,13 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 
   // Aggregate URL-level GSC metrics up to the same template signature used for
   // grouping findings (e.g. /blog/:slug). Findings fan out across many URLs
-  // sharing one template, so impressions must too — otherwise traffic-by-page
+  // sharing one template, so impressions must too: otherwise traffic-by-page
   // wouldn't match the rank score's traffic weighting.
   const trafficBySig = new Map<string, { impressions: number; clicks: number }>();
   let totalImpressions = 0;
   let totalClicks = 0;
   // Impressions-weighted average position. A naive mean across URLs would
-  // overcount low-traffic outliers — e.g. a 0-impression page at avg position
+  // overcount low-traffic outliers, e.g. a 0-impression page at avg position
   // 80 would drag the headline number into territory that doesn't reflect
   // where the operator's actual traffic is ranking.
   let positionWeightedSum = 0;
@@ -420,7 +420,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. WHERE AM I — header + verify banner if blocking. */ }
+      {/* 1. WHERE AM I: header + verify banner if blocking. */ }
       <WorkspaceHeader domain={ { host: domain.host, sourceUrl: domain.sourceUrl } } />
       { !domain.verifiedAt && (
         <VerifyBanner
@@ -430,7 +430,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       ) }
 
-      {/* 2. INTEGRATION HEALTH — only loud when actionable; the bound-with-data
+      {/* 2. INTEGRATION HEALTH: only loud when actionable; the bound-with-data
           variant renders as a single compact pill so the happy path doesn't
           dominate the hero. */}
       <GscStatusStrip
@@ -446,7 +446,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         ctr={ ctr }
       />
 
-      {/* v0.5.3 — cumulative coverage. Reframes "200 URLs/week" as the
+      {/* v0.5.3: cumulative coverage. Reframes "200 URLs/week" as the
           running total this domain has accumulated. Hidden silently for
           brand-new domains with no completed audit history; an empty
           state here would just be noise. */}
@@ -457,7 +457,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       ) }
 
-      {/* 3. WHERE I AM — the headline (latest risk + tile grid). */ }
+      {/* 3. WHERE I AM: the headline (latest risk + tile grid). */ }
       { latestAudit && summary && (
         <section className="flex flex-col gap-6">
           <div className="flex items-baseline justify-between">
@@ -480,7 +480,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </Link>
           </div>
 
-          {/* v0.4 §4.11 site-classification badge — surfaces what type of site the
+          {/* v0.4 §4.11 site-classification badge: surfaces what type of site the
               engine inferred and how many pSEO-only rules were suppressed. Only
               rendered for v0.4+ reports (legacy v0.3 summaries lack the field). */}
           { summary.siteClassification && (
@@ -527,7 +527,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             </div>
           ) }
 
-          {/* Engine moderator pills — content-effort + domain authority. Both
+          {/* Engine moderator pills: content-effort + domain authority. Both
               moderate the verdict; the public report already surfaces the
               content-effort pill, so we mirror its styling exactly here and add
               authority alongside. Each renders only when the engine resolved a
@@ -564,14 +564,14 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
             <div className="flex flex-col items-start">
               {/* Headline tier = the engine's MODERATED verdict (authority +
                   content-effort shift the verdict, never the raw risk). The
-                  raw risk is internal and never the headline — it stays below
+                  raw risk is internal and never the headline; it stays below
                   as a secondary detail chip. */}
               { (() => {
                 const v = verdictStyle(summary.verdict);
                 return (
                   <span
                     className={ `inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 font-mono text-sm font-semibold uppercase tracking-wider ${v.border} ${v.bg} ${v.tone}` }
-                    title="Engine verdict — moderated by domain authority & content-effort"
+                    title="Engine verdict: moderated by domain authority & content-effort"
                   >
                     <span className={ `inline-block h-1.5 w-1.5 rounded-full ${v.dot}` } />
                     { v.label }
@@ -616,7 +616,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
                   <TileGrid
                     states={ tileStates }
                     meta={ tileMeta }
-                    title={ `${domain.host} — worst rule per page across ${tileStates.length} tiles. Click a tile to see its history.` }
+                    title={ `${domain.host}: worst rule per page across ${tileStates.length} tiles. Click a tile to see its history.` }
                   />
                   <TileLegend
                     { ...pagesByWorstSeverity(summary) }
@@ -644,7 +644,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         </section>
       ) }
 
-      {/* 3.5 FIX THESE FIRST — AI triage root-causes. Sits right below the
+      {/* 3.5 FIX THESE FIRST: AI triage root-causes. Sits right below the
           headline (verdict) and above the detailed findings work surface so the
           operator reads the prioritised plan first. Pro-only: rendered only when
           the engine populated `summary.triage`. */}
@@ -665,7 +665,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         </Link>
       ) : null }
 
-      {/* 4. WHAT JUST CHANGED — sits below the headline so the user reads
+      {/* 4. WHAT JUST CHANGED: sits below the headline so the user reads
           state-then-delta. Stronger Pro-justification per pixel than any
           other strip. */}
       { latestAudit?.completedAt && (
@@ -678,17 +678,17 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       ) }
 
-      {/* 5. HOW AM I TRENDING — the visual narrative of monitoring. */ }
+      {/* 5. HOW AM I TRENDING: the visual narrative of monitoring. */ }
       <RiskTrendChart runs={ timelineRuns } alertThreshold={ domain.alertThreshold } />
 
-      {/* 6. ALERT THRESHOLD — interactive replay so the user sees what their threshold buys */ }
+      {/* 6. ALERT THRESHOLD: interactive replay so the user sees what their threshold buys */ }
       <AlertThresholdSimulator
         runs={ timelineRuns }
         currentThreshold={ domain.alertThreshold }
         host={ domain.host }
       />
 
-      {/* 6.5 WATCHED PAGES (v0.5.3) — Pro-only pinning. URLs in this list are
+      {/* 6.5 WATCHED PAGES (v0.5.3): Pro-only pinning. URLs in this list are
           force-refetched on every monitoring run regardless of diff-mode skip.
           Free users never reach this page (plan gate redirects to /pricing),
           so no upgrade CTA needed inline. */}
@@ -698,7 +698,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         initialRows={ watchedRows }
       />
 
-      {/* 6.55 INSTANT INDEXING ENGINE (v0.6) — free-form URL push for pages
+      {/* 6.55 INSTANT INDEXING ENGINE (v0.6): free-form URL push for pages
           that are clean but not yet surfaced in the findings list. Respects
           the same Domain-Level Quality Gate, Hostname Guard, and Impression
           Proxy Correlation as the per-finding IndexingButton. */}
@@ -714,7 +714,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       ) }
 
-      {/* 6.6 TEMPLATE BREAKDOWN (v0.5.10) — rendered when the engine detected ≥2
+      {/* 6.6 TEMPLATE BREAKDOWN (v0.5.10): rendered when the engine detected ≥2
           templates. Cards live above the per-URL findings list so the operator
           sees the template-level picture first, then drills down. Falls back
           silently for legacy / single-template audits. */}
@@ -724,7 +724,7 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         />
       ) }
 
-      {/* 7. AUDIT INTERNALS — origin readiness + category breakdown. Pulled
+      {/* 7. AUDIT INTERNALS: origin readiness + category breakdown. Pulled
           *below* the trend so they don't break the state→change→trend flow. */}
       { latestAudit && summary && (
         <>
@@ -738,13 +738,13 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
         </>
       ) }
 
-      {/* 8. PICK A SPECIFIC RUN — clickable bar grid for drill-down into a
+      {/* 8. PICK A SPECIFIC RUN: clickable bar grid for drill-down into a
           past report. Lives above the findings panel because that's where the
           user goes if they want to compare a finding to a specific historical
           state. */}
       <TimelineStrip runs={ timelineRuns } />
 
-      {/* 9. WHAT'S WRONG — the work surface. Each row carries traffic chips,
+      {/* 9. WHAT'S WRONG: the work surface. Each row carries traffic chips,
           rank-source annotation, and (when documented) inline remediation.
           v0.6.0: when ≥2 templates are detected the per-URL list is demoted
           to a drill-down collapsed by default (template cards above are the

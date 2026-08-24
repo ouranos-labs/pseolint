@@ -5,7 +5,7 @@
  * recurring crawl, alert email and Slack ping flows from `selectDueDomains`, so an
  * unverified domain slipping into its result set means pseolint crawls a site on a
  * schedule for someone who never proved they control it. A mocked db cannot cover
- * it — the whole assertion is that a set of SQL predicates compose correctly, which
+ * it: the whole assertion is that a set of SQL predicates compose correctly, which
  * only a real database can answer.
  *
  * SAFETY: every case runs inside a transaction that is always rolled back, so the
@@ -77,7 +77,7 @@ async function seed(
   return row.id;
 }
 
-/** Ids the predicate returns for this run only — a shared DB holds other rows. */
+/** Ids the predicate returns for this run only: a shared DB holds other rows. */
 async function dueIds(tx: Tx, userId: string): Promise<Set<string>> {
   const rows = await selectDueDomains(LIMIT, tx);
   return new Set(rows.filter((r) => r.userId === userId).map((r) => r.id));

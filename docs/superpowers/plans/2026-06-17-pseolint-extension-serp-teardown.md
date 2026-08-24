@@ -1,4 +1,4 @@
-# pseolint extension — SERP competitive teardown — Implementation Plan
+# pseolint extension: SERP competitive teardown: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -6,7 +6,7 @@
 
 **Architecture:** The service worker stops returning only a verdict and instead returns a per-result **signal set** (words, OG-complete, shell flag, fired flags, verdict). The side panel computes pure "reads" (median content bar, descriptive row tags, saturation, the opening) and renders a scorecard. Free + MIT + no auth; descriptive facts only (§6/§11); the deep teardown + your-own-site audit stay in the SaaS (§14).
 
-**Tech Stack:** Plain JS, MV3, `bun build --format=iife`, `@pseolint/core` subpath exports, runnable `node` assert tests. Vanilla — no framework.
+**Tech Stack:** Plain JS, MV3, `bun build --format=iife`, `@pseolint/core` subpath exports, runnable `node` assert tests. Vanilla, no framework.
 
 **Scope:** v1 = Phases 1–2 (A saturation + B content bar + C vulnerability map) + Phase 4 docs. Phase 3 (D, AEO race) is the fast-follow.
 
@@ -16,27 +16,27 @@
 
 Under `apps/extension/`:
 
-- `src/shared/rules-client.js` — **modify.** Add `scanPage()` → full signal set; keep `verdictFor` as a thin wrapper.
-- `src/shared/teardown.js` — **new.** Pure reads: content bar (median), row tags, saturation, opening.
-- `src/background.js` — **modify.** `analyze()` returns the signal set, not just `{verdict}`.
-- `src/content/serp/index.js` — **modify.** `deepScan()` enriches each result with `templated` + `rank`, mounts the in-page badge from `verdict`, returns the enriched list.
-- `src/ui/sidepanel.js` — **modify.** Replace the flag-list render with the scorecard (uses `teardown.js`).
-- `sidepanel.html` — **modify.** Scorecard styles (bar chart, tags, headline, CTA).
-- `tests/rules-client.test.js` — **modify** (scanPage). `tests/teardown.test.js` — **new.**
-- `README.md`, `STORE.md` — **modify** (recon positioning).
+- `src/shared/rules-client.js`: **modify.** Add `scanPage()` → full signal set; keep `verdictFor` as a thin wrapper.
+- `src/shared/teardown.js`: **new.** Pure reads: content bar (median), row tags, saturation, opening.
+- `src/background.js`: **modify.** `analyze()` returns the signal set, not just `{verdict}`.
+- `src/content/serp/index.js`: **modify.** `deepScan()` enriches each result with `templated` + `rank`, mounts the in-page badge from `verdict`, returns the enriched list.
+- `src/ui/sidepanel.js`: **modify.** Replace the flag-list render with the scorecard (uses `teardown.js`).
+- `sidepanel.html`: **modify.** Scorecard styles (bar chart, tags, headline, CTA).
+- `tests/rules-client.test.js`: **modify** (scanPage). `tests/teardown.test.js`: **new.**
+- `README.md`, `STORE.md`: **modify** (recon positioning).
 - Phase 3 only: `src/shared/parse.js` (schema flag), `core/package.json` (aeo subpath exports).
 
 ---
 
-# Phase 1 — Signal surfacing
+# Phase 1: Signal surfacing
 
-### Task 1: `scanPage()` — full per-page signal set
+### Task 1: `scanPage()`: full per-page signal set
 
 **Files:**
 - Modify: `apps/extension/src/shared/rules-client.js`
 - Test: `apps/extension/tests/rules-client.test.js`
 
-- [ ] **Step 1: Add the failing test** — append to `tests/rules-client.test.js` before the final `console.log`:
+- [ ] **Step 1: Add the failing test**: append to `tests/rules-client.test.js` before the final `console.log`:
 
 ```js
 import { scanPage } from "../src/shared/rules-client.js";
@@ -65,9 +65,9 @@ assert.strictEqual(verdictFor(clean, "https://x.com", 200), null, "verdictFor ba
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/extension && node tests/rules-client.test.js`
-Expected: FAIL — `scanPage` not exported.
+Expected: FAIL, `scanPage` not exported.
 
-- [ ] **Step 3: Implement** — replace the `toVerdict`/`verdictFor` section of `rules-client.js` with:
+- [ ] **Step 3: Implement**: replace the `toVerdict`/`verdictFor` section of `rules-client.js` with:
 
 ```js
 // findings → { level, label } for overlay.badgeView, or null = do not badge.
@@ -111,7 +111,7 @@ export function verdictFor(html, url, status) {
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `cd apps/extension && node tests/rules-client.test.js`
-Expected: PASS — `rules-client: all verdict checks passed`.
+Expected: PASS, `rules-client: all verdict checks passed`.
 
 - [ ] **Step 5: Commit**
 
@@ -130,7 +130,7 @@ git commit -m "feat(extension): scanPage() exposes full per-page signal set"
 
 > Glue (build-verified). The signal shape is what the scorecard consumes in Phase 2.
 
-- [ ] **Step 1: SW `analyze` returns signals** — in `background.js`, change the import to `scanPage` and rewrite `analyze`'s success path so every result carries the signal set:
+- [ ] **Step 1: SW `analyze` returns signals**: in `background.js`, change the import to `scanPage` and rewrite `analyze`'s success path so every result carries the signal set:
 
 ```js
 import { scanPage } from "./shared/rules-client.js";
@@ -156,7 +156,7 @@ async function analyze(url) {
 }
 ```
 
-- [ ] **Step 2: Content script enriches each result** — in `index.js` `deepScan()`, add `templated` + `rank` from the cached landscape summary, mount the badge from `verdict`, and return the enriched list:
+- [ ] **Step 2: Content script enriches each result**: in `index.js` `deepScan()`, add `templated` + `rank` from the cached landscape summary, mount the badge from `verdict`, and return the enriched list:
 
 ```js
 async function deepScan() {
@@ -200,9 +200,9 @@ git commit -m "feat(extension): SW returns per-result signal set; content script
 
 ---
 
-# Phase 2 — The scorecard (A + B + C)
+# Phase 2: The scorecard (A + B + C)
 
-### Task 3: `teardown.js` — pure reads
+### Task 3: `teardown.js`: pure reads
 
 **Files:**
 - Create: `apps/extension/src/shared/teardown.js`
@@ -211,7 +211,7 @@ git commit -m "feat(extension): SW returns per-result signal set; content script
 - [ ] **Step 1: Write the failing test**
 
 ```js
-// apps/extension/tests/teardown.test.js — `node tests/teardown.test.js`
+// apps/extension/tests/teardown.test.js, `node tests/teardown.test.js`
 import assert from "node:assert";
 import { contentBar, rowTags, saturation, teardown } from "../src/shared/teardown.js";
 
@@ -251,13 +251,13 @@ console.log("teardown: all checks passed");
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/extension && node tests/teardown.test.js`
-Expected: FAIL — module not found.
+Expected: FAIL, module not found.
 
 - [ ] **Step 3: Implement `teardown.js`**
 
 ```js
 // apps/extension/src/shared/teardown.js
-// Pure "reads" for the SERP competitive scorecard. Descriptive facts only —
+// Pure "reads" for the SERP competitive scorecard. Descriptive facts only,
 // the strategic framing ("the opening") is pseolint's read, surfaced in the
 // summary, never stamped on a competitor's row (§6/§11).
 
@@ -313,13 +313,13 @@ export function teardown(results) {
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `cd apps/extension && node tests/teardown.test.js`
-Expected: PASS — `teardown: all checks passed`.
+Expected: PASS, `teardown: all checks passed`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add apps/extension/src/shared/teardown.js apps/extension/tests/teardown.test.js
-git commit -m "feat(extension): teardown reads — content bar, row facts, saturation, opening"
+git commit -m "feat(extension): teardown reads, content bar, row facts, saturation, opening"
 ```
 
 ---
@@ -332,7 +332,7 @@ git commit -m "feat(extension): teardown reads — content bar, row facts, satur
 
 > Glue (live-verified in Task 5). Renders `teardown()`; all untrusted strings via `textContent` (§9).
 
-- [ ] **Step 1: Add scorecard styles** — in `sidepanel.html`, replace the `li`/`.host`/`.v`/`li a`/`li.clean` block with:
+- [ ] **Step 1: Add scorecard styles**: in `sidepanel.html`, replace the `li`/`.host`/`.v`/`li a`/`li.clean` block with:
 
 ```css
       #headline { margin: 12px 0; font: 12px var(--sans); color: var(--fg); }
@@ -372,7 +372,7 @@ git commit -m "feat(extension): teardown reads — content bar, row facts, satur
     <a id="cta" href="https://pseolint.dev" target="_blank" rel="noopener" hidden>Audit your own site →</a>
 ```
 
-- [ ] **Step 2: Render the scorecard** — in `sidepanel.js`, replace `import { coverage }` with `import { teardown }` and replace the whole `render()` function with:
+- [ ] **Step 2: Render the scorecard**: in `sidepanel.js`, replace `import { coverage }` with `import { teardown }` and replace the whole `render()` function with:
 
 ```js
 const TAG_CLASS = { thin: "thin", "soft 404": "soft", "no OG tags": "og", templated: "templated" };
@@ -384,7 +384,7 @@ function render(results) {
   $("opening").textContent = "";
   $("cta").hidden = true;
   if (results.length === 0) {
-    $("status").textContent = "No results found — open a Google results page.";
+    $("status").textContent = "No results found, open a Google results page.";
     return;
   }
   const t = teardown(results);
@@ -443,7 +443,7 @@ function render(results) {
 }
 ```
 
-- [ ] **Step 3: Remove the now-dead coverage module** — `teardown()` returns `scanned`/`failed`, superseding `coverage()`:
+- [ ] **Step 3: Remove the now-dead coverage module**: `teardown()` returns `scanned`/`failed`, superseding `coverage()`:
 
 ```bash
 git rm apps/extension/src/shared/coverage.js apps/extension/tests/coverage.test.js
@@ -476,7 +476,7 @@ git commit -m "feat(extension): SERP competitive scorecard (saturation, content 
 
 ---
 
-# Phase 3 — AEO race (D) — fast-follow
+# Phase 3: AEO race (D): fast-follow
 
 ### Task 6: AEO-ready tag
 
@@ -496,14 +496,14 @@ git commit -m "feat(extension): SERP competitive scorecard (saturation, content 
 
 ---
 
-# Phase 4 — Docs
+# Phase 4: Docs
 
 ### Task 7: Reposition to "competitive recon, free"
 
 **Files:** `apps/extension/README.md`, `apps/extension/STORE.md`
 
-- [ ] **Step 1:** README — describe deep scan as a SERP competitive teardown (saturation/content bar/opening), reiterate free + MIT + the recon-vs-resolution boundary.
-- [ ] **Step 2:** STORE — short + detailed description lead with "competitive recon on any SERP, free"; keep permission justifications unchanged.
+- [ ] **Step 1:** README: describe deep scan as a SERP competitive teardown (saturation/content bar/opening), reiterate free + MIT + the recon-vs-resolution boundary.
+- [ ] **Step 2:** STORE: short + detailed description lead with "competitive recon on any SERP, free"; keep permission justifications unchanged.
 - [ ] **Step 3:** Commit (`docs(extension): reposition to SERP competitive recon`).
 
 ---
@@ -512,4 +512,4 @@ git commit -m "feat(extension): SERP competitive scorecard (saturation, content 
 
 - **Spec coverage:** A saturation (Task 3 `saturation`, Task 4 headline) · B content bar (Task 3 `contentBar`, Task 4 bar chart) · C vulnerability map (Task 3 `rowTags`/`opening`, Task 4 rows + opening) · D AEO (Phase 3) · free/recon-vs-resolution (Task 4 CTA + Task 7 docs) · descriptive-facts-not-accusations (rowTags are facts; "opening" only in summary) · signal surfacing (Tasks 1–2).
 - **Type consistency:** the signal set `{ url, ok, status, words, ogComplete, isLikelyShell, flags, verdict }` is produced by `scanPage` (Task 1) + `analyze` (Task 2), enriched with `{ rank, templated }` (Task 2), and consumed identically by `teardown`/`render` (Tasks 3–4). `flags` are the `TAG`-mapped strings (`"thin"`, `"soft 404"`, `"no OG tags"`) used as both row tags and `TAG_CLASS` keys.
-- **No placeholders:** Phases 1–2 + 4 are fully coded. Phase 3 is intentionally a step-outline (fast-follow) — it gets full code when promoted to active.
+- **No placeholders:** Phases 1–2 + 4 are fully coded. Phase 3 is intentionally a step-outline (fast-follow): it gets full code when promoted to active.

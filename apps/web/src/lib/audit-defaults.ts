@@ -5,25 +5,25 @@
  *
  * Why this lives in the WEB app, not the engine:
  *
- *   The CLI engine (@pseolint/core) is policy-free on purpose — it audits
+ *   The CLI engine (@pseolint/core) is policy-free on purpose: it audits
  *   exactly the URLs you point it at. Power users running it locally know
  *   their own surface and can declare ignores in `pseolint.config.ts`. But
  *   end users running an audit via the public form have no way to know they
  *   should exclude `/signin` or `/api/foo`. The web app is the right layer to
- *   apply opinionated defaults — bundled with the same UX it delivers
+ *   apply opinionated defaults: bundled with the same UX it delivers
  *   (no-signup, 60-second audit, sensible output).
  *
  * Categories below are roughly in order of confidence:
  *
- *   1. Framework metadata routes — emitted by Next.js, Vercel, Astro, Nuxt.
+ *   1. Framework metadata routes: emitted by Next.js, Vercel, Astro, Nuxt.
  *      These return PNG/JSON, not HTML; auditing them produces empty findings.
- *   2. API routes — return JSON. Same reason.
- *   3. Auth surfaces — signin / login / register pages. These are short stubs
+ *   2. API routes: return JSON. Same reason.
+ *   3. Auth surfaces: signin / login / register pages. These are short stubs
  *      with no marketing body content; they fail thin-content / citable-facts /
  *      answer-first rules and pollute the report. Convention is dense enough
  *      across Next.js, Remix, Astro, WordPress, and Rails apps that the
  *      false-positive risk on real marketing routes is very low.
- *   4. Admin / dashboard surfaces — private app shells. Same reasoning.
+ *   4. Admin / dashboard surfaces: private app shells. Same reasoning.
  *
  * Edge cases we accept:
  *
@@ -48,7 +48,7 @@ export const WEB_AUDIT_DEFAULT_IGNORE: readonly string[] = [
   "**/_astro/**",
   "**/_nuxt/**",
 
-  // API routes — return JSON, not marketing HTML
+  // API routes: return JSON, not marketing HTML
   "**/api/**",
 
   // Auth surfaces
@@ -78,7 +78,7 @@ export const WEB_AUDIT_DEFAULT_IGNORE: readonly string[] = [
 /**
  * Framework-specific ignore patterns layered on top of WEB_AUDIT_DEFAULT_IGNORE
  * when the site classifier auto-detects a known framework. Patterns are merged
- * additively — the base list still applies; these add framework-idiomatic
+ * additively: the base list still applies; these add framework-idiomatic
  * paths the generic patterns might miss.
  */
 export const FRAMEWORK_IGNORE_PATTERNS: Record<string, readonly string[]> = {
@@ -97,9 +97,9 @@ export const FRAMEWORK_IGNORE_PATTERNS: Record<string, readonly string[]> = {
     "**/wp-cron.php",
     "**/feed/**",               // /feed, /comments/feed, etc
     "**/comments/feed/**",
-    "**/author/**",             // author archives — usually thin
-    "**/category/**",           // category archives — sometimes leaked from noindex defaults
-    "**/tag/**",                // tag archives — same
+    "**/author/**",             // author archives, usually thin
+    "**/category/**",           // category archives, sometimes leaked from noindex defaults
+    "**/tag/**",                // tag archives, same
     "**/page/[0-9]*/**",        // pagination tail
     "**/?p=*",                  // legacy ?p= permalinks
   ],
@@ -152,7 +152,7 @@ export function resolveAuditIgnorePatterns(framework?: string): string[] {
 /**
  * Lightweight framework detection from a single root-page fetch. Used by the
  * hosted form audit to pick the right framework-specific ignore patterns
- * before the full audit fires. Tolerant of network errors — returns
+ * before the full audit fires. Tolerant of network errors: returns
  * undefined on any failure so the audit still runs with base defaults only.
  *
  * Honors an optional AbortSignal so callers can cap the preflight latency

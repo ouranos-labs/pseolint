@@ -10,7 +10,7 @@ import { auditLog } from "@/lib/audit-log";
 
 /** Failing seeds expire fast; clean seeds get extended to permanent at completion (Plan 1). */
 const SEED_EXPIRY_DAYS = 7;
-/** Sample budget per seed audit — kept modest (free tier allows up to 200) to fit the per-run maxDuration budget. */
+/** Sample budget per seed audit: kept modest (free tier allows up to 200) to fit the per-run maxDuration budget. */
 const SEED_SAMPLE_SIZE = 100;
 
 /**

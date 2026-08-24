@@ -14,7 +14,7 @@ const inputSchema = z.object({
     .url()
     .optional()
     .describe(
-      "When provided, the tool reports whether the engine cited this URL in its answer. Used for AEO citability probes — does ChatGPT/Claude/Perplexity cite *your* page when asked the question your page is targeting?",
+      "When provided, the tool reports whether the engine cited this URL in its answer. Used for AEO citability probes: does ChatGPT/Claude/Perplexity cite *your* page when asked the question your page is targeting?",
     ),
   apiKey: z
     .string()
@@ -157,7 +157,7 @@ async function askPerplexity(query: string, apiKey: string, signal?: AbortSignal
     throw new Error(`ask_ai_engine[perplexity]: ${payload.error.message ?? "unknown error"}`);
   }
   const answer = payload.choices?.[0]?.message?.content ?? "";
-  // Perplexity surfaces citations natively — prefer them, fall back to inline URL extraction.
+  // Perplexity surfaces citations natively: prefer them, fall back to inline URL extraction.
   const citedUrls = payload.citations && payload.citations.length > 0
     ? Array.from(new Set(payload.citations))
     : extractUrls(answer);
@@ -224,20 +224,20 @@ async function askGemini(query: string, apiKey: string, signal?: AbortSignal): P
 }
 
 /**
- * Probe an AI answer engine with a query. The whole point of this tool —
- * the AEO citability check — is to ask the same engines users will ask
+ * Probe an AI answer engine with a query. The whole point of this tool:
+ * the AEO citability check: is to ask the same engines users will ask
  * and see whether they cite the page being audited. No proxies, no
  * heuristics. The cited-URLs list comes back, and if `candidateUrl` is
  * provided we report whether it (by hostname) appears.
  *
  * Provider key resolution: explicit `apiKey` arg → engine-specific env
- * var. Cached for 24h on `engine + query` — same query against the same
+ * var. Cached for 24h on `engine + query`: same query against the same
  * engine reliably hits the same answer for the cache window.
  */
 export const askAiEngineTool = defineTool({
   name: "ask_ai_engine",
   description:
-    "Ask an AI answer engine (Anthropic, Perplexity, or Gemini) a query and report what it answered + which URLs it cited. Pass `candidateUrl` to check whether the engine cited that specific page (by hostname). This is the literal AEO citability test — no heuristic, no proxy, just measurement. Cached 24h per (engine, query). Costs vary: Anthropic ~$0.003/call, Perplexity ~$0.001, Gemini ~$0.001.",
+    "Ask an AI answer engine (Anthropic, Perplexity, or Gemini) a query and report what it answered + which URLs it cited. Pass `candidateUrl` to check whether the engine cited that specific page (by hostname). This is the literal AEO citability test, no heuristic, no proxy, just measurement. Cached 24h per (engine, query). Costs vary: Anthropic ~$0.003/call, Perplexity ~$0.001, Gemini ~$0.001.",
   inputSchema,
   outputSchema,
   async execute({ engine, query, candidateUrl, apiKey, cacheDir }, ctx): Promise<AskOutput> {
@@ -258,7 +258,7 @@ export const askAiEngineTool = defineTool({
       const cacheKey = probeCacheKey("ask_ai_engine", engine, query);
       const cached = await readProbeCache<AskOutput>(cacheDir, cacheKey, DEFAULT_TTL_MS);
       if (cached) {
-        // Cache hits don't bill — re-evaluate candidateCited against the
+        // Cache hits don't bill: re-evaluate candidateCited against the
         // cached citations so a different `candidateUrl` still gets a
         // correct answer without a fresh fetch.
         const candidateCited = candidateUrl

@@ -42,7 +42,7 @@ function makeFinding(
   };
 }
 
-describe("enrichFindings — clustering", () => {
+describe("enrichFindings: clustering", () => {
   test("collapses transitive pairwise findings into one cluster", () => {
     const pages = ["A", "B", "C", "D"].map((u) => makePage(u));
     const findings = [
@@ -172,7 +172,7 @@ describe("enrichFindings — clustering", () => {
   });
 });
 
-describe("enrichFindings — template detection", () => {
+describe("enrichFindings: template detection", () => {
   it("detects template when entity-swap >= 10 pages and template-diversity fires", () => {
     const findings: RuleResult[] = [];
     for (let i = 0; i < 10; i++) {
@@ -209,7 +209,7 @@ describe("enrichFindings — template detection", () => {
   });
 });
 
-describe("enrichFindings — effort assignment", () => {
+describe("enrichFindings: effort assignment", () => {
   it("assigns quick effort to canonical-consistency with few pages", () => {
     const findings: RuleResult[] = [
       { ruleId: "tech/canonical-consistency", severity: "warning", message: "Missing.", pageUrl: "https://a.com/1" },
@@ -256,7 +256,7 @@ describe("enrichFindings — effort assignment", () => {
   });
 });
 
-describe("enrichFindings — per-page grouping", () => {
+describe("enrichFindings: per-page grouping", () => {
   it("groups content/unique-value findings when more than 3", () => {
     const findings: RuleResult[] = Array.from({ length: 10 }, (_, i) => ({
       ruleId: "content/unique-value",
@@ -337,7 +337,7 @@ describe("enrichFindings — per-page grouping", () => {
   });
 });
 
-describe("enrichFindings — rawFindingCount", () => {
+describe("enrichFindings: rawFindingCount", () => {
   it("preserves the pre-enrichment finding count", () => {
     const findings: RuleResult[] = [
       makeFinding("spam/near-duplicate", "https://a.com/1", "https://a.com/2", 0.90),

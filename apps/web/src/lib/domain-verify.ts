@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 
 /**
  * Token value users embed in a DNS TXT record to prove ownership of a monitored
- * domain. 16 hex chars = 64 bits of entropy — unguessable, human-copyable.
+ * domain. 16 hex chars = 64 bits of entropy: unguessable, human-copyable.
  */
 export function generateVerificationToken(): string {
   return randomBytes(8).toString("hex");

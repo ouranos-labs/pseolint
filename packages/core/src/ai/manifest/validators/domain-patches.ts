@@ -9,7 +9,7 @@ type DomainPatch = FixManifest["domainLevel"][number];
  * or a recognized directive (User-agent, Disallow, Allow, Sitemap,
  * Crawl-delay).
  *
- * Not as strict as a real robots-parser library — but catches the failure
+ * Not as strict as a real robots-parser library: but catches the failure
  * modes the LLM is most likely to produce (bad directive names, missing
  * User-agent block, accidental markdown).
  */
@@ -43,7 +43,7 @@ export function validateRobotsTxt(p: DomainPatch): ValidationResult {
  * `<sitemapindex>`), require well-formed XML structure (matching open/close
  * tags), require each `<url>` to carry a `<loc>` child.
  *
- * Skips full XSD validation — pulling in a libxml binding for one patch
+ * Skips full XSD validation: pulling in a libxml binding for one patch
  * type isn't worth the deploy weight. The structural checks catch the
  * common LLM failure modes.
  */
@@ -94,12 +94,12 @@ export function validateSitemapXml(p: DomainPatch): ValidationResult {
  * canonical_strategy is freeform guidance text describing how the site
  * should structure its canonicals (e.g. "always self-canonical except for
  * paginated views which point to page 1"). Validation just rejects empty
- * or trivially-short text — content quality is the LLM's call.
+ * or trivially-short text: content quality is the LLM's call.
  */
 export function validateCanonicalStrategy(p: DomainPatch): ValidationResult {
   const after = p.after.trim();
   if (after.length < 30) {
-    return fail(`canonical_strategy: too short (${after.length} < 30 chars) — needs concrete guidance`);
+    return fail(`canonical_strategy: too short (${after.length} < 30 chars), needs concrete guidance`);
   }
   return VALID;
 }

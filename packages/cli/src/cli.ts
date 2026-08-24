@@ -70,10 +70,10 @@ interface CliOptions {
   analytics?: string;
   blockHost?: string[];
   safeMode?: string;
-  /** v0.7.2 — bring-your-own domain authority 0-100; moderates the verdict one tier (see shiftVerdictForAuthority). */
+  /** v0.7.2: bring-your-own domain authority 0-100; moderates the verdict one tier (see shiftVerdictForAuthority). */
   authorityScore?: string;
   full: boolean;
-  /** v0.4 §4.11: bypass site-classification rule suppression — run all rules. */
+  /** v0.4 §4.11: bypass site-classification rule suppression; run all rules. */
   strict?: boolean;
   backpressure: boolean;
   respectRobots: boolean;
@@ -116,26 +116,26 @@ interface CliOptions {
   telemetryPrompt?: boolean;
   telemetryPath?: string;
   triageFeedback?: string;
-  /** v0.5.6 — POST the JSON summary to a pseolint endpoint after the audit completes. */
+  /** v0.5.6: POST the JSON summary to a pseolint endpoint after the audit completes. */
   uploadTo?: string;
-  /** v0.5.6 — API token for --upload-to (or PSEOLINT_TOKEN env). */
+  /** v0.5.6: API token for --upload-to (or PSEOLINT_TOKEN env). */
   uploadToken?: string;
-  /** v0.5.6 — Domain ID for --upload-to (or PSEOLINT_DOMAIN_ID env). */
+  /** v0.5.6: Domain ID for --upload-to (or PSEOLINT_DOMAIN_ID env). */
   uploadDomainId?: string;
   /**
-   * v0.5.11 — when true (default ON), formatters render per-template cards
+   * v0.5.11: when true (default ON), formatters render per-template cards
    * above the per-URL findings list when ≥2 templates are detected.
    * Commander populates this as true/false via the --per-template / --no-per-template pair.
    */
   perTemplate: boolean;
   /**
-   * v0.5.11 — filter per-URL findings to this template signature only.
+   * v0.5.11: filter per-URL findings to this template signature only.
    * When combined with --per-template, the matching card is highlighted.
    * Silently ignored when no template matches.
    */
   template?: string;
   /**
-   * v0.5.11 — skip per-template view entirely; render the flat per-URL list.
+   * v0.5.11: skip per-template view entirely; render the flat per-URL list.
    * Takes priority over --per-template when both are set.
    */
   legacyFlat: boolean;
@@ -149,7 +149,7 @@ export async function runCli(
 
   program
     .name("pseolint")
-    .description("Programmatic SEO linter — audit sites for SpamBrain risk")
+    .description("Programmatic SEO linter: audit sites for SpamBrain risk")
     .version(version)
     .argument("[source]", "Directory path or URL to audit")
     .option(
@@ -184,7 +184,7 @@ export async function runCli(
     .option("--analytics <mode>", "Render-mode analytics handling: block | allow | allow-first-party (default: block)", "block")
     .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
     .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default) | dev (tiny crawl for localhost)")
-    .option("--full", "Disable the automatic 'dev' preset for localhost sources — run a full crawl")
+    .option("--full", "Disable the automatic 'dev' preset for localhost sources: run a full crawl")
     .option("--strict", "Run all rules regardless of detected site type (bypass pSEO-only rule suppression on small sites)")
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
@@ -193,7 +193,7 @@ export async function runCli(
     .option("--no-skip-boilerplate", "Audit cookie/legal/consent/imprint pages instead of skipping them")
     .option("--no-skip-search-pages", "Audit pages with search-result URL hallmarks (?q=, /search, etc.) instead of skipping them")
     .option("--skip-empty-body", "Skip un-hydrated SPA shells (script-driven pages with empty body)")
-    .option("--no-follow-redirects", "Don't follow 3xx redirects — report them as-is")
+    .option("--no-follow-redirects", "Don't follow 3xx redirects; report them as-is")
     .option("--no-crawl", "Disable crawl-based page discovery for URL sources")
     .option("--data-source <file>", "JSON file with source data for content verification")
     .option("--cache [dir]", "Enable HTTP cache (default dir: .pseolint/cache)")
@@ -207,8 +207,8 @@ export async function runCli(
     .option("--mode <monitoring|fresh>", "v0.5+ change-driven monitoring mode. 'monitoring' applies the pre-fetch decision matrix (default when prior state exists). 'fresh' forces a full re-audit even with prior state.")
     .option("--age-floor-days <n>", "v0.5+ minimum days since a URL's last fetch before monitoring forces a re-fetch regardless of other signals (default: pseolint core's DEFAULT_AGE_FLOOR_DAYS, currently 7)")
     .option("--exit-on-regression", "Exit non-zero when new rule IDs fire vs prior --state")
-    .option("--authority-score <0-100>", "Your domain's authority/reputation (0-100). High authority (≥80) shifts the verdict one tier lenient; low (≤30) shifts one tier stricter — counters thin-but-authoritative false positives.")
-    .option("--crux-api-key <key>", "Chrome UX Report API key (or set CRUX_API_KEY). Enables real-user field Core Web Vitals (p75 LCP/CLS/INP) for tech/core-web-vitals — the numbers Google ranks on, incl. INP. Free key; queries only Google's CrUX endpoint.")
+    .option("--authority-score <0-100>", "Your domain's authority/reputation (0-100). High authority (≥80) shifts the verdict one tier lenient; low (≤30) shifts one tier stricter; counters thin-but-authoritative false positives.")
+    .option("--crux-api-key <key>", "Chrome UX Report API key (or set CRUX_API_KEY). Enables real-user field Core Web Vitals (p75 LCP/CLS/INP) for tech/core-web-vitals: the numbers Google ranks on, incl. INP. Free key; queries only Google's CrUX endpoint.")
     .option("--crux-max-lookups <n>", "Cap on per-URL CrUX lookups; pages beyond it use origin-level field data (default: 150; 0 = unlimited).")
     .option("--crux-form-factor <phone|desktop|all>", "CrUX form factor: phone (mobile-first, ranking-relevant) | desktop | all (default: all).")
     .option("--content-effort", "Enable the AI content-effort signal: a 0-100 originality/effort score (judged from page text) that moderates the verdict ±1 tier. Needs ANTHROPIC_API_KEY. Default off; adds a few cents of LLM cost per audit.")
@@ -231,13 +231,13 @@ export async function runCli(
     .option("--telemetry-path <file>", "Override telemetry JSONL path")
     .option("--triage-feedback <rating>", "Non-interactive feedback: helpful|unhelpful|y|n")
     .option("--mcp", "Start as an MCP server (for AI coding assistants)")
-    .option("--upload-to <endpoint>", "v0.5.6 — POST the JSON summary to this pseolint endpoint after scan completes (or PSEOLINT_ENDPOINT env var)")
-    .option("--upload-token <token>", "v0.5.6 — API token for --upload-to (or PSEOLINT_TOKEN env var)")
-    .option("--upload-domain-id <id>", "v0.5.6 — Domain ID to associate the upload with (or PSEOLINT_DOMAIN_ID env var)")
-    .option("--per-template", "v0.5.11 — render per-template cards above the per-URL findings list when ≥2 templates detected (default: ON)", true)
-    .option("--no-per-template", "v0.5.11 — disable the per-template cards view (equivalent to --legacy-flat)")
-    .option("--template <signature>", "v0.5.11 — filter per-URL findings to this template signature only (e.g. /listing/:slug)")
-    .option("--legacy-flat", "v0.5.11 — opt-out: skip per-template view and render the flat per-URL findings list (wins over --per-template)")
+    .option("--upload-to <endpoint>", "v0.5.6: POST the JSON summary to this pseolint endpoint after scan completes (or PSEOLINT_ENDPOINT env var)")
+    .option("--upload-token <token>", "v0.5.6: API token for --upload-to (or PSEOLINT_TOKEN env var)")
+    .option("--upload-domain-id <id>", "v0.5.6: Domain ID to associate the upload with (or PSEOLINT_DOMAIN_ID env var)")
+    .option("--per-template", "v0.5.11: render per-template cards above the per-URL findings list when ≥2 templates detected (default: ON)", true)
+    .option("--no-per-template", "v0.5.11: disable the per-template cards view (equivalent to --legacy-flat)")
+    .option("--template <signature>", "v0.5.11: filter per-URL findings to this template signature only (e.g. /listing/:slug)")
+    .option("--legacy-flat", "v0.5.11 (opt-out): skip per-template view and render the flat per-URL findings list (wins over --per-template)")
     .action(async (source: string | undefined, opts: CliOptions) => {
       exitCode = await runAudit(source, opts);
     });
@@ -275,7 +275,7 @@ export async function runCli(
 
   program
     .command("diff <baseline> <current>")
-    .description("Diff two AuditSummary JSON reports — verdict + grade deltas, fixed/regressed/new findings")
+    .description("Diff two AuditSummary JSON reports: verdict + grade deltas, fixed/regressed/new findings")
     .option("--no-color", "Disable colored output")
     .action(async (baselinePath: string, currentPath: string, opts: { color: boolean }) => {
       const { runDiffCommand } = await import("./commands/diff.js");
@@ -337,7 +337,7 @@ export async function runCli(
     .option("--max-cost <usd>", "Per-site USD cap. Default $2.", parseFloat, 2)
     .option("--max-tool-calls <n>", "Per-site tool-call cap. Default 60.", (v) => parseInt(v, 10), 60)
     .option("--max-wall-seconds <n>", "Per-site wall-clock cap. Default 240.", (v) => parseInt(v, 10), 240)
-    .option("--concurrency <n>", "Sites in flight at once. Default 1 (sequential — parallelism burns money on rate-limit errors).", (v) => parseInt(v, 10), 1)
+    .option("--concurrency <n>", "Sites in flight at once. Default 1 (sequential; parallelism burns money on rate-limit errors).", (v) => parseInt(v, 10), 1)
     .option("--dry-run", "Print the site list and exit without auditing anything.")
     .option("--no-color", "Disable colored output.")
     .action(async (o: {
@@ -707,7 +707,7 @@ async function runAudit(
   }
 
   // Localhost ergonomics: a cache-cold first run against `http://localhost`
-  // can thundering-herd a dev server's DB. Two mitigations — both opt-out:
+  // can thundering-herd a dev server's DB. Two mitigations, both opt-out:
   //   1) auto-promote to the "dev" safeMode preset (tiny crawl budget)
   //   2) default-on cache so re-runs are cheap and idempotent
   const sourceLooksLocalhost = isLocalhostUrl(source);
@@ -717,11 +717,11 @@ async function runAudit(
     options.autoDevPreset !== false;
   if (devPresetWillApply) {
     console.error(
-      "pseolint: localhost detected — applying 'dev' preset (concurrency=1, sampleSize=25, maxCrawlDiscovered=50). Override with --full or --safe-mode cli.",
+      "pseolint: localhost detected; applying 'dev' preset (concurrency=1, sampleSize=25, maxCrawlDiscovered=50). Override with --full or --safe-mode cli.",
     );
   }
   // Localhost concurrency-override guard. We warn when the concurrency that will
-  // actually REACH the engine is > 1 on a localhost target — i.e. only when the
+  // actually REACH the engine is > 1 on a localhost target, i.e. only when the
   // dev preset is NOT clamping it to 1 (the user passed --full / --safe-mode /
   // an explicit higher concurrency). Don't change the value; just surface the
   // risk that produced the real zero-output run against a single-process dev
@@ -740,7 +740,7 @@ async function runAudit(
       const defaultCache = { ttlMs: parseDuration(opts.cacheTtl) };
       options.cache = defaultCache;
       cliFlags.cache = defaultCache;
-      console.error("pseolint: localhost detected — HTTP cache enabled by default (clear .pseolint/cache to force a cold run).");
+      console.error("pseolint: localhost detected; HTTP cache enabled by default (clear .pseolint/cache to force a cold run).");
     } catch {
       // parseDuration already validated at --cache path; swallow here.
     }
@@ -779,7 +779,7 @@ async function runAudit(
     }
   }
 
-  // SIGINT (ctrl-C) triggers a clean abort — in-flight fetches cancel and the
+  // SIGINT (ctrl-C) triggers a clean abort: in-flight fetches cancel and the
   // audit throws AbortError instead of the process being hard-killed mid-fetch
   // with the stream half-read. Second SIGINT within ~1s forces immediate exit.
   const abortController = new AbortController();
@@ -803,7 +803,7 @@ async function runAudit(
   } catch (err) {
     if (err instanceof OriginDegradedError) {
       console.error(
-        `\npseolint: aborted — origin looks degraded.\n` +
+        `\npseolint: aborted; origin looks degraded.\n` +
         `  ${err.message}\n` +
         `  Options: wait for the origin to recover, re-run with --concurrency 1, ` +
         `or run --no-backpressure to override (not recommended on production DBs).`,
@@ -819,14 +819,14 @@ async function runAudit(
 
   // Partial report: the backpressure watchdog aborted mid-crawl but the engine
   // salvaged the pages it had already fetched. The report below IS still written
-  // / emitted — we just flag that coverage is incomplete and force a non-zero
+  // / emitted; we just flag that coverage is incomplete and force a non-zero
   // exit so CI treats it as a failed (incomplete) run. (The genuinely-empty /
   // unsalvageable case still throws OriginDegradedError and is handled above.)
   let truncatedRun = false;
   if (summary.truncated) {
     truncatedRun = true;
     console.error(
-      `\n⚠ PARTIAL REPORT — origin degraded mid-crawl; coverage is incomplete.\n` +
+      `\n⚠ PARTIAL REPORT: origin degraded mid-crawl; coverage is incomplete.\n` +
         `  Reason: ${summary.truncatedReason ?? "origin looks degraded"}\n` +
         `  The report below reflects only the ${summary.pageCount} page${summary.pageCount === 1 ? "" : "s"} fetched before the watchdog fired. ` +
         `Re-run with --concurrency 1 (or wait for the origin to recover) for full coverage.`,
@@ -864,7 +864,7 @@ async function runAudit(
   // formatters accept verbose. The formatter-rewrite agent owns these signatures.
   const verbose = Boolean(opts.explain);
 
-  // v0.5.11 per-template options — --legacy-flat wins over --per-template.
+  // v0.5.11 per-template options: --legacy-flat wins over --per-template.
   const legacyFlat = opts.legacyFlat === true;
   const perTemplate = legacyFlat ? false : opts.perTemplate !== false;
   const filterTemplate = opts.template;
@@ -889,7 +889,7 @@ async function runAudit(
     console.log(output);
   }
 
-  // v0.5.6 — inline upload after scan. Avoids the round-trip of writing a file
+  // v0.5.6: inline upload after scan. Avoids the round-trip of writing a file
   // and then running `pseolint upload`. The summary object is uploaded directly
   // (not the formatted output) so the endpoint always receives canonical JSON
   // even when the CLI is rendering markdown / html / console output.
@@ -927,7 +927,7 @@ async function runAudit(
     exitCode = Math.max(exitCode, 1);
   }
   // A truncated (partial) run is always a non-zero exit so CI knows coverage
-  // was incomplete — independent of the verdict computed over the partial set.
+  // was incomplete, independent of the verdict computed over the partial set.
   if (truncatedRun) {
     exitCode = Math.max(exitCode, 1);
   }
@@ -1008,7 +1008,7 @@ function parseDuration(s: string): number {
  * Localhost concurrency-override guard. The `dev` safe-mode preset clamps
  * localhost crawls to concurrency 1 (a cache-cold dev server amplifies every
  * fetch into a chain of DB queries). An explicit `--concurrency N` (N > 1)
- * silently overrides that clamp — which is exactly how a user tripped the
+ * silently overrides that clamp: which is exactly how a user tripped the
  * backpressure watchdog against a single-process dev server. We don't change
  * the value (the user asked for it), we just surface the risk.
  *
@@ -1017,7 +1017,7 @@ function parseDuration(s: string): number {
  *
  * @param source the audit target (URL or path)
  * @param effectiveConcurrency the concurrency that will actually reach the
- *   engine for this run (after preset resolution) — i.e. the value worth
+ *   engine for this run (after preset resolution): i.e. the value worth
  *   warning about. The default-suppression here is defensive; the call site
  *   already gates on the dev preset not being active. `undefined` → no warning.
  */
@@ -1032,10 +1032,10 @@ export function localhostConcurrencyWarning(
   // Worded to be accurate whether the >1 concurrency came from an explicit
   // --concurrency flag OR from --full / --safe-mode disabling the dev preset
   // (which leaves concurrency at its default 5). Don't claim a flag the user
-  // may not have typed — just describe the effective config and the risk.
+  // may not have typed; just describe the effective config and the risk.
   return (
     `pseolint: crawling a localhost/single-origin target at concurrency ${effectiveConcurrency} ` +
-    `(the dev preset's concurrency=${devConcurrency} clamp is not active — e.g. --full or an explicit ` +
+    `(the dev preset's concurrency=${devConcurrency} clamp is not active, e.g. --full or an explicit ` +
     `--concurrency). A cache-cold dev server can collapse under parallel load and trip the backpressure ` +
     `watchdog. Use --concurrency 1 for single-origin/dev targets.`
   );

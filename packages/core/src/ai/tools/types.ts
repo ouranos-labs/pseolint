@@ -3,7 +3,7 @@ import type { ZodType } from "zod";
 
 /**
  * Tool execution context. The AI SDK passes this as the second argument to
- * `execute` — we surface only the fields tools care about (currently just
+ * `execute`: we surface only the fields tools care about (currently just
  * the abort signal). Tools that don't need it can ignore the context.
  */
 export interface ToolExecuteContext {
@@ -21,7 +21,7 @@ export interface ToolExecuteContext {
  * Zod-typed input + output schema, a description (used by the LLM to decide
  * when to call the tool), and an `execute` function.
  *
- * The `name` field doubles as the registry key — `orchestratorTools[name]`
+ * The `name` field doubles as the registry key: `orchestratorTools[name]`
  * resolves to the AI-SDK tool object generated from this definition.
  */
 export interface ToolDefinition<I, O> {
@@ -39,7 +39,7 @@ export interface ToolOk<O> {
 }
 
 /**
- * Tool error result. Errors are returned as data, not thrown — the orchestrator
+ * Tool error result. Errors are returned as data, not thrown: the orchestrator
  * loop must keep going. Throwing here would terminate the AI-SDK stream and
  * lose partial session progress.
  */
@@ -87,7 +87,7 @@ export function defineTool<I, O>(def: ToolDefinition<I, O>) {
     inputSchema: def.inputSchema,
     outputSchema: def.outputSchema,
     /**
-     * AI SDK tool object — pass into `streamText({ tools: { name: t.toAiTool() } })`.
+     * AI SDK tool object: pass into `streamText({ tools: { name: t.toAiTool() } })`.
      * The SDK invokes `execute(input, { abortSignal, toolCallId, ... })`; we
      * lift `abortSignal` into our `ToolExecuteContext.signal` so I/O tools
      * can cancel in-flight fetches when the session aborts.

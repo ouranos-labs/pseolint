@@ -1,11 +1,11 @@
 # pseolint blind spots: what we don't detect (and why)
 
-**Status:** living document — updated each release
+**Status:** living document, updated each release
 **Date:** 2026-05-03
 **Engine version at writing:** v0.5.2
 
 This is the honest counterpart to the README and `/methodology` page. The
-README lists 41 rules across 8 categories — what we *do* detect. This
+README lists 61 rules across 8 categories, what we *do* detect. This
 document lists what we *don't*. We treat blind spots as a credibility
 asset: a tool that names its limits is more trustworthy than one that
 implies omniscience.
@@ -16,7 +16,7 @@ item.
 
 ---
 
-## Tier 1 — meaningful gaps that affect verdict accuracy
+## Tier 1: meaningful gaps that affect verdict accuracy
 
 These are the gaps a thoughtful operator should know about because they
 directly shape how to read pseolint's verdict.
@@ -38,7 +38,7 @@ Moz/Ahrefs/Semrush would (a) require a paid SaaS dependency, (b)
 disagree across providers, and (c) approximate Google's actual signals
 poorly.
 
-**Roadmap fix:** `AuditOptions.authorityScore` (0-100) — bring-your-own
+**Roadmap fix:** `AuditOptions.authorityScore` (0-100), bring-your-own
 authority, verdict ladder shifts one tier in the appropriate direction.
 Plus proxy-signal detection (domain age via WHOIS, internal-graph
 density, named editorial leadership presence) for callers without
@@ -62,6 +62,16 @@ focus on rendered DOM not load timing.
 **Roadmap fix:** `tech/page-speed` rule running in render mode, leveraging
 Playwright's PerformanceObserver. v0.6 target.
 
+**2026-08-19 update (partially closed):** `tech/core-web-vitals` shipped
+(lab LCP/CLS under `--render`, real-user p75 including INP with a CrUX
+key), and `tech/resource-weight` now reads the browser's Resource Timing
+buffer in the same render pass to report total page weight with a
+per-kind breakdown. Still open: render-blocking-resource detection and
+JavaScript execution time. Note for whoever picks those up: total page
+weight has NO documented crawl limit, so it is reported at info severity
+as a Core Web Vitals input and must never be presented as one. See
+docs/folklore.md #4.
+
 ### 1.3 Image SEO
 
 **What we don't detect:** alt-text presence/quality, `<img>` width/height
@@ -77,6 +87,21 @@ parsed HTML; no architectural blocker.
 
 **Roadmap fix:** `content/image-alt-text` rule (alt-text presence + per-
 template uniqueness). v0.5.3 target.
+
+**2026-08-19 update (largely closed):** `content/image-alt-text` shipped;
+`tech/resource-weight` reports image BYTES under `--render` (the
+"oversized images" signal); and `content/image-attributes` now covers
+width/height presence (the CLS half) plus `srcset`/`<picture>` adoption,
+both parse-time with no network.
+
+Still open, and each for a reason: format choice (AVIF/WebP) needs the
+response bytes or Content-Type, so it belongs with the render-mode
+resource pass rather than the parser; filename quality is a weak signal
+we would rather skip than guess at. `loading="lazy"` is deliberately NOT
+checked and should stay that way: lazy-loading the LCP image actively
+harms it, so a correct verdict needs to know which image is above the
+fold, which static HTML cannot say. A rule that flagged missing `lazy`
+everywhere would be wrong exactly where it matters most.
 
 ### 1.4 Open Graph / Twitter Card metadata
 
@@ -94,11 +119,26 @@ captures the data.
 **Roadmap fix:** `tech/og-completeness` (despite the irony of having
 mentioned it in v0.4.x README without implementing it). v0.5.3 target.
 
-### 1.5 Title tag uniqueness + length
+**2026-08-19 update (partially closed):** `tech/og-completeness` now also
+checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at
+info severity. Still open: image dimension validity and `twitter:card`.
+Note for whoever picks those up: og:description length has NO documented
+optimum (Meta says "2 to 4 sentences"); see docs/folklore.md #3 before
+adding any character-count check.
 
-**What we don't detect:** title tag length (Google truncates ~60 chars),
-title-tag uniqueness across the site (we have meta-description
-uniqueness but not title), title-vs-H1 alignment.
+### 1.5 Title tag uniqueness
+
+**What we don't detect:** title-tag uniqueness across the site (we have
+meta-description uniqueness but not title), title-vs-H1 alignment.
+
+**Correction (2026-08-19):** this section used to list "title tag length
+(Google truncates ~60 chars)" as a gap to close. That was folklore in our
+own blind-spot doc: Google documents NO title-length limit, and SERP
+cropping is display-side, not an indexing event. Closing that "gap" would
+have shipped a rule the primary source contradicts. See docs/folklore.md
+#2. What Google does document is the rewrite triggers (half-empty,
+boilerplate-repeated, stale titles), which are template smells and are
+worth detecting.
 
 **Why it's a real blind spot:** title is the single highest-impact on-page
 signal. Templated pSEO sites very commonly ship duplicate titles
@@ -123,12 +163,12 @@ phantom. v0.5.3 target.
 
 ---
 
-## Tier 2 — known gaps with workarounds
+## Tier 2: known gaps with workarounds
 
 ### 2.1 Search Console integration / indexation status
 
 **What we don't detect:** which of your URLs are actually indexed,
-which got "Crawled — currently not indexed" status, manual actions,
+which got "Crawled, currently not indexed" status, manual actions,
 mobile-usability errors.
 
 **Why it's a real blind spot:** the ground truth for "did this work" is
@@ -157,7 +197,7 @@ ambiguous. We do detect some related patterns: `cannibal/url-pattern`
 flags reordered tokens, `tech/canonical-consistency` catches
 canonical-conflicts.
 
-**Roadmap fix:** `tech/parameter-url-explosion` — flag origins where the
+**Roadmap fix:** `tech/parameter-url-explosion`, flag origins where the
 sitemap / discovered URL count contains parameter-combination patterns
 (`?sort=`, `?filter=`, `?page=`) at scale. v0.6 target.
 
@@ -185,7 +225,7 @@ deceptive markup by Google and can trigger structured-data manual
 actions. Common in pSEO when the schema generator runs from one data
 source and the page renderer from another.
 
-**Roadmap fix:** `data/schema-content-drift` — for a given page, extract
+**Roadmap fix:** `data/schema-content-drift`, for a given page, extract
 JSON-LD primary entity values (price, sku, rating) and assert each
 appears literally in the rendered DOM. v0.6 target.
 
@@ -219,13 +259,15 @@ set itself. Available via the AI orchestrator path.
 
 ---
 
-## Tier 3 — narrow gaps, lower priority
+## Tier 3: narrow gaps, lower priority
 
 ### 3.1 Mobile-friendliness checks
 
-Touch-target size, font-size minimums, viewport meta, mobile-usability
+Touch-target size, font-size minimums, ~~viewport meta~~, mobile-usability
 proxies. Currently relying on `--render` mode to capture mobile-viewport
 HTML, but not asserting on the mobile-specific signals.
+**2026-08-19 update:** viewport meta is now checked (`tech/viewport-meta`).
+Touch targets and font sizes remain open (need rendered layout).
 
 ### 3.2 Pagination markup
 
@@ -250,6 +292,11 @@ simple integration are very different.) Requires topic understanding.
 Beyond `tech/hreflang-consistency` (which validates declarations), we
 don't check whether translations are actually high-quality. Requires
 language understanding.
+**2026-08-19 update (partially closed):** `tech/hreflang-validity` now
+validates the code values themselves (`en_US`, `jp`, `en-UK` → ignored by
+Google), and `tech/language-mismatch` catches declared-vs-detected script
+mismatches (e.g. `lang="ja"` on Cyrillic content) via Unicode script
+analysis. Translation *quality* remains open.
 
 ### 3.6 Specialty schema types
 
@@ -280,7 +327,7 @@ priority for the pSEO target audience.
 
 ---
 
-## Tier 4 — intentional non-features
+## Tier 4: intentional non-features
 
 These are blind spots that we've explicitly chosen NOT to fill, with
 reasoning.
@@ -303,11 +350,11 @@ SERPs.
 ### 4.4 Real-time crawl frequency analysis
 
 Tracking how often Google actually crawls your URLs requires server-
-log access — out of scope for a static analyzer.
+log access, out of scope for a static analyzer.
 
 ### 4.5 Conversion-rate / engagement signals
 
-Bounce rate, dwell time, conversion rate — these are GA-domain signals.
+Bounce rate, dwell time, conversion rate, these are GA-domain signals.
 Not part of the audit surface.
 
 ---
@@ -316,7 +363,7 @@ Not part of the audit surface.
 
 1. **A `ready` verdict means**: "pseolint's static + graph analysis
    found no significant issues in the dimensions it checks." It does
-   NOT mean "you will rank well" — authority, page speed, off-page
+   NOT mean "you will rank well"; authority, page speed, off-page
    signals, search intent matching, and other factors outside our scope
    matter too.
 

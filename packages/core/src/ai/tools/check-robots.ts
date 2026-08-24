@@ -72,7 +72,7 @@ export const checkRobotsTool = defineTool({
         robotsTxtPresent = true;
       }
     } catch {
-      // robots.txt absent or unreachable — caller decides what to do.
+      // robots.txt absent or unreachable: caller decides what to do.
     }
 
     const disallowPatterns = robotsTxtPresent ? parseDisallowPatterns(robotsTxtContent, [userAgent]) : [];

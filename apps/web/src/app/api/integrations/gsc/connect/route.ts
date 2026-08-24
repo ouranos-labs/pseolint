@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 export const runtime = "nodejs";
 
 /**
- * Initiate the GSC OAuth flow. Signed-in users only — we pin the state token
+ * Initiate the GSC OAuth flow. Signed-in users only: we pin the state token
  * to the current user so the callback can't be replayed against a different
  * account.
  */

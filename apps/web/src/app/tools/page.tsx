@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Free SEO tools for programmatic SEO sites",
     description:
-      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware — each rule contributes to a per-template verdict. No signup, runs in 60 seconds.",
+      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware: each rule contributes to a per-template verdict. No signup, runs in 60 seconds.",
     url: `${SITE_URL}/tools`,
     type: "website",
     images: [`${SITE_URL}/opengraph-image`],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Free SEO tools for programmatic SEO sites",
     description:
-      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware — no signup, runs in 60 seconds.",
+      "SpamBrain checker, thin-content scanner, and doorway-page detector. Template-aware: no signup, runs in 60 seconds.",
   },
 };
 
@@ -42,7 +42,7 @@ function safeJsonLd(obj: unknown): string {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "What do these free tools actually detect?",
-    a: `All three run the same open-source pseolint engine — template-aware SpamBrain + AEO scoring. It audits by template, not by URL: it detects the templates on your site, samples pages stratified across them (up to 200), runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
+    a: `All three run the same open-source pseolint engine, template-aware SpamBrain + AEO scoring. It audits by template, not by URL: it detects the templates on your site, samples pages stratified across them (up to 200), runs ${SCORED_RULE_COUNT} rules, then aggregates each template's findings into a per-template verdict. The site verdict is the worst template that has ≥5% URL coverage (spec §15.1). spam/* rules map directly to documented Google SpamBrain signals: thin content, doorway patterns, near-duplicate clusters, boilerplate ratio, template diversity, scaled-content density, and link-spam detectors. aeo/* rules cover answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.`,
   },
   {
     q: "Why three separate tools instead of one full audit?",
@@ -50,21 +50,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is the engine open source?",
-    a: "Yes — MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core, CLI, and MCP server all published on npm). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
+    a: "Yes, MIT-licensed on GitHub at github.com/ouranos-labs/pseolint (core, CLI, and MCP server all published on npm). Anything you run in the browser here you can also run locally against pre-deploy builds, in CI, or via the Model Context Protocol server. Median audit time is ~60 seconds for a single URL.",
   },
 ];
 
 export default function ToolsIndexPage() {
-  const faqLd = safeJsonLd({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  });
-
   const collectionSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -96,7 +86,7 @@ export default function ToolsIndexPage() {
         Free SEO tools
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
-        Three free SEO tools backed by the open-source pseolint engine —
+        Three free SEO tools backed by the open-source pseolint engine:
         SpamBrain checker, thin-content scanner, doorway-page detector. $0, no
         signup, runs in a 60-second median. Each tool now produces a
         per-template verdict, not a per-URL list. Pick a tool below; methodology
@@ -105,7 +95,7 @@ export default function ToolsIndexPage() {
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
         <span className="text-foreground">Credibility layer:</span> the
         engine has been empirically calibrated against a curated corpus of
-        reputable, in-production pSEO sites. It audits by template — it
+        reputable, in-production pSEO sites. It audits by template; it
         detects your site&apos;s URL templates, samples pages stratified across them,
         and produces one verdict per template cluster rather than a flat per-URL
         list. Verdicts are reproducible at a fixed sample-seed; findings cluster
@@ -141,7 +131,7 @@ export default function ToolsIndexPage() {
         )) }
       </div>
 
-      {/* Editorial guides — see the note in app/rules/page.tsx; these route files
+      {/* Editorial guides: see the note in app/rules/page.tsx; these route files
           are not iterated by MARKETING_TOOLS and were orphaned without this block. */}
       <section className="mt-12">
         <h2 className="text-xl font-semibold tracking-tight text-foreground">Guides</h2>
@@ -182,7 +172,7 @@ export default function ToolsIndexPage() {
           </p>
           <p className="mt-2 text-sm leading-relaxed text-foreground">
             Programmatic-SEO sites (template-driven content at scale) and AI Overview
-            readiness — SpamBrain triggers from the March 27, 2026 core update that
+            readiness: SpamBrain triggers from the March 27, 2026 core update that
             tightened scaled-content signals on date-stacked corpora (the most recent
             classifier shift to demote pSEO sites), the May 7, 2024 site-reputation-abuse
             policy (now detected by{ " " }
@@ -222,13 +212,13 @@ export default function ToolsIndexPage() {
             <span className="font-medium text-foreground">Per-page → template uniformity score.</span>{ " " }
             <code className="font-mono text-xs">spam/thin-content</code> fires on each sampled page
             and feeds the template&apos;s uniformity score (0–1). A score ≥0.8 means ≥8 of 10
-            sampled pages are thin — that template gets a critical verdict regardless of the other
+            sampled pages are thin; that template gets a critical verdict regardless of the other
             templates&apos; health.
           </li>
           <li>
             <span className="font-medium text-foreground">Corpus-wide (not template-scoped).</span>{ " " }
             <code className="font-mono text-xs">spam/near-duplicate</code> is computed across the
-            full sampled corpus — it compares pages across templates to surface cross-template
+            full sampled corpus; it compares pages across templates to surface cross-template
             duplication, not just within a single template.
           </li>
           <li>
@@ -246,7 +236,7 @@ export default function ToolsIndexPage() {
           </li>
         </ul>
         <p>
-          These three tools each foreground a different slice of that rule surface — but the
+          These three tools each foreground a different slice of that rule surface, but the
           underlying per-template aggregation runs in every one.
         </p>
       </section>
@@ -260,20 +250,20 @@ export default function ToolsIndexPage() {
         <p>
           Programmatic SEO sites get demoted for a small, well-defined set of
           reasons, and almost all of them trace back to Google&apos;s SpamBrain
-          system — the machine-learning spam classifier Google rolled out in 2018
+          system: the machine-learning spam classifier Google rolled out in 2018
           and re-architected to score pages, not just links. The same classifier
           drives scaled-content-abuse demotions and powers site-reputation-abuse
           enforcement against parasite-SEO landing pages. If your site is
           templated, your audit needs to mirror how SpamBrain reasons about
-          templates — and that is exactly what pseolint does: it audits your
+          templates, and that is exactly what pseolint does: it audits your
           templates, not your URLs.
         </p>
         <p>
           The pseolint v{ENGINE_VERSION} engine ships {SCORED_RULE_COUNT} rules across spam, content, aeo, links,
           schema, tech, data, and cannibalization categories. Each rule&apos;s
-          findings aggregate per template — you get one verdict per template
+          findings aggregate per template; you get one verdict per template
           cluster, not a flat per-URL list. The spam rules map directly to
-          documented SpamBrain signals — thin content, doorway patterns,
+          documented SpamBrain signals: thin content, doorway patterns,
           near-duplicate clusters, boilerplate ratio, template diversity,
           scaled-content density, and link-spam detectors. The aeo rules cover
           answer-engine readiness for AI Overviews, Perplexity, and ChatGPT search.
@@ -300,8 +290,8 @@ export default function ToolsIndexPage() {
         <p>
           Most pSEO teams already pay for at least one general-purpose crawler.
           The table below lines up the lowest entry-tier price for the four
-          tools we hear most often in customer interviews — Ahrefs, Semrush,
-          Sitebulb, ContentKing — alongside Screaming Frog (the desktop
+          tools we hear most often in customer interviews: Ahrefs, Semrush,
+          Sitebulb, ContentKing: alongside Screaming Frog (the desktop
           incumbent) and pseolint. Numbers are list price as published on each
           vendor&apos;s pricing page; per-seat surcharges and annual-billing
           discounts are excluded for parity.
@@ -321,37 +311,37 @@ export default function ToolsIndexPage() {
                 <td className="px-4 py-3 font-medium text-foreground">pseolint (this site)</td>
                 <td className="px-4 py-3">$0/month</td>
                 <td className="px-4 py-3">up to 200 pages, stratified across templates, 3 audits/day per browser</td>
-                <td className="px-4 py-3">Yes — template-aware engine; per-template verdicts</td>
+                <td className="px-4 py-3">Yes: template-aware engine; per-template verdicts</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Ahrefs</td>
                 <td className="px-4 py-3">$129/month (Lite plan)</td>
                 <td className="px-4 py-3">10,000 crawl credits/month, 1 project</td>
-                <td className="px-4 py-3">No — generic site-audit ruleset</td>
+                <td className="px-4 py-3">No: generic site-audit ruleset</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Semrush</td>
                 <td className="px-4 py-3">$139.95/month (Pro plan)</td>
                 <td className="px-4 py-3">100,000 pages/month across 5 projects</td>
-                <td className="px-4 py-3">No — generic site-audit ruleset</td>
+                <td className="px-4 py-3">No: generic site-audit ruleset</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Sitebulb</td>
                 <td className="px-4 py-3">$35/month (Lite plan)</td>
                 <td className="px-4 py-3">1 project, 10,000 URLs per audit</td>
-                <td className="px-4 py-3">Partial — thin-content + duplicate detection</td>
+                <td className="px-4 py-3">Partial: thin-content + duplicate detection</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">Screaming Frog</td>
                 <td className="px-4 py-3">$259/year (paid license)</td>
                 <td className="px-4 py-3">Free up to 500 URLs, then unlimited per license</td>
-                <td className="px-4 py-3">No — desktop crawler, raw signals only</td>
+                <td className="px-4 py-3">No: desktop crawler, raw signals only</td>
               </tr>
               <tr>
                 <td className="px-4 py-3 font-medium text-foreground">ContentKing</td>
                 <td className="px-4 py-3">$44/month (Basic plan)</td>
                 <td className="px-4 py-3">500 pages monitored, 1 user</td>
-                <td className="px-4 py-3">Partial — change-tracking + on-page audit</td>
+                <td className="px-4 py-3">Partial: change-tracking + on-page audit</td>
               </tr>
             </tbody>
           </table>
@@ -366,7 +356,7 @@ export default function ToolsIndexPage() {
           <code className="font-mono">links/host-section-divergence</code>
           { " " }site-reputation-abuse detector in v0.5.1 (May 3, 2026), the
           v0.5.2 credibility layer (May 3, 2026), and the
-          template-aware engine — auditing by template rather than by URL,
+          template-aware engine: auditing by template rather than by URL,
           producing one verdict per template cluster via{ " " }
           <code className="font-mono">siteVerdictFromTemplates</code>. Runs as
           a Cloudflare R2 + Inngest pipeline on Vercel, MIT-licensed end-to-end
@@ -377,7 +367,7 @@ export default function ToolsIndexPage() {
 
       <div className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-sm text-muted-foreground">
         <p>
-          All three tools share the same backend audit — the difference is which
+          All three tools share the same backend audit; the difference is which
           subset of rules each one foregrounds. If you want the full report
           (every rule, every page) just use the homepage audit instead.
         </p>
@@ -388,7 +378,7 @@ export default function ToolsIndexPage() {
           rendering for SPA-shaped origins, semantic boilerplate detection,
           SimHash 64-bit fingerprinting for near-duplicate clustering, and
           severity-graded finding enrichment. The MIT-licensed CLI mirrors the
-          same pipeline locally — pipe its JSON output into your CI gate or your
+          same pipeline locally: pipe its JSON output into your CI gate or your
           editor&apos;s diagnostics panel via the Model Context Protocol adapter.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -415,7 +405,7 @@ export default function ToolsIndexPage() {
         <code className="font-mono text-xs">content/boilerplate-ratio</code> rules per
         template, and the doorway-page detector maps to the site-reputation-abuse policy
         enforced since May 7, 2024. Each tool samples pages stratified across detected templates
-        and returns a per-template verdict — not a flat per-URL list — so triage goes
+        and returns a per-template verdict (not a flat per-URL list) so triage goes
         straight to the template responsible rather than to hundreds of individual URLs.
       </p>
 
@@ -429,6 +419,20 @@ export default function ToolsIndexPage() {
         per-finish drying times, a measured hardness rating, and a price band, and a re-run two
         weeks later dropped the domain risk to 24.
       </p>
+
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Frequently asked
+        </h2>
+        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+          {FAQS.map((f) => (
+            <div key={f.q} className="grid gap-2 border-b border-border/60 px-5 py-5 last:border-b-0">
+              <dt className="text-sm font-semibold text-foreground">{f.q}</dt>
+              <dd className="text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <SourcesSection
         sources={[
@@ -454,13 +458,6 @@ export default function ToolsIndexPage() {
         // that could prematurely close the surrounding script tag.
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={ { __html: safeJsonLd(collectionSchema) } }
-      />
-      <script
-        type="application/ld+json"
-        // FAQPage payload built from compile-time-static FAQS array, escaped
-        // by safeJsonLd to prevent script-tag breakout.
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={ { __html: faqLd } }
       />
     </main>
   );

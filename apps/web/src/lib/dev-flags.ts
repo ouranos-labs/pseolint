@@ -3,7 +3,7 @@
  * so local `bun run dev` Just Works without editing .env.local.
  *
  * In production (NODE_ENV === "production"), the NODE_ENV fallback never engages,
- * so bypasses require the explicit env var — preventing a misconfigured preview
+ * so bypasses require the explicit env var: preventing a misconfigured preview
  * deployment from silently disabling safeguards.
  */
 
@@ -28,7 +28,7 @@ export const devFlags = {
   /**
    * Auto-mark monitored domains as verified at insert/reactivate time so the
    * cron will pick them up locally without a real DNS TXT record. Only the
-   * write side is affected — the cron's `isNotNull(verifiedAt)` filter is
+   * write side is affected: the cron's `isNotNull(verifiedAt)` filter is
    * left intact so prod behavior is unchanged.
    */
   get domainVerifySkipped(): boolean {

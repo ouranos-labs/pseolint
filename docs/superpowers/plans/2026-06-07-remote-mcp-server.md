@@ -4,7 +4,7 @@
 
 **Goal:** Add a remote, zero-install Streamable HTTP MCP endpoint (`https://pseolint.dev/mcp`) serving pseolint's three read-only audit tools anonymously, with self-managed API-key auth scaffolding and Upstash rate limiting, hosted inside `apps/web`.
 
-**Architecture:** A Next.js App Router route at `app/api/[transport]/route.ts` wraps the Vercel `mcp-handler` adapter (stateless, SSE disabled). The wrapper resolves identity (anonymous or hashed-API-key) and applies an Upstash sliding-window rate limit before delegating to the adapter, which builds a fresh SDK `McpServer` per request via a tool factory reused verbatim from `@pseolint/mcp`. API keys live in a self-managed `mcp_api_key` table (no better-auth `apiKey` plugin — it doesn't exist in better-auth 1.6.14).
+**Architecture:** A Next.js App Router route at `app/api/[transport]/route.ts` wraps the Vercel `mcp-handler` adapter (stateless, SSE disabled). The wrapper resolves identity (anonymous or hashed-API-key) and applies an Upstash sliding-window rate limit before delegating to the adapter, which builds a fresh SDK `McpServer` per request via a tool factory reused verbatim from `@pseolint/mcp`. API keys live in a self-managed `mcp_api_key` table (no better-auth `apiKey` plugin, it doesn't exist in better-auth 1.6.14).
 
 **Tech Stack:** TypeScript, Next.js (App Router), `@modelcontextprotocol/sdk@^1.29`, `mcp-handler@^1.1`, `@pseolint/core`, `@pseolint/mcp` (workspace), drizzle-orm/postgres, `@upstash/ratelimit` + `@upstash/redis`, vitest, bun + turbo.
 
@@ -33,7 +33,7 @@
 | `apps/web/src/app/api/[transport]/route.test.ts` (create) | Protocol wiring, 401, 405, 429 |
 | `apps/web/src/app/api/mcp-keys/route.ts` (create) | Session-guarded key CRUD for the dashboard |
 | `apps/web/src/app/api/mcp-keys/route.test.ts` (create) | CRUD + unauthenticated 401 |
-| `apps/web/src/components/dashboard/mcp-keys-card.tsx` (create) | Dashboard UI to mint/list/revoke keys (no unit test — repo has no React test harness) |
+| `apps/web/src/components/dashboard/mcp-keys-card.tsx` (create) | Dashboard UI to mint/list/revoke keys (no unit test: repo has no React test harness) |
 | `packages/mcp/server.json` (modify) | Add `remotes` entry |
 | `packages/mcp/README.md` (modify) | Document the remote endpoint |
 
@@ -107,11 +107,11 @@ describe("tool factory", () => {
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `cd packages/mcp && bun run test factory`
-Expected: FAIL — `registerReadOnlyTools` / `registerOrchestrateTool` are not exported.
+Expected: FAIL, `registerReadOnlyTools` / `registerOrchestrateTool` are not exported.
 
 - [ ] **Step 3: Refactor `server.ts` to extract the factory functions**
 
-In `packages/mcp/src/server.ts`, change the `createServer` function (currently starting at `export function createServer(): McpServer {`). Replace the single function with three exported functions. **Move the existing `server.registerTool(...)` blocks verbatim** — do not rewrite their bodies:
+In `packages/mcp/src/server.ts`, change the `createServer` function (currently starting at `export function createServer(): McpServer {`). Replace the single function with three exported functions. **Move the existing `server.registerTool(...)` blocks verbatim**, do not rewrite their bodies:
 
 ```ts
 /** Register the three read-only audit tools (safe for anonymous/remote use). */
@@ -147,7 +147,7 @@ export { startMcpServer, createServer, registerReadOnlyTools, registerOrchestrat
 - [ ] **Step 5: Run the new test + the full mcp suite + lint + build**
 
 Run: `cd packages/mcp && bun run test && bun run lint && bun run build`
-Expected: PASS — new factory test green, all existing tests (`server.test.ts`, `integration.test.ts`, caps tests) still green, `tsc --noEmit` clean, and `dist/` rebuilt with the new exports. The build matters: `apps/web` imports `@pseolint/mcp` via its `exports` → `dist/index.js`, so downstream web tests (Task 7) need a fresh `dist`.
+Expected: PASS, new factory test green, all existing tests (`server.test.ts`, `integration.test.ts`, caps tests) still green, `tsc --noEmit` clean, and `dist/` rebuilt with the new exports. The build matters: `apps/web` imports `@pseolint/mcp` via its `exports` → `dist/index.js`, so downstream web tests (Task 7) need a fresh `dist`.
 
 - [ ] **Step 6: Commit**
 
@@ -312,7 +312,7 @@ describe("mcp token helpers", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && bun run test mcp-keys`
-Expected: FAIL — `./mcp-keys` has no exports.
+Expected: FAIL, `./mcp-keys` has no exports.
 
 - [ ] **Step 3: Implement `mcp-keys.ts`**
 
@@ -350,7 +350,7 @@ export interface McpKeySummary {
   lastUsedAt: Date | null;
 }
 
-/** Create a key for `userId`. Returns the plaintext token ONCE — it is never recoverable after. */
+/** Create a key for `userId`. Returns the plaintext token ONCE, it is never recoverable after. */
 export async function createMcpKey(userId: string, name: string): Promise<{ token: string; prefix: string }> {
   const token = generateMcpToken();
   const prefix = mcpTokenPrefix(token);
@@ -470,7 +470,7 @@ describe("resolveMcpIdentity", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && bun run test mcp-auth`
-Expected: FAIL — `./mcp-auth` has no exports.
+Expected: FAIL, `./mcp-auth` has no exports.
 
 - [ ] **Step 3: Implement `mcp-auth.ts`**
 
@@ -580,7 +580,7 @@ describe("checkMcpRateLimit", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && bun run test mcp-rate-limit`
-Expected: FAIL — `./mcp-rate-limit` has no exports.
+Expected: FAIL, `./mcp-rate-limit` has no exports.
 
 - [ ] **Step 3: Implement `mcp-rate-limit.ts`**
 
@@ -593,7 +593,7 @@ import { Redis } from "@upstash/redis";
 import { hashIp } from "@/lib/ip";
 import type { McpIdentity } from "@/lib/mcp-auth";
 
-/** Minimal shape we depend on — lets tests inject fakes without a live Redis. */
+/** Minimal shape we depend on, lets tests inject fakes without a live Redis. */
 export interface LimiterLike {
   limit(key: string): Promise<{ success: boolean; reset: number }>;
 }
@@ -691,7 +691,7 @@ function mcpPost(body: unknown, headers: Record<string, string> = {}): Request {
   });
 }
 
-// A self-contained `initialize` request — valid stateless-mode entrypoint.
+// A self-contained `initialize` request, valid stateless-mode entrypoint.
 // (Tool-count is asserted in Task 1's factory test; here we only verify the
 // wrapper correctly delegates a valid MCP request to mcp-handler.)
 const initReq = {
@@ -753,7 +753,7 @@ describe("method guards & CORS", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && bun run test transport`
-Expected: FAIL — `./route` does not exist. (Filtering by the substring `transport` avoids the regex-special `[ ]` in the path; it uniquely matches `app/api/[transport]/route.test.ts`.)
+Expected: FAIL, `./route` does not exist. (Filtering by the substring `transport` avoids the regex-special `[ ]` in the path; it uniquely matches `app/api/[transport]/route.test.ts`.)
 
 > This test imports `@pseolint/mcp` (→ `dist/index.js`). Ensure Task 1 Step 5's `bun run build` ran so the package is built with `registerReadOnlyTools` exported.
 
@@ -811,7 +811,7 @@ const methodNotAllowed = () =>
 export const GET = methodNotAllowed;
 export const DELETE = methodNotAllowed;
 
-/** Permissive CORS preflight — the endpoint is an unauthenticated, read-only public surface. */
+/** Permissive CORS preflight, the endpoint is an unauthenticated, read-only public surface. */
 export function OPTIONS(): Response {
   return new Response(null, {
     status: 204,
@@ -830,7 +830,7 @@ export function OPTIONS(): Response {
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `cd apps/web && bun run test transport`
-Expected: PASS. If the `initialize` delegate assertion fails because `mcp-handler` returns a different framing (e.g. an SSE `data:` frame), read the actual `text` from the failure and adjust the assertion — `protocolVersion` and `pseolint` will be present in whatever envelope it uses. The 401/429/405/OPTIONS assertions don't touch `mcp-handler` and must pass as written.
+Expected: PASS. If the `initialize` delegate assertion fails because `mcp-handler` returns a different framing (e.g. an SSE `data:` frame), read the actual `text` from the failure and adjust the assertion, `protocolVersion` and `pseolint` will be present in whatever envelope it uses. The 401/429/405/OPTIONS assertions don't touch `mcp-handler` and must pass as written.
 
 - [ ] **Step 5: Typecheck**
 
@@ -932,7 +932,7 @@ describe("/api/mcp-keys", () => {
 - [ ] **Step 2: Run to verify it fails**
 
 Run: `cd apps/web && bun run test "api/mcp-keys"`
-Expected: FAIL — `./route` does not exist.
+Expected: FAIL, `./route` does not exist.
 
 - [ ] **Step 3: Implement the route**
 
@@ -1002,9 +1002,9 @@ git commit -m "feat(web): dashboard MCP key CRUD API (session-guarded)"
 **Files:**
 - Create: `apps/web/src/components/dashboard/mcp-keys-card.tsx`
 
-> **No vitest component test here.** The repo has no React unit-test harness (no `jsdom`/`happy-dom`, no `@testing-library/jest-dom`, no `user-event`, and zero existing `*.test.tsx`); UI is covered by Playwright e2e. Introducing a jsdom setup for one card is out of scope for v1. This task verifies via typecheck + production build + the Task 11 manual smoke. If you want automated coverage, add a Playwright spec under `apps/web/tests/` following the existing e2e pattern — optional, not required.
+> **No vitest component test here.** The repo has no React unit-test harness (no `jsdom`/`happy-dom`, no `@testing-library/jest-dom`, no `user-event`, and zero existing `*.test.tsx`); UI is covered by Playwright e2e. Introducing a jsdom setup for one card is out of scope for v1. This task verifies via typecheck + production build + the Task 11 manual smoke. If you want automated coverage, add a Playwright spec under `apps/web/tests/` following the existing e2e pattern: optional, not required.
 >
-> Match the existing card components in `apps/web/src/components/dashboard/` for styling — read one neighbouring card first and mirror its container/markup conventions.
+> Match the existing card components in `apps/web/src/components/dashboard/` for styling: read one neighbouring card first and mirror its container/markup conventions.
 
 - [ ] **Step 1: Implement the card**
 
@@ -1075,7 +1075,7 @@ export function McpKeysCard() {
 
       {newToken && (
         <div className="mt-4 rounded-md bg-muted p-4 text-sm">
-          <p className="font-medium">Copy this token now — it won&apos;t be shown again:</p>
+          <p className="font-medium">Copy this token now, it won&apos;t be shown again:</p>
           <pre className="mt-2 overflow-x-auto rounded bg-background p-2">{newToken}</pre>
           <p className="mt-2">Client config:</p>
           <pre className="mt-1 overflow-x-auto rounded bg-background p-2">
@@ -1110,11 +1110,11 @@ export function McpKeysCard() {
 }
 ```
 
-> The Tailwind utility classes above (`text-muted-foreground`, `bg-muted`, `text-destructive`, etc.) follow the existing design tokens — if a neighbouring dashboard card uses different class names, match those instead.
+> The Tailwind utility classes above (`text-muted-foreground`, `bg-muted`, `text-destructive`, etc.) follow the existing design tokens: if a neighbouring dashboard card uses different class names, match those instead.
 
 - [ ] **Step 2: Mount the card on the dashboard settings page**
 
-Find the dashboard settings/account page (likely `apps/web/src/app/dashboard/.../page.tsx` — locate the page that renders account-level cards). Import and render `<McpKeysCard />` alongside the existing cards. Verify by reading the page after editing that the JSX is well-formed.
+Find the dashboard settings/account page (likely `apps/web/src/app/dashboard/.../page.tsx`, locate the page that renders account-level cards). Import and render `<McpKeysCard />` alongside the existing cards. Verify by reading the page after editing that the JSX is well-formed.
 
 - [ ] **Step 3: Typecheck**
 
@@ -1165,7 +1165,7 @@ Prefer not to install anything? Point your MCP client at the hosted endpoint:
     https://pseolint.dev/mcp
 
 It serves the three read-only audit tools (`pseolint_audit_site`, `pseolint_explain_score`,
-`pseolint_check_page_technical`) with no signup — anonymous use is rate-limited. Create an
+`pseolint_check_page_technical`) with no signup, anonymous use is rate-limited. Create an
 API key in your pseolint.dev dashboard and send it as `Authorization: Bearer <key>` to raise
 your limits. The AI-orchestrated `pseolint_orchestrate_audit` tool is available only via the
 stdio package (below) or the CLI for now.
@@ -1191,7 +1191,7 @@ git commit -m "docs(mcp): advertise hosted remote endpoint + server.json remotes
 - [ ] **Step 1: Run the whole monorepo test suite**
 
 Run (repo root): `bun run test` (or `turbo run test`)
-Expected: PASS across `@pseolint/core`, `@pseolint/mcp`, and `apps/web` — including all new tests.
+Expected: PASS across `@pseolint/core`, `@pseolint/mcp`, and `apps/web`, including all new tests.
 
 - [ ] **Step 2: Typecheck + lint the whole repo**
 
@@ -1201,7 +1201,7 @@ Expected: PASS (`tsc --noEmit` clean everywhere). Resolve any cross-package type
 - [ ] **Step 3: Production build of the web app**
 
 Run: `cd apps/web && bun run build`
-Expected: `next build` succeeds. Confirm the build output lists the `/api/[transport]` route. The `mcp-handler` peer-dep warning may reappear — it is non-fatal.
+Expected: `next build` succeeds. Confirm the build output lists the `/api/[transport]` route. The `mcp-handler` peer-dep warning may reappear, it is non-fatal.
 
 - [ ] **Step 4: Manual MCP Inspector smoke test (local)**
 
@@ -1228,4 +1228,4 @@ git commit -m "test: verify remote MCP server end-to-end"
 - **`auth.ts` untouched:** keys are self-managed (better-auth 1.6.14 has no `apiKey` plugin); its `mcp` plugin is reserved for the OAuth-later phase.
 - **`/api/mcp` is canonical; `/mcp` is the advertised alias** via `next.config` rewrite. If the rewrite misbehaves under load, advertise `/api/mcp` directly (server.json + README).
 - **Orchestrate stays off the remote path in v1.** Phase-2 reuses the existing Inngest job + `/api/orchestrate/[id]` polling, gated to `identity.kind === "key"`.
-- **SSRF** relies on core's existing `safeMode: "saas"` guard inside the tools — no new SSRF code here.
+- **SSRF** relies on core's existing `safeMode: "saas"` guard inside the tools: no new SSRF code here.

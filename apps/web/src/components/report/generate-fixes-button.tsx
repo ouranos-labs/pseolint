@@ -12,7 +12,7 @@ import { useAnalytics } from "@/lib/analytics/use-analytics";
  * This is the "diagnose → treat" bridge: the triage "Fix these first" list
  * becomes the brief that drives the (already-built) AI orchestrator, so the
  * two AI features read as one funnel. Unlike StartOrchestratorButton there's
- * no expanding form — the domain and brief are both already known.
+ * no expanding form: the domain and brief are both already known.
  */
 export function GenerateFixesButton({ domain, brief }: { domain: string; brief: string }) {
   const router = useRouter();

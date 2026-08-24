@@ -1,19 +1,19 @@
 export type Severity = "info" | "warning" | "error" | "critical";
 
 /**
- * v0.4.3 — confidence level attached to a finding. Independent of severity:
+ * v0.4.3: confidence level attached to a finding. Independent of severity:
  * a `low`-confidence `error` finding is "we think this is bad but might be a
  * false-positive on your site type." Formatters can render the caveat in the
  * message; scoring profiles can downweight low/speculative findings.
  *
- *   - `high`        — rule fires on signals it was designed to detect
- *   - `medium`      — rule fires but site context might justify ignoring
- *   - `low`         — known false-positive risk on this site type / shape
- *   - `speculative` — heuristic match; verify before acting
+ *   - `high`: rule fires on signals it was designed to detect
+ *   - `medium`: rule fires but site context might justify ignoring
+ *   - `low`: known false-positive risk on this site type / shape
+ *   - `speculative`: heuristic match; verify before acting
  */
 export type Confidence = "high" | "medium" | "low" | "speculative";
 
-/** Verdict ladder — replaces the old numeric `score` field as the user-facing signal. */
+/** Verdict ladder: replaces the old numeric `score` field as the user-facing signal. */
 export type Verdict = "ready" | "caution" | "concerning" | "critical";
 
 /** Letter grade per category. */
@@ -29,7 +29,7 @@ export type Grade = "A" | "B" | "C" | "D" | "F";
  *
  * Current value `"2026-06-v0.6"` covers the v0.6 `templates: Template[]`
  * addition and the `truncated` / `truncatedReason` partial-coverage fields.
- * (The prior `"2026-04-v0.4"` was never bumped when those landed — this
+ * (The prior `"2026-04-v0.4"` was never bumped when those landed: this
  * corrects that drift.)
  */
 export const SCHEMA_VERSION = "2026-06-v0.6";
@@ -68,7 +68,7 @@ export type FindingContext =
       totalWordCount: number;
     };
 
-/** v0.6 — per-rule fire-rate variance within a template cluster. */
+/** v0.6: per-rule fire-rate variance within a template cluster. */
 export interface TemplateVariance {
   /** Per-rule fire-rate within the template. e.g. {"spam/thin-content": 0.8} */
   ruleFireRates: Record<string, number>;
@@ -80,11 +80,11 @@ export interface TemplateVariance {
    * Formula: 1 - mean(stdev(per-rule fire patterns across samples))
    */
   uniformityScore: number;
-  /** Worst-firing rule + its rate — surfaced in the template card UI. */
+  /** Worst-firing rule + its rate: surfaced in the template card UI. */
   topDriver: { ruleId: string; fireRate: number } | null;
 }
 
-/** v0.6 — per-template audit breakdown. */
+/** v0.6: per-template audit breakdown. */
 export interface Template {
   /** Stable identifier derived from URL pattern. e.g. "/listing/:slug" */
   signature: string;
@@ -100,7 +100,7 @@ export interface Template {
   risk: number;
   /** Per-template category grades. */
   categories: CategoryGrades;
-  /** Variance metric — see spec §5. */
+  /** Variance metric: see spec §5. */
   variance: TemplateVariance;
   /** Finding IDs whose pageUrl is in auditedUrls. Reference, not duplication. */
   findingIds: string[];
@@ -116,7 +116,7 @@ export interface RuleResult {
   ref?: string;
   /**
    * Marketing-page deeplink for this rule (v0.4+). Always populated by the
-   * auditor — points to https://pseolint.dev/rules/{slug} where slug is the
+   * auditor: points to https://pseolint.dev/rules/{slug} where slug is the
    * rule-id segment after the namespace prefix.
    */
   docsUrl?: string;
@@ -133,7 +133,7 @@ export interface RuleResult {
   /** Fix effort level assigned by the enrichment pipeline. */
   effort?: FixEffort;
   /**
-   * v0.4.3 — confidence in this finding. Defaults to `high` when omitted.
+   * v0.4.3: confidence in this finding. Defaults to `high` when omitted.
    * Set to `low` / `speculative` when the rule is known to false-positive on
    * the audited site's type (e.g. `aeo/citable-facts` on a docs site).
    * Scoring profiles can downweight low-confidence findings; formatters
@@ -141,7 +141,7 @@ export interface RuleResult {
    */
   confidence?: Confidence;
   /**
-   * v0.6 — which template the finding belongs to. Set for per-page rule
+   * v0.6: which template the finding belongs to. Set for per-page rule
    * firings; absent for site-level findings (cluster rules, cross-template
    * rules, audit/* diagnostics).
    */
@@ -165,7 +165,7 @@ export interface RuleResult {
 export type CategoryKey = "integrity" | "discoverability" | "citation" | "data" | "audit";
 
 /**
- * The categories that contribute to the verdict — every `CategoryKey` except
+ * The categories that contribute to the verdict: every `CategoryKey` except
  * the weight-0 `audit` diagnostics bucket (every scoring profile sets
  * `audit: 0`). Canonical source of truth for consumers (CLI, MCP, web) that
  * surface "the scored categories" so they don't each hardcode the list.
@@ -181,7 +181,7 @@ export interface CategoryGrade {
 
 export type CategoryGrades = Record<CategoryKey, CategoryGrade>;
 
-/** Issues bucketed by severity — the v0.4 replacement for the flat `findings` array. */
+/** Issues bucketed by severity: the v0.4 replacement for the flat `findings` array. */
 export interface IssueBuckets {
   /** Severity = error or critical. Must be fixed before shipping. */
   blockers: RuleResult[];
@@ -204,7 +204,7 @@ export interface CrawlStats {
   skipped: number;
 }
 
-/** Engine-internal diagnostics — weight 0, never affects verdict. */
+/** Engine-internal diagnostics: weight 0, never affects verdict. */
 export interface Diagnostics {
   /** Origin readiness aggregate (median/p95/error ratio). Null when no live fetches occurred. */
   originReadiness: import("./fetch-observer.js").ReadinessReport | null;
@@ -233,7 +233,7 @@ export interface CacheOptions {
   maxBytes?: number;
   /**
    * Custom storage backend; overrides `dir`. Lets a host persist the cache off
-   * the (ephemeral) filesystem — e.g. an R2-backed store on serverless. The
+   * the (ephemeral) filesystem: e.g. an R2-backed store on serverless. The
    * backend manages its own retention, so `maxBytes` pruning does not apply.
    */
   backend?: import("./cache.js").CacheBackend;
@@ -260,10 +260,10 @@ export interface StateOptions {
   exitOnRegression?: boolean;
   /**
    * v0.5+: monitoring strategy.
-   *   "monitoring" — apply the pre-fetch decision matrix (default when prior
+   *   "monitoring": apply the pre-fetch decision matrix (default when prior
    *     state exists). Skipped URLs are NOT fetched; their findings are
    *     carried forward.
-   *   "fresh" — fetch every candidate URL even when prior state exists. Still
+   *   "fresh": fetch every candidate URL even when prior state exists. Still
    *     writes a fresh state file at end of run.
    * When omitted, the auditor picks "monitoring" if prior state exists, else
    * "fresh".
@@ -285,7 +285,7 @@ export interface TelemetryOptions {
   path?: string;
   /** Show y/n/skip feedback prompt after triage on TTY. Default: true (when telemetry enabled). */
   prompt?: boolean;
-  /** Non-interactive feedback rating — bypasses the prompt (useful in CI). */
+  /** Non-interactive feedback rating: bypasses the prompt (useful in CI). */
   feedback?: "helpful" | "unhelpful";
 }
 
@@ -326,7 +326,7 @@ export interface AuditSummary {
   /** Findings bucketed by severity. */
   issues: IssueBuckets;
   /**
-   * v0.4 §4.11 — pre-flight site classification. Decides which rules apply
+   * v0.4 §4.11: pre-flight site classification. Decides which rules apply
    * based on URL count, template clustering, and framework signal. The
    * `suppressedRules` list is what the rule dispatcher honours. Pass
    * `strict: true` in AuditOptions to keep the classification but force all
@@ -340,7 +340,7 @@ export interface AuditSummary {
    * Empty when no demotions applied. Surfaced to formatters so users can
    * see the engine's reasoning rather than wondering whether the score
    * was gamed. Distinct from `siteClassification.suppressedRules` which
-   * tracks `PSEO_ONLY_RULE_IDS` suppression — those rules don't run at
+   * tracks `PSEO_ONLY_RULE_IDS` suppression: those rules don't run at
    * all; demoted rules ran and emitted findings, just at lower severity.
    */
   appliedSeverityDemotions?: string[];
@@ -351,7 +351,7 @@ export interface AuditSummary {
   groupPageCounts?: Record<string, number>;
   pageCount: number;
   /**
-   * v0.6 — per-template breakdown. Empty array on tiny sites where the
+   * v0.6: per-template breakdown. Empty array on tiny sites where the
    * classifier reports `unclear` or `small-marketing`; the per-URL
    * findings list (below) carries everything.
    * Additive: old code reading `findings` still works.
@@ -366,7 +366,7 @@ export interface AuditSummary {
   /** True when --exit-on-regression detected a new rule ID vs prior state. */
   hasRegression?: boolean;
   /**
-   * v0.5.12 — URLs actually audited this run (after sampling, dedup, and
+   * v0.5.12: URLs actually audited this run (after sampling, dedup, and
    * policy filtering). Used by the calibration --repin mode to snapshot
    * which pages the engine fetched so they can be pinned for future runs.
    * Always sorted for deterministic diffs. Absent when no pages were audited.
@@ -400,8 +400,8 @@ export interface AuditSummary {
   truncatedReason?: string;
   /**
    * Machine-readable cause of truncation, so consumers/CI can branch:
-   *   - `"backpressure"` — the watchdog aborted a degraded-origin crawl mid-flight.
-   *   - `"coverage"` — discovery under-delivered vs the declared sitemap.
+   *   - `"backpressure"`: the watchdog aborted a degraded-origin crawl mid-flight.
+   *   - `"coverage"`: discovery under-delivered vs the declared sitemap.
    * Present only when `truncated` is true.
    */
   truncatedKind?: "backpressure" | "coverage";
@@ -512,7 +512,7 @@ export interface AuditOptions {
   ignore?: string[];
   /**
    * v0.4.1: when true, emit a per-pattern warning for each `ignore` glob
-   * that matched zero discovered URLs. Default: false (quiet) — config-
+   * that matched zero discovered URLs. Default: false (quiet): config-
    * loaded patterns commonly include broad safety lists like
    * `**\/dashboard\/**` that legitimately don't match a small site. The
    * CLI sets this to true only when `--ignore` was passed explicitly on
@@ -524,7 +524,7 @@ export interface AuditOptions {
   /**
    * When true and crawlDiscovery is also true, top the sample budget up to `sampleSize` by
    * following same-origin links from the sitemap-fetched pages (one level deep). Robots.txt
-   * Disallow rules are respected. Default: false — keeps sitemap authoritative when a budget is set.
+   * Disallow rules are respected. Default: false: keeps sitemap authoritative when a budget is set.
    */
   fillBudgetViaLinkDiscovery?: boolean;
   /**
@@ -541,11 +541,11 @@ export interface AuditOptions {
     /**
      * How to handle third-party analytics / session-replay beacons during
      * rendered audits.
-     *   "block" (default) — abort known analytics hosts so the audit doesn't
+     *   "block" (default): abort known analytics hosts so the audit doesn't
      *     inject fake pageviews / sessions into the site owner's dashboards.
-     *   "allow-first-party" — block third-party analytics only; same-origin
+     *   "allow-first-party": block third-party analytics only; same-origin
      *     requests pass through (for sites that self-host analytics).
-     *   "allow" — don't intercept anything (only for sites you own).
+     *   "allow": don't intercept anything (only for sites you own).
      */
     analyticsMode?: "block" | "allow" | "allow-first-party";
     /** Extra host tokens to block in addition to the default list. */
@@ -568,13 +568,13 @@ export interface AuditOptions {
   /**
    * Optional integer seed for the stratified-sampler PRNG. When set, repeated
    * audits with the same `sampleSize` and `samplingStrategy` pick the same
-   * pages — letting callers (calibration runners, CI gates) get reproducible
+   * pages: letting callers (calibration runners, CI gates) get reproducible
    * verdicts. When omitted, the sampler uses `Math.random` (the legacy
    * non-deterministic behavior).
    */
   sampleSeed?: number;
   /**
-   * 2026-05-03 v0.5.2 — bring-your-own domain authority score (0-100).
+   * 2026-05-03 v0.5.2: bring-your-own domain authority score (0-100).
    * pseolint does not measure backlinks/DA itself (deliberate non-feature
    * to keep the engine offline-runnable), but the calibration corpus is
    * biased toward high-authority sites. To prevent the engine's leniency
@@ -582,14 +582,14 @@ export interface AuditOptions {
    * callers can pass an authority hint:
    *
    *   - `score >= 80` (established brand): verdict shifts ONE TIER UP
-   *     (more lenient — acknowledges the site can absorb shapes that
+   *     (more lenient: acknowledges the site can absorb shapes that
    *     would tank a newer domain)
    *   - `score <= 30` (newer/lower-authority): verdict shifts ONE TIER DOWN
-   *     (less lenient — fixing flagged issues is a necessary condition,
+   *     (less lenient: fixing flagged issues is a necessary condition,
    *     not a sufficient one)
    *   - 31..79: no shift (default behavior)
    *
-   * The raw `risk` number is NEVER modified by this option — only the
+   * The raw `risk` number is NEVER modified by this option: only the
    * user-facing `verdict` mapping shifts. CI gates that key off `risk`
    * stay stable.
    *
@@ -602,7 +602,7 @@ export interface AuditOptions {
    * Opt-in Chrome UX Report field data for Core Web Vitals. When `apiKey` is
    * set (free CrUX key), the auditor fetches real-user p75 LCP/CLS/INP and the
    * tech/core-web-vitals rule scores against it instead of the lab `--render`
-   * measurement — this is the number Google ranks on, and the only source of
+   * measurement: this is the number Google ranks on, and the only source of
    * INP. Off unless a key is provided. Queries stay on Google's fixed CrUX
    * endpoint (no SSRF surface).
    */
@@ -624,7 +624,7 @@ export interface AuditOptions {
    * `enabled`, the auditor judges per-template content effort (0-100) via the
    * configured model and lets it shift the verdict one tier in either direction
    * (low effort → stricter, high effort → more lenient). The raw `risk` is
-   * never modified — only the user-facing verdict mapping. `model` defaults to
+   * never modified: only the user-facing verdict mapping. `model` defaults to
    * `claude-sonnet-4-6`; `cacheDir` defaults to an OS-temp content-hash cache.
    */
   contentEffort?: { enabled: boolean; model?: string; cacheDir?: string };
@@ -637,7 +637,7 @@ export interface AuditOptions {
   /** Run state persistence. When omitted, no state is written. */
   state?: StateOptions;
   /**
-   * v0.5.3 — caller-supplied refetch overrides. Any URL listed in `force.urls`
+   * v0.5.3: caller-supplied refetch overrides. Any URL listed in `force.urls`
    * is always re-fetched and short-circuits the monitoring decision matrix
    * (reason: `"watched"`). Owned by the caller (e.g. the web app's per-domain
    * "watched pages" list); the engine treats it as a transient input and never
@@ -648,7 +648,7 @@ export interface AuditOptions {
    * monitoring mode against an HTTP source with prior state present. It is
    * silently ignored on filesystem sources and on fresh-mode runs (no prior
    * state file). On a fresh first-ever monitoring run, force-only URLs not
-   * present in the sitemap will not be audited — the audit runs against the
+   * present in the sitemap will not be audited: the audit runs against the
    * sitemap-discovered set as usual. Callers who need fresh-mode
    * force-include must crawl the URL via single-page audit instead.
    */
@@ -665,7 +665,7 @@ export interface AuditOptions {
   signal?: AbortSignal;
   /**
    * When true, every crawled URL's hostname is validated with
-   * `validateTargetHost` before fetch — resolves the hostname and rejects if
+   * `validateTargetHost` before fetch: resolves the hostname and rejects if
    * any address is in a private / reserved / link-local / loopback / multicast
    * range. Applies to the source URL, sitemap entries, redirect targets, and
    * discovered links. Defends against SSRF / DNS-rebinding when the library is
@@ -683,7 +683,7 @@ export interface AuditOptions {
   /**
    * When true (default), pages explicitly marked `noindex` (via
    * `<meta name="robots">` or `X-Robots-Tag` header) are excluded from rule
-   * evaluation — the site owner already opted out of SEO indexing for them.
+   * evaluation: the site owner already opted out of SEO indexing for them.
    * The skipped URLs surface in `summary.skippedUrls` with reason `"noindex"`.
    * Set to false to audit them anyway (useful when investigating why a
    * specific page was accidentally noindex'd).
@@ -703,7 +703,7 @@ export interface AuditOptions {
    * When true (default), skip pages that look like cookie / legal / consent /
    * imprint boilerplate (title, H1, or URL path matches well-known
    * compliance-page patterns). These exist for legal compliance and are never
-   * SEO targets — auditing them produces routine findings the user already
+   * SEO targets: auditing them produces routine findings the user already
    * knows about. Set to false (CLI: `--no-skip-boilerplate`) to audit them.
    */
   skipBoilerplate?: boolean;
@@ -720,19 +720,19 @@ export interface AuditOptions {
    * < 100 chars, script tags present, no substantive noscript fallback).
    * These fail every content rule but the underlying problem is server-side
    * rendering, not content quality. Use --render mode instead. Default: false
-   * (opt-in via `--skip-empty-body`) — its lone corpus hit is a listing
+   * (opt-in via `--skip-empty-body`): its lone corpus hit is a listing
    * homepage the parser under-extracts, a borderline false positive.
    */
   skipEmptyBody?: boolean;
   /**
    * Preset that flips several safety options at once.
-   *   "saas" — intended for hosted services auditing user-submitted URLs:
+   *   "saas": intended for hosted services auditing user-submitted URLs:
    *     guardSsrf=true, respectRobotsTxt=true, tighter maxFetchBytes cap,
    *     followRedirects stays true (audits need final URL).
-   *   "cli"  — intended for local CLI / dev use:
+   *   "cli": intended for local CLI / dev use:
    *     guardSsrf=false (auditing localhost is OK), respectRobotsTxt=true,
    *     default caps.
-   *   "dev"  — tiny crawl budget for localhost probing: concurrency=1,
+   *   "dev": tiny crawl budget for localhost probing: concurrency=1,
    *     sampleSize=25, maxCrawlDiscovered=50. Designed so a cache-cold
    *     `pseolint http://localhost:3000` doesn't thundering-herd a dev DB.
    *     Auto-selected on localhost sources unless `autoDevPreset: false`.
@@ -767,7 +767,7 @@ export interface AuditOptions {
    */
   backpressure?: boolean;
   /**
-   * v0.4 §4.11 — when true, the site classifier still runs and `summary.siteClassification`
+   * v0.4 §4.11: when true, the site classifier still runs and `summary.siteClassification`
    * is populated, but `suppressedRules` is forced to `[]` so every rule executes
    * regardless of detected site type. Use this to inspect what the classifier
    * sees on a site that would otherwise have pSEO-only rules suppressed.
@@ -775,7 +775,7 @@ export interface AuditOptions {
    */
   strict?: boolean;
   /**
-   * v0.5.12 — pinned URL list for stable calibration. When provided and
+   * v0.5.12: pinned URL list for stable calibration. When provided and
    * non-empty, the auditor SKIPS sitemap discovery + random sampling
    * entirely and audits ONLY these URLs. Used by the reputable-pSEO
    * calibration corpus to remove run-to-run variance from page selection.
@@ -791,7 +791,7 @@ export interface AuditOptions {
    */
   pinnedUrls?: ReadonlyArray<string>;
   /**
-   * v0.6.1 — caller-supplied URL list for site classification + template
+   * v0.6.1: caller-supplied URL list for site classification + template
    * detection. When provided, the classifier and `detectTemplates` use THIS
    * list instead of the sitemap-discovered or pinned-URL set. Audit phase
    * still runs against `pinnedUrls` (or sitemap-sampled URLs).
@@ -901,7 +901,7 @@ export interface ParsedPage {
    * Core Web Vitals captured during --render. Absent in static mode.
    * ponytail: lab snapshot under headless Chromium (LCP/CLS to networkidle),
    * NOT real-user field data (CrUX). Catches gross regressions, not the exact
-   * number Google scores. INP is omitted — it needs real interaction a passive
+   * number Google scores. INP is omitted: it needs real interaction a passive
    * crawl can't produce. Upgrade path: ingest CrUX/PageSpeed field data if
    * callers need the number Search Console shows.
    */
@@ -909,11 +909,37 @@ export interface ParsedPage {
   /**
    * Real-user Core Web Vitals from CrUX. Absent unless a CrUX API key is
    * supplied (`crux` option / `--crux-api-key`). When present, the
-   * tech/core-web-vitals rule prefers this over the lab `webVitals` — it's the
+   * tech/core-web-vitals rule prefers this over the lab `webVitals`: it's the
    * field data Google ranks on, and it's the only source of INP.
    */
   fieldVitals?: FieldVitals;
+  /** Subresource byte totals from Resource Timing. Absent outside `--render`. */
+  resources?: PageResources;
   httpMeta?: HttpMeta;
+}
+
+/**
+ * Subresource byte totals captured from the browser's Resource Timing buffer
+ * during `--render`. Absent in static mode: nothing here can be known without
+ * actually fetching the page's assets, and we will not issue speculative
+ * requests just to produce a number.
+ *
+ * `transferSize` reads 0 for cross-origin responses that omit
+ * Timing-Allow-Origin, so these totals UNDER-report on asset CDNs rather than
+ * guessing. Treat them as a floor.
+ */
+export interface PageResources {
+  /**
+   * Sum of per-resource UNCOMPRESSED sizes (`decodedBodySize`), because
+   * Googlebot's per-file cutoff is applied to uncompressed data. Falls back to
+   * the compressed `transferSize`/`encodedBodySize` where an entry does not
+   * expose it, which understates compressible text; see RESOURCE_BYTE_FIELDS.
+   */
+  totalBytes: number;
+  /** Byte totals by resource kind, so a heavy page can be attributed. */
+  byKind: { image: number; script: number; stylesheet: number; font: number; other: number };
+  /** The ten largest resources, descending. */
+  largest: Array<{ url: string; bytes: number; kind: string }>;
 }
 
 export interface WebVitals {
@@ -926,7 +952,7 @@ export interface WebVitals {
 }
 
 /**
- * Real-user Core Web Vitals from the Chrome UX Report (CrUX) — the p75 values
+ * Real-user Core Web Vitals from the Chrome UX Report (CrUX): the p75 values
  * Google actually ranks on, including INP (unmeasurable in a passive crawl).
  * Populated only when a CrUX API key is supplied. `source` distinguishes a
  * precise per-URL reading from an origin-level fallback (used when the specific

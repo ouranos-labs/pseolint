@@ -24,7 +24,7 @@ import { trackServer } from "@/lib/analytics/track.server";
 const MAX_COST_USD = 0.50;
 /** HTTP cache TTL for entries without ETag/Last-Modified validators (matches the engine default). */
 const WEB_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-/** Ops kill-switch for the R2 HTTP cache — set PSEOLINT_R2_CACHE_DISABLED to turn it off without a deploy. */
+/** Ops kill-switch for the R2 HTTP cache: set PSEOLINT_R2_CACHE_DISABLED to turn it off without a deploy. */
 function r2CacheEnabled(): boolean {
   return !process.env.PSEOLINT_R2_CACHE_DISABLED;
 }
@@ -63,16 +63,16 @@ async function loadAuditEnrichments(auditId: string): Promise<{
   /** Per-domain render-mode opt-in (Pro). True → render JS-heavy pages in a browser. */
   renderMode?: boolean;
   /**
-   * Stable per-domain sampling seed — set ONLY for monitored domains (a
+   * Stable per-domain sampling seed: set ONLY for monitored domains (a
    * `monitoredDomains` row exists for this host), so re-audit / cron diffs
    * sample the same pages each run. Undefined for public one-shot audits.
    */
   sampleSeed?: number;
-  /** Canonical host when this is a monitored domain — gates the R2 cache. Undefined for one-shot/anon. */
+  /** Canonical host when this is a monitored domain: gates the R2 cache. Undefined for one-shot/anon. */
   monitoredHost?: string;
   /**
    * Validated, allowlisted advanced scan options (Pro per-domain). Only ever
-   * the 7 safe AuditOptions knobs — see lib/scan-options.ts. Undefined when
+   * the 7 safe AuditOptions knobs: see lib/scan-options.ts. Undefined when
    * unset or invalid. Spread FIRST into the auditSource opts so the fixed
    * safety options (safeMode, respectNoindex, …) always win.
    */
@@ -124,7 +124,7 @@ async function loadAuditEnrichments(auditId: string): Promise<{
     authorityScore = domainRow[0].authorityScore ?? undefined;
     renderMode = domainRow[0].renderMode ?? undefined;
     // Advanced scan options (Pro). Stored as JSON text; re-validated through the
-    // allowlist on every load (never trust the column) — parseScanOptions
+    // allowlist on every load (never trust the column): parseScanOptions
     // returns undefined on invalid/empty so a corrupt row can't widen the
     // audit's powers. This is the validated object that gets spread FIRST in
     // buildAuditCall.
@@ -201,7 +201,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
 
   // Render is requested when EITHER the per-audit flag (Pro form) is set OR the
   // per-domain render-mode opt-in (Pro settings) is on. It only *activates*
-  // below if PSEOLINT_BROWSER_WS is also configured — no endpoint → static
+  // below if PSEOLINT_BROWSER_WS is also configured: no endpoint → static
   // fetch, so we never make a false "rendered" promise on a serverless host
   // without a browser service.
   const renderRequested = (input.render || renderMode === true);
@@ -221,7 +221,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     // Uses the platform ANTHROPIC_API_KEY env in core; no-ops safely if absent. Free = off.
     const contentEffort: AuditOptions["contentEffort"] | undefined = plan === "pro" ? { enabled: true } : undefined;
 
-    // R2-backed HTTP cache — only for monitored domains (re-audit / cron), where
+    // R2-backed HTTP cache: only for monitored domains (re-audit / cron), where
     // 304-revalidation across runs saves egress + spares the origin. One-shot /
     // anon scans never repeat, so they stay uncached. Fail-safe in the backend;
     // PSEOLINT_R2_CACHE_DISABLED is the ops kill-switch. cacheStats logged on completion.
@@ -231,10 +231,10 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
         : undefined;
 
     // Apply per-domain gentle-mode profile if set. Caps concurrency to 2 and
-    // sample to 200 — easier on small origins and less likely to trip the
+    // sample to 200: easier on small origins and less likely to trip the
     // engine's BackpressureMonitor.
-    // Pre-flight origin health (concurrent probe). Every audit path — public
-    // one-off scans, dashboard re-audits, and the monitoring cron — runs
+    // Pre-flight origin health (concurrent probe). Every audit path: public
+    // one-off scans, dashboard re-audits, and the monitoring cron: runs
     // through here, so this is where we cover the paperforge/Neon scenario (a
     // monitored own-site run whose uncached fan-out degrades the origin). If
     // the origin already looks stressed and we're not already gentle, drop to
@@ -266,7 +266,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       });
     }
 
-    // v0.4.2 — preflight framework detection so the audit can layer
+    // v0.4.2: preflight framework detection so the audit can layer
     // framework-idiomatic ignore patterns on top of WEB_AUDIT_DEFAULT_IGNORE.
     // Capped at 5s; any failure (timeout, network, parse) falls through to
     // base defaults so the audit still runs.
@@ -295,7 +295,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       auditSource(url, {
         // ┌─────────────────────────── SECURITY INVARIANT ───────────────────────────┐
         // │ `scanOptions` is the Pro-configurable, allowlist-validated subset of      │
-        // │ AuditOptions (lib/scan-options.ts — only crawlDiscovery,                  │
+        // │ AuditOptions (lib/scan-options.ts: only crawlDiscovery,                  │
         // │ fillBudgetViaLinkDiscovery, samplingStrategy, maxPerTemplate, strict,     │
         // │ pageGroups, entityPatterns). It is spread FIRST, on purpose. Every fixed  │
         // │ safety / policy option below (safeMode:"saas", respectNoindex,            │
@@ -309,7 +309,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
         sampleSize: opts.sampleSize,
         // Monitored-domain audits pin a stable per-host seed so repeated runs
         // sample the same pages (deterministic diffs). Undefined for public
-        // one-shots — the engine falls back to non-deterministic sampling.
+        // one-shots: the engine falls back to non-deterministic sampling.
         ...(sampleSeed != null && { sampleSeed }),
         ...(opts.concurrency != null && { concurrency: opts.concurrency }),
         mode,
@@ -327,13 +327,13 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // endpoint (PSEOLINT_BROWSER_WS) rather than local Playwright, which
       // doesn't exist on serverless. Fail-safe: render activates ONLY when both
       // requested (Pro per-audit flag or per-domain opt-in) AND the endpoint is
-      // configured — no endpoint → static audit, no false "rendered" promise.
+      // configured: no endpoint → static audit, no false "rendered" promise.
       render: (renderRequested && env().PSEOLINT_BROWSER_WS)
         ? { browserWsEndpoint: env().PSEOLINT_BROWSER_WS }
         : undefined,
       rules: ruleOverrides,
       dataSource: dataRecords ? { records: dataRecords } : undefined,
-      // Hosted audits run on user-submitted URLs — skip framework metadata,
+      // Hosted audits run on user-submitted URLs: skip framework metadata,
       // auth, admin, and API routes by default so the report focuses on
       // marketing surface. See lib/audit-defaults.ts for rationale + Pro
       // override path. When the preflight detector identifies a known
@@ -342,7 +342,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       ignore: resolveAuditIgnorePatterns(detectedFramework),
       // Honour the site owner's `<meta robots noindex>` (true by default in
       // engine; explicit here for clarity) and additionally drop pages
-      // heuristically detected as auth surfaces — covers the case where a
+      // heuristically detected as auth surfaces: covers the case where a
       // login page sits at an unconventional URL like `/account` or
       // `/portal` that URL patterns can't pre-declare.
       respectNoindex: true,
@@ -370,7 +370,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // Auto-retry once on origin degradation. Theory: the warmup window
       // primes whatever cache the origin had cold; halving concurrency
       // and sampleSize drops the steady-state load enough that the second
-      // pass usually succeeds. We only retry the OriginDegradedError —
+      // pass usually succeeds. We only retry the OriginDegradedError:
       // every other error (SSRF, parse, network) is genuine and rethrown.
       const isDegraded = firstErr instanceof Error && firstErr.name === "OriginDegradedError";
       if (!isDegraded) throw firstErr;
@@ -438,8 +438,8 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     summary.issues.shouldFix.length +
     summary.issues.informational.length;
 
-  // Read current visibility so we can decide permanence. Clean public audits —
-  // including anonymous ones — get their expiry extended to the far-future
+  // Read current visibility so we can decide permanence. Clean public audits:
+  // including anonymous ones: get their expiry extended to the far-future
   // sentinel so the listing + /r/[slug] page persist as an SEO corpus entry.
   // Non-eligible audits keep the tier expiry set at creation (anon 1d / free 30d).
   const [vis] = await db
@@ -455,7 +455,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     risk: summary.risk,
   });
 
-  // Cache hit-rate telemetry — via console (not the typed auditLog union) so we
+  // Cache hit-rate telemetry: via console (not the typed auditLog union) so we
   // can measure whether the R2 cache earns its keep, then keep/kill via the
   // switch. Present only on cached (monitored) runs.
   if (summary.cacheStats) {
@@ -487,16 +487,16 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       triageRootCauseCount: summary.triage?.rootCauses.length ?? null,
       triageCostUsd: summary.triage?.estimatedCostUsd != null ? String(summary.triage.estimatedCostUsd) : null,
       // Tier 2: the inferred pSEO archetype as a queryable first-class signal
-      // (monitoring / cross-domain / fix-budget planner) — not just in the summary.
+      // (monitoring / cross-domain / fix-budget planner): not just in the summary.
       archetype: summary.triage?.archetype ?? null,
-      // v0.4 §4.11 — surface site classification on the audit row so the
+      // v0.4 §4.11: surface site classification on the audit row so the
       // dashboard / report card / portfolio strip can render the badge
       // without round-tripping to R2.
       siteClassification: summary.siteClassification ?? null,
       // v0.5+ change-driven monitoring: mirror the scrapePlan summary onto
       // the row so per-domain dashboards can show "X/Y URLs re-scraped, Z
       // carried forward" without fetching the full R2 blob. Null on fresh
-      // and one-shot audits — only monitoring runs produce a scrapePlan.
+      // and one-shot audits: only monitoring runs produce a scrapePlan.
       scrapePlan: summary.scrapePlan ?? null,
       // The backpressure watchdog can flush a PARTIAL report when the origin
       // degrades mid-crawl. Mirror the flag onto the row so the dashboard can
@@ -517,7 +517,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   // diverge from `/r/[slug]` (which reads `audits.risk` directly).
   await runStep("sync-monitored-domain", async () => syncMonitoredDomain(auditId, summary.risk, summary.verdict ?? null, completedAt));
 
-  // v0.5.3 — stamp lastAuditedAt on watched pages that were force-refetched
+  // v0.5.3: stamp lastAuditedAt on watched pages that were force-refetched
   // this run. Scoped to *this audit's* monitored_domain so we don't update
   // another tenant's watched_pages row when two users happen to watch the
   // same URL (common case: `https://example.com/`). Best-effort: the audit

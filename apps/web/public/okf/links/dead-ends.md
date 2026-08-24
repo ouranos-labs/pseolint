@@ -1,13 +1,13 @@
 ---
 type: pSEO Audit Rule
-title: "Dead Ends — Pages With Zero Outbound Links to the Rest of Your Crawl"
+title: "Dead Ends: Pages With Zero Outbound Links to the Rest of Your Crawl"
 description: "A dead-end page has zero outbound links to other crawled URLs, so crawlers stall and link equity stops flowing forward. How links/dead-ends finds these pages."
 resource: https://pseolint.dev/rules/dead-ends
 ruleId: "links/dead-ends"
 tags: [links, "dead end pages SEO"]
 ---
 
-# Dead Ends — Pages With Zero Outbound Links to the Rest of Your Crawl
+# Dead Ends: Pages With Zero Outbound Links to the Rest of Your Crawl
 
 > links/dead-ends flags every crawled page (the homepage aside) whose outbound links include zero URLs that point to another page in the same crawl, the forward-flow gap that strands Googlebot and traps link equity, a warning a model-railway shop's 1,400 product listings hit when each turnout and locomotive page links only out to a vendor, never deeper into the store.
 
@@ -47,5 +47,5 @@ The same RailYardHobbies catalogue, with the listing template reworked so every 
 - [cluster-connectivity](../links/cluster-connectivity.md)
 
 # Sources
-- [Google Search Central — Large site owner's guide to managing crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget) — Google's crawl-budget guidance describes how Googlebot advances through a site by following outbound links from each fetched page. links/dead-ends fires when a non-root page's outbound links contain zero targets that also exist in the crawled corpus — every discovered URL on that page points outside the audit boundary, giving the crawler nowhere to go next within your own site.
-- [Google Search Central — Search Essentials](https://developers.google.com/search/docs/essentials) — Search Essentials notes that internal links help Google understand your site's structure and pass signals between related pages. A dead-end page — one whose resolved outbound links include no sibling in the known-URL set and no valid self-link — breaks that signal chain entirely, trapping whatever link equity the page carries instead of forwarding it.
+- [Google Search Central: Large site owner's guide to managing crawl budget](https://developers.google.com/search/docs/crawling-indexing/large-site-managing-crawl-budget): Google's crawl-budget guidance describes how Googlebot advances through a site by following outbound links from each fetched page. links/dead-ends fires when a non-root page's outbound links contain zero targets that also exist in the crawled corpus: every discovered URL on that page points outside the audit boundary, giving the crawler nowhere to go next within your own site.
+- [Google Search Central: Search Essentials](https://developers.google.com/search/docs/essentials): Search Essentials notes that internal links help Google understand your site's structure and pass signals between related pages. A dead-end page (one whose resolved outbound links include no sibling in the known-URL set and no valid self-link) breaks that signal chain entirely, trapping whatever link equity the page carries instead of forwarding it.

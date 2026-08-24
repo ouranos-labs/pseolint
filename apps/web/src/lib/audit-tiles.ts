@@ -4,7 +4,7 @@ import type { TileState, TileMeta } from "@/components/landing/tile-grid";
 const RANK: Record<CoreSeverity, number> = { info: 1, warning: 2, error: 3, critical: 4 };
 
 // Storage holds blobs from multiple engine versions. Legacy v0.3 summaries have
-// no bucketed `issues` object — they carry a flat `findings` array — so reading
+// no bucketed `issues` object (they carry a flat `findings` array) so reading
 // `summary.issues.blockers` unconditionally threw and took the whole dashboard
 // route to the error boundary for any host whose latest audit was pre-v0.4.
 function flattenIssues(summary: AuditSummary): RuleResult[] {
@@ -46,7 +46,7 @@ export function summaryToTileStates(summary: AuditSummary, max = 200): TileState
 /**
  * Tile-level metadata (URL + tooltip) parallel to `summaryToTileStates`.
  * Same severity-desc ordering so meta[i] aligns with states[i]. When `host`
- * is provided, dirty tiles get an `href` to /dashboard/{host}/url/{encoded} —
+ * is provided, dirty tiles get an `href` to /dashboard/{host}/url/{encoded}:
  * converting the strip from decorative into navigational.
  */
 export function summaryToTileMeta(

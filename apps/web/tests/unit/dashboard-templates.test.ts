@@ -4,7 +4,7 @@ import type { AuditSummary, Template } from "@pseolint/core";
 /**
  * Smoke test for the template-grid gate logic used on the dashboard.
  * The dashboard renders <TemplateGridClient> iff summary.templates.length >= 2.
- * We validate the condition here in isolation — no Next.js page render needed.
+ * We validate the condition here in isolation: no Next.js page render needed.
  */
 
 function shouldRenderTemplateGrid(summary: Pick<AuditSummary, "templates">): boolean {

@@ -143,7 +143,7 @@ describe("hostSectionDivergenceRule", () => {
   test("does not fire on an integrated host (uniform topic + template + cross-linking)", () => {
     // Three integrated sections sharing template, topic, authorship, and
     // cross-links. /blog (12 pages) is a minority candidate but no signals
-    // trip — the host is consistent.
+    // trip; the host is consistent.
     const news = Array.from({ length: 30 }, (_, i) =>
       page(`https://ex.com/news/${i}`, {
         contentText: NEWS_TEXT,
@@ -195,7 +195,7 @@ describe("hostSectionDivergenceRule", () => {
 describe("host-section-divergence scoring category", () => {
   // Site-reputation-abuse is a spam-policy (INTEGRITY) signal even though the
   // rule lives in the links namespace because it reads the link graph. It must
-  // score in the integrity bucket, not discoverability — otherwise a confirmed
+  // score in the integrity bucket, not discoverability: otherwise a confirmed
   // parasite section barely moves the risk score on a programmatic-directory
   // (discoverability weight 0.15 vs integrity 0.55). See RULE_CATEGORY_OVERRIDES.
   test("routes to the integrity bucket, not discoverability", () => {

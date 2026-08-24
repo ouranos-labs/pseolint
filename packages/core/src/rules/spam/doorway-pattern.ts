@@ -24,12 +24,12 @@ export function doorwayPatternRule(
   // 2026-05-03 calibration finding: catalog directories (Zapier integrations,
   // Segment source/destination pages, Wise currency pairs) are by-design
   // near-duplicate + entity-swap + identical-structure. With the old ≥3-of-5
-  // threshold, that triple alone fired this rule on every pair — generating
+  // threshold, that triple alone fired this rule on every pair: generating
   // C(N,2) critical findings on catalogs that ship in production and rank.
   // The fix reframes the gate: structural similarity alone never converts a
   // near-dup/entity-swap pair into a doorway finding. We additionally require
   // a CONTENT-QUALITY signal (thin content OR identical metaDescription),
-  // because real doorways degenerate on at least one of those — catalog
+  // because real doorways degenerate on at least one of those: catalog
   // records, by contrast, have unique per-record body text and per-record
   // metas. See docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.
   for (const pair of nearDuplicatePairs) {

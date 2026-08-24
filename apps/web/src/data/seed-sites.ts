@@ -2,13 +2,13 @@
  * Curated list of well-known programmatic-SEO sites the leaderboard seeds with.
  * Each is audited FOR REAL by the seed-leaderboard Inngest function; clean ones
  * (risk < 40) appear with a "Notable" chip, failing ones are never named and
- * only feed the aggregate stat. This is editorial input — review/expand before
+ * only feed the aggregate stat. This is editorial input: review/expand before
  * running a seed pass.
  *
  * SCALING NOTE: the seed-leaderboard function audits these in one Inngest run
  * (maxDuration 300s ≈ 6–8 sites/run, resumable across retries). To seed dozens,
  * switch to event fan-out (one "seed/host.requested" event per host). Not built
- * yet — keep this list small until then.
+ * yet: keep this list small until then.
  */
 export interface SeedSite {
   host: string;

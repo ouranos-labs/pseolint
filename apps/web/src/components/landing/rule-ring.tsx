@@ -17,7 +17,7 @@ export function RuleRing({
   fired = [],
   size = 26,
   className,
-  title = `pseolint — ${SCORED_RULE_COUNT} SpamBrain rules`,
+  title = `pseolint: ${SCORED_RULE_COUNT} SpamBrain rules`,
 }: RuleRingProps) {
   const cx = size / 2;
   const cy = size / 2;

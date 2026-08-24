@@ -30,7 +30,7 @@ const outputSchema = z.object({
 export const checkRuleAnswerFirstTool = defineTool({
   name: "check_rule_answer_first",
   description:
-    "Check whether a previously-fetched page opens with a direct, extractable answer (concrete fact, named entity, complete sentence, <100 words). Critical for AI Overview / Perplexity citability. Returns a finding when the opener is boilerplate, too long, or lacks specifics. Note: cross-page template detection (same opener across N pages) is NOT done here — call this per page and aggregate identical openers yourself.",
+    "Check whether a previously-fetched page opens with a direct, extractable answer (concrete fact, named entity, complete sentence, <100 words). Critical for AI Overview / Perplexity citability. Returns a finding when the opener is boilerplate, too long, or lacks specifics. Note: cross-page template detection (same opener across N pages) is NOT done here, call this per page and aggregate identical openers yourself.",
   inputSchema,
   outputSchema,
   async execute({ pageId, maxFirstParagraphWords = 100 }) {

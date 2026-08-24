@@ -1,4 +1,4 @@
-# Live URL Scanning Hardening — Design Spec
+# Live URL Scanning Hardening: Design Spec
 
 **Date:** 2026-04-14
 **Scope:** Make live-URL scanning the primary audit path by capturing HTTP metadata, adding crawl-based page discovery, and enhancing tech rules with HTTP-level signals.
@@ -35,7 +35,7 @@ interface LoadedPage {
   httpMeta?: HttpMeta;
 }
 
-// ParsedPage (in types.ts) — add after authorSignals
+// ParsedPage (in types.ts), add after authorSignals
 httpMeta?: HttpMeta;
 ```
 
@@ -86,7 +86,7 @@ async function fetchPageWithMeta(
 }
 ```
 
-The old `fetchWithRetry` (used for sitemap fetching) stays as-is — only page fetches get the rich metadata. `fetchTextStrict` (used for the initial source URL) also stays unchanged.
+The old `fetchWithRetry` (used for sitemap fetching) stays as-is, only page fetches get the rich metadata. `fetchTextStrict` (used for the initial source URL) also stays unchanged.
 
 ### Parser Changes
 
@@ -122,7 +122,7 @@ After fetching all sitemap pages:
 2. Filter to same-origin URLs not already in the sitemap set.
 3. Fetch the delta pages using `fetchPageWithMeta` with the existing concurrency controls.
 4. Add discovered pages to the audit set, marked with `discoveredViaCrawl: true` on `LoadedPage`.
-5. Single depth only — do not follow links from the discovered pages.
+5. Single depth only: do not follow links from the discovered pages.
 
 ### Config
 
@@ -144,7 +144,7 @@ Replaces the existing `tech/robots-sitemap-presence` rule (which only checks if 
 
 **Severity:** `error` for missing/broken pages, `warning` for redirects.
 
-**Only runs for URL sources** — filesystem audits skip this rule.
+**Only runs for URL sources**, filesystem audits skip this rule.
 
 The old `tech/robots-sitemap-presence` rule is removed and replaced by this one.
 
@@ -152,7 +152,7 @@ The old `tech/robots-sitemap-presence` rule is removed and replaced by this one.
 
 ## 3. Enhanced Tech Rules
 
-### `tech/canonical-consistency` — HTTP header support
+### `tech/canonical-consistency`: HTTP header support
 
 Currently checks `<link rel="canonical">` in HTML only.
 
@@ -162,7 +162,7 @@ Enhanced behavior:
 - If canonical URL was reached via redirect, verify canonical matches the final URL, not the requested URL
 - Existing HTML-only checks remain unchanged
 
-### `tech/robots-noindex-conflict` — X-Robots-Tag support
+### `tech/robots-noindex-conflict`: X-Robots-Tag support
 
 Currently checks `<meta name="robots">` in HTML only.
 
@@ -174,7 +174,7 @@ Enhanced behavior:
 
 ### New Rule: `tech/redirect-chain`
 
-- Flags pages where `httpMeta.redirectChain.length > 2` — long redirect chains waste crawl budget
+- Flags pages where `httpMeta.redirectChain.length > 2`: long redirect chains waste crawl budget
 - Flags pages where the final URL has a different path from the requested URL (unexpected redirect destination)
 - Severity: `warning`
 - Fix: "Reduce redirect chain to a single hop. Update internal links and sitemap to point to the final URL."
@@ -184,7 +184,7 @@ Enhanced behavior:
 
 - Flags pages that return HTTP 200 but have characteristics of error pages:
   - Content text < 50 words AND title contains "not found", "404", "error", "page missing" (case-insensitive)
-- These are soft 404s — Google detects them and may devalue the entire site
+- These are soft 404s: Google detects them and may devalue the entire site
 - Severity: `error`
 - Fix: "This page looks like an error page but returns HTTP 200. Return a proper 404 status code instead."
 - Ref: `https://developers.google.com/search/docs/crawling-indexing/soft-404-errors`
@@ -209,7 +209,7 @@ Total rules after this: 34 (was 31, +3 new, -1 removed = net +2, but `tech/robot
 
 ## Deferred
 
-- Full recursive crawling (Screaming Frog territory — different product)
+- Full recursive crawling (Screaming Frog territory: different product)
 - Response time / TTFB metrics (performance monitoring, not pSEO compliance)
-- Cache header analysis (crawl budget inference — hosted platform feature)
+- Cache header analysis (crawl budget inference: hosted platform feature)
 - HTTPS enforcement checking (valuable but separate concern)

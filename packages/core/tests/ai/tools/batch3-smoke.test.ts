@@ -13,7 +13,7 @@ const minimalHtml = (extra = "") => `
 <body><h1>x</h1><p>some words here some words here some words here</p></body></html>
 `;
 
-describe("AEO + schema multi-page tool wrappers — smoke", () => {
+describe("AEO + schema multi-page tool wrappers: smoke", () => {
   it("check_rule_freshness_signals returns findings shape", async () => {
     await withCachedPages(
       [

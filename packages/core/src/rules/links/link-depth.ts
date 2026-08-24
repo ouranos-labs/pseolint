@@ -10,7 +10,7 @@ export function linkDepthRule(
    * 2026-05-03 calibration credibility fix: when we only audited a sampled
    * subset of the site (e.g. 50 of 269 Zapier pages), the link graph we
    * built reflects the sample, not the real site. Pages flagged
-   * "unreachable from root" might just be sampling artifacts — the
+   * "unreachable from root" might just be sampling artifacts: the
    * real path back to the root exists, we just didn't fetch the
    * intermediary pages. Pass `sampled: true` to skip the unreachable-
    * from-root check; depth-from-root keeps working since the BFS still

@@ -57,19 +57,19 @@ export async function generateMetadata({
   const { slug } = await params;
   const row = await findAudit(slug);
   // Only leaderboard-eligible reports (clean + public + over the page floor)
-  // are indexable — they assert a NAMED site is clean, which is defensible.
+  // are indexable; they assert a NAMED site is clean, which is defensible.
   // Every other report (private, failing, thin, not-ready) stays noindex.
   if (!row || !isReady(row)) {
     return { title: "Audit not found · pseolint", robots: { index: false, follow: false } };
   }
   const robots: Metadata["robots"] = reportRobots(row);
   const host = hostOf(row.sourceUrl);
-  // Title and description are deliberately verdict-free — the score lives on
+  // Title and description are deliberately verdict-free: the score lives on
   // the page itself with hedging context. Card surfaces strip context, so we
   // don't ship "risk N/100" into screenshot-friendly OG previews.
   const title = `${host} · pseolint audit`;
   const description =
-    `pseolint audit of ${host} — ${row.pageCount ?? 0} pages sampled, ${row.findingCount ?? 0} findings. ` +
+    `pseolint audit of ${host}: ${row.pageCount ?? 0} pages sampled, ${row.findingCount ?? 0} findings. ` +
     `Heuristic SpamBrain + AEO scoring; not a verdict.`;
   return {
     title,
@@ -93,10 +93,10 @@ export default async function Page({
   if (!row) notFound();
 
   const session = await getOptionalSession();
-  const anon = await getAnonSessionId(); // read-only — no cookie write during RSC render
+  const anon = await getAnonSessionId(); // read-only: no cookie write during RSC render
   const ownedByUser = !!(session?.user.id && row.userId === session.user.id);
   const ownedByAnon = !session && row.anonSessionId !== null && row.anonSessionId === anon;
-  // Equalize "exists but private" with "doesn't exist" — a /signin redirect on
+  // Equalize "exists but private" with "doesn't exist"; a /signin redirect on
   // foreign-private slugs leaks slug existence to anons.
   if (!row.isPublic && !ownedByUser && !ownedByAnon) notFound();
 
@@ -113,7 +113,7 @@ export default async function Page({
   const claimedByViewer = !!(claim && session?.user.id && claim.userId === session.user.id);
 
   const summaryRaw = await fetchSummaryJson(summaryKey(row.id));
-  // R2 holds a mix of v0.3 and v0.4 blobs — shape-detect at the renderer.
+  // R2 holds a mix of v0.3 and v0.4 blobs: shape-detect at the renderer.
   // `isV04Summary` discriminates on `schemaVersion` presence, so we can fan
   // out into the appropriate hero / findings UI without risking field-access
   // crashes against the wrong shape.
@@ -169,10 +169,10 @@ export default async function Page({
 
   const shareUrl = absoluteUrl(`/r/${slug}`);
   const host = hostOf(row.sourceUrl);
-  // Legacy v0.3 numeric score — only read on the legacy hero path. v0.4 reports
+  // Legacy v0.3 numeric score: only read on the legacy hero path. v0.4 reports
   // never display a numeric headline; the verdict ladder is the only public
-  // signal (per Wave 3b spec — no "84/100" anywhere in the v0.4 view).
-  // Sourced from the v0.3 summary blob, NOT the DB row — Agent A renamed the
+  // signal (per Wave 3b spec: no "84/100" anywhere in the v0.4 view).
+  // Sourced from the v0.3 summary blob, NOT the DB row: Agent A renamed the
   // `audits.score` column to `audits.risk`. Legacy display reads from the
   // archived JSON, which is the right place anyway (the report's own data).
   const legacyScore = summary && !isV04 ? Math.round((summary as AuditSummaryV03).score ?? 0) : 0;
@@ -212,7 +212,7 @@ export default async function Page({
         <div className="mb-4 flex flex-wrap items-start gap-3 rounded-[18px] border border-warning/30 bg-warning/5 p-4 sm:flex-nowrap sm:items-center">
           <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Cached audit.</span>{ " " }
-            Showing the most recent public audit of { hostOf(row.sourceUrl) } — not necessarily your own scan.
+            Showing the most recent public audit of { hostOf(row.sourceUrl) }: not necessarily your own scan.
             Re-runs of the same URL within an hour are deduped to keep the crawl footprint light.
           </div>
           <Link
@@ -282,14 +282,14 @@ export default async function Page({
         />
       ) }
 
-      {/* Focused-lens result — only for audits created from a /tools/[slug] entry
+      {/* Focused-lens result: only for audits created from a /tools/[slug] entry
           point. Surfaces the tool's ruleLens prominently (delivering the tool's
           promise) + funnels to the complete report below. */}
       { summary && isV04 && reportTool ? (
         <FocusedLensCard tool={ reportTool } summary={ summary as AuditSummaryV04 } />
       ) : null }
 
-      {/* AI triage root-causes — the "what to fix first" plan. Sits directly
+      {/* AI triage root-causes: the "what to fix first" plan. Sits directly
           below the verdict/hero so the operator reads the prioritised summary
           before the detailed findings list. Pro-only: free/anon audits never
           populate `summary.triage`, so it renders nothing for them. */}
@@ -388,7 +388,7 @@ export default async function Page({
             <CategoryBreakdown summary={ summary } />
           </section>
 
-          {/* Per-template breakdown — mirrors the dashboard. Rendered when the
+          {/* Per-template breakdown: mirrors the dashboard. Rendered when the
               engine detected ≥2 templates, placed ABOVE the per-URL findings so
               users see the template-level picture first, then drill down. Falls
               back silently for legacy / single-template audits. */}
@@ -465,10 +465,10 @@ function LegacyFormatBanner() {
 
 /**
  * Partial-coverage warning. Rendered above the hero when the engine flushed a
- * `truncated:true` report — either a backpressure abort (the watchdog stopped
+ * `truncated:true` report: either a backpressure abort (the watchdog stopped
  * the crawl on a degraded origin) or a coverage shortfall (we reached far fewer
  * URLs than the sitemap declares). The findings shown are whatever was collected,
- * so the verdict, risk, and every count are LOWER bounds — surface that loudly so
+ * so the verdict, risk, and every count are LOWER bounds: surface that loudly so
  * a partial audit isn't mistaken for a complete one. Copy branches on `kind`.
  */
 function TruncatedBanner({ reason, kind }: { reason: string | null; kind: "coverage" | "backpressure" | null }) {
@@ -488,7 +488,7 @@ function TruncatedBanner({ reason, kind }: { reason: string | null; kind: "cover
       <span aria-hidden className="text-base leading-none text-warning">⚠</span>
       <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
         <span className="font-semibold text-foreground">Partial audit.</span>{ " " }
-        The crawl didn&apos;t finish ({ cause }). Coverage is incomplete — treat the
+        The crawl didn&apos;t finish ({ cause }). Coverage is incomplete: treat the
         verdict, risk, and every count below as <span className="font-medium text-foreground">lower bounds</span>.{ " " }
         { advice }
         { reason ? (
@@ -502,7 +502,7 @@ function TruncatedBanner({ reason, kind }: { reason: string | null; kind: "cover
 }
 
 /**
- * v0.4 hero — verdict ladder + 4 category grades. NO numeric "84/100".
+ * v0.4 hero: verdict ladder + 4 category grades. NO numeric "84/100".
  * The internal `risk` integer is intentionally never displayed; the verdict
  * tier is the only public signal so that small score drift doesn't read as a
  * regression to non-technical users.
@@ -541,7 +541,7 @@ function V04Hero({
           </div>
           <p className="mt-3 max-w-md text-sm leading-relaxed text-foreground">{ summary.headline }</p>
           {/*
-            v0.4 §4.11 site-classification badge — sits between the verdict
+            v0.4 §4.11 site-classification badge: sits between the verdict
             pill and the four category-grade tiles. Only rendered when the
             engine populated `siteClassification` (v0.4+ reports). Legacy
             v0.3 reports flow through LegacyHero and never reach this branch.
@@ -555,7 +555,7 @@ function V04Hero({
               <span className="tabular-nums">
                 { (() => {
                   // `sitemap-url-count` is the total URLs DISCOVERED (sitemap
-                  // scale — often thousands), NOT the count actually audited
+                  // scale: often thousands), NOT the count actually audited
                   // (that's `pageCount`, surfaced via the Pages stat).
                   const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
                     | { kind: "sitemap-url-count"; value: number }
@@ -566,7 +566,7 @@ function V04Hero({
             </div>
           ) : null }
           {/*
-            Pro-only content-effort pill — the AI-judged 0-100 originality/effort
+            Pro-only content-effort pill: the AI-judged 0-100 originality/effort
             score the engine writes to `summary.contentEffort.score` when the
             Pro-gated signal runs (run-audit.ts). Free/anon audits never populate
             it, so `Number.isFinite` is the gate: the pill simply renders nothing
@@ -583,7 +583,7 @@ function V04Hero({
             </div>
           ) : null }
           {/*
-            Domain-authority pill — `summary.authority` ({score, domain}) is the
+            Domain-authority pill: `summary.authority` ({score, domain}) is the
             0-100 authority hint the engine uses to MODERATE the verdict (it
             never touches the raw `risk`): >=80 shifts the verdict one tier more
             lenient, <=30 one tier stricter, 31-79 no shift. Shown here so the
@@ -601,7 +601,7 @@ function V04Hero({
             </div>
           ) : null }
           {/*
-            Degeneration note — the engine emits a `degeneration-guard-tripped`
+            Degeneration note: the engine emits a `degeneration-guard-tripped`
             signal when it downgraded a small-marketing/blog classification to
             `unclear` because the corpus looked degenerate (mostly thin pages or
             duplicate-heavy titles). That suppresses site-type severity
@@ -609,7 +609,7 @@ function V04Hero({
           */}
           { summary.siteClassification?.signals.some((s) => s.kind === "degeneration-guard-tripped") ? (
             <p className="mt-3 max-w-md text-[11px] leading-relaxed text-muted-foreground">
-              Site-type profiling was skipped — the sampled pages look degenerate
+              Site-type profiling was skipped: the sampled pages look degenerate
               (mostly thin or near-duplicate), so severity demotions for the
               detected site type were not applied.
             </p>
@@ -656,7 +656,7 @@ function V04Hero({
             <TileGrid
               states={ tileStates }
               meta={ summaryToTileMeta(summary) }
-              title={ `${host} — worst rule per page across ${tileStates.length} tiles. Hover for page details.` }
+              title={ `${host}: worst rule per page across ${tileStates.length} tiles. Hover for page details.` }
             />
             <TileLegend
               { ...pagesByWorstSeverity(summary) }
@@ -696,7 +696,7 @@ function V04Hero({
             placeholder={ cleanPages == null }
           />
         </dl>
-        {/* Counts kept for symmetry but not surfaced — v0.4 prefers the bucket counts above. */ }
+        {/* Counts kept for symmetry but not surfaced: v0.4 prefers the bucket counts above. */ }
         <span className="hidden">{ counts ? counts.errors : 0 }</span>
       </div>
     </div>
@@ -704,7 +704,7 @@ function V04Hero({
 }
 
 /**
- * Legacy v0.3 hero — preserved for posterity. Renders the original numeric
+ * Legacy v0.3 hero: preserved for posterity. Renders the original numeric
  * 84/100 + scoreVerdict label exactly as before.
  */
 function LegacyHero({
@@ -747,7 +747,7 @@ function LegacyHero({
           <>
             <TileGrid
               states={ tileStates }
-              title={ `${host} — worst rule per page across ${tileStates.length} tiles` }
+              title={ `${host}: worst rule per page across ${tileStates.length} tiles` }
             />
             <TileLegend
               { ...countTileStates(tileStates) }
@@ -804,7 +804,7 @@ function countTileStates(states: import("@/components/landing/tile-grid").TileSt
  * tile-grid helpers (`summaryToTileStates`, `severityCounts`, `cleanPageCount`)
  * to work. Those helpers were updated by Agent C to read v0.4's bucketed
  * `summary.issues`. Rather than fork the helpers, we lift v0.3's flat
- * `findings` array into bucket form here at the renderer boundary — keeps the
+ * `findings` array into bucket form here at the renderer boundary: keeps the
  * tile code single-shape and contains the legacy compat to one place.
  *
  * Filters out `audit/origin-readiness` for parity with the legacy renderer
@@ -819,7 +819,7 @@ function legacyToV04Projection(legacy: AuditSummaryV03): AuditSummaryV04 {
   // superset of v0.3 + v0.4 during the migration window (deprecated v0.3
   // fields kept on the same interface for tooling compat). The tile helpers
   // only read `summary.issues` + `summary.pageCount`, so an `as` cast here is
-  // safe — we're narrowing to the runtime contract the helpers actually use.
+  // safe; we're narrowing to the runtime contract the helpers actually use.
   return {
     schemaVersion: "2026-06-v0.6",
     verdict: "ready",
@@ -885,7 +885,7 @@ function verdictTone(verdict: AuditSummaryV04["verdict"]): {
       };
     case "concerning":
       return {
-        // No orange token in this design system — use a more saturated warning
+        // No orange token in this design system: use a more saturated warning
         // for "concerning" and reserve destructive for "critical". The verdict
         // ladder still reads in order from the surrounding context.
         label: "Concerning",
@@ -927,11 +927,11 @@ function HowToRead({ pageCount }: { pageCount: number }) {
     },
     {
       label: "Heuristic, not verdict",
-      body: "Rules inferred from public SpamBrain guidance — a structured conversation, not Google's classifier.",
+      body: "Rules inferred from public SpamBrain guidance, a structured conversation, not Google's classifier.",
     },
     {
       label: "Server-rendered by default",
-      body: "We read the HTML the server returns. Client-rendered content looks empty to us — Pro audits can render JS-heavy / SPA pages in a browser first.",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us, Pro audits can render JS-heavy / SPA pages in a browser first.",
     },
   ];
 
@@ -980,7 +980,7 @@ function CoverageCallout({ pageCount }: { pageCount: number }) {
       <div className="flex-1">
         <p className="text-sm font-medium text-foreground">
           { low ? (
-            <>Only { pageCount } page{ pageCount === 1 ? "" : "s" } audited — your sitemap may be incomplete.</>
+            <>Only { pageCount } page{ pageCount === 1 ? "" : "s" } audited, your sitemap may be incomplete.</>
           ) : (
             <>Audited { pageCount } pages from your sitemap.</>
           ) }
@@ -988,7 +988,7 @@ function CoverageCallout({ pageCount }: { pageCount: number }) {
         <p className="mt-1 text-xs text-muted-foreground">
           { low ? (
             <>
-              pseolint samples up to 200 pages on free audits (50 without an account), but uses <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. If your site has more pages, add them to the sitemap — or upgrade to Pro for 500-page manual re-audits and deeper link discovery.
+              pseolint samples up to 200 pages on free audits (50 without an account), but uses <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. If your site has more pages, add them to the sitemap, or upgrade to Pro for 500-page manual re-audits and deeper link discovery.
             </>
           ) : (
             <>
@@ -1104,7 +1104,7 @@ function ExpiredState({ row }: { row: AuditRow }) {
       </h1>
       <p className="mt-3 text-sm text-muted-foreground">
         This free report auto-deleted after its retention window. Anonymous reports live for 24
-        hours; authenticated free reports live for 30 days. Run a fresh audit — usually 60 seconds.
+        hours; authenticated free reports live for 30 days. Run a fresh audit: usually 60 seconds.
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
@@ -1132,5 +1132,5 @@ function safeParse<T>(raw: string): T | null {
   }
 }
 
-// summaryTruncation (the defensive R2-JSON reader) lives in @/lib/truncation —
+// summaryTruncation (the defensive R2-JSON reader) lives in @/lib/truncation:
 // pure + unit-tested there.
