@@ -12,6 +12,7 @@ import { getPlan } from "@/lib/plan";
 import { monthBucketUtc } from "@/lib/gsc";
 import { getCumulativeCoverage } from "@/lib/monitoring";
 import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
+import { SiteVisibilityCard } from "@/components/dashboard/site-visibility-card";
 import { CumulativeCoverageCard } from "@/components/dashboard/cumulative-coverage-card";
 import { TimelineStrip } from "@/components/dashboard/timeline-strip";
 import { FindingsPanel } from "@/components/dashboard/findings-panel";
@@ -456,6 +457,15 @@ export default async function DomainWorkspace({ params }: { params: Promise<{ ho
           urlsAuditedLast30d={ coverage.urlsAuditedLast30d }
         />
       ) }
+
+      {/* Site-level publish control. Was previously reachable only by opening a
+          report, where it set ONE audit and was undone by the next scheduled
+          run. It belongs to the domain, so it lives here. */ }
+      <SiteVisibilityCard
+        domainHost={ domain.host }
+        initialIsPublic={ domain.isPublic }
+        latest={ latestAudit ? { risk: latestAudit.risk, pageCount: latestAudit.pageCount } : null }
+      />
 
       {/* 3. WHERE I AM: the headline (latest risk + tile grid). */ }
       { latestAudit && summary && (

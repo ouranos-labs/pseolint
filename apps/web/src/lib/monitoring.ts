@@ -81,7 +81,7 @@ export async function ensureMonitoredDomainForUser(
   await autoBindGscPropertiesForUser(userId);
 
   const [domRow] = await db
-    .select({ id: monitoredDomains.id, verifiedAt: monitoredDomains.verifiedAt })
+    .select({ id: monitoredDomains.id, verifiedAt: monitoredDomains.verifiedAt, isPublic: monitoredDomains.isPublic })
     .from(monitoredDomains)
     .where(and(eq(monitoredDomains.userId, userId), eq(monitoredDomains.host, host)))
     .limit(1);
@@ -100,7 +100,9 @@ export async function ensureMonitoredDomainForUser(
       sourceUrl: origin,
       status: "queued",
       expiresAt,
-      isPublic: false,
+      // Inherit the site's publish choice, so a published site stays published
+      // across kickoff runs instead of dropping off the leaderboard.
+      isPublic: domRow.isPublic,
     })
     .returning({ id: audits.id });
 

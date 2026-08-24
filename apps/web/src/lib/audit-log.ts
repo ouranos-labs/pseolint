@@ -30,6 +30,7 @@ export type AuditLogEvent =
   | "monitor.domain.dispatch"
   | "monitor.domain.skipped"
   | "monitor.domain.quota_exhausted"
+  | "monitor.domain.visibility"
   | "monitor.alert_gate.email_failed"
   | "monitor.alert_gate.slack_failed"
   | "monitor.auto_verify.success"

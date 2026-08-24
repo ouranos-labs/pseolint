@@ -79,11 +79,18 @@ const CATEGORY_BREAKDOWN: Array<{ key: string; weight: string; blurb: string }> 
 ];
 
 export default async function Leaderboard() {
-  // Database-level deduplication: DISTINCT ON (host) returns the MOST RECENT
-  // completed public audit per domain in a single query (a re-audit supersedes
-  // the prior entry). No JS-level starvation possible. DISTINCT ON requires
-  // host-first ordering; we re-sort by risk in JS afterwards for display.
-  const rows = await db
+  // Database-level deduplication, one query, no JS-level starvation: pick the
+  // newest completed public audit per host FIRST, then apply the quality bars
+  // to that winner. Re-sorted by risk in JS afterwards for display.
+  //
+  // Filtering before DISTINCT ON is what the previous version did, and it does
+  // not mean what the old comment claimed. DISTINCT ON runs over the FILTERED
+  // set, so a host whose newest audit fails the bar simply falls back to its
+  // most recent PASSING audit: the site keeps its old good score instead of
+  // dropping off, and the leaderboard publishes a number the site no longer
+  // earns. Selecting the winner first makes a degraded site disappear, which is
+  // the documented intent.
+  const latestPerHost = db
     .selectDistinctOn([audits.host], {
       id: audits.id,
       slug: audits.slug,
@@ -93,6 +100,7 @@ export default async function Leaderboard() {
       risk: audits.risk,
       pageCount: audits.pageCount,
       createdAt: audits.createdAt,
+      expiresAt: audits.expiresAt,
       ogTitle: audits.ogTitle,
       ogDescription: audits.ogDescription,
       ogImageUrl: audits.ogImageUrl,
@@ -102,22 +110,40 @@ export default async function Leaderboard() {
       and(
         eq(audits.isPublic, true),
         eq(audits.status, "completed"),
-        isNotNull(audits.risk),
-        lt(audits.risk, LEADERBOARD_RISK_MAX),
-        // Mirror isLeaderboardEligible() in @/lib/leaderboard (the canonical
-        // predicate): non-null AND non-empty host. Keeps this SQL gate in lockstep
-        // with the report page's reportRobots() so a row can't be listed-but-noindexed
-        // (matters once source="seed" rows arrive, which may carry empty hosts).
+        // Identity only: which row REPRESENTS this host. Non-null and non-empty
+        // host mirrors isLeaderboardEligible() in @/lib/leaderboard, keeping
+        // this gate in lockstep with the report page's reportRobots() so a row
+        // can't be listed-but-noindexed.
         isNotNull(audits.host),
         sql`length(${audits.host}) > 0`,
-        gt(audits.expiresAt, new Date()),
-        sql`${audits.pageCount} >= ${LEADERBOARD_MIN_PAGES}`,
       ),
     )
-    // Most-recent audit per host wins (DISTINCT ON needs host-first ordering).
-    // This supersedes older scores: a re-audit replaces the prior entry, and a
-    // site that degrades below the bar drops off. Re-sorted by risk for display.
     .orderBy(audits.host, sql`${audits.createdAt} DESC`)
+    .as("latest_per_host");
+
+  const rows = await db
+    .select({
+      id: latestPerHost.id,
+      slug: latestPerHost.slug,
+      sourceUrl: latestPerHost.sourceUrl,
+      host: latestPerHost.host,
+      source: latestPerHost.source,
+      risk: latestPerHost.risk,
+      pageCount: latestPerHost.pageCount,
+      createdAt: latestPerHost.createdAt,
+      ogTitle: latestPerHost.ogTitle,
+      ogDescription: latestPerHost.ogDescription,
+      ogImageUrl: latestPerHost.ogImageUrl,
+    })
+    .from(latestPerHost)
+    .where(
+      and(
+        isNotNull(latestPerHost.risk),
+        lt(latestPerHost.risk, LEADERBOARD_RISK_MAX),
+        gt(latestPerHost.expiresAt, new Date()),
+        sql`${latestPerHost.pageCount} >= ${LEADERBOARD_MIN_PAGES}`,
+      ),
+    )
     .limit(100);
 
   // Re-sort by risk ascending for leaderboard display order.
@@ -351,8 +377,10 @@ export default async function Leaderboard() {
           Free-tier audits cost $0 and default to public; that&rsquo;s the trade for unlimited
           one-shot acquisition runs, capped at 3 audits per browser per 24-hour window. Audits that
           score below the bar still produce a full report at their own URL; they just aren&rsquo;t
-          listed publicly. Pro plans start at $19/mo, default to private, and stay private unless an
-          operator flips the visibility toggle.
+          listed publicly. Pro plans start at $19/mo, default to private, and stay private until an
+          operator publishes the site from its dashboard page, under{ " " }
+          <span className="font-mono text-foreground">Site visibility</span>. That choice belongs to
+          the site, not to a single report, so every later re-audit keeps it.
         </p>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground">
           Listings are deduplicated by hostname: the most recent audit per domain shows, and

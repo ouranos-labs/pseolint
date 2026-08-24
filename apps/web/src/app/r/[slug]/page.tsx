@@ -345,8 +345,25 @@ export default async function Page({
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <CopyLinkButton url={ shareUrl } />
         <ExportMenu auditId={ row.id } auditSlug={ slug } isPro={ ctx.kind.startsWith("pro_") } />
+        {/* Visibility is a property of the SITE for a monitored domain: setting
+            it per-report set one row and was undone by the next scheduled run,
+            so send the owner to the one control that actually persists. A
+            one-off audit has no site page, so it keeps the per-report toggle. */ }
         { ownedByUser && (
-          <VisibilityToggle auditId={ row.id } initialIsPublic={ row.isPublic } isPro={ ctx.kind.startsWith("pro_") } />
+          ctx.kind === "pro_own_monitored" ? (
+            <Link
+              href={ `/dashboard/${ctx.domainHost}` }
+              className="inline-flex h-9 items-center gap-1.5 rounded-[14px] border border-border-strong bg-background px-3 text-xs hover:bg-secondary"
+            >
+              <span
+                aria-hidden
+                className={ `inline-block h-1.5 w-1.5 rounded-full ${row.isPublic ? "bg-warning" : "bg-primary"}` }
+              />
+              { row.isPublic ? "Public" : "Private" } · manage for the site →
+            </Link>
+          ) : (
+            <VisibilityToggle auditId={ row.id } initialIsPublic={ row.isPublic } isPro={ ctx.kind.startsWith("pro_") } />
+          )
         ) }
         <Link
           href="/#top"

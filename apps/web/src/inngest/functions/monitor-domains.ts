@@ -107,7 +107,10 @@ async function runOneMonitor(monitoredDomainId: string) {
       anonSessionId: null,
       sourceUrl: d.sourceUrl,
       status: "queued",
-      isPublic: false,
+      // Inherit the site's publish choice. This cron is what silently undid a
+      // per-report toggle: every scheduled run minted a private audit, so a
+      // published site fell off the leaderboard at its next cadence tick.
+      isPublic: d.isPublic,
       expiresAt: new Date(now.getTime() + 90 * 86_400_000),
     })
     .returning({ id: audits.id, slug: audits.slug });

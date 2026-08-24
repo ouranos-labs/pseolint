@@ -568,13 +568,30 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
       - run: npm run build
-      - uses: ouranos-labs/pseolint/packages/action@action-v1
+      - uses: ouranos-labs/pseolint@v0.8.0
         with:
           source: ./out
           threshold: 40
 ```
 
 Posts a score summary as a PR comment and fails the check if score exceeds the threshold.
+
+Pin to a release tag (`@v0.8.0`) or, if you prefer a moving ref that tracks the
+latest built bundle, `ouranos-labs/pseolint/packages/action@action-v1`. The tag
+form is the one listed on the GitHub Actions Marketplace: Marketplace only
+indexes an `action.yml` at the repository root, so `/packages/action@…` resolves
+the same action but is invisible to search there.
+
+| Input | Required | Default | |
+| --- | --- | --- | --- |
+| `source` | yes | - | Build output directory or sitemap URL |
+| `threshold` | no | `40` | Risk score at or above which the check fails |
+| `token` | no | `github.token` | Token used to post the PR comment |
+| `fail-on-truncated` | no | `false` | Fail when coverage was partial, even if risk is under threshold |
+
+Outputs: `risk`, `score` (alias), `verdict`, `pageCount`, `truncated`,
+`truncated-reason`. When `truncated` is `true`, treat the numbers as lower
+bounds: see [Partial coverage](#partial-coverage-truncated).
 
 ## Fix rail: from audit to pull request
 
@@ -647,7 +664,7 @@ npx pseolint https://yoursite.com --format html    # Self-contained visual repor
 | `packages/core` | [`@pseolint/core`](packages/core/README.md) | 0.7.5 | MIT |
 | `packages/cli` | [`pseolint`](packages/cli/README.md) | 0.7.3 | MIT |
 | `packages/mcp` | [`@pseolint/mcp`](packages/mcp/README.md) | 0.7.4 | MIT |
-| `packages/action` | GitHub Action (`ouranos-labs/pseolint/packages/action@action-v1`) | - | MIT |
+| `packages/action` | GitHub Action (`ouranos-labs/pseolint@v0.8.0`, Marketplace) | - | MIT |
 | `apps/web` | pseolint.dev | - | AGPL-3.0 |
 
 ## Development

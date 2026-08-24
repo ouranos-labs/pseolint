@@ -1,5 +1,119 @@
 # @pseolint/core
 
+## 0.8.0
+
+### Minor Changes
+
+- 856c9f2: Add `tech/core-web-vitals` rule. Under `--render`, the renderer now installs `largest-contentful-paint` / `layout-shift` PerformanceObservers before navigation and reads them back after networkidle, attaching LCP, CLS, and TTFB to each page. The rule flags pages in Google's "poor" tier (LCP >4000ms, CLS >0.25) as a `warning`, with metric-specific fix guidance. This is a headless-Chromium lab snapshot, a directional signal that catches gross regressions, not CrUX field data; INP is omitted because it needs real interaction a passive crawl can't produce. No-op without `--render` (the rule guards on the presence of measured vitals, exactly like `tech/csr-bailout`).
+- 856c9f2: Add opt-in CrUX field data to `tech/core-web-vitals`. With a free Chrome UX Report API key (`--crux-api-key` / `CRUX_API_KEY`, or the `crux` core option), the auditor fetches real-user p75 LCP, CLS, **and INP**, the Core Web Vitals Google actually ranks on, including INP, which the lab `--render` path structurally cannot produce. The rule prefers field data when present and falls back to the lab render otherwise.
+
+  CrUX only has data for URLs/origins with enough real traffic, so per-URL lookups are capped (default 150, `--crux-max-lookups` to raise) and every page falls back to its origin-level field vitals, findings label the reading as per-URL vs origin-level. The client (`fetchCruxFieldVitals`) hits only Google's fixed CrUX endpoint (no SSRF surface, no external-authority dependency on your own content), makes no calls without a key, and treats any network / no-data condition as "no field data" rather than failing the audit.
+
+- 1aed975: Folklore-vs-fact rule batch: 11 new statically-checkable rules, each cross-referenced against a primary source (Google Search Central, sitemaps.org, ogp.me, Lighthouse), plus `docs/folklore.md`: the counterpart list of widely-repeated checks the primary sources contradict, which pseolint deliberately refuses to run (title/description character limits, "70-char og:description", meta keywords, sitemap priority/changefreq, word-count minimums).
+
+  New rules:
+
+  - **`links/crawlable-anchors`** (warning→error): links Google cannot follow: `<a>` without `href`, `javascript:` hrefs, onclick/router-attribute pseudo-links. Escalates to error when a page's navigation is effectively invisible to crawlers, the classic silent pSEO orphaning failure.
+  - **`tech/language-mismatch`** (error/warning/info): declared language (html `lang` / self-referencing hreflang) vs the Unicode script of the actual text, e.g. `lang="ja"` on Cyrillic content. Google indexes by _detected_ language, so mismatched declarations silently break all targeting. The missing-`lang` finding is info by design and says explicitly that Google ignores the attribute for ranking.
+  - **`tech/hreflang-validity`** (warning): invalid hreflang codes (`en_US`, `jp`, `en-UK`) that Google silently ignores; validation via `Intl.DisplayNames` (no bundled ISO tables), with did-you-mean fixes (jp→ja, UK→GB).
+  - **`tech/meta-robots-conflict`** (error/warning): contradictory directives across meta robots / meta googlebot / `X-Robots-Tag`; Google applies the most restrictive, so an accidental `noindex` silently wins.
+  - **`tech/html-size`** (error/warning): HTML approaching Googlebot's crawl cutoff of 2 MB per file, uncompressed (the limit documented in the Feb 2026 Googlebot-doc revision, down from the widely-cited 15 MB). Per-file, not total page weight.
+  - **`tech/sitemap-hygiene`** (error/warning): cross-host sitemap URLs (dropped per sitemaps.org), unparseable URLs, and lastmod pathologies (future dates, unparseable values, ≥95% mass-identical timestamps; Google ignores lastmod it can't trust).
+  - **`tech/robots-txt-limits`** (warning/info): robots.txt beyond Google's 500 KiB parse limit; unsupported directives, with `noindex:`-in-robots.txt escalated (ignored since 2019, so pages are NOT excluded).
+  - **`tech/snippet-suppression`** (warning/info): `nosnippet` / `max-snippet:0` kill SERP snippets and AI Overview / answer-engine citability; `data-nosnippet` coverage reported as info.
+  - **`tech/viewport-meta`** (warning): missing viewport meta under mobile-first indexing.
+  - **`content/meta-description-presence`** (warning): missing/empty meta description. Length is deliberately NOT linted: Google documents no character limit.
+  - **`links/generic-anchor-text`** (info): ≥50% of a page's internal links anchored on "click here"/"read more"/empty text.
+
+  Also: `tech/og-completeness` now checks the two remaining ogp.me-required tags (`og:type`, `og:url`) at info severity; `CORE_RULESET_VERSION` bumped so change-driven monitoring re-fetches previously-skipped URLs. (This batch bumped it to 16; two later rules in the same release, `tech/resource-weight` and `content/image-attributes`, bumped it again, so the value this release ships is **18**.)
+
+- 1aed975: New `content/image-attributes` rule: the parse-time half of the image blind spot, complementing `content/image-alt-text` (alt presence) and `tech/resource-weight` (image bytes under `--render`). No network access; everything comes from HTML the crawler already holds.
+
+  Two independent signals. Missing dimensions fires at warning when at least half a page's `<img>` tags declare neither width/height attributes nor inline sizing, info below that: without an aspect ratio the browser cannot reserve space, which is what Cumulative Layout Shift measures. Inline `width`, `height` or `aspect-ratio` in a style attribute counts as sized, so CSS-driven layouts are not reported as broken. Responsive candidates fires at info when a page serves three or more images and not one uses `srcset` or `<picture>`; Google recommends responsive images, so this never rises above info and the message says it is guidance rather than a requirement.
+
+  `loading="lazy"` is deliberately not checked. Lazy-loading the LCP image actively harms it, so a correct verdict needs to know which image is above the fold, which static HTML cannot say; a rule flagging missing `lazy` everywhere would be wrong exactly where it matters most. There is no documented image count, dimension or byte limit, and this rule must never grow one.
+
+  `CORE_RULESET_VERSION` is bumped to 18: a new scored rule changes findings on already-audited pages, so change-driven monitoring must re-fetch URLs it would otherwise skip.
+
+- 1aed975: New `tech/resource-weight` rule, closing a real hole in `tech/html-size`.
+
+  Googlebot's documented crawl cutoff is 2 MB per FETCHED FILE, so a 2.4 MB `bundle.js` is truncated exactly like a 2.4 MB HTML document would be. `tech/html-size` measured only the HTML while citing that doc, which meant an operator reading the finding could reasonably assume their scripts and stylesheets had been checked. They had not been. The new rule errors on any single subresource at or past 2 MB and warns within 25% of it.
+
+  It also reports total page weight with a per-kind breakdown (image / script / stylesheet / font / other) at info severity. Read that finding's wording before turning it into a policy: Google documents no total-page-weight and no total-site-size crawl limit, so the number is reported as a Core Web Vitals input and the message says so explicitly. The 5 MB trigger is a reporting floor, not a published threshold (see `docs/folklore.md` #4).
+
+  Byte totals come from the browser's Resource Timing buffer, read in the same `--render` pass that already collects LCP and CLS, so this costs one extra `page.evaluate` and zero extra network requests. `RenderedPage.resources` and `ParsedPage.resources` are new optional fields. Both are absent outside `--render`: subresource bytes cannot be known without fetching the assets, and the rule will not issue speculative requests to invent a number. Totals under-report rather than guess, since `transferSize` reads 0 for cross-origin responses without `Timing-Allow-Origin`.
+
+  `CORE_RULESET_VERSION` is bumped to 17: a new scored rule changes findings on already-audited pages, so change-driven monitoring must re-fetch URLs it would otherwise skip.
+
+### Patch Changes
+
+- 1aed975: CI was running a quarter of the core test suite. `@pseolint/core`'s test script passed an unquoted `tests/**/*.test.ts` to vitest; without bash globstar `**` collapses to `*`, so only the 44 files exactly two levels deep matched and the other 118 (everything under `tests/rules/<category>/`, which is most of the rule coverage) never ran under `bun run test`, the command both `ci.yml` and `release.yml` invoke. Dropping the argument lets vitest's own include do the work, matching every other package in the repo: 162 files, 1525 tests.
+
+  Also hardens the MCP real-engine integration test. It pinned `PSEOLINT_MCP_JSON_CHAR_CAP` to a tuned 150000 so the airbyte_com fixture's JSON would stay under the cap, which made it a tripwire that fires whenever rules are added and the payload grows (a rule batch took the fixture to ~159k). The cap is now set far above any plausible payload, and the oversized-payload branch it bypasses, previously untested, gets its own case with a 1-char cap so neither side can drift.
+
+- 856c9f2: Harden the CrUX field-data path for `tech/core-web-vitals`:
+
+  - **Pooled fetching.** Origin and per-URL CrUX lookups now run with bounded concurrency instead of one sequential round-trip at a time: removes a multi-second-per-audit wall-clock regression on keyed runs.
+  - **`--crux-max-lookups 0` now means unlimited**, matching the `0 = all` convention of `--sample-size` / `--max-per-template` (previously `0` disabled per-URL lookups entirely).
+  - **Per-metric field/lab selection.** The rule now prefers field data per metric and falls back to the lab render for any metric CrUX lacks, so enabling `--crux-api-key` can no longer drop an LCP/CLS signal the lab render already had.
+  - **Origin-level findings collapse.** A site-wide origin p75 reading emits one finding (with the affected-page count) instead of an identical finding per page: no more N-way duplication in output or scoring. Origin-level readings are reported at `medium` confidence (site aggregate applied to a page); only per-URL field readings are `high`.
+  - **Operational errors surface.** 429 (rate-limit), 401/403 (bad key), 5xx, and network/timeout are reported via a warning instead of being silently swallowed as "no field data" (a genuine 404 stays silent: it really does mean no data).
+  - **Form factor.** New `--crux-form-factor phone|desktop|all` (and `crux.formFactor`) queries the mobile-first field data Google actually ranks on; defaults to `all`.
+
+- 1aed975: Three portability/correctness fixes surfaced by running the suite in a fresh Linux container:
+
+  - `normalizeAuditUrl` now normalizes Windows drive-letter (`D:\a\b\..\c`) and UNC paths correctly on any host OS by routing them through `path.win32.normalize`; posix `normalize()` treated their backslashes as filename characters and left `..` segments unresolved.
+  - Render mode can launch a pre-provisioned Chromium instead of requiring `playwright install`: new `RenderOptions.browserExecutablePath`, falling back to the `PSEOLINT_BROWSER_EXECUTABLE` env var. The renderer test also now skips (instead of failing) when the pinned Playwright browser build is absent on disk.
+  - AI probe cache: `ttlMs: 0` now means "always expired" even when the write and read land in the same millisecond (`ageMs >= ttlMs`; the strict `>` comparison made the expiry test flaky).
+
+- 1aed975: Adds `spam/keyword-stuffed-title`, completes `RULE_IMPACTS`, and makes `tech/sitemap-hygiene` reachable from a plain homepage audit. `CORE_RULESET_VERSION` goes 18 to 19.
+
+  **`spam/keyword-stuffed-title`.** Deleting the folklore title-length ceiling was right, but it had been catching spam farms by accident: `content/title-uniqueness` recall fell from 12 policy sites to 5, and addressable AUC fell from 0.52 to 0.49. The recall did not belong to title-uniqueness, which is about the reasons Google REWRITES a title link. What is actually wrong with `Larray - Height, Birthday, Age, TikTok, YouTube, Wiki, Bio` is keyword stuffing, and Google's spam policy defines that by shape: "Often, these keywords appear in a list or group, or out of context (not as natural prose)", with "blocks of text listing cities and regions a web page is trying to rank for" as its worked example. So the recall goes to a new rule under that policy, not back into title-uniqueness.
+
+  The check is two structural counts and never reads `title.length`: at least 6 separator-delimited slots, at least 5 of which are bare one-or-two-word keywords. Across the calibration corpus the shortest title it fires on is 48 characters and the longest it ignores is 109, so it is not a length ceiling in a new costume. Measured before shipping: 0 findings on all 135 fixture pages of the six reputable winners and none on either tracked subject site; findings on seven policy-violating sites. Demoted to `info` on the `ecommerce` profile, where a marketplace spec line ("Sony WH-1000XM5, Black, Over-Ear, Noise Cancelling, 30h Battery") is the same shape and is not an attempt to manipulate rankings.
+
+  Addressable AUC 0.49 to 0.56, full-corpus 0.53 to 0.58, with no reputable site's risk or verdict rising.
+
+  **Impact table.** Five scored rules had never had a `RULE_IMPACTS` entry and were silently running on `DEFAULT_RULE_IMPACT` (5/1/25), which saturates its cap on any rule that fires once per page. `links/unreachable-from-root` (8/0/8), `tech/csr-bailout` (10/0/10), `tech/robots-compliance` (10/0/10) and `data/missing-binding` (8/0/8) all describe ONE defect repeated across a template, a nav block or a robots.txt line, so they take the `tech/hreflang-consistency` shape: no per-instance step, cap equal to base. `data/identical-across-pages` emits one rollup per frozen field, so its count is a real defect count and it scales (8/2/30). The dead `data/data-binding` entry, an id no rule has ever emitted, is removed. Scores move: `wise.com` 28 to 25 and `healthyceleb.com` 26 to 23 were the largest, and no verdict regressed against the committed baseline.
+
+  **Sitemap wiring.** `loadPagesFromSource` discovered the site's sitemaps on the homepage/crawl path and then discarded the URL list, so the gate that runs `tech/sitemap-hygiene`, `tech/sitemap-completeness` and `tech/robots-compliance` was always false for `pseolint https://example.com`; the three rules only ever fired when the operator passed a sitemap URL directly. The crawl path now returns the declared URL set and its `lastmod` map. The set is deliberately the UNFILTERED one: the same-origin filter drops exactly the cross-host `<loc>` entries `sitemap-hygiene` exists to report. As a consequence a homepage audit now also classifies off the sitemap URL set rather than off the sampled page list, which is what the classifier's own contract already said it did.
+
+- 1aed975: Punctuation-only sweep: every em dash in the repo is replaced with the punctuation its context calls for (colon for an elaboration or a "Title: Subtitle" heading, semicolon before an independent clause, comma for a loose afterthought, parentheses for a paired aside, hyphen inside numeric ranges). Rule message and fix strings are affected, so consumers doing exact string matching on finding text should re-check their matchers; rule IDs, severities, thresholds, and every documented URL are untouched.
+
+  `scripts/no-em-dash.mjs` is the codemod that did it, kept for future use: `bun run lint:emdash:copy` is the blocking CI gate over newly added lines in source and docs, `bun run lint:emdash` reports the whole repo without blocking, `--write` applies the deterministic tiers, and `--write --fallback` force-resolves the remainder.
+
+- 1aed975: Score the 2026-08-19 rule batch on what its findings mean, instead of letting all 13 rules inherit the default impact and saturate its cap.
+
+  None of the 13 new rules had a `RULE_IMPACTS` entry, so each fell back to `DEFAULT_RULE_IMPACT` (base 5, per-instance 1, cap 25). Every one of them is page-scoped and fires once per audited page, so on a templated site the finding count is the SAMPLE SIZE, not the number of distinct defects: one missing `<meta name="viewport">` in one base layout produced 25 findings and the full 25-point cap. This is the hazard `tech/hreflang-consistency` has been pinned against since v0.4.3, whose note records that 350 findings from a single missing reciprocal pair "should not be treated as 350x the impact". The batch reintroduced it 13 times.
+
+  The measured effect on the reputable-pSEO calibration corpus was two hard verdict regressions (`g2.com/categories` ready to concerning, `typeform.com/templates` ready to caution) and AUC falling from 0.52 to 0.45. On g2 the discoverability bucket sat at 75 of 100, and 75 of that came from three new rules that had each saturated the cap from one repeated template defect.
+
+  Each rule now carries an explicit impact derived from what its findings mean, with the reasoning recorded inline. Where one template edit fixes every finding, `perInstance` is 0 and the cap equals the base, so the rule contributes what the single defect is worth: `content/image-attributes` 4, `links/generic-anchor-text` 3, `content/meta-description-presence` and `tech/hreflang-validity` 5, `tech/language-mismatch`, `tech/resource-weight`, `tech/snippet-suppression` and `tech/viewport-meta` 6, `links/crawlable-anchors` 8. Where the count really is a count of distinct problems, it still scales: `tech/sitemap-hygiene` (6/3/20) emits one rollup finding per issue kind, `tech/robots-txt-limits` (5/2/10) has at most two defects per site, `tech/html-size` (8/1/25) loses a different page's content each time it fires, and `tech/meta-robots-conflict` (12/1/20) deindexes the page outright.
+
+  Rules that fire at `error` are not double-charged for it: severity already reaches the verdict through the blocker-density floor, so the impact table does not also scale on their count.
+
+  Also in this change:
+
+  - **`per-template-scoring.ts` had a second, drifting copy of the table**, and per-template grades are computed from that one rather than from `auditor.ts`. It was missing all 13 new rules plus five that had drifted out earlier (`tech/core-web-vitals`, `content/common-phrase-reuse`, `content/wikipedia-paraphrase`, `content/citation-coverage`, `links/host-section-divergence`), so template cards and the site verdict disagreed. Both tables are now identical, and `rule-impact-parity.test.ts` fails the build if they diverge again.
+  - The same file had no equivalent of `RULE_CATEGORY_OVERRIDES`, so `links/host-section-divergence` scored into discoverability on template cards and integrity at site level. It now routes through a shared `categoryForRule`.
+  - Five scored rules have never had an impact entry at all (`links/unreachable-from-root`, `tech/csr-bailout`, `tech/robots-compliance`, `data/missing-binding`, `data/identical-across-pages`), and the table's `data/data-binding` entry matches no id the rule file emits. These predate this batch and moving them changes already-baselined scores, so they are recorded as an explicit backlog in the parity test rather than retuned here.
+
+  `packages/core/calibration/baseline-scorecard.json` is regenerated: it still recorded `rulesetVersion: 15` against an engine at 18. No reputable site's baseline verdict changed, and seven policy-violating sites moved stricter, so the new baseline records a corrected engine rather than a relaxed target. The committed per-rule recall floors are deliberately NOT lowered to match this run, so the outstanding `content/title-uniqueness` recall drop keeps reporting instead of being absorbed into the baseline.
+
+- 28f717a: Skip non-SEO pages by default in the engine and CLI. `skipDetectedAuth`, `skipBoilerplate`, and `skipSearchPages` now default to `true` (previously off outside the hosted web form), auth, cookie/legal/consent/imprint, and internal search-result pages are never SEO targets, so auditing them only added noise. Each remains individually disableable via the new negatable CLI flags `--no-skip-detected-auth`, `--no-skip-boilerplate`, and `--no-skip-search-pages` (the old opt-in `--skip-*` forms are replaced). `respectNoindex` was already on; `skipEmptyBody` stays opt-in via `--skip-empty-body`.
+
+  Validated against the calibration fixture corpus: the false-positive rate of these filters is ~0 (`packages/core/calibration/fp-rate.ts`), and a before/after calibration run is identical, same scorecard (P=94% R=65% F1=77%), 31/31 sites pass, zero verdict regressions. The only corpus effect is one legitimate terms-and-conditions page dropped from a site's audit, with no change to that site's verdict.
+
+- 1aed975: `content/title-uniqueness` now detects an unfilled title slot by its SHAPE rather than only by how short it is.
+
+  Removing the folklore character-limit check cost real recall (12 policy sites down to 4), because keyword-stuffed farm titles happened to be long. The replacement had to come from what Google actually documents as title-rewrite triggers, not from restoring a length threshold in a new costume.
+
+  Google's title-link page documents replacing the title link "when part of the title text is missing", and its own example is the literal `| Site Name`: the separator and the boilerplate survive, the per-record value does not. The rule could not see that case at all. Its only check was a 10-character floor, and both `| Site Name` and `Equity Atlas -` are comfortably above it, so the shape Google names by example was passing. The `/folklore` page states in public that pseolint checks this trigger; now it does.
+
+  The check is structural and indifferent to length: a separator with nothing on one side of it, two separators in a row, an unsubstituted `{{city}}` / `${city}` / `%s` / `[CITY]` placeholder, or a segment that rendered as `undefined` / `null` / `n/a`. Guards are in place for the punctuation this could otherwise tax: `--` as an em dash is not an empty slot, `%` in "10% Off" is not a placeholder, and `null` is only matched as a whole segment so "Understanding null in JavaScript" is left alone.
+
+  This recovers one policy site and adds no reputable false positives, so recall goes 4 to 5, not back to 12. The gap is not closed and is not treated as closed. Two candidate extensions were rejected rather than shipped: a stale-year check ("2024 Toyota Camry Review") cannot be told apart from a correct year-scoped page, which describes much of the pSEO corpus this tool serves; and matching boilerplate-stripped titles across a cluster produced a false positive on wise.com, a reputable winner, in testing. No length ceiling returns in any form.
+
 ## 0.7.5
 
 ### Patch Changes
@@ -183,7 +297,7 @@
   - **Classification:** when a run is truncated BEFORE classification (a
     backpressure abort salvaged only a fragment), the site type is forced to
     `unclear` (confidence 0, no rule suppression). Classifying a salvaged fragment
-    as a confident `small-marketing` site (and suppressing the pSEO rules off it) 
+    as a confident `small-marketing` site (and suppressing the pSEO rules off it)
     is what produced the false green.
   - **Verdict:** any truncated run's verdict is floored to at least `caution`: it
     can never read `ready`, so the headline matches the partial-coverage banner.

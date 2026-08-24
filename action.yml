@@ -1,3 +1,16 @@
+# GitHub Actions Marketplace requires the action metadata file at the ROOT of
+# the repository: "Each repository must contain a single action metadata file
+# (action.yml or action.yaml) at the root", and "Repositories may include other
+# actions metadata files in sub-folders, but they will not be automatically
+# listed in the marketplace."
+# https://docs.github.com/en/actions/creating-actions/publishing-actions-in-github-marketplace
+#
+# packages/action/action.yml therefore cannot be listed, however correct it is.
+# This file is the marketplace-facing copy; it is the same action, differing
+# only in `runs.main`, which is repo-relative here and package-relative there
+# (the action-release workflow publishes that one to the `action-v1` orphan
+# branch, whose root IS packages/action). action-metadata-parity.test.ts keeps
+# the two from drifting.
 name: "pSEO Lint"
 description: "Run pseolint against your generated site output and post results on PRs."
 author: "Ouranos Labs"
@@ -39,4 +52,4 @@ outputs:
 
 runs:
   using: "node24"
-  main: "dist/index.js"
+  main: "packages/action/dist/index.js"
