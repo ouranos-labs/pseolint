@@ -92,25 +92,11 @@ export default function SymptomsIndexPage() {
     })),
   };
 
-  const faqLd = jsonLdSafe({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  });
-
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: faqLd }}
       />
 
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -290,6 +276,20 @@ export default function SymptomsIndexPage() {
         elevation and permit data, and the bulk-deindexing symptom reversed across the next two
         crawl cycles.
       </p>
+
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Frequently asked
+        </h2>
+        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+          {FAQS.map((f) => (
+            <div key={f.q} className="grid gap-2 border-b border-border/60 px-5 py-5 last:border-b-0">
+              <dt className="text-sm font-semibold text-foreground">{f.q}</dt>
+              <dd className="text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
       <SourcesSection
         sources={[

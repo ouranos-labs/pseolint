@@ -138,30 +138,6 @@ export default function LlmsTxtProgrammaticSeoPage(): React.ReactElement {
     ],
   };
 
-  const howToSchema = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to write an llms.txt for a programmatic site",
-    description:
-      "Create a root llms.txt that maps an answer engine to your citable content in four steps.",
-    step: CONTENTS.map((c, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: c.part,
-      text: c.detail,
-    })),
-  };
-
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -175,8 +151,6 @@ export default function LlmsTxtProgrammaticSeoPage(): React.ReactElement {
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(howToSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

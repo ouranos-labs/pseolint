@@ -102,34 +102,6 @@ export default function InternalLinkingSilosPage() {
     },
   };
 
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Build an Internal Linking Silo Structure",
-    description: "5 steps to design parent-child-sibling structures across thousands of generated pages.",
-    step: SILO_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       {/* Breadcrumbs */}
@@ -185,6 +157,24 @@ export default function InternalLinkingSilosPage() {
             allow crawlers to move between related children without backtracking.
           </p>
         </div>
+      </section>
+
+      {/* Silo Build Steps */}
+      <section className="mt-10">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Building the Silo, Step by Step
+        </h2>
+        <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 text-muted-foreground">
+          {SILO_STEPS.map((s, i) => (
+            <div key={i} className="rounded-[22px] border border-border/70 bg-card/40 p-5 flex flex-col gap-2">
+              <span className="inline-grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 border border-primary/30 text-xs font-semibold text-primary">
+                {i + 1}
+              </span>
+              <h3 className="text-xs font-bold text-foreground mt-1">{s.name}</h3>
+              <p className="text-[10px] leading-relaxed text-muted-foreground mt-0.5">{s.text}</p>
+            </div>
+          ))}
+        </ol>
       </section>
 
       {/* In-Depth Technical Content */}
@@ -271,14 +261,6 @@ export default function InternalLinkingSilosPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

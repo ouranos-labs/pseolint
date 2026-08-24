@@ -133,16 +133,6 @@ export default function DatasetsForProgrammaticSeoPage() {
     keywords: ["programmatic SEO", "datasets", "data cleaning", "CSV directories"],
   };
 
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       {/* Breadcrumbs */}
@@ -314,10 +304,6 @@ print(f"Data cleaned. Total indexable records: {len(df)}")`}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(datasetLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

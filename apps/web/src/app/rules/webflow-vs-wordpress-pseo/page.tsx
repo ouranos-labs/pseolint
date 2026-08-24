@@ -104,16 +104,6 @@ export default function WebflowVsWordpressPseoPage() {
     },
   };
 
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
       {/* Breadcrumbs */}
@@ -279,10 +269,6 @@ export default function WebflowVsWordpressPseoPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

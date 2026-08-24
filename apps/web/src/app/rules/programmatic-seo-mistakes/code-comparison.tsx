@@ -101,17 +101,18 @@ const HTML_GOOD = `<!-- listing-template.html -->
   <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "FAQPage",
-      "mainEntity": [{
-        "@type": "Question",
-        "name": "Who is the top-rated provider in Boston?",
-        "acceptedAnswer": { "@type": "Answer", "text": "Boston Service Co. is currently rated #1." }
-      }]
+      "@type": "LocalBusiness",
+      "name": "Boston Service Co.",
+      "address": { "@type": "PostalAddress", "addressLocality": "Boston", "addressRegion": "MA" },
+      "areaServed": "Boston, MA"
     }
   </script>
 </head>
 <body>
   <h1>Boston's Verified Providers</h1>
+  <!-- Q&A lives in the visible page, not in retired FAQPage markup -->
+  <h2>Who is the top-rated provider in Boston?</h2>
+  <p>Boston Service Co. is currently rated #1, with 412 verified reviews and a 4.8 average.</p>
   <!-- Boilerplate deferred / slimmed; rich entity content > 60% of DOM -->
 </body>`;
 

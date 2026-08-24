@@ -55,7 +55,7 @@ const MISTAKES = [
   {
     title: "4. No Machine-Readable Structured Data (Schema)",
     description:
-      "Search engine AI Overviews (SGE) rely heavily on structured entities to formulate citations. If your pages lack FAQPage, Product, or HowTo JSON-LD schemas, you are missing out on rich snippets and AI recommendations.",
+      "Search engine AI Overviews rely heavily on structured entities to formulate citations. If your pages lack Product, Article/TechArticle, or BreadcrumbList JSON-LD, you are missing out on rich results and AI recommendations. FAQPage and HowTo are not on that list any more: Google retired the HowTo rich result in September 2023 and the FAQ rich result on May 7, 2026, so question and step content earns its citation through visible structure, one question or step per heading with the answer directly beneath it.",
     severity: "Optimization Gap",
     remedy: "Inject valid nested JSON-LD objects matching the page's primary intent.",
   },

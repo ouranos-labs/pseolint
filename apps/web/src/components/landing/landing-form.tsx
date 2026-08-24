@@ -705,8 +705,8 @@ function scoreToneClass(score: number): string {
   return scoreTone(score);
 }
 
-// FAQ answers are stored as plain prose (so they serialize cleanly into
-// FAQPage JSON-LD), but the in-page copy should let people click the routes it
+// FAQ answers are stored as plain prose (so each answer stays extractable on
+// its own), but the in-page copy should let people click the routes it
 // mentions. Linkify the known internal paths without touching the JSON-LD.
 const FAQ_PATHS = ["/rules", "/methodology", "/pricing"] as const;
 function linkifyAnswer(answer: string): ReactNode {

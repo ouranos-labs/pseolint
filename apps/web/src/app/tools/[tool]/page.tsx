@@ -74,25 +74,12 @@ function softwareApplicationSchema(tool: MarketingTool): Record<string, unknown>
   };
 }
 
-function faqPageSchema(tool: MarketingTool): Record<string, unknown> {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: tool.faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-}
-
 export default async function ToolPage({ params }: { params: Promise<RouteParams> }) {
   const { tool: slug } = await params;
   const tool = getMarketingTool(slug);
   if (!tool) notFound();
 
   const softwareLd = safeJsonLd(softwareApplicationSchema(tool));
-  const faqLd = safeJsonLd(faqPageSchema(tool));
 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
@@ -216,12 +203,6 @@ export default async function ToolPage({ params }: { params: Promise<RouteParams
         // that could prematurely close the surrounding script tag.
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: softwareLd }}
-      />
-      <script
-        type="application/ld+json"
-        // Same provenance + sanitization as the SoftwareApplication block above.
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: faqLd }}
       />
     </main>
   );

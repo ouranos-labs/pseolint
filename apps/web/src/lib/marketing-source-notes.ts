@@ -386,15 +386,15 @@ export const RULE_SOURCES: Record<string, MarketingSourceRef[]> = {
   "faq-coverage": [
     {
       "source": "structuredData",
-      "note": "FAQPage and HowTo JSON-LD are the exact schema types aeo/faq-coverage verifies are present: the rule fires an error when question-phrased H2 headings or a /faq URL path confirm FAQ intent yet neither markup type appears in the page's JSON-LD."
+      "note": "Google's structured-data guidance is what the rule declines to lean on: FAQPage and HowTo both lost their rich results (HowTo in September 2023, FAQ on May 7, 2026), so aeo/faq-coverage recommends the visible fix, one question per heading with its complete answer beneath, and treats existing FAQPage, HowTo, or QAPage markup only as proof the pairs are already machine-readable."
     },
     {
       "source": "schemaOrg",
-      "note": "Schema.org defines the FAQPage and HowTo types that aeo/faq-coverage expects; the rule's detection logic keys on whether the page's JSON-LD contains either type after the heading-question or URL-path check confirms FAQ content."
+      "note": "Schema.org still defines FAQPage, HowTo, and QAPage as vocabulary, which is why aeo/faq-coverage stays silent when it finds any of them in a page's JSON-LD: the pairs are already declared. It never asks you to add them, because a live schema.org type is not the same thing as a live Google rich result."
     },
     {
       "source": "aiFeatures",
-      "note": "Google narrowed FAQ rich results to government and health publishers in August 2023, shifting the remaining value of FAQPage markup squarely to AI extraction, the reason aeo/faq-coverage treats a missing schema as a missed AI Overviews eligibility signal rather than a cosmetic gap."
+      "note": "Google narrowed FAQ rich results to government and health publishers in August 2023 and removed the feature from Search entirely on May 7, 2026, which is why aeo/faq-coverage frames the gap as an AI-extraction problem in the visible page rather than a missing-markup problem: the answer engines read the prose, not a retired accordion."
     }
   ],
   "summary-bait": [

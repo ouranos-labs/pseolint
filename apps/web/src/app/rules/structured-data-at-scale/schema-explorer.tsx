@@ -4,30 +4,6 @@ import { useState } from "react";
 
 const SCHEMAS = [
   {
-    type: "FAQPage",
-    intent: "FAQ / Q&A pages, symptom guides",
-    rule: "aeo/faq-coverage",
-    snippet: `{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "What is programmatic SEO?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Programmatic SEO is the practice of..."
-      }
-    }
-  ]
-}`,
-    tips: [
-      "Each Question must have a unique, specific name: no generic placeholders.",
-      "The Answer text should be at least 2 full sentences and not repeat the question verbatim.",
-      "FAQPage markup no longer earns rich results for general publishers (Aug 2023), but is still heavily used by AI Overviews for citation.",
-    ],
-  },
-  {
     type: "Article / TechArticle",
     intent: "Blog posts, developer guides, research reports",
     rule: "content/missing-author",
@@ -80,37 +56,7 @@ const SCHEMAS = [
     tips: [
       "Set price to 0 with availability InStock to qualify for free product rich results in SERP.",
       "Use AggregateRating only if you have real, verifiable reviews: fake reviews are a manual action risk.",
-      "Combine with a FAQPage schema on the same page for dual-schema richness.",
-    ],
-  },
-  {
-    type: "HowTo",
-    intent: "Step-by-step developer tutorials, setup guides",
-    rule: "aeo/faq-coverage",
-    snippet: `{
-  "@context": "https://schema.org",
-  "@type": "HowTo",
-  "name": "How to Set Up Programmatic SEO in Next.js",
-  "totalTime": "PT2H",
-  "step": [
-    {
-      "@type": "HowToStep",
-      "position": 1,
-      "name": "Set up dynamic routes",
-      "text": "Create an [slug]/page.tsx file in your Next.js app directory..."
-    },
-    {
-      "@type": "HowToStep",
-      "position": 2,
-      "name": "Generate metadata dynamically",
-      "text": "Export a generateMetadata() function that returns unique title and description per slug..."
-    }
-  ]
-}`,
-    tips: [
-      "Each step needs a unique, actionable name and at least one sentence of specific text.",
-      "Include totalTime using ISO 8601 duration format (PT2H = 2 hours).",
-      "HowTo schemas are aggressively pulled by AI Overviews for procedural queries.",
+      "Combine with BreadcrumbList and an Article node on the same page for a complete entity graph. Do not reach for FAQPage or HowTo: Google retired both rich results (HowTo in September 2023, FAQ on May 7, 2026).",
     ],
   },
   {

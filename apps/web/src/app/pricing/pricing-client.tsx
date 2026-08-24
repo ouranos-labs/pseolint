@@ -58,22 +58,6 @@ const FAQS: ReadonlyArray<FAQ> = [
   },
 ];
 
-function safeJsonLd(obj: unknown): string {
-  return JSON.stringify(obj).replace(/</g, "\\u003c");
-}
-
-function buildFaqJsonLd(faqs: ReadonlyArray<FAQ>) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-}
-
 const PRO_FEATURES = [
   { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run. Every monitoring run detects templates, scores per template, and fires template_degraded alerts on regression." },
   { title: "Per-template verdict, which template is broken", detail: "Every Pro audit tells you which template is dragging your site score down. Manual re-audits sample up to 500 pages for tighter per-template variance estimates; monitoring runs sample up to 200, stratified across templates." },
@@ -346,19 +330,8 @@ function PricingInner() {
         ] }
       />
 
-      <FaqJsonLd faqs={ FAQS } />
     </main>
   );
-}
-
-function FaqJsonLd({ faqs }: { faqs: ReadonlyArray<FAQ> }) {
-  // FAQS is a compile-time-static array; safeJsonLd escapes `<` so any
-  // string can't terminate the surrounding <script> block. Mirrors the
-  // pattern used in src/app/tools/[tool]/page.tsx and rules/[ruleId]/page.tsx.
-  const html = safeJsonLd(buildFaqJsonLd(faqs));
-  // eslint-disable-next-line react/no-danger
-  const props = { dangerouslySetInnerHTML: { __html: html } } as const;
-  return <script type="application/ld+json" { ...props } />;
 }
 
 export default function PricingClient() {

@@ -41,7 +41,7 @@ export type MarketingTool = {
   howItWorks: string[];
   /** 4-6 bullet points of output. */
   whatYouGet: string[];
-  /** 4-6 FAQ pairs (FAQPage schema bait). */
+  /** 4-6 FAQ pairs, rendered as visible on-page Q&A. */
   faqs: MarketingToolFaq[];
   /** 2-3 slugs of related tools/rules/symptoms. */
   related: string[];

@@ -80,7 +80,7 @@ const CHECKLIST_STEPS = [
   },
   {
     name: "Add valid JSON-LD metadata",
-    text: "Include intent-matching schemas (like FAQPage, Product, or HowTo) directly in the document template for rich results and AIO indexing.",
+    text: "Include intent-matching schemas that still render (Product, Article/TechArticle, BreadcrumbList) directly in the document template for rich results and AIO indexing; FAQPage and HowTo were retired by Google and earn nothing.",
   },
   {
     name: "Declare author entities",
@@ -113,34 +113,6 @@ export default function ProgrammaticSeoChecklistPage() {
       price: "0",
       priceCurrency: "USD",
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Validate a Programmatic SEO Site Before Launch",
-    description: "A comprehensive list of 12 critical checks to perform before deploying programmatic templates to production.",
-    step: CHECKLIST_STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -298,14 +270,6 @@ export default function ProgrammaticSeoChecklistPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webAppLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

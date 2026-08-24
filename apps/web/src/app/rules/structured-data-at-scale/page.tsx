@@ -12,12 +12,12 @@ const url = `${SITE_URL.replace(/\/$/, "")}/rules/structured-data-at-scale`;
 export const metadata: Metadata = {
   title: "Structured Data for Programmatic SEO at Scale · pseolint",
   description:
-    "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for FAQ, Product, and HowTo schemas.",
+    "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for Product, Article, and BreadcrumbList schemas, and which types Google has retired.",
   alternates: { canonical: url },
   openGraph: {
     title: "Structured Data for Programmatic SEO at Scale",
     description:
-      "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for FAQ, Product, and HowTo schemas.",
+      "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for Product, Article, and BreadcrumbList schemas, and which types Google has retired.",
     url,
     type: "article",
     images: [`${SITE_URL}/opengraph-image`],
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Structured Data for Programmatic SEO at Scale",
     description:
-      "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for FAQ, Product, and HowTo schemas.",
+      "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for Product, Article, and BreadcrumbList schemas, and which types Google has retired.",
   },
 };
 
@@ -41,7 +41,7 @@ const FAQS = [
   },
   {
     q: "Can I combine multiple schemas on the same page?",
-    a: "Yes. In fact, combining related schemas (like Product + FAQPage + BreadcrumbList) on a single route is an SEO best practice that provides a complete entity map to search engine parsers.",
+    a: "Yes. Combining related schemas (like Product + BreadcrumbList + Article) on a single route provides a complete entity map to search engine parsers. Combine only types that still do something, though: Google retired the HowTo rich result in September 2023 and the FAQ rich result on May 7, 2026, so adding FAQPage or HowTo to the graph adds bytes, not eligibility.",
   },
   {
     q: "What is the best way to inject JSON-LD in Next.js?",
@@ -60,7 +60,7 @@ const STEPS = [
   },
   {
     name: "Build Nested JSON-LD Template Objects",
-    text: "Create a structured JSON object in your code that combines the primary entity with BreadcrumbList and FAQPage blocks to formulate a complete schema graph.",
+    text: "Create a structured JSON object in your code that combines the primary entity with BreadcrumbList and, where the page warrants it, Article or Product nodes, to formulate a complete schema graph. Leave out FAQPage and HowTo: both rich results have been retired.",
   },
   {
     name: "Sanitize and Escape the JSON Output",
@@ -77,7 +77,7 @@ export default function StructuredDataAtScalePage() {
     "@context": "https://schema.org",
     "@type": "TechArticle",
     headline: "Structured Data for Programmatic SEO at Scale",
-    description: "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for FAQ, Product, and HowTo schemas.",
+    description: "Learn how to implement structured data at scale for programmatic SEO. Explore JSON-LD template patterns for Product, Article, and BreadcrumbList schemas, and which types Google has retired.",
     url,
     inLanguage: "en",
     about: { "@type": "Thing", name: "Structured Data Programmatic SEO" },
@@ -101,34 +101,6 @@ export default function StructuredDataAtScalePage() {
         "https://linkedin.com/in/philippekam"
       ]
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Inject JSON-LD Structured Data at Scale",
-    description: "5 steps to configure and inject automated JSON-LD schemas in your dynamic template routes.",
-    step: STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -169,6 +141,24 @@ export default function StructuredDataAtScalePage() {
           JSON-LD Structured Data Schema Explorer
         </h2>
         <SchemaExplorer />
+      </section>
+
+      {/* Injection Steps */}
+      <section className="mt-10">
+        <h2 className="text-base font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+          Injecting JSON-LD at Scale, Step by Step
+        </h2>
+        <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 text-muted-foreground">
+          {STEPS.map((s, i) => (
+            <div key={i} className="rounded-[22px] border border-border/70 bg-card/40 p-5 flex flex-col gap-2">
+              <span className="inline-grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/10 border border-primary/30 text-xs font-semibold text-primary">
+                {i + 1}
+              </span>
+              <h3 className="text-xs font-bold text-foreground mt-1">{s.name}</h3>
+              <p className="text-[10px] leading-relaxed text-muted-foreground mt-0.5">{s.text}</p>
+            </div>
+          ))}
+        </ol>
       </section>
 
       {/* In-Depth Technical Content */}
@@ -226,7 +216,7 @@ export default function PageTemplate({ data }) {
               <strong>Schema-Content Mismatches</strong>: Declaring reviews or details in your JSON-LD that do not appear anywhere in the visible page text. If Googlebot detects mismatching data, it will suppress all rich results for your domain.
             </li>
             <li>
-              <strong>Incorrect Entity Nesting</strong>: Placing independent schema objects on the page instead of linking them. For instance, an FAQPage should be properly nested inside an Article or Product schema node.
+              <strong>Shipping Retired Types</strong>: Emitting FAQPage or HowTo JSON-LD out of habit. Google removed the HowTo rich result in September 2023 and the FAQ rich result from Search on May 7, 2026, deleting both sets of documentation, so the markup renders nothing. Question and step content earns its citation through the visible page instead: one question or step per heading, with the complete answer directly beneath it.
             </li>
             <li>
               <strong>Missing Author Bio Details</strong>: Setting author fields to a generic site brand instead of a real Person entity with E-E-A-T details (like knowsAbout or jobTitle annotations).
@@ -292,14 +282,6 @@ export default function PageTemplate({ data }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

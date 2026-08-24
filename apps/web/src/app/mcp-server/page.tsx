@@ -64,16 +64,6 @@ const FAQS: { q: string; a: string }[] = [
   },
 ];
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQS.map((f) => ({
-    "@type": "Question",
-    name: f.q,
-    acceptedAnswer: { "@type": "Answer", text: f.a },
-  })),
-};
-
 const softwareJsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
@@ -95,10 +85,6 @@ function CodeBlock({ children }: { children: string }) {
 export default function McpServerPage() {
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
-      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(softwareJsonLd) }}

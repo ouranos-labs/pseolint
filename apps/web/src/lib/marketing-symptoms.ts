@@ -93,7 +93,7 @@ const SYMPTOMS_BASE = [
       },
       {
         q: "What is the role of structured data schema in a programmatic audit?",
-        a: "Structured data schemas, such as FAQPage, Product, and HowTo JSON-LD, provide search engines with clean, machine-readable facts that are highly prized by AI overview engines. A programmatic audit must verify that every page carries a valid, nested schema that matches the page's visible content. Lacking structured data reduces your chances of earning rich snippets and AI citations, and signals lower production quality."
+        a: "Structured data that still earns something, Product, Article and TechArticle, Breadcrumb, Dataset, gives search engines clean machine-readable facts, and a programmatic audit should verify every page carries a valid schema that matches its visible content. Two types no longer belong on that list: Google removed the HowTo rich result in September 2023 and the FAQ rich result on May 7, 2026, deleting both sets of documentation, so FAQPage and HowTo markup buy nothing in Search. For question and step content the audit checks the visible page instead: one question or step per heading, with the complete answer in the paragraph directly beneath it, which is the form an answer engine can lift."
       }
     ],
     recoveryTimeline:
@@ -594,7 +594,7 @@ const SYMPTOMS_BASE = [
       "Hand-check the live SERPs for your top five losing queries and record what now sits above the organic results (AI Overview, featured snippet, PAA, carousel, shopping unit).",
       "For queries where you ARE the snippet or overview source, accept the displayed-but-not-clicked tradeoff and pivot the page toward a follow-on action; for queries where a competitor is the source, evaluate whether you can win that feature instead.",
       "Run pseolint on the affected templates to confirm the pages are not also tripping quality rules; rule out a coincident algorithmic issue before attributing the entire loss to SERP features.",
-      "Rewrite titles and meta descriptions on high-impression, low-CTR pages and add or repair structured data (FAQ, HowTo, Product) so your result competes harder within the visible set.",
+      "Rewrite titles and meta descriptions on high-impression, low-CTR pages and add or repair the structured data that still renders (Product, Breadcrumb, Article) so your result competes harder within the visible set. FAQ and HowTo markup will not help: Google retired both rich results.",
       "Shift measurement and content strategy toward queries with commercial intent and lower AI-Overview coverage, where a click is still both available and valuable.",
     ],
     relatedRules: ["thin-content", "template-diversity"],

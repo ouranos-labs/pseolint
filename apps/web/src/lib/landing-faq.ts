@@ -1,10 +1,13 @@
 /**
  * Landing-page FAQ: single source of truth.
  *
- * Rendered as visible content by the landing form and emitted as FAQPage
- * JSON-LD by the page route, so the answers a human reads and the answers an
- * AI assistant / search crawler ingests never drift apart. Answers are plain
- * prose (no markup) so they serialize cleanly into `acceptedAnswer.text`.
+ * Rendered as visible content by the landing form. It is deliberately not
+ * mirrored into JSON-LD: Google removed the FAQ rich result from Search on
+ * 2026-05-07 and deleted the FAQPage documentation on 2026-06-15, so the
+ * markup buys nothing, and the visible prose is what an answer engine lifts.
+ * See /folklore. Answers stay plain prose (no markup) so each one reads as a
+ * complete, extractable answer on its own.
+ * https://developers.google.com/search/updates#removing-faq-rich-result
  */
 export interface LandingFaqItem {
   q: string;

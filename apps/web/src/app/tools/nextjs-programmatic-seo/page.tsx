@@ -73,7 +73,7 @@ const STEPS = [
   },
   {
     name: "Inject Nested JSON-LD Schemas",
-    text: "Create valid JSON-LD objects matching the page's primary intent (e.g., HowTo, Product, or FAQPage) and safely render them inside a script tag to provide machine-readable context to search bots.",
+    text: "Create valid JSON-LD objects matching the page's primary intent (Article or TechArticle, Product, BreadcrumbList, not the retired FAQPage or HowTo types) and safely render them inside a script tag to provide machine-readable context to search bots.",
   },
   {
     name: "Create a Dynamic sitemap.ts File",
@@ -114,34 +114,6 @@ export default function NextjsProgrammaticSeoPage() {
         "https://linkedin.com/in/philippekam"
       ]
     },
-  };
-
-  const howToLd = {
-    "@context": "https://schema.org",
-    "@type": "HowTo",
-    name: "How to Build a Next.js Programmatic SEO Engine",
-    description: "Follow these 8 steps to construct a scalable, search-engine-friendly programmatic SEO template in Next.js App Router.",
-    step: STEPS.map((s, i) => ({
-      "@type": "HowToStep",
-      position: i + 1,
-      name: s.name,
-      itemListElement: [
-        {
-          "@type": "HowToDirection",
-          text: s.text,
-        },
-      ],
-    })),
-  };
-
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
   };
 
   return (
@@ -315,14 +287,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd).replace(/</g, "\\u003c") }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd).replace(/</g, "\\u003c") }}
       />
     </main>
   );

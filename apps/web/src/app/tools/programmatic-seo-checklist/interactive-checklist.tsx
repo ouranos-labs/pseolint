@@ -65,7 +65,7 @@ const ITEMS = [
     id: "schema",
     category: "Structured Data",
     title: "JSON-LD schema matching page intent is present",
-    detail: "Use FAQPage, HowTo, Article, Product, or BreadcrumbList depending on the template's primary content type.",
+    detail: "Use Article/TechArticle, Product, or BreadcrumbList depending on the template's primary content type. FAQPage and HowTo are retired rich results and add nothing.",
     severity: "Major",
     ruleSlug: "faq-coverage",
   },

@@ -55,16 +55,6 @@ const FAQS: { q: string; a: string }[] = [
 ];
 
 export default function ToolsIndexPage() {
-  const faqLd = safeJsonLd({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  });
-
   const collectionSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -430,6 +420,20 @@ export default function ToolsIndexPage() {
         weeks later dropped the domain risk to 24.
       </p>
 
+      <section className="mt-12">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Frequently asked
+        </h2>
+        <dl className="overflow-hidden rounded-[22px] border border-border/70 bg-card/60 backdrop-blur-sm">
+          {FAQS.map((f) => (
+            <div key={f.q} className="grid gap-2 border-b border-border/60 px-5 py-5 last:border-b-0">
+              <dt className="text-sm font-semibold text-foreground">{f.q}</dt>
+              <dd className="text-sm leading-relaxed text-muted-foreground">{f.a}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
       <SourcesSection
         sources={[
           {
@@ -454,13 +458,6 @@ export default function ToolsIndexPage() {
         // that could prematurely close the surrounding script tag.
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={ { __html: safeJsonLd(collectionSchema) } }
-      />
-      <script
-        type="application/ld+json"
-        // FAQPage payload built from compile-time-static FAQS array, escaped
-        // by safeJsonLd to prevent script-tag breakout.
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={ { __html: faqLd } }
       />
     </main>
   );

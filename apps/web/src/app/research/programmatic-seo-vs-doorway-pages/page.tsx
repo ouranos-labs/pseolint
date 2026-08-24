@@ -140,16 +140,6 @@ export default function ProgrammaticSeoVsDoorwayPagesPage(): React.ReactElement 
     ],
   };
 
-  const faqSchema = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQS.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
-
   const breadcrumbSchema = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -163,7 +153,6 @@ export default function ProgrammaticSeoVsDoorwayPagesPage(): React.ReactElement 
   return (
     <main className="mx-auto max-w-3xl px-5 pb-24 pt-14">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(articleSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbSchema) }} />
 
       <nav aria-label="Breadcrumb" className="mb-6 text-sm text-muted-foreground">

@@ -36,7 +36,7 @@ const CHECKS = [
     label: "JSON-LD schema matching page intent",
     rule: "aeo/faq-coverage",
     critical: true,
-    hint: "Use FAQPage, HowTo, Article, or Product depending on the page's primary content type.",
+    hint: "Use Article/TechArticle, Product, or BreadcrumbList depending on the page's primary content type. FAQPage and HowTo no longer produce a rich result in Google Search.",
   },
   {
     id: "author",

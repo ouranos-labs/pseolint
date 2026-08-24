@@ -13,7 +13,7 @@ import { env } from "@/lib/env";
 import { InlineAuditWidget } from "@/components/marketing/inline-audit-widget";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { WorkedExampleSection } from "@/components/marketing/worked-example-section";
-import { renderInline, plainText } from "@/components/marketing/inline-markup";
+import { renderInline } from "@/components/marketing/inline-markup";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? env().BETTER_AUTH_URL ?? "https://pseolint.dev";
@@ -93,16 +93,6 @@ interface TechArticleJsonLd {
   };
 }
 
-interface FaqPageJsonLd {
-  "@context": "https://schema.org";
-  "@type": "FAQPage";
-  mainEntity: Array<{
-    "@type": "Question";
-    name: string;
-    acceptedAnswer: { "@type": "Answer"; text: string };
-  }>;
-}
-
 function buildArticleJsonLd(rule: MarketingRule): TechArticleJsonLd {
   return {
     "@context": "https://schema.org",
@@ -130,18 +120,6 @@ function buildArticleJsonLd(rule: MarketingRule): TechArticleJsonLd {
         "https://linkedin.com/in/philippekam"
       ]
     }
-  };
-}
-
-function buildFaqJsonLd(rule: MarketingRule): FaqPageJsonLd {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: rule.faqs.map((faq) => ({
-      "@type": "Question",
-      name: faq.q,
-      acceptedAnswer: { "@type": "Answer", text: plainText(faq.a) }
-    }))
   };
 }
 
@@ -214,7 +192,6 @@ export default async function RulePage({ params }: PageProps) {
   }
 
   const articleJsonLd = buildArticleJsonLd(rule);
-  const faqJsonLd = buildFaqJsonLd(rule);
   const related = getRelatedMarketingRules(rule.relatedRules);
   const archetype = getRuleArchetype(rule.ruleId, rule.slug);
 
@@ -245,11 +222,6 @@ export default async function RulePage({ params }: PageProps) {
         // additionally escapes `<` so any string can't break out of <script>.
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(articleJsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        // eslint-disable-next-line react/no-danger
-        dangerouslySetInnerHTML={{ __html: safeJsonLd(faqJsonLd) }}
       />
 
       <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted-foreground">
