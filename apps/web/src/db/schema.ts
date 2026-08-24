@@ -64,7 +64,20 @@ export const audits = pgTable("audit", {
   sourceUrl: text("source_url").notNull(),
   status: text("status").$type<"queued" | "running" | "completed" | "failed" | "expired">().notNull().default("queued"),
   isPublic: boolean("is_public").notNull().default(true),
-  source: text("source").$type<"user" | "seed">().notNull().default("user"),
+  /**
+   * How the audit originated. "seed" is our own leaderboard seeder; every
+   * other value is a real caller, tagged by the channel that referred them.
+   *
+   * Widening this union costs nothing at the database level (the column is
+   * plain text), which is deliberate: adding a column would need a DDL step
+   * ordered against the deploy, and that is exactly what took the app down
+   * when 0023 shipped ahead of its ALTER.
+   *
+   * Only channels that can actually produce an audit row belong here. The
+   * CLI, the GitHub Action and the remote MCP server all run the engine
+   * locally and persist nothing, so they are absent on purpose.
+   */
+  source: text("source").$type<"user" | "seed" | "extension">().notNull().default("user"),
   /**
    * The /tools/[slug] entry point that created this audit, if any. The audit
    * still runs the FULL rule set (so the report can funnel "we found N more"),

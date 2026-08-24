@@ -21,6 +21,7 @@ import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { checkOriginHealth } from "@pseolint/core";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getMarketingTool } from "@/lib/marketing-tools";
+import { resolveAuditChannel } from "@/lib/audit-channel";
 import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
 import { trackServerAfter } from "@/lib/analytics/track.server";
 import type { AuditBlockReason } from "@/lib/analytics/events";
@@ -44,6 +45,8 @@ const BodySchema = z.object({
   render: z.boolean().optional(),
   /** Originating /tools/[slug] entry point: validated against the tool registry below. */
   tool: z.string().optional(),
+  /** Referring channel, validated against AUDIT_CHANNELS below. */
+  channel: z.string().optional(),
 });
 
 const DEDUPE_WINDOW_MS = 60 * 60 * 1000;
@@ -417,9 +420,15 @@ export async function POST(req: Request): Promise<Response> {
   // itself still runs the full rule set; `tool` only affects presentation.
   const tool = body.data.tool && getMarketingTool(body.data.tool) ? body.data.tool : null;
 
+  // Same trust boundary as `tool`: the channel is a hint from the client, so it
+  // is resolved against a closed set and falls back to "user". Without this an
+  // arbitrary POST could write any string into the column we use to decide
+  // which acquisition channel is worth investing in.
+  const source = resolveAuditChannel(body.data.channel);
+
   const [row] = await db.insert(audits).values({
     slug: publicSlug(), userId, anonSessionId, sourceUrl: url, status: "queued",
-    isPublic: plan !== "pro", expiresAt, tool,
+    isPublic: plan !== "pro", expiresAt, tool, source,
   }).returning({ id: audits.id, slug: audits.slug });
 
   // Render is a Pro-only capability: gate it server-side so a non-Pro caller

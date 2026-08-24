@@ -79,6 +79,9 @@ export function LandingForm() {
   // Competitive context from the extension's "win this SERP" hand-off (?from=serp).
   // Display-only; React escapes q/against and we length-cap them. ponytail: cap 80.
   const [serp, setSerp] = useState<{ q: string; against: string } | null>(null);
+  // Referring channel from the same ?from= param. Display state above is about
+  // what the SERP hand-off shows; this is what gets attributed on the audit row.
+  const [channel, setChannel] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -91,6 +94,7 @@ export function LandingForm() {
         setTurnstileArmed(true);
       }
       if (params.get("force") === "1") setForce(true);
+      setChannel(params.get("from"));
       if (params.get("from") === "serp") {
         const cap = (s: string | null) => (s ?? "").slice(0, 80);
         setSerp({ q: cap(params.get("q")), against: cap(params.get("against")) });
@@ -183,6 +187,7 @@ export function LandingForm() {
           url: normalized,
           turnstileToken: token,
           ...(force ? { force: true } : {}),
+          ...(channel ? { channel } : {}),
         }),
       });
       if (res.ok) {
