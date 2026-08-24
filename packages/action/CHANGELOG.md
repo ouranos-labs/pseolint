@@ -1,5 +1,33 @@
 # @pseolint/action
 
+## 0.8.0
+
+### Minor Changes
+
+- Make the action publishable to the GitHub Actions Marketplace.
+
+  Marketplace lists only a root-level metadata file: "Each repository must contain
+  a single action metadata file (`action.yml` or `action.yaml`) at the root", and
+  sub-folder metadata files "will not be automatically listed in the marketplace".
+  `packages/action/action.yml` is a sub-folder file, so however correct it was,
+  Marketplace would never index it.
+
+  Adds `/action.yml` as the marketplace-facing copy. Same action; only `runs.main`
+  differs, because that path is relative to whichever root the file is published
+  at: the repo root here, the package root for the `action-v1` orphan branch the
+  release workflow publishes. Consumers can now use `ouranos-labs/pseolint@<tag>`,
+  the form Marketplace lists, rather than the subdirectory-plus-branch ref.
+
+  `tests/action-metadata-parity.test.ts` pins the two copies together (identical
+  apart from `runs.main`, each pointing at the bundle relative to its own root, a
+  Node runtime GitHub still supports, and the committed bundle present). This
+  package previously had no tests at all, which `--passWithNoTests` hid.
+
+  Also adds `branding`, and documents the release ordering in the package README:
+  the action runs straight from the committed bundle with no build step at
+  consumer runtime, so `dist/` must be rebuilt and committed BEFORE tagging or the
+  tag ships a stale action.
+
 ## 0.7.6
 
 ### Patch Changes

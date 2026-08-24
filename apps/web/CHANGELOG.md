@@ -1,5 +1,30 @@
 # @pseolint/web
 
+## 0.8.1
+
+### Patch Changes
+
+- Rank the newest audit per host on the leaderboard, not the newest passing one.
+
+  The query filtered before deduplicating, and `DISTINCT ON (host)` runs over the
+  already-filtered set. So a host whose newest audit scored at or above the risk
+  cutoff did not drop off: Postgres returned its most recent PASSING audit
+  instead. The site kept a score it no longer earned, and kept it until that older
+  row expired.
+
+  The comment directly above the query claimed the opposite ("a site that degrades
+  below the bar drops off"), so this is the query being made to match its own
+  documented intent rather than a change of policy. Patch, not minor, for that
+  reason, though it is publicly visible: a degraded site now disappears from the
+  listing instead of showing a stale number.
+
+  Also adds `scripts/leaderboard-diagnose.ts`, a read-only funnel answering "why
+  is this public site missing?". The listing applies eight gates plus an
+  owner-hidden filter, so "public" and "listed" are very different populations and
+  the gap is invisible from the page itself. It reports how many rows each gate
+  removes, names every public host that is unlisted with the reason, and flags any
+  host still being served a stale score.
+
 ## 0.8.0
 
 ### Minor Changes
