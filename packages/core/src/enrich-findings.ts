@@ -44,6 +44,7 @@ const EFFORT_BASELINES: Record<string, FixEffort> = {
   "content/missing-author": "quick",
   // moderate
   "spam/thin-content": "moderate",
+  "spam/keyword-stuffed-title": "moderate",
   "spam/publication-velocity": "moderate",
   "content/meta-uniqueness": "moderate",
   "content/eeat-signals": "moderate",

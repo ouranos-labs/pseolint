@@ -79,46 +79,31 @@ describe("RULE_IMPACTS coverage", () => {
    * Every SCORED rule needs an explicit impact. Falling back to
    * DEFAULT_RULE_IMPACT is never deliberate: it is what shipping a rule and
    * forgetting the table looks like.
+   *
+   * The backlog this list used to record is CLOSED. `links/unreachable-from-root`,
+   * `tech/csr-bailout`, `tech/robots-compliance`, `data/missing-binding` and
+   * `data/identical-across-pages` now carry explicit weights derived from what
+   * each rule means, and the dead `data/data-binding` entry - an id nothing has
+   * ever emitted - is gone.
+   *
+   * Keep this empty. A rule with no entry silently runs on DEFAULT_RULE_IMPACT
+   * (5/1/25), which saturates its 25-point cap on any rule that fires once per
+   * page, so one template defect scores like 25 independent ones.
    */
-  /**
-   * PRE-EXISTING gaps, deliberately recorded rather than silently fixed.
-   *
-   * Each of these scored rule ids has no `RULE_IMPACTS` entry and therefore
-   * runs on `DEFAULT_RULE_IMPACT`. They predate the 2026-08-19 rule batch, and
-   * giving them honest weights moves risk scores on already-baselined sites, so
-   * that belongs in its own change with its own calibration run - not smuggled
-   * into a regression fix. Two are worth calling out:
-   *
-   *   - `links/unreachable-from-root` fires once per unreachable page (23 of 25
-   *     on wise.com in the calibration corpus), so it saturates the default
-   *     25-point cap from what is usually one broken nav: the same hazard this
-   *     file exists to prevent.
-   *   - `data/missing-binding` and `data/identical-across-pages` are the ids
-   *     `rules/data/data-binding.ts` actually emits. The table's
-   *     `data/data-binding` entry matches NEITHER, so it is dead config and the
-   *     two live ids have always scored on the default.
-   *
-   * Shrink this list; never grow it. A NEW rule belongs in RULE_IMPACTS.
-   */
-  const KNOWN_UNCOVERED = [
-    "data/identical-across-pages",
-    "data/missing-binding",
-    "links/unreachable-from-root",
-    "tech/csr-bailout",
-    "tech/robots-compliance",
-  ];
+  const KNOWN_UNCOVERED: string[] = [];
 
-  it("has an explicit impact for every scored rule bar the recorded backlog", () => {
+  it("has an explicit impact for every scored rule", () => {
     const scored = Object.keys(RULE_SCOPE).filter((id) => !id.startsWith("audit/"));
     const uncovered = scored.filter((id) => !(id in auditorImpacts)).sort();
     expect(uncovered).toEqual([...KNOWN_UNCOVERED].sort());
   });
 
   it("keeps every impact entry pointed at a rule id that is actually dispatched", () => {
-    // `data/data-binding` is in the table but nothing emits it; the rule file
-    // emits `data/missing-binding` and `data/identical-across-pages`. Recorded
-    // here so the dead entry cannot quietly gain company.
-    const KNOWN_DEAD = ["data/data-binding"];
+    // Every id in the table must be one some rule actually emits. The one
+    // historical exception, `data/data-binding`, was removed: the rule file
+    // emits `data/missing-binding` and `data/identical-across-pages`, so the
+    // entry had never scored anything.
+    const KNOWN_DEAD: string[] = [];
     const dead = Object.keys(auditorImpacts).filter((id) => !(id in RULE_SCOPE)).sort();
     expect(dead).toEqual([...KNOWN_DEAD].sort());
   });

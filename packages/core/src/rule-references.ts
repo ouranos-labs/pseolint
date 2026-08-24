@@ -7,6 +7,7 @@ export const RULE_REFERENCES: Record<string, string> = {
   "spam/publication-velocity": "https://developers.google.com/search/docs/essentials/spam-policies#spammy-auto-generated-content",
   "spam/doorway-pattern": "https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages",
   "spam/template-coverage": "https://developers.google.com/search/docs/essentials/spam-policies#doorway-pages",
+  "spam/keyword-stuffed-title": "https://developers.google.com/search/docs/essentials/spam-policies#keyword-stuffing",
   "content/unique-value": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content",
   "content/meta-uniqueness": "https://developers.google.com/search/docs/appearance/snippet#meta-descriptions",
   "content/missing-author": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content#eeat",

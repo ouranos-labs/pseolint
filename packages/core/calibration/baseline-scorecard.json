@@ -363,6 +363,14 @@
         "suppressedOn": 0,
         "demotedOn": 15
       },
+      "spam/keyword-stuffed-title": {
+        "reputableFired": 0,
+        "reputableTotal": 6,
+        "policyFired": 7,
+        "policyTotal": 23,
+        "suppressedOn": 0,
+        "demotedOn": 0
+      },
       "content/meta-description-presence": {
         "reputableFired": 3,
         "reputableTotal": 6,

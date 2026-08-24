@@ -17,6 +17,7 @@ export const RULE_SCOPE: Record<string, RuleScope> = {
   "spam/publication-velocity": "corpus",
   "spam/doorway-pattern": "corpus",
   "spam/template-coverage": "corpus",
+  "spam/keyword-stuffed-title": "page",
 
   // content
   "content/unique-value": "corpus",

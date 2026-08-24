@@ -12,6 +12,7 @@ import { metaUniquenessRule } from "./rules/content/meta-uniqueness.js";
 import { missingAuthorRule } from "./rules/content/missing-author.js";
 import { uniqueValueRule } from "./rules/content/unique-value.js";
 import { boilerplateRatioRule } from "./rules/spam/boilerplate-ratio.js";
+import { keywordStuffedTitleRule } from "./rules/spam/keyword-stuffed-title.js";
 import { doorwayPatternRule } from "./rules/spam/doorway-pattern.js";
 import { entitySwapRule } from "./rules/spam/entity-swap.js";
 import { nearDuplicateRule } from "./rules/spam/near-duplicate.js";
@@ -368,6 +369,12 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
     severityOverrides: {
       "aeo/citable-facts":      "info",
       "schema/required-fields": "error",
+      // Marketplace product titles are attribute lists by convention
+      // ("Sony WH-1000XM5, Black, Over-Ear, Noise Cancelling, 30h Battery"),
+      // which is the exact shape spam/keyword-stuffed-title looks for. On a
+      // catalog that shape is the store's spec line, not an attempt to
+      // manipulate rankings: keep the signal visible, never let it score.
+      "spam/keyword-stuffed-title": "info",
     },
     confidenceOverrides: {
       "aeo/citable-facts":      "low",
@@ -513,6 +520,13 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "spam/template-diversity":  { baseImpact: 12, perInstance: 3,  maxImpact: 50 },
   "spam/boilerplate-ratio":   { baseImpact: 10, perInstance: 2,  maxImpact: 40 },
   "spam/thin-content":        { baseImpact: 8,  perInstance: 2,  maxImpact: 40 },
+  // Unlike the page-scoped rules pinned at perInstance 0, this rule's count is
+  // NOT the sample size: titles vary page to page and the rule fires on 8% to
+  // 96% of a site's sample, never uniformly. So "how many of this site's titles
+  // are keyword lists" is a real measurement of how far the practice reaches,
+  // and it scales - but with a step of 1 rather than the 2-5 the pair-based
+  // spam rules use, because the remedy is usually a single title template.
+  "spam/keyword-stuffed-title":{ baseImpact: 10, perInstance: 1,  maxImpact: 30 },
   "spam/publication-velocity":{ baseImpact: 8,  perInstance: 2,  maxImpact: 30 },
   "cannibal/url-pattern":     { baseImpact: 10, perInstance: 2,  maxImpact: 40 },
 
@@ -626,6 +640,23 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // page experience rather than blocking crawl or indexing, and N pages
   // missing it is the same single missing line.
   "tech/viewport-meta":                  { baseImpact: 6,  perInstance: 0, maxImpact: 6  },
+  // Fires once per page whose content or interactivity exists only after
+  // hydration. Whether a route server-renders is decided by ONE rendering
+  // configuration, so every page built from the same entry point bails out
+  // together and one fix clears them all: perInstance 0. Base above the
+  // page-experience rules around it because the consequence is that Google's
+  // first pass sees an empty shell, which reads as thin or duplicate; below
+  // tech/meta-robots-conflict, whose outcome (deindexing) is deterministic.
+  "tech/csr-bailout":                    { baseImpact: 10, perInstance: 0, maxImpact: 10 },
+  // A sitemap URL that robots.txt disallows is a contradiction: the site asks
+  // Google to index a page it also refuses to let Google crawl. Real, and
+  // `error` severity - but the defect is ONE Disallow pattern (the rule stops
+  // at the first pattern that matches, one finding per page), and every page
+  // under that prefix repeats it. Removing the directive, or the URLs from the
+  // sitemap, fixes the whole set: perInstance 0. Base matches its siblings
+  // tech/robots-noindex-conflict and tech/canonical-noindex-conflict, the
+  // other index-vs-crawl contradictions.
+  "tech/robots-compliance":              { baseImpact: 10, perInstance: 0, maxImpact: 10 },
 
   // Links
   "links/orphan-pages":        { baseImpact: 5, perInstance: 1, maxImpact: 25 },
@@ -639,6 +670,17 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   // Google cannot reach - is already measured by links/orphan-pages and
   // links/unreachable-from-root, so scaling here would double-count it.
   "links/crawlable-anchors":   { baseImpact: 8, perInstance: 0, maxImpact: 8  },
+  // Fires once per page that has inbound links but no path back to the crawl
+  // root, so on a templated site the count is the size of the stranded
+  // SUBTREE, not the number of defects: one nav block that stopped linking a
+  // section strands every page in it (23 of 25 pages on wise.com in the
+  // calibration corpus, from one such nav). The rule also refuses to run at
+  // all on a sampled crawl, because there the count is an artifact of which
+  // intermediary pages we happened to fetch. Pinned at the same 8/0/8 as
+  // links/crawlable-anchors and aeo/crawler-access, the other "one site-wide
+  // crawl-access defect" rules; the pages-Google-cannot-reach consequence is
+  // already counted by links/orphan-pages.
+  "links/unreachable-from-root": { baseImpact: 8, perInstance: 0, maxImpact: 8  },
   // info severity, medium confidence, and the rule's own docstring calls both
   // of its firing thresholds arbitrary reporting floors with no Google-
   // published equivalent. Lowest-stakes rule in the batch; a repeated
@@ -667,8 +709,22 @@ const RULE_IMPACTS: Record<string, RuleImpact> = {
   "schema/required-fields":   { baseImpact: 6,  perInstance: 1,  maxImpact: 30 },
   "schema/consistency":       { baseImpact: 3,  perInstance: 1,  maxImpact: 15 },
 
-  // Data
-  "data/data-binding":        { baseImpact: 6,  perInstance: 1,  maxImpact: 30 },
+  // Data. Both ids only exist when the caller supplied a data source, so the
+  // records are ground truth rather than inference: confidence is high and the
+  // question is purely whether the count is a defect count.
+  //
+  // One finding per page whose record has fields the page never rendered. The
+  // binding lives in ONE template, so the same field is missing on every page
+  // built from it and the count is the sample size - the tech/hreflang-
+  // consistency shape. Base in line with tech/sitemap-completeness: a field
+  // that silently fails to render is a real content loss, not a nit.
+  "data/missing-binding":     { baseImpact: 8,  perInstance: 0,  maxImpact: 8  },
+  // Unlike its sibling this one emits ROLLUP findings - one per (field, value)
+  // that repeats across more than three pages - so the count really is a count
+  // of DISTINCT fields that failed to vary per page. A second frozen field is a
+  // second defect, so it scales. Pinned alongside content/meta-uniqueness, the
+  // rule that measures the same failure on the rendered side.
+  "data/identical-across-pages": { baseImpact: 8, perInstance: 2, maxImpact: 30 },
 };
 
 const DEFAULT_RULE_IMPACT: RuleImpact = { baseImpact: 5, perInstance: 1, maxImpact: 25 };
@@ -942,6 +998,10 @@ function runRulesOnPages(
 
   if (isEnabled("spam/template-diversity") && modeOk("spam/template-diversity")) {
     pushAll(findings, tag(templateDiversityRule(pages, resolvedRules.templateDiversityMinUniqueRatio)));
+  }
+
+  if (isEnabled("spam/keyword-stuffed-title") && modeOk("spam/keyword-stuffed-title")) {
+    pushAll(findings, tag(keywordStuffedTitleRule(pages)));
   }
 
   if (isEnabled("spam/template-coverage") && modeOk("spam/template-coverage")) {
@@ -2091,6 +2151,12 @@ async function loadPagesFromSource(
         // means the declared URL list is itself incomplete.
         let sitemapChildTotal = 0;
         let sitemapChildFailed = 0;
+        // Every URL the discovered sitemap(s) declared, BEFORE the same-origin
+        // and robots filters below. `tech/sitemap-hygiene` exists to report
+        // cross-host <loc> entries, so handing it the filtered list would drop
+        // exactly the URLs it is looking for.
+        let declaredSitemapUrls: Set<string> | undefined;
+        let declaredSitemapLastmod: Map<string, string> | undefined;
 
         // Sitemap-first discovery (like Google). Before link-crawling, read the
         // sitemap(s) the site declares; link-crawl only reaches *linked* pages,
@@ -2110,6 +2176,11 @@ async function loadPagesFromSource(
             : robotsForDiscovery.sitemaps;
           const visitedSitemaps = new Set<string>();
           const sitemapListedUrls: string[] = [];
+          // Lastmod is collected alongside the URLs (rather than thrown away as
+          // it used to be) because `tech/sitemap-hygiene` reads it: this is the
+          // path `pseolint https://example.com` takes, and without it the rule
+          // could only ever fire when the operator passed the sitemap URL itself.
+          const sitemapLastmodByUrl = new Map<string, string>();
           for (const candidate of sitemapCandidates) {
             if (discoveryBudget > 0 && pages.length + sitemapListedUrls.length >= discoveryBudget) break;
             if (visitedSitemaps.has(candidate)) continue;
@@ -2125,12 +2196,13 @@ async function loadPagesFromSource(
               continue; // SSRF refusal, network error, etc.; skip this candidate
             }
             if (!(smType.includes("xml") || looksLikeSitemap(smText))) continue;
-            const { urls: discoveredSmUrls, childTotal: ct, childFailed: cf } = await collectUrlsFromSitemap(
+            const { urls: discoveredSmUrls, lastmodByUrl: smLastmod, childTotal: ct, childFailed: cf } = await collectUrlsFromSitemap(
               smText, candidate, visitedSitemaps, timeoutMs, cache, stats, signal, validateHop,
             );
             sitemapChildTotal += ct;
             sitemapChildFailed += cf;
             pushAll(sitemapListedUrls, discoveredSmUrls);
+            for (const [u, lm] of smLastmod) sitemapLastmodByUrl.set(u, lm);
             // When probing the conventional paths, stop at the first that hits.
             if (probing && discoveredSmUrls.length > 0) break;
           }
@@ -2138,7 +2210,11 @@ async function loadPagesFromSource(
           // Same-origin + robots-aware filter, deduped against what we have.
           // Record what the sitemap(s) declared (deduped) before same-origin /
           // robots filtering: the operator's site has this many URLs.
-          if (sitemapListedUrls.length > 0) declaredSitemapUrlCount = new Set(sitemapListedUrls).size;
+          if (sitemapListedUrls.length > 0) {
+            declaredSitemapUrls = new Set(sitemapListedUrls);
+            declaredSitemapUrlCount = declaredSitemapUrls.size;
+            declaredSitemapLastmod = sitemapLastmodByUrl;
+          }
 
           const seedUrls = Array.from(new Set(sitemapListedUrls)).filter((u) => {
             if (knownCrawled.has(u)) return false;
@@ -2239,7 +2315,15 @@ async function loadPagesFromSource(
           if (newPages.length === 0) break;
         }
 
-        return { pages, discoveredUrlCount: allDiscoveredUrls.size, declaredSitemapUrlCount, sitemapChildTotal, sitemapChildFailed };
+        return {
+          pages,
+          sitemapUrls: declaredSitemapUrls,
+          sitemapLastmodByUrl: declaredSitemapLastmod,
+          discoveredUrlCount: allDiscoveredUrls.size,
+          declaredSitemapUrlCount,
+          sitemapChildTotal,
+          sitemapChildFailed,
+        };
       }
 
       return { pages };

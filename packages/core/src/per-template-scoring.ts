@@ -101,6 +101,7 @@ const RULE_IMPACTS: Record<string, { baseImpact: number; perInstance: number; ma
   "spam/template-diversity":           { baseImpact: 12, perInstance: 3, maxImpact: 50 },
   "spam/boilerplate-ratio":            { baseImpact: 10, perInstance: 2, maxImpact: 40 },
   "spam/thin-content":                 { baseImpact:  8, perInstance: 2, maxImpact: 40 },
+  "spam/keyword-stuffed-title":        { baseImpact: 10, perInstance: 1, maxImpact: 30 },
   "spam/publication-velocity":         { baseImpact:  8, perInstance: 2, maxImpact: 30 },
   "cannibal/url-pattern":              { baseImpact: 10, perInstance: 2, maxImpact: 40 },
   "content/unique-value":              { baseImpact: 10, perInstance: 2, maxImpact: 40 },
@@ -137,11 +138,14 @@ const RULE_IMPACTS: Record<string, { baseImpact: number; perInstance: number; ma
   "tech/sitemap-hygiene":              { baseImpact:  6, perInstance: 3, maxImpact: 20 },
   "tech/snippet-suppression":          { baseImpact:  6, perInstance: 0, maxImpact: 6 },
   "tech/viewport-meta":                { baseImpact:  6, perInstance: 0, maxImpact: 6 },
+  "tech/csr-bailout":                  { baseImpact: 10, perInstance: 0, maxImpact: 10 },
+  "tech/robots-compliance":            { baseImpact: 10, perInstance: 0, maxImpact: 10 },
   "links/orphan-pages":                { baseImpact:  5, perInstance: 1, maxImpact: 25 },
   "links/dead-ends":                   { baseImpact:  3, perInstance: 1, maxImpact: 20 },
   "links/cluster-connectivity":        { baseImpact:  5, perInstance: 1, maxImpact: 25 },
   "links/link-depth":                  { baseImpact:  3, perInstance: 1, maxImpact: 20 },
   "links/crawlable-anchors":           { baseImpact:  8, perInstance: 0, maxImpact: 8 },
+  "links/unreachable-from-root":       { baseImpact:  8, perInstance: 0, maxImpact: 8 },
   "links/generic-anchor-text":         { baseImpact:  3, perInstance: 0, maxImpact: 3 },
   "links/host-section-divergence":     { baseImpact: 15, perInstance: 5, maxImpact: 45 },
   "aeo/citable-facts":                 { baseImpact:  2, perInstance: 1, maxImpact: 25 },
@@ -155,7 +159,8 @@ const RULE_IMPACTS: Record<string, { baseImpact: number; perInstance: number; ma
   "schema/json-ld-valid":              { baseImpact:  8, perInstance: 2, maxImpact: 35 },
   "schema/required-fields":            { baseImpact:  6, perInstance: 1, maxImpact: 30 },
   "schema/consistency":                { baseImpact:  3, perInstance: 1, maxImpact: 15 },
-  "data/data-binding":                 { baseImpact:  6, perInstance: 1, maxImpact: 30 },
+  "data/missing-binding":              { baseImpact:  8, perInstance: 0, maxImpact: 8 },
+  "data/identical-across-pages":       { baseImpact:  8, perInstance: 2, maxImpact: 30 },
 };
 const DEFAULT_RULE_IMPACT = { baseImpact: 5, perInstance: 1, maxImpact: 25 };
 
