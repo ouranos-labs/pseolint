@@ -56,6 +56,13 @@ const DASH = "—";
 // Stands in for a dash that lives inside a code literal. Private-use area, so
 // it can never collide with anything real in a source file.
 const MASK = "\uE000";
+/**
+ * Separate sentinel for an ESCAPED spelling sitting inside a literal. It has to
+ * be distinct from MASK because the dash reporter counts MASK occurrences to
+ * decide `[literal]` vs `[part literal]`, and an escape contains no dash char
+ * to count. See maskLiterals.
+ */
+const ESC_MASK = "\uE001";
 // calibration/fixtures holds scraped real-site HTML the engine calibrates
 // against: that is DATA whose bytes must stay stable, never prose to fix.
 // This file is skipped too: it is the one place where an em dash (and every
@@ -65,6 +72,15 @@ const CODE = /\.(ts|tsx|js|jsx|mjs|cjs|json)$/i;
 const MARKDOWN = /\.mdx?$/i;
 // Escaped forms that still RENDER an em dash. Reported, never auto-rewritten.
 const ESCAPED = /&mdash;|&#8212;|&#x2014;|\\[uU]\{?0*2014\}?/g;
+/** Sticky twin of ESCAPED, to ask "does an escape start exactly here?". */
+const ESCAPED_AT = /&mdash;|&#8212;|&#x2014;|\\[uU]\{?0*2014\}?/y;
+
+/** Length of the escaped form starting at `i`, or 0 if none starts there. */
+function escapeLenAt(text, i) {
+  ESCAPED_AT.lastIndex = i;
+  const m = ESCAPED_AT.exec(text);
+  return m ? m[0].length : 0;
+}
 const escapeRe = () => new RegExp(ESCAPED.source, "g");
 
 /* ------------------------------------------------------------------ masking */
@@ -87,12 +103,34 @@ export function maskLiterals(text, file = "") {
   if (!CODE.test(file)) return text;
 
   const out = text.split("");
-  const mask = (i) => { if (out[i] === DASH) out[i] = MASK; };
+  const mask = (i) => {
+    if (out[i] === DASH) { out[i] = MASK; return; }
+    // An escaped spelling inside a REGEX is data: `—` in a character
+    // class is how you MATCH an em dash, which is the entire job of a
+    // separator pattern, and there is no prose reading of it.
+    //
+    // Deliberately NOT extended to string and template literals. `&mdash;` in
+    // a string is almost always user-facing copy that renders a dash to a
+    // reader (`title="Service level &mdash; no warranty"` shipped on our own
+    // terms page), and exempting those would blind the gate to the exact case
+    // it is most worth having. A genuine escaped dash held in a string
+    // constant is rare enough to earn a one-line justification at its call
+    // site rather than a hole in the check.
+    // String.raw earns the same exemption, and for a stronger reason than the
+    // regex literal does: inside it `—` is six literal characters, NOT an
+    // escape that renders a dash. It cannot be copy showing a dash to anyone,
+    // so it is regex source by construction. Both rules that match separator
+    // characters are written this way.
+    if (mode !== "RE" && mode !== "RECLASS" && !(mode === "TPL" && rawTpl)) return;
+    const n = escapeLenAt(text, i);
+    for (let k = i; k < i + n; k++) out[k] = ESC_MASK;
+  };
   let mode = "CODE"; // CODE | LINE | BLOCK | SQ | DQ | TPL | RE | RECLASS
   const tpl = [];    // template-literal nesting: brace depth inside each ${}
   let prev = "";     // last significant char seen in CODE
   let word = "";     // identifier ending at `prev`, for the regex guess
   let quoted = "";   // open quote of a sample inside a comment
+  let rawTpl = false; // current TPL is a String.raw`...` tag (regex source)
 
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
@@ -103,7 +141,7 @@ export function maskLiterals(text, file = "") {
       if (c === "/" && c2 === "*") { mode = "BLOCK"; i++; continue; }
       if (c === '"') { mode = "DQ"; continue; }
       if (c === "'") { mode = "SQ"; continue; }
-      if (c === "`") { mode = "TPL"; tpl.push(0); continue; }
+      if (c === "`") { mode = "TPL"; tpl.push(0); rawTpl = word === "raw"; continue; }
       if (c === "/" && regexPosition(prev, word)) { mode = "RE"; continue; }
       if (c === "{" && tpl.length) tpl[tpl.length - 1] += 1;
       if (c === "}" && tpl.length) {
@@ -131,7 +169,7 @@ export function maskLiterals(text, file = "") {
     if (mode === "DQ") { if (c === '"') mode = "CODE"; else mask(i); continue; }
     if (mode === "SQ") { if (c === "'") mode = "CODE"; else mask(i); continue; }
     if (mode === "TPL") {
-      if (c === "`") { mode = "CODE"; tpl.pop(); }
+      if (c === "`") { mode = "CODE"; tpl.pop(); rawTpl = false; }
       else if (c === "$" && c2 === "{") { mode = "CODE"; i++; }
       else mask(i);
       continue;
@@ -411,7 +449,41 @@ function selfTest() {
   for (const s of escapes) assert.ok(escapeRe().test(s), `escape not detected: ${s}`);
   assert.ok(!escapeRe().test("\\u2015"), "over-eager escape match");
 
-  const total = cases.length + codeCases.length + fallbackCases.length + escapes.length + hammered.length + 3;
+  // An escape inside a literal is DATA and must NOT be reported: `—` in a
+  // regex class is how you MATCH an em dash, which is the whole job of a
+  // separator pattern. --check scans the masked line, so the masker has to
+  // wall these off the same way it walls off bare dashes. This shipped broken:
+  // the escape scan read the raw line, so a real rule that had to match em
+  // dashes failed the gate, and the first "fix" was to exclude the file by
+  // name, which of course only held until the next such rule was written.
+  const escapeInData = [
+    'const SEP = new RegExp(String.raw`\\s+[-\\u2013\\u2014]\\s+`);',
+    "const SEP = /[\\u2013\\u2014]/;",
+    "const SEP = /a\\u2014b/g;",
+  ];
+  for (const s of escapeInData) {
+    assert.ok(
+      !escapeRe().test(maskLiterals(s, "x.ts")),
+      `escape inside a regex must not be reported: ${s}`,
+    );
+  }
+  // The exemption stops at regexes. An escape in a STRING is usually copy that
+  // renders a dash to a reader, and in a comment it is plain prose: both stay
+  // reported. Losing the string case would blind the gate to its best catch.
+  const escapeInProse = [
+    ['const COPY = "Service level &mdash; no warranty";', "x.ts"],
+    ["const EM = '\\u2014';", "x.ts"],
+    ["const T = `a \\u2014 b`;", "x.ts"],
+    ["// a service level &mdash; no warranty", "x.ts"],
+    ["Service level &mdash; no warranty", "x.md"],
+  ];
+  for (const [s, f] of escapeInProse) {
+    assert.ok(escapeRe().test(maskLiterals(s, f)), `escape in prose must be reported: ${s}`);
+  }
+
+  const total =
+    cases.length + codeCases.length + fallbackCases.length + escapes.length +
+    escapeInData.length + escapeInProse.length + hammered.length + 3;
   console.log(`self-test: ${total} cases passed`);
 }
 
@@ -515,7 +587,11 @@ function main() {
           console.log(`${file}:${i + 1}: ${tag}${lines[i].trim().slice(0, 120)}`);
         }
       }
-      const esc = lines[i].match(escapeRe());
+      // Scan the MASKED line, not the raw one: an escape the masker walled off
+      // is inside a string/template/regex literal and is data. fixLine only
+      // ever rewrites dash characters, so the masked copy is still accurate
+      // for escapes even after a rewrite.
+      const esc = masked[i].match(escapeRe());
       if (esc) {
         escaped += esc.length;
         console.log(`${file}:${i + 1}: [escaped ${esc[0]}] ${lines[i].trim().slice(0, 120)}`);
