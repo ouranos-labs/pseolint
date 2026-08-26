@@ -372,6 +372,38 @@ export const gscPageMetrics = pgTable("gsc_page_metrics", {
   domainIdx: index("gsc_metrics_domain_idx").on(t.domainId),
 }));
 
+/**
+ * Per-audit, per-rule aggregates: the corpus that outlives the report.
+ *
+ * The R2 report for an anonymous audit is deleted after 24h (expire-reports),
+ * and with it every trace of which rules a stranger's site tripped. That is the
+ * only data we ever see about sites we do not own — 511 completed audits so far
+ * cover just 18 distinct hosts, essentially all our own — so the material for
+ * any "how common is this rule" claim is being thrown away daily.
+ *
+ * This row survives blob expiry (expire-reports only nulls storageKey and sets
+ * status='expired'; the audit row remains), and stays inside what /privacy
+ * already discloses: "DB row keeps aggregate stats (score, page count) for
+ * internal analytics". Deliberately NO url, page, message, or snippet — the
+ * rule id, its worst severity, and a count. Nothing here identifies a page.
+ */
+export const auditRuleStats = pgTable("audit_rule_stat", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  auditId: uuid("audit_id").notNull().references(() => audits.id, { onDelete: "cascade" }),
+  ruleId: text("rule_id").notNull(),
+  /** Worst severity this rule reached in this audit. */
+  severity: text("severity").notNull(),
+  /** How many findings this rule produced in this audit. */
+  findingCount: integer("finding_count").notNull().default(0),
+  /** Pages scanned in the audit, denormalised so a rule-frequency query needs
+   *  no join back to `audit` for the denominator. */
+  pageCount: integer("page_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  key: uniqueIndex("audit_rule_stat_key_uniq").on(t.auditId, t.ruleId),
+  ruleIdx: index("audit_rule_stat_rule_idx").on(t.ruleId),
+}));
+
 export const growthSearchMetrics = pgTable("growth_search_metrics", {
   id: uuid("id").primaryKey().defaultRandom(),
   url: text("url").notNull(),

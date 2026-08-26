@@ -1,7 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { inngest } from "@/lib/inngest";
 import { db } from "@/db";
-import { audits, monitoredDomains, domainDataSources, domainRuleOverrides, userAiKeys, watchedPages } from "@/db/schema";
+import { audits, auditRuleStats, monitoredDomains, domainDataSources, domainRuleOverrides, userAiKeys, watchedPages } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import { uploadSummary, summaryKey } from "@/lib/r2";
 import { assertSafeUrl } from "@/lib/ssrf";
@@ -20,6 +20,7 @@ import { hashToInt } from "@/lib/seed";
 import { R2CacheBackend } from "@/lib/r2-cache-backend";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { trackServer } from "@/lib/analytics/track.server";
+import { collectRuleStats } from "@/lib/rule-stats";
 
 const MAX_COST_USD = 0.50;
 /** HTTP cache TTL for entries without ETag/Last-Modified validators (matches the engine default). */
@@ -477,6 +478,28 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       }));
     } catch { /* never let logging crash the audit */ }
   }
+
+  // Retain the per-rule aggregate. This is the only record that survives blob
+  // expiry, and for anonymous audits it is the only lasting trace that a site
+  // we do not own was ever measured. Best-effort: a corpus row must never fail
+  // an audit the user is waiting on.
+  await runStep("record-rule-stats", async () => {
+    try {
+      const stats = collectRuleStats(summary as never);
+      if (stats.length === 0) return;
+      await db.insert(auditRuleStats).values(
+        stats.map((s) => ({
+          auditId,
+          ruleId: s.ruleId,
+          severity: s.severity,
+          findingCount: s.findingCount,
+          pageCount: summary.pageCount ?? 0,
+        })),
+      ).onConflictDoNothing();
+    } catch (e) {
+      console.warn("[run-audit] rule-stats retention failed:", e instanceof Error ? e.message : e);
+    }
+  });
 
   await runStep("mark-completed", async () => {
     await db.update(audits).set({
