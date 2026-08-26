@@ -18,6 +18,7 @@ import {
 import { parseScanOptions } from "@/lib/scan-options";
 import { DataSourceForm } from "./data-source-form";
 import { IndexNowDomainForm } from "@/components/dashboard/indexnow-domain-form";
+import { formatDateTime } from "@/lib/format";
 
 type GscSavedState = "bound" | "rebound" | "unbound" | "unchanged" | "no_grant" | "no_match" | "failed";
 
@@ -90,16 +91,10 @@ export default async function DomainSettings({
       : null;
 
   return (
+    // Breadcrumb and host heading come from the workspace layout, which also
+    // marks the Settings tab active: repeating them here would double the
+    // identity chrome.
     <div className="flex max-w-2xl flex-col gap-6">
-      <nav className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-foreground">Portfolio</Link>
-        <span>/</span>
-        <Link href={`/dashboard/${encodeURIComponent(domain.host)}`} className="hover:text-foreground">{domain.host}</Link>
-        <span>/</span>
-        <span className="text-foreground">Settings</span>
-      </nav>
-      <h1 className="text-xl font-medium">Settings: {domain.host}</h1>
-
       <SaveFeedback saved={saved} gsc={gscState} siteUrl={gscBoundSiteUrl} />
 
       <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
@@ -302,7 +297,7 @@ export default async function DomainSettings({
         </header>
         {dataSource && (
           <p className="text-xs text-primary">
-            ✓ {dataSource.recordCount} records loaded: last updated {new Date(dataSource.updatedAt).toLocaleString()}
+            ✓ {dataSource.recordCount} records loaded: last updated {formatDateTime(dataSource.updatedAt)}
           </p>
         )}
         <DataSourceForm host={domain.host} hasExisting={Boolean(dataSource)} />

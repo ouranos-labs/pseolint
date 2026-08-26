@@ -86,7 +86,7 @@ export async function updateDomainSettingsAction(formData: FormData): Promise<vo
     gscChanged: (before?.gscSiteUrl ?? null) !== gscSiteUrl,
     gentleAuditMode,
   });
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 
   // Redirect with a saved query so the page can render a transient banner
   // describing what changed. Encodes the gsc state machine separately
@@ -154,7 +154,7 @@ export async function rebindGscPropertyAction(formData: FormData): Promise<void>
     ));
 
   auditLog("gsc.rebind.bound", { userId: session.user.id, host, siteUrl: pick });
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
   const params = new URLSearchParams({ saved: "1", gsc: "bound", siteUrl: pick });
   redirect(`/dashboard/${encodeURIComponent(host)}/settings?${params.toString()}`);
 }
@@ -184,7 +184,7 @@ export async function uploadDataSourceAction(formData: FormData): Promise<void> 
     set: { records: serialized, recordCount: records.length, updatedAt: new Date() },
   });
 
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 export async function removeDataSourceAction(formData: FormData): Promise<void> {
@@ -194,7 +194,7 @@ export async function removeDataSourceAction(formData: FormData): Promise<void> 
   const domainId = await ownDomainId(session.user.id, host);
   if (!domainId) throw new Error("not found");
   await db.delete(domainDataSources).where(eq(domainDataSources.domainId, domainId));
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 /** Accept JSON Partial<AuditOptions["rules"]> and store per-domain. */
@@ -209,7 +209,7 @@ export async function updateRuleOverridesAction(formData: FormData): Promise<voi
 
   if (!json) {
     await db.delete(domainRuleOverrides).where(eq(domainRuleOverrides.domainId, domainId));
-    revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+    revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
     return;
   }
 
@@ -226,7 +226,7 @@ export async function updateRuleOverridesAction(formData: FormData): Promise<voi
       set: { overrides: serialized, updatedAt: new Date() },
     });
 
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 export async function updateSlackWebhookAction(formData: FormData): Promise<void> {
@@ -252,7 +252,7 @@ export async function updateSlackWebhookAction(formData: FormData): Promise<void
     ));
 
   auditLog("settings.slack.updated", { userId: session.user.id, host, configured: webhookUrl !== null });
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 export async function testSlackWebhookAction(formData: FormData): Promise<void> {
@@ -292,7 +292,7 @@ export async function testSlackWebhookAction(formData: FormData): Promise<void> 
     throw new Error(`Slack test failed: ${msg}`);
   }
 
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 export async function updateIndexNowKeyAction(formData: FormData): Promise<void> {
@@ -311,7 +311,7 @@ export async function updateIndexNowKeyAction(formData: FormData): Promise<void>
     ));
 
   auditLog("settings.indexnow.updated", { userId: session.user.id, host, configured: indexNowKey !== null });
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
 }
 
 /**
@@ -372,7 +372,7 @@ export async function updateScanOptionsAction(formData: FormData): Promise<void>
         isNull(monitoredDomains.removedAt),
       ));
     auditLog("settings.scan_options.updated", { userId: session.user.id, host, configured: false });
-    revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+    revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
     redirect(`/dashboard/${encodeURIComponent(host)}/settings?saved=1`);
   }
 
@@ -396,6 +396,6 @@ export async function updateScanOptionsAction(formData: FormData): Promise<void>
     ));
 
   auditLog("settings.scan_options.updated", { userId: session.user.id, host, configured: true });
-  revalidatePath(`/dashboard/${encodeURIComponent(host)}/settings`);
+  revalidatePath(`/dashboard/${encodeURIComponent(host)}`, "layout");
   redirect(`/dashboard/${encodeURIComponent(host)}/settings?saved=1`);
 }

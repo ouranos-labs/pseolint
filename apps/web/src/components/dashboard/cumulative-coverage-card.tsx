@@ -1,3 +1,4 @@
+import { formatNumber } from "@/lib/format";
 interface CumulativeCoverageCardProps {
   urlsAuditedTotal: number;
   urlsAuditedLast30d: number;
@@ -25,13 +26,13 @@ export function CumulativeCoverageCard({
           className="font-mono text-3xl tabular-nums text-foreground"
           title="Total URLs audited across all completed monitoring runs for this domain. Diff-mode skips URLs that haven't changed; this number sums URLs the auditor actually fetched per run, so URLs re-checked across multiple runs are counted each time."
         >
-          {urlsAuditedTotal.toLocaleString()}
+          {formatNumber(urlsAuditedTotal)}
         </span>
         <span className="text-sm text-muted-foreground">
           URLs audited (cumulative)
         </span>
         <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-          <span className="text-foreground">{urlsAuditedLast30d.toLocaleString()}</span>{" "}
+          <span className="text-foreground">{formatNumber(urlsAuditedLast30d)}</span>{" "}
           audited in last 30d
         </span>
       </div>

@@ -9,6 +9,7 @@ import { getOptionalSession } from "@/lib/session";
 import { PatchDiffCard } from "@/components/manifest/patch-diff-card";
 import { ManifestVisibilityToggle } from "@/components/manifest/visibility-toggle";
 import type { FixManifest, ManifestDiff, ManifestValidationReport } from "@pseolint/core";
+import { formatDateTime } from "@/lib/format";
 
 export const runtime = "nodejs";
 
@@ -98,7 +99,7 @@ export default async function Page({
 
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
         <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-        Orchestrator manifest · {row.session?.completedAt ? new Date(row.session.completedAt).toLocaleString() : "recently"}
+        Orchestrator manifest · {row.session?.completedAt ? formatDateTime(row.session.completedAt) : "recently"}
       </div>
 
       <h1

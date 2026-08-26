@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { reAuditNowAction, removeDomainAction } from "@/app/dashboard/domain-actions";
 import { ConfirmDialog } from "./confirm-dialog";
 
-export function WorkspaceHeader({ domain }: {
+export function WorkspaceHeader({ domain, domains = [] }: {
   domain: { host: string; sourceUrl: string };
+  /** Every domain the user monitors, for the switcher. Omit to hide it. */
+  domains?: { host: string; paused: boolean }[];
 }) {
   const [pending, start] = useTransition();
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -42,7 +44,55 @@ export function WorkspaceHeader({ domain }: {
           <span>/</span>
           <span className="text-foreground">{domain.host}</span>
         </nav>
-        <h1 className="text-2xl font-medium text-foreground">{domain.host}</h1>
+        {/* Domain switcher. Native <details> rather than a popover library:
+            it's keyboard-accessible and closes on navigation for free, and the
+            list is short (a portfolio, not a search surface). A single-domain
+            portfolio gets the plain heading, since there's nothing to switch to.
+            ponytail: swap to a combobox if portfolios ever grow past ~20. */}
+        {domains.length > 1 ? (
+          <details className="group relative">
+            <summary className="inline-flex cursor-pointer list-none items-center gap-2 text-2xl font-medium text-foreground marker:content-none [&::-webkit-details-marker]:hidden">
+              <h1>{domain.host}</h1>
+              <span
+                aria-hidden
+                className="text-base text-muted-foreground transition-transform group-open:rotate-180"
+              >
+                ⌄
+              </span>
+              <span className="sr-only">Switch domain</span>
+            </summary>
+            <ul className="absolute left-0 top-full z-30 mt-1 max-h-80 w-64 overflow-y-auto rounded-[14px] border border-border-strong bg-card p-1 shadow-lg">
+              {domains.map((d) => (
+                <li key={d.host}>
+                  <Link
+                    href={`/dashboard/${encodeURIComponent(d.host)}`}
+                    aria-current={d.host === domain.host ? "page" : undefined}
+                    className={`flex items-center justify-between gap-2 rounded-[10px] px-3 py-2 text-sm transition-colors hover:bg-secondary ${
+                      d.host === domain.host ? "bg-secondary text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    <span className="truncate">{d.host}</span>
+                    {d.paused && (
+                      <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70">
+                        Paused
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+              <li className="mt-1 border-t border-border/60 pt-1">
+                <Link
+                  href="/dashboard"
+                  className="block rounded-[10px] px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  All domains →
+                </Link>
+              </li>
+            </ul>
+          </details>
+        ) : (
+          <h1 className="text-2xl font-medium text-foreground">{domain.host}</h1>
+        )}
         <a
           href={domain.sourceUrl}
           target="_blank"

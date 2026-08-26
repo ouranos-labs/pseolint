@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { userProfiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ResyncSubscriptionButton } from "./resync-button";
+import { formatDate } from "@/lib/format";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export default async function BillingSettings() {
@@ -23,7 +24,7 @@ export default async function BillingSettings() {
           {profile?.planExpiresAt && (
             <>
               <dt className="text-muted-foreground">{plan === "pro" ? "Renews" : "Expires"}</dt>
-              <dd className="text-foreground">{new Date(profile.planExpiresAt).toLocaleDateString()}</dd>
+              <dd className="text-foreground">{formatDate(profile.planExpiresAt)}</dd>
             </>
           )}
         </dl>

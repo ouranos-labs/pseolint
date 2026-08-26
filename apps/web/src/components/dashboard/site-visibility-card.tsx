@@ -89,10 +89,26 @@ export function SiteVisibilityCard({
         </Button>
       </div>
 
-      {/* The consequence, stated before the click rather than after it. */}
-      <div className="mt-4 flex items-start gap-2.5 rounded-[14px] border border-border/70 bg-background/60 p-3.5">
-        <Trophy className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-        <div className="text-sm text-muted-foreground">
+      {/* The consequence, stated before the click rather than after it, but
+          folded away: it is reference material you read once, and left open it
+          buried the actual audit verdict below the fold. The status line and the
+          toggle above stay visible — only the explanation collapses, and the
+          summary still names the outcome that matters. */}
+      <details className="group mt-4 rounded-[14px] border border-border/70 bg-background/60">
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 rounded-[14px] p-3.5 outline-none transition-colors hover:bg-background/80 focus-visible:ring-2 focus-visible:ring-primary/60 [&::-webkit-details-marker]:hidden">
+          <Trophy className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="text-sm text-muted-foreground">
+            {wouldList
+              ? "Listed on the public leaderboard."
+              : isPublic
+                ? "Public, but not currently listed."
+                : "Not listed. What making this public would mean."}
+          </span>
+          <svg viewBox="0 0 12 12" aria-hidden className="ml-auto size-3 shrink-0 text-muted-foreground transition-transform duration-150 group-open:rotate-90">
+            <path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </summary>
+        <div className="px-3.5 pb-3.5 pl-10 text-sm text-muted-foreground">
           <p>
             <span className="font-medium text-foreground">
               Making a site public lists it on the{" "}
@@ -135,7 +151,7 @@ export function SiteVisibilityCard({
             <p className="mt-2 text-xs">This site currently meets every condition and is listed.</p>
           )}
         </div>
-      </div>
+      </details>
     </section>
   );
 }

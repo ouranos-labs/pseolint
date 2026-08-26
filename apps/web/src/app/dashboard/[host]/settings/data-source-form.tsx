@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { uploadDataSourceAction } from "./actions";
+import { formatNumber } from "@/lib/format";
 
 const EXAMPLE = `[
   {
@@ -93,7 +94,7 @@ export function DataSourceForm({ host, hasExisting }: { host: string; hasExistin
 
       {filePreview && (
         <p className="text-xs text-success">
-          ✓ {filePreview.name} parsed: {filePreview.records.toLocaleString()} record
+          ✓ {filePreview.name} parsed: {formatNumber(filePreview.records)} record
           {filePreview.records === 1 ? "" : "s"} ready to upload.
         </p>
       )}

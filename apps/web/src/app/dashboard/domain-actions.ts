@@ -57,7 +57,7 @@ async function enqueueAudit(
   ctx: { userId: string; host: string },
 ): Promise<boolean> {
   try {
-    await inngest.send({ name: "audit/requested", data: { auditId, ...data } });
+    await inngest.send({ name: "audit/requested", data: { auditId, trigger: "dashboard", ...data } });
     return true;
   } catch (e) {
     auditLog("audit.enqueue.failed", { auditId, userId: ctx.userId, host: ctx.host, err: e instanceof Error ? e.message : String(e) });
@@ -325,7 +325,7 @@ export async function setDomainVisibilityAction(
 
   // The leaderboard is ISR-cached and the workspace shows the current state.
   revalidatePath("/leaderboard");
-  revalidatePath(`/dashboard/${domainHost}`);
+  revalidatePath(`/dashboard/${domainHost}`, "layout");
 
   return { ok: true, isPublic, auditsUpdated: updated.length };
 }
@@ -560,7 +560,7 @@ export async function addWatchedPage(
       );
     }
 
-    revalidatePath(`/dashboard/${encodeURIComponent(dom.host)}`);
+    revalidatePath(`/dashboard/${encodeURIComponent(dom.host)}`, "layout");
     return { ok: true, id: inserted.id };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to add watched page." };
@@ -599,7 +599,7 @@ export async function removeWatchedPage(
   auditLog("watched_page.removed", {
     userId: session.user.id, monitoredDomainId: row.monitoredDomainId, host: row.host, url: row.url,
   });
-  revalidatePath(`/dashboard/${encodeURIComponent(row.host)}`);
+  revalidatePath(`/dashboard/${encodeURIComponent(row.host)}`, "layout");
   return { ok: true };
 }
 

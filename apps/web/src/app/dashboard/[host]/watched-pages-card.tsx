@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { addWatchedPage, removeWatchedPage } from "@/app/dashboard/domain-actions";
 import { WATCHED_PAGES_CAP } from "@/lib/audit-limits";
+import { CollapsibleSection } from "@/components/dashboard/collapsible-section";
+import { formatDateTime } from "@/lib/format";
 
 export type WatchedPageRow = {
   id: string;
@@ -73,21 +75,22 @@ export function WatchedPagesCard({
   const describedBy = err ? `${helpId} ${errId}` : helpId;
 
   return (
-    <section className="flex flex-col gap-4 rounded-[18px] border border-border/60 p-5" aria-labelledby={`${inputId}-heading`}>
-      <header className="flex items-baseline justify-between gap-4">
-        <div>
-          <h2 id={`${inputId}-heading`} className="text-sm font-medium">Watched pages</h2>
-          <p id={helpId} className="mt-1 text-xs text-muted-foreground">
-            Pin URLs that matter most; they&apos;re re-fetched on every monitoring run, even when nothing else has changed. Up to {CAP} per domain.
-          </p>
-        </div>
+    <CollapsibleSection
+      title="Watched pages"
+      description={`Pin URLs that matter most; they're re-fetched on every monitoring run, even when nothing else has changed. Up to ${CAP} per domain.`}
+      meta={
         <span
           className="font-mono text-xs tabular-nums text-muted-foreground"
           aria-label={`${rows.length} of ${CAP} watched pages used`}
         >
           {rows.length} / {CAP}
         </span>
-      </header>
+      }
+    >
+      <div className="flex flex-col gap-4">
+      <p id={helpId} className="sr-only">
+        Pin URLs that matter most; they&apos;re re-fetched on every monitoring run, even when nothing else has changed. Up to {CAP} per domain.
+      </p>
 
       <form onSubmit={onAdd} className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor={inputId} className="sr-only">URL to watch</label>
@@ -146,7 +149,7 @@ export function WatchedPagesCard({
                 </Link>
                 <span className="font-mono text-[10px] text-muted-foreground/70">
                   {r.lastAuditedAt
-                    ? `Last audited ${new Date(r.lastAuditedAt).toLocaleString()}`
+                    ? `Last audited ${formatDateTime(r.lastAuditedAt)}`
                     : "Audit pending, first run kicked off"}
                 </span>
               </div>
@@ -163,6 +166,7 @@ export function WatchedPagesCard({
           ))}
         </ul>
       )}
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 }

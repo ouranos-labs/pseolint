@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition, useEffect, useId } from "react";
+import { CollapsibleSection } from "@/components/dashboard/collapsible-section";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { requestIndexingAction, requestBatchIndexingAction } from "@/app/dashboard/indexing-actions";
@@ -278,16 +279,19 @@ export function QuickIndexerCard({
   if (!integrationsConfigured) return null;
 
   return (
-    <section className="flex flex-col gap-4 rounded-[18px] border border-border/60 bg-card/10 p-5 backdrop-blur-sm">
-      {/* Header */}
-      <header className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-sm font-medium">Instant Indexing Engine</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Clean pages discovered by the engine: no open findings, not yet indexed.
-            Push them directly to crawlers without touching the findings list.
-          </p>
-        </div>
+    <CollapsibleSection
+      title="Instant Indexing Engine"
+      description="Clean pages discovered by the engine: no open findings, not yet indexed. Push them directly to crawlers without touching the findings list."
+      meta={
+        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+          {cleanCandidateUrls.length} ready
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-4">
+      {/* The provider toggle is a control, so it sits in the body rather than in
+          the <summary>: a click inside a summary toggles the disclosure. */}
+      <div className="flex justify-end">
         <ProviderToggle
           provider={provider}
           onChange={setProvider}
@@ -296,7 +300,7 @@ export function QuickIndexerCard({
           googleEnabled={GOOGLE_INDEXING_ENABLED}
           disabled={batchPending || customPending}
         />
-      </header>
+      </div>
 
       {isRisky && (
         <div className="rounded-[10px] border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
@@ -420,7 +424,8 @@ export function QuickIndexerCard({
           </form>
         )}
       </div>
-    </section>
+      </div>
+    </CollapsibleSection>
   );
 }
 

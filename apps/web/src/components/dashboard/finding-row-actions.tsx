@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDate } from "@/lib/format";
 
 const SNOOZE_OPTIONS: { days: number; label: string }[] = [
   { days: 7, label: "1 week" },
@@ -33,7 +34,7 @@ export function FindingRowActions({ findingId }: { findingId: string }) {
             >
               <span className="font-mono text-xs">{opt.label}</span>
               <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                until {new Date(Date.now() + opt.days * 86_400_000).toLocaleDateString()}
+                until {formatDate(Date.now() + opt.days * 86_400_000)}
               </span>
             </DropdownMenuItem>
           ))}

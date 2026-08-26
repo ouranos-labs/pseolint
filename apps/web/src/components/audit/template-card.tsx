@@ -1,5 +1,6 @@
 "use client";
 import type { Template, Verdict } from "@pseolint/core";
+import { formatNumber } from "@/lib/format";
 
 export interface TemplateCardProps {
   template: Template;
@@ -59,12 +60,12 @@ function coverageLine(template: Template): string {
       ? template.totalDiscoveredUrls
       : template.totalUrls;
   const pct = denom > 0 ? ((template.totalUrls / denom) * 100).toFixed(1) : "—";
-  return `${template.totalUrls.toLocaleString()} / ${denom.toLocaleString()} URLs (${pct}%)`;
+  return `${formatNumber(template.totalUrls)} / ${formatNumber(denom)} URLs (${pct}%)`;
 }
 
 /** "12 / 234 sampled"; how many of the cluster's URLs were actually audited. */
 function sampledLine(template: Template): string {
-  return `${template.auditedUrls.length.toLocaleString()} / ${template.totalUrls.toLocaleString()} sampled`;
+  return `${formatNumber(template.auditedUrls.length)} / ${formatNumber(template.totalUrls)} sampled`;
 }
 
 export function TemplateCard({

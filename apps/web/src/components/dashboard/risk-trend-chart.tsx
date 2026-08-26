@@ -1,4 +1,5 @@
 import { scoreTone } from "@/lib/grade";
+import { formatShortDate } from "@/lib/format";
 
 interface TrendPoint {
   /** Risk score for the run (0–100, lower is safer). Null for non-completed runs (skipped). */
@@ -211,7 +212,7 @@ function Header({ runs, latest, delta }: { runs: number; latest: number | null; 
 }
 
 function fmtDate(t: number): string {
-  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatShortDate(t);
 }
 
 function scoreFill(score: number): string {

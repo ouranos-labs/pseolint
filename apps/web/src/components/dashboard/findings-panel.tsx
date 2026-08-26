@@ -13,6 +13,7 @@ import {
 import { IndexingButton } from "@/components/dashboard/indexing-button";
 import { requestBatchIndexingAction } from "@/app/dashboard/indexing-actions";
 import { toast } from "sonner";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 
 const SNOOZE_OPTIONS: { days: number; label: string }[] = [
@@ -419,7 +420,7 @@ function FindingRow({
             {f.carriedForward && (
               <span
                 className="inline-flex items-center rounded-full border border-border/50 bg-card/40 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
-                title={f.lastVerifiedAt ? `This finding was carried forward from a prior monitoring run, last actually re-verified at ${new Date(f.lastVerifiedAt).toLocaleString()}` : "Carried forward from a prior monitoring run"}
+                title={f.lastVerifiedAt ? `This finding was carried forward from a prior monitoring run, last actually re-verified at ${formatDateTime(f.lastVerifiedAt)}` : "Carried forward from a prior monitoring run"}
               >
                 Carried forward {f.lastVerifiedAt && `· verified ${relTime(new Date(f.lastVerifiedAt))}`}
               </span>
@@ -494,7 +495,7 @@ function FindingRow({
                       >
                         <span className="font-mono text-xs">{opt.label}</span>
                         <span className="ml-auto font-mono text-[10px] text-muted-foreground">
-                          until {new Date(Date.now() + opt.days * 86_400_000).toLocaleDateString()}
+                          until {formatDate(Date.now() + opt.days * 86_400_000)}
                         </span>
                       </DropdownMenuItem>
                     ))}
@@ -595,14 +596,18 @@ function RankChip({ rankScore, hasTraffic, gscBound }: { rankScore: string; hasT
 function RemediationDetails({ help }: { help: NonNullable<Finding["help"]> }) {
   return (
     <details className="group rounded-[12px] border border-primary/25 bg-primary/[0.04]">
+      {/* min-w-0 on the growing span is load-bearing: a flex item defaults to
+          min-width:auto, so without it the one-liner refuses to shrink below its
+          own text width, `truncate` never gets a constrained box, and the label
+          wraps while the summary runs past the card edge. */}
       <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-xs">
-        <span className="flex items-center gap-2">
-          <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+        <span className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="shrink-0 whitespace-nowrap font-mono text-[10px] uppercase tracking-wider text-primary">
             How to fix
           </span>
-          <span className="truncate text-muted-foreground">{help.oneLiner}</span>
+          <span className="min-w-0 truncate text-muted-foreground">{help.oneLiner}</span>
         </span>
-        <span className="font-mono text-[11px] text-muted-foreground transition-transform group-open:rotate-90">
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground transition-transform group-open:rotate-90">
           ›
         </span>
       </summary>

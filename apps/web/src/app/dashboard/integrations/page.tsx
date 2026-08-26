@@ -6,6 +6,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { GscConnectButton } from "@/components/dashboard/gsc-connect-button";
+import { formatDateTime } from "@/lib/format";
 import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export const runtime = "nodejs";
@@ -101,7 +102,7 @@ export default async function IntegrationsPage({
           {gscConnected ? (
             <div className="mt-4 flex flex-col gap-2">
               <span className="text-xs text-success">
-                Connected{gscRow.lastSyncAt ? ` · last sync ${new Date(gscRow.lastSyncAt).toLocaleString()}` : " · awaiting first sync"}
+                Connected{gscRow.lastSyncAt ? ` · last sync ${formatDateTime(gscRow.lastSyncAt)}` : " · awaiting first sync"}
               </span>
               <p className="text-xs text-muted-foreground">
                 Each domain still needs a property bound: open a domain → Settings → GSC property.

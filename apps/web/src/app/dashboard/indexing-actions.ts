@@ -153,7 +153,7 @@ export async function requestIndexingAction(args: {
       completedAt: new Date(),
     });
 
-    revalidatePath(`/dashboard/${domain.host}`);
+    revalidatePath(`/dashboard/${domain.host}`, "layout");
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
@@ -307,7 +307,7 @@ export async function requestBatchIndexingAction(args: {
       })
     ));
 
-    revalidatePath(`/dashboard/${domain.host}`);
+    revalidatePath(`/dashboard/${domain.host}`, "layout");
     return { success: true };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

@@ -5,6 +5,7 @@ import { userAiKeys } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { saveAiKeyAction, removeAiKeyAction } from "./actions";
+import { formatDate } from "@/lib/format";
 
 export default async function AiKeySettings() {
   const session = await getOptionalSession();
@@ -48,7 +49,7 @@ export default async function AiKeySettings() {
             <dt className="text-muted-foreground">Key</dt>
             <dd className="font-mono text-foreground">•••••••••••• (stored encrypted)</dd>
             <dt className="text-muted-foreground">Updated</dt>
-            <dd className="text-foreground">{new Date(row.updatedAt).toLocaleDateString()}</dd>
+            <dd className="text-foreground">{formatDate(row.updatedAt)}</dd>
           </dl>
           <form action={removeAiKeyAction} className="mt-4">
             <button type="submit" className="inline-flex h-9 items-center rounded-[14px] border border-destructive/50 px-3 text-xs text-destructive hover:bg-destructive/10">

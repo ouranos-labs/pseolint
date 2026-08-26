@@ -1,4 +1,5 @@
 import { sevDot, sevBorderBg, type Severity } from "@/lib/severity-style";
+import { formatShortDate } from "@/lib/format";
 
 interface NewFinding {
   ruleId: string;
@@ -64,7 +65,7 @@ export function RunDiffStrip({ newFindings, recoveredCount, recoveredFindings = 
     return (
       <section className="rounded-[18px] border border-border/60 bg-card/40 px-5 py-4">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          What changed since {formatDate(previousAt)}
+          What changed since {formatShortDate(previousAt)}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">
           No new findings, no recoveries: your sites are holding steady.
@@ -87,7 +88,7 @@ export function RunDiffStrip({ newFindings, recoveredCount, recoveredFindings = 
     <section className={`rounded-[18px] border ${tone} px-5 py-4`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-          What changed · {formatDate(previousAt)} → {formatDate(latestAt)}
+          What changed · {formatShortDate(previousAt)} → {formatShortDate(latestAt)}
         </p>
       </div>
 
@@ -224,7 +225,4 @@ function relDays(d: Date): string {
   return `${days}d ago`;
 }
 
-function formatDate(d: Date): string {
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
 

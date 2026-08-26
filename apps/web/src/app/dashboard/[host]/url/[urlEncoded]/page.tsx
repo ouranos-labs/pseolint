@@ -160,15 +160,10 @@ export default async function UrlDeepDive({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Portfolio / host is already the workspace layout's breadcrumb; only the
+          leaf (which URL) needs adding here. */}
       <nav className="font-mono text-[11px] text-muted-foreground">
-        <Link href="/dashboard" className="hover:text-foreground">
-          Portfolio
-        </Link>
-        <span className="mx-1.5">/</span>
-        <Link
-          href={`/dashboard/${encodeURIComponent(host)}`}
-          className="hover:text-foreground"
-        >
+        <Link href={`/dashboard/${encodeURIComponent(host)}`} className="hover:text-foreground">
           {host}
         </Link>
         <span className="mx-1.5">/</span>

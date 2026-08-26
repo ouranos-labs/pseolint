@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { formatShortDate } from "@/lib/format";
+import { CollapsibleSection } from "@/components/dashboard/collapsible-section";
 
 interface Run {
   risk: number | null;
@@ -53,12 +55,11 @@ export function AlertThresholdSimulator({ runs, currentThreshold, host }: Props)
 
   if (completed.length < 2) {
     return (
-      <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
-        <Header />
-        <p className="mt-3 rounded-[12px] border border-dashed border-border/60 bg-background/40 p-4 text-center text-xs text-muted-foreground">
+      <CollapsibleSection title={TITLE} description={BLURB} meta={<span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">no data</span>}>
+        <p className="rounded-[12px] border border-dashed border-border/60 bg-background/40 p-4 text-center text-xs text-muted-foreground">
           Need 2 completed runs to simulate alerts.
         </p>
-      </section>
+      </CollapsibleSection>
     );
   }
 
@@ -68,10 +69,17 @@ export function AlertThresholdSimulator({ runs, currentThreshold, host }: Props)
   const settingsHref = `/dashboard/${encodeURIComponent(host)}/settings`;
 
   return (
-    <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
-      <Header />
-
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+    <CollapsibleSection
+      title={TITLE}
+      description={BLURB}
+      meta={
+        <span className="font-mono text-sm tabular-nums">
+          <span className={firedTone}>{firedCount}</span>
+          <span className="text-muted-foreground"> would fire</span>
+        </span>
+      }
+    >
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className={`font-mono text-3xl tabular-nums ${firedTone}`}>{firedCount}</span>
         <span className="text-sm text-muted-foreground">
           would have fired in the last 30 days
@@ -143,23 +151,15 @@ export function AlertThresholdSimulator({ runs, currentThreshold, host }: Props)
           )}
         </ul>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
 
-function Header() {
-  return (
-    <div className="flex flex-col gap-1">
-      <h2 className="text-sm font-semibold text-foreground">Alert threshold simulator</h2>
-      <p className="text-[11px] text-muted-foreground">
-        Replays past runs to show how this threshold actually behaves.
-      </p>
-    </div>
-  );
-}
+const TITLE = "Alert threshold simulator";
+const BLURB = "Replays past runs to show how this threshold actually behaves.";
 
 function fmtDate(d: Date): string {
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return formatShortDate(d);
 }
 
 function countTone(count: number): string {

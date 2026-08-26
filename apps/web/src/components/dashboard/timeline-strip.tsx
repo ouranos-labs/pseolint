@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { formatDate, formatDateTime } from "@/lib/format";
 
 type Run = {
   slug: string;
@@ -124,8 +125,8 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
                     (delta != null
                       ? ` (${delta >= 0 ? "+" : ""}${delta} vs. prior)`
                       : " · first run") +
-                    (r.completedAt ? ` · ${new Date(r.completedAt).toLocaleString()}` : "")
-                  : `${r.status}${r.completedAt ? ` · ${new Date(r.completedAt).toLocaleString()}` : ""}`;
+                    (r.completedAt ? ` · ${formatDateTime(r.completedAt)}` : "")
+                  : `${r.status}${r.completedAt ? ` · ${formatDateTime(r.completedAt)}` : ""}`;
 
               const isSelected = selectedSlugs.includes(r.slug);
               const anySelected = selectedSlugs.length > 0;
@@ -144,7 +145,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
                   );
                 }
                 const dateLabel = r.completedAt
-                  ? new Date(r.completedAt).toLocaleString()
+                  ? formatDateTime(r.completedAt)
                   : "unknown date";
                 const ariaLabel = `Run on ${dateLabel}, risk ${r.risk}${
                   isSelected ? ", selected" : ""
@@ -183,8 +184,8 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
 
           {(oldest || newest) && (
             <div className="mt-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-              <span>{oldest ? new Date(oldest).toLocaleDateString() : ""}</span>
-              <span>{newest ? new Date(newest).toLocaleDateString() : ""}</span>
+              <span>{oldest ? formatDate(oldest) : ""}</span>
+              <span>{newest ? formatDate(newest) : ""}</span>
             </div>
           )}
 

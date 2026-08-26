@@ -1,6 +1,7 @@
 import type { AnyAuditSummary, AuditSummaryV03, AuditSummaryV04, RuleResult } from "@/lib/audit-types";
 import { isV04Summary } from "@/lib/audit-types";
 import { gradeOf as canonicalGradeOf } from "@/lib/grade";
+import { formatDate, formatNumber } from "@/lib/format";
 
 type Severity = RuleResult["severity"];
 
@@ -303,7 +304,7 @@ function ContextEvidence({ context }: { context: NonNullable<RuleResult["context
     <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Boilerplate ratio</span>
       <span className="font-mono text-[11px] text-muted-foreground">
-        <span className="text-warning">{ratio}%</span> ({context.sharedWordCount.toLocaleString()} of {context.totalWordCount.toLocaleString()} words shared)
+        <span className="text-warning">{ratio}%</span> ({formatNumber(context.sharedWordCount)} of {formatNumber(context.totalWordCount)} words shared)
       </span>
     </div>
   );
@@ -315,7 +316,7 @@ function CarriedForwardBadge({ lastVerifiedAt }: { lastVerifiedAt?: string }) {
   let when = "";
   if (lastVerifiedAt) {
     const d = new Date(lastVerifiedAt);
-    if (!Number.isNaN(d.getTime())) when = ` · last verified ${d.toLocaleDateString()}`;
+    if (!Number.isNaN(d.getTime())) when = ` · last verified ${formatDate(d)}`;
   }
   return (
     <span

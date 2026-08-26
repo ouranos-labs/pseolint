@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DollarSign, AlertTriangle, CheckCircle, ShieldAlert } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 const STEPS = [500, 1000, 2500, 5000, 10000, 20000, 50000, 100000];
 
@@ -70,7 +71,7 @@ export function PricingSimulator() {
         </div>
         <div className="bg-background/80 px-4 py-2 rounded-xl border border-border/60 flex items-center justify-center">
           <span className="font-mono text-2xl font-bold text-primary tabular-nums">
-            {pages.toLocaleString()}
+            {formatNumber(pages)}
           </span>
           <span className="text-xs text-muted-foreground ml-1.5 font-medium uppercase tracking-wider">
             pages
@@ -143,7 +144,7 @@ export function PricingSimulator() {
 
             <div className="mt-5 flex items-baseline gap-1">
               <span className="font-mono text-3xl font-bold text-foreground">
-                ${Math.round(bywordCost).toLocaleString()}
+                ${formatNumber(Math.round(bywordCost))}
               </span>
               <span className="text-xs text-muted-foreground font-medium">one-time cost</span>
             </div>
@@ -157,7 +158,7 @@ export function PricingSimulator() {
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-warning">
-                  ${Math.round(bywordWasted).toLocaleString()} Indexation Risk
+                  ${formatNumber(Math.round(bywordWasted))} Indexation Risk
                 </span>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   If 40% of pages are flagged thin/duplicate by Google, you lose this credit investment.
@@ -194,7 +195,7 @@ export function PricingSimulator() {
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-warning">
-                  {seomaticWastedItems.toLocaleString()} Synced Rows Wasted
+                  {formatNumber(seomaticWastedItems)} Synced Rows Wasted
                 </span>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   40% of database rows fail indexation, consuming CMS sync capacity unnecessarily.
