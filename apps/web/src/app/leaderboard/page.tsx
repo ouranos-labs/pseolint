@@ -241,20 +241,25 @@ export default async function Leaderboard() {
             </Link>
           </div>
         ) : (
-          // CSS-columns masonry: cleanest cross-browser path; no JS reflow, no
-          // chart-of-life library. Each card is `break-inside-avoid` so it
-          // never splits across columns.
+          // CSS-columns masonry: cards flow top-to-bottom down each column and
+          // pack with no gaps, which is the waterfall look this board wants.
+          //
+          // That flow is also why the cards carry NO rank number. Column-major
+          // fill put 1/2/3 down the left edge while the top row read 1, 4, 7, so
+          // the badge actively contradicted the layout; a grid reads correctly
+          // left-to-right but leaves dead space under every short card. Rather
+          // than print a number the eye cannot follow, the ordering is carried by
+          // the sort (risk ascending) and by each card's own grade chip. The
+          // JSON-LD ItemList below still emits real `position` values, so the
+          // machine-readable ranking is unaffected.
           <div className="mt-4 flex flex-col gap-4 sm:block sm:columns-2 lg:columns-3">
-            { visible.map((r, i: number) => {
+            { visible.map((r) => {
               const host = r.host!;
               return (
                 <article
                   key={ r.id }
-                  className="relative break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5  backdrop-blur-sm transition-colors hover:border-primary/40 shadow-sm sm:mb-4"
+                  className="relative break-inside-avoid overflow-hidden rounded-[20px] border border-border/70 bg-card/50 p-1.5 backdrop-blur-sm transition-colors hover:border-primary/40 shadow-sm sm:mb-4"
                 >
-                  <span className="absolute right-3 top-3 z-10 inline-flex h-6 min-w-6 items-center justify-center rounded-[8px] bg-secondary/80 px-1.5 shadow-sm font-mono text-[11px] tabular-nums text-muted-foreground">
-                    { i + 1 }
-                  </span>
                   { r.source === "seed" && (
                     <span className="absolute left-3 top-3 z-10 inline-flex items-center rounded-[8px] bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-primary shadow-sm">
                       Notable
