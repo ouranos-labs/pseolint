@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 type Props = {
   /** Audit UUID: used for /api/audits/[id]/export/[format]. */
@@ -89,12 +90,13 @@ export function ExportMenu({ auditId, auditSlug, isPro }: Props) {
               >
                 Close
               </button>
-              <a
+              <TrackedLink
                 href="/pricing"
+                event={ { name: "upgrade_clicked", props: { source: "report_export" } } }
                 className="inline-flex h-9 items-center rounded-[14px] bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
               >
                 See Pro →
-              </a>
+              </TrackedLink>
             </div>
           </div>
         </div>

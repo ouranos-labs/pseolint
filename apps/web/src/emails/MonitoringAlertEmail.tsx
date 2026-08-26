@@ -1,4 +1,5 @@
 import { Html, Head, Body, Container, Section, Heading, Text, Button, Hr } from "@react-email/components";
+import { utm } from "./utm";
 
 export type MonitoringAlertEmailProps = {
   host: string;
@@ -53,7 +54,7 @@ export default function MonitoringAlertEmail(props: MonitoringAlertEmailProps) {
           )}
 
           <Section style={{ marginTop: 28 }}>
-            <Button href={props.reportUrl} style={{ backgroundColor: "#18181b", color: "#ffffff", padding: "10px 18px", borderRadius: 6, textDecoration: "none", fontWeight: 500 }}>
+            <Button href={utm(props.reportUrl, "monitoring_alert")} style={{ backgroundColor: "#18181b", color: "#ffffff", padding: "10px 18px", borderRadius: 6, textDecoration: "none", fontWeight: 500 }}>
               View full report
             </Button>
           </Section>
@@ -61,7 +62,7 @@ export default function MonitoringAlertEmail(props: MonitoringAlertEmailProps) {
           <Hr style={{ borderColor: "#e5e7eb", marginTop: 32 }} />
           <Text style={{ color: "#9ca3af", fontSize: 12 }}>
             Monitored domain: <a href={props.sourceUrl} style={{ color: "#6b7280" }}>{props.sourceUrl}</a>.
-            Manage cadence or pause alerts in your <a href={props.dashboardUrl} style={{ color: "#6b7280" }}>dashboard</a>.
+            Manage cadence or pause alerts in your <a href={utm(props.dashboardUrl, "monitoring_alert")} style={{ color: "#6b7280" }}>dashboard</a>.
           </Text>
         </Container>
       </Body>

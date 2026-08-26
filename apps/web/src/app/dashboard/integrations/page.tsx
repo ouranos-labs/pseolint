@@ -6,6 +6,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { GscConnectButton } from "@/components/dashboard/gsc-connect-button";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export const runtime = "nodejs";
 
@@ -155,12 +156,13 @@ export default async function IntegrationsPage({
                 <p className="text-xs text-muted-foreground">
                   Get your new and updated pages indexed by Google in minutes rather than weeks. Set up automated GSC pushes.
                 </p>
-                <a
+                <TrackedLink
                   href="/pricing"
+                  event={ { name: "upgrade_clicked", props: { source: "integrations" } } }
                   className="mt-2 inline-flex w-fit h-9 items-center rounded-[12px] bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Upgrade to Pro →
-                </a>
+                </TrackedLink>
               </div>
             </div>
           )}

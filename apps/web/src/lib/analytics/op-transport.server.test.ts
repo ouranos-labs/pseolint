@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const trackMock = vi.fn();
 const identifyMock = vi.fn();
-const aliasMock = vi.fn();
+const revenueMock = vi.fn();
 vi.mock("@openpanel/sdk", () => ({
-  OpenPanel: vi.fn().mockImplementation(function () { return { track: trackMock, identify: identifyMock, alias: aliasMock }; }),
+  OpenPanel: vi.fn().mockImplementation(function () { return { track: trackMock, identify: identifyMock, revenue: revenueMock }; }),
 }));
 
 import { OpenPanel } from "@openpanel/sdk";
 import { __resetEnvCache } from "@/lib/env";
-import { getAnalyticsClient, trackRaw, __resetAnalyticsClient } from "./op-transport.server";
+import { getAnalyticsClient, trackRaw, revenueRaw, __resetAnalyticsClient } from "./op-transport.server";
 
 const OP = vi.mocked(OpenPanel);
 
@@ -29,6 +29,7 @@ function setKeys(on: boolean): void {
 
 beforeEach(() => {
   trackMock.mockReset();
+  revenueMock.mockReset();
   OP.mockClear();
 });
 
@@ -49,6 +50,12 @@ describe("op-transport.server", () => {
     expect(OP).toHaveBeenCalledWith({ clientId: "cid", clientSecret: "csecret", apiUrl: "https://op.example.com" });
     expect(trackMock).toHaveBeenNthCalledWith(1, "audit_created", { host: "x.com", cached: false, profileId: "user_1" });
     expect(trackMock).toHaveBeenNthCalledWith(2, "audit_failed", { host: "x.com" });
+  });
+
+  it("forwards revenue with the profileId folded into properties", async () => {
+    setKeys(true);
+    await revenueRaw(19, { currency: "usd" }, "user_1");
+    expect(revenueMock).toHaveBeenCalledWith(19, { currency: "usd", profileId: "user_1" });
   });
 
   it("never throws when the SDK throws", async () => {

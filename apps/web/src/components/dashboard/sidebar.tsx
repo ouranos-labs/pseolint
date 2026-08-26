@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 type Item = {
   href: string;
@@ -114,14 +115,15 @@ export function DashboardSidebar({ plan }: { plan: "free" | "pro" }) {
       </div>
       {plan === "free" && (
         <div className="mt-auto pt-6">
-          <Link
+          <TrackedLink
             href="/pricing"
+            event={ { name: "upgrade_clicked", props: { source: "sidebar" } } }
             className="block rounded-[14px] border border-primary/40 bg-primary/10 px-3 py-3 text-sm transition-colors hover:bg-primary/15"
           >
             <span className="block text-xs uppercase tracking-wider text-muted-foreground">Free plan</span>
             <span className="mt-0.5 block font-medium text-primary">Upgrade to Pro →</span>
             <span className="mt-1 block text-[11px] text-muted-foreground">Monitor, AI triage, alerts</span>
-          </Link>
+          </TrackedLink>
         </div>
       )}
     </aside>
@@ -158,12 +160,13 @@ export function DashboardTabs({ plan }: { plan: "free" | "pro" }) {
         })}
         {plan === "free" && (
           <li className="ml-auto">
-            <Link
+            <TrackedLink
               href="/pricing"
+              event={ { name: "upgrade_clicked", props: { source: "sidebar" } } }
               className="inline-flex shrink-0 items-center rounded-[12px] border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
             >
               Upgrade →
-            </Link>
+            </TrackedLink>
           </li>
         )}
       </ul>

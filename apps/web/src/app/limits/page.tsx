@@ -3,6 +3,7 @@ import Link from "next/link";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -146,12 +147,13 @@ export default function LimitsPage() {
           report it.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Link
+          <TrackedLink
             href="/pricing"
+            event={ { name: "upgrade_clicked", props: { source: "limit_block" } } }
             className="inline-flex h-10 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             See pricing
-          </Link>
+          </TrackedLink>
           <Link
             href="/privacy"
             className="inline-flex h-10 items-center rounded-[14px] border border-border-strong px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"

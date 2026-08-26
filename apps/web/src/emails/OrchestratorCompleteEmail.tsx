@@ -1,4 +1,5 @@
 import { Html, Head, Body, Container, Section, Heading, Text, Button, Hr } from "@react-email/components";
+import { utm } from "./utm";
 
 export type OrchestratorCompleteEmailProps = {
   domain: string;
@@ -111,7 +112,7 @@ export default function OrchestratorCompleteEmail(props: OrchestratorCompleteEma
 
           <Section style={{ marginTop: 24, textAlign: "center" }}>
             <Button
-              href={props.manifestUrl}
+              href={utm(props.manifestUrl, "orchestrator_complete")}
               style={{
                 backgroundColor: "#111827",
                 color: "#ffffff",

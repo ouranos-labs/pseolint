@@ -117,6 +117,7 @@ export async function ensureMonitoredDomainForUser(
       url: origin,
       plan: "pro",
       sampleSize: PRO_REAUDIT_SAMPLE_SIZE,
+      trigger: "monitor",
       ...(watchedUrls.length > 0 && { force: { urls: watchedUrls } }),
     },
   });

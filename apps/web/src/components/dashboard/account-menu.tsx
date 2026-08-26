@@ -11,6 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export function AccountMenu({ email, plan }: { email: string; plan: "free" | "pro" }) {
   const initials = email.slice(0, 2).toUpperCase();
@@ -50,7 +51,7 @@ export function AccountMenu({ email, plan }: { email: string; plan: "free" | "pr
         <DropdownMenuSeparator />
         {plan === "free" && (
           <DropdownMenuItem asChild>
-            <Link href="/pricing" className="block w-full font-medium text-primary">Upgrade to Pro →</Link>
+            <TrackedLink href="/pricing" event={ { name: "upgrade_clicked", props: { source: "account_menu" } } } className="block w-full font-medium text-primary">Upgrade to Pro →</TrackedLink>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem asChild>

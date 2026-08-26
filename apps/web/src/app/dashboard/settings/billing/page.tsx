@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { userProfiles } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ResyncSubscriptionButton } from "./resync-button";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export default async function BillingSettings() {
   const session = await getOptionalSession();
@@ -28,7 +29,7 @@ export default async function BillingSettings() {
         </dl>
         {plan === "free" ? (
           <div className="mt-4 flex flex-col gap-3">
-            <a href="/pricing" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Upgrade to Pro →</a>
+            <TrackedLink href="/pricing" event={ { name: "upgrade_clicked", props: { source: "billing" } } } className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Upgrade to Pro →</TrackedLink>
             <div className="rounded-[12px] border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
               Just paid and still seeing free?{" "}
               <ResyncSubscriptionButton />{" "}

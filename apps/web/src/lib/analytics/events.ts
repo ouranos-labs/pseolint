@@ -6,10 +6,23 @@
  * NOT in this union: they are emitted automatically by `trackScreenViews` on
  * the client provider.
  */
+/** Mirrors `AuditTrigger` in lib/inngest.ts. Duplicated rather than imported
+ *  so this catalog stays free of server-only imports (it is used on both
+ *  sides of the client boundary). */
+export type AuditTrigger = "user" | "monitor" | "dashboard";
+
 export type AuditBlockReason =
   | "session_limit" | "domain_limit" | "daily_limit"
   | "invalid_url" | "private_url" | "bot_check"
   | "paused" | "origin_unreachable" | "origin_degraded";
+
+/** Every place in the product that sends someone to /pricing. Keep this list
+ *  exhaustive: an upgrade CTA that isn't here is a conversion path we cannot
+ *  see. */
+export type UpgradeSource =
+  | "nav" | "landing" | "dashboard" | "sidebar" | "account_menu"
+  | "billing" | "integrations" | "history" | "limit_block"
+  | "report_export" | "report_visibility";
 
 export type AnalyticsEvent =
   // ── Audit funnel ─────────────────────────────
@@ -18,15 +31,15 @@ export type AnalyticsEvent =
   | { name: "audit_submit_failed"; props: { status: number; code?: string } }
   | { name: "audit_created"; props: { host: string; cached: boolean; authed: boolean } }
   | { name: "audit_blocked"; props: { reason: AuditBlockReason; status: number } }
-  | { name: "audit_completed"; props: { host: string; score: number; pageCount: number; findingCount: number; durationMs: number; classification: string | null; truncated: boolean; authed: boolean } }
-  | { name: "audit_failed"; props: { host: string; reason: string } }
-  | { name: "report_viewed"; props: { slug: string; cached: boolean } }
+  | { name: "audit_completed"; props: { host: string; score: number; pageCount: number; findingCount: number; durationMs: number; classification: string | null; truncated: boolean; authed: boolean; trigger: AuditTrigger } }
+  | { name: "audit_failed"; props: { host: string; reason: string; trigger: AuditTrigger } }
+  | { name: "report_viewed"; props: { slug: string; cached: boolean; owned: boolean } }
   | { name: "report_exported"; props: { format: string } }
   // ── Accounts ─────────────────────────────────
   | { name: "signin_started"; props: { method: "magic_link" | "google" } }
   | { name: "signed_in"; props: { isNewUser: boolean } }
   // ── Monetization ─────────────────────────────
-  | { name: "upgrade_clicked"; props: { source: "nav" | "pricing" | "limit_block" | "report" } }
+  | { name: "upgrade_clicked"; props: { source: UpgradeSource } }
   | { name: "checkout_started"; props: { interval: "monthly" | "yearly" } }
   | { name: "checkout_redirected"; props: { interval: "monthly" | "yearly" } }
   | { name: "subscription_started"; props: { interval: "monthly" | "yearly" | "unknown"; intent: string | null } }

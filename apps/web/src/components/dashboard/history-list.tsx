@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { getPlan } from "@/lib/plan";
 import { verdictStyle, type Verdict } from "@/lib/grade";
 import { HistoryRowActions } from "./history-row-actions";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 type Row = {
   slug: string;
@@ -174,12 +175,13 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
             You&apos;ve audited <span className="font-medium">{host}</span> {completedRows.length} times.
             Want to catch regressions automatically?
           </span>
-          <Link
+          <TrackedLink
             href="/pricing"
+            event={ { name: "upgrade_clicked", props: { source: "history" } } }
             className="inline-flex items-center rounded-[12px] border border-primary/40 bg-primary/10 px-3 py-1 font-medium text-primary hover:bg-primary/15"
           >
             Add to monitoring →
-          </Link>
+          </TrackedLink>
         </div>
       )}
     </section>

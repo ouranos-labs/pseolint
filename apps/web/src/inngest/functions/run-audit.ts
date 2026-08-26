@@ -31,11 +31,15 @@ function r2CacheEnabled(): boolean {
 
 type RunStep = <T>(name: string, fn: () => Promise<T>) => Promise<T>;
 
+import type { AuditTrigger } from "@/lib/inngest";
+
 export type RunAuditInput = {
   auditId: string;
   url: string;
   plan: "free" | "pro";
   sampleSize: number;
+  /** Analytics provenance: see the `trigger` note on `audit/requested`. */
+  trigger?: AuditTrigger;
   /** Audit mode: "full" runs all rules; "diff" skips corpus-scoped rules. Default: "full". */
   mode?: "full" | "diff";
   /** Run state for diff-mode audits. When provided, only changed/new URLs are audited. */
@@ -177,7 +181,7 @@ function applyGentleProfile(args: {
 }
 
 export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
-  const { auditId, url, plan, sampleSize, mode, state, render, force } = input;
+  const { auditId, url, plan, sampleSize, mode, state, render, force, trigger } = input;
   const startedAt = Date.now();
   const analyticsHost = (() => {
     try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "unknown"; }
@@ -189,6 +193,9 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     .limit(1);
   const analyticsProfileId = analyticsOwner?.userId ?? analyticsOwner?.anonSessionId ?? undefined;
   const analyticsAuthed = !!analyticsOwner?.userId;
+  // Pre-`trigger` events in flight during deploy carry nothing; they are
+  // overwhelmingly cron re-audits, so that is the honest default.
+  const analyticsTrigger = trigger ?? "monitor";
   auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full", render: render ?? false });
 
   await runStep("mark-running", async () => {
@@ -396,7 +403,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     }).where(eq(audits.id, auditId));
     auditLog("audit.failed", { auditId, err: msg, ms: Date.now() - startedAt });
     await trackServer(
-      { name: "audit_failed", props: { host: analyticsHost, reason: msg.slice(0, 200) } },
+      { name: "audit_failed", props: { host: analyticsHost, reason: msg.slice(0, 200), trigger: analyticsTrigger } },
       { profileId: analyticsProfileId },
     );
     return { ok: false as const, error: msg };
@@ -575,6 +582,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
         classification: summary.siteClassification?.type ?? null,
         truncated: summary.truncated ?? false,
         authed: analyticsAuthed,
+        trigger: analyticsTrigger,
       },
     },
     { profileId: analyticsProfileId },

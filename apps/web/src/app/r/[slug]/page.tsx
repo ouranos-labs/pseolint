@@ -22,6 +22,7 @@ import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-lis
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
 import { summaryToTileStates, summaryToTileMeta, severityCounts, cleanPageCount, pagesByWorstSeverity } from "@/lib/audit-tiles";
 import { TileLegend } from "@/components/audit/tile-legend";
+import { TrackView } from "@/lib/analytics/track-view";
 import { gradeOf } from "@/lib/grade";
 import { ReportCtaStrip } from "@/components/report/cta-strip";
 import { reportRobots, isLeaderboardEligible } from "@/lib/leaderboard";
@@ -127,6 +128,10 @@ export default async function Page({
   // pure, but calling it three times in the JSX re-walks the blob needlessly).
   const truncation = summaryTruncation(summary);
 
+  // Viewed by the person who ran it (activation) vs. someone who followed a
+  // shared link (acquisition). Same page, opposite funnel meanings.
+  const reportOwned = ownedByUser || ownedByAnon;
+
   const domainHost = (() => { try { return new URL(row.sourceUrl).host; } catch { return null; } })();
   const originUrl = (() => {
     try { const u = new URL(row.sourceUrl); return `${u.protocol}//${u.host}`; } catch { return row.sourceUrl; }
@@ -200,6 +205,7 @@ export default async function Page({
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
+      <TrackView event={ { name: "report_viewed", props: { slug, cached: cached === "1", owned: reportOwned } } } />
       { ctx.kind !== "anon" && (
         <Link
           href={ ctx.kind === "pro_own_monitored" ? `/dashboard/${encodeURIComponent(ctx.domainHost)}` : "/dashboard" }

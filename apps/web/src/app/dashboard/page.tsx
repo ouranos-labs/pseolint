@@ -12,6 +12,7 @@ import { AddDomainCard } from "@/components/dashboard/add-domain-card";
 import { PortfolioStrip } from "@/components/dashboard/portfolio-strip";
 import { CrossDomainFixQueue } from "@/components/dashboard/cross-domain-fix-queue";
 import { StartOrchestratorButton } from "@/components/dashboard/start-orchestrator-button";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export const runtime = "nodejs";
 
@@ -46,12 +47,13 @@ export default async function DashboardHome({
       <div className="flex flex-col gap-8">
         <div className="flex items-baseline justify-between">
           <h1 className="text-xl font-medium text-foreground">Your audits</h1>
-          <Link
+          <TrackedLink
             href="/pricing"
+            event={ { name: "upgrade_clicked", props: { source: "dashboard" } } }
             className="text-xs text-muted-foreground underline-offset-4 hover:underline"
           >
             Upgrade to monitoring →
-          </Link>
+          </TrackedLink>
         </div>
         <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
           <h2 className="mb-1 text-sm font-semibold text-foreground">Run a new audit</h2>

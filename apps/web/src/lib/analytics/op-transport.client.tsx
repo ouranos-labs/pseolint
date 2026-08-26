@@ -14,9 +14,16 @@ import { OpenPanelComponent } from "@openpanel/nextjs";
 export function AnalyticsProvider({
   clientId,
   profileId,
+  globalProperties,
 }: {
   clientId?: string;
   profileId?: string;
+  /** Merged into EVERY client event, including automatic pageviews. The server
+   *  transport deliberately has no equivalent: its OpenPanel client is a
+   *  module-level singleton shared by concurrent requests, so a global set for
+   *  one visitor would leak onto another's events. Server events pass what they
+   *  need per call instead. */
+  globalProperties?: Record<string, unknown>;
 }) {
   if (!clientId) return null;
   return (
@@ -25,6 +32,7 @@ export function AnalyticsProvider({
       apiUrl="/api/op"
       scriptUrl="/api/op/op1.js"
       {...(profileId ? { profileId } : {})}
+      {...(globalProperties ? { globalProperties } : {})}
       trackScreenViews
       trackOutgoingLinks
     />

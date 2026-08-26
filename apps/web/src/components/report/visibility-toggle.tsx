@@ -1,6 +1,7 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export function VisibilityToggle({
   auditId,
@@ -82,12 +83,13 @@ export function VisibilityToggle({
               >
                 Close
               </button>
-              <a
+              <TrackedLink
                 href="/pricing"
+                event={ { name: "upgrade_clicked", props: { source: "report_visibility" } } }
                 className="inline-flex h-9 items-center rounded-[14px] bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90"
               >
                 See Pro →
-              </a>
+              </TrackedLink>
             </div>
           </div>
         </div>

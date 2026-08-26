@@ -437,7 +437,7 @@ export async function POST(req: Request): Promise<Response> {
   const render = isProSession ? (body.data.render ?? false) : false;
   auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize, render });
 
-  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize, render } });
+  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize, render, trigger: "user" } });
   auditLog("audit.dispatched", { auditId: row.id });
 
   void hashIp(ip);

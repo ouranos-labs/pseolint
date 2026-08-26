@@ -6,7 +6,7 @@ import { env } from "@/lib/env";
 import { rememberEventOnce, isActiveSubscriptionStatus } from "@/lib/polar";
 import { validateEvent } from "@polar-sh/sdk/webhooks";
 import { ensureMonitoredDomainForUser } from "@/lib/monitoring";
-import { trackServer } from "@/lib/analytics/track.server";
+import { trackServer, identifyServer, revenueServer } from "@/lib/analytics/track.server";
 
 // Email casing varies between BetterAuth (preserves what user typed) and Polar
 // (often normalizes to lowercase). Compare with lower() on both sides so a payment
@@ -75,6 +75,11 @@ export async function POST(req: Request): Promise<Response> {
       set: { polarCustomerId: customer.id, plan, planExpiresAt },
     });
 
+    // Keep the analytics profile's plan in step with the DB. It is otherwise
+    // only ever written at sign-in, so every breakdown-by-plan misreports
+    // anyone who upgraded or lapsed since they last signed in.
+    await identifyServer({ profileId: u.id, email, properties: { plan } });
+
     if (event.type !== "subscription.updated" && plan === "pro") {
       const interval =
         event.data.recurringInterval === "month" ? "monthly"
@@ -83,6 +88,14 @@ export async function POST(req: Request): Promise<Response> {
       const md = (event.data.metadata ?? {}) as Record<string, string>;
       await trackServer(
         { name: "subscription_started", props: { interval, intent: md.intent ?? null } },
+        { profileId: u.id },
+      );
+      // Polar quotes amounts in minor units (cents); OpenPanel's __revenue is
+      // major units. Without this the subscription event carries an interval
+      // but no money, so there is no MRR, LTV, or revenue-by-channel at all.
+      await revenueServer(
+        event.data.amount / 100,
+        { currency: event.data.currency, interval, intent: md.intent ?? null },
         { profileId: u.id },
       );
     }
@@ -119,17 +132,21 @@ export async function POST(req: Request): Promise<Response> {
       const periodEnd = event.data.currentPeriodEnd ? new Date(event.data.currentPeriodEnd) : null;
       // subscription.revoked = immediate end (no grace). Otherwise honor grace until period end.
       const immediate = event.type === "subscription.revoked";
+      let nextPlan: "pro" | "free";
       if (!immediate && periodEnd && periodEnd > new Date()) {
+        nextPlan = "pro";
         await db.update(userProfiles).set({
           plan: "pro",
           planExpiresAt: periodEnd,
         }).where(eq(userProfiles.userId, u.id));
       } else {
+        nextPlan = "free";
         await db.update(userProfiles).set({
           plan: "free",
           planExpiresAt: new Date(),
         }).where(eq(userProfiles.userId, u.id));
       }
+      await identifyServer({ profileId: u.id, properties: { plan: nextPlan } });
       await trackServer(
         { name: "subscription_canceled", props: { immediate } },
         { profileId: u.id },

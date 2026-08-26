@@ -14,6 +14,7 @@ import { scoreTone } from "@/lib/grade";
 import { LANDING_FAQ } from "@/lib/landing-faq";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
 import { ENGINE_VERSION } from "@/lib/version";
+import { TrackedLink } from "@/components/analytics/tracked-link";
 
 const GITHUB_ACTION_YAML = `name: pSEO Lint
 on: [pull_request]
@@ -694,9 +695,9 @@ export function LandingForm() {
               </a>
               <span className="text-xs text-muted-foreground">
                 Free, no signup. Pro is <span className="text-foreground">$19/mo</span>: { " " }
-                <Link href="/pricing" className="underline decoration-dotted underline-offset-2 hover:text-foreground">
+                <TrackedLink href="/pricing" event={ { name: "upgrade_clicked", props: { source: "landing" } } } className="underline decoration-dotted underline-offset-2 hover:text-foreground">
                   what&apos;s included
-                </Link>.
+                </TrackedLink>.
               </span>
             </div>
           </div>

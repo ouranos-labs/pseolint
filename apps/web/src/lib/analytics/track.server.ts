@@ -1,6 +1,6 @@
 import "server-only";
 import { after } from "next/server";
-import { trackRaw, identifyRaw, aliasRaw } from "./op-transport.server";
+import { trackRaw, identifyRaw, revenueRaw } from "./op-transport.server";
 import { toTrackArgs, type AnalyticsEvent } from "./events";
 
 /** Typed server-side tracking. App glue binding the catalog to the transport. */
@@ -32,6 +32,11 @@ export function identifyServer(payload: {
   return identifyRaw(payload);
 }
 
-export function aliasServer(payload: { profileId: string; alias: string }): Promise<void> {
-  return aliasRaw(payload);
+/** Amount in major currency units (dollars), not cents. */
+export function revenueServer(
+  amount: number,
+  properties: Record<string, unknown>,
+  opts: { profileId?: string } = {},
+): Promise<void> {
+  return revenueRaw(amount, properties, opts.profileId);
 }

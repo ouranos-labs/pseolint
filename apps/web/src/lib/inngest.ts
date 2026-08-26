@@ -2,12 +2,22 @@ import "server-only";
 import { Inngest, EventSchemas } from "inngest";
 import { devFlags } from "@/lib/dev-flags";
 
+export type AuditTrigger = "user" | "monitor" | "dashboard";
+
 type Events = {
   "audit/requested": {
     data: {
       auditId: string;
       url: string;
       plan: "free" | "pro";
+      /**
+       * What caused this run. Analytics-only, but load-bearing there: audits
+       * are dispatched from three places, and the monitoring cron outnumbers
+       * human requests by roughly 25:1. Without this, `audit_completed` mixes
+       * them and every funnel measured off it is diluted by machine traffic.
+       * Absent on events enqueued before this field existed.
+       */
+      trigger?: AuditTrigger;
       sampleSize: number;
       render?: boolean;
       mode?: "full" | "diff";
