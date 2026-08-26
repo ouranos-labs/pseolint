@@ -37,7 +37,14 @@ export type AnalyticsEvent =
   | { name: "report_exported"; props: { format: string } }
   // ── Accounts ─────────────────────────────────
   | { name: "signin_started"; props: { method: "magic_link" | "google" } }
-  | { name: "signed_in"; props: { isNewUser: boolean } }
+  // anonId is the cross-day attribution join key. `deviceId` cannot serve:
+  // it is a daily-rotating IP+UA hash, so it never spans two calendar days
+  // (verified: 165/165 device ids appear on exactly one day). The anon cookie
+  // lasts 30 days, and it is already this visitor's analytics profile id, so
+  // recording it here links the account to the anonymous profile that holds
+  // their pre-signup audit and its acquisition session. Null when they signed
+  // up without ever running an anonymous audit.
+  | { name: "signed_in"; props: { isNewUser: boolean; anonId: string | null } }
   // ── Monetization ─────────────────────────────
   | { name: "upgrade_clicked"; props: { source: UpgradeSource } }
   | { name: "checkout_started"; props: { interval: "monthly" | "yearly" } }

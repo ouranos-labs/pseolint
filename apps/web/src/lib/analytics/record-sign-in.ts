@@ -1,10 +1,12 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { getPlan } from "@/lib/plan";
 import { identifyServer, trackServer } from "./track.server";
 
+const ANON_COOKIE = "pseolint_anon";
 const NEW_USER_WINDOW_MS = 60_000;
 
 /**
@@ -15,11 +17,17 @@ const NEW_USER_WINDOW_MS = 60_000;
  * was dead: `OpenPanel.alias()` has an empty body in the SDK. Anonymous history
  * attaches through `identify()` on the same device instead, which the root
  * layout performs by handing the provider `session.user.id` on the next render.
+ *
+ * Must run BEFORE claimAnonAudits clears the anon cookie, so `anonId` still
+ * has the value that owns this visitor's pre-signup audits.
  * isNewUser is a 60s-createdAt heuristic: approximate by design; analytics,
  * not authorization. Never throws (sign-in must not depend on analytics).
  */
 export async function recordSignIn(userId: string): Promise<void> {
   try {
+    const store = await cookies();
+    const rawAnon = store.get(ANON_COOKIE)?.value;
+    const anonId = rawAnon && /^[a-zA-Z0-9_-]{21}$/.test(rawAnon) ? rawAnon : null;
     const [u] = await db
       .select({ email: users.email, createdAt: users.createdAt })
       .from(users)
@@ -31,7 +39,7 @@ export async function recordSignIn(userId: string): Promise<void> {
     const plan = await getPlan(userId);
 
     await identifyServer({ profileId: userId, email: u?.email, properties: { plan } });
-    await trackServer({ name: "signed_in", props: { isNewUser } }, { profileId: userId });
+    await trackServer({ name: "signed_in", props: { isNewUser, anonId } }, { profileId: userId });
   } catch {
     /* analytics must never block sign-in */
   }
