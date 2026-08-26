@@ -146,14 +146,40 @@ function resolveUrl(url: string | null | undefined, base: string): string | null
   }
 }
 
-function decodeHtml(s: string): string {
-  return s
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
+const NAMED_ENTITIES: Record<string, string> = {
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+  amp: "&",
+};
+
+/**
+ * Decode the HTML entities that show up in real `content` attributes.
+ *
+ * ONE pass, deliberately. The chained-.replace() version this grew out of ran
+ * `&amp;` first, so `&amp;lt;` decoded to `&lt;` and then to `<`: text the page
+ * meant to display as literal markup came back as markup. A single pass never
+ * rescans its own output, which removes the ordering hazard entirely.
+ *
+ * Numeric forms are both handled: sites emit `&#x27;` (hex) at least as often
+ * as `&#39;` (decimal), and only decimal was covered before, so an apostrophe
+ * from a hex-escaping CMS rendered as raw `&#x27;` on the leaderboard.
+ *
+ * ponytail: no entity table beyond these six. The full HTML5 named set is ~2200
+ * entries; pull in a library only if OG text ever needs more than this.
+ */
+export function decodeHtml(s: string): string {
+  return s.replace(/&(#[xX][0-9a-fA-F]+|#\d+|[a-zA-Z]+);/g, (match, entity: string) => {
+    if (entity[0] === "#") {
+      const hex = entity[1] === "x" || entity[1] === "X";
+      const cp = parseInt(hex ? entity.slice(2) : entity.slice(1), hex ? 16 : 10);
+      if (!Number.isFinite(cp) || cp <= 0 || cp > 0x10ffff) return match;
+      return String.fromCodePoint(cp);
+    }
+    return NAMED_ENTITIES[entity.toLowerCase()] ?? match;
+  });
 }
 
 function trim(s: string | null): string | null {
