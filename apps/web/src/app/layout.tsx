@@ -107,7 +107,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 }
 
 function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string; plan: "free" | "pro" | null }) {
-  const navLinkClass = "hidden rounded-[12px] px-3 py-1.5 text-muted-foreground transition-colors hover:text-foreground sm:inline-flex";
+  // Eight links revealed at sm (640px) overflowed the 1024px-capped container
+  // all the way up to ~1000px: the row simply did not fit, and the tail of the
+  // nav was clipped off-screen on every page at tablet width. The three highest
+  // -intent links come back at md, the rest only at lg where the full row fits.
+  const navLinkClass = "hidden rounded-[12px] px-2.5 py-1.5 text-muted-foreground transition-colors hover:text-foreground lg:inline-flex";
+  const navLinkPrimaryClass = navLinkClass.replace("lg:inline-flex", "md:inline-flex");
   return (
     <nav className="relative z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5">
@@ -123,14 +128,14 @@ function SiteNav({ signedIn, email, plan }: { signedIn: boolean; email?: string;
               reachable from the footer. */}
           { !signedIn && (
             <>
-              <Link href="/tools" className={ navLinkClass }>Tools</Link>
+              <Link href="/tools" className={ navLinkPrimaryClass }>Tools</Link>
               <Link href="/extension" className={ navLinkClass }>Extension</Link>
               <Link href="/mcp-server" className={ navLinkClass }>MCP</Link>
-              <Link href="/rules" className={ navLinkClass }>Rules</Link>
+              <Link href="/rules" className={ navLinkPrimaryClass }>Rules</Link>
               <Link href="/methodology" className={ navLinkClass }>Methodology</Link>
               <Link href="/symptoms" className={ navLinkClass }>Symptoms</Link>
               <Link href="/leaderboard" className={ navLinkClass }>Leaderboard</Link>
-              <Link href="/pricing" className={ navLinkClass }>Pricing</Link>
+              <Link href="/pricing" className={ navLinkPrimaryClass }>Pricing</Link>
             </>
           ) }
           { signedIn && plan === "free" && (

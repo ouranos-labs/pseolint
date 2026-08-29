@@ -110,23 +110,25 @@ function BucketSection({
 
   return (
     <section>
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <h3 className={`flex items-center gap-2 text-sm font-semibold uppercase tracking-wider ${headingTone}`}>
+      {/* Wraps rather than squeezes: at 390px "Should fix" was being broken
+          across two lines to make room for the subtitle on the same row. */}
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className={`flex items-center gap-2 whitespace-nowrap text-sm font-semibold uppercase tracking-wider ${headingTone}`}>
           <span className={`inline-block h-1.5 w-1.5 rounded-full ${dotTone}`} />
           {title}
           <span className="font-mono text-[11px] font-normal text-muted-foreground">· {findings.length}</span>
         </h3>
         <span className="font-mono text-[11px] text-muted-foreground">{subtitle}</span>
       </div>
-      <div
-        className="gap-4"
-        style={{ columnCount: 2 as unknown as string, columnGap: "1rem", columnFill: "balance" }}
-      >
+      {/* CSS-columns waterfall. `columnCount: 2` was an unconditional inline
+          style, so a 390px phone got two ~170px columns of finding cards with
+          full URLs in them. One column until lg, where the container is wide
+          enough for two to be readable. */}
+      <div className="gap-4 lg:columns-2">
         {sorted.map((group) => (
           <div
             key={group.ruleId}
             className="mb-4 inline-block w-full break-inside-avoid"
-            style={{ breakInside: "avoid" }}
           >
             <FindingGroup group={group} />
           </div>
@@ -170,15 +172,15 @@ function FindingsListV03({ summary }: { summary: AuditSummaryV03 }) {
   return (
     <div className="flex flex-col gap-6">
       <TopFixesHero top={top} />
-      <div
-        className="gap-4"
-        style={{ columnCount: 2 as unknown as string, columnGap: "1rem", columnFill: "balance" }}
-      >
+      {/* CSS-columns waterfall. `columnCount: 2` was an unconditional inline
+          style, so a 390px phone got two ~170px columns of finding cards with
+          full URLs in them. One column until lg, where the container is wide
+          enough for two to be readable. */}
+      <div className="gap-4 lg:columns-2">
         {sorted.map((group) => (
           <div
             key={group.ruleId}
             className="mb-4 inline-block w-full break-inside-avoid"
-            style={{ breakInside: "avoid" }}
           >
             <FindingGroup group={group} />
           </div>

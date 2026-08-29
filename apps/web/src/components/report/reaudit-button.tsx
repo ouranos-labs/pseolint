@@ -1,8 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/cn";
 
-export function ReauditButton({ sourceUrl }: { sourceUrl: string }) {
+export function ReauditButton({ sourceUrl, className }: { sourceUrl: string; className?: string }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
   const router = useRouter();
@@ -38,7 +39,11 @@ export function ReauditButton({ sourceUrl }: { sourceUrl: string }) {
             }
           })
         }
-        className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-60"
+        className={cn(
+          "inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary",
+          "disabled:opacity-60",
+          className,
+        )}
       >
         {pending ? "Starting…" : "Re-audit now"}
       </button>

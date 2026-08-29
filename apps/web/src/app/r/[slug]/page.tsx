@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { and, eq, isNull } from "drizzle-orm";
@@ -16,7 +17,6 @@ import { TileGrid } from "@/components/landing/tile-grid";
 import { CopyLinkButton } from "@/components/audit/copy-link-button";
 import { ExportMenu } from "@/components/report/export-menu";
 import { VisibilityToggle } from "@/components/report/visibility-toggle";
-import { MonitorDomainButton } from "@/components/audit/monitor-domain-button";
 import { ReauditButton } from "@/components/report/reaudit-button";
 import { FindingsList, CategoryBreakdown } from "@/components/audit/findings-list";
 import { OriginReadinessCard } from "@/components/audit/origin-readiness-card";
@@ -35,6 +35,15 @@ import { summaryTruncation } from "@/lib/truncation";
 import { SeverityDemotions } from "@/components/report/severity-demotions";
 
 export const runtime = "nodejs";
+
+/**
+ * The one shape every secondary report action wears. The toolbar previously
+ * mixed h-11/rounded-[18px]/text-sm buttons with h-9/rounded-[14px]/text-xs
+ * ones in the same wrapping row; uniform metrics are what makes it read as a
+ * toolbar instead of a pile.
+ */
+const TOOL_BTN =
+  "inline-flex h-9 items-center gap-1.5 rounded-[14px] border border-border-strong bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary";
 
 type AuditRow = typeof audits.$inferSelect;
 
@@ -204,75 +213,70 @@ export default async function Page({
     : null;
 
   return (
-    <main className="mx-auto max-w-5xl px-5 pb-20 pt-14">
+    <main className="mx-auto max-w-5xl px-4 pb-24 pt-10 sm:px-6 sm:pt-14">
       <TrackView event={ { name: "report_viewed", props: { slug, cached: cached === "1", owned: reportOwned } } } />
+
       { ctx.kind !== "anon" && (
         <Link
           href={ ctx.kind === "pro_own_monitored" ? `/dashboard/${encodeURIComponent(ctx.domainHost)}` : "/dashboard" }
-          className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           <span aria-hidden>←</span>
           { ctx.kind === "pro_own_monitored" ? "Back to workspace" : "Back to dashboard" }
         </Link>
       ) }
+
+      {/*
+        Only true alerts sit above the verdict: they change how every number
+        below should be read. The claim CTA, the badge embed and the CTA strip
+        used to live here too, which meant up to five promotional cards before
+        the one thing the reader came for. They now sit after the report.
+      */}
+      { truncation.truncated ? (
+        <TruncatedBanner reason={ truncation.reason } kind={ truncation.kind } />
+      ) : null }
       { cached === "1" && !ownedByUser && !ownedByAnon ? (
-        <div className="mb-4 flex flex-wrap items-start gap-3 rounded-[18px] border border-warning/30 bg-warning/5 p-4 sm:flex-nowrap sm:items-center">
-          <div className="flex-1 text-xs leading-relaxed text-muted-foreground">
+        <div className="mt-4 flex flex-col gap-3 rounded-[18px] border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
             <span className="font-medium text-foreground">Cached audit.</span>{ " " }
             Showing the most recent public audit of { hostOf(row.sourceUrl) }: not necessarily your own scan.
             Re-runs of the same URL within an hour are deduped to keep the crawl footprint light.
-          </div>
+          </p>
           <Link
             href={
               session
                 ? `/?prefill=${encodeURIComponent(row.sourceUrl)}&force=1`
                 : `/signin?callbackUrl=${encodeURIComponent(`/?prefill=${row.sourceUrl}&force=1`)}`
             }
-            className="inline-flex h-9 shrink-0 items-center rounded-[14px] border border-border-strong px-3 text-xs font-medium hover:bg-secondary"
+            className="inline-flex h-9 shrink-0 items-center justify-center rounded-[14px] border border-border-strong px-3 text-xs font-medium transition-colors hover:bg-secondary"
           >
             { session ? "Run a fresh audit" : "Sign in to force fresh" }
           </Link>
         </div>
       ) : null }
-      <div className="mb-6">
-        <ReportCtaStrip { ...ctx } />
-      </div>
-      { eligible ? (
-        <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
-      ) : null }
-      { eligible ? (
-        <BadgeEmbed
-          host={ row.host ?? hostOf(row.sourceUrl) }
-          reportUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/r/${row.slug}` }
-          badgeUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/api/badge/${encodeURIComponent(row.host ?? hostOf(row.sourceUrl))}` }
-        />
-      ) : null }
-      { truncation.truncated ? (
-        <TruncatedBanner reason={ truncation.reason } kind={ truncation.kind } />
-      ) : null }
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-        Audit complete · { completedAgo }
-      </div>
 
-      <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1
-          className="text-balance text-3xl tracking-tight sm:text-4xl lg:text-5xl"
-          style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
-        >
-          { host }
-        </h1>
-        <a
-          href={ row.sourceUrl }
-          target="_blank"
-          rel={ claim ? "noreferrer noopener" : "nofollow noreferrer noopener" }
-          className="font-mono text-xs text-muted-foreground hover:text-foreground"
-        >
-          ↗ { shortPath(row.sourceUrl) }
-        </a>
-      </div>
-
-      <HowToRead pageCount={ row.pageCount ?? 0 } />
+      <header className="mt-8">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
+          Audit complete · { completedAgo }
+        </div>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1
+            className="text-balance text-[clamp(1.9rem,7vw,3rem)] leading-[1.05] tracking-tight"
+            style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
+          >
+            { host }
+          </h1>
+          <a
+            href={ row.sourceUrl }
+            target="_blank"
+            rel={ claim ? "noreferrer noopener" : "nofollow noreferrer noopener" }
+            className="max-w-full truncate font-mono text-xs text-muted-foreground hover:text-foreground"
+          >
+            ↗ { shortPath(row.sourceUrl) }
+          </a>
+        </div>
+      </header>
 
       { summary && !isV04 ? <LegacyFormatBanner /> : null }
 
@@ -282,7 +286,6 @@ export default async function Page({
           host={ host }
           tileStates={ tileStates }
           pageCount={ row.pageCount ?? 0 }
-          counts={ counts }
           cleanPages={ cleanPages }
         />
       ) : (
@@ -295,6 +298,28 @@ export default async function Page({
           cleanPages={ cleanPages }
         />
       ) }
+
+      {/* The caveats used to be a three-column card wedged between the title and
+          the verdict. One line carries them here; the full version is in the
+          collapsible at the foot of the page, still server-rendered and indexable. */}
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        Heuristic score over { row.pageCount ?? 0 } sampled page{ (row.pageCount ?? 0) === 1 ? "" : "s" }, not Google&apos;s classifier.{ " " }
+        <a href="#how-to-read" className="text-primary underline-offset-4 hover:underline">
+          How to read this ↓
+        </a>
+      </p>
+
+      {/* Category grades, promoted from a section far below the fold. They used
+          to render TWICE: once as tiles inside the hero and once down there.
+          The hero tiles are gone; this is the single place they live. */}
+      { summary && isV04 ? (
+        <section className="mt-6">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Category grades
+          </h2>
+          <CategoryBreakdown summary={ summary } />
+        </section>
+      ) : null }
 
       {/* Focused-lens result: only for audits created from a /tools/[slug] entry
           point. Surfaces the tool's ruleLens prominently (delivering the tool's
@@ -319,45 +344,46 @@ export default async function Page({
       <CoverageCallout pageCount={ row.pageCount ?? 0 } />
 
       { !session && ownedByAnon ? (
-        eligible ? (
-          <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-success/25 bg-success/5 p-5 sm:flex-nowrap sm:items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                This site made the public leaderboard.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Its report is kept permanently. Sign in (free) to run more audits and unlock private reports.
-              </p>
-            </div>
-            <Link
-              href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
-              className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Sign in
-            </Link>
+        <div
+          className={ `mt-6 flex flex-col gap-4 rounded-[22px] border p-5 sm:flex-row sm:items-center ${
+            eligible ? "border-success/25 bg-success/5" : "border-primary/25 bg-primary/5"
+          }` }
+        >
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">
+              { eligible
+                ? "This site made the public leaderboard."
+                : `This report auto-deletes in ${hoursUntil(row.expiresAt)}h.` }
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              { eligible
+                ? "Its report is kept permanently. Sign in (free) to run more audits and unlock private reports."
+                : "Sign in (free) to keep it permanently, run more audits, and unlock private reports." }
+            </p>
           </div>
-        ) : (
-          <div className="mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border border-primary/25 bg-primary/5 p-5 sm:flex-nowrap sm:items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">
-                This report auto-deletes in { hoursUntil(row.expiresAt) }h.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Sign in (free) to keep it permanently, run more audits, and unlock private reports.
-              </p>
-            </div>
-            <Link
-              href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
-              className="inline-flex h-10 shrink-0 items-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Save this report
-            </Link>
-          </div>
-        )
+          <Link
+            href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            { eligible ? "Sign in" : "Save this report" }
+          </Link>
+        </div>
       ) : null }
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <CopyLinkButton url={ shareUrl } />
+      <div className="mt-6">
+        <ReportCtaStrip { ...ctx } />
+      </div>
+
+      {/*
+        Report actions. Every control is one height and one radius now: the row
+        used to mix h-11/text-sm pills with h-9/text-xs ones and read as a ransom
+        note once four or more were visible. The monitor / upgrade CTAs were
+        dropped from here because ReportCtaStrip directly above already renders
+        exactly one of them for every viewer context; the toolbar was repeating
+        the same upsell a second and third time.
+      */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[18px] border border-border/60 bg-card/30 p-2.5">
+        <CopyLinkButton url={ shareUrl } className={ TOOL_BTN } />
         <ExportMenu auditId={ row.id } auditSlug={ slug } isPro={ ctx.kind.startsWith("pro_") } />
         {/* Visibility is a property of the SITE for a monitored domain: setting
             it per-report set one row and was undone by the next scheduled run,
@@ -365,10 +391,7 @@ export default async function Page({
             one-off audit has no site page, so it keeps the per-report toggle. */ }
         { ownedByUser && (
           ctx.kind === "pro_own_monitored" ? (
-            <Link
-              href={ `/dashboard/${ctx.domainHost}` }
-              className="inline-flex h-9 items-center gap-1.5 rounded-[14px] border border-border-strong bg-background px-3 text-xs hover:bg-secondary"
-            >
+            <Link href={ `/dashboard/${ctx.domainHost}` } className={ TOOL_BTN }>
               <span
                 aria-hidden
                 className={ `inline-block h-1.5 w-1.5 rounded-full ${row.isPublic ? "bg-warning" : "bg-primary"}` }
@@ -379,45 +402,34 @@ export default async function Page({
             <VisibilityToggle auditId={ row.id } initialIsPublic={ row.isPublic } isPro={ ctx.kind.startsWith("pro_") } />
           )
         ) }
+        { ownedByUser ? <ReauditButton sourceUrl={ row.sourceUrl } className={ TOOL_BTN } /> : null }
         <Link
           href="/#top"
-          className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="inline-flex h-9 w-full items-center justify-center rounded-[14px] bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 sm:ml-auto sm:w-auto"
         >
           Audit another site
         </Link>
-        { session ? (
-          <MonitorDomainButton
-            sourceUrl={ row.sourceUrl }
-            isPro={ ctx.kind.startsWith("pro_") }
-            auditSlug={ slug }
-          />
-        ) : null }
-        { ownedByUser ? <ReauditButton sourceUrl={ row.sourceUrl } /> : null }
-        { !ctx.kind.startsWith("pro_") && (
-          <Link
-            href={ `/pricing?intent=monitor&audit=${encodeURIComponent(slug)}` }
-            className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
-            Upgrade to Pro · monitor + PDF →
-          </Link>
-        ) }
-        { ownedByUser || ownedByAnon ? (
-          <span className="ml-auto font-mono text-[11px] text-muted-foreground">
-            { row.isPublic ? "public · shareable" : "private · owner only" }
-          </span>
-        ) : null }
       </div>
+      { ownedByUser || ownedByAnon ? (
+        <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+          { row.isPublic ? "public · shareable" : "private · owner only" }
+        </p>
+      ) : null }
 
       { summary ? (
         <>
           <OriginReadinessCard summary={ summary } />
 
-          <section className="mt-14">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              { isV04 ? "Category grades" : "Category scores" }
-            </h2>
-            <CategoryBreakdown summary={ summary } />
-          </section>
+          {/* v0.4 grades render above, right under the verdict. Legacy v0.3
+              reports have no grade tiles up there, so they keep this section. */}
+          { !isV04 ? (
+            <section className="mt-14">
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Category scores
+              </h2>
+              <CategoryBreakdown summary={ summary } />
+            </section>
+          ) : null }
 
           {/* Per-template breakdown: mirrors the dashboard. Rendered when the
               engine detected ≥2 templates, placed ABOVE the per-URL findings so
@@ -425,9 +437,9 @@ export default async function Page({
               back silently for legacy / single-template audits. */}
           { isV04 && ((summary as AuditSummaryV04).templates?.length ?? 0) >= 2 ? (
             <section className="mt-14">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Templates
-              </h2>
+              {/* No heading here: TemplateGridClient renders its own
+                  "Templates · N detected" header, so a wrapper <h2> printed the
+                  word twice in a row. */}
               <TemplateGridClient
                 templates={ (summary as AuditSummaryV04).templates }
               />
@@ -435,7 +447,7 @@ export default async function Page({
           ) : null }
 
           <section id="findings" className="mt-14 scroll-mt-6">
-            <div className="mb-4 flex items-baseline justify-between">
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                 { isV04
                   ? `Findings · ${countV04Findings(summary as AuditSummaryV04)}`
@@ -454,24 +466,26 @@ export default async function Page({
         </section>
       ) }
 
-      <section className="mt-14 rounded-[22px] border border-border/60 bg-card/40 p-6 text-xs text-muted-foreground">
-        <p className="text-sm font-medium text-foreground">About this audit</p>
-        <p className="mt-2 leading-relaxed">
-          { eligible
-            ? "This report is kept permanently because the site is on the public leaderboard."
-            : (
-              <>
-                Report auto-deletes{ " " }
-                { ownedByAnon ? "in 24 hours" : ownedByUser ? "after 30 days" : "within its retention window" }
-                .
-              </>
-            ) } Retention, rate limits, and crawl behaviour are documented in full at{ " " }
-          <Link href="/limits" className="text-primary hover:underline">
-            pseolint.dev/limits
-          </Link>
-          .
-        </p>
-      </section>
+      {/* Leaderboard / owner actions, moved below the report: they ask the
+          reader to act on a result they have now actually seen. */}
+      { eligible ? (
+        <div className="mt-14">
+          <ClaimCta host={ row.host ?? hostOf(row.sourceUrl) } claimed={ !!claim } ownedByViewer={ claimedByViewer } />
+          <div className="mt-6">
+            <BadgeEmbed
+              host={ row.host ?? hostOf(row.sourceUrl) }
+              reportUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/r/${row.slug}` }
+              badgeUrl={ `${env().BETTER_AUTH_URL.replace(/\/$/, "")}/api/badge/${encodeURIComponent(row.host ?? hostOf(row.sourceUrl))}` }
+            />
+          </div>
+        </div>
+      ) : null }
+
+      <MethodologyNotes
+        pageCount={ row.pageCount ?? 0 }
+        eligible={ eligible }
+        retention={ ownedByAnon ? "in 24 hours" : ownedByUser ? "after 30 days" : "within its retention window" }
+      />
     </main>
   );
 }
@@ -543,94 +557,97 @@ function V04Hero({
   host,
   tileStates,
   pageCount,
-  counts,
   cleanPages,
 }: {
   summary: AuditSummaryV04;
   host: string;
   tileStates: import("@/components/landing/tile-grid").TileState[];
   pageCount: number;
-  counts: SeverityCounts;
   cleanPages: number | null;
 }) {
   const v = verdictTone(summary.verdict);
+  // The verdict inputs (site type, confidence, discovered URLs, content effort,
+  // authority) used to be four separately-positioned `mt-3` pills stacked down
+  // the column, each on its own line. Same information, one wrapping row.
+  const chips: { label: string; value: string; title?: string }[] = [];
+  if (summary.siteClassification) {
+    chips.push({ label: "Site type", value: summary.siteClassification.type });
+    chips.push({
+      label: "Confidence",
+      value: `${clampPct(Math.round(summary.siteClassification.confidence * 100))}%`,
+    });
+    // `sitemap-url-count` is the total URLs DISCOVERED (sitemap scale: often
+    // thousands), NOT the count actually audited (that's the Pages stat).
+    const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
+      | { kind: "sitemap-url-count"; value: number }
+      | undefined;
+    if (sig) {
+      chips.push({
+        label: "Discovered",
+        value: `${sig.value.toLocaleString("en-US")} URLs`,
+        title: "Total URLs found in the sitemap. The Pages stat is how many were actually audited.",
+      });
+    }
+  }
+  // Pro-only: free/anon audits never populate contentEffort, so the finite
+  // check is the gate and the chip simply doesn't appear (no upsell modal).
+  if (Number.isFinite(summary.contentEffort?.score)) {
+    chips.push({
+      label: "Content effort",
+      value: `${Math.round(summary.contentEffort!.score)}/100`,
+      title: "AI-judged originality & effort (0-100). Higher = more original human work; moderates the verdict.",
+    });
+  }
+  // Authority MODERATES the verdict (it never touches the raw `risk`): >=80
+  // shifts one tier more lenient, <=30 one tier stricter, 31-79 no shift.
+  if (Number.isFinite(summary.authority?.score)) {
+    chips.push({
+      label: "Authority",
+      value: `${Math.round(summary.authority!.score)}/100`,
+      title: "Domain authority (0-100). >=80 shifts the verdict one tier more lenient; <=30 one tier stricter; 31-79 no shift. Never changes the raw risk.",
+    });
+  }
+
   return (
-    <div
-      className={ `mt-6 grid gap-6 rounded-[28px] border ${v.border} ${v.bg} p-7 backdrop-blur-sm sm:grid-cols-[minmax(0,auto)_minmax(0,1fr)] sm:items-stretch sm:gap-10 sm:p-8` }
+    <section
+      className={ `mt-6 overflow-hidden rounded-[28px] border ${v.border} ${v.bg} backdrop-blur-sm` }
     >
-      <div className="flex flex-col items-start justify-between gap-5">
-        <div>
-          <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Verdict</span>
-          <div className="mt-2 ml-2 inline-flex items-center gap-2 rounded-full border border-border-strong bg-card px-3 py-1.5">
-            <span className={ `inline-block h-2 w-2 rounded-full ${v.dot}` } />
-            <span
-              className={ `text-2xl tabular-nums ${v.tone}` }
-              style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
-            >
-              { v.label }
-            </span>
-          </div>
-          <p className="mt-3 max-w-md text-sm leading-relaxed text-foreground">{ summary.headline }</p>
-          {/*
-            v0.4 §4.11 site-classification badge: sits between the verdict
-            pill and the four category-grade tiles. Only rendered when the
-            engine populated `siteClassification` (v0.4+ reports). Legacy
-            v0.3 reports flow through LegacyHero and never reach this branch.
-          */}
-          { summary.siteClassification ? (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground">
-              <span className="font-mono">Site type: { summary.siteClassification.type }</span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums">{ clampPct(Math.round(summary.siteClassification.confidence * 100)) }% confidence</span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums">
-                { (() => {
-                  // `sitemap-url-count` is the total URLs DISCOVERED (sitemap
-                  // scale: often thousands), NOT the count actually audited
-                  // (that's `pageCount`, surfaced via the Pages stat).
-                  const sig = summary.siteClassification.signals.find((s) => s.kind === "sitemap-url-count") as
-                    | { kind: "sitemap-url-count"; value: number }
-                    | undefined;
-                  return `${(sig?.value ?? 0).toLocaleString("en-US")} URLs discovered`;
-                })() }
+      {/* Verdict and coverage map stay side by side only from lg up. They used
+          to split at sm (640px), where a 25-column tile map and a paragraph of
+          headline were each squeezed into ~300px. */}
+      <div className="grid gap-8 p-5 sm:p-7 lg:grid-cols-[minmax(0,21rem)_minmax(0,1fr)] lg:gap-10 lg:p-8">
+        <div className="flex flex-col gap-4">
+          <div>
+            <span className="text-[11px] uppercase tracking-wider text-muted-foreground">Verdict</span>
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-border-strong bg-card px-3 py-1.5">
+              <span className={ `inline-block h-2 w-2 rounded-full ${v.dot}` } />
+              <span
+                className={ `text-2xl tabular-nums ${v.tone}` }
+                style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
+              >
+                { v.label }
               </span>
             </div>
+          </div>
+
+          <p className="max-w-prose text-sm leading-relaxed text-foreground">{ summary.headline }</p>
+
+          { chips.length > 0 ? (
+            <ul className="flex flex-wrap gap-1.5">
+              { chips.map((c) => (
+                <li key={ c.label }>
+                  <span
+                    title={ c.title }
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background/40 px-2.5 py-1 text-[11px] text-muted-foreground"
+                  >
+                    <span className="font-mono">{ c.label }</span>
+                    <span className="tabular-nums text-foreground">{ c.value }</span>
+                  </span>
+                </li>
+              )) }
+            </ul>
           ) : null }
-          {/*
-            Pro-only content-effort pill: the AI-judged 0-100 originality/effort
-            score the engine writes to `summary.contentEffort.score` when the
-            Pro-gated signal runs (run-audit.ts). Free/anon audits never populate
-            it, so `Number.isFinite` is the gate: the pill simply renders nothing
-            for them (no upsell modal). Styled to match the site-type badge above.
-          */}
-          { Number.isFinite(summary.contentEffort?.score) ? (
-            <div
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
-              title="AI-judged originality & effort (0-100). Higher = more original human work; moderates the verdict."
-            >
-              <span className="font-mono">Content effort</span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums">{ Math.round(summary.contentEffort!.score) }/100</span>
-            </div>
-          ) : null }
-          {/*
-            Domain-authority pill: `summary.authority` ({score, domain}) is the
-            0-100 authority hint the engine uses to MODERATE the verdict (it
-            never touches the raw `risk`): >=80 shifts the verdict one tier more
-            lenient, <=30 one tier stricter, 31-79 no shift. Shown here so the
-            user can see the input behind a tier shift. Absent when authority
-            couldn't be resolved; `Number.isFinite` gates the render.
-          */}
-          { Number.isFinite(summary.authority?.score) ? (
-            <div
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-background/40 px-3 py-1 text-[11px] text-muted-foreground"
-              title="Domain authority (0-100). >=80 shifts the verdict one tier more lenient; <=30 one tier stricter; 31-79 no shift. Never changes the raw risk."
-            >
-              <span className="font-mono">Authority</span>
-              <span aria-hidden="true">·</span>
-              <span className="tabular-nums">{ Math.round(summary.authority!.score) }/100</span>
-            </div>
-          ) : null }
+
           {/*
             Degeneration note: the engine emits a `degeneration-guard-tripped`
             signal when it downgraded a small-marketing/blog classification to
@@ -639,7 +656,7 @@ function V04Hero({
             demotions, so explain WHY the softer profile didn't apply.
           */}
           { summary.siteClassification?.signals.some((s) => s.kind === "degeneration-guard-tripped") ? (
-            <p className="mt-3 max-w-md text-[11px] leading-relaxed text-muted-foreground">
+            <p className="max-w-prose text-[11px] leading-relaxed text-muted-foreground">
               Site-type profiling was skipped: the sampled pages look degenerate
               (mostly thin or near-duplicate), so severity demotions for the
               detected site type were not applied.
@@ -647,90 +664,44 @@ function V04Hero({
           ) : null }
         </div>
 
-        <div className="grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
-          { (
-            [
-              { key: "integrity", label: "Integrity" },
-              { key: "discoverability", label: "Discoverability" },
-              { key: "citation", label: "Citation" },
-              { key: "data", label: "Data" },
-            ] as const
-          ).map(({ key, label }) => {
-            const cat = summary.categories[key];
-            if (!cat) return null;
-            const g = gradeTone(cat.grade);
-            return (
-              <div
-                key={ key }
-                className={ `rounded-[14px] border ${g.border} ${g.bg} p-3 text-center` }
-                title={ `${label}: ${cat.issues} ${cat.issues === 1 ? "issue" : "issues"}` }
-              >
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{ label }</div>
-                <div
-                  className={ `mt-1 leading-none tabular-nums ${g.tone}` }
-                  style={ { fontFamily: "var(--font-display)", fontSize: "40px" } }
-                >
-                  { cat.grade }
-                </div>
-                <div className="mt-1 font-mono text-[10px] text-muted-foreground">
-                  { cat.issues } { cat.issues === 1 ? "issue" : "issues" }
-                </div>
-              </div>
-            );
-          }) }
+        <div className="flex flex-col gap-3">
+          { tileStates.length > 0 ? (
+            <>
+              <TileGrid
+                states={ tileStates }
+                meta={ summaryToTileMeta(summary) }
+                rows={ tileRows(tileStates.length) }
+                title={ `${host}: worst rule per page across ${tileStates.length} tiles. Hover for page details.` }
+              />
+              <TileLegend
+                { ...pagesByWorstSeverity(summary) }
+                total={ tileStates.length }
+              />
+            </>
+          ) : (
+            <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
+              Tile map unavailable for this audit. Full report below.
+            </div>
+          ) }
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        { tileStates.length > 0 ? (
-          <>
-            <TileGrid
-              states={ tileStates }
-              meta={ summaryToTileMeta(summary) }
-              title={ `${host}: worst rule per page across ${tileStates.length} tiles. Hover for page details.` }
-            />
-            <TileLegend
-              { ...pagesByWorstSeverity(summary) }
-              total={ tileStates.length }
-            />
-          </>
-        ) : (
-          <div className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-4 text-xs text-muted-foreground">
-            Tile map unavailable for this audit. Full report below.
-          </div>
-        ) }
-        <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-5">
-          <Stat label="Pages" sub="scanned" value={ pageCount } tone="text-foreground" />
-          <Stat
-            label="Blockers"
-            sub="findings"
-            value={ summary.issues.blockers.length }
-            tone="text-destructive"
-          />
-          <Stat
-            label="Should fix"
-            sub="findings"
-            value={ summary.issues.shouldFix.length }
-            tone="text-warning"
-          />
-          <Stat
-            label="Info"
-            sub="findings"
-            value={ summary.issues.informational.length }
-            tone="text-muted-foreground"
-          />
-          <Stat
-            label="Clean"
-            sub="pages"
-            value={ cleanPages ?? 0 }
-            tone="text-success"
-            placeholder={ cleanPages == null }
-          />
-        </dl>
-        {/* Counts kept for symmetry but not surfaced: v0.4 prefers the bucket counts above. */ }
-        <span className="hidden">{ counts ? counts.errors : 0 }</span>
-      </div>
-    </div>
+      {/* Counts on their own rail behind a divider: five numbers crammed under
+          the tile map competed with the headline for the same block of space. */}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-5 border-t border-border/50 bg-background/20 p-5 sm:grid-cols-3 sm:p-7 lg:grid-cols-5 lg:px-8 lg:py-5">
+        <Stat label="Pages" sub="scanned" value={ pageCount } tone="text-foreground" />
+        <Stat label="Blockers" sub="findings" value={ summary.issues.blockers.length } tone="text-destructive" />
+        <Stat label="Should fix" sub="findings" value={ summary.issues.shouldFix.length } tone="text-warning" />
+        <Stat label="Info" sub="findings" value={ summary.issues.informational.length } tone="text-muted-foreground" />
+        <Stat
+          label="Clean"
+          sub="pages"
+          value={ cleanPages ?? 0 }
+          tone="text-success"
+          placeholder={ cleanPages == null }
+        />
+      </dl>
+    </section>
   );
 }
 
@@ -778,6 +749,7 @@ function LegacyHero({
           <>
             <TileGrid
               states={ tileStates }
+              rows={ tileRows(tileStates.length) }
               title={ `${host}: worst rule per page across ${tileStates.length} tiles` }
             />
             <TileLegend
@@ -890,6 +862,15 @@ function countV04Findings(summary: AuditSummaryV04): number {
   );
 }
 
+/**
+ * Rows the tile map actually needs. TileGrid draws `cols * rows` rects and pads
+ * the shortfall with grey "unscanned" tiles, so the fixed 8-row default turned a
+ * 15-page audit into one row of data above seven rows of empty placeholders.
+ */
+function tileRows(count: number, cols = 25): number {
+  return Math.max(1, Math.ceil(count / cols));
+}
+
 function verdictTone(verdict: AuditSummaryV04["verdict"]): {
   label: string;
   tone: string;
@@ -936,22 +917,29 @@ function verdictTone(verdict: AuditSummaryV04["verdict"]): {
   }
 }
 
-function gradeTone(grade: string): { tone: string; border: string; bg: string } {
-  if (grade === "A" || grade === "B") {
-    return { tone: "text-success", border: "border-success/30", bg: "bg-success/5" };
-  }
-  if (grade === "C") {
-    return { tone: "text-warning", border: "border-warning/30", bg: "bg-warning/5" };
-  }
-  if (grade === "D") {
-    return { tone: "text-warning", border: "border-warning/50", bg: "bg-warning/10" };
-  }
-  // F + anything else
-  return { tone: "text-destructive", border: "border-destructive/40", bg: "bg-destructive/5" };
-}
-
-function HowToRead({ pageCount }: { pageCount: number }) {
-  const caveats: { label: string; body: string }[] = [
+/**
+ * Sampling caveats, coverage context and retention, folded into one collapsed
+ * disclosure at the foot of the page.
+ *
+ * This replaces three separate always-open blocks (a three-column "How to read
+ * this score" card above the hero, the non-warning half of the coverage
+ * callout, and an "About this audit" card at the bottom) that between them ate
+ * a screen of height to say things a reader consults once.
+ *
+ * Native <details>, not a client disclosure: the markup is server-rendered and
+ * present in the HTML whether or not it is open, so nothing here is hidden
+ * from a crawler. Only the paint is deferred, which is the point.
+ */
+function MethodologyNotes({
+  pageCount,
+  eligible,
+  retention,
+}: {
+  pageCount: number;
+  eligible: boolean;
+  retention: string;
+}) {
+  const notes: { label: string; body: ReactNode }[] = [
     {
       label: "Sample, not census",
       body: `Scored on ${pageCount} sampled page${pageCount === 1 ? "" : "s"} from sitemap.xml. Template clusters across un-sampled pages may be missed.`,
@@ -962,76 +950,90 @@ function HowToRead({ pageCount }: { pageCount: number }) {
     },
     {
       label: "Server-rendered by default",
-      body: "We read the HTML the server returns. Client-rendered content looks empty to us, Pro audits can render JS-heavy / SPA pages in a browser first.",
+      body: "We read the HTML the server returns. Client-rendered content looks empty to us; Pro audits can render JS-heavy / SPA pages in a browser first.",
+    },
+    {
+      label: "Page budget",
+      body: (
+        <>
+          pseolint samples up to 200 pages on free audits (50 without an account) and treats{ " " }
+          <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. Pro lifts the
+          budget to 500 pages on manual re-audits and crawls beyond the sitemap.
+        </>
+      ),
+    },
+    {
+      label: "Retention",
+      body: eligible
+        ? "This report is kept permanently because the site is on the public leaderboard."
+        : `This report auto-deletes ${retention}.`,
+    },
+    {
+      label: "Fair use",
+      body: (
+        <>
+          Retention, rate limits and crawl behaviour are documented in full at{ " " }
+          <Link href="/limits" className="text-primary hover:underline">
+            pseolint.dev/limits
+          </Link>
+          .
+        </>
+      ),
     },
   ];
 
   return (
-    <section
-      aria-label="How to read this score"
-      className="mt-6 rounded-[22px] border border-border/60 bg-card/30 p-5 backdrop-blur-sm"
-    >
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          How to read this score
-        </h2>
-        <Link
-          href="/limits"
-          className="font-mono text-[11px] text-muted-foreground underline-offset-4 hover:text-primary hover:underline"
+    <details className="group mt-14 rounded-[22px] border border-border/60 bg-card/30">
+      <summary className="flex cursor-pointer list-none items-center gap-3 rounded-[22px] p-5 outline-none transition-colors hover:bg-card/60 focus-visible:ring-2 focus-visible:ring-primary/60 [&::-webkit-details-marker]:hidden">
+        <svg
+          viewBox="0 0 12 12"
+          aria-hidden
+          className="size-3 shrink-0 text-muted-foreground transition-transform duration-150 group-open:rotate-90"
         >
-          full fair-use & limits ↗
-        </Link>
-      </div>
-      <ul className="grid gap-3 sm:grid-cols-3">
-        { caveats.map((c) => (
-          <li key={ c.label } className="flex gap-2.5 text-xs leading-relaxed text-muted-foreground">
-            <span
-              aria-hidden
-              className="mt-[7px] inline-block h-1 w-1 shrink-0 rounded-full bg-muted-foreground/60"
-            />
-            <span>
-              <span className="block font-medium text-foreground">{ c.label }</span>
-              <span>{ c.body }</span>
-            </span>
+          <path d="M4 2l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <h2 className="text-sm font-medium text-foreground">How to read this report</h2>
+        <span className="ml-auto hidden shrink-0 text-[11px] text-muted-foreground sm:block">
+          sampling · scope · retention
+        </span>
+      </summary>
+      {/* The anchor target is the BODY, not the <details>: browsers that
+          support auto-expanding details open the card when a fragment inside it
+          is navigated to. Older ones just scroll to the collapsed card, which
+          still puts the summary under the reader's cursor. */}
+      <ul id="how-to-read" className="grid scroll-mt-24 gap-4 px-5 pb-5 sm:grid-cols-2 lg:grid-cols-3">
+        { notes.map((n) => (
+          <li key={ n.label } className="text-xs leading-relaxed text-muted-foreground">
+            <span className="block font-medium text-foreground">{ n.label }</span>
+            <span>{ n.body }</span>
           </li>
         )) }
       </ul>
-    </section>
+    </details>
   );
 }
 
+/**
+ * Coverage warning. Only renders when the sample is genuinely too small to
+ * trust (< 10 pages). The old "audited N pages, Pro crawls deeper" variant fired
+ * on anything under 40 pages and was an upsell dressed as a warning; that copy
+ * now lives in MethodologyNotes instead of taking a full card mid-page.
+ */
 function CoverageCallout({ pageCount }: { pageCount: number }) {
-  if (pageCount >= 40) return null;
-  const low = pageCount < 10;
-  const tone = low
-    ? "border-warning/40 bg-warning/5 text-warning"
-    : "border-border/60 bg-card/40 text-muted-foreground";
+  if (pageCount >= 10) return null;
   return (
-    <div className={ `mt-6 flex flex-wrap items-start gap-4 rounded-[22px] border p-5 ${tone} sm:flex-nowrap sm:items-center` }>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-foreground">
-          { low ? (
-            <>Only { pageCount } page{ pageCount === 1 ? "" : "s" } audited, your sitemap may be incomplete.</>
-          ) : (
-            <>Audited { pageCount } pages from your sitemap.</>
-          ) }
-        </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          { low ? (
-            <>
-              pseolint samples up to 200 pages on free audits (50 without an account), but uses <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. If your site has more pages, add them to the sitemap, or upgrade to Pro for 500-page manual re-audits and deeper link discovery.
-            </>
-          ) : (
-            <>
-              The score above is computed on this sample. Pro lifts the budget to 500 pages on manual re-audits and crawls beyond the sitemap.
-            </>
-          ) }
-        </p>
-      </div>
+    <div className="mt-6 flex flex-col gap-2 rounded-[22px] border border-warning/40 bg-warning/5 p-5">
+      <p className="text-sm font-medium text-foreground">
+        Only { pageCount } page{ pageCount === 1 ? "" : "s" } audited, your sitemap may be incomplete.
+      </p>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        pseolint uses <code className="font-mono text-foreground">sitemap.xml</code> as the source of truth. If your
+        site has more pages, add them to the sitemap, or upgrade to Pro for 500-page manual re-audits and deeper
+        link discovery.
+      </p>
     </div>
   );
 }
-
 function Stat({
   label,
   sub,
