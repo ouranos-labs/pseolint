@@ -216,7 +216,7 @@ Add to `.vscode/mcp.json`:
 
 ## What It Checks
 
-44 rules, grouped by theme (scored across 4 categories: integrity, discoverability, citation, data):
+65 rules, grouped by theme (rolled up into 4 scored categories: integrity, discoverability, citation, data):
 
 - **SpamBrain Risk**: near-duplicate detection, entity-swap doorway pages, thin content, boilerplate ratio
 - **Content Quality**: unique value per page, heading/meta uniqueness, E-E-A-T signals

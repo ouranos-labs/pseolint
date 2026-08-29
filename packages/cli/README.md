@@ -146,6 +146,60 @@ Render-mode analytics (v0.3.1+)
                           Prevents the audit from injecting fake sessions
                           into the site owner's GA/Plausible/etc.
 --block-host <host>       Extra host substring to block (repeatable).
+
+Scope and rule selection
+--strict                  Run every rule regardless of detected site type,
+                          bypassing the pSEO-only suppression that keeps small
+                          sites from being graded against programmatic rules.
+--full                    Disable the automatic 'dev' preset on localhost
+                          sources and run a full crawl.
+--data-source <file>      JSON file of source data, used to verify that the
+                          page's claims match the record it was generated from.
+--skip-empty-body         Skip un-hydrated SPA shells (script-driven pages
+                          whose server HTML has an empty body).
+--no-per-template         Disable the per-template cards view (same as
+                          --legacy-flat).
+
+Core Web Vitals from real users (CrUX)
+--crux-api-key <key>      Chrome UX Report API key, or CRUX_API_KEY. Enables
+                          field p75 LCP/CLS/INP for tech/core-web-vitals: the
+                          numbers Google actually ranks on. Free key; queries
+                          only Google's CrUX endpoint.
+--crux-form-factor <f>    phone (mobile-first, ranking-relevant) | desktop |
+                          all (default: all).
+--crux-max-lookups <n>    Cap per-URL CrUX lookups; pages past it fall back to
+                          origin-level field data (default: 150; 0 = unlimited).
+
+Resilience
+--no-backpressure         Disable the in-flight watchdog that aborts an audit
+                          when origin latency or 5xx rate spikes. The watchdog
+                          protects someone else's origin: turn it off only for
+                          a server you control, e.g. a slow local dev server.
+
+Uploading results (v0.5.6)
+--upload-to <endpoint>    POST the JSON summary to a pseolint endpoint when the
+                          scan finishes (or PSEOLINT_ENDPOINT).
+--upload-token <token>    API token for --upload-to (or PSEOLINT_TOKEN).
+--upload-domain-id <id>   Domain to associate the upload with (or
+                          PSEOLINT_DOMAIN_ID).
+
+Other
+--mcp                     Start as an MCP server for AI coding assistants.
+                          See @pseolint/mcp for the tool surface.
+
+Crawl scope: pages skipped by DEFAULT
+These four are on by default; each flag turns the skip OFF. If a page is
+missing from a report, it is usually one of these.
+--no-respect-noindex      Audit pages marked noindex (meta robots or
+                          X-Robots-Tag) instead of skipping them.
+--no-skip-detected-auth   Audit heuristically-detected login / signup /
+                          password-reset pages.
+--no-skip-boilerplate     Audit cookie, legal, consent and imprint pages.
+--no-skip-search-pages    Audit pages with search-result hallmarks
+                          (?q=, /search, ...).
+
+--telemetry-path <file>   Override the local telemetry JSONL path
+                          (default: .pseolint/telemetry.jsonl).
 ```
 
 ## Subcommands
