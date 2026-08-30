@@ -8,6 +8,15 @@ const config: NextConfig = {
   async rewrites() {
     return [{ source: "/mcp", destination: "/api/mcp" }];
   },
+  // Credential management was consolidated onto /dashboard/api-keys. These two
+  // routes are gone, but /dashboard/settings/tokens shipped in a published CLI
+  // changelog, so both keep forwarding rather than 404ing a bookmarked URL.
+  async redirects() {
+    return [
+      { source: "/dashboard/settings/tokens", destination: "/dashboard/api-keys", permanent: true },
+      { source: "/dashboard/settings/ai-key", destination: "/dashboard/api-keys", permanent: true },
+    ];
+  },
 };
 
 export default config;

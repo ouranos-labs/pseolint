@@ -157,10 +157,10 @@ export default function McpServerPage() {
         <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
           Create a key under{" "}
           <Link
-            href="/dashboard/settings/account"
+            href="/dashboard/api-keys"
             className="text-foreground underline decoration-dotted underline-offset-2"
           >
-            dashboard → account
+            dashboard → API keys &amp; MCP
           </Link>{" "}
           and send it as a Bearer token. A key also adds{" "}
           <code className="font-mono text-xs">pseolint_list_audits</code> and{" "}

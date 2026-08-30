@@ -33,6 +33,7 @@ const PRO_GROUPS: Group[] = [
     title: "Setup",
     items: [
       { href: "/dashboard/integrations", label: "Integrations" },
+      { href: "/dashboard/api-keys", label: "API keys & MCP" },
       {
         href: "/dashboard/settings",
         label: "Settings",
@@ -47,19 +48,16 @@ const FREE_GROUPS: Group[] = [
   { items: [{ href: "/dashboard", label: "History" }] },
   {
     title: "AI",
-    items: [
-      { href: "/dashboard/manifests", label: "Fix manifests" },
-      { href: "/dashboard/settings/ai-key", label: "AI key" },
-    ],
+    items: [{ href: "/dashboard/manifests", label: "Fix manifests" }],
   },
   {
     title: "Setup",
     items: [
+      { href: "/dashboard/api-keys", label: "API keys & MCP" },
       {
         href: "/dashboard/settings",
         label: "Settings",
         activePrefixes: ["/dashboard/settings"],
-        excludePrefixes: ["/dashboard/settings/ai-key"],
       },
     ],
   },

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/session";
 import { DeleteAccountForm } from "./delete-account-form";
-import { McpKeysCard } from "@/components/dashboard/mcp-keys-card";
 
 export default async function AccountSettings() {
   const session = await getOptionalSession();
@@ -28,7 +27,6 @@ export default async function AccountSettings() {
           Download JSON
         </a>
       </div>
-      <McpKeysCard />
       <div className="rounded-[18px] border border-destructive/40 p-5">
         <h2 className="text-sm font-medium text-destructive">Delete account</h2>
         <p className="mt-2 text-xs text-muted-foreground">

@@ -173,7 +173,7 @@ export default async function IntegrationsPage({
               blurb="Run audits on every PR. Upload results here for cross-run history + regression trends.">
           <pre className="overflow-x-auto rounded-[12px] bg-muted p-4 text-xs">{yaml}</pre>
           <p className="mt-2 text-xs text-muted-foreground">
-            You&apos;ll need an upload token, <Link href="/dashboard/settings/tokens" className="text-primary hover:underline">create one</Link>.
+            You&apos;ll need an upload token, <Link href="/dashboard/api-keys" className="text-primary hover:underline">create one</Link>.
           </p>
         </Card>
 
