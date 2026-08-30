@@ -1,0 +1,89 @@
+# pseolint matrix DB — PostgreSQL 18. Paste into Coolify as a Docker Compose resource.
+#
+# NOTE: the app database on Neon runs 17.11 (verified 2026-08-30, `select version()`),
+# not 18.6 as an earlier version of this comment claimed. Moving it here is a major
+# upgrade, so the dump must be taken with a pg_dump >= 17 — pg_dump 16 refuses outright
+# ("aborting because of server version mismatch"). Use the 18 client from this image:
+#   docker run --rm -v "$PWD:/b" -w /b postgres:18-alpine \
+#     pg_dump --no-owner --no-privileges -Fc -f neon.dump "$NEON_URL"
+#   docker run --rm -v "$PWD:/b" -w /b --network host postgres:18-alpine \
+#     pg_restore --no-owner --no-privileges --single-transaction \
+#     -d "postgresql://USER:PASS@127.0.0.1:5436/pseolint" /b/neon.dump
+#
+# SERVICE_USER_POSTGRESQL / SERVICE_PASSWORD_POSTGRESQL are Coolify magic variables: it
+# generates them, injects them, and shows them in the resource's env tab. Do not hardcode.
+#
+# EVERYTHING security-relevant here is applied at FIRST INIT and never revisited:
+# pg_hba.conf, the password, and the database name. On an existing volume Postgres prints
+# "Skipping initialization" and silently ignores all of it — which is exactly how the previous
+# instance ended up serving cleartext auth on a public port. A fresh volume, or none of this
+# takes effect.
+#
+# Single service on purpose: certificate generation happens in the entrypoint rather than an
+# init container, because Coolify applies its own restart policy to compose services and a
+# one-shot container that exits successfully gets restarted forever.
+
+services:
+  postgres:
+    image: "postgres:18-alpine"
+    environment:
+      - "POSTGRES_USER=${SERVICE_USER_POSTGRESQL}"
+      - "POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRESQL}"
+      - "POSTGRES_DB=${POSTGRESQL_DATABASE:-pseolint}"
+      # scram-sha-256 for remote connections. Note the ABSENCE of POSTGRES_HOST_AUTH_METHOD:
+      # setting it to `password` is what wrote `host all all all password` — cleartext
+      # credentials on the wire — into the instance this replaces.
+      - "POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256 --auth-local=trust"
+    # Runs as root, mints a self-signed cert if absent, then hands off to the image's real
+    # entrypoint (which drops to the postgres user via gosu). `$$` is compose escaping for a
+    # literal `$` reaching the shell.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        CERTS=/certs
+        if [ ! -f "$$CERTS/server.key" ]; then
+          mkdir -p "$$CERTS"
+          apk add --no-cache openssl >/dev/null 2>&1
+          openssl req -new -x509 -days 3650 -nodes -text \
+            -out "$$CERTS/server.crt" -keyout "$$CERTS/server.key" \
+            -subj "/CN=pseolint-db"
+          # Postgres refuses to start if the key is group- or world-readable.
+          chmod 600 "$$CERTS/server.key"
+          chown postgres:postgres "$$CERTS/server.key" "$$CERTS/server.crt"
+        fi
+        exec docker-entrypoint.sh postgres \
+          -c ssl=on \
+          -c ssl_cert_file="$$CERTS/server.crt" \
+          -c ssl_key_file="$$CERTS/server.key" \
+          -c password_encryption=scram-sha-256 \
+          -c log_connections=on \
+          -c log_disconnections=on \
+          -c max_connections=200
+    volumes:
+      # PostgreSQL 18+ images store data in major-version-specific directories
+      # (/var/lib/postgresql/18/docker), so the mount goes at /var/lib/postgresql — NOT at
+      # .../data, which is the <=17 convention and makes 18 abort with "there appears to be
+      # PostgreSQL data in: /var/lib/postgresql/data (unused mount/volume)".
+      # See https://github.com/docker-library/postgres/pull/1259
+      - "postgresql-data:/var/lib/postgresql"
+      # Certs live outside that tree so the two volumes don't nest.
+      - "postgresql-certs:/certs"
+    ports:
+      # host:container. 5432/5433/5434/3000/3002 are already taken on this host.
+      # Reachable from the internet so Vercel builds can read the matrix at build time;
+      # Postgres has no rate limiting, and an exposed Postgres here previously drew 51,479
+      # auth attempts, which is why log_connections is on above.
+      - "5436:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+      interval: 5s
+      timeout: 20s
+      retries: 10
+
+volumes:
+  postgresql-data:
+  postgresql-certs:

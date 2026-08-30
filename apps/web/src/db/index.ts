@@ -5,10 +5,17 @@ import { env } from "@/lib/env";
 import * as schema from "./schema";
 
 // postgres.js client (migrated off @neondatabase/serverless, 2026-06-05).
+//
+// MID-MIGRATION (2026-08-30): local dev points at a self-hosted PostgreSQL 18
+// (infra/docker-compose.yml); Vercel still points at Neon. Until the Vercel env
+// is switched, BOTH targets must work from this one config.
+//
 // `prepare: false` is required when DATABASE_URL points at Neon's POOLED
 // endpoint (the "-pooler" host): PgBouncer in transaction mode does not support
 // prepared statements. It's a safe no-op on a direct connection too, so we set
 // it unconditionally. For serverless deploys, use the pooled connection string.
+// Do NOT flip this to true before production has left Neon's pooler, and leave
+// it false for good if pgBouncer ever fronts the self-hosted instance.
 //
 // Serverless connection tuning (2026-06-08): on Vercel the lambda freezes
 // between invocations, so Neon's pooler / scale-to-zero compute drops the idle
@@ -17,12 +24,19 @@ import * as schema from "./schema";
 // reconnect storm: especially the /dashboard/[host] page firing ~10 queries at
 // once: overruns the 30s connect timeout and surfaces as `CONNECT_TIMEOUT` →
 // Drizzle `Failed query`. Dropping idle sockets and recycling connections keeps
-// the pool from reusing anything Neon already closed.
+// the pool from reusing anything Neon already closed. An always-on self-hosted
+// Postgres doesn't drop idle sockets that way, so these are harmless there
+// rather than load-bearing.
 const client = postgres(env().DATABASE_URL, {
   prepare: false,
   idle_timeout: 20, // seconds, close idle conns before Neon kills them
   max_lifetime: 60 * 10, // seconds, recycle long-lived conns
   connect_timeout: 15, // seconds, fail/recover faster than the 30s default
+  // Every warm Vercel instance holds its OWN pool, so the ceiling the server
+  // sees is (instances × max), not max. Neon's pooler absorbed that; a plain
+  // Postgres does not. 3 keeps ~60 concurrent instances inside a server
+  // configured for 200 connections (see infra/docker-compose.yml).
+  max: 3,
 });
 export const db = drizzle(client, { schema });
 export type DB = typeof db;
