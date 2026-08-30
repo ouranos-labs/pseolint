@@ -262,7 +262,11 @@ export default async function Page({
         </div>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1
-            className="text-balance text-[clamp(1.9rem,7vw,3rem)] leading-[1.05] tracking-tight"
+            // A long hostname (therabbitholehub.blogspot.com) overruns a 320px
+            // viewport even at the clamp minimum. `break-words` alone does not
+            // fix it: as a flex item the h1 keeps its min-content width, so it
+            // needs min-w-0 to be allowed to shrink far enough to break at all.
+            className="min-w-0 text-balance break-words text-[clamp(1.9rem,7vw,3rem)] leading-[1.05] tracking-tight"
             style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
           >
             { host }

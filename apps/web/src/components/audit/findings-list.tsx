@@ -236,7 +236,7 @@ function TopFixesHero({ top }: { top: RuleGroup[] }) {
                   )}
                   <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pagesLabel}</span>
                 </div>
-                <p className="mt-1 text-sm text-foreground">{g.representative.message}</p>
+                <p className="mt-1 text-sm break-words text-foreground">{g.representative.message}</p>
               </div>
             </li>
           );
@@ -355,7 +355,7 @@ function FindingGroup({ group }: { group: RuleGroup }) {
       </header>
 
       <div className="flex flex-col gap-4 px-6 py-5">
-        <p className="text-sm text-foreground">{representative.message}</p>
+        <p className="text-sm break-words text-foreground">{representative.message}</p>
         {representative.context && <ContextEvidence context={representative.context} />}
         {representative.carriedForward && (
           <CarriedForwardBadge lastVerifiedAt={representative.lastVerifiedAt} />
@@ -365,7 +365,7 @@ function FindingGroup({ group }: { group: RuleGroup }) {
             href={representative.pageUrl}
             target="_blank"
             rel="noreferrer noopener"
-            className="font-mono text-[11px] text-muted-foreground hover:text-foreground"
+            className="font-mono text-[11px] break-all text-muted-foreground hover:text-foreground"
             title={representative.pageUrl}
           >
             ↗ {pathOf(representative.pageUrl)}
@@ -375,7 +375,7 @@ function FindingGroup({ group }: { group: RuleGroup }) {
         {representative.fix && (
           <div className="flex flex-col gap-1.5 rounded-[14px] border border-primary/25 bg-primary/5 p-3 text-sm">
             <span className="font-mono text-[10px] uppercase tracking-wider text-primary/80">Fix</span>
-            <p className="text-foreground">{representative.fix}</p>
+            <p className="break-words text-foreground">{representative.fix}</p>
           </div>
         )}
 
