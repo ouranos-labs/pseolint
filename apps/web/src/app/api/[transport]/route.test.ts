@@ -71,6 +71,32 @@ describe("POST /api/mcp wrapper", () => {
   });
 });
 
+describe("account tools are key-gated", () => {
+  const listReq = { jsonrpc: "2.0", id: 2, method: "tools/list", params: {} };
+
+  beforeEach(() => {
+    auth.mockReset();
+    rl.mockReset();
+    rl.mockResolvedValue({ success: true, retryAfterSeconds: 0 });
+  });
+
+  it("exposes the saved-audit tools to a keyed caller", async () => {
+    auth.mockResolvedValue({ kind: "key", userId: "user_1" });
+    const text = await (await POST(mcpPost(listReq, { authorization: "Bearer pseo_good" }))).text();
+    expect(text).toContain("pseolint_list_audits");
+    expect(text).toContain("pseolint_get_audit");
+    expect(text).toContain("pseolint_audit_site"); // the anonymous tools stay
+  });
+
+  it("hides them from anonymous callers", async () => {
+    auth.mockResolvedValue({ kind: "anon", ip: "203.0.113.7" });
+    const text = await (await POST(mcpPost(listReq))).text();
+    expect(text).toContain("pseolint_audit_site");
+    expect(text).not.toContain("pseolint_list_audits");
+    expect(text).not.toContain("pseolint_get_audit");
+  });
+});
+
 describe("method guards & CORS", () => {
   it("GET from a browser → 302 redirect to /mcp-server docs", () => {
     const res = GET(new Request("https://pseolint.dev/mcp", { headers: { accept: "text/html" } }));

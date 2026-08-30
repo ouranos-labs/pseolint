@@ -44,7 +44,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "Is it free? Do I need an account?",
-    a: "The remote server's three read-only tools are free and need no signup, anonymous use is rate-limited per IP. Creating a free API key in your dashboard raises those limits. The open-source stdio package is free and unlimited. The orchestrate tool (stdio/CLI) calls a paid LLM provider with your own API key.",
+    a: "The remote server's three read-only tools are free and need no signup, anonymous use is rate-limited per IP. Creating a free API key in your dashboard raises those limits and unlocks the two saved-audit tools. The open-source stdio package is free and unlimited. The orchestrate tool (stdio/CLI) calls a paid LLM provider with your own API key.",
   },
   {
     q: "Which clients does this work with?",
@@ -60,7 +60,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What are the four tools?",
-    a: "pseolint_audit_site (crawl + verdict + risk score + findings), pseolint_explain_score (why the verdict is what it is, quick wins first), pseolint_check_page_technical (per-page canonical/OG/JSON-LD/meta checks), and pseolint_orchestrate_audit (LLM-driven deep audit that emits a paste-able fix manifest, stdio/CLI only for now).",
+    a: "pseolint_audit_site (crawl + verdict + risk score + findings), pseolint_explain_score (why the verdict is what it is, quick wins first), pseolint_check_page_technical (per-page canonical/OG/JSON-LD/meta checks), and pseolint_orchestrate_audit (LLM-driven deep audit that emits a paste-able fix manifest, stdio/CLI only for now). With an API key the remote server adds two more: pseolint_list_audits and pseolint_get_audit, which read the reports already saved on your account so the assistant can work from an audit you ran instead of crawling the site again.",
   },
 ];
 
@@ -162,7 +162,10 @@ export default function McpServerPage() {
           >
             dashboard → account
           </Link>{" "}
-          and send it as a Bearer token. Native config:
+          and send it as a Bearer token. A key also adds{" "}
+          <code className="font-mono text-xs">pseolint_list_audits</code> and{" "}
+          <code className="font-mono text-xs">pseolint_get_audit</code>, so the assistant can pull
+          the findings from an audit you already ran (no re-crawl) and go fix them. Native config:
         </p>
         <CodeBlock>{`{
   "mcpServers": {
@@ -219,7 +222,7 @@ export default function McpServerPage() {
           <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-foreground">
             <li>
               <span className="font-medium">Remote:</span> zero install, 3 read-only tools,
-              anonymous (rate-limited) or keyed.
+              anonymous (rate-limited) or keyed (+2 saved-audit tools).
             </li>
             <li>
               <span className="font-medium">Local:</span> all 4 tools incl. orchestrate, fully
@@ -236,6 +239,7 @@ export default function McpServerPage() {
             <li><code className="font-mono text-xs">pseolint_explain_score</code>: why, quick wins first</li>
             <li><code className="font-mono text-xs">pseolint_check_page_technical</code>: per-page checks</li>
             <li><code className="font-mono text-xs">pseolint_orchestrate_audit</code>: fix manifest (local)</li>
+            <li><code className="font-mono text-xs">pseolint_list_audits</code> / <code className="font-mono text-xs">pseolint_get_audit</code>: read your saved reports (API key)</li>
           </ul>
         </div>
       </section>

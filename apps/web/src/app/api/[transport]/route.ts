@@ -1,18 +1,34 @@
 import { createMcpHandler } from "mcp-handler";
 import { registerReadOnlyTools } from "@pseolint/mcp";
 import { resolveMcpIdentity, type McpIdentity } from "@/lib/mcp-auth";
+import { registerAccountTools } from "@/lib/mcp-account-tools";
 import { checkMcpRateLimit, type RateResult } from "@/lib/mcp-rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60; // Vercel function timeout (mcp-handler's own maxDuration option is separate)
 
-const mcpHandler = createMcpHandler(
-  (server) => {
-    registerReadOnlyTools(server);
-  },
-  { serverInfo: { name: "pseolint", version: "remote" } },
-  { basePath: "/api", maxDuration: 60, disableSse: true, verboseLogs: false },
-);
+const HANDLER_CONFIG = { basePath: "/api", maxDuration: 60, disableSse: true, verboseLogs: false } as const;
+const SERVER_INFO = { serverInfo: { name: "pseolint", version: "remote" } };
+
+const anonHandler = createMcpHandler((server) => registerReadOnlyTools(server), SERVER_INFO, HANDLER_CONFIG);
+
+/**
+ * Keyed callers additionally get the account tools (read your own saved
+ * audits). Those close over the userId, so the handler has to be built per
+ * request rather than once at module scope; construction is just closures and
+ * endpoint math (the server itself is created per request either way).
+ */
+function handlerFor(identity: McpIdentity) {
+  if (identity.kind !== "key") return anonHandler;
+  return createMcpHandler(
+    (server) => {
+      registerReadOnlyTools(server);
+      registerAccountTools(server, identity.userId);
+    },
+    SERVER_INFO,
+    HANDLER_CONFIG,
+  );
+}
 
 /** JSON-RPC-shaped error body so MCP clients surface auth/limit failures cleanly. */
 function jsonRpcError(status: number, message: string, code: number, headers?: Record<string, string>): Response {
@@ -52,7 +68,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   try {
-    return await mcpHandler(normalizeMcpUrl(req));
+    return await handlerFor(identity)(normalizeMcpUrl(req));
   } catch {
     return jsonRpcError(500, "Internal error handling MCP request.", -32603);
   }
