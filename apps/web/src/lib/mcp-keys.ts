@@ -80,6 +80,19 @@ export async function listMcpKeys(userId: string): Promise<McpKeySummary[]> {
     .where(and(eq(mcpApiKeys.userId, userId), isNull(mcpApiKeys.revokedAt)));
 }
 
+/**
+ * Rename a key. Scoped to the owner. Returns false when nothing matched, so
+ * the caller can say "gone" rather than reporting a silent no-op as success.
+ */
+export async function renameMcpKey(userId: string, id: string, name: string): Promise<boolean> {
+  const rows = await db
+    .update(mcpApiKeys)
+    .set({ name: name.slice(0, 100) })
+    .where(and(eq(mcpApiKeys.id, id), eq(mcpApiKeys.userId, userId), isNull(mcpApiKeys.revokedAt)))
+    .returning({ id: mcpApiKeys.id });
+  return rows.length > 0;
+}
+
 /** Soft-revoke a key. Scoped to the owner so users cannot revoke each other's keys. */
 export async function revokeMcpKey(userId: string, id: string): Promise<void> {
   await db

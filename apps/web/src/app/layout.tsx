@@ -4,6 +4,7 @@ import { Instrument_Serif } from "next/font/google";
 import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import { Toaster } from "sonner";
 import { NavRing } from "@/components/landing/nav-ring";
 import { getOptionalSession, getAnonSessionId } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
@@ -96,6 +97,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div className="relative">{ children }</div>
           <SiteFooter lastUpdated={ SITE_LAST_UPDATED } />
         </main>
+        {/* Sonner needs exactly one mounted Toaster. There was none, so every
+            toast() in the app - claim CTA, findings panel, indexing buttons -
+            was a silent no-op. richColors so success/error read at a glance. */}
+        <Toaster theme="dark" richColors position="bottom-right" closeButton />
         <script
           type="application/ld+json"
           // Pre-sanitized: JSON.stringify + escape `</` per HTML spec

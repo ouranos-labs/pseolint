@@ -76,18 +76,51 @@ describe("createLanguageModel", () => {
   });
 
   it("throws with install hint when chosen provider's SDK is missing", async () => {
-    // openai is an optional peer; we never installed it in the dev workspace,
-    // so this should surface the install hint.
-    const prevKey = process.env.OPENAI_API_KEY;
-    process.env.OPENAI_API_KEY = "test-key";
+    // This used to rely on @ai-sdk/openai simply not being installed in the dev
+    // workspace. That is a property of the install, not of the code: the moment
+    // the web app added the provider SDKs the package resolved, the assertion
+    // inverted, and the test failed without the behaviour changing at all.
+    // Force the failure instead, so the test covers the branch rather than the
+    // contents of node_modules.
+    vi.doMock("@ai-sdk/openai", () => {
+      throw new Error("Cannot find module '@ai-sdk/openai'");
+    });
+    vi.resetModules();
     try {
+      const { createLanguageModel: fresh } = await import("../../src/ai/adapters/index.js");
       await expect(
-        createLanguageModel({ provider: "openai" }),
+        fresh({ provider: "openai", apiKey: "test-key" }),
       ).rejects.toThrow(/requires "@ai-sdk\/openai".*npm install @ai-sdk\/openai/s);
     } finally {
-      if (prevKey === undefined) delete process.env.OPENAI_API_KEY;
-      else process.env.OPENAI_API_KEY = prevKey;
+      vi.doUnmock("@ai-sdk/openai");
+      vi.resetModules();
     }
+  });
+
+  it("lists every registered provider with the metadata a UI needs", async () => {
+    const { listSupportedProviders } = await import("../../src/ai/adapters/index.js");
+    const providers = listSupportedProviders();
+    const ids = providers.map((p) => p.id);
+    // The registry is the single source of truth for callers that render a
+    // provider picker; if one is dropped here, dashboards silently stop
+    // offering it.
+    expect(ids).toEqual(
+      expect.arrayContaining(["anthropic", "openai", "google", "mistral", "groq", "xai", "cohere", "ollama"]),
+    );
+    for (const p of providers) {
+      expect(p.defaultModel, `${p.id} needs a default model`).toBeTruthy();
+      expect(p.pkg, `${p.id} needs a package`).toBeTruthy();
+      // Only Ollama is keyless; every cloud provider must name its env var.
+      if (p.kind === "cloud-apikey") expect(p.envVar, `${p.id} needs an env var`).toBeTruthy();
+    }
+  });
+
+  it("reports whether a provider's SDK can actually be loaded", async () => {
+    const { isProviderInstalled } = await import("../../src/ai/adapters/index.js");
+    // Anthropic is a direct dev dependency of core, so it is always resolvable.
+    await expect(isProviderInstalled("anthropic")).resolves.toBe(true);
+    // An id that is not in the registry can never be installed.
+    await expect(isProviderInstalled("banana")).resolves.toBe(false);
   });
 
   it("throws with env-var hint when cloud provider has no key", async () => {

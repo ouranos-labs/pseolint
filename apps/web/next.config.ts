@@ -1,10 +1,31 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
-  serverExternalPackages: ["pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler", "playwright-core"],
-  // Next 16: `serverActions` is a stable top-level option (was `experimental.serverActions`
-  // in ≤14). Nesting it under `experimental` is ignored on 16, silently dropping the limit.
-  serverActions: { bodySizeLimit: "1mb" },
+  serverExternalPackages: [
+    "pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler", "playwright-core",
+    // The AI provider SDKs are loaded by core through `import(variableSpecifier)`,
+    // which the bundler cannot follow. Marking them external keeps them as plain
+    // node_modules requires; `outputFileTracingIncludes` below is what actually
+    // gets them into the deployed function.
+    "@ai-sdk/anthropic", "@ai-sdk/openai", "@ai-sdk/google", "@ai-sdk/mistral",
+    "@ai-sdk/groq", "@ai-sdk/xai", "@ai-sdk/cohere", "ollama-ai-provider-v2",
+  ],
+  // Without this the untraceable dynamic import silently ships nothing, every
+  // provider probes as "not installed", and the dashboard offers a list where
+  // everything is disabled - the same class of failure this replaced, just
+  // moved from audit time to deploy time.
+  outputFileTracingIncludes: {
+    "/dashboard/api-keys": ["../../node_modules/@ai-sdk/**/*", "../../node_modules/ollama-ai-provider-v2/**/*"],
+    "/api/inngest": ["../../node_modules/@ai-sdk/**/*", "../../node_modules/ollama-ai-provider-v2/**/*"],
+  },
+  // `serverActions` lives under `experimental` on Next 16: it appears only in
+  // `experimentalSchema` in next/dist/server/config-schema.js, and a top-level
+  // one makes the build print `Unrecognized key(s) in object: 'serverActions'`,
+  // which is how this was found. The comment here previously claimed the
+  // reverse, so the limit had been silently dropped ever since. Harmless so far
+  // only because 1mb is also the default - change the value and it would not
+  // have taken effect.
+  experimental: { serverActions: { bodySizeLimit: "1mb" } },
   async rewrites() {
     return [{ source: "/mcp", destination: "/api/mcp" }];
   },

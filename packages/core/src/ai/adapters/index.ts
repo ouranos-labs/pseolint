@@ -92,6 +92,56 @@ const PROVIDER_REGISTRY: Record<string, ProviderEntry> = {
 /** Known provider ids plus any user-supplied string (validated at runtime). */
 export type ProviderId = keyof typeof PROVIDER_REGISTRY | (string & {});
 
+/** One provider as consumers outside core need to describe it in a UI. */
+export interface SupportedProvider {
+  id: string;
+  /** Whether the provider takes an API key or a local base URL. */
+  kind: ProviderKind;
+  /** Model used when the caller does not pin one. */
+  defaultModel: string;
+  /** Env var read when no explicit key is passed. Absent for Ollama. */
+  envVar?: string;
+  /** npm package dynamically imported at call time. */
+  pkg: string;
+}
+
+/**
+ * The registry, flattened for callers that must render or validate a provider
+ * choice (the dashboard's bring-your-own-key form, the CLI's `--ai-provider`
+ * help text).
+ *
+ * Exported because the alternative is every caller hardcoding its own list,
+ * and those lists drift: the web dashboard shipped a four-provider dropdown
+ * where two of the four had no installed SDK and failed only at audit time.
+ * Derive from this and a provider cannot be offered unless it is registered.
+ */
+export function listSupportedProviders(): SupportedProvider[] {
+  return Object.entries(PROVIDER_REGISTRY).map(([id, e]) => ({
+    id,
+    kind: e.kind,
+    defaultModel: e.defaultModel,
+    envVar: e.envVar,
+    pkg: e.pkg,
+  }));
+}
+
+/**
+ * Whether the provider's SDK can actually be loaded in this process. The
+ * registry says what is *known*; only this says what is *usable*, because the
+ * `@ai-sdk/*` packages are optional peers that a given install may not have.
+ */
+export async function isProviderInstalled(id: string): Promise<boolean> {
+  const entry = PROVIDER_REGISTRY[id];
+  if (!entry) return false;
+  try {
+    const specifier = entry.pkg;
+    await import(specifier);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export interface ResolvedModel {
   model: LanguageModel;
   providerId: string;

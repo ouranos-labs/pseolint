@@ -76,7 +76,7 @@ const { removeMonitoredDomain, togglePauseMonitoredDomain } = await import(
   "@/app/dashboard/actions"
 );
 const { deleteAuditAction } = await import("@/app/dashboard/audit-actions");
-const { revokeToken } = await import("@/app/dashboard/api-keys/actions");
+const { revokeUploadTokenAction: revokeToken } = await import("@/app/dashboard/api-keys/actions");
 const { snoozeFinding, dismissFinding } = await import("@/app/dashboard/_actions/findings");
 const { removeAiKeyAction } = await import("@/app/dashboard/api-keys/actions");
 const { deleteAccountAction } = await import("@/app/dashboard/settings/actions");

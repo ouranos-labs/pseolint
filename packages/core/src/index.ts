@@ -83,7 +83,7 @@ export type {
 } from "./ai/types.js";
 export { triageFindings, triage } from "./ai/triage.js";
 export type { TriageOptions, TriageOutcome } from "./ai/triage.js";
-export { createLanguageModel, detectProvider } from "./ai/adapters/index.js";
+export { createLanguageModel, detectProvider, listSupportedProviders, isProviderInstalled } from "./ai/adapters/index.js";
 
 // AI orchestrator (single public entry point composing tools + runner +
 // manifest validation + diff generation).
@@ -131,7 +131,7 @@ export {
 export type { CitationDraft, CitationInput, CitationGenOpts } from "./algorithms/citation-lift/index.js";
 export { renderManifest, applyEditToContent } from "./ai/apply/render-manifest.js";
 export type { TemplateMapping, FileEdit, ChecklistItem, RenderedManifest } from "./ai/apply/render-manifest.js";
-export type { ProviderId, ResolvedModel } from "./ai/adapters/index.js";
+export type { ProviderId, ResolvedModel, ProviderKind, SupportedProvider } from "./ai/adapters/index.js";
 export { PROMPT_VERSION, assignFindingId } from "./ai/prompt.js";
 export { estimateCostUsd } from "./ai/cost.js";
 
