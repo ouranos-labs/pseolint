@@ -567,7 +567,11 @@ async function runAudit(
         }
       : undefined,
     crawlDiscovery: opts.crawl === false ? false : undefined,
-    samplingStrategy: opts.strategy === "random" ? "random" : "stratified",
+    // Every other numeric flag here yields `undefined` when it still holds its commander default,
+    // so a config-file value survives the merge. This one always produced a concrete value, which
+    // meant `samplingStrategy` in pseolint.config.* was overwritten on every run by a default the
+    // user never typed. Only a real `--strategy random` should outrank the config.
+    samplingStrategy: opts.strategy === "random" ? "random" : undefined,
     maxPerTemplate: opts.maxPerTemplate !== "0" ? Number(opts.maxPerTemplate) : undefined,
     safeMode: opts.safeMode === "saas" || opts.safeMode === "cli" || opts.safeMode === "dev" ? opts.safeMode : undefined,
     autoDevPreset: opts.full ? false : undefined,
@@ -727,7 +731,10 @@ async function runAudit(
   // risk that produced the real zero-output run against a single-process dev
   // server. When the dev preset applies, concurrency resolves to 1 → no warning.
   if (!devPresetWillApply) {
-    const effectiveConcurrency = Number(opts.concurrency);
+    // Read the RESOLVED value, not the raw flag: `opts.concurrency` still holds commander's "5"
+    // default when the user set concurrency in pseolint.config.*, so this warned about a
+    // concurrency the run was not going to use.
+    const effectiveConcurrency = options.concurrency ?? Number(opts.concurrency);
     if (Number.isFinite(effectiveConcurrency)) {
       const warning = localhostConcurrencyWarning(source, effectiveConcurrency);
       if (warning) console.error(warning);

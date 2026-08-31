@@ -24,6 +24,12 @@ const rulesSchema = z
     titleOverlapThreshold: z.number().optional(),
     keywordCollisionMinShared: z.number().optional(),
     templateCoverageMinPages: z.number().optional(),
+    // content/citation-coverage knobs. These exist on AuditOptions['rules'] and are consumed by
+    // the auditor, but were missing here — so the documented way to declare domain-appropriate
+    // authoritative sources could not be expressed in a config file at all.
+    citationCoverageMinClaims: z.number().optional(),
+    citationCoverageMinAuthoritative: z.number().optional(),
+    citationAllowlist: z.array(z.string()).optional(),
   })
   .optional();
 
@@ -154,6 +160,22 @@ export async function loadConfig(): Promise<AuditOptions> {
 
   if (!result || result.isEmpty) {
     return {};
+  }
+
+  // Zod objects strip unknown keys by default, so a config written against an older schema parses
+  // to {} and the run proceeds as if no config existed. That is how a stale config file can sit in
+  // a repo for months looking authoritative while configuring nothing. Warn loudly instead; still
+  // non-fatal, so a config carrying a key from a newer version does not hard-fail an older CLI.
+  const known = new Set(Object.keys(auditOptionsSchema.shape));
+  const unknown = Object.keys((result.config ?? {}) as Record<string, unknown>).filter(
+    (k) => !known.has(k),
+  );
+  if (unknown.length > 0) {
+    console.error(
+      `pseolint: ignoring ${unknown.length} unrecognised key${unknown.length === 1 ? "" : "s"} in ` +
+        `${result.filepath}: ${unknown.join(", ")}. ` +
+        `These are not part of the current config schema and have NO effect.`,
+    );
   }
 
   const parsed = auditOptionsSchema.parse(result.config);

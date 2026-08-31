@@ -2,6 +2,50 @@
 
 Changelog for `pseolint`, `@pseolint/core`, and `@pseolint/mcp`. All three packages version together.
 
+## 0.8.1: Config files that actually configure
+
+Five defects found while auditing a real Turborepo monorepo, where a `pseolint.config.json` had
+been sitting in the repo root configuring nothing at all. Each one made a documented option a no-op.
+
+- **`entityPatterns` never reached the rules.** User-supplied patterns were read from
+  `AuditOptions`, validated for unsafe regex flags and eagerly compiled — then dropped on the floor:
+  `runRulesOnPages` was called with `[...DEFAULT_ENTITY_PATTERNS, ...derivedEntityPatterns]` rather
+  than the merged set. Every rule that masks entities (`spam/entity-swap`, `content/meta-uniqueness`,
+  `aeo/answer-first`, `aeo/citable-facts`, `content/citation-coverage`, `spam/template-coverage`,
+  `content/unique-value`, `aeo/summary-bait`) therefore masked with the shipped defaults only — US
+  state names and ZIP codes — on corpora where the real entity axis was something else entirely.
+  The existing test asserted `pageCount === 1` for an audit configured with `entityPatterns`, which
+  passes whether or not the patterns are used; the new regression test fails without the fix.
+
+- **Unrecognised config keys vanished silently.** `auditOptionsSchema.parse()` is a non-strict Zod
+  object, so a config written against an older schema parsed to `{}` and the run proceeded as if no
+  config existed. Unknown top-level keys are now reported with the offending file path. Still
+  non-fatal, so a config carrying a key from a newer CLI does not hard-fail an older one.
+
+- **`samplingStrategy` in a config file was overwritten on every run.** Every other
+  default-guarded flag yields `undefined` when it still holds its commander default, letting a
+  config value survive the merge; `--strategy` always produced a concrete `"stratified"`. Only an
+  explicit `--strategy random` outranks the config now.
+
+- **`content/citation-coverage` knobs were unreachable from config.** `citationAllowlist`,
+  `citationCoverageMinClaims` and `citationCoverageMinAuthoritative` exist on
+  `AuditOptions["rules"]` and are consumed by the auditor, but were missing from the CLI schema — so
+  the documented ability to declare domain-appropriate authoritative sources could not be expressed.
+
+- **Localhost concurrency warning reported a value the run would not use.** It read the raw
+  `--concurrency` flag, which still holds commander's `"5"` default when concurrency is set in
+  `pseolint.config.*`. It now reports the resolved value.
+
+Known limitation, unchanged: CLI-vs-config precedence is decided by comparing each flag against
+its own default string, so passing a flag with exactly its default value (`--concurrency 5`) is
+indistinguishable from not passing it, and the config file wins. Deciding this properly needs
+commander's `getOptionValueSource()`; it is not worth restructuring flag parsing for a case where
+both sides asked for compatible things.
+
+Also released here: the removal of the title-length check from `content/title-uniqueness`, already
+in the tree and documented in `docs/folklore.md` (Google publishes no title length limit), but not
+previously shipped — 0.8.0 still flagged titles above 70 characters.
+
 ## Unreleased: Crawler-legibility detection
 
 - **`tech/csr-bailout` (new rule).** With `--render`, diffs the raw server HTML against the post-hydration DOM and flags pages whose interactive value (or substantive content) appears only after client-side JS: invisible to crawlers and Google's first indexing pass. High confidence when interactive elements are entirely absent from the server HTML; emits Next.js-specific remediation (wrap `useSearchParams()`/dynamic hooks in `<Suspense>`; keep `new Date()`/`Math.random()` out of client render paths under `cacheComponents`; verify with `next build && next start`, not `next dev`). Down-weighted to `info` on `small-marketing`. No-op without `--render`.

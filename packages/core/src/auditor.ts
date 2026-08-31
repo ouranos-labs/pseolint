@@ -3202,7 +3202,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     const findings = runRulesOnPages(
       groupPages, parsedPagesAll, groupRules, enabledCheck, groupName,
       knownUrls, adjacency, inbound, rootUrl,
-      normalizeUrlOptions, source, [...DEFAULT_ENTITY_PATTERNS, ...derivedEntityPatterns],
+      // `entityPatterns` already merges DEFAULT_ENTITY_PATTERNS with the user's configured
+      // patterns (built + regex-validated above). It previously read DEFAULT + derived only, so
+      // every user-supplied pattern was compiled, validated, and then silently discarded — the
+      // documented way to declare your own entity axes did nothing. Derived patterns stay: they
+      // are corpus-inferred and complementary, not a substitute for a declared axis.
+      normalizeUrlOptions, source, [...entityPatterns, ...derivedEntityPatterns],
       groupConfig?.overrides,
       options?.mode ?? "full",
       // 2026-05-06 calibration fix: pinnedUrls mode fetches a hand-picked subset
