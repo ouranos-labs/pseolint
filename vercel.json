@@ -5,10 +5,6 @@
     "apps/web/src/app/api/inngest/route.ts": {
       "memory": 3008,
       "maxDuration": 300
-    },
-    "src/app/api/inngest/route.ts": {
-      "memory": 3008,
-      "maxDuration": 300
     }
   }
 }
