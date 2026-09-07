@@ -1,4 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi"
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"main\" ]; then exit 1; else exit 0; fi",
+  "functions": {
+    "apps/web/src/app/api/inngest/route.ts": {
+      "memory": 3008,
+      "maxDuration": 300
+    },
+    "src/app/api/inngest/route.ts": {
+      "memory": 3008,
+      "maxDuration": 300
+    }
+  }
 }

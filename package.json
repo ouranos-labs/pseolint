@@ -25,7 +25,8 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "changeset publish",
-    "gen:folklore": "bun scripts/gen-folklore-doc.mjs"
+    "gen:folklore": "bun scripts/gen-folklore-doc.mjs",
+    "dev:inngest": "npx inngest-cli@latest dev -u http://localhost:3000/api/inngest"
   },
   "devDependencies": {
     "@changesets/cli": "^2.30.0",

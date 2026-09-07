@@ -44,8 +44,7 @@ export async function judgeContentEffort(templates: TemplateSample[], opts: Judg
     if (budget <= 0) break;
     const pick = t.samplePages.slice(0, Math.min(perTemplateCap, budget));
     budget -= pick.length;
-    const scores: number[] = [];
-    for (const p of pick) scores.push(await scorePage(p.contentText ?? "", opts));
+    const scores = await Promise.all(pick.map((p) => scorePage(p.contentText ?? "", opts)));
     const effort = scores.length ? clamp(scores.reduce((a, b) => a + b, 0) / scores.length) : 100;
     perTemplate.set(t.signature, { effort });
     weights.push({ effort, weight: t.samplePages.length }); // weight by template size

@@ -53,6 +53,12 @@ export function isRedirectPointer(entry: AnyCacheEntry): entry is RedirectPointe
 export interface CacheBackend {
   get(url: string): Promise<AnyCacheEntry | null>;
   set(url: string, entry: AnyCacheEntry): Promise<void>;
+  /**
+   * Optional touch hook when an entry revalidates (HTTP 304).
+   * Backends can override this to update fetchedAt or no-op without re-uploading
+   * the full cached payload (critical for remote stores like Cloudflare R2).
+   */
+  touch?(url: string, fetchedAt: string): Promise<void>;
 }
 
 export function cacheKeyFor(url: string): string {
@@ -152,6 +158,21 @@ async function safeSet(backend: CacheBackend, url: string, entry: AnyCacheEntry)
     // eslint-disable-next-line no-console
     console.error(`pseolint: cache write failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/** Cache touches on 304 revalidation delegate to touch() if supported, otherwise falling back to updating fetchedAt. */
+async function safeTouch(backend: CacheBackend, url: string, entry: CacheEntry, fetchedAt: string): Promise<void> {
+  if (backend.touch) {
+    try {
+      await backend.touch(url, fetchedAt);
+      return;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`pseolint: cache touch failed for ${url}: ${err instanceof Error ? err.message : String(err)}`);
+      return;
+    }
+  }
+  await safeSet(backend, url, { ...entry, fetchedAt });
 }
 
 export const NEGATIVE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -359,8 +380,8 @@ async function cachedFetchInner(
         disposeSignal();
       }
       if (res.status === 304) {
-        const updated: CacheEntry = { ...existing, fetchedAt: new Date().toISOString() };
-        await safeSet(backend, url, updated);
+        const fetchedAt = new Date().toISOString();
+        await safeTouch(backend, url, existing, fetchedAt);
         return { url, status: existing.status, headers: existing.headers, body: existing.body, fromCache: true, redirectChain: [], _revalidated: true };
       }
       const body = await decodeBody(res);

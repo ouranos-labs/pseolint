@@ -38,4 +38,10 @@ export class R2CacheBackend implements CacheBackend {
       // best-effort: a failed cache write must never surface to the audit
     }
   }
+
+  async touch(_url: string, _fetchedAt: string): Promise<void> {
+    // No-op on R2: the entry payload is already persisted in R2 and validated
+    // via ETag / Last-Modified. Skipping the 500KB+ JSON PutObjectCommand on
+    // HTTP 304 saves massive network I/O, egress bandwidth, and S3 latency.
+  }
 }

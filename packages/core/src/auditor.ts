@@ -2252,11 +2252,17 @@ async function loadPagesFromSource(
           }
         }
 
-        for (let depth = 0; depth < maxDepth; depth += 1) {
-          // Stop if we've hit the discovery budget
-          if (discoveryBudget > 0 && pages.length >= discoveryBudget) break;
+        const hasDiscoveredSitemap = declaredSitemapUrls !== undefined && declaredSitemapUrls.size > 0;
+        const budgetUnderfilled = discoveryBudget > 0 && pages.length < discoveryBudget;
+        const legacyBudgetless = discoveryBudget === 0;
+        const shouldCrawlLinks = !hasDiscoveredSitemap || legacyBudgetless || (budgetUnderfilled && fillBudgetViaLinkDiscovery);
 
-          const frontier = new Set<string>();
+        if (shouldCrawlLinks) {
+          for (let depth = 0; depth < maxDepth; depth += 1) {
+            // Stop if we've hit the discovery budget
+            if (discoveryBudget > 0 && pages.length >= discoveryBudget) break;
+
+            const frontier = new Set<string>();
 
           for (const page of pages) {
             if (depth > 0 && !knownCrawled.has("__depth_" + depth + "_" + page.url)) continue;
@@ -2314,6 +2320,7 @@ async function loadPagesFromSource(
           pushAll(pages, newPages);
           if (newPages.length === 0) break;
         }
+      }
 
         return {
           pages,
@@ -2547,10 +2554,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
 
   // Discovery budget: when sampleSize is set, cap discovery at 2x (min 50) to avoid
   // fetching far more pages than we'll sample. First-run egress is bounded by sampleSize;
-  // re-runs hit the cache. Remove adaptive 200-cap: users get full crawl by default,
-  // repeated audits stay cheap via --cache.
+  // Size cap on discovery: when sampleSize is set, crawl enough pages to
+  // stratify across templates. For small samples (<=50), fetch up to 2×; for
+  // larger samples (e.g. 200, 500), cap the overshoot (+15% or max 50 extra)
+  // so we don't blow serverless memory budgets by fetching hundreds of unneeded HTML bodies.
   const discoveryBudget = options?.sampleSize && options.sampleSize > 0
-    ? Math.max(50, options.sampleSize * 2)
+    ? Math.max(50, options.sampleSize <= 50 ? options.sampleSize * 2 : options.sampleSize + Math.min(50, Math.ceil(options.sampleSize * 0.15)))
     : 0;
 
   const cacheStats: StatsWithObserver = { hits: 0, total: 0, bytesSavedEstimate: 0, onObservation };
@@ -2803,6 +2812,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // the V8 argument-count cap on large corpora (same class as pushAll).
   loadedPages.length = 0;
   pushAll(loadedPages, htmlOnlyPages);
+  htmlOnlyPages.length = 0;
 
   if (discoveredUrlCount && discoveredUrlCount > loadedPages.length) {
     console.error(`Discovered ${discoveredUrlCount} pages, fetched ${loadedPages.length} for audit. Use --sample-size 0 for full crawl.`);
@@ -2846,6 +2856,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     urlHashes.set(key, digest);
     deduped.push({ url: key, html: page.html, httpMeta: page.httpMeta });
   }
+  loadedPages.length = 0;
+  pushAll(loadedPages, deduped);
 
   const filtered = ignorePatterns.length > 0
     ? deduped.filter((page) => !shouldIgnore(page.url, ignorePatterns))
@@ -2870,6 +2882,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         : fisherYatesSample(filtered, sampleSize, samplingRandom))
     : filtered;
 
+  if (isSampledAudit && filtered !== deduped) {
+    deduped.length = 0;
+  }
+
   const parsedPagesAll = sampled.map((page) => {
     const parsed = parseHtmlPage(page.html, page.url, { normalizeUrl: normalizeUrlOptions });
     if (page.httpMeta) {
@@ -2877,6 +2893,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
     return parsed;
   });
+  sampled.length = 0;
 
   // --render: execute each page in a headless browser and attach the
   // post-hydration DOM so tech/csr-bailout can diff raw vs rendered. Opt-in,

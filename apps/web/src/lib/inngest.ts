@@ -52,10 +52,14 @@ type Events = {
 };
 
 const useLocalInngest = devFlags.inngestLocal;
+const inngestBaseUrl =
+  process.env.INNGEST_BASE_URL ||
+  (useLocalInngest ? "http://localhost:8288" : undefined);
 
 export const inngest = new Inngest({
   id: "pseolint-web",
   schemas: new EventSchemas().fromRecord<Events>(),
   isDev: useLocalInngest,
-  baseUrl: useLocalInngest ? process.env.INNGEST_BASE_URL ?? "http://localhost:8288" : undefined,
+  baseUrl: inngestBaseUrl,
+  eventKey: process.env.INNGEST_EVENT_KEY,
 });

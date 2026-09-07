@@ -168,13 +168,14 @@ async function loadAuditEnrichments(auditId: string): Promise<{
  * still fires if the origin truly degrades, but is much less likely to trip
  * because we're putting less load on it in the first place.
  */
+const DEFAULT_CONCURRENCY = 10;
 const GENTLE_CONCURRENCY = 2;
 const GENTLE_SAMPLE_CAP = 200;
 function applyGentleProfile(args: {
   gentle: boolean;
   sampleSize: number;
-}): { sampleSize: number; concurrency: number | undefined } {
-  if (!args.gentle) return { sampleSize: args.sampleSize, concurrency: undefined };
+}): { sampleSize: number; concurrency: number } {
+  if (!args.gentle) return { sampleSize: args.sampleSize, concurrency: DEFAULT_CONCURRENCY };
   return {
     sampleSize: args.sampleSize > 0 ? Math.min(args.sampleSize, GENTLE_SAMPLE_CAP) : GENTLE_SAMPLE_CAP,
     concurrency: GENTLE_CONCURRENCY,
@@ -636,14 +637,15 @@ export async function executeAuditInProcess(input: RunAuditInput) {
   return executeAudit(input, (_name, fn) => fn());
 }
 
+const AUDIT_FUNCTION_CONCURRENCY = Number(process.env.INNGEST_AUDIT_FUNCTION_CONCURRENCY) || 20;
+
 export const runAudit = inngest.createFunction(
   {
     id: "run-audit",
     retries: 1,
-    // Function-wide concurrency cap. Prevents a single viral moment (e.g. HN front
-    // page hit on `/`) from spawning unbounded parallel crawls. Per-host cap in
-    // /api/audits gates target-side burst; this gates worker-pool burst.
-    concurrency: { limit: 20 },
+    // Function-wide concurrency cap. Defaults to 20 for self-hosted instances.
+    // Overridable via INNGEST_AUDIT_FUNCTION_CONCURRENCY (e.g. set to 5 if using Inngest Cloud Free tier).
+    concurrency: { limit: AUDIT_FUNCTION_CONCURRENCY },
   },
   { event: "audit/requested" },
   async ({ event, step }) => executeAudit(
