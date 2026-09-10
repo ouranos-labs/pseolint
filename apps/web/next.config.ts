@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const config: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, "../../"),
+  outputFileTracingExcludes: {
+    "*": [
+      "./node_modules/.bun/**",
+      "../../node_modules/.bun/**",
+      "./.turbo/**",
+      "../../.turbo/**",
+      "**/.git/**",
+    ],
+  },
   serverExternalPackages: [
     "pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler", "playwright-core",
     // The AI provider SDKs are loaded by core through `import(variableSpecifier)`,

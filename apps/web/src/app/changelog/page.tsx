@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env";
+import { CHANGELOG_PACKAGES } from "@/lib/changelog-data";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -13,58 +12,7 @@ export const metadata: Metadata = {
   alternates: { canonical: `${SITE_URL}/changelog` },
 };
 
-// Read at build time from the workspace, so versions are ground truth and can
-// never drift from what actually ships. Static page → the fs reads happen once
-// at build and bake into HTML; nothing runs at request time.
-// ponytail: no markdown lib, the changesets format is regular enough to parse
-// in ~15 lines; add react-markdown only if we start rendering richer content.
 export const dynamic = "force-static";
-
-type Pkg = { dir: string; name: string; channel: string };
-
-// repo-relative to apps/web (process.cwd() at build)
-const PACKAGES: Pkg[] = [
-  { dir: "../../packages/core", name: "@pseolint/core", channel: "npm · engine" },
-  { dir: "../../packages/cli", name: "pseolint", channel: "npm · CLI" },
-  { dir: "../../packages/mcp", name: "@pseolint/mcp", channel: "npm · MCP server" },
-  { dir: "../../packages/action", name: "@pseolint/action", channel: "GitHub Action" },
-  { dir: "../../apps/extension", name: "@pseolint/extension", channel: "Chrome Web Store" },
-  { dir: ".", name: "@pseolint/web", channel: "hosted app" },
-];
-
-type Entry = { version: string; changes: string[] };
-
-function read(rel: string): string | null {
-  try {
-    return readFileSync(join(process.cwd(), rel), "utf-8");
-  } catch {
-    return null;
-  }
-}
-
-function parseChangelog(md: string): Entry[] {
-  // sections split on "## " version headers (drop the leading "# title" chunk)
-  return md
-    .split(/^## /m)
-    .slice(1)
-    .map((sec) => {
-      const nl = sec.indexOf("\n");
-      const version = (nl === -1 ? sec : sec.slice(0, nl)).trim();
-      const body = nl === -1 ? "" : sec.slice(nl + 1);
-      const changes: string[] = [];
-      for (const raw of body.split("\n")) {
-        const bullet = raw.match(/^\s*-\s+(.*)/); // top- or sub-bullet (flattened)
-        if (bullet) {
-          const text = bullet[1].replace(/^[0-9a-f]{7,}:\s*/i, ""); // strip changeset commit hash
-          if (text.trim()) changes.push(text.trim());
-        } else if (raw.trim() && /^\s+/.test(raw) && changes.length) {
-          changes[changes.length - 1] += " " + raw.trim(); // continuation of prior bullet
-        }
-      }
-      return { version, changes };
-    })
-    .filter((e) => e.version);
-}
 
 // minimal inline markdown → JSX for `code`, **bold**, [text](url) (trusted source)
 function inline(text: string): ReactNode[] {
@@ -84,24 +32,8 @@ function inline(text: string): ReactNode[] {
   return out;
 }
 
-function load(): { name: string; channel: string; version: string; entries: Entry[] }[] {
-  return PACKAGES.map((p) => {
-    let version = "—";
-    const pkgJson = read(join(p.dir, "package.json"));
-    if (pkgJson) {
-      try {
-        version = (JSON.parse(pkgJson).version as string) ?? "—";
-      } catch {
-        /* keep: */
-      }
-    }
-    const md = read(join(p.dir, "CHANGELOG.md"));
-    return { name: p.name, channel: p.channel, version, entries: md ? parseChangelog(md) : [] };
-  });
-}
-
 export default function ChangelogPage() {
-  const packages = load();
+  const packages = CHANGELOG_PACKAGES;
   return (
     <main className="mx-auto max-w-3xl px-5 pb-20 pt-14">
       <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">

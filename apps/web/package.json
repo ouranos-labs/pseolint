@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node ../../scripts/gen-changelog.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit -p tsconfig.json",
