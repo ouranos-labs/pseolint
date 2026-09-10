@@ -1,2 +1,4 @@
 [install]
 saveTextLockfile = true
+backend = "copyfile"
+linker = "hoisted"
