@@ -110,7 +110,7 @@
     },
     "packages/cli": {
       "name": "pseolint",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "bin": {
         "pseolint": "dist/cli.js",
       },
@@ -125,7 +125,7 @@
     },
     "packages/core": {
       "name": "@pseolint/core",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "dependencies": {
         "ai": "^5.0.0",
         "cheerio": "^1.2.0",
