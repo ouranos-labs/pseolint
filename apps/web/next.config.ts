@@ -12,12 +12,6 @@ const config: NextConfig = {
       "**/.git/**",
     ],
   },
-  transpilePackages: [
-    "@pseolint/core",
-    "@pseolint/mcp",
-    "@ai-sdk/anthropic",
-    "@ai-sdk/provider-utils",
-  ],
   serverExternalPackages: [
     "pseolint", "@pseolint/core", "@pseolint/mcp", "mcp-handler", "playwright-core",
     // The AI provider SDKs are loaded by core through `import(variableSpecifier)`,
