@@ -5,7 +5,6 @@
     "": {
       "name": "pseolint-monorepo",
       "dependencies": {
-        "@pseolint/web": "./apps/web",
         "@radix-ui/react-dropdown-menu": "^2.1.16",
         "cheerio": "^1.2.0",
         "puppeteer-core": "^25.3.0",
