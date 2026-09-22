@@ -118,7 +118,7 @@ import {
 } from "./state.js";
 import { CORE_RULESET_VERSION } from "./ruleset-version.js";
 import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./scrape-strategy.js";
-import { detectTemplates, buildUrlToTemplateMap, shouldActivateTemplateScoring, LONGTAIL_SIGNATURE } from "./template-detection.js";
+import { detectTemplates, buildUrlToTemplateMap, shouldUseTemplateScoringPath, LONGTAIL_SIGNATURE } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 import {
   profileFor,
@@ -2556,27 +2556,25 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   }
 
   // v0.6: template detection + per-template scoring (opt-in, additive).
-  // Activation gating per spec §11.1 / §15.3:
-  //   - Site classification is NOT `unclear` AND NOT `small-marketing`
+  // Activation gating per scoring-honesty §3.2 / v0.6 §15.3:
+  //   - Site classification is NOT `small-marketing` (brochure sites stay legacy)
+  //   - `unclear` and every other SiteType may activate
   //   - detectTemplates returns ≥ 2 qualifying (non-longtail) templates
   // Otherwise: legacy path, `templates` stays empty.
   let siteTemplates: Template[] = [];
-  const canActivateV6 =
-    siteClassification.type !== "unclear" &&
-    siteClassification.type !== "small-marketing";
-
-  if (canActivateV6) {
-    const templateCandidates = detectTemplates(classifierUrls);
-    if (shouldActivateTemplateScoring(templateCandidates)) {
-      const urlToTemplate = buildUrlToTemplateMap(templateCandidates);
-      const totalDiscovered = classifierUrls.length;
-      siteTemplates = scoreTemplates(
-        enriched.findings,
-        templateCandidates,
-        urlToTemplate,
-        totalDiscovered,
-      );
-    }
+  const templateCandidates =
+    siteClassification.type === "small-marketing"
+      ? []
+      : detectTemplates(classifierUrls);
+  if (shouldUseTemplateScoringPath(siteClassification.type, templateCandidates)) {
+    const urlToTemplate = buildUrlToTemplateMap(templateCandidates);
+    const totalDiscovered = classifierUrls.length;
+    siteTemplates = scoreTemplates(
+      enriched.findings,
+      templateCandidates,
+      urlToTemplate,
+      totalDiscovered,
+    );
   }
 
   const { risk, categories, bucketCounts } = scoreFromFindings(
@@ -2608,14 +2606,15 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  // v0.6.0 spec §15.1: site verdict comes from siteVerdictFromTemplates when
-  // ≥1 template has ≥5% coverage. Falls back to the legacy risk-ladder verdict
-  // when no template meets the threshold (single-template sites, `unclear`/
-  // `small-marketing` classifications, or the long-tail-only case).
-  // The `risk` score is intentionally unchanged; §15.1 governs verdict only.
-  const legacyVerdict = shiftVerdictForAuthority(verdictForRisk(risk), resolvedAuthorityScore);
+  // v0.6.0 spec §15.1 + scoring-honesty §3.2: site verdict comes from
+  // siteVerdictFromTemplates when ≥1 template has ≥5% coverage. Falls back to
+  // the legacy risk-ladder verdict when no template meets the threshold
+  // (single-template sites, `small-marketing`, or long-tail-only).
+  // Authority and effort both moderate whichever headline won (never risk).
+  const fromRisk = verdictForRisk(risk);
   const templateVerdict = siteVerdictFromTemplates(siteTemplates);
-  const baseVerdict = templateVerdict !== null ? templateVerdict : legacyVerdict;
+  const preAuthority = templateVerdict ?? fromRisk;
+  const afterAuthority = shiftVerdictForAuthority(preAuthority, resolvedAuthorityScore);
 
   // 2026-06-17 SP1: opt-in content-effort moderation. Like authority, this
   // shifts only the user-facing verdict (never `risk`), one tier in either
@@ -2665,7 +2664,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
       resolvedEffort = undefined; // fail-safe: model/key unavailable → no moderation
     }
   }
-  const verdict = shiftVerdictForEffort(baseVerdict, resolvedEffort);
+  const verdict = shiftVerdictForEffort(afterAuthority, resolvedEffort);
 
   const headline = buildHeadline(bucketCounts);
 

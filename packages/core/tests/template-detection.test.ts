@@ -13,8 +13,10 @@ import {
   detectTemplates,
   buildUrlToTemplateMap,
   shouldActivateTemplateScoring,
+  shouldUseTemplateScoringPath,
   LONGTAIL_SIGNATURE,
 } from "../src/template-detection.js";
+import type { TemplateCandidate } from "../src/template-detection.js";
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -134,6 +136,39 @@ describe("shouldActivateTemplateScoring: requires ≥2 qualifying templates", ()
 
   it("returns false for empty candidates", () => {
     expect(shouldActivateTemplateScoring([])).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// shouldUseTemplateScoringPath: site-type gate + cluster activation (§3.2)
+// ---------------------------------------------------------------------------
+
+describe("shouldUseTemplateScoringPath: unclear on, small-marketing off", () => {
+  function twoClusters(): TemplateCandidate[] {
+    const urls = [
+      ...genUrls("https://example.com/listing/item-{i}", 10),
+      ...genUrls("https://example.com/category/cat-{i}", 10),
+    ];
+    return detectTemplates(urls);
+  }
+
+  it('returns true for "unclear" when ≥2 qualifying clusters exist', () => {
+    expect(shouldUseTemplateScoringPath("unclear", twoClusters())).toBe(true);
+  });
+
+  it('returns false for "small-marketing" even with ≥2 qualifying clusters', () => {
+    expect(shouldUseTemplateScoringPath("small-marketing", twoClusters())).toBe(false);
+  });
+
+  it("allows programmatic-directory / ecommerce / docs / blog with ≥2 clusters", () => {
+    const clusters = twoClusters();
+    for (const type of ["programmatic-directory", "ecommerce", "docs", "blog"] as const) {
+      expect(shouldUseTemplateScoringPath(type, clusters)).toBe(true);
+    }
+  });
+
+  it("returns false when fewer than 2 qualifying clusters (any allowed type)", () => {
+    expect(shouldUseTemplateScoringPath("unclear", [])).toBe(false);
   });
 });
 

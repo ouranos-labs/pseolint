@@ -12,6 +12,7 @@
  */
 
 import { clusterUrlTemplates } from "./site-classifier.js";
+import type { SiteType } from "./site-classifier.js";
 
 /** Minimum cluster ratio to qualify as a template (1% of total URLs). */
 const MIN_CLUSTER_RATIO = 0.01;
@@ -122,6 +123,19 @@ export function buildUrlToTemplateMap(candidates: TemplateCandidate[]): Map<stri
 export function shouldActivateTemplateScoring(candidates: TemplateCandidate[]): boolean {
   const qualifying = candidates.filter((c) => c.signature !== LONGTAIL_SIGNATURE);
   return qualifying.length >= 2;
+}
+
+/**
+ * Site-type gate for the template scoring path (scoring-honesty §3.2).
+ * `small-marketing` stays on the legacy single-score path; `unclear` and all
+ * other classified types activate when {@link shouldActivateTemplateScoring}.
+ */
+export function shouldUseTemplateScoringPath(
+  siteType: SiteType,
+  candidates: TemplateCandidate[],
+): boolean {
+  if (siteType === "small-marketing") return false;
+  return shouldActivateTemplateScoring(candidates);
 }
 
 // ---------------------------------------------------------------------------
