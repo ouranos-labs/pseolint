@@ -2,7 +2,7 @@ import type { Verdict } from "../src/types.js";
 
 export type SiteClass =
   | "reputable"        // gated: verdict must be <= expectedVerdictCeiling
-  | "policy-violating" // gated: verdict should reach expectedVerdictFloor; ratcheted on recall
+  | "policy-violating" // floor aspirational unless gateFloor; ratcheted on recall
   | "subject";         // NON-gated dogfood target (e.g. paperforge.dev); tracked, never pass/fail
 
 export type Status =
@@ -27,8 +27,14 @@ export interface CorpusSite {
   class: SiteClass;
   /** Reputable only: engine verdict must be <= this (hard gate). */
   expectedVerdictCeiling?: Verdict;
-  /** Policy-violating only: ASPIRATIONAL target, verdict should be >= this. NOT a CI gate. */
+  /** Policy-violating only: target floor; aspirational unless `gateFloor` is true. */
   expectedVerdictFloor?: Verdict;
+  /**
+   * When true, CI asserts `VERDICT_RANK[actual] >= VERDICT_RANK[expectedVerdictFloor]`.
+   * Omitted/false → alignment report + recall ratchet only (not an absolute floor).
+   * Stamp only on synthetics and addressable policy sites that already meet their floor.
+   */
+  gateFloor?: boolean;
   /** Policy-violating only: named spam policies the site visibly violates. */
   visiblePolicies?: string[];
   /**

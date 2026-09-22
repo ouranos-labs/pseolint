@@ -39,6 +39,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Verdict } from "../../src/types.js";
+import { assertGateFloor } from "../../calibration/gate-floor.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RESULTS_PATH = resolve(__dirname, "../../../../scripts/calibration-results.json");
@@ -72,6 +73,13 @@ const IS_CI =
 const MIN_GATED_REPUTABLE_SITES = 6;
 
 /**
+ * Floor on how many policy-violating sites the run actually floor-gated.
+ * Count of `gateFloor: true` sites at land time (synthetics + addressable
+ * sites that already met their floor). May only be raised.
+ */
+const MIN_GATED_POLICY_SITES = 14;
+
+/**
  * Tolerance for the scorecard ratchet. A `--fixtures-only` run is fully
  * deterministic (same fixtures, same ruleset => bit-identical metrics), so this
  * only absorbs float noise. It is NOT headroom for "a small regression is fine".
@@ -90,6 +98,8 @@ interface SiteResult {
   vertical: string;
   class?: "reputable" | "policy-violating" | "subject";
   expectedVerdictCeiling?: Verdict;
+  expectedVerdictFloor?: Verdict;
+  gateFloor?: boolean;
   pass: boolean;
   failureReason?: string;
   audit: null | { verdict: Verdict; risk: number; topDrivers: Array<{ ruleId: string; count: number; impact: number }> };
@@ -193,32 +203,43 @@ describe("reputable-pSEO calibration regression", () => {
       continue;
     }
     if (!site.audit) continue;
-    // Two-sided corpus: only the reputable class has a verdict ceiling to gate.
-    // policy-violating + subject sites are measured by the scorecard, not here.
-    if (site.class !== "reputable") continue;
+    // Two-sided corpus: reputable ceilings + opt-in policy floors (gateFloor).
+    // subject sites are measured by the scorecard, not here.
+    if (site.class === "reputable") {
+      const actual = site.audit.verdict;
+      const ceiling = site.expectedVerdictCeiling;
 
-    const actual = site.audit.verdict;
-    const ceiling = site.expectedVerdictCeiling;
+      it(
+        `${site.url} (${site.vertical}): verdict ≤ ${ceiling}`,
+        () => {
+          const actualRank = VERDICT_RANK[actual];
+          const ceilingRank = VERDICT_RANK[ceiling];
+          const driverHint = site.audit?.topDrivers
+            .slice(0, 3)
+            .map((d) => `${d.ruleId} (impact=${d.impact})`)
+            .join(", ");
+          expect(actualRank, [
+            `Engine returned verdict='${actual}' on a reputable-pSEO site whose ground-truth`,
+            `evidence supports verdict <= '${ceiling}'.`,
+            `Top drivers: ${driverHint}.`,
+            `This is a calibration failure on the engine, not the site. Adjust`,
+            `SCORING_PROFILES['programmatic-directory'] severity/confidence overrides`,
+            `or rule thresholds. See docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.`,
+          ].join(" ")).toBeLessThanOrEqual(ceilingRank);
+        },
+      );
+      continue;
+    }
 
-    it(
-      `${site.url} (${site.vertical}): verdict ≤ ${ceiling}`,
-      () => {
-        const actualRank = VERDICT_RANK[actual];
-        const ceilingRank = VERDICT_RANK[ceiling];
-        const driverHint = site.audit?.topDrivers
-          .slice(0, 3)
-          .map((d) => `${d.ruleId} (impact=${d.impact})`)
-          .join(", ");
-        expect(actualRank, [
-          `Engine returned verdict='${actual}' on a reputable-pSEO site whose ground-truth`,
-          `evidence supports verdict <= '${ceiling}'.`,
-          `Top drivers: ${driverHint}.`,
-          `This is a calibration failure on the engine, not the site. Adjust`,
-          `SCORING_PROFILES['programmatic-directory'] severity/confidence overrides`,
-          `or rule thresholds. See docs/superpowers/specs/2026-05-03-calibration-against-reputable-pseo.md.`,
-        ].join(" ")).toBeLessThanOrEqual(ceilingRank);
-      },
-    );
+    if (site.class === "policy-violating" && site.gateFloor) {
+      const floor = site.expectedVerdictFloor;
+      it(
+        `${site.url} (${site.vertical}): verdict ≥ ${floor} (gateFloor)`,
+        () => {
+          assertGateFloor(site);
+        },
+      );
+    }
   }
 
   it("aggregate rule fire-rates are within decision-matrix bounds", () => {
@@ -275,6 +296,22 @@ describe("reputable-pSEO calibration regression", () => {
         `Gated: ${gated.map((r) => r.url).join(", ") || "(none)"}`,
       ].join("\n"),
     ).toBeGreaterThanOrEqual(MIN_GATED_REPUTABLE_SITES);
+  });
+
+  it(`gated at least ${MIN_GATED_POLICY_SITES} policy sites with gateFloor`, () => {
+    const gated = data.results.filter(
+      (r) => r.class === "policy-violating" && r.gateFloor === true && r.audit !== null && !r.error,
+    );
+    expect(
+      gated.length,
+      [
+        `Only ${gated.length} policy site(s) were floor-gated; the floor is ${MIN_GATED_POLICY_SITES}.`,
+        "gateFloor sites drop out of a --fixtures-only run when their fixture directory is missing,",
+        "or when calibration-results.json was produced before gateFloor was stamped into the corpus.",
+        "Re-run `bun run calibrate:corpus` after stamping, or raise/lower the floor deliberately.",
+        `Gated: ${gated.map((r) => r.url).join(", ") || "(none)"}`,
+      ].join("\n"),
+    ).toBeGreaterThanOrEqual(MIN_GATED_POLICY_SITES);
   });
 
   /**

@@ -109,6 +109,10 @@ interface SiteResult {
   class: SiteClass;
   /** Reputable only; undefined for policy-violating/subject. */
   expectedVerdictCeiling?: Verdict;
+  /** Policy-violating only; undefined for reputable/subject. */
+  expectedVerdictFloor?: Verdict;
+  /** When true, CI hard-gates expectedVerdictFloor (see gate-floor.ts). */
+  gateFloor?: boolean;
   expectedSiteType: string;
   pass: boolean;
   /** When `pass` is false, a one-line reason for human readability. */
@@ -271,6 +275,8 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
     vertical: target.vertical,
     class: target.class,
     expectedVerdictCeiling: target.expectedVerdictCeiling,
+    expectedVerdictFloor: target.expectedVerdictFloor,
+    gateFloor: target.gateFloor,
     expectedSiteType: target.expectedSiteType,
     pass: false,
     audit: null,
@@ -362,10 +368,16 @@ async function auditOne(target: CorpusSite, hardTimeoutMs = 90_000): Promise<Sit
             `Engine returned verdict='${summary.verdict}' on a site whose ground-truth ` +
             `evidence supports verdict <= '${target.expectedVerdictCeiling}'. The engine is mis-calibrated, not the site.`;
         }
+      } else if (target.gateFloor && target.expectedVerdictFloor) {
+        // Opt-in absolute floor (synthetics + addressable sites that already met floor).
+        const floorRank = VERDICT_RANK[target.expectedVerdictFloor];
+        result.pass = actualRank >= floorRank;
+        if (!result.pass) {
+          result.failureReason =
+            `Engine returned verdict='${summary.verdict}' below gateFloor expectedVerdictFloor='${target.expectedVerdictFloor}'.`;
+        }
       } else {
-        // policy-violating + subject are NOT hard-gated by the ceiling logic.
-        // Their floor shortfall is surfaced in the scorecard's alignment report,
-        // and policy-violating recall is gated by the ratchet (Step 5), not here.
+        // Ungated policy-violating + subject: floor shortfall is alignment/ratchet only.
         result.pass = true;
       }
     } finally {

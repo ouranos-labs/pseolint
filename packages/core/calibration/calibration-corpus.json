@@ -39944,7 +39944,8 @@
         "https://healthyceleb.com/towie-star-lauren-pope-workout-routine-diet-secrets/",
         "https://healthyceleb.com/tuc-watkins/"
       ]
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://www.fresherslive.com/",
       "vertical": "govt-jobs-directory",
@@ -39994,7 +39995,8 @@
         "https://www.fresherslive.com/terms-conditions"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/www_fresherslive_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://doorwayspam.example/",
       "vertical": "constructed-doorway",
@@ -40022,7 +40024,8 @@
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/doorwayspam_example/",
       "synthetic": true
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://hiddentextspam.example/",
       "vertical": "constructed-hidden-text",
@@ -40047,7 +40050,8 @@
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/hiddentextspam_example/",
       "synthetic": true
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://zacjohnson.com/",
       "vertical": "celebrity-networth-ai-farm",
@@ -40071,7 +40075,8 @@
         "https://zacjohnson.com/25-highest-paying-jobs-america/"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/zacjohnson_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://beingselfish.in/",
       "vertical": "dp-image-gallery-farm",
@@ -40096,7 +40101,8 @@
         "https://beingselfish.in/cartoon-dp/"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/beingselfish_in/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://www.newsunzip.com/",
       "vertical": "celebrity-bio-ai-farm",
@@ -40145,7 +40151,8 @@
         "https://popularnetworth.com/adam-boulton-british-journalist-net-worth-age-bio-wiki-career-family-nationality-ethnicity-partner-news-and-facts/"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/popularnetworth_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://www.thehairpin.com/",
       "vertical": "expired-domain-ai-blog",
@@ -40194,7 +40201,8 @@
         "https://equityatlas.org/10-worst-places-to-live-in-kansas/"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/equityatlas_org/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://coupons.cnn.com/",
       "vertical": "parasite-coupon-subdomain",
@@ -40388,7 +40396,8 @@
         "https://thepersonage.com/yuvraj-thakur"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/thepersonage_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://wikibioworth.com/",
       "vertical": "celebrity-bio-ai-farm",
@@ -40480,7 +40489,8 @@
         "https://trustanalytica.org/us/tx/el-paso/reviews/winton-law-el-paso-pc"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/trustanalytica_org/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://www.bestprosintown.com/",
       "vertical": "local-directory-entity-swap-farm",
@@ -40526,7 +40536,8 @@
         "https://www.bestprosintown.com/va/franklin/top-nails-/"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/www_bestprosintown_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://fresherslike.com/",
       "vertical": "job-result-admit-card-farm",
@@ -43709,7 +43720,8 @@
         "https://fresherslike.com/12th-job/",
         "https://fresherslike.com/contact-us/"
       ]
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://grokipedia.com/",
       "vertical": "ai-generated-encyclopedia-farm",
@@ -43754,7 +43766,8 @@
         "https://grokipedia.com/page/1303_Crete_earthquake"
       ],
       "localFixtureDir": "packages/core/calibration/fixtures/grokipedia_com/"
-    },
+    ,
+      "gateFloor": true},
     {
       "url": "https://cookcraze.com/",
       "vertical": "ai-recipe-slop-farm",
@@ -44935,7 +44948,8 @@
         "https://cookcraze.com/category/appetizers/",
         "https://cookcraze.com/category/desserts/"
       ]
-    }
+    ,
+      "gateFloor": true}
   ],
   "excluded": {
     "reason": "Sites that actively rate-limit or CAPTCHA non-residential crawlers, returning 403/429 instead of audit-ready HTML. Adding them now would pollute the corpus with fetch errors rather than calibration data.",

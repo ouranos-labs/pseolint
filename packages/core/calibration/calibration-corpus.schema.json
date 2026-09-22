@@ -40,6 +40,10 @@
           "enum": ["ready", "caution", "concerning", "critical"]
         },
         "expectedVerdictFloor": { "type": "string", "enum": ["ready", "caution", "concerning", "critical"] },
+        "gateFloor": {
+          "type": "boolean",
+          "description": "When true, CI asserts verdict rank >= expectedVerdictFloor. Omitted/false = report/ratchet only. Stamp only on synthetics and addressable policy sites that already meet their floor."
+        },
         "visiblePolicies": { "type": "array", "items": { "type": "string" } },
         "detectability": {
           "type": "string",
