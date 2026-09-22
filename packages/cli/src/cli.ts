@@ -185,7 +185,7 @@ export async function runCli(
     .option("--block-host <host>", "Extra host substring to block in render mode (repeatable)", (v, acc: string[]) => [...acc, v], [] as string[])
     .option("--safe-mode <mode>", "Safety preset: saas (guardSsrf + tight caps) | cli (default) | dev (tiny crawl for localhost)")
     .option("--full", "Disable the automatic 'dev' preset for localhost sources: run a full crawl")
-    .option("--strict", "Run all rules regardless of detected site type (bypass pSEO-only rule suppression on small sites)")
+    .option("--strict", "bypass pSEO-only rule suppression and scoring-profile severity demotions")
     .option("--no-backpressure", "Disable the in-flight watchdog that aborts audits when origin latency or 5xx rate spikes")
     .option("--no-respect-robots", "Audit sitemap URLs even if the target's robots.txt Disallows them")
     .option("--no-respect-noindex", "Audit pages marked noindex (via meta robots or X-Robots-Tag) instead of skipping them")

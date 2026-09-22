@@ -10,18 +10,12 @@ import type {
   Verdict,
 } from "../types.js";
 import type { SiteClassification, SiteType } from "../site-classifier.js";
+import { SCORED_RULE_COUNT } from "../rules/scope.js";
 import { type BucketedFinding, bucketByTemplate } from "./bucket-findings.js";
 import {
   renderTemplateCardsConsole,
   shouldRenderTemplateCards,
 } from "./template-cards.js";
-
-/**
- * Total rule count surfaced in the "pass --strict to run all N" hint.
- * This MUST match the surviving rule count documented in v0.4 §4.3 (32 rules).
- * If we add or drop rules in v0.5+, bump this constant.
- */
-const TOTAL_V04_RULE_COUNT = 32;
 
 // ANSI escape codes
 const RESET = "\x1b[0m";
@@ -278,7 +272,7 @@ function classificationLines(c: SiteClassification | undefined): string[] {
 
   if (c.type === "unclear") {
     lines.push(
-      `${GREEN}✓${RESET} Site type: ${fmtType(c.type)}, all ${TOTAL_V04_RULE_COUNT} rules applied.`,
+      `${GREEN}✓${RESET} Site type: ${fmtType(c.type)}, all ${SCORED_RULE_COUNT} rules applied.`,
     );
     return lines;
   }
@@ -296,10 +290,10 @@ function classificationLines(c: SiteClassification | undefined): string[] {
 
   if (c.suppressedRules.length > 0) {
     lines.push(
-      `${GREEN}✓${RESET} Suppressed ${c.suppressedRules.length} pSEO-only rule${c.suppressedRules.length === 1 ? "" : "s"}, pass --strict to run all ${TOTAL_V04_RULE_COUNT}`,
+      `${GREEN}✓${RESET} Suppressed ${c.suppressedRules.length} pSEO-only rule${c.suppressedRules.length === 1 ? "" : "s"}, pass --strict to run all ${SCORED_RULE_COUNT}`,
     );
   } else {
-    lines.push(`  All ${TOTAL_V04_RULE_COUNT} rules applied.`);
+    lines.push(`  All ${SCORED_RULE_COUNT} rules applied.`);
   }
   return lines;
 }

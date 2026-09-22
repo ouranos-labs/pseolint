@@ -66,8 +66,9 @@ export function categoryForRule(ruleId: string): CategoryKey | undefined {
  *     the impact multiplier in `scoreFromFindings`.
  *
  * Threshold: site-type profiles only apply when the classifier is at least
- * 70% confident. Below that we fall back to the conservative "unclear"
- * defaults: never demote findings on a site we can't confidently classify.
+ * 70% confident. Below that we fall back to the `unclear` profile, which
+ * still demotes catalog-mismatch rules (AEO / EEAT / chrome / thin) but
+ * leaves integrity spam (near-dup / entity-swap / doorway) at native severity.
  */
 interface ScoringProfile {
   /** Per-category weight; must sum to 1.0. */
@@ -222,8 +223,9 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "content/missing-author": "low",
       "content/eeat-signals":   "low",
       "spam/template-diversity": "medium",
-      "spam/near-duplicate":    "medium",
-      "spam/doorway-pattern":   "medium",
+      // near-duplicate / doorway stay at warning severity (catalog pair shape)
+      // but keep native `high` confidence — the 0.6 medium multiplier was a
+      // second mute on top of the severity demote. See scoring-honesty §3.1.
       "spam/boilerplate-ratio": "medium",
       "spam/thin-content":      "low",
       "tech/og-completeness":      "low",
@@ -262,20 +264,12 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
   },
   "unclear": {
     categoryWeights: { integrity: 0.50, discoverability: 0.20, citation: 0.25, data: 0.05, audit: 0 },
-    // 2026-05-03 calibration round 2: the original "stay strict when unsure"
-    // intent meant that 4 of 5 reputable pSEO sites that classified as
-    // unclear (Zapier integrations, Typeform templates, Jasper templates,
-    // Numbeo cost-of-living) failed their verdict ceiling. The dominant
-    // driver was always `aeo/citable-facts` at full error severity, but
-    // catalog/template-gallery pages don't have prose, so the rule fires
-    // for a STRUCTURAL reason (page is a table, not a paragraph), not a
-    // QUALITY reason. Demoting the structurally-incompatible rules to
-    // info on `unclear` is conservative:
-    //   - if site is genuinely editorial and got mis-classified, signals
-    //     still surface (just info, not error); author can act on them.
-    //   - if site is catalog and got mis-classified to unclear, verdict
-    //     no longer falsely tanks.
-    // Real spam signals (near-dup, doorway, thin) keep their severity.
+    // Unsure → `unclear` profile. Demote catalog-mismatch rules (AEO / EEAT /
+    // OG / headings / alt / thin / boilerplate / missing-author) so
+    // table-shaped pages don't tank the verdict for a structural reason.
+    // Integrity spam (near-dup / entity-swap / doorway) keeps native severity
+    // and confidence: scoring-honesty §3.1. Thin stays demoted (wrong
+    // threshold for catalogs; not a mute of a real spam signal).
     severityOverrides: {
       "aeo/citable-facts":      "info",
       "aeo/answer-first":       "info",
@@ -283,20 +277,6 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "aeo/freshness-signals":  "info",
       "content/missing-author": "info",
       "content/eeat-signals":   "info",
-      // 2026-05-03 calibration round 3: Airbyte classified as unclear@0.5
-      // and scored concerning despite all info-severity findings in the
-      // top 5. The 8 critical "blockers" came from spam/near-duplicate,
-      // spam/entity-swap, spam/doorway-pattern firing 1-2× each on its
-      // connectors directory: invisible per-rule but cumulatively pushing
-      // the score over 'caution'. On unclear sites we cannot tell whether
-      // these triple-fires represent a real doorway or a catalog; the
-      // calibration corpus shows reputable catalogs hitting them more
-      // often than real doorways do. Demote to warning: keeps the signal
-      // visible (it appears in shouldFix bucket, with full message) without
-      // tanking the verdict on a structurally-ambiguous site.
-      "spam/near-duplicate":    "warning",
-      "spam/entity-swap":       "warning",
-      "spam/doorway-pattern":   "warning",
       // 2026-05-03 calibration round 4: same boilerplate logic on unclear:
       // we can't tell whether the site is a marketing site (boilerplate IS
       // a quality issue) or a catalog (it isn't), so demote conservatively.
@@ -322,9 +302,6 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
       "aeo/freshness-signals":  "low",
       "content/missing-author": "low",
       "content/eeat-signals":   "low",
-      "spam/near-duplicate":    "medium",
-      "spam/entity-swap":       "medium",
-      "spam/doorway-pattern":   "medium",
       "spam/boilerplate-ratio": "medium",
       "spam/thin-content":      "low",
       "tech/og-completeness":      "low",
@@ -336,19 +313,32 @@ const SCORING_PROFILES: Record<SiteType, ScoringProfile> = {
 
 /**
  * Pick the scoring profile for a classification. Falls back to `unclear`
- * (the conservative default) when classifier confidence is below 70%.
+ * when classifier confidence is below 70% (that profile demotes
+ * catalog-mismatch rules, not integrity spam — see SCORING_PROFILES.unclear).
  *
- * v0.5.3: when `applyDegenerationGuard` has tripped, we return a synthetic
- * profile that reuses `unclear` category weights but applies NO severity /
- * confidence overrides. The whole point of the guard is to expose the
- * natural rule severities on degenerate corpora; the demotion table on
- * `unclear` would re-mask `spam/thin-content` and `aeo/citable-facts` if we
- * just used SCORING_PROFILES.unclear here.
+ * Degeneration-guard: unclear category weights, empty override maps (expose
+ * native severities on degenerate corpora).
+ *
+ * `--strict` / `opts.strict`: classified type's category weights, empty
+ * override maps (operator escape hatch; same empty-overrides shape as
+ * degeneration-guard).
  */
-export function profileFor(classification: SiteClassification | undefined): ScoringProfile {
+export function profileFor(
+  classification: SiteClassification | undefined,
+  opts?: { strict?: boolean },
+): ScoringProfile {
   if (classification && classification.signals.some((s) => s.kind === "degeneration-guard-tripped")) {
     return {
       categoryWeights: SCORING_PROFILES.unclear.categoryWeights,
+      severityOverrides: {},
+      confidenceOverrides: {},
+    };
+  }
+  if (opts?.strict) {
+    const type = classification?.type ?? "unclear";
+    const base = SCORING_PROFILES[type] ?? SCORING_PROFILES.unclear;
+    return {
+      categoryWeights: base.categoryWeights,
       severityOverrides: {},
       confidenceOverrides: {},
     };
@@ -665,8 +655,9 @@ export function scoreFromFindings(
   findings: RuleResult[],
   classification: SiteClassification | undefined,
   pageCount = 0,
+  opts?: { strict?: boolean },
 ): ScoreOutput {
-  const profile = profileFor(classification);
+  const profile = profileFor(classification, opts);
 
   const bucketRaw: Record<CategoryKey, number> = {
     integrity: 0,

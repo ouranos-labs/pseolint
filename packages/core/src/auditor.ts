@@ -657,8 +657,9 @@ function hashHtml(html: string): string {
 export function applyScoringProfileOverrides(
   findings: RuleResult[],
   classification: SiteClassification | undefined,
+  opts?: { strict?: boolean },
 ): RuleResult[] {
-  const profile = profileFor(classification);
+  const profile = profileFor(classification, opts);
   const sevHas = Object.keys(profile.severityOverrides).length > 0;
   const confHas = Object.keys(profile.confidenceOverrides).length > 0;
   if (!sevHas && !confHas) return findings;
@@ -685,8 +686,9 @@ export function applyScoringProfileOverrides(
 function computeAppliedDemotions(
   findings: RuleResult[],
   classification: SiteClassification | undefined,
+  opts?: { strict?: boolean },
 ): string[] {
-  const profile = profileFor(classification);
+  const profile = profileFor(classification, opts);
   if (Object.keys(profile.severityOverrides).length === 0) return [];
   const applied = new Set<string>();
   for (const f of findings) {
@@ -2305,7 +2307,8 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     corpusStatsFromPages(parsedPages),
   );
   // `--strict` (or AuditOptions.strict) keeps the classification but forces
-  // every rule to run regardless of detected site type.
+  // every rule to run regardless of detected site type, AND clears
+  // scoring-profile severity/confidence demotions (see profileFor({ strict })).
   //
   // A backpressure abort BEFORE classification salvages only a fragment of the
   // crawl (`truncated` is already set here; the coverage guardrail runs later).
@@ -2321,6 +2324,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     : classificationUnreliable
       ? { ...guardedClassification, type: "unclear", confidence: 0, suppressedRules: [] }
       : guardedClassification;
+  const scoringOpts = options?.strict ? { strict: true as const } : undefined;
   const suppressedRuleSet = new Set<string>(siteClassification.suppressedRules);
 
   // Classify pages into groups and run only enabled rules per group
@@ -2475,9 +2479,10 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     // group-level risk numbers reflect the same severity / confidence remaps
     // as the headline verdict.
     const { risk: groupRisk } = scoreFromFindings(
-      applyScoringProfileOverrides(findings, siteClassification),
+      applyScoringProfileOverrides(findings, siteClassification, scoringOpts),
       siteClassification,
       groupPages.length,
+      scoringOpts,
     );
     groupScores[groupName] = groupRisk;
   }
@@ -2511,7 +2516,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   // severity (not the rule's native severity). The remapped findings replace
   // the enrichment output so every downstream consumer (summary.issues, AI
   // triage input, telemetry, formatters) sees the corrected severity.
-  enriched.findings = applyScoringProfileOverrides(enriched.findings, siteClassification);
+  enriched.findings = applyScoringProfileOverrides(enriched.findings, siteClassification, scoringOpts);
 
   // v0.5: change-driven monitoring carry-forward. URLs that the pre-fetch
   // strategy marked as "skip" were never fetched this run, so no rule produced
@@ -2574,7 +2579,12 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     }
   }
 
-  const { risk, categories, bucketCounts } = scoreFromFindings(enriched.findings, siteClassification, parsedPages.length);
+  const { risk, categories, bucketCounts } = scoreFromFindings(
+    enriched.findings,
+    siteClassification,
+    parsedPages.length,
+    scoringOpts,
+  );
   const auditedPageCount = Object.values(groupPageCounts).reduce((a, b) => a + b, 0);
 
   const issues = bucketIssues(enriched.findings);
@@ -2671,7 +2681,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
     skipped: skippedByContentType.length + skippedByRobots.length + skippedUrls.length,
   };
 
-  const appliedSeverityDemotions = computeAppliedDemotions(enriched.findings, siteClassification);
+  const appliedSeverityDemotions = computeAppliedDemotions(enriched.findings, siteClassification, scoringOpts);
   const summary: AuditSummary = {
     schemaVersion: SCHEMA_VERSION,
     verdict,
