@@ -273,9 +273,9 @@ function ConfidenceChip({ confidence }: { confidence?: RuleResult["confidence"] 
   );
 }
 
-// `context` carries the engine's richest evidence. Render it compactly: the
-// worst near-duplicate pair(s) for cluster findings, the boilerplate ratio for
-// contentBreakdown findings.
+// `context` carries the engine's richest evidence. Render it compactly: worst
+// pairs for clusters, page count for grouped rollups, boilerplate ratio for
+// contentBreakdown. Exhaustive on FindingContext so a new variant fails tsc.
 function ContextEvidence({ context }: { context: NonNullable<RuleResult["context"]> }) {
   if (context.type === "cluster") {
     const worst = context.worstPairs.slice(0, 2);
@@ -300,7 +300,24 @@ function ContextEvidence({ context }: { context: NonNullable<RuleResult["context
       </div>
     );
   }
-  // contentBreakdown: surface the boilerplate ratio (shared / total words).
+  if (context.type === "group") {
+    const sample = context.members.slice(0, 3);
+    return (
+      <div className="flex flex-col gap-2 rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Grouped pages</span>
+          <span className="font-mono text-[11px] text-muted-foreground">{context.size} pages</span>
+        </div>
+        {sample.length > 0 && (
+          <ul className="flex flex-col gap-1 font-mono text-[11px]">
+            {sample.map((url) => (
+              <li key={url} className="truncate text-muted-foreground" title={url}>{pathOf(url)}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    );
+  }
   const ratio = context.totalWordCount > 0 ? Math.round((context.sharedWordCount / context.totalWordCount) * 100) : 0;
   return (
     <div className="flex items-center justify-between rounded-[14px] border border-border/60 bg-background/40 p-3 text-xs">
