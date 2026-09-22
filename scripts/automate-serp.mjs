@@ -312,6 +312,16 @@ async function main() {
           const templatedUrls = new Set(clusters.flatMap((c) => c.urls));
 
           return {
+            // Guard against silent extraction failure. Google now wraps result
+            // links as /goto?url=<opaque token> on www.google.com instead of the
+            // old /url?q=<real url>. cleanResultUrl cannot unwrap that, so every
+            // result resolves to google.com and is dropped by SKIP_HOST , giving
+            // 0 results on a page that plainly has them. Reported so the run
+            // fails loudly rather than writing a file full of empty SERPs.
+            // scripts/serp-emailens3.mjs reads the visible <cite> host instead.
+            extractionBroken:
+              resultsList.length === 0 && document.querySelectorAll("h3").length > 0,
+            h3Count: document.querySelectorAll("h3").length,
             total: resultsList.length,
             templatedUrls: Array.from(templatedUrls),
             clusters: clusters.map((c) => ({ host: c.host, pattern: c.pattern, count: c.count })),
@@ -326,6 +336,15 @@ async function main() {
             }))
           };
         });
+
+        if (pageData?.extractionBroken) {
+          throw new Error(
+            `SERP extraction is broken: found ${pageData.h3Count} results on the page but ` +
+            `extracted 0. Google wraps result links as /goto?url=<opaque token> now, so ` +
+            `cleanResultUrl drops every result as google.com. Use ` +
+            `scripts/serp-emailens3.mjs (reads the visible <cite> host) or fix cleanResultUrl.`
+          );
+        }
 
         if (pageData?.error === "captcha") {
           console.log("  ⚠️ CAPTCHA detected. Please solve it in the Chrome window now...");
