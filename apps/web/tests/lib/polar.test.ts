@@ -15,11 +15,20 @@ vi.mock("@/db", () => ({
 
 vi.mock("@/db/schema", () => ({ webhookEvents: {} }));
 
-vi.mock("@polar-sh/sdk", () => ({
-  Polar: vi.fn(function () {}),
-}));
+vi.mock("@polar-sh/sdk", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@polar-sh/sdk")>();
+  return {
+    ...actual,
+    Polar: vi.fn(function () {}),
+  };
+});
 
-import { rememberEventOnce, isActiveSubscriptionStatus } from "@/lib/polar";
+import {
+  rememberEventOnce,
+  isActiveSubscriptionStatus,
+  POLAR_API_VERSION,
+  createPolarHttpClient,
+} from "@/lib/polar";
 
 describe("rememberEventOnce idempotency", () => {
   it("first call inserts; duplicate returns false", async () => {
@@ -44,3 +53,24 @@ describe("isActiveSubscriptionStatus", () => {
     expect(isActiveSubscriptionStatus("nonsense")).toBe(false);
   });
 });
+
+describe("Polar API version pinning", () => {
+  it("pins API version to 2026-04", () => {
+    expect(POLAR_API_VERSION).toBe("2026-04");
+  });
+
+  it("createPolarHttpClient attaches Polar-Version header to outgoing requests", async () => {
+    const client = createPolarHttpClient();
+    let capturedHeader: string | null = null;
+    (client as unknown as { fetcher: (req: Request) => Promise<Response> }).fetcher = async (req: Request) => {
+      capturedHeader = req.headers.get("Polar-Version");
+      return new Response("{}", {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    await client.request(new Request("https://api.polar.sh/v1/checkouts"));
+    expect(capturedHeader).toBe("2026-04");
+  });
+});
+

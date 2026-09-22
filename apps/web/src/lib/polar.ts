@@ -1,16 +1,35 @@
 import "server-only";
-import { Polar } from "@polar-sh/sdk";
+import { Polar, HTTPClient } from "@polar-sh/sdk";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { userProfiles, webhookEvents } from "@/db/schema";
 import { env } from "@/lib/env";
+
+/**
+ * Pinned Polar API version (YYYY-MM).
+ * Polar introduces quarterly date-based API versioning starting October 1, 2026.
+ * Pinning to 2026-04 maintains contract stability until January 2027.
+ */
+export const POLAR_API_VERSION = "2026-04";
+
+export function createPolarHttpClient(): HTTPClient {
+  const httpClient = new HTTPClient();
+  httpClient.addHook("beforeRequest", (req) => {
+    req.headers.set("Polar-Version", POLAR_API_VERSION);
+    return req;
+  });
+  return httpClient;
+}
 
 function polarClient(): Polar {
   const token = env().POLAR_ACCESS_TOKEN;
   if (!token) {
     throw new Error("Polar is not configured: POLAR_ACCESS_TOKEN is missing");
   }
-  return new Polar({ accessToken: token });
+  return new Polar({
+    accessToken: token,
+    httpClient: createPolarHttpClient(),
+  });
 }
 
 export async function createCheckoutSession(opts: {
