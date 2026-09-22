@@ -121,6 +121,7 @@ import { planScrapeStrategy, DEFAULT_AGE_FLOOR_DAYS, type ScrapePlan } from "./s
 import { detectTemplates, buildUrlToTemplateMap, shouldUseTemplateScoringPath, LONGTAIL_SIGNATURE } from "./template-detection.js";
 import { scoreTemplates, siteVerdictFromTemplates } from "./per-template-scoring.js";
 import {
+  allowAuthorityLenient,
   profileFor,
   scoreFromFindings,
   verdictForRisk,
@@ -171,6 +172,7 @@ function docsUrlFor(ruleId: string): string {
  * facing verdict mapping shifts.
  *
  *   `authorityScore >= 80` (established brand)  → shift ONE TIER LENIENT
+ *     (skipped when {@link allowAuthorityLenient} is false — integrity veto)
  *   `authorityScore <= 30` (newer/lower)        → shift ONE TIER STRICT
  *   31..79 or undefined                          → no shift
  *
@@ -206,9 +208,23 @@ export function shiftVerdict(
   return verdict;
 }
 
-/** Authority keeps its exact ±1 / 80 / 30 behavior via the shared moderator. */
-function shiftVerdictForAuthority(verdict: Verdict, authorityScore: number | undefined): Verdict {
-  return shiftVerdict(verdict, { score: authorityScore, lenientAt: 80, strictAt: 30, cap: 1 });
+/**
+ * Authority keeps its exact ±1 / 80 / 30 behavior via the shared moderator.
+ * When `allowLenient` is false (integrity veto, §3.3), only the ≥80 soften
+ * is skipped; ≤30 strict still applies. Fail-open (undefined score) unchanged.
+ */
+function shiftVerdictForAuthority(
+  verdict: Verdict,
+  authorityScore: number | undefined,
+  allowLenient = true,
+): Verdict {
+  return shiftVerdict(verdict, {
+    score: authorityScore,
+    // 101 is unreachable on a 0–100 score → lenient arm never fires.
+    lenientAt: allowLenient ? 80 : 101,
+    strictAt: 30,
+    cap: 1,
+  });
 }
 
 // Content-effort JUDGE model: PINNED, not the provider default. The moderation
@@ -2614,7 +2630,11 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
   const fromRisk = verdictForRisk(risk);
   const templateVerdict = siteVerdictFromTemplates(siteTemplates);
   const preAuthority = templateVerdict ?? fromRisk;
-  const afterAuthority = shiftVerdictForAuthority(preAuthority, resolvedAuthorityScore);
+  const afterAuthority = shiftVerdictForAuthority(
+    preAuthority,
+    resolvedAuthorityScore,
+    allowAuthorityLenient(enriched.findings, categories),
+  );
 
   // 2026-06-17 SP1: opt-in content-effort moderation. Like authority, this
   // shifts only the user-facing verdict (never `risk`), one tier in either

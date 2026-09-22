@@ -627,6 +627,32 @@ export function instancesForFinding(f: RuleResult): number {
   return 1;
 }
 
+/**
+ * Spec §3.3: whether the authority ≥80 lenient arm may soften the verdict.
+ * Integrity grade D/F or a large (≥10 instance) warning+ veto-rule cluster
+ * blocks lenient rescue. Strict arm is unaffected (callers skip only lenient).
+ */
+const INTEGRITY_VETO_RULES = new Set([
+  "spam/near-duplicate",
+  "spam/entity-swap",
+  "spam/doorway-pattern",
+  "links/host-section-divergence",
+]);
+
+export function allowAuthorityLenient(
+  findings: RuleResult[],
+  categories: CategoryGrades,
+): boolean {
+  const g = categories.integrity.grade;
+  if (g === "D" || g === "F") return false;
+  for (const f of findings) {
+    if (!INTEGRITY_VETO_RULES.has(f.ruleId)) continue;
+    if (f.severity === "info") continue;
+    if (instancesForFinding(f) >= 10) return false;
+  }
+  return true;
+}
+
 export interface ScoreOutput {
   /** v0.4 internal numeric risk (0–100, low=good). Used for thresholding logic only. */
   risk: number;

@@ -1,11 +1,43 @@
 import { describe, it, expect } from "vitest";
-import type { RuleResult } from "../src/types.js";
+import type { CategoryGrades, Grade, RuleResult } from "../src/types.js";
 import type { SiteClassification } from "../src/site-classifier.js";
 import {
+  allowAuthorityLenient,
   instancesForFinding,
   scoreFromFindings,
   RULE_IMPACTS,
 } from "../src/scoring.js";
+
+function grades(integrity: Grade): CategoryGrades {
+  const g = (grade: Grade) => ({ grade, issues: 0 });
+  return {
+    integrity: g(integrity),
+    discoverability: g("A"),
+    citation: g("A"),
+    data: g("A"),
+    audit: g("A"),
+  };
+}
+
+function clusterFinding(
+  ruleId: string,
+  clusterSize: number,
+  severity: RuleResult["severity"],
+): RuleResult {
+  return {
+    ruleId,
+    severity,
+    confidence: "high",
+    message: "cluster",
+    context: {
+      type: "cluster",
+      clusterSize,
+      members: Array.from({ length: clusterSize }, (_, i) => `https://x.test/${i}`),
+      worstPairs: [],
+      similarityRange: [0.95, 0.99],
+    },
+  };
+}
 
 describe("instancesForFinding", () => {
   it("returns clusterSize for cluster context", () => {
@@ -126,5 +158,52 @@ describe("RULE_IMPACTS doorway", () => {
       perInstance: 5,
       maxImpact: 80,
     });
+  });
+});
+
+describe("allowAuthorityLenient", () => {
+  it("allows lenient when integrity is healthy and no large veto cluster", () => {
+    expect(allowAuthorityLenient([], grades("A"))).toBe(true);
+    expect(
+      allowAuthorityLenient(
+        [clusterFinding("spam/entity-swap", 9, "warning")],
+        grades("C"),
+      ),
+    ).toBe(true);
+  });
+
+  it("vetoes when integrity grade is D or F", () => {
+    expect(allowAuthorityLenient([], grades("D"))).toBe(false);
+    expect(allowAuthorityLenient([], grades("F"))).toBe(false);
+  });
+
+  it("vetoes a ≥10-instance integrity veto rule at warning+", () => {
+    expect(
+      allowAuthorityLenient(
+        [clusterFinding("spam/entity-swap", 12, "warning")],
+        grades("B"),
+      ),
+    ).toBe(false);
+    expect(
+      allowAuthorityLenient(
+        [clusterFinding("spam/near-duplicate", 10, "critical")],
+        grades("A"),
+      ),
+    ).toBe(false);
+    expect(
+      allowAuthorityLenient(
+        [clusterFinding("links/host-section-divergence", 10, "error")],
+        grades("C"),
+      ),
+    ).toBe(false);
+  });
+
+  it("does not veto info-severity large clusters", () => {
+    expect(
+      allowAuthorityLenient(
+        [clusterFinding("spam/doorway-pattern", 40, "info")],
+        grades("B"),
+      ),
+    ).toBe(true);
   });
 });
