@@ -279,6 +279,14 @@ function applyGrouping(passthrough: RuleResult[]): RuleResult[] {
     const severity = highestSeverity(rulefindings.map((f) => f.severity));
     const message = buildGroupSummaryMessage(ruleId, rulefindings.length, worst);
     const relatedUrls = rest.map((f) => f.pageUrl).filter((u): u is string => !!u);
+    const members = rulefindings
+      .map((f) => f.pageUrl)
+      .filter((u): u is string => !!u);
+    const context: FindingContext = {
+      type: "group",
+      size: rulefindings.length,
+      members,
+    };
 
     grouped.push({
       ruleId,
@@ -288,6 +296,7 @@ function applyGrouping(passthrough: RuleResult[]): RuleResult[] {
       relatedUrls,
       fix: worst.fix,
       ref: rulefindings[0].ref,
+      context,
     });
   }
 

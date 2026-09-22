@@ -61,6 +61,11 @@ export type FindingContext =
       similarityRange: [number, number];
     }
   | {
+      type: "group";
+      size: number;
+      members: string[];
+    }
+  | {
       type: "contentBreakdown";
       sharedBlocks: Array<{ text: string; wordCount: number }>;
       sharedWordCount: number;
