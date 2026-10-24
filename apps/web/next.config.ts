@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const config: NextConfig = {
+  // Self-contained server bundle for the Docker image (apps/web/Dockerfile).
+  output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [

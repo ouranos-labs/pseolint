@@ -1,0 +1,15 @@
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/.env
+**/.env.*
+!**/.env.example
+.git
+.worktrees
+.chrome-user-data
+.superpowers
+graphify-out
+marketing
+docs
+**/tsconfig.tsbuildinfo
