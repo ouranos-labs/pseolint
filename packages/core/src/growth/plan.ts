@@ -114,7 +114,14 @@ export function linkPlan(pages: AnalyzedPage[], opts: PlanOptions = {}): GrowthA
   const perTarget = opts.linksPerTarget ?? 3;
   const perSource = opts.linksPerSource ?? 5;
   const maxLinks = opts.maxLinks ?? 500;
-  const label = (p: AnalyzedPage) => p.h1 || p.title;
+  // Title minus its " | Brand" tail: H1 text loses spaces across inline elements
+  // ("Spotify<span>Playlist</span>"), so it only stands in when there is no title.
+  const label = (p: AnalyzedPage) => p.title.split(/\s+[|–—-]\s+/)[0].trim() || p.h1;
+  // Never link across locales (/fr/… → /pt-br/…): wrong-language anchors help nobody.
+  const locale = (p: AnalyzedPage) => {
+    const seg = p.key.split("/")[1] ?? "";
+    return /^[a-z]{2}(-[a-z]{2,4})?$/i.test(seg) ? seg.toLowerCase() : "";
+  };
 
   // Tokens in >25% of titles are brand/boilerplate, not topic.
   const df = new Map<string, number>();
@@ -144,7 +151,7 @@ export function linkPlan(pages: AnalyzedPage[], opts: PlanOptions = {}): GrowthA
     const scores = new Map<string, { s: AnalyzedPage; score: number }>();
     for (const t of tt) {
       for (const s of byToken.get(t) ?? []) {
-        if (s.key === target.key || s.outlinks.includes(target.key) || (used.get(s.key) ?? 0) >= perSource) continue;
+        if (s.key === target.key || locale(s) !== locale(target) || s.outlinks.includes(target.key) || (used.get(s.key) ?? 0) >= perSource) continue;
         const cur = scores.get(s.key) ?? { s, score: s.template === target.template ? 0.1 : 0 };
         cur.score += 1 / tt.length;
         scores.set(s.key, cur);

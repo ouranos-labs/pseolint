@@ -142,3 +142,13 @@ test("capped GSC data: absent pages are unknown, not ignored (no prune/different
   // Same input with complete data does prune the 1/60 template.
   expect(buildPlan(analyze({ sitemapUrls: pages.map((p) => p.url), pages, gsc, host: "cap.dev" })).actions.some((x) => x.kind === "prune")).toBe(true);
 });
+
+test("link plan stays within a locale and uses the brand-less title as anchor", () => {
+  const o = "https://loc.dev";
+  const mk = (path: string, title: string) => toGrowthPage(`<html><head><title>${title} | Brand</title></head><body><h1>x</h1>${"w ".repeat(30)}</body></html>`, `${o}${path}`, 200, "loc.dev");
+  const pages = [mk("/fr/spotify-playlist", "Créateur playlist Spotify"), mk("/pt-br/spotify-playlist", "Criador playlist Spotify"), mk("/fr/apple-playlist", "Créateur playlist Apple")];
+  const gsc = [{ url: `${o}/pt-br/spotify-playlist`, impressions: 90, clicks: 1, position: 4 }, { url: `${o}/fr/apple-playlist`, impressions: 80, clicks: 1, position: 4 }];
+  const a = analyze({ sitemapUrls: pages.map((p) => p.url), pages, gsc, host: "loc.dev" });
+  const links = buildPlan(a).actions.filter((x) => x.kind === "link") as Array<{ from: string; to: string; anchor: string }>;
+  expect(links).toEqual([{ kind: "link", from: `${o}/fr/apple-playlist`, to: `${o}/fr/spotify-playlist`, anchor: "Créateur playlist Spotify", why: "ignored" }]);
+});
