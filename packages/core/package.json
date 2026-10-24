@@ -40,6 +40,10 @@
       "import": "./dist/rules/scope.js",
       "types": "./dist/rules/scope.d.ts"
     },
+    "./growth": {
+      "import": "./dist/growth/index.js",
+      "types": "./dist/growth/index.d.ts"
+    },
     "./parser": {
       "import": "./dist/parser.js",
       "types": "./dist/parser.d.ts"

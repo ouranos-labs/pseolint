@@ -855,12 +855,14 @@ export interface ParsedPage {
   /** Page title, scoped to `<head> > title`. Empty when no head title exists. */
   title: string;
   /**
-   * Where `title` came from. `"head"` = a real `<head> > title`. `"none"` = no
-   * head title element (so `title` is empty). Used by the title-uniqueness rule
+   * Where `title` came from. `"head"` = a real `<head> > title`; `"body"` = an
+   * HTML `<title>` outside head (Next.js streaming metadata), which browsers and
+   * Google still use as document.title. `"none"` = no HTML title element (so
+   * `title` is empty). Used by the title-uniqueness rule
    * to diagnose the SVG-`<title>` trap: a missing head title where an inline SVG
    * `<title>` would otherwise masquerade as the page title to naive extractors.
    */
-  titleSource?: "head" | "none";
+  titleSource?: "head" | "body" | "none";
   /**
    * First inline SVG `<title>` text found when the head title is missing. Lets the
    * title-uniqueness rule say "no <head><title>; an SVG <title> (\"Spotify\") was

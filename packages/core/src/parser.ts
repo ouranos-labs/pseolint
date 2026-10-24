@@ -69,12 +69,15 @@ export function parseHtmlPage(html: string, url: string, options?: ParseHtmlOpti
   const normalizeOpts = mergeNormalizeUrlOptions(options?.normalizeUrl);
   const $ = load(html);
 
-  // Scope the title to the document <head>. An unscoped $("title") also matches
-  // inline SVG <title> elements (e.g. a logo's accessibility label), which made
-  // pages with no <head><title> report the SVG label as the page title (the
-  // "307 episodes all titled Spotify" bug). SVG titles must never win here.
-  const title = normalizedText($("head > title").first().text());
-  const titleSource: "head" | "none" = title.length > 0 ? "head" : "none";
+  // document.title semantics: the first HTML <title> anywhere in the document,
+  // never one inside <template> (a detached fragment, inert) or MathML, never an inline SVG <title> (a logo's accessibility label: the "307 episodes
+  // all titled Spotify" bug). NOT head-scoped: Next.js 15+ streaming metadata
+  // emits <title> inside <body>, for Googlebot too, and Google uses it. A
+  // head-only read reported every App Router site as untitled.
+  const htmlTitle = $("title").filter((_i, el) => $(el).closest("svg, math").length === 0 && $(el).closest("html").length > 0).first();
+  const title = normalizedText(htmlTitle.text());
+  const titleSource: "head" | "body" | "none" =
+    title.length === 0 ? "none" : htmlTitle.closest("head").length > 0 ? "head" : "body";
   // When there is no head title, capture the first inline SVG <title> so the
   // title-uniqueness rule can name the trap. Crawlers do NOT use SVG <title>.
   let svgTitleSample: string | undefined;

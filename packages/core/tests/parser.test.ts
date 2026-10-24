@@ -103,6 +103,24 @@ describe("parseHtmlPage", () => {
     expect(parsed.svgTitleSample).toBeUndefined();
   });
 
+  test("reads a Next.js streamed <title> in <body> (titleSource=body), skipping an earlier SVG title", () => {
+    const html = `<!DOCTYPE html><html><head><meta charSet="utf-8"/></head>
+      <body><svg><title>Logo</title></svg><main><h1>Mood playlists</h1></main>
+      <title>Mood Playlists | Playlistable</title><meta name="description" content="x"/></body></html>`;
+
+    const parsed = parseHtmlPage(html, "https://example.dev/p/mood");
+
+    expect(parsed.title).toBe("Mood Playlists | Playlistable");
+    expect(parsed.titleSource).toBe("body");
+    expect(parsed.svgTitleSample).toBeUndefined();
+  });
+
+  test("ignores <title> inside <template> and MathML (inert / not document.title)", () => {
+    const parsed = parseHtmlPage(`<html><head></head><body><template><title>TPL</title></template><math><title>M</title></math></body></html>`, "https://example.dev/t");
+    expect(parsed.title).toBe("");
+    expect(parsed.titleSource).toBe("none");
+  });
+
   test("drops javascript: and keeps only http(s) on web page URLs", () => {
     const html = `
       <html><body>

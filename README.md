@@ -97,6 +97,35 @@ The general-purpose crawlers do plenty pseolint doesn't (JS rendering at scale, 
 
 Full version history (calibration rounds, per-rule changes, safety hardening) is in [CHANGELOG.md](./CHANGELOG.md).
 
+## Grow: make the ignored pages rank (no backlinks)
+
+A pSEO site rarely has a penalty problem. It has a **Google-ignores-most-of-it** problem: thousands of sitemap URLs, a few percent earning impressions. Backlinks are not the only lever. Search Console already records which of your pages Google chose to show. `pseolint grow` reads that, crawls the site, and learns what separates shown pages from ignored ones **within the same template**. Each site is its own control group, so domain authority cancels out. Then it writes the plan.
+
+```bash
+# Search Console → Performance → Pages → Export (last 3 months) → Pages.csv
+npx pseolint grow https://yoursite.com --gsc Pages.csv --out growth/
+```
+
+What you get:
+
+- **Show rate per template.** The pSEO number that matters: `/city/:slug  4,200 pages, 3% shown`.
+- **What Google rewards on this site.** Shown vs ignored pages per template, compared with a Mann-Whitney U test and Benjamini-Hochberg false-discovery control. Example: *"Shown pages have MORE internal PageRank: 0.51 vs 0.38 (AUC 0.85)"*, or *"LESS similarity to sibling pages: 70% vs 85%"*. Only differences that survive the correction are printed.
+- **A link plan (`links.csv`).** Every link goes `from → to` with its anchor. Links start on pages Google already shows, because those get recrawled, and point to topically related pages that sit at positions 8-30 or get no impressions at all. Existing links are never re-suggested.
+- **Title rewrites (`retitle.csv`).** Pages ranking in the top 15 whose CTR is under half the expected CTR for that position.
+- **Self-inflicted gaps.** Sitemap URLs that are noindex, canonicalised away or erroring (`unblock.csv`), and pages earning impressions that the sitemap forgot (`sitemap-additions.txt`).
+- **Differentiate / prune.** Ignored near-clones of their siblings, and templates Google rejects wholesale (under 5% shown).
+
+Then tell the engines that index on request:
+
+```bash
+# Serve https://yoursite.com/<key>.txt containing the key, then:
+npx pseolint indexnow https://yoursite.com --key <key> --since 7
+```
+
+IndexNow reaches Bing, Yandex, Seznam and Naver, and Bing's index also feeds ChatGPT search and DuckDuckGo. Google ignores IndexNow, and its Indexing API only accepts job and livestream pages. For Google, the levers are the link plan and an accurate sitemap `lastmod`.
+
+Re-run `grow` monthly with a fresh export. The template show rates are your scoreboard.
+
 ## Quick Start
 
 ```bash

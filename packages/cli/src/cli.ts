@@ -283,6 +283,31 @@ export async function runCli(
     });
 
   program
+    .command("grow <url>")
+    .description("Growth plan from Search Console data: learns what Google rewards on YOUR site (shown vs ignored pages per template) and outputs internal links, title rewrites, sitemap and indexation fixes.")
+    .requiredOption("--gsc <file>", "Search Console Pages export (Performance → Export → Pages.csv), or JSON rows")
+    .option("--max-pages <n>", "Max pages to crawl (template-stratified sample above this). Default 1500.", (v) => parseInt(v, 10))
+    .option("--concurrency <n>", "Parallel fetches. Default 4.", (v) => parseInt(v, 10))
+    .option("--limit <n>", "Items shown per plan section in console output. Default 10.", (v) => parseInt(v, 10))
+    .option("--out <dir>", "Write growth.json, links.csv, retitle.csv, sitemap-additions.txt, unblock.csv")
+    .option("--json", "Print the full report as JSON")
+    .action(async (url: string, o: { gsc: string; maxPages?: number; concurrency?: number; limit?: number; out?: string; json?: boolean }) => {
+      const { runGrowCommand } = await import("./commands/grow.js");
+      exitCode = await runGrowCommand({ url, ...o });
+    });
+
+  program
+    .command("indexnow <url>")
+    .description("Submit sitemap URLs to IndexNow (Bing, Yandex, Seznam, Naver). Requires https://<host>/<key>.txt containing the key.")
+    .requiredOption("--key <key>", "Your IndexNow key (8-128 chars, [a-zA-Z0-9-])")
+    .option("--since <days>", "Only URLs whose sitemap lastmod is within N days", (v) => parseInt(v, 10))
+    .option("--dry-run", "Count URLs without submitting")
+    .action(async (url: string, o: { key: string; since?: number; dryRun?: boolean }) => {
+      const { runIndexNowCommand } = await import("./commands/grow.js");
+      exitCode = await runIndexNowCommand({ url, key: o.key, sinceDays: o.since, dryRun: o.dryRun });
+    });
+
+  program
     .command("orchestrate <domain>")
     .description("Run the AI-orchestrated auditor against a domain. Produces a fix manifest, validates every patch, prints a structured diff summary.")
     .option("--ai-provider <id>", "AI provider (anthropic | openai | google | ollama). Default: env-var auto-detect.")
