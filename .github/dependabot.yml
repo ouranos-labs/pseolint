@@ -1,0 +1,9 @@
+# Keeps the pinned Node base image (security patches) and action SHAs current.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /apps/web
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
