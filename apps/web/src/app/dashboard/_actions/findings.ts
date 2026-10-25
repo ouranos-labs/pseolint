@@ -27,3 +27,15 @@ export async function dismissFinding(findingId: string): Promise<void> {
   await db.update(findingsState).set({ status: "dismissed" }).where(eq(findingsState.id, findingId));
   revalidatePath("/dashboard", "layout");
 }
+
+/**
+ * Undo for snooze / dismiss: put the finding back in the open queue. Snooze and
+ * dismiss only ever act on open findings (the UI hides both buttons otherwise),
+ * so "open, no snooze date" is exactly the state they replaced. Same ownership
+ * check as the actions it reverses.
+ */
+export async function restoreFinding(findingId: string): Promise<void> {
+  await assertOwns(findingId);
+  await db.update(findingsState).set({ status: "open", snoozeUntil: null }).where(eq(findingsState.id, findingId));
+  revalidatePath("/dashboard", "layout");
+}

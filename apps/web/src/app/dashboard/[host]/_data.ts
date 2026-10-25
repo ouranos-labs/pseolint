@@ -13,6 +13,7 @@ import {
   indexingRequests,
   integrations,
   monitoredDomains,
+  watchedPages,
 } from "@/db/schema";
 import { fetchSummaryJson, summaryKey } from "@/lib/r2";
 import { getOptionalSession } from "@/lib/session";
@@ -96,6 +97,49 @@ export const getLatestAudit = cache(async (rawHost: string): Promise<LatestAudit
         ),
       )
       .orderBy(desc(audits.completedAt))
+      .limit(1),
+  );
+  return rows[0] ?? null;
+});
+
+/** Watched-page count, for the remove-domain dialog (removal clears the list). */
+export const getWatchedPageCount = cache(async (rawHost: string): Promise<number> => {
+  const domain = await getWorkspaceDomain(rawHost);
+  const [row] = await withDbRetry(() =>
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(watchedPages)
+      .where(eq(watchedPages.monitoredDomainId, domain.id)),
+  );
+  return row?.n ?? 0;
+});
+
+export type AuditRunStatus = {
+  id: string;
+  status: LatestAudit["status"];
+  createdAt: Date;
+  errorMessage: string | null;
+};
+
+/**
+ * Most recent audit of ANY status. getLatestAudit only sees completed runs, so
+ * without this the overview can't tell "queued", "running" and "failed" apart
+ * from "nothing has happened yet".
+ */
+export const getLatestRun = cache(async (rawHost: string): Promise<AuditRunStatus | null> => {
+  const session = await requireProSession();
+  const domain = await getWorkspaceDomain(rawHost);
+  const rows = await withDbRetry(() =>
+    db
+      .select({
+        id: audits.id,
+        status: audits.status,
+        createdAt: audits.createdAt,
+        errorMessage: audits.errorMessage,
+      })
+      .from(audits)
+      .where(and(eq(audits.userId, session.user.id), eq(audits.sourceUrl, domain.sourceUrl)))
+      .orderBy(desc(audits.createdAt))
       .limit(1),
   );
   return rows[0] ?? null;

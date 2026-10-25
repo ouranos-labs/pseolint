@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { integrations } from "@/db/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { integrations, monitoredDomains } from "@/db/schema";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { GscDisconnectButton } from "@/components/dashboard/gsc-disconnect-button";
 import { getOptionalSession } from "@/lib/session";
 import { getPlan } from "@/lib/plan";
 import { GscConnectButton } from "@/components/dashboard/gsc-connect-button";
@@ -62,6 +63,17 @@ export default async function IntegrationsPage({
     .where(and(eq(integrations.userId, session.user.id), eq(integrations.kind, "gsc")))
     .limit(1);
   const gscConnected = Boolean(gscRow);
+  // How many domains a disconnect would unbind, for the confirm dialog.
+  const boundCount = gscConnected
+    ? (await db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(monitoredDomains)
+        .where(and(
+          eq(monitoredDomains.userId, session.user.id),
+          isNull(monitoredDomains.removedAt),
+          isNotNull(monitoredDomains.gscSiteUrl),
+        )))[0]?.n ?? 0
+    : 0;
 
   const yaml = `- run: npx pseolint audit ./out --format json --out report.json
 - run: npx pseolint upload report.json --token \${{ secrets.PSEOLINT_TOKEN }} --domain-id <id>`;
@@ -107,11 +119,7 @@ export default async function IntegrationsPage({
               <p className="text-xs text-muted-foreground">
                 Each domain still needs a property bound: open a domain → Settings → GSC property.
               </p>
-              <form action="/api/integrations/gsc/disconnect" method="post">
-                <button type="submit" className="rounded-[14px] border border-destructive/50 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10">
-                  Disconnect
-                </button>
-              </form>
+              <GscDisconnectButton boundCount={boundCount} />
             </div>
           ) : (
             <div className="mt-4 flex flex-col gap-2">

@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState, useTransition } from "react";
 import { uploadDataSourceAction } from "./actions";
+import { toast } from "sonner";
 import { formatNumber } from "@/lib/format";
 
 const EXAMPLE = `[
@@ -64,15 +65,15 @@ export function DataSourceForm({ host, hasExisting }: { host: string; hasExistin
     fd.append("domainHost", host);
     fd.append("recordsJson", json);
     startTransition(async () => {
-      try {
-        await uploadDataSourceAction(fd);
-        setContents(null);
-        setPasted("");
-        setFilePreview(null);
-        if (fileRef.current) fileRef.current.value = "";
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : "Upload failed");
-      }
+      const res = await uploadDataSourceAction(fd).catch(() => null);
+      if (!res) { setErr("Couldn't reach the server. Your file is still selected; try again."); return; }
+      // Keep the chosen file / pasted JSON on failure so the user can fix and retry.
+      if (!res.ok) { setErr(res.error); return; }
+      setContents(null);
+      setPasted("");
+      setFilePreview(null);
+      if (fileRef.current) fileRef.current.value = "";
+      toast.success(res.message ?? "Dataset saved.");
     });
   }
 
@@ -141,7 +142,7 @@ export function DataSourceForm({ host, hasExisting }: { host: string; hasExistin
           {pending ? "Uploading…" : hasExisting ? "Replace" : "Upload"}
         </button>
       </div>
-      {err && <span className="text-xs text-destructive">{err}</span>}
+      {err && <p role="alert" className="text-xs text-destructive">{err}</p>}
     </div>
   );
 }

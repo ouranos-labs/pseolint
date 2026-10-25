@@ -48,7 +48,7 @@ export function RiskTrendChart({ runs, alertThreshold }: RiskTrendChartProps) {
       <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
         <Header runs={runs.length} latest={null} delta={null} />
         <p className="mt-3 rounded-[12px] border border-dashed border-border/60 bg-background/40 p-4 text-center text-xs text-muted-foreground">
-          Two completed runs needed to chart a trend. Check back after tomorrow's audit.
+          Two completed runs needed to chart a trend. Monitoring re-audits about every 24 hours, so the trend appears after the next run.
         </p>
       </section>
     );

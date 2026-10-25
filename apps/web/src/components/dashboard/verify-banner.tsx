@@ -3,15 +3,20 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { verifyDomainAction } from "@/app/dashboard/domain-actions";
 import type { ProviderInfo } from "@/lib/dns-provider";
+import { toast } from "sonner";
+import { friendlyActionError } from "@/lib/action-result";
 
 export function VerifyBanner({
   host,
   token,
   provider,
+  autoCheckStopped = false,
 }: {
   host: string;
   token: string | null;
   provider: ProviderInfo | null;
+  /** True once the 24h automatic DNS polling window has passed. */
+  autoCheckStopped?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -31,8 +36,12 @@ export function VerifyBanner({
   function verify() {
     start(async () => {
       setErr(null);
-      const res = await verifyDomainAction(host);
-      if (!res.ok) { setErr(res.error); return; }
+      const res = await verifyDomainAction(host).catch(() => null);
+      if (!res) { setErr("Couldn't reach the server. Check your connection and try again."); return; }
+      if (!res.ok) { setErr(friendlyActionError(res.error)); return; }
+      // The hourly monitor-domains cron picks verified domains up; there is no
+      // kickoff audit at verify time (see addDomainAction), hence "within the hour".
+      toast.success(`${host} verified. First audit starts within the hour.`);
       router.refresh();
     });
   }
@@ -43,9 +52,15 @@ export function VerifyBanner({
         <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-warning" />
         <h2 className="text-sm font-semibold text-foreground">Verify ownership to start monitoring</h2>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">
-        Add this TXT record to <span className="font-mono text-foreground">{host}</span>&apos;s DNS. We re-check every 5 minutes for the first 24 hours, so you don&apos;t need to come back and click anything once it&apos;s saved.
-      </p>
+      {autoCheckStopped ? (
+        <p className="mt-2 text-xs text-warning">
+          Still not found after 24 hours. Automatic checks stopped; check the record name and click Check again.
+        </p>
+      ) : (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Add this TXT record to <span className="font-mono text-foreground">{host}</span>&apos;s DNS. We re-check every 5 minutes for the first 24 hours, so you don&apos;t need to come back and click anything once it&apos;s saved.
+        </p>
+      )}
 
       {provider && (
         <div className="mt-3 flex flex-col gap-2 rounded-[14px] border border-primary/30 bg-primary/5 p-3 text-xs sm:flex-row sm:items-start sm:justify-between">
@@ -89,9 +104,9 @@ export function VerifyBanner({
           disabled={pending}
           className="inline-flex h-9 items-center rounded-[14px] bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          {pending ? "Checking DNS…" : "Check now"}
+          {pending ? "Checking DNS…" : autoCheckStopped ? "Check again" : "Check now"}
         </button>
-        {err && <span className="text-xs text-destructive">{err}</span>}
+        {err && <span role="alert" className="text-xs text-destructive">{err}</span>}
       </div>
     </aside>
   );

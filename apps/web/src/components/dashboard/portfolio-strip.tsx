@@ -7,6 +7,7 @@ import { GradeChip } from "@/components/audit/grade-chip";
 import { Sparkline, type TrendPoint } from "@/components/audit/sparkline";
 import { SiteThumbnail } from "@/components/audit/site-thumbnail";
 import { verdictStyle } from "@/lib/grade";
+import { formatDate } from "@/lib/format";
 
 type DomainRow = typeof monitoredDomains.$inferSelect;
 
@@ -146,8 +147,8 @@ export async function PortfolioStrip({ domains, userId }: PortfolioStripProps) {
           (unverified
             ? "Pending DNS verification."
             : noRunsYet
-            ? "First audit queued: results within minutes."
-            : `Audited ${d.lastRunAt!.toISOString().slice(0, 10)} · ${findingsCount} open finding${findingsCount === 1 ? "" : "s"}.`);
+            ? "Verified. First audit starts within the hour."
+            : `Audited ${formatDate(d.lastRunAt!)} · ${findingsCount} open finding${findingsCount === 1 ? "" : "s"}.`);
 
         return (
           <article

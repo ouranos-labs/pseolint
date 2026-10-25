@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { WorkspaceHeader } from "@/components/dashboard/workspace-header";
 import { VerifyBanner } from "@/components/dashboard/verify-banner";
 import { detectDnsProvider } from "@/lib/dns-provider";
-import { getWorkspaceDomain, listWorkspaceDomains } from "./_data";
+import { getWatchedPageCount, getWorkspaceDomain, listWorkspaceDomains } from "./_data";
 import { WorkspaceTabs } from "./workspace-tabs";
 
 export const runtime = "nodejs";
@@ -25,9 +25,10 @@ export default async function WorkspaceLayout({
   params: Promise<{ host: string }>;
 }) {
   const { host: rawHost } = await params;
-  const [domain, domains] = await Promise.all([
+  const [domain, domains, watchedCount] = await Promise.all([
     getWorkspaceDomain(rawHost),
     listWorkspaceDomains(),
+    getWatchedPageCount(rawHost),
   ]);
 
   return (
@@ -35,6 +36,7 @@ export default async function WorkspaceLayout({
       <WorkspaceHeader
         domain={{ host: domain.host, sourceUrl: domain.sourceUrl }}
         domains={domains}
+        watchedCount={watchedCount}
       />
 
       {/* Unverified domains can't be monitored, so this stays above the tabs on
@@ -46,7 +48,13 @@ export default async function WorkspaceLayout({
             <div className="h-24 animate-pulse rounded-[18px] bg-muted/30" aria-hidden />
           }
         >
-          <VerifyBannerSection host={domain.host} token={domain.verificationToken} />
+          <VerifyBannerSection
+            host={domain.host}
+            token={domain.verificationToken}
+            // auto-verify-domains only polls DNS for 24h after the row was
+            // created; past that the banner has to say checks have stopped.
+            autoCheckStopped={Date.now() - domain.createdAt.getTime() > AUTO_VERIFY_WINDOW_MS}
+          />
         </Suspense>
       )}
 
@@ -57,6 +65,24 @@ export default async function WorkspaceLayout({
   );
 }
 
-async function VerifyBannerSection({ host, token }: { host: string; token: string | null }) {
-  return <VerifyBanner host={host} token={token} provider={await detectDnsProvider(host)} />;
+/** Mirrors AUTO_POLL_WINDOW_MS in inngest/functions/auto-verify-domains.ts. */
+const AUTO_VERIFY_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+async function VerifyBannerSection({
+  host,
+  token,
+  autoCheckStopped,
+}: {
+  host: string;
+  token: string | null;
+  autoCheckStopped: boolean;
+}) {
+  return (
+    <VerifyBanner
+      host={host}
+      token={token}
+      provider={await detectDnsProvider(host)}
+      autoCheckStopped={autoCheckStopped}
+    />
+  );
 }

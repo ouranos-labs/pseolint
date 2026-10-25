@@ -95,7 +95,7 @@ export function TimelineStrip({ runs }: { runs: Run[] }) {
 
       {ordered.length === 0 ? (
         <p className="mt-4 rounded-[12px] border border-dashed border-border/60 bg-background/40 p-4 text-center text-xs text-muted-foreground">
-          No audits yet. Your first run will appear here as soon as it completes: usually within a minute.
+          No audits yet. The first run starts within the hour of verification and appears here once it completes.
         </p>
       ) : (
         <>

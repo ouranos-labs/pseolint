@@ -8,7 +8,6 @@ import { getPlan } from "@/lib/plan";
 import { listSites, pickBestGscProperty, type GscSite } from "@/lib/gsc";
 import {
   updateDomainSettingsAction,
-  removeDataSourceAction,
   updateRuleOverridesAction,
   updateScanOptionsAction,
   updateSlackWebhookAction,
@@ -19,6 +18,9 @@ import { parseScanOptions } from "@/lib/scan-options";
 import { DataSourceForm } from "./data-source-form";
 import { IndexNowDomainForm } from "@/components/dashboard/indexnow-domain-form";
 import { formatDateTime } from "@/lib/format";
+import { ActionForm, FieldError } from "@/components/dashboard/action-form";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { RemoveDatasetButton } from "./remove-dataset-button";
 
 type GscSavedState = "bound" | "rebound" | "unbound" | "unchanged" | "no_grant" | "no_match" | "failed";
 
@@ -97,7 +99,7 @@ export default async function DomainSettings({
     <div className="flex max-w-2xl flex-col gap-6">
       <SaveFeedback saved={saved} gsc={gscState} siteUrl={gscBoundSiteUrl} />
 
-      <form action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
+      <ActionForm action={updateDomainSettingsAction} className="flex flex-col gap-5 rounded-[18px] border border-border/60 p-5">
         <input type="hidden" name="domainHost" value={domain.host} />
 
         <div className="flex flex-col gap-1">
@@ -111,12 +113,14 @@ export default async function DomainSettings({
           <span className="text-sm font-medium">Alert threshold</span>
           <span className="text-xs text-muted-foreground">Score drop that triggers an email.</span>
           <input name="alertThreshold" type="number" min={1} defaultValue={domain.alertThreshold} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
+          <FieldError name="alertThreshold" />
         </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-sm font-medium">Alert email override</span>
           <span className="text-xs text-muted-foreground">Leave blank to use account default.</span>
           <input name="alertEmail" type="email" defaultValue={domain.alertEmail ?? ""} className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
+          <FieldError name="alertEmail" />
         </label>
 
         <label className="flex flex-col gap-1">
@@ -128,6 +132,7 @@ export default async function DomainSettings({
             risk score is never changed. Leave blank to skip.
           </span>
           <input name="authorityScore" type="number" min={0} max={100} defaultValue={domain.authorityScore ?? ""} className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm" />
+          <FieldError name="authorityScore" />
         </label>
 
         <label className="flex items-start gap-2.5">
@@ -188,9 +193,17 @@ export default async function DomainSettings({
               {" "}first to bind a property.
             </p>
           ) : gscError ? (
-            <p className="mt-1 text-xs text-destructive">
-              Couldn&apos;t reach Google: {gscError}. <Link href="/dashboard/integrations" className="text-primary hover:underline">Re-connect</Link>?
-            </p>
+            <>
+              {/* The dropdown can't render without Google's property list, so
+                  carry the current binding through unchanged: saving the rest
+                  of this form must never unbind Search Console. */}
+              <input type="hidden" name="gscSiteUrl" value={domain.gscSiteUrl ?? ""} />
+              <p className="mt-1 text-xs text-destructive">
+                Couldn&apos;t reach Google: {gscError}. Your current binding
+                {domain.gscSiteUrl ? <> (<code className="font-mono">{domain.gscSiteUrl}</code>)</> : null} is kept
+                when you save. <Link href="/dashboard/integrations" className="text-primary hover:underline">Re-connect</Link> to change it.
+              </p>
+            </>
           ) : (
             <>
               <select
@@ -200,6 +213,11 @@ export default async function DomainSettings({
                 className="mt-1 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
               >
                 <option value=""> (unbound) </option>
+                {/* A bound property Google no longer lists must stay selectable,
+                    or the browser falls back to "(unbound)" and saving unbinds it. */}
+                {domain.gscSiteUrl && !gscSites.some((s) => s.siteUrl === domain.gscSiteUrl) && (
+                  <option value={domain.gscSiteUrl}>{domain.gscSiteUrl} (not found in this Google account)</option>
+                )}
                 {gscSites.map((s) => (
                   <option key={s.siteUrl} value={s.siteUrl}>{s.siteUrl}</option>
                 ))}
@@ -210,6 +228,7 @@ export default async function DomainSettings({
                   · save the form to bind, or pick a different property above.
                 </p>
               )}
+              <FieldError name="gscSiteUrl" />
             </>
           )}
           {gscConnected && !gscError && gscSites.length === 0 && (
@@ -219,8 +238,8 @@ export default async function DomainSettings({
           )}
         </div>
 
-        <button type="submit" className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</button>
-      </form>
+        <SubmitButton className="inline-flex h-10 w-fit items-center rounded-[14px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">Save</SubmitButton>
+      </ActionForm>
 
       {/* Standalone "auto-bind" entry point for the case where GSC was
           connected AFTER this domain was added (so the OAuth-callback
@@ -239,12 +258,12 @@ export default async function DomainSettings({
               ? "We found a matching property: bind it in one click."
               : "Try matching this host against your Search Console properties."}
           </p>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingLabel="Matching…"
             className="inline-flex h-9 items-center rounded-[12px] border border-primary/40 bg-primary/10 px-3 text-xs font-medium text-primary hover:bg-primary/15"
           >
             Auto-bind matching property
-          </button>
+          </SubmitButton>
         </form>
       )}
 
@@ -259,7 +278,7 @@ export default async function DomainSettings({
             and paste it below. Cleared when you save an empty value.
           </p>
         </header>
-        <form action={updateSlackWebhookAction} className="flex flex-col gap-3">
+        <ActionForm action={updateSlackWebhookAction} className="flex flex-col gap-3">
           <input type="hidden" name="domainHost" value={domain.host} />
           <input
             name="slackWebhookUrl"
@@ -268,22 +287,23 @@ export default async function DomainSettings({
             defaultValue={domain.slackWebhookUrl ?? ""}
             className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
           />
+          <FieldError name="slackWebhookUrl" />
           <div className="flex items-center gap-2">
-            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+            <SubmitButton className="inline-flex h-9 items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
               Save
-            </button>
+            </SubmitButton>
           </div>
-        </form>
+        </ActionForm>
         {domain.slackWebhookUrl && (
-          <form action={testSlackWebhookAction} className="flex items-center gap-2">
+          <ActionForm action={testSlackWebhookAction} className="flex flex-wrap items-center gap-2">
             <input type="hidden" name="domainHost" value={domain.host} />
-            <button type="submit" className="inline-flex h-9 items-center rounded-[14px] border border-border-strong px-3 text-xs hover:bg-card">
+            <SubmitButton pendingLabel="Sending…" className="inline-flex h-9 items-center rounded-[14px] border border-border-strong px-3 text-xs hover:bg-card">
               Send test message
-            </button>
+            </SubmitButton>
             <span className="font-mono text-[11px] text-success">
               ● Webhook configured
             </span>
-          </form>
+          </ActionForm>
         )}
       </section>
 
@@ -302,12 +322,7 @@ export default async function DomainSettings({
         )}
         <DataSourceForm host={domain.host} hasExisting={Boolean(dataSource)} />
         {dataSource && (
-          <form action={removeDataSourceAction} className="inline">
-            <input type="hidden" name="domainHost" value={domain.host} />
-            <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] border border-destructive/50 px-3 text-xs text-destructive hover:bg-destructive/10">
-              Remove current dataset
-            </button>
-          </form>
+          <RemoveDatasetButton host={domain.host} recordCount={dataSource.recordCount} />
         )}
       </section>
 
@@ -335,7 +350,7 @@ export default async function DomainSettings({
             Leave blank to use defaults.
           </p>
         </header>
-        <form action={updateRuleOverridesAction} className="flex flex-col gap-3">
+        <ActionForm action={updateRuleOverridesAction} className="flex flex-col gap-3">
           <input type="hidden" name="domainHost" value={domain.host} />
           <textarea
             name="overridesJson"
@@ -344,10 +359,11 @@ export default async function DomainSettings({
             placeholder='{"thinContentMinWords": 150}'
             className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
           />
-          <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+          <FieldError name="overridesJson" />
+          <SubmitButton className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
             Save overrides
-          </button>
-        </form>
+          </SubmitButton>
+        </ActionForm>
       </section>
 
       <section className="flex flex-col gap-3 rounded-[18px] border border-border/60 p-5">
@@ -361,7 +377,7 @@ export default async function DomainSettings({
             use the standard crawl.
           </p>
         </header>
-        <form action={updateScanOptionsAction} className="flex flex-col gap-5">
+        <ActionForm action={updateScanOptionsAction} className="flex flex-col gap-5">
           <input type="hidden" name="domainHost" value={domain.host} />
 
           <label className="flex items-start gap-2.5">
@@ -443,6 +459,7 @@ export default async function DomainSettings({
               defaultValue={scanOpts?.maxPerTemplate ?? ""}
               className="mt-1 w-32 rounded-[10px] border border-border-strong bg-background px-3 py-2 text-sm"
             />
+            <FieldError name="maxPerTemplate" />
           </label>
 
           <label className="flex flex-col gap-1">
@@ -460,6 +477,7 @@ export default async function DomainSettings({
               placeholder={'{\n  "landing": { "match": "/lp/*", "rules": ["meta/title-too-long"] }\n}'}
               className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
             />
+            <FieldError name="pageGroupsJson" />
           </label>
 
           <label className="flex flex-col gap-1">
@@ -477,20 +495,22 @@ export default async function DomainSettings({
               placeholder={'[\n  { "placeholder": "CITY", "pattern": "[A-Z][a-z]+", "flags": "g" }\n]'}
               className="rounded-[10px] border border-border-strong bg-background px-3 py-2 font-mono text-xs"
             />
+            <FieldError name="entityPatternsJson" />
           </label>
 
-          <button type="submit" className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
+          <SubmitButton className="inline-flex h-9 w-fit items-center rounded-[14px] bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90">
             Save scan options
-          </button>
-        </form>
+          </SubmitButton>
+        </ActionForm>
       </section>
     </div>
   );
 }
 
 /**
- * Transient banner that confirms what the previous server-action submit
- * actually changed. Reads its state from the redirect query string so a
+ * Transient banner for the auto-bind action (rebindGscPropertyAction), which
+ * still redirects; the other forms on this page confirm with a toast via
+ * ActionForm. Reads its state from the redirect query string so a
  * page reload (without the params) silently dismisses it: same affordance
  * as the GSC OAuth callback's `?gsc=connected&bound=…` banner.
  */

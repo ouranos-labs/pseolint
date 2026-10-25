@@ -6,6 +6,7 @@ import { getPlan } from "@/lib/plan";
 import { verdictStyle, type Verdict } from "@/lib/grade";
 import { HistoryRowActions } from "./history-row-actions";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import { formatDateTime, formatStatus } from "@/lib/format";
 
 type Row = {
   slug: string;
@@ -153,8 +154,8 @@ function DomainGroup({ group, plan }: { group: Group; plan: "free" | "pro" }) {
               <div className="truncate text-foreground/80">{r.sourceUrl}</div>
               <div className="font-mono text-[11px] text-muted-foreground">
                 {r.status === "completed" && r.completedAt
-                  ? new Date(r.completedAt).toISOString().slice(0, 16).replace("T", " ")
-                  : r.status}
+                  ? formatDateTime(r.completedAt)
+                  : formatStatus(r.status)}
               </div>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">

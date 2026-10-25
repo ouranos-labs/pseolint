@@ -31,6 +31,32 @@ export function formatDateTime(value: Date | string | number): string {
   return new Date(value).toLocaleString(LOCALE);
 }
 
+/** "just now", "5 minutes ago", "3 hours ago", "2 days ago" (past only). */
+export function formatRelative(value: Date | string | number, now: number = Date.now()): string {
+  const secs = Math.max(0, Math.round((now - new Date(value).getTime()) / 1000));
+  if (secs < 60) return "just now";
+  const mins = Math.round(secs / 60);
+  if (mins < 60) return `${mins} minute${mins === 1 ? "" : "s"} ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.round(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+/** Display label for a stored lowercase run status ("queued" → "Queued"). */
+export function formatStatus(status: string): string {
+  const known: Record<string, string> = {
+    queued: "Queued",
+    running: "Running",
+    completed: "Completed",
+    failed: "Failed",
+    expired: "Expired",
+    aborted: "Stopped",
+    pending: "Pending",
+  };
+  return known[status] ?? status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 /** "1,234" */
 export function formatNumber(value: number): string {
   return value.toLocaleString(LOCALE);

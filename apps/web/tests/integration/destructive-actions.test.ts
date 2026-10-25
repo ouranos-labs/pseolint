@@ -77,7 +77,7 @@ const { removeMonitoredDomain, togglePauseMonitoredDomain } = await import(
 );
 const { deleteAuditAction } = await import("@/app/dashboard/audit-actions");
 const { revokeUploadTokenAction: revokeToken } = await import("@/app/dashboard/api-keys/actions");
-const { snoozeFinding, dismissFinding } = await import("@/app/dashboard/_actions/findings");
+const { snoozeFinding, dismissFinding, restoreFinding } = await import("@/app/dashboard/_actions/findings");
 const { removeAiKeyAction } = await import("@/app/dashboard/api-keys/actions");
 const { deleteAccountAction } = await import("@/app/dashboard/settings/actions");
 
@@ -358,6 +358,30 @@ describe.skipIf(!RUN_DB_INTEGRATION)("destructive dashboard actions scope by own
           .from(findingsState)
           .where(eq(findingsState.id, findingId));
         expect(dismissed.status).toBe("dismissed");
+      });
+    });
+
+    it("restoreFinding reopens the owner's finding and refuses a foreign one", async () => {
+      await withRollback(2, async ({ tx, users: [owner, attacker] }) => {
+        const dom = await seedDomain(tx, owner);
+        const findingId = await seedFinding(tx, dom.id);
+        await as(owner, () => snoozeFinding(findingId, 7));
+
+        // Undo is as security-relevant as the action it reverses.
+        await expect(as(attacker, () => restoreFinding(findingId))).rejects.toThrow("not found");
+        const [still] = await tx
+          .select({ status: findingsState.status })
+          .from(findingsState)
+          .where(eq(findingsState.id, findingId));
+        expect(still.status).toBe("snoozed");
+
+        await as(owner, () => restoreFinding(findingId));
+        const [restored] = await tx
+          .select({ status: findingsState.status, until: findingsState.snoozeUntil })
+          .from(findingsState)
+          .where(eq(findingsState.id, findingId));
+        expect(restored.status).toBe("open");
+        expect(restored.until).toBeNull();
       });
     });
   });

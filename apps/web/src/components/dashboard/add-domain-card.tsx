@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addDomainAction } from "@/app/dashboard/domain-actions";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { friendlyActionError } from "@/lib/action-result";
+import { toast } from "sonner";
 
 export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compact" }) {
   const [url, setUrl] = useState("");
@@ -14,9 +16,16 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    setErr(null);
     start(async () => {
-      const res = await addDomainAction(url);
-      if (!res.ok) { setErr(res.error); return; }
+      const res = await addDomainAction(url).catch(() => null);
+      if (!res) { setErr("Couldn't reach the server. Check your connection and try again."); return; }
+      if (!res.ok) { setErr(friendlyActionError(res.error)); return; }
+      toast.success(
+        res.auditId
+          ? `${res.host} added. Its first audit is running.`
+          : `${res.host} added. Verify ownership to start monitoring.`,
+      );
       // Verified domains start auditing immediately: route through /a/{auditId}
       // so the user watches the live run, which auto-redirects to /r/{slug} on
       // completion (same flow as free tier). Unverified ones have no audit yet:
@@ -71,7 +80,7 @@ export function AddDomainCard({ variant = "hero" }: { variant?: "hero" | "compac
           className="flex-1"
         />
         <Button type="submit" disabled={pending || !url} className="sm:w-auto">
-          {pending ? "Starting audit…" : "Start monitoring →"}
+          {pending ? "Adding…" : "Start monitoring →"}
         </Button>
       </form>
       {err && <p className="mt-3 text-xs text-destructive">{err}</p>}

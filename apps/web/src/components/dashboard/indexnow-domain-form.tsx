@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Info, Copy } from "lucide-react";
+import { ConfirmDialog } from "./confirm-dialog";
 
 interface IndexNowDomainFormProps {
   domainHost: string;
@@ -20,6 +21,7 @@ export function IndexNowDomainForm({
   const [pending, start] = useTransition();
   const [indexNowKey, setIndexNowKey] = useState(initialKey);
   const [isCopied, setIsCopied] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Quota tracking
   const [quota, setQuota] = useState<{ indexNowCount: number } | null>(null);
@@ -44,33 +46,27 @@ export function IndexNowDomainForm({
     }
 
     start(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("domainHost", domainHost);
-        formData.append("indexNowKey", indexNowKey);
-        await updateIndexNowKeyAction(formData);
-        toast.success("IndexNow credentials saved successfully!");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to save IndexNow credentials.");
-      }
+      const formData = new FormData();
+      formData.append("domainHost", domainHost);
+      formData.append("indexNowKey", indexNowKey);
+      const res = await updateIndexNowKeyAction(formData).catch(() => null);
+      if (res?.ok) toast.success(res.message ?? "IndexNow key saved.");
+      else toast.error(res && !res.ok ? res.error : "Couldn't save the IndexNow key. Check your connection and try again.");
     });
   };
 
   const handleDisconnect = () => {
-    if (!confirm(`Are you sure you want to remove the IndexNow key?`)) {
-      return;
-    }
-
     start(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("domainHost", domainHost);
-        formData.append("indexNowKey", ""); // empty clears it
-        await updateIndexNowKeyAction(formData);
+      const formData = new FormData();
+      formData.append("domainHost", domainHost);
+      formData.append("indexNowKey", ""); // empty clears it
+      const res = await updateIndexNowKeyAction(formData).catch(() => null);
+      if (res?.ok) {
+        setConfirmOpen(false);
         setIndexNowKey("");
-        toast.success("IndexNow key removed successfully!");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to remove IndexNow key.");
+        toast.success(res.message ?? "IndexNow key removed.");
+      } else {
+        toast.error(res && !res.ok ? res.error : "Couldn't remove the IndexNow key. Check your connection and try again.");
       }
     });
   };
@@ -100,12 +96,21 @@ export function IndexNowDomainForm({
             variant="ghost"
             size="sm"
             disabled={pending}
-            onClick={handleDisconnect}
+            onClick={() => setConfirmOpen(true)}
             className="h-8 rounded-[12px] text-xs font-mono border border-destructive/30 hover:bg-destructive/10 hover:text-destructive transition-colors text-muted-foreground"
           >
             Remove Key
           </Button>
         </div>
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Remove the IndexNow key?"
+          description="Bing, Yandex and other IndexNow engines stop receiving change pings for this domain until you add a key again."
+          confirmLabel="Remove key"
+          pending={pending}
+          onConfirm={handleDisconnect}
+          onCancel={() => setConfirmOpen(false)}
+        />
 
         {/* IndexNow Connected Details */}
         <div className="flex flex-col gap-4">

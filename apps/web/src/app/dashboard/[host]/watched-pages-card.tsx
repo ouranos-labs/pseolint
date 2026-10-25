@@ -8,6 +8,8 @@ import { addWatchedPage, removeWatchedPage } from "@/app/dashboard/domain-action
 import { WATCHED_PAGES_CAP } from "@/lib/audit-limits";
 import { CollapsibleSection } from "@/components/dashboard/collapsible-section";
 import { formatDateTime } from "@/lib/format";
+import { friendlyActionError } from "@/lib/action-result";
+import { toast } from "sonner";
 
 export type WatchedPageRow = {
   id: string;
@@ -45,10 +47,11 @@ export function WatchedPagesCard({
     start(async () => {
       const res = await addWatchedPage(monitoredDomainId, url);
       if (!res.ok) {
-        setErr(res.error);
+        setErr(friendlyActionError(res.error));
         inputRef.current?.focus();
         return;
       }
+      toast.success("Page added to your watch list.");
       setRows((prev) => [
         ...prev,
         { id: res.id, url: normalizeUserUrl(url) ?? url, createdAt: new Date(), lastAuditedAt: null },
@@ -58,17 +61,53 @@ export function WatchedPagesCard({
     });
   }
 
+  /**
+   * Remove with an undo window instead of a confirm: the row disappears right
+   * away and the delete is only sent when the toast closes without Undo. Undo
+   * just puts the row back; nothing was deleted yet, so there's nothing to
+   * re-create (re-adding would also fire a fresh audit).
+   */
   function onRemove(id: string) {
     setErr(null);
-    start(async () => {
-      const res = await removeWatchedPage(id);
-      if (!res.ok) {
-        setErr(res.error);
-        return;
-      }
-      setRows((prev) => prev.filter((r) => r.id !== id));
-      // Return focus to the input so keyboard context isn't lost on unmount.
-      inputRef.current?.focus();
+    const index = rows.findIndex((r) => r.id === id);
+    const row = rows[index];
+    if (!row) return;
+    setRows((prev) => prev.filter((r) => r.id !== id));
+    // Return focus to the input so keyboard context isn't lost on unmount.
+    inputRef.current?.focus();
+
+    let undone = false;
+    const restore = () =>
+      setRows((prev) => {
+        if (prev.some((r) => r.id === id)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(index, next.length), 0, row);
+        return next;
+      });
+    const commit = () => {
+      if (undone) return;
+      undone = true; // commit at most once (auto-close and dismiss can both fire)
+      start(async () => {
+        const res = await removeWatchedPage(id).catch(() => null);
+        if (res?.ok) return;
+        restore();
+        const msg = res && !res.ok ? friendlyActionError(res.error) : "Couldn't reach the server.";
+        toast.error(`Couldn't stop watching that page. ${msg}`);
+      });
+    };
+    toast.success("Watched page removed.", {
+      description: row.url,
+      duration: 6000,
+      action: {
+        label: "Undo",
+        onClick: () => {
+          if (undone) return;
+          undone = true;
+          restore();
+        },
+      },
+      onAutoClose: commit,
+      onDismiss: commit,
     });
   }
 

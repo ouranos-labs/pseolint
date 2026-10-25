@@ -5,13 +5,26 @@ import { db } from "@/db";
 import { alertDefaults } from "@/db/schema";
 import { getRequiredSession } from "@/lib/session";
 import { BillingCancelError, deleteUserAccount } from "@/lib/account-deletion";
+import { type ActionResult, NOTHING_SAVED, isPlausibleEmail } from "@/lib/action-result";
 
-export async function updateAlertDefaultsAction(formData: FormData): Promise<void> {
+export async function updateAlertDefaultsAction(formData: FormData): Promise<ActionResult> {
   const session = await getRequiredSession();
-  const rawThreshold = Number(formData.get("riskRiseThreshold"));
-  const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0 ? Math.floor(rawThreshold) : 10;
+  // Reject bad input instead of quietly saving a default the user never typed.
+  const thresholdRaw = String(formData.get("riskRiseThreshold") ?? "").trim();
+  const threshold = Number(thresholdRaw);
+  if (!thresholdRaw || !Number.isInteger(threshold) || threshold < 1) {
+    return { ok: false, field: "riskRiseThreshold", error: `Risk rise threshold must be a whole number of 1 or more. ${NOTHING_SAVED}` };
+  }
   const rawEmails = String(formData.get("recipientEmails") ?? "");
   const emails = rawEmails.split(",").map((s) => s.trim()).filter(Boolean);
+  const bad = emails.filter((e) => !isPlausibleEmail(e));
+  if (bad.length > 0) {
+    return {
+      ok: false,
+      field: "recipientEmails",
+      error: `${bad.map((e) => `"${e}"`).join(", ")} ${bad.length === 1 ? "isn't a valid email address" : "aren't valid email addresses"}. ${NOTHING_SAVED}`,
+    };
+  }
 
   await db.insert(alertDefaults).values({
     userId: session.user.id, riskRiseThreshold: threshold, recipientEmails: emails,
@@ -21,6 +34,7 @@ export async function updateAlertDefaultsAction(formData: FormData): Promise<voi
   });
 
   revalidatePath("/dashboard/settings/alerts");
+  return { ok: true, message: "Alert defaults saved." };
 }
 
 /**

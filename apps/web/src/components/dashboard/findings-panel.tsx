@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { snoozeFinding, dismissFinding } from "@/app/dashboard/_actions/findings";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
+import { SNOOZE_OPTIONS, useFindingTriage } from "@/components/dashboard/finding-row-actions";
+import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { sevDot, sevBorderBg, sevText } from "@/lib/severity-style";
 import {
   DropdownMenu,
@@ -15,12 +16,6 @@ import { requestBatchIndexingAction } from "@/app/dashboard/indexing-actions";
 import { toast } from "sonner";
 import { formatDate, formatDateTime } from "@/lib/format";
 
-
-const SNOOZE_OPTIONS: { days: number; label: string }[] = [
-  { days: 7, label: "1 week" },
-  { days: 30, label: "30 days" },
-  { days: 90, label: "90 days" },
-];
 
 type Finding = {
   id: string;
@@ -89,6 +84,7 @@ export function FindingsPanel({
   const [showSuppressed, setShowSuppressed] = useState(false);
   const [pages, setPages] = useState(1);
   const [batchPending, startBatch] = useTransition();
+  const [batchConfirm, setBatchConfirm] = useState<{ provider: "google" | "indexnow"; urls: string[] } | null>(null);
 
   const openUrls = Array.from(new Set(
     findings
@@ -112,12 +108,14 @@ export function FindingsPanel({
     }
 
     const urlsToPush = provider === "google" ? openUrls.slice(0, 50) : openUrls;
+    setBatchConfirm({ provider, urls: urlsToPush });
+  };
 
-    if (!confirm(`Are you sure you want to push ${urlsToPush.length} URL(s) to ${provider === "google" ? "Google" : "IndexNow"}?`)) {
-      return;
-    }
-
+  const runBatchPush = () => {
+    if (!batchConfirm) return;
+    const { provider, urls: urlsToPush } = batchConfirm;
     startBatch(async () => {
+      setBatchConfirm(null);
       const res = await requestBatchIndexingAction({
         domainId,
         urls: urlsToPush,
@@ -162,6 +160,20 @@ export function FindingsPanel({
 
   return (
     <section className="flex flex-col gap-4">
+      <ConfirmDialog
+        open={batchConfirm !== null}
+        title={`Push ${batchConfirm?.urls.length ?? 0} URL${batchConfirm?.urls.length === 1 ? "" : "s"} to ${batchConfirm?.provider === "google" ? "Google" : "IndexNow"}?`}
+        description={
+          batchConfirm?.provider === "google"
+            ? "Each URL uses one request from your Google Indexing API daily quota (200 per day). Requests can't be recalled once sent."
+            : "IndexNow notifies Bing, Yandex and other engines right away. Pings can't be recalled once sent."
+        }
+        confirmLabel="Push URLs"
+        danger={false}
+        pending={batchPending}
+        onConfirm={runBatchPush}
+        onCancel={() => setBatchConfirm(null)}
+      />
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div className="flex items-baseline gap-3">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -384,9 +396,11 @@ function FindingRow({
   }[];
   indexedUrls: string[];
 }) {
-  const [pending, start] = useTransition();
+  const triage = useFindingTriage(f.id);
+  const pending = triage.pending;
   const { track } = useAnalytics();
-  const isSuppressed = f.status !== "open";
+  const status = triage.status ?? f.status;
+  const isSuppressed = status !== "open";
   const hasTraffic = Boolean(f.traffic && (f.traffic.impressions > 0 || f.traffic.clicks > 0));
   const hasGoogleIndexing = indexingIntegrations.includes("google-indexing");
   const hasIndexNow = indexingIntegrations.includes("indexnow");
@@ -425,7 +439,7 @@ function FindingRow({
                 Carried forward {f.lastVerifiedAt && `· verified ${relTime(new Date(f.lastVerifiedAt))}`}
               </span>
             )}
-            {isSuppressed && <StatusBadge status={f.status as "snoozed" | "dismissed"} />}
+            {isSuppressed && <StatusBadge status={status as "snoozed" | "dismissed"} />}
             <span className="ml-auto flex items-baseline gap-3 font-mono text-[11px] text-muted-foreground">
               <span title="Pages affected">
                 {f.affectedPageCount} {f.affectedPageCount === 1 ? "page" : "pages"}
@@ -490,7 +504,7 @@ function FindingRow({
                         key={opt.days}
                         onSelect={() => {
                           track({ name: "triage_action", props: { action: `snooze_${opt.days}d` } });
-                          start(() => snoozeFinding(f.id, opt.days));
+                          triage.snooze(opt.days);
                         }}
                       >
                         <span className="font-mono text-xs">{opt.label}</span>
@@ -505,7 +519,7 @@ function FindingRow({
                   disabled={pending}
                   onClick={() => {
                     track({ name: "triage_action", props: { action: "dismiss" } });
-                    start(() => dismissFinding(f.id));
+                    triage.dismiss();
                   }}
                   className="rounded-[10px] border border-border/60 bg-card/40 px-2.5 py-1 font-mono text-[11px] text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive disabled:opacity-50"
                 >

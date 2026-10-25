@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { reAuditNowAction, removeDomainAction } from "@/app/dashboard/domain-actions";
 import { ConfirmDialog } from "./confirm-dialog";
+import { toast } from "sonner";
+import { friendlyActionError } from "@/lib/action-result";
 
-export function WorkspaceHeader({ domain, domains = [] }: {
+export function WorkspaceHeader({ domain, domains = [], watchedCount = 0 }: {
   domain: { host: string; sourceUrl: string };
   /** Every domain the user monitors, for the switcher. Omit to hide it. */
   domains?: { host: string; paused: boolean }[];
+  /** Watched pages that removing the domain will clear. */
+  watchedCount?: number;
 }) {
   const [pending, start] = useTransition();
   const [removeOpen, setRemoveOpen] = useState(false);
@@ -17,9 +21,11 @@ export function WorkspaceHeader({ domain, domains = [] }: {
   const router = useRouter();
 
   function reaudit() {
+    setErr(null);
     start(async () => {
-      const res = await reAuditNowAction(domain.host);
-      if (!res.ok) { setErr(res.error); return; }
+      const res = await reAuditNowAction(domain.host).catch(() => null);
+      if (!res) { setErr("Couldn't reach the server. Check your connection and try again."); return; }
+      if (!res.ok) { setErr(friendlyActionError(res.error)); return; }
       // Show /a progress UI, then return to the domain workspace on completion
       // (instead of the public /r/[slug] report) so monitoring context isn't lost.
       const next = `/dashboard/${encodeURIComponent(domain.host)}`;
@@ -28,13 +34,21 @@ export function WorkspaceHeader({ domain, domains = [] }: {
   }
 
   function confirmRemove() {
+    setErr(null);
     start(async () => {
-      const res = await removeDomainAction(domain.host);
-      if (!res.ok) { setErr(res.error); return; }
+      const res = await removeDomainAction(domain.host).catch(() => null);
+      if (!res) { setErr("Couldn't reach the server. Nothing was removed; try again."); return; }
+      if (!res.ok) { setErr(friendlyActionError(res.error)); return; }
       setRemoveOpen(false);
+      toast.success(`Stopped monitoring ${domain.host}. Your audit history is kept.`);
       router.push("/dashboard");
     });
   }
+
+  const watchedNote =
+    watchedCount > 0
+      ? ` Your ${watchedCount} watched page${watchedCount === 1 ? "" : "s"} will be cleared.`
+      : "";
 
   return (
     <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border/60 pb-5">
@@ -119,7 +133,8 @@ export function WorkspaceHeader({ domain, domains = [] }: {
       <ConfirmDialog
         open={removeOpen}
         title={`Stop monitoring ${domain.host}?`}
-        description={`We'll stop the recurring diff-audits and full re-audits. Your audit history is preserved; you can re-add the domain later.${err ? `\n\nError: ${err}` : ""}`}
+        description={`We'll stop the recurring diff-audits and full re-audits. Your audit history is preserved and you can re-add the domain later (you'll verify ownership again).${watchedNote}`}
+        error={err}
         confirmWord={domain.host}
         confirmLabel="Stop monitoring"
         danger

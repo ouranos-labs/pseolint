@@ -26,7 +26,8 @@ import {
 } from "@/lib/audit-tiles";
 import { gradeOf, scoreTone, verdictStyle } from "@/lib/grade";
 import { MARKETING_RULES } from "@/lib/marketing-rules";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, formatRelative } from "@/lib/format";
+import { RetryAuditButton } from "@/components/dashboard/retry-audit-button";
 import {
   buildFindingsMeta,
   getGscIntegration,
@@ -34,8 +35,10 @@ import {
   getIndexedUrls,
   getIndexingState,
   getLatestAudit,
+  getLatestRun,
   getLatestSummary,
   getOpenFindings,
+  type AuditRunStatus,
   getTimelineRuns,
   getWorkspaceDomain,
   requireProSession,
@@ -104,12 +107,32 @@ export default async function WorkspaceOverview({
 // ---------------------------------------------------------------------------
 
 async function HeadlineSection({ rawHost }: { rawHost: string }) {
-  const [domain, latestAudit, summary, runs] = await Promise.all([
+  const [domain, latestAudit, summary, runs, latestRun] = await Promise.all([
     getWorkspaceDomain(rawHost),
     getLatestAudit(rawHost),
     getLatestSummary(rawHost),
     getTimelineRuns(rawHost),
+    getLatestRun(rawHost),
   ]);
+
+  // A run newer than the latest completed one (queued, running or failed) gets
+  // a status card, so the page never claims "nothing yet" while work is in
+  // flight or has just failed.
+  const pendingRun =
+    latestRun &&
+    latestRun.status !== "completed" &&
+    latestRun.status !== "expired" &&
+    (!latestAudit || latestRun.createdAt.getTime() > latestAudit.createdAt.getTime())
+      ? latestRun
+      : null;
+  const statusCard = (
+    <AuditStatusCard
+      host={domain.host}
+      verified={Boolean(domain.verifiedAt)}
+      run={pendingRun}
+      hasCompleted={Boolean(latestAudit && summary)}
+    />
+  );
 
   const visibility = (
     <SiteVisibilityCard
@@ -123,9 +146,7 @@ async function HeadlineSection({ rawHost }: { rawHost: string }) {
     return (
       <div className="flex flex-col gap-6">
         {visibility}
-        <p className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-5 text-sm text-muted-foreground">
-          No completed audit yet. The first monitoring run lands within minutes of verification.
-        </p>
+        {statusCard}
       </div>
     );
   }
@@ -147,6 +168,7 @@ async function HeadlineSection({ rawHost }: { rawHost: string }) {
   return (
     <div className="flex flex-col gap-6">
       {visibility}
+      {pendingRun && statusCard}
 
       <section className="flex flex-col gap-6">
         <div className="flex items-baseline justify-between">
@@ -588,6 +610,75 @@ function Stat({ label, sub, value, tone }: { label: string; sub?: string; value:
       <dd className={`mt-1 font-mono text-2xl tabular-nums ${tone}`}>{value}</dd>
       {sub && <span className="font-mono text-[10px] text-muted-foreground/70">{sub}</span>}
     </div>
+  );
+}
+
+/**
+ * What the latest run is doing when there's no fresh completed report to show:
+ * unverified (point at the verify banner), queued / running (link to the live
+ * progress page), failed (the reason + Retry), or not started yet. The ETA
+ * matches the hourly monitor-domains cron.
+ */
+function AuditStatusCard({
+  host,
+  verified,
+  run,
+  hasCompleted,
+}: {
+  host: string;
+  verified: boolean;
+  run: AuditRunStatus | null;
+  hasCompleted: boolean;
+}) {
+  const box = "flex flex-col gap-3 rounded-[18px] border p-5 text-sm sm:flex-row sm:items-center sm:justify-between";
+  const next = encodeURIComponent(`/dashboard/${encodeURIComponent(host)}`);
+
+  if (run && (run.status === "queued" || run.status === "running")) {
+    return (
+      <div className={`${box} border-primary/30 bg-primary/5`} role="status">
+        <p className="flex items-center gap-2 text-foreground">
+          <span aria-hidden className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+          {run.status === "running" ? "Audit running" : "Audit queued"} · started {formatRelative(run.createdAt)}
+          {hasCompleted && <span className="text-muted-foreground"> · the report below is from the previous run</span>}
+        </p>
+        <Link href={`/a/${run.id}?next=${next}`} className="text-xs font-medium text-primary hover:underline">
+          Watch progress →
+        </Link>
+      </div>
+    );
+  }
+
+  if (run && run.status === "failed") {
+    return (
+      <div className={`${box} border-destructive/40 bg-destructive/5`} role="alert">
+        <div className="flex flex-col gap-1">
+          <p className="text-destructive">
+            Last audit failed: {run.errorMessage?.trim() || "no reason was recorded"}.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Started {formatRelative(run.createdAt)}.{" "}
+            {hasCompleted ? "The report below is from the last successful run." : "Retry now, or wait for the next scheduled run."}
+          </p>
+        </div>
+        <RetryAuditButton host={host} />
+      </div>
+    );
+  }
+
+  if (!verified) {
+    return (
+      <p className="rounded-[18px] border border-dashed border-warning/40 bg-warning/5 p-5 text-sm text-muted-foreground">
+        No audit yet: monitoring starts once you verify ownership with the DNS record above.
+        The first audit then starts within the hour.
+      </p>
+    );
+  }
+
+  return (
+    <p className="rounded-[18px] border border-dashed border-border/60 bg-background/40 p-5 text-sm text-muted-foreground">
+      No completed audit yet. The first monitoring run starts within the hour of verification;
+      the report appears here once it completes.
+    </p>
   );
 }
 

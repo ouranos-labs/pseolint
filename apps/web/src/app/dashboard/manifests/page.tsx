@@ -5,6 +5,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { fixManifests, orchestratorSessions } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
+import { formatDate, formatStatus } from "@/lib/format";
 
 export const runtime = "nodejs";
 
@@ -91,11 +92,11 @@ export default async function ManifestsPage() {
                 >
                   <span className="font-mono text-sm text-foreground">{row.domain}</span>
                   <span className={`text-xs uppercase tracking-wider ${STATUS_TONE[row.status] ?? ""}`}>
-                    {row.status}
+                    {formatStatus(row.status)}
                   </span>
                   {row.verdict && (
                     <span className={`font-mono text-xs ${VERDICT_TONE[row.verdict] ?? ""}`}>
-                      verdict: {row.verdict}
+                      Verdict: {formatStatus(row.verdict)}
                     </span>
                   )}
                   {row.totalPatchCount !== null && row.validPatchCount !== null && (
@@ -107,7 +108,7 @@ export default async function ManifestsPage() {
                     <span>${Number(row.spentUsd).toFixed(3)}</span>
                     <span>{row.toolCallCount} calls</span>
                     <span>{dur}</span>
-                    <span>{row.startedAt.toISOString().slice(0, 10)}</span>
+                    <span>{formatDate(row.startedAt)}</span>
                   </span>
                 </Link>
               </li>

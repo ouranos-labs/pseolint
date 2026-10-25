@@ -9,6 +9,8 @@ type Props = {
   confirmLabel?: string;
   danger?: boolean;
   pending?: boolean;
+  /** Failure of the last confirm attempt, shown on its own line under the description. */
+  error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -20,7 +22,7 @@ type Props = {
  */
 export function ConfirmDialog({
   open, title, description, confirmWord, confirmLabel = "Confirm",
-  danger = true, pending = false, onConfirm, onCancel,
+  danger = true, pending = false, error = null, onConfirm, onCancel,
 }: Props) {
   const [typed, setTyped] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -61,6 +63,11 @@ export function ConfirmDialog({
       >
         <h2 className="text-base font-medium text-foreground">{title}</h2>
         <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+        {error && (
+          <p role="alert" className="mt-3 rounded-[10px] border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
         {confirmWord && (
           <label className="mt-4 flex flex-col gap-1">
             <span className="text-xs text-muted-foreground">
