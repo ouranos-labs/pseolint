@@ -210,7 +210,7 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
 
   // Render is requested when EITHER the per-audit flag (Pro form) is set OR the
   // per-domain render-mode opt-in (Pro settings) is on. It only *activates*
-  // below if PSEOLINT_BROWSER_WS is also configured: no endpoint → static
+  // below if PSEOLINT_BROWSER_WS and BROWSERLESS_EGRESS_PROXY are configured: otherwise static
   // fetch, so we never make a false "rendered" promise on a serverless host
   // without a browser service.
   const renderRequested = (input.render || renderMode === true);
@@ -336,9 +336,9 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
       // endpoint (PSEOLINT_BROWSER_WS) rather than local Playwright, which
       // doesn't exist on serverless. Fail-safe: render activates ONLY when both
       // requested (Pro per-audit flag or per-domain opt-in) AND the endpoint is
-      // configured: no endpoint → static audit, no false "rendered" promise.
-      render: (renderRequested && env().PSEOLINT_BROWSER_WS)
-        ? { browserWsEndpoint: env().PSEOLINT_BROWSER_WS }
+      // configured, plus the egress proxy: otherwise static audit, no false "rendered" promise.
+      render: (renderRequested && env().PSEOLINT_BROWSER_WS && env().BROWSERLESS_EGRESS_PROXY)
+        ? { browserWsEndpoint: env().PSEOLINT_BROWSER_WS, browserProxy: env().BROWSERLESS_EGRESS_PROXY }
         : undefined,
       rules: ruleOverrides,
       dataSource: dataRecords ? { records: dataRecords } : undefined,

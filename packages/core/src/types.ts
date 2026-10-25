@@ -543,6 +543,8 @@ export interface AuditOptions {
   /** Browser rendering options for client-rendered pages. */
   render?: {
     browserWsEndpoint?: string;
+    /** HTTP proxy for all rendered-page traffic (see RenderOptions.browserProxy). */
+    browserProxy?: string;
     /**
      * How to handle third-party analytics / session-replay beacons during
      * rendered audits.

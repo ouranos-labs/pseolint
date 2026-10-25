@@ -41,6 +41,12 @@ const INTERCEPTED_RESOURCE_TYPES = new Set([
 export interface RenderOptions {
   browserWsEndpoint?: string;
   /**
+   * HTTP proxy the remote browser must send all page traffic through (e.g. an
+   * egress proxy that denies private ranges). Falls back to the
+   * `PSEOLINT_BROWSER_PROXY` env var. Only applies to `browserWsEndpoint`.
+   */
+  browserProxy?: string;
+  /**
    * Path to a Chromium executable to launch instead of the binary Playwright
    * downloaded for its own pinned build. Falls back to the
    * `PSEOLINT_BROWSER_EXECUTABLE` env var. Lets environments with a system /
@@ -147,13 +153,39 @@ async function loadPlaywright(): Promise<any> {
   }
 }
 
-function isLocalhost(endpoint: string): boolean {
+/**
+ * Plain ws:// is allowed only where the traffic can't cross the internet:
+ * loopback, or a dotless hostname such as a Docker service name (`browserless`)
+ * on the same private network.
+ */
+function isPrivateHost(endpoint: string): boolean {
   try {
-    const parsed = new URL(endpoint);
-    return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    const host = new URL(endpoint).hostname;
+    return host === "localhost" || host === "127.0.0.1" || !/[.:]/.test(host);
   } catch {
     return false;
   }
+}
+
+/**
+ * Browserless launches Chrome per connection from the `launch` query param.
+ * Routing that Chrome through an egress proxy is what keeps a rendered page's
+ * own subrequests (fetch, img, iframe) off private networks: the SSRF guard
+ * only vets the URLs we navigate to, not what those pages load.
+ */
+export function withBrowserProxy(endpoint: string, proxy: string): string {
+  const url = new URL(endpoint);
+  url.searchParams.set("launch", JSON.stringify({
+    args: [
+      `--proxy-server=${proxy}`,
+      // Chrome bypasses proxies for loopback by default; proxy it too so the
+      // proxy's 127.0.0.0/8 deny applies (Browserless itself listens there).
+      "--proxy-bypass-list=<-loopback>",
+      // WebRTC can otherwise open UDP straight to internal addresses.
+      "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+    ],
+  }));
+  return url.toString();
 }
 
 const WS_SECURE = "wss://";
@@ -161,11 +193,11 @@ const WS_PLAIN = "ws" + "://";
 
 function validateWsEndpoint(endpoint: string): void {
   if (endpoint.startsWith(WS_SECURE)) return;
-  if (endpoint.startsWith(WS_PLAIN) && isLocalhost(endpoint)) return;
+  if (endpoint.startsWith(WS_PLAIN) && isPrivateHost(endpoint)) return;
   throw new Error(
     `Insecure WebSocket endpoint: ${endpoint}. ` +
     `Remote endpoints must use ${WS_SECURE}. ` +
-    `Unencrypted ${WS_PLAIN} is only allowed for localhost.`
+    `Unencrypted ${WS_PLAIN} is only allowed for localhost or a private service name.`
   );
 }
 
@@ -207,7 +239,8 @@ export async function renderPages(
   let browser: any;
   if (endpoint) {
     validateWsEndpoint(endpoint);
-    browser = await pw.chromium.connectOverCDP(endpoint);
+    const proxy = options.browserProxy ?? process.env.PSEOLINT_BROWSER_PROXY;
+    browser = await pw.chromium.connectOverCDP(proxy ? withBrowserProxy(endpoint, proxy) : endpoint);
   } else {
     const executablePath = options.browserExecutablePath
       ?? process.env.PSEOLINT_BROWSER_EXECUTABLE

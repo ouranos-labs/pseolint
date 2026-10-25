@@ -98,6 +98,10 @@ const envSchema = z.object({
   // render stays off (static fetch) even when requested, so there's no false
   // promise on environments without a browser service.
   PSEOLINT_BROWSER_WS: z.string().min(1).optional(),
+  // Egress proxy (e.g. http://egress-proxy:3128) that denies private ranges.
+  // Render mode stays off without it: rendered pages run their own JS, which
+  // could otherwise reach internal services from the browser host.
+  BROWSERLESS_EGRESS_PROXY: z.string().url().optional(),
   POLAR_ACCESS_TOKEN: z.string().min(1).optional(),
   POLAR_WEBHOOK_SECRET: z.string().min(1).optional(),
   POLAR_MONTHLY_PRODUCT_ID: z.string().min(1).optional(),

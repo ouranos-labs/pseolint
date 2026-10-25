@@ -2155,6 +2155,7 @@ export async function auditSource(source: string, options?: AuditOptions): Promi
         null,
         {
           browserWsEndpoint: options.render.browserWsEndpoint,
+          browserProxy: options.render.browserProxy,
           concurrency,
           timeoutMs: 30000,
           analyticsMode: options.render.analyticsMode,
