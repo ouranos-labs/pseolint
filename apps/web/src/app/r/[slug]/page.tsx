@@ -147,7 +147,7 @@ export default async function Page({
   })();
 
   type CtxKind =
-    | { kind: "anon"; auditSlug: string; originUrl: string }
+    | { kind: "anon"; auditSlug: string; originUrl: string; ownedByViewer: boolean }
     | { kind: "free_own"; auditSlug: string; originUrl: string }
     | { kind: "free_other"; auditSlug: string; originUrl: string }
     | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainHost: string }
@@ -156,7 +156,7 @@ export default async function Page({
 
   let ctx: CtxKind;
   if (!session) {
-    ctx = { kind: "anon", auditSlug: slug, originUrl };
+    ctx = { kind: "anon", auditSlug: slug, originUrl, ownedByViewer: ownedByAnon };
   } else {
     const plan = await getPlan(session.user.id);
     const isOwn = row.userId === session.user.id;
@@ -192,6 +192,23 @@ export default async function Page({
   // archived JSON, which is the right place anyway (the report's own data).
   const legacyScore = summary && !isV04 ? Math.round((summary as AuditSummaryV03).score ?? 0) : 0;
   const completedAgo = relTime(row.completedAt ?? row.createdAt);
+  // Sign-in from anywhere on this page returns here (incl. the cached flag).
+  const reportPath = `/r/${slug}${cached === "1" ? "?cached=1" : ""}`;
+  const signInHere = `/signin?callbackUrl=${encodeURIComponent(reportPath)}`;
+
+  // The row says completed but the results blob is missing or unparseable.
+  // Rendering the hero anyway would show a fabricated "0 / Clean run" verdict,
+  // so say what actually happened instead.
+  if (!summary) {
+    return (
+      <ReportDataUnavailable
+        row={ row }
+        host={ host }
+        signedIn={ !!session }
+        signInHref={ signInHere }
+      />
+    );
+  }
 
   // audit-tiles helpers were updated by Agent C to read the v0.4 issues
   // buckets. Pass v0.4 summaries directly; for v0.3 we synthesize a minimal
@@ -238,7 +255,7 @@ export default async function Page({
       { cached === "1" && !ownedByUser && !ownedByAnon ? (
         <div className="mt-4 flex flex-col gap-3 rounded-[18px] border border-warning/30 bg-warning/5 p-4 sm:flex-row sm:items-center">
           <p className="flex-1 text-xs leading-relaxed text-muted-foreground">
-            <span className="font-medium text-foreground">Cached audit.</span>{ " " }
+            <span className="font-medium text-foreground">Cached audit. Audited { completedAgo }.</span>{ " " }
             Showing the most recent public audit of { hostOf(row.sourceUrl) }: not necessarily your own scan.
             Re-runs of the same URL within an hour are deduped to keep the crawl footprint light.
           </p>
@@ -246,7 +263,7 @@ export default async function Page({
             href={
               session
                 ? `/?prefill=${encodeURIComponent(row.sourceUrl)}&force=1`
-                : `/signin?callbackUrl=${encodeURIComponent(`/?prefill=${row.sourceUrl}&force=1`)}`
+                : signInHere
             }
             className="inline-flex h-9 shrink-0 items-center justify-center rounded-[14px] border border-border-strong px-3 text-xs font-medium transition-colors hover:bg-secondary"
           >
@@ -257,8 +274,8 @@ export default async function Page({
 
       <header className="mt-8">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-success" />
-          Audit complete · { completedAgo }
+          <span className={ `inline-block h-1.5 w-1.5 rounded-full ${truncation.truncated ? "bg-warning" : "bg-success"}` } />
+          { truncation.truncated ? "Audit finished · partial coverage" : "Audit complete" } · { completedAgo }
         </div>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1
@@ -362,11 +379,11 @@ export default async function Page({
             <p className="mt-1 text-xs text-muted-foreground">
               { eligible
                 ? "Its report is kept permanently. Sign in (free) to run more audits and unlock private reports."
-                : "Sign in (free) to keep it permanently, run more audits, and unlock private reports." }
+                : "Sign in (free) to keep it for 30 days, run more audits, and unlock private reports." }
             </p>
           </div>
           <Link
-            href={ `/signin?callbackUrl=${encodeURIComponent(`/r/${slug}`)}` }
+            href={ signInHere }
             className="inline-flex h-10 shrink-0 items-center justify-center rounded-[14px] bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             { eligible ? "Sign in" : "Save this report" }
@@ -1123,6 +1140,57 @@ function hoursUntil(d: Date): number {
 function clampPct(n: number): number {
   if (!Number.isFinite(n)) return 0;
   return Math.min(100, Math.max(0, n));
+}
+
+function ReportDataUnavailable({
+  row,
+  host,
+  signedIn,
+  signInHref,
+}: {
+  row: AuditRow;
+  host: string;
+  signedIn: boolean;
+  signInHref: string;
+}) {
+  // A plain re-submit within the hour is deduped straight back to this same
+  // (broken) report, so signed-in users force a fresh run; anonymous users
+  // can't force, so inside that window they are offered sign-in instead.
+  const finishedAt = (row.completedAt ?? row.createdAt).getTime();
+  const withinDedupeWindow = Date.now() - finishedAt < 60 * 60 * 1000;
+  const prefill = `/?prefill=${encodeURIComponent(row.sourceUrl)}`;
+  const reauditHref = signedIn ? `${prefill}&force=1` : withinDedupeWindow ? signInHref : prefill;
+  return (
+    <main className="mx-auto max-w-xl px-5 pb-20 pt-20">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+        <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning" />
+        Report unavailable
+      </div>
+      <h1
+        className="mt-3 min-w-0 text-balance break-words text-3xl tracking-tight sm:text-4xl"
+        style={ { fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 400 } }
+      >
+        { host }
+      </h1>
+      <p className="mt-3 text-sm text-muted-foreground">
+        We couldn&apos;t load this report&apos;s data. The audit finished, but its results file is unavailable.
+      </p>
+      <div className="mt-6 flex flex-wrap gap-3">
+        <Link
+          href={ reauditHref }
+          className="inline-flex h-11 items-center rounded-[18px] bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          { !signedIn && withinDedupeWindow ? `Sign in to re-audit ${host}` : `Re-audit ${host}` }
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center rounded-[18px] border border-border-strong px-5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        >
+          Back to home
+        </Link>
+      </div>
+    </main>
+  );
 }
 
 function ExpiredState({ row }: { row: AuditRow }) {

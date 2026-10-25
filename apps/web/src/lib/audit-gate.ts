@@ -5,7 +5,7 @@ import { bumpRateLimit } from "@/lib/rate-limit";
 import { todayDateString } from "@/lib/ids";
 import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
-import { DAILY_AUDIT_CAP, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-limits";
+import { DAILY_AUDIT_CAP, PER_HOST_DAILY_CAP, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-limits";
 
 // Defined in audit-limits (db-free, so /limits and /abuse can quote them);
 // re-exported here for existing importers.
@@ -19,6 +19,20 @@ export const IN_FLIGHT_LIMIT_PRO = 5;
 
 function currentHourKey(): string {
   return new Date().toISOString().slice(0, 13);
+}
+
+/**
+ * The rate-limit counter keys the Pro gate bumps, in gate order. Exported so
+ * the route can refund exactly these keys when the request is later rejected
+ * or the run fails (see refundRateLimits).
+ */
+export function proGateKeys(userId: string, host: string): { daily: string; hostHourly: string; userHost: string } {
+  const today = todayDateString();
+  return {
+    daily: `pro:${userId}:${today}`,
+    hostHourly: `audit-host:${host}:${currentHourKey()}`,
+    userHost: `user-host:${userId}:${host}:${today}`,
+  };
 }
 
 /**
@@ -51,22 +65,18 @@ export async function assertProAuditAllowed(args: {
 }): Promise<string | null> {
   if (devFlags.rateLimitDisabled) return null;
 
-  const today = todayDateString();
-  const hour = currentHourKey();
+  const keys = proGateKeys(args.userId, args.host);
 
   const blocked = await checkBlocklist([hostBlockKey(args.host), userBlockKey(args.userId)]);
   if (blocked) return "blocklisted";
 
-  const dailyKey = `pro:${args.userId}:${today}`;
-  const dailyRes = await bumpRateLimit(dailyKey, DAILY_AUDIT_CAP.pro);
+  const dailyRes = await bumpRateLimit(keys.daily, DAILY_AUDIT_CAP.pro);
   if (!dailyRes.allowed) return "per_user";
 
-  const hostKey = `audit-host:${args.host}:${hour}`;
-  const hostRes = await bumpRateLimit(hostKey, PER_HOST_HOURLY_LIMIT);
+  const hostRes = await bumpRateLimit(keys.hostHourly, PER_HOST_HOURLY_LIMIT);
   if (!hostRes.allowed) return "per_host";
 
-  const userHostKey = `user-host:${args.userId}:${args.host}:${today}`;
-  const userHostRes = await bumpRateLimit(userHostKey, PER_USER_HOST_DAILY_PRO);
+  const userHostRes = await bumpRateLimit(keys.userHost, PER_USER_HOST_DAILY_PRO);
   if (!userHostRes.allowed) return "per_user_host";
 
   const [{ count } = { count: 0 }] = await db

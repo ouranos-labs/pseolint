@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +14,16 @@ import { LANDING_FAQ } from "@/lib/landing-faq";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
 import { ENGINE_VERSION } from "@/lib/version";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import { AuditErrorNotice } from "@/components/audit/audit-error-notice";
+import { TurnstileSlot, useTurnstile } from "@/components/audit/turnstile";
+import { submitAudit } from "@/lib/audit-submit";
+import {
+  botCheckFailedView,
+  botCheckPendingView,
+  confirmAuthorizationView,
+  invalidUrlView,
+  type AuditErrorView,
+} from "@/lib/audit-errors";
 
 const GITHUB_ACTION_YAML = `name: pSEO Lint
 on: [pull_request]
@@ -32,37 +41,15 @@ jobs:
           source: ./out
           threshold: 40`;
 
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (
-        el: HTMLElement | string,
-        o: { sitekey: string; callback: (t: string) => void; "error-callback"?: () => void; "expired-callback"?: () => void },
-      ) => string;
-      remove: (id: string) => void;
-      reset: (id?: string) => void;
-    };
-    onTurnstileReady?: () => void;
-  }
-}
-
-type FormError = {
-  message: string;
-  hint?: string;
-  action?: { label: string; href: string };
-};
-
 const TOS_STORAGE_KEY = "pseolint:audit-authorized-v1";
 
 export function LandingForm() {
   const [url, setUrl] = useState("");
-  const [token, setToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState<FormError | null>(null);
+  const [err, setErr] = useState<AuditErrorView | null>(null);
   const router = useRouter();
   const { track } = useAnalytics();
   const engagedRef = useRef(false);
-  const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   const [force, setForce] = useState(false);
   // Authorization attestation: remembered across visits once checked so
@@ -119,109 +106,52 @@ export function LandingForm() {
     } catch { }
   };
 
-  // Turnstile mount: render explicitly via the script's `?onload=` callback so we
-  // don't have to poll for `window.turnstile`. The callback may fire before this
-  // effect runs (script already cached) or after, so we handle both paths.
-  useEffect(() => {
-    if (!siteKey || !turnstileArmed) return;
-    let widgetId: string | undefined;
-
-    const render = (): void => {
-      if (!window.turnstile) return;
-      const el = document.getElementById("turnstile-widget");
-      if (!el || el.childElementCount > 0) return;
-      widgetId = window.turnstile.render(el, {
-        sitekey: siteKey,
-        callback: (t) => setToken(t),
-        "expired-callback": () => setToken(null),
-        "error-callback": () => setToken(null),
-      });
-    };
-
-    if (window.turnstile) render();
-    else window.onTurnstileReady = render;
-
-    return () => {
-      window.onTurnstileReady = undefined;
-      if (widgetId !== undefined && window.turnstile?.remove) {
-        try { window.turnstile.remove(widgetId); } catch { }
-      }
-    };
-  }, [siteKey, turnstileArmed]);
+  const ts = useTurnstile({ elementId: "turnstile-widget", armed: turnstileArmed });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const normalized = normalizeUrl(url);
+    const normalized = normalizeUserUrl(url);
     if (!normalized) {
-      setErr({
-        message: "That doesn't look like a valid URL.",
-        hint: "Use a full URL starting with https://, e.g. https://yoursite.com.",
-      });
+      setErr(invalidUrlView());
       return;
     }
     if (!authorized) {
-      setErr({
-        message: "Please confirm you're authorized to audit this URL.",
-        hint: "Tick the authorization box below the URL input. We only check it once.",
-      });
+      setErr(confirmAuthorizationView());
       return;
     }
     // Defensive: if the user reached submit without the focus that normally arms
     // Turnstile (e.g. browser autofill + Enter), arm it now so the widget renders
     // for the retry; this submit still falls through to the token guard below.
     if (!turnstileArmed) setTurnstileArmed(true);
-    if (!token) {
-      setErr({
-        message: "Complete the bot check first.",
-        hint: "The widget is just above the button. Refresh if it didn't load.",
-      });
+    if (!ts.token) {
+      setErr(ts.status === "error" || ts.status === "unconfigured" ? botCheckFailedView() : botCheckPendingView());
       return;
     }
     setSubmitting(true);
     setErr(null);
-    try {
-      track({ name: "audit_submitted", props: { host: hostOf(normalized), force, source: "landing" } });
-      const res = await fetch("/api/audits", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          url: normalized,
-          turnstileToken: token,
-          ...(force ? { force: true } : {}),
-          ...(channel ? { channel } : {}),
-        }),
-      });
-      if (res.ok) {
-        const { auditId, reportUrl, cached } = await res.json();
-        // When the API returns a cached/deduped report, surface that on the report
-        // page so the caller knows they're looking at the most recent public audit
-        // of this URL: not necessarily their own scan.
-        const next = cached && reportUrl ? `${reportUrl}?cached=1` : `/a/${auditId}`;
-        router.push(next);
-        return;
-      }
-      const { error, code } = await res.json().catch(() => ({ error: "Unknown error" }));
-      track({ name: "audit_submit_failed", props: { status: res.status, code: typeof code === "string" ? code : undefined } });
-      setErr(mapApiError(res.status, String(error ?? "Unknown error"), code));
-    } catch (fetchErr) {
-      setErr({
-        message: "Couldn't reach the server.",
-        hint: (fetchErr as Error).message,
-      });
-    } finally {
-      setSubmitting(false);
+    track({ name: "audit_submitted", props: { host: hostOf(normalized), force, source: "landing" } });
+    const result = await submitAudit(
+      {
+        url: normalized,
+        turnstileToken: ts.token,
+        ...(force ? { force: true } : {}),
+        ...(channel ? { channel } : {}),
+      },
+      { returnTo: `/?prefill=${encodeURIComponent(normalized)}` },
+    );
+    if (result.ok) {
+      router.push(result.next);
+      return;
     }
+    // The token was consumed by the server whether or not it was accepted.
+    ts.reset();
+    track({ name: "audit_submit_failed", props: { status: result.status, code: result.code } });
+    setErr(result.view);
+    setSubmitting(false);
   };
 
   return (
     <>
-      {/* Load the Turnstile script only once the form is armed: its `onload`
-          callback (window.onTurnstileReady) is registered by the armed render
-          effect, so loading it eagerly would warn about a missing callback. */}
-      { siteKey && turnstileArmed && (
-        <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady" async defer />
-      ) }
-
       <section className="relative">
         <div className="mx-auto max-w-5xl px-5 pb-16 pt-16 sm:pt-20">
           <div className="grid gap-10 md:grid-cols-2 md:gap-8 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:gap-12">
@@ -293,25 +223,13 @@ export function LandingForm() {
                   </label>
                 ) }
 
-                { siteKey && turnstileArmed && (
-                  <div className="relative">
-                    <div id="turnstile-widget" />
-                    { !token && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Loading bot check… if this doesn&apos;t resolve in a few seconds, refresh the page.
-                      </p>
-                    ) }
-                  </div>
-                ) }
-                { !siteKey && (
-                  <p className="rounded-[12px] border border-warning/40 bg-warning/5 p-2 text-xs text-warning">
-                    Turnstile isn&apos;t configured. Set <code className="font-mono">NEXT_PUBLIC_TURNSTILE_SITE_KEY</code> in .env.local.
-                  </p>
-                ) }
+                {/* The script loads only once the form is armed: its `onload`
+                    callback is registered by the armed render effect. */}
+                <TurnstileSlot ts={ ts } />
 
                 <Button
                   type="submit"
-                  disabled={ submitting }
+                  disabled={ submitting || err?.cooldownUntil != null }
                   className="h-11 w-full font-semibold"
                 >
                   { submitting ? "Starting audit…" : serp ? "Audit to win this SERP" : "Audit my site, free" }
@@ -321,22 +239,7 @@ export function LandingForm() {
                   We fetch up to 50 pages anonymously (200 signed in) over a few minutes: if it&apos;s your site and it&apos;s cache-cold, warm it first.
                 </p>
 
-                { err && (
-                  <div className="rounded-[14px] border border-destructive/40 bg-destructive/5 p-3 text-sm">
-                    <p className="text-destructive">{ err.message }</p>
-                    { err.hint && (
-                      <p className="mt-1 text-xs text-muted-foreground">{ err.hint }</p>
-                    ) }
-                    { err.action && (
-                      <Link
-                        href={ err.action.href }
-                        className="mt-2 inline-flex text-xs font-medium text-primary hover:underline"
-                      >
-                        { err.action.label } →
-                      </Link>
-                    ) }
-                  </div>
-                ) }
+                { err && <AuditErrorNotice view={ err } onCooldownEnd={ () => setErr(null) } /> }
               </form>
 
               <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -729,84 +632,8 @@ function linkifyAnswer(answer: string): ReactNode {
   );
 }
 
-function normalizeUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-  try {
-    const u = new URL(withScheme);
-    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
-    if (!u.hostname.includes(".")) return null;
-    return u.toString();
-  } catch {
-    return null;
-  }
-}
-
 function hostOf(url: string): string {
   try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return "unknown"; }
-}
-
-function mapApiError(status: number, message: string, code?: string): FormError {
-  const lower = message.toLowerCase();
-  // Pre-flight origin-health block: the server probed the origin before
-  // dispatching and found it down or degraded. The message already explains
-  // what we found and how to override; just give it an honest title.
-  if (code === "origin_unreachable") {
-    return { message: "We couldn't reach your origin.", hint: message };
-  }
-  if (code === "origin_degraded") {
-    return { message: "Your origin looks degraded right now.", hint: message };
-  }
-  if (status === 429) {
-    if (lower.includes("session limit")) {
-      return {
-        message: "You've used your 3 free audits for this session today.",
-        hint: "Sign in (free) for 5 per day + 30-day report retention.",
-        action: { label: "Sign in", href: "/signin" },
-      };
-    }
-    if (lower.includes("domain")) {
-      return {
-        message: "This domain has already been audited a few times today.",
-        hint: "Try again tomorrow, or Pro for unlimited re-audits.",
-        action: { label: "See pricing", href: "/pricing" },
-      };
-    }
-    if (lower.includes("daily")) {
-      return {
-        message: "You've hit today's free audit limit (5 per day).",
-        hint: "Pro lifts it to 50 per day and unlocks 500-page manual re-audits.",
-        action: { label: "See pricing", href: "/pricing" },
-      };
-    }
-    return { message };
-  }
-  if (status === 400) {
-    if (lower.includes("bot check")) {
-      return {
-        message: "Bot check failed. Try again.",
-        hint: "Refresh the page if the Turnstile widget didn't solve automatically.",
-      };
-    }
-    if (lower.includes("private") || lower.includes("loopback") || lower.includes("not allowed")) {
-      return {
-        message: "Can't audit that URL.",
-        hint: "We only audit public sites, localhost, private networks, and non-http(s) URLs are blocked.",
-      };
-    }
-    return {
-      message: "That URL couldn't be processed.",
-      hint: message,
-    };
-  }
-  if (status === 503) {
-    return {
-      message: "New audits are paused.",
-      hint: message,
-    };
-  }
-  return { message };
 }
 
 function buildTiles({

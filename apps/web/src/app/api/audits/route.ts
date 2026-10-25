@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { and, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { audits } from "@/db/schema";
 import { assertSafeUrl } from "@/lib/ssrf";
 import { getPlan } from "@/lib/plan";
-import { bumpRateLimit } from "@/lib/rate-limit";
+import { bumpRateLimit, refundRateLimits } from "@/lib/rate-limit";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { getOptionalSession, getOrCreateAnonSessionId } from "@/lib/session";
 import { inngest } from "@/lib/inngest";
@@ -16,15 +16,22 @@ import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
 import { publicSlug } from "@/lib/slug";
 import { clientIp } from "@/lib/ip";
-import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP } from "@/lib/audit-limits";
-import { reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
+import { pageCapFor, ANON_DAILY_CAP, DAILY_AUDIT_CAP, PER_HOST_DAILY_CAP } from "@/lib/audit-limits";
+import { anonAuditSlotKey, reserveAnonAuditSlot } from "@/lib/anon-rate-limit";
 import { checkOriginHealth } from "@pseolint/core";
 import { normalizeUserUrl } from "@/lib/normalize-url";
 import { getMarketingTool } from "@/lib/marketing-tools";
 import { resolveAuditChannel } from "@/lib/audit-channel";
-import { assertProAuditAllowed, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-gate";
+import { assertProAuditAllowed, proGateKeys, PER_HOST_HOURLY_LIMIT } from "@/lib/audit-gate";
 import { trackServerAfter } from "@/lib/analytics/track.server";
 import type { AuditBlockReason } from "@/lib/analytics/events";
+import {
+  hostHourlyBody,
+  quotaBody,
+  rejectionBody,
+  SUPPORT_EMAIL,
+  type AuditErrorBody,
+} from "@/lib/audit-errors";
 
 export const runtime = "nodejs";
 
@@ -61,12 +68,7 @@ const URL_COOLDOWN_MS = 5 * 60 * 1000;
 const SAMPLE_SIZE_CEILING = 300;
 const IN_FLIGHT_LIMIT_FREE = 1;
 const IN_FLIGHT_LIMIT_ANON = 1;
-// Anti-harassment: one user can only audit a given host N times per day. Caps
-// the realistic damage one attacker can do to a third-party site, even if they
-// max out their daily quota across many different targets.
-const PER_USER_HOST_DAILY_FREE = 3;
-const PER_ANON_HOST_DAILY = 1;
-const PER_ANON_IP_HOST_DAILY = 1;
+const BLOCKLISTED_MESSAGE = `We can't run an audit for this site. Contact ${SUPPORT_EMAIL} if you believe this is in error.`;
 
 function addDays(n: number): Date { return new Date(Date.now() + n * 86_400_000); }
 function currentHourKey(): string { return new Date().toISOString().slice(0, 13); } // YYYY-MM-DDTHH
@@ -83,22 +85,27 @@ function normalizeAuditUrl(raw: string): string {
   }
 }
 
+/**
+ * Every rejection is `{ error, code, ...details }` (see lib/audit-errors.ts):
+ * the client maps the stable `code`, never the free-text `error`.
+ */
+function rejectJson(body: AuditErrorBody, status: number): Response {
+  return NextResponse.json(body, { status });
+}
+
 export async function POST(req: Request): Promise<Response> {
   const mode = auditMode();
   if (mode !== "normal") {
     auditLog("audit.request.rejected", { reason: `mode=${mode}` });
     trackServerAfter({ name: "audit_blocked", props: { reason: "paused", status: 503 } });
-    return NextResponse.json(
-      { error: mode === "disabled" ? disabledMessage() : readOnlyMessage() },
-      { status: 503 },
-    );
+    return rejectJson(rejectionBody("paused", mode === "disabled" ? disabledMessage() : readOnlyMessage()), 503);
   }
 
   const ip = extractClientIp(req.headers);
   const body = BodySchema.safeParse(await req.json().catch(() => ({})));
   if (!body.success) {
     auditLog("audit.request.rejected", { reason: "invalid_body" });
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return rejectJson(rejectionBody("invalid_url", "That doesn't look like a site address."), 400);
   }
   const { turnstileToken, force } = body.data;
   const url = normalizeAuditUrl(body.data.url);
@@ -121,19 +128,28 @@ export async function POST(req: Request): Promise<Response> {
     if (!turnstileToken || !(await verifyTurnstileToken(turnstileToken, ip))) {
       auditLog("audit.request.rejected", { reason: "bot_check_failed", url });
       trackBlocked("bot_check", 400);
-      return NextResponse.json({ error: "Bot check failed" }, { status: 400 });
+      return rejectJson(rejectionBody("turnstile_failed", "Bot check failed."), 400);
     }
   }
+
+  const host = safeHost(url);
 
   try {
     await assertSafeUrl(url);
   } catch (e) {
     auditLog("audit.request.rejected", { reason: "ssrf", url, err: (e as Error).message });
     trackBlocked("private_url", 400);
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    // assertSafeUrl folds "doesn't resolve" and "resolves to a private
+    // address" into one error; for a real user the overwhelmingly common
+    // cause is a typo, so lead with that.
+    return rejectJson(
+      rejectionBody("invalid_url", `We couldn't find a public website at ${host}. Check the spelling, then try again.`, {
+        host,
+        reason: "not a public, resolvable address",
+      }),
+      400,
+    );
   }
-
-  const host = safeHost(url);
 
   // Blocklist: reject known-bad user or host before any other work.
   const keysToCheck: string[] = [hostBlockKey(host)];
@@ -141,10 +157,7 @@ export async function POST(req: Request): Promise<Response> {
   const blocked = await checkBlocklist(keysToCheck);
   if (blocked) {
     auditLog("audit.request.rejected", { reason: "blocklisted", key: blocked.key });
-    return NextResponse.json(
-      { error: "This audit cannot be run. Contact support if you believe this is in error." },
-      { status: 403 },
-    );
+    return rejectJson(rejectionBody("blocklisted", BLOCKLISTED_MESSAGE), 403);
   }
 
   const forceNew = force === true && !!session;
@@ -162,9 +175,9 @@ export async function POST(req: Request): Promise<Response> {
         (recent.createdAt.getTime() + URL_COOLDOWN_MS - Date.now()) / 1000,
       ));
       auditLog("audit.request.cooldown", { url, waitSec });
-      return NextResponse.json(
-        { error: `This URL was just audited. Try again in ${waitSec}s.` },
-        { status: 429 },
+      return rejectJson(
+        rejectionBody("cooldown", `This URL was just audited. Try again in ${waitSec}s.`, { retryAfterSec: waitSec }),
+        429,
       );
     }
   }
@@ -208,6 +221,22 @@ export async function POST(req: Request): Promise<Response> {
   let anonSessionId: string | null = null;
   let expiresAt: Date;
 
+  // Every counter this request bumps, in order. Counters are bumped BEFORE the
+  // allow check, so a request rejected by gate N has already spent gates
+  // 1..N. `reject` hands those back so a refused request costs nothing, and
+  // a dispatched run carries them as `refundKeys` so a FAILED run is refunded
+  // too (run-audit.ts): otherwise "Try again" after a failure is guaranteed
+  // to hit the per-host cap.
+  const bumped: string[] = [];
+  const bump = async (key: string, limit: number): Promise<{ allowed: boolean; count: number }> => {
+    bumped.push(key);
+    return bumpRateLimit(key, limit);
+  };
+  const reject = async (rejection: AuditErrorBody, status: number): Promise<Response> => {
+    if (bumped.length > 0) await refundRateLimits(bumped);
+    return rejectJson(rejection, status);
+  };
+
   // Per-host global rate limit: protects target sites during viral-post
   // amplification. v0.5.6 refinement: Pro requests get the per-host check
   // exclusively from `assertProAuditAllowed`. Doing it here too would
@@ -218,23 +247,20 @@ export async function POST(req: Request): Promise<Response> {
     isProSession = (await getPlan(session.user.id)) === "pro";
   }
   if (!devFlags.rateLimitDisabled && !isProSession) {
-    const { allowed } = await bumpRateLimit(`audit-host:${host}:${currentHourKey()}`, PER_HOST_HOURLY_LIMIT);
+    const { allowed } = await bump(`audit-host:${host}:${currentHourKey()}`, PER_HOST_HOURLY_LIMIT);
     if (!allowed) {
       auditLog("audit.request.rate_limited", { reason: "per_host", host });
       trackBlocked("domain_limit", 429);
-      return NextResponse.json(
-        { error: `Too many audits for ${host} this hour. Try again later.` },
-        { status: 429 },
-      );
+      return reject(hostHourlyBody(host, PER_HOST_HOURLY_LIMIT), 429);
     }
   }
 
   if (session) {
     if (!session.user.emailVerified) {
       auditLog("audit.request.rejected", { reason: "email_not_verified", userId: session.user.id });
-      return NextResponse.json(
-        { error: "Verify your email before running audits. Check your inbox for the magic-link email." },
-        { status: 403 },
+      return reject(
+        rejectionBody("email_unverified", "Verify your email before running audits. Check your inbox for the magic-link email."),
+        403,
       );
     }
     userId = session.user.id;
@@ -248,60 +274,65 @@ export async function POST(req: Request): Promise<Response> {
     if (!devFlags.rateLimitDisabled) {
       if (plan === "pro") {
         // Pro gates are consolidated in the shared helper (daily cap + per-host
-        // hourly + per-user-host daily + in-flight). Redundant with the
-        // route-level per-host-hourly check above, but acceptable until v0.5.5.
+        // hourly + per-user-host daily + in-flight).
         const gateReason = await assertProAuditAllowed({ userId: userId!, host });
+        const proKeys = proGateKeys(userId!, host);
+        // Keys the gate bumped before it stopped (it bumps in this order).
+        const spent: Record<string, string[]> = {
+          blocklisted: [],
+          per_user: [proKeys.daily],
+          per_host: [proKeys.daily, proKeys.hostHourly],
+          per_user_host: [proKeys.daily, proKeys.hostHourly, proKeys.userHost],
+          in_flight: [proKeys.daily, proKeys.hostHourly, proKeys.userHost],
+        };
+        bumped.push(...(gateReason ? (spent[gateReason] ?? []) : spent.in_flight));
         if (gateReason) {
           auditLog("audit.request.rate_limited", { reason: gateReason, userId, plan });
           if (gateReason === "blocklisted") {
-            return NextResponse.json(
-              { error: "This audit cannot be run. Contact support if you believe this is in error." },
-              { status: 403 },
-            );
+            return reject(rejectionBody("blocklisted", BLOCKLISTED_MESSAGE), 403);
           }
           if (gateReason === "per_host") {
             trackBlocked("domain_limit", 429);
-            return NextResponse.json(
-              { error: `Too many audits for ${host} this hour. Try again later.` },
-              { status: 429 },
-            );
+            return reject(hostHourlyBody(host, PER_HOST_HOURLY_LIMIT), 429);
           }
           if (gateReason === "per_user_host") {
             trackBlocked("domain_limit", 429);
-            return NextResponse.json(
-              { error: `You've reached today's limit for ${host} (${PER_USER_HOST_DAILY_PRO}/day). Try a different site or come back tomorrow.` },
-              { status: 429 },
+            return reject(
+              quotaBody({ code: "quota_host", used: PER_HOST_DAILY_CAP.pro, limit: PER_HOST_DAILY_CAP.pro, tier: "pro", host }),
+              429,
             );
           }
           if (gateReason === "in_flight") {
-            return NextResponse.json(
-              { error: `Too many audits in flight. Wait for one to finish.` },
-              { status: 429 },
+            const running = await latestInFlightAuditId(eq(audits.userId, userId!));
+            return reject(
+              rejectionBody("in_flight", "You already have audits running. Wait for one to finish.", running ? { auditId: running } : {}),
+              429,
             );
           }
           // gateReason === "per_user"
           trackBlocked("daily_limit", 429);
-          return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
+          return reject(
+            quotaBody({ code: "quota_daily", used: DAILY_AUDIT_CAP.pro, limit: DAILY_AUDIT_CAP.pro, tier: "pro" }),
+            429,
+          );
         }
       } else {
         // Free user inline gates.
-        const key = `free:${userId}:${today}`;
         const limit = DAILY_AUDIT_CAP[plan];
-        const { allowed } = await bumpRateLimit(key, limit);
+        const { allowed, count } = await bump(`free:${userId}:${today}`, limit);
         if (!allowed) {
           auditLog("audit.request.rate_limited", { reason: "per_user", userId, plan });
           trackBlocked("daily_limit", 429);
-          return NextResponse.json({ error: "Daily audit limit reached" }, { status: 429 });
+          return reject(quotaBody({ code: "quota_daily", used: count - 1, limit, tier: "free" }), 429);
         }
         // Per-user-per-host daily cap: anti-harassment for third-party targets.
-        const hostKey = `user-host:${userId}:${host}:${today}`;
-        const hostRes = await bumpRateLimit(hostKey, PER_USER_HOST_DAILY_FREE);
+        const hostRes = await bump(`user-host:${userId}:${host}:${today}`, PER_HOST_DAILY_CAP.free);
         if (!hostRes.allowed) {
           auditLog("audit.request.rate_limited", { reason: "per_user_host", userId, plan, host });
           trackBlocked("domain_limit", 429);
-          return NextResponse.json(
-            { error: `You've reached today's limit for ${host} (${PER_USER_HOST_DAILY_FREE}/day). Try a different site or come back tomorrow.` },
-            { status: 429 },
+          return reject(
+            quotaBody({ code: "quota_host", used: hostRes.count - 1, limit: PER_HOST_DAILY_CAP.free, tier: "free", host }),
+            429,
           );
         }
       }
@@ -310,23 +341,21 @@ export async function POST(req: Request): Promise<Response> {
     anonSessionId = await getOrCreateAnonSessionId();
     expiresAt = addDays(1);
     if (!devFlags.rateLimitDisabled) {
-      const anonKey = `anon:${anonSessionId}:${today}`;
-      const { allowed } = await bumpRateLimit(anonKey, ANON_DAILY_CAP);
+      const { allowed, count } = await bump(`anon:${anonSessionId}:${today}`, ANON_DAILY_CAP);
       if (!allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_anon", anonSessionId });
         trackBlocked("session_limit", 429);
-        return NextResponse.json({ error: "Session limit reached, sign in for more" }, { status: 429 });
+        return reject(quotaBody({ code: "quota_session", used: count - 1, limit: ANON_DAILY_CAP, tier: "anon" }), 429);
       }
       // Per-anon-session-per-host daily cap: anon attackers can't focus all
       // their daily quota on one target.
-      const anonHostKey = `anon-host:${anonSessionId}:${host}:${today}`;
-      const anonHostRes = await bumpRateLimit(anonHostKey, PER_ANON_HOST_DAILY);
+      const anonHostRes = await bump(`anon-host:${anonSessionId}:${host}:${today}`, PER_HOST_DAILY_CAP.anon);
       if (!anonHostRes.allowed) {
         auditLog("audit.request.rate_limited", { reason: "per_anon_host", anonSessionId, host });
         trackBlocked("domain_limit", 429);
-        return NextResponse.json(
-          { error: `Anon limit for ${host} reached (${PER_ANON_HOST_DAILY}/day). Sign in to audit it again.` },
-          { status: 429 },
+        return reject(
+          quotaBody({ code: "quota_host", used: anonHostRes.count - 1, limit: PER_HOST_DAILY_CAP.anon, tier: "anon", host }),
+          429,
         );
       }
     }
@@ -340,42 +369,43 @@ export async function POST(req: Request): Promise<Response> {
     if (slot === null) {
       auditLog("audit.request.rate_limited", { reason: "per_ip_anon" });
       trackBlocked("session_limit", 429);
-      return NextResponse.json(
-        { error: `Anon audits limited to ${ANON_DAILY_CAP} per day. Sign in for unlimited.` },
-        { status: 429 },
-      );
+      return reject(quotaBody({ code: "quota_daily", used: ANON_DAILY_CAP, limit: ANON_DAILY_CAP, tier: "anon" }), 429);
     }
+    // The reservation only increments when under the cap, so it is refundable
+    // exactly when it succeeded.
+    bumped.push(anonAuditSlotKey(clientIp(req)));
     // Per-IP-per-host daily cap: closes residential-proxy + anon-cookie-clear
     // attack vector. Even with rotating IPs, each IP can only target a host once.
-    const ipHostKey = `anon-ip-host:${hashIp(clientIp(req))}:${host}:${today}`;
-    const ipHostRes = await bumpRateLimit(ipHostKey, PER_ANON_IP_HOST_DAILY);
+    const ipHostRes = await bump(`anon-ip-host:${hashIp(clientIp(req))}:${host}:${today}`, PER_HOST_DAILY_CAP.anon);
     if (!ipHostRes.allowed) {
       auditLog("audit.request.rate_limited", { reason: "per_ip_anon_host", host });
       trackBlocked("domain_limit", 429);
-      return NextResponse.json(
-        { error: `Anon limit for ${host} reached (${PER_ANON_IP_HOST_DAILY}/day from this network). Sign in to audit it again.` },
-        { status: 429 },
+      return reject(
+        quotaBody({ code: "quota_host", used: ipHostRes.count - 1, limit: PER_HOST_DAILY_CAP.anon, tier: "anon", host }),
+        429,
       );
     }
   }
 
   // In-flight cap for free and anon tiers: prevents a single caller from
   // queueing many audits in parallel. Pro in-flight is handled by
-  // assertProAuditAllowed above (same DB query, same limit constant).
+  // assertProAuditAllowed above.
   if (tier !== "pro" && !devFlags.rateLimitDisabled) {
     const inFlightLimit = tier === "free" ? IN_FLIGHT_LIMIT_FREE : IN_FLIGHT_LIMIT_ANON;
     const ownerFilter = userId
       ? eq(audits.userId, userId)
       : eq(audits.anonSessionId, anonSessionId!);
-    const [{ count } = { count: 0 }] = await db
-      .select({ count: sql<number>`count(*)::int` })
+    const running = await db
+      .select({ id: audits.id })
       .from(audits)
-      .where(and(ownerFilter, inArray(audits.status, ["queued", "running"])));
-    if (count >= inFlightLimit) {
-      auditLog("audit.request.in_flight_limited", { tier, userId, anonSessionId, count, inFlightLimit });
-      return NextResponse.json(
-        { error: `Too many audits in flight (${count}/${inFlightLimit}). Wait for one to finish.` },
-        { status: 429 },
+      .where(and(ownerFilter, inArray(audits.status, ["queued", "running"])))
+      .orderBy(desc(audits.createdAt))
+      .limit(inFlightLimit);
+    if (running.length >= inFlightLimit) {
+      auditLog("audit.request.in_flight_limited", { tier, userId, anonSessionId, count: running.length, inFlightLimit });
+      return reject(
+        rejectionBody("in_flight", "You already have an audit running. Wait for it to finish.", { auditId: running[0].id }),
+        429,
       );
     }
   }
@@ -397,12 +427,10 @@ export async function POST(req: Request): Promise<Response> {
         responded: health.responded, attempted: health.attempted,
       });
       trackBlocked("origin_unreachable", 503);
-      return NextResponse.json(
-        {
-          error: `We couldn't reach ${host}, ${health.reason}. pseolint pre-flights your origin before crawling, so a failed run doesn't pile load on a server that's already down. Check the URL is live, then try again.`,
-          code: "origin_unreachable",
-        },
-        { status: 503 },
+      const reason = (health.reason ?? "no response").slice(0, 120);
+      return reject(
+        rejectionBody("origin_unreachable", `We couldn't reach ${host} (${reason}).`, { host, reason }),
+        503,
       );
     }
     if (health.verdict === "degraded") {
@@ -437,7 +465,13 @@ export async function POST(req: Request): Promise<Response> {
   const render = isProSession ? (body.data.render ?? false) : false;
   auditLog("audit.created", { auditId: row.id, userId, anonSessionId, plan, tier, host, sampleSize: requestedSampleSize, render });
 
-  await inngest.send({ name: "audit/requested", data: { auditId: row.id, url, plan, sampleSize: requestedSampleSize, render, trigger: "user" } });
+  await inngest.send({
+    name: "audit/requested",
+    data: {
+      auditId: row.id, url, plan, sampleSize: requestedSampleSize, render, trigger: "user",
+      ...(bumped.length > 0 ? { refundKeys: [...new Set(bumped)] } : {}),
+    },
+  });
   auditLog("audit.dispatched", { auditId: row.id });
 
   void hashIp(ip);
@@ -447,6 +481,17 @@ export async function POST(req: Request): Promise<Response> {
     { profileId: userId ?? anonSessionId ?? undefined },
   );
   return NextResponse.json({ auditId: row.id, reportUrl: `/a/${row.id}` }, { status: 202 });
+}
+
+/** Most recent queued/running audit for an owner, so `in_flight` can link to it. */
+async function latestInFlightAuditId(ownerFilter: ReturnType<typeof eq>): Promise<string | null> {
+  const [row] = await db
+    .select({ id: audits.id })
+    .from(audits)
+    .where(and(ownerFilter, inArray(audits.status, ["queued", "running"])))
+    .orderBy(desc(audits.createdAt))
+    .limit(1);
+  return row?.id ?? null;
 }
 
 function safeHost(url: string): string {

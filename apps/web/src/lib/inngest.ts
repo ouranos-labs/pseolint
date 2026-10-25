@@ -27,6 +27,13 @@ type Events = {
        * `auditSource(..., { force: { urls } })` in run-audit.ts.
        */
       force?: { urls?: string[] };
+      /**
+       * Rate-limit counter keys POST /api/audits bumped for this run. A run
+       * that FAILS decrements them (refundRateLimits) so the caller's
+       * "Try again" isn't rejected by the very slot the failure burned.
+       * Absent for monitor/dashboard dispatches, which bump nothing.
+       */
+      refundKeys?: string[];
     };
   };
   "audit/completed-for-monitoring": { data: { monitoredDomainId: string; auditId: string } };

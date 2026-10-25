@@ -14,9 +14,14 @@ import { ANON_DAILY_CAP } from "@/lib/audit-limits";
  * (e.g. WatchedPagesCard) consume `WATCHED_PAGES_CAP` without dragging
  * `db/index.ts` into the browser bundle, which trips env validation.
  */
-export async function reserveAnonAuditSlot(ip: string): Promise<number | null> {
+/** The per-IP daily counter key `reserveAnonAuditSlot` reserves against (used for refunds). */
+export function anonAuditSlotKey(ip: string): string {
   const day = new Date().toISOString().slice(0, 10);
-  const key = `anon:audit:${hashIp(ip)}:${day}`;
+  return `anon:audit:${hashIp(ip)}:${day}`;
+}
+
+export async function reserveAnonAuditSlot(ip: string): Promise<number | null> {
+  const key = anonAuditSlotKey(ip);
   const expires = new Date(Date.now() + 25 * 3600 * 1000);
 
   const [row] = await db

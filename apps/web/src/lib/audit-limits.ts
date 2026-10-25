@@ -17,11 +17,20 @@ export const DAILY_AUDIT_CAP = { free: 5, pro: 50 } as const;
 export const PER_HOST_HOURLY_LIMIT = 30;
 
 /**
+ * Anti-harassment: how many times one caller may audit the SAME host per UTC
+ * day, by tier. Anon is enforced per session cookie and per IP. Lives here (not
+ * in the route) so the client-side error copy quotes the same numbers the
+ * server enforces.
+ */
+export const PER_HOST_DAILY_CAP = { anon: 1, free: 3, pro: 15 } as const;
+
+/**
  * Anti-harassment cap: a single Pro user can only audit one host this many
  * times in a given UTC day. Bounds realistic damage if a Pro account is used
  * to repeatedly hit a third-party site.
  */
-export const PER_USER_HOST_DAILY_PRO = 15;
+export const PER_USER_HOST_DAILY_PRO = PER_HOST_DAILY_CAP.pro;
+
 
 /**
  * Sample-size ceilings for server-triggered Pro audits. The public POST

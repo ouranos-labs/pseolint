@@ -3,30 +3,37 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizeUserUrl } from "@/lib/normalize-url";
+import { AuditErrorNotice } from "@/components/audit/audit-error-notice";
+import { submitAudit } from "@/lib/audit-submit";
+import { invalidUrlView, type AuditErrorView } from "@/lib/audit-errors";
 
 export function AuditForm() {
   const [url, setUrl] = useState("");
   const [render, setRender] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AuditErrorView | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-    const res = await fetch("/api/audits", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url, turnstileToken: "dev-skip", render }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setError((body as { error?: string }).error ?? `Failed (${res.status})`);
-      setLoading(false);
+    const normalized = normalizeUserUrl(url);
+    if (!normalized) {
+      setError(invalidUrlView());
       return;
     }
-    const { auditId, reportUrl, cached } = await res.json() as { auditId: string; reportUrl?: string; cached?: boolean };
-    window.location.assign(cached && reportUrl ? reportUrl : `/a/${auditId}`);
+    setLoading(true);
+    setError(null);
+    // Signed-in, verified callers skip Turnstile server-side; the placeholder
+    // token only satisfies the body schema.
+    const result = await submitAudit(
+      { url: normalized, turnstileToken: "dev-skip", render },
+      { returnTo: "/dashboard" },
+    );
+    if (result.ok) {
+      window.location.assign(result.next);
+      return;
+    }
+    setError(result.view);
+    setLoading(false);
   }
 
   return (
@@ -39,13 +46,13 @@ export function AuditForm() {
           autoCorrect="off"
           spellCheck={false}
           required
-          placeholder="example.com"
+          placeholder="yoursite.com"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onBlur={() => { const n = normalizeUserUrl(url); if (n) setUrl(n); }}
           className="flex-1"
         />
-        <Button type="submit" disabled={loading || !url}>
+        <Button type="submit" disabled={loading || !url || error?.cooldownUntil != null}>
           {loading ? "Starting…" : "Run audit"}
         </Button>
       </div>
@@ -62,7 +69,7 @@ export function AuditForm() {
           this is ticked.
         </span>
       </label>
-      {error && <span className="text-xs text-destructive">{error}</span>}
+      {error && <AuditErrorNotice view={error} onCooldownEnd={() => setError(null)} className="text-xs" />}
     </form>
   );
 }

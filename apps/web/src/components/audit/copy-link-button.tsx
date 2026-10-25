@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 
-export function CopyLinkButton({ url, className }: { url: string; className?: string }) {
+export function CopyLinkButton({ url, className, label = "Copy share link" }: { url: string; className?: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   const onClick = async () => {
     try {
@@ -24,7 +24,7 @@ export function CopyLinkButton({ url, className }: { url: string; className?: st
       aria-live="polite"
     >
       <span aria-hidden>{copied ? "✓" : "↗"}</span>
-      {copied ? "Link copied" : "Copy share link"}
+      {copied ? "Link copied" : label}
     </button>
   );
 }

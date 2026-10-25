@@ -21,6 +21,8 @@ import { R2CacheBackend } from "@/lib/r2-cache-backend";
 import { isLeaderboardEligible, PERMANENT_EXPIRES_AT } from "@/lib/leaderboard";
 import { trackServer } from "@/lib/analytics/track.server";
 import { collectRuleStats } from "@/lib/rule-stats";
+import { refundRateLimits } from "@/lib/rate-limit";
+import { classifyAuditFailure, encodeAuditFailure, type AuditFailureCode } from "@/lib/audit-failure";
 
 const MAX_COST_USD = 0.50;
 /** HTTP cache TTL for entries without ETag/Last-Modified validators (matches the engine default). */
@@ -53,7 +55,33 @@ export type RunAuditInput = {
    * `auditSource(..., { force })`.
    */
   force?: { urls?: string[] };
+  /** Rate-limit keys the request bumped; refunded when the run fails (see lib/inngest.ts). */
+  refundKeys?: string[];
 };
+
+/**
+ * The single failure write: stores the classified code alongside the engine's
+ * text (lib/audit-failure.ts) and hands the caller's rate-limit slots back, so
+ * the failed page's "Try again" is actually allowed. Only touches rows still
+ * in flight: a row the sweeper already closed (or that completed) is left
+ * alone, which also makes the refund happen at most once per run.
+ */
+export async function markAuditFailed(
+  auditId: string,
+  code: AuditFailureCode,
+  rawMessage: string,
+  refundKeys: readonly string[] | undefined,
+): Promise<void> {
+  const updated = await db.update(audits).set({
+    status: "failed",
+    errorMessage: encodeAuditFailure(code, rawMessage),
+    completedAt: new Date(),
+  }).where(and(eq(audits.id, auditId), inArray(audits.status, ["queued", "running"])))
+    .returning({ id: audits.id });
+  if (updated.length > 0 && refundKeys && refundKeys.length > 0) {
+    await refundRateLimits(refundKeys);
+  }
+}
 
 /**
  * Look up user-scoped AI key, per-domain data source, and per-domain rule overrides
@@ -200,9 +228,18 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
   const analyticsTrigger = trigger ?? "monitor";
   auditLog("audit.started", { auditId, plan, sampleSize, mode: mode ?? "full", render: render ?? false });
 
-  await runStep("mark-running", async () => {
-    await db.update(audits).set({ status: "running" }).where(eq(audits.id, auditId));
+  const claimed = await runStep("mark-running", async () => {
+    const rows = await db.update(audits).set({ status: "running" })
+      .where(and(eq(audits.id, auditId), inArray(audits.status, ["queued", "running"])))
+      .returning({ id: audits.id });
+    return rows.length > 0;
   });
+  // The stuck-audit sweeper already closed this row (it sat in the queue past
+  // the timeout): the user has been told it timed out, so don't resurrect it.
+  if (!claimed) {
+    auditLog("audit.failed", { auditId, err: "skipped: row no longer in flight", ms: Date.now() - startedAt });
+    return { ok: false as const, error: "audit no longer in flight" };
+  }
 
   const { aiKey, dataRecords, ruleOverrides, gentleAuditMode, authorityScore, renderMode, sampleSeed, monitoredHost, scanOptions } = await runStep("load-enrichments", async () =>
     loadAuditEnrichments(auditId),
@@ -400,9 +437,8 @@ export async function executeAudit(input: RunAuditInput, runStep: RunStep) {
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "audit failed";
-    await db.update(audits).set({
-      status: "failed", errorMessage: msg.slice(0, 500), completedAt: new Date(),
-    }).where(eq(audits.id, auditId));
+    const failureCode = classifyAuditFailure(msg, e instanceof Error ? e.name : undefined);
+    await markAuditFailed(auditId, failureCode, msg, input.refundKeys);
     auditLog("audit.failed", { auditId, err: msg, ms: Date.now() - startedAt });
     await trackServer(
       { name: "audit_failed", props: { host: analyticsHost, reason: msg.slice(0, 200), trigger: analyticsTrigger } },
@@ -646,6 +682,18 @@ export const runAudit = inngest.createFunction(
     // Function-wide concurrency cap. Defaults to 20 for self-hosted instances.
     // Overridable via INNGEST_AUDIT_FUNCTION_CONCURRENCY (e.g. set to 5 if using Inngest Cloud Free tier).
     concurrency: { limit: AUDIT_FUNCTION_CONCURRENCY },
+    // An error that escapes executeAudit's own catch (e.g. upload-summary or a
+    // DB write failing after retries) would otherwise leave the row "running"
+    // until the sweeper closes it. Close it now, classified, with the refund.
+    onFailure: async ({ event, error }) => {
+      const original = event.data.event.data;
+      await markAuditFailed(
+        original.auditId,
+        classifyAuditFailure(error.message, error.name),
+        error.message,
+        original.refundKeys,
+      );
+    },
   },
   { event: "audit/requested" },
   async ({ event, step }) => executeAudit(

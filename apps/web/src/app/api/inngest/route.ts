@@ -12,13 +12,14 @@ import { syncGrowthMetrics } from "@/inngest/functions/sync-growth-metrics";
 import { runOrchestratorSession } from "@/inngest/functions/run-orchestrator";
 import { expireOrchestratorSessions } from "@/inngest/functions/expire-orchestrator-sessions";
 import { seedLeaderboard } from "@/inngest/functions/seed-leaderboard";
+import { sweepStuckAuditsFn } from "@/inngest/functions/sweep-stuck-audits";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const handler = serve({
   client: inngest,
-  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, syncGscOnDemand, runOrchestratorSession, expireOrchestratorSessions, seedLeaderboard, syncGrowthMetrics],
+  functions: [runAudit, expireReports, cleanupRateLimits, weeklyDigest, monitorDomains, autoVerifyDomains, syncGsc, syncGscOnDemand, runOrchestratorSession, expireOrchestratorSessions, seedLeaderboard, syncGrowthMetrics, sweepStuckAuditsFn],
 });
 
 import { NextRequest } from "next/server";

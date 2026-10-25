@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AddToMonitoringButton } from "./add-to-monitoring-button";
 
 type Ctx =
-  | { kind: "anon"; auditSlug: string; originUrl: string }
+  | { kind: "anon"; auditSlug: string; originUrl: string; ownedByViewer: boolean }
   | { kind: "free_own"; auditSlug: string; originUrl: string }
   | { kind: "free_other"; auditSlug: string; originUrl: string }
   | { kind: "pro_own_monitored"; auditSlug: string; originUrl: string; domainHost: string }
@@ -16,10 +16,22 @@ const SECONDARY = "inline-flex h-9 items-center rounded-[14px] border border-bor
 export function ReportCtaStrip(ctx: Ctx) {
   switch (ctx.kind) {
     case "anon":
+      // Someone who followed a shared link has nothing to save: the useful next
+      // step for them is their own audit, not this one in their history.
+      if (!ctx.ownedByViewer) {
+        return (
+          <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
+            <p className="text-xs text-muted-foreground">Shared report. Run your own audit to see how your site scores.</p>
+            <Link href="/" className={PRIMARY}>
+              Run your own audit →
+            </Link>
+          </div>
+        );
+      }
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
           <p className="text-xs text-muted-foreground">
-            Save this audit to your history, <Link href={`/signin?callbackUrl=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
+            Save this audit to your history, <Link href={`/signin?callbackUrl=${encodeURIComponent(`/r/${ctx.auditSlug}`)}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
           </p>
           <Link href={`/pricing?intent=monitor&audit=${ctx.auditSlug}`} className={PRIMARY}>
             Monitor this domain with Pro →

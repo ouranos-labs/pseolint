@@ -18,6 +18,8 @@ const MAKE_ROW = (over: Partial<Row>): Row => ({
 });
 
 let row: Row | undefined;
+/** The route rejects non-UUID ids up front, so fixtures use real-shaped ids. */
+const uuid = (n: number): string => `00000000-0000-4000-8000-00000000000${n}`;
 let session: { user: { id: string; email: string } } | null = null;
 let anonId = "anon-A";
 
@@ -38,21 +40,49 @@ describe("GET /api/audits/[id] authz", () => {
 
   it("404 when audit missing", async () => {
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "missing" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(9) }) });
     expect(res.status).toBe(404);
+  });
+
+  it("404 (not 500) for a malformed id, without touching the database", async () => {
+    row = MAKE_ROW({ id: "does-not-exist" });
+    const GET = await load();
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "does-not-exist" }) });
+    expect(res.status).toBe(404);
+  });
+
+  it("404 for an expired audit", async () => {
+    row = MAKE_ROW({ status: "expired" });
+    const GET = await load();
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(6) }) });
+    expect(res.status).toBe(404);
+  });
+
+  it("a failed audit exposes the classified failure code, the raw text and the refund state", async () => {
+    row = { ...MAKE_ROW({ status: "failed" }), errorMessage: "[timeout!] Audit didn't finish within 15 minutes." } as Row;
+    const GET = await load();
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(7) }) });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      status: "failed",
+      failureCode: "timeout",
+      slotRefunded: false,
+      errorMessage: "Audit didn't finish within 15 minutes.",
+      viewer: "anon",
+    });
   });
 
   it("anon reads public audit", async () => {
     row = MAKE_ROW({ id: "1", userId: "user-A", isPublic: true });
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "1" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(1) }) });
     expect(res.status).toBe(200);
   });
 
   it("anon denied on private audit of another user", async () => {
     row = MAKE_ROW({ id: "2", userId: "user-A", isPublic: false });
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "2" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(2) }) });
     expect(res.status).toBe(403);
   });
 
@@ -60,7 +90,7 @@ describe("GET /api/audits/[id] authz", () => {
     session = { user: { id: "user-B", email: "b@x" } };
     row = MAKE_ROW({ id: "3", userId: "user-A", isPublic: false });
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "3" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(3) }) });
     expect(res.status).toBe(403);
   });
 
@@ -68,7 +98,7 @@ describe("GET /api/audits/[id] authz", () => {
     session = { user: { id: "user-A", email: "a@x" } };
     row = MAKE_ROW({ id: "4", userId: "user-A", isPublic: false });
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "4" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(4) }) });
     expect(res.status).toBe(200);
   });
 
@@ -76,7 +106,7 @@ describe("GET /api/audits/[id] authz", () => {
     anonId = "anon-B";
     row = MAKE_ROW({ id: "5", anonSessionId: "anon-A", isPublic: false });
     const GET = await load();
-    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: "5" }) });
+    const res = await GET(new Request("http://x"), { params: Promise.resolve({ id: uuid(5) }) });
     expect(res.status).toBe(403);
   });
 });

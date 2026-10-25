@@ -2,41 +2,27 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
+import { AuditErrorNotice } from "@/components/audit/audit-error-notice";
+import { submitAudit } from "@/lib/audit-submit";
+import type { AuditErrorView } from "@/lib/audit-errors";
 
 export function ReauditButton({ sourceUrl, className }: { sourceUrl: string; className?: string }) {
   const [pending, start] = useTransition();
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<AuditErrorView | null>(null);
   const router = useRouter();
 
   return (
     <>
       <button
         type="button"
-        disabled={pending}
+        disabled={pending || err?.cooldownUntil != null}
         title="Skip the 60-minute cache and run a fresh audit"
         onClick={() =>
           start(async () => {
             setErr(null);
-            try {
-              const res = await fetch("/api/audits", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ url: sourceUrl, turnstileToken: "dev-skip", force: true }),
-              });
-              if (!res.ok) {
-                const body = (await res.json().catch(() => ({}))) as { error?: string };
-                setErr(body.error ?? `Failed (${res.status})`);
-                return;
-              }
-              const { auditId, reportUrl, cached } = (await res.json()) as {
-                auditId: string;
-                reportUrl?: string;
-                cached?: boolean;
-              };
-              router.push(cached && reportUrl ? reportUrl : `/a/${auditId}`);
-            } catch (e) {
-              setErr((e as Error).message);
-            }
+            const result = await submitAudit({ url: sourceUrl, turnstileToken: "dev-skip", force: true });
+            if (result.ok) router.push(result.next);
+            else setErr(result.view);
           })
         }
         className={cn(
@@ -47,7 +33,7 @@ export function ReauditButton({ sourceUrl, className }: { sourceUrl: string; cla
       >
         {pending ? "Starting…" : "Re-audit now"}
       </button>
-      {err && <span className="text-xs text-destructive">{err}</span>}
+      {err && <AuditErrorNotice view={err} onCooldownEnd={() => setErr(null)} className="w-full text-xs" />}
     </>
   );
 }
