@@ -5,7 +5,7 @@ import { DashboardSidebar, DashboardTabs } from "@/components/dashboard/sidebar"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin?next=/dashboard");
+  if (!session) redirect("/signin?callbackUrl=/dashboard");
   const plan = await getPlan(session.user.id);
   return (
     <div className="mx-auto flex min-h-full max-w-5xl gap-6 px-5">

@@ -33,7 +33,7 @@ const SECTIONS: Section[] = [
 
 export default async function SettingsIndex() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin?next=/dashboard/settings");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/settings");
   const plan = await getPlan(session.user.id);
   const sections = SECTIONS.filter((s) => s.plans.includes(plan));
 

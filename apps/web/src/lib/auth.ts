@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { deliverMagicLink } from "@/lib/magic-link-delivery";
 import { claimAnonAudits } from "@/lib/claim-anon-audits";
 import { recordSignIn } from "@/lib/analytics/record-sign-in";
+import { MAGIC_LINK_TTL_MINUTES } from "@/lib/signin-callback";
 
 const e = env();
 
@@ -38,7 +39,7 @@ export const auth = betterAuth({
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => { await deliverMagicLink(email, url); },
-      expiresIn: 60 * 15,
+      expiresIn: 60 * MAGIC_LINK_TTL_MINUTES,
     }),
   ],
   session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },

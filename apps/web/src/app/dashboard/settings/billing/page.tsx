@@ -10,7 +10,7 @@ import { TrackedLink } from "@/components/analytics/tracked-link";
 
 export default async function BillingSettings() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/settings/billing");
   const plan = await getPlan(session.user.id);
   const [profile] = await db.select().from(userProfiles).where(eq(userProfiles.userId, session.user.id)).limit(1);
 

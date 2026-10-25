@@ -4,7 +4,7 @@ import { DeleteAccountForm } from "./delete-account-form";
 
 export default async function AccountSettings() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/settings/account");
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h1 className="text-xl font-medium">Account</h1>

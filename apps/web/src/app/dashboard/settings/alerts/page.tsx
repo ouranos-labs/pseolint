@@ -8,7 +8,7 @@ import { updateAlertDefaultsAction } from "../actions";
 
 export default async function AlertSettings() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/settings/alerts");
   if ((await getPlan(session.user.id)) !== "pro") redirect("/pricing");
 
   const [row] = await db.select().from(alertDefaults).where(eq(alertDefaults.userId, session.user.id)).limit(1);

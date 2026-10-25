@@ -19,7 +19,7 @@ export function ReportCtaStrip(ctx: Ctx) {
       return (
         <div className={`${BASE} flex flex-wrap items-center justify-between gap-3`}>
           <p className="text-xs text-muted-foreground">
-            Save this audit to your history, <Link href={`/signin?next=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
+            Save this audit to your history, <Link href={`/signin?callbackUrl=/r/${ctx.auditSlug}`} className="text-foreground underline-offset-4 hover:underline">sign in</Link>.
           </p>
           <Link href={`/pricing?intent=monitor&audit=${ctx.auditSlug}`} className={PRIMARY}>
             Monitor this domain with Pro →

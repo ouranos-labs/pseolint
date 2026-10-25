@@ -22,7 +22,7 @@ export default async function DashboardHome({
   searchParams: Promise<{ welcome?: string }>;
 }) {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin?next=/dashboard");
+  if (!session) redirect("/signin?callbackUrl=/dashboard");
 
   // Self-heal: when arriving from a Polar checkout (?welcome=1), the webhook may
   // not have landed yet (or may have failed silently). Pull the subscription from

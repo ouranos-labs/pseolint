@@ -25,7 +25,7 @@ const VERDICT_TONE: Record<string, string> = {
 
 export default async function ManifestsPage() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin?next=/dashboard/manifests");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/manifests");
 
   // Pull recent sessions + their manifest (left join: running/failed
   // sessions have no manifest yet but should still appear in the list so

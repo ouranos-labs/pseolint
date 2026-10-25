@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/session";
+import {
+  callbackContext,
+  classifySigninError,
+  hasExplicitCallback,
+  resolveCallbackUrl,
+} from "@/lib/signin-callback";
 import SigninClient from "./signin-client";
 
 export const metadata: Metadata = {
@@ -14,23 +20,29 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Restrict callbackUrl to same-origin paths; reject protocol-relative ("//evil")
-// and absolute URLs to prevent open-redirect abuse.
-function safeCallback(raw: string | undefined): string {
-  if (!raw) return "/dashboard";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
-  return raw;
-}
+type Params = {
+  callbackUrl?: string | string[];
+  next?: string | string[];
+  error?: string | string[];
+  method?: string | string[];
+};
 
-export default async function SigninPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ callbackUrl?: string }>;
-}) {
+const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+export default async function SigninPage({ searchParams }: { searchParams: Promise<Params> }) {
+  const params = await searchParams;
+  // `callbackUrl` is canonical; `next` is a legacy alias. Sanitized to a
+  // same-origin relative path (open-redirect guard), defaulting to /dashboard.
+  const callbackUrl = resolveCallbackUrl(params);
+
   const session = await getOptionalSession();
-  if (session) {
-    const { callbackUrl } = await searchParams;
-    redirect(safeCallback(callbackUrl));
-  }
-  return <SigninClient />;
+  if (session) redirect(callbackUrl);
+
+  return (
+    <SigninClient
+      callbackUrl={callbackUrl}
+      context={hasExplicitCallback(params) ? callbackContext(callbackUrl) : null}
+      errorKind={classifySigninError(first(params.error), first(params.method))}
+    />
+  );
 }

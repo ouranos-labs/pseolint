@@ -12,7 +12,7 @@ function startOfMonth(): Date {
 
 export default async function CostDashboard() {
   const session = await getOptionalSession();
-  if (!session) redirect("/signin");
+  if (!session) redirect("/signin?callbackUrl=/dashboard/settings/costs");
   const plan = await getPlan(session.user.id);
   if (plan !== "pro") redirect("/pricing");
 

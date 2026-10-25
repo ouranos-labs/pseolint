@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { LandingForm } from "@/components/landing/landing-form";
+import { AccountDeletedNotice } from "@/components/landing/account-deleted-notice";
 import { SourcesSection } from "@/components/marketing/sources-section";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
@@ -49,6 +50,7 @@ export default function Page() {
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: safeJsonLd(SOFTWARE_APPLICATION_JSON_LD) }}
       />
+      <AccountDeletedNotice />
       <LandingForm />
       <SourcesSection
         sources={[
