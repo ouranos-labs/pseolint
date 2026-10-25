@@ -1,5 +1,5 @@
 # Build from the repo root: docker build -f apps/web/Dockerfile .
-FROM node:24.22.1-slim AS build
+FROM node:26.12.1-slim AS build
 COPY --from=oven/bun:1.3.14 /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
 COPY . .
@@ -11,7 +11,7 @@ ARG NEXT_PUBLIC_GOOGLE_INDEXING_ENABLED
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun x turbo run build --filter=@pseolint/web
 
-FROM node:24.22.1-slim
+FROM node:26.12.1-slim
 # Coolify's healthcheck runs curl (or wget) inside the container.
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && apt-get clean
 WORKDIR /app
