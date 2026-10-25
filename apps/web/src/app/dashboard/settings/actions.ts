@@ -1,10 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { alertDefaults, users } from "@/db/schema";
+import { alertDefaults } from "@/db/schema";
 import { getRequiredSession } from "@/lib/session";
+import { BillingCancelError, deleteUserAccount } from "@/lib/account-deletion";
 
 export async function updateAlertDefaultsAction(formData: FormData): Promise<void> {
   const session = await getRequiredSession();
@@ -23,10 +23,24 @@ export async function updateAlertDefaultsAction(formData: FormData): Promise<voi
   revalidatePath("/dashboard/settings/alerts");
 }
 
-export async function deleteAccountAction(formData: FormData): Promise<void> {
+/**
+ * Returns `{ error }` (and deletes nothing) when the subscription couldn't be
+ * canceled; on success it redirects, so the return value is only ever an error.
+ */
+export async function deleteAccountAction(formData: FormData): Promise<{ error: string } | void> {
   const session = await getRequiredSession();
   const confirm = String(formData.get("confirm") ?? "");
   if (confirm !== "DELETE") throw new Error("confirm by typing DELETE");
-  await db.delete(users).where(eq(users.id, session.user.id));
+  try {
+    await deleteUserAccount(session.user.id);
+  } catch (e) {
+    if (e instanceof BillingCancelError) {
+      return {
+        error:
+          "We couldn't cancel your subscription, so your account was not deleted. Try again in a minute or email hello@pseolint.dev.",
+      };
+    }
+    throw e;
+  }
   redirect("/?deleted=1");
 }

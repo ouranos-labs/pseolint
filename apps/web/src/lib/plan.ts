@@ -20,3 +20,33 @@ export async function getPlan(userId: string): Promise<Plan> {
 export async function getPlanForUser(userId: string): Promise<Plan> {
   return getPlan(userId);
 }
+
+export type BillingState = {
+  plan: Plan;
+  subscriptionStatus: string | null;
+  cancelAtPeriodEnd: boolean;
+  planExpiresAt: Date | null;
+};
+
+/** Effective plan plus the raw subscription fields the billing UI needs, in one read. */
+export async function getBillingState(userId: string): Promise<BillingState> {
+  const [p] = await db
+    .select({
+      plan: userProfiles.plan,
+      expires: userProfiles.planExpiresAt,
+      subscriptionStatus: userProfiles.subscriptionStatus,
+      cancelAtPeriodEnd: userProfiles.cancelAtPeriodEnd,
+    })
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+  if (!p) {
+    return { plan: "free", subscriptionStatus: null, cancelAtPeriodEnd: false, planExpiresAt: null };
+  }
+  return {
+    plan: p.plan === "pro" && (!p.expires || p.expires > new Date()) ? "pro" : "free",
+    subscriptionStatus: p.subscriptionStatus,
+    cancelAtPeriodEnd: p.cancelAtPeriodEnd,
+    planExpiresAt: p.expires,
+  };
+}

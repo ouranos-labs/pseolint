@@ -5,22 +5,11 @@ import { bumpRateLimit } from "@/lib/rate-limit";
 import { todayDateString } from "@/lib/ids";
 import { devFlags } from "@/lib/dev-flags";
 import { checkBlocklist, hostBlockKey, userBlockKey } from "@/lib/blocklist";
-import { DAILY_AUDIT_CAP } from "@/lib/audit-limits";
+import { DAILY_AUDIT_CAP, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-limits";
 
-/**
- * Per-host audit ceiling per hour, applied across all tiers: protects target
- * sites from amplification (e.g. a viral homepage submission). Mirrors the
- * inline value in `apps/web/src/app/api/audits/route.ts` until that handler is
- * refactored to call this module directly (planned for v0.5.4).
- */
-export const PER_HOST_HOURLY_LIMIT = 30;
-
-/**
- * Anti-harassment cap: a single Pro user can only audit one host this many
- * times in a given UTC day. Bounds realistic damage if a Pro account is used
- * to repeatedly hit a third-party site.
- */
-export const PER_USER_HOST_DAILY_PRO = 15;
+// Defined in audit-limits (db-free, so /limits and /abuse can quote them);
+// re-exported here for existing importers.
+export { PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO };
 
 /**
  * Maximum concurrent queued/running audits owned by one Pro user. Bounds the

@@ -4,7 +4,9 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { monitoredDomains } from "@/db/schema";
 import { getOptionalSession } from "@/lib/session";
-import { getPlan } from "@/lib/plan";
+import { getBillingState } from "@/lib/plan";
+import { billingNotice } from "@/lib/billing-notice";
+import { formatDate } from "@/lib/format";
 import { syncUserSubscriptionFromPolar, userIsAlreadyPro } from "@/lib/polar";
 import { AuditForm } from "@/components/dashboard/audit-form";
 import { HistoryList } from "@/components/dashboard/history-list";
@@ -13,6 +15,8 @@ import { PortfolioStrip } from "@/components/dashboard/portfolio-strip";
 import { CrossDomainFixQueue } from "@/components/dashboard/cross-domain-fix-queue";
 import { StartOrchestratorButton } from "@/components/dashboard/start-orchestrator-button";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import { BillingAttentionNotice } from "@/components/dashboard/billing-notice";
+import { WelcomePending } from "@/components/dashboard/welcome-pending";
 
 export const runtime = "nodejs";
 
@@ -40,20 +44,38 @@ export default async function DashboardHome({
     }
   }
 
-  const plan = await getPlan(session.user.id);
+  const billing = await getBillingState(session.user.id);
+  const plan = billing.plan;
+  const notice = billingNotice(billing);
+  const welcome = sp.welcome === "1";
+
+  // Fresh from checkout: confirm Pro, or (still free) show the activation poller.
+  // past_due / canceling outrank the confirmation; they need action.
+  const banner =
+    notice.kind === "past_due" || notice.kind === "canceling" ? (
+      <BillingAttentionNotice notice={notice} />
+    ) : welcome && notice.kind === "active" ? (
+      <div role="status" className="rounded-[14px] border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-foreground">
+        You&apos;re on Pro.{notice.date && <> Renews {formatDate(notice.date)}.</>}
+      </div>
+    ) : null;
 
   if (plan === "free") {
     return (
       <div className="flex flex-col gap-8">
+        {welcome && <WelcomePending />}
         <div className="flex items-baseline justify-between">
           <h1 className="text-xl font-medium text-foreground">Your audits</h1>
-          <TrackedLink
-            href="/pricing"
-            event={ { name: "upgrade_clicked", props: { source: "dashboard" } } }
-            className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-          >
-            Upgrade to monitoring →
-          </TrackedLink>
+          {/* Never pitch an upgrade to someone whose payment is still activating. */}
+          {!welcome && (
+            <TrackedLink
+              href="/pricing"
+              event={ { name: "upgrade_clicked", props: { source: "dashboard" } } }
+              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Upgrade to monitoring →
+            </TrackedLink>
+          )}
         </div>
         <section className="rounded-[18px] border border-border/60 bg-card/40 p-5">
           <h2 className="mb-1 text-sm font-semibold text-foreground">Run a new audit</h2>
@@ -83,6 +105,7 @@ export default async function DashboardHome({
   if (!domains.length) {
     return (
       <div className="flex flex-col gap-6">
+        {banner}
         <h1 className="text-xl font-medium text-foreground">Portfolio</h1>
         <AddDomainCard variant="hero" />
       </div>
@@ -91,6 +114,7 @@ export default async function DashboardHome({
 
   return (
     <div className="flex flex-col gap-8">
+      {banner}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-xl font-medium text-foreground">Portfolio</h1>
         <AddDomainCard variant="compact" />

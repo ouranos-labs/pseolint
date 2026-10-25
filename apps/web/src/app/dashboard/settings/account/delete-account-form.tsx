@@ -3,15 +3,22 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/dashboard/confirm-dialog";
 import { deleteAccountAction } from "../actions";
 
-export function DeleteAccountForm() {
+export function DeleteAccountForm({ billingCopy }: { billingCopy: string }) {
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const handleConfirm = () => {
     const fd = new FormData();
     fd.append("confirm", "DELETE");
+    setError(null);
     startTransition(async () => {
-      await deleteAccountAction(fd);
+      // Success redirects away; a returned value means nothing was deleted.
+      const res = await deleteAccountAction(fd);
+      if (res?.error) {
+        setError(res.error);
+        setOpen(false);
+      }
     });
   };
 
@@ -24,10 +31,15 @@ export function DeleteAccountForm() {
       >
         Delete account
       </button>
+      {error && (
+        <p role="alert" className="mt-3 text-xs text-destructive">
+          {error}
+        </p>
+      )}
       <ConfirmDialog
         open={open}
         title="Delete account?"
-        description="Permanently deletes your account, all audits, monitored domains, and history. Billing is canceled at next period boundary. This cannot be undone."
+        description={["Permanently deletes your account, all audits, monitored domains, and history.", billingCopy, "This cannot be undone."].filter(Boolean).join(" ")}
         confirmWord="DELETE"
         confirmLabel="Delete account"
         danger

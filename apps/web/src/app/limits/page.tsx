@@ -4,6 +4,15 @@ import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
 import { TrackedLink } from "@/components/analytics/tracked-link";
+import {
+  ANON_DAILY_CAP,
+  DAILY_AUDIT_CAP,
+  PAGE_CAP,
+  PER_HOST_HOURLY_LIMIT,
+  PRO_MONITOR_SAMPLE_SIZE,
+  PRO_REAUDIT_SAMPLE_SIZE,
+} from "@/lib/audit-limits";
+import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -17,7 +26,7 @@ export const metadata: Metadata = {
 const FAQS: { q: string; a: string }[] = [
   {
     q: "Why publish concrete limits at all?",
-    a: "Because every undocumented quota becomes a support ticket waiting to happen, and because the operators whose sites we crawl deserve to know in advance how aggressive our fetcher is allowed to be. The numbers describe the runtime envelope the hosted scheduler enforces today: bandwidth ceilings (50 MB per audit), concurrency caps (5 parallel fetches), the per-host throttle (30 fresh audits per hour), Retry-After honouring (capped at 30 seconds), and a 5-minute cooldown between forced re-audits. Tuned to be polite to small origins on shared hosting.",
+    a: `Because every undocumented quota becomes a support ticket waiting to happen, and because the operators whose sites we crawl deserve to know in advance how aggressive our fetcher is allowed to be. The numbers describe the runtime envelope the hosted scheduler enforces today: bandwidth ceilings (50 MB per audit), concurrency caps (5 parallel fetches), the per-host throttle (${PER_HOST_HOURLY_LIMIT} fresh audits per hour), Retry-After honouring (capped at 30 seconds), and a 5-minute cooldown between forced re-audits. Tuned to be polite to small origins on shared hosting.`,
   },
   {
     q: "How does pseolint treat the site it's auditing?",
@@ -39,12 +48,13 @@ export default function LimitsPage() {
         What a free audit does, and doesn&apos;t.
       </h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Free tier: $0, up to 200 pages per audit (50 without an account), sampled from
+        Free tier: $0, up to {PAGE_CAP.free} pages per audit ({PAGE_CAP.anon} without an account), sampled from
         your sitemap, stratified across detected templates, 24-hour anonymous retention
-        (30-day window for signed-in accounts), 3 audits per day per browser session.
-        Pro tier: $19/month ($180/year with 14-day refund), up to 500 pages on a manual
-        re-audit, up to 200 pages per scheduled monitoring run, 50 audits per day,
-        unlimited retention. Comparable hosted crawlers like Screaming Frog ($259/year),
+        (30-day window for signed-in accounts), {DAILY_AUDIT_CAP.free} audits per day signed in
+        ({ANON_DAILY_CAP} per browser session without an account).
+        Pro tier: $19/month ($180/year with 14-day refund), up to {PRO_REAUDIT_SAMPLE_SIZE} pages on a manual
+        re-audit, up to {PRO_MONITOR_SAMPLE_SIZE} pages per scheduled monitoring run, {DAILY_AUDIT_CAP.pro} audits per day,
+        up to {MAX_PRO_DOMAINS} monitored domains, unlimited retention. Comparable hosted crawlers like Screaming Frog ($259/year),
         Sitebulb ($35/month), and Ahrefs Site Audit ($129/month) charge for the same
         surface area. Written plainly. No dark patterns, no asterisks hiding behind
         footnotes. If something here feels unfair or unclear, reply to{" "}
@@ -53,11 +63,12 @@ export default function LimitsPage() {
       </p>
       <Section title="Scope: what we actually audit">
         <Item k="Audit focus" v="Programmatic-SEO sites (template-driven content at scale) and AI Overview readiness. The sample is stratified across detected templates and the site verdict reflects the worst template, not the average URL. SpamBrain triggers from the March 5, 2024 scaled-content-abuse update + the May 7, 2024 site-reputation-abuse policy + the AEO patterns that determine ChatGPT, Perplexity, and Google AI Overview citations." />
-        <Item k="Pages per anon audit (no account)" v="Up to 50, sampled from your sitemap.xml and stratified across detected templates." />
-        <Item k="Pages per free audit (signed-in)" v="Up to 200, sampled from your sitemap.xml and stratified across detected templates." />
-        <Item k="Pages per Pro audit (manual re-audit)" v="Up to 500 pages, stratified across templates. Re-audits use the larger sample for tighter variance estimates." />
-        <Item k="Pages per Pro scheduled monitoring run" v="Up to 200 pages per run, stratified across templates. The site verdict reflects the worst template, not the average URL." />
-        <Item k="Cumulative coverage (Pro monitoring)" v="Each monitoring run fetches up to 200 URLs; over time, audit history accumulates across runs. Coverage grows faster on sites with URL churn; stable sites converge quickly. The per-domain dashboard shows the running total." />
+        <Item k="Pages per anon audit (no account)" v={`Up to ${PAGE_CAP.anon}, sampled from your sitemap.xml and stratified across detected templates.`} />
+        <Item k="Pages per free audit (signed-in)" v={`Up to ${PAGE_CAP.free}, sampled from your sitemap.xml and stratified across detected templates.`} />
+        <Item k="Pages per Pro audit (manual re-audit)" v={`Up to ${PRO_REAUDIT_SAMPLE_SIZE} pages, stratified across templates. Re-audits use the larger sample for tighter variance estimates.`} />
+        <Item k="Monitored domains (Pro)" v={`Up to ${MAX_PRO_DOMAINS} active monitored domains per account.`} />
+        <Item k="Pages per Pro scheduled monitoring run" v={`Up to ${PRO_MONITOR_SAMPLE_SIZE} pages per run, stratified across templates. The site verdict reflects the worst template, not the average URL.`} />
+        <Item k="Cumulative coverage (Pro monitoring)" v={`Each monitoring run fetches up to ${PRO_MONITOR_SAMPLE_SIZE} URLs; over time, audit history accumulates across runs. Coverage grows faster on sites with URL churn; stable sites converge quickly. The per-domain dashboard shows the running total.`} />
         <Item k="Discovery source" v="sitemap.xml is authoritative. If the sitemap lists 9 URLs, we audit those 9. We do not follow links beyond the sitemap by default." />
         <Item k="Deep-crawl discovery" v={<span>Opt-in option (<code className="font-mono text-foreground">fillBudgetViaLinkDiscovery</code>). When enabled, we follow same-origin links to top up the sample: respectfully, with <code className="font-mono text-foreground">robots.txt</code> <code className="font-mono text-foreground">Disallow</code> rules honored.</span>} />
         <Item k="What we do not do" v="We do not attempt to log in, bypass paywalls, submit forms, execute logged-in-user journeys, or fetch non-HTML assets." />
@@ -93,12 +104,12 @@ export default function LimitsPage() {
       </Section>
 
       <Section title="Rate limits & cooldowns">
-        <Item k="Anonymous audits" v="3 per day per browser session" />
-        <Item k="Free account audits" v="5 per day (does not roll over)" />
-        <Item k="Pro account audits" v="50 per day" />
+        <Item k="Anonymous audits" v={`${ANON_DAILY_CAP} per day per browser session`} />
+        <Item k="Free account audits" v={`${DAILY_AUDIT_CAP.free} per day (does not roll over)`} />
+        <Item k="Pro account audits" v={`${DAILY_AUDIT_CAP.pro} per day`} />
         <Item k="Cache between users" v="If anyone audited the same URL in the last 60 minutes, you get that result instantly (no new crawl fired). Free users cannot force a re-crawl." />
         <Item k="Re-audit cooldown" v="Authenticated accounts can force a fresh audit. Minimum 5 minutes between forced re-audits of the same URL, regardless of plan: target sites pay for our crawls in bandwidth." />
-        <Item k="Per-host ceiling" v="A single domain can receive at most 30 fresh audits per hour across all users, to prevent viral-post amplification from hammering a target." />
+        <Item k="Per-host ceiling" v={`A single domain can receive at most ${PER_HOST_HOURLY_LIMIT} fresh audits per hour across all users, to prevent viral-post amplification from hammering a target.`} />
       </Section>
 
       <Section title="How we treat the site we&apos;re auditing">
@@ -191,7 +202,7 @@ export default function LimitsPage() {
           },
           {
             source: "crawlBudget",
-            note: "Google's crawl-budget guidance explains why polite concurrency limits (5 parallel fetches, 50 MB cap, per-host ceiling of 30 audits per hour) matter for small origins on shared hosting.",
+            note: `Google's crawl-budget guidance explains why polite concurrency limits (5 parallel fetches, 50 MB cap, per-host ceiling of ${PER_HOST_HOURLY_LIMIT} audits per hour) matter for small origins on shared hosting.`,
           },
           {
             source: "sitemaps",

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { env } from "@/lib/env";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
+import { PAGE_CAP, PER_HOST_HOURLY_LIMIT, PER_USER_HOST_DAILY_PRO } from "@/lib/audit-limits";
 
 const SITE_URL = env().BETTER_AUTH_URL.replace(/\/$/, "");
 
@@ -86,12 +87,12 @@ export default function AbusePage() {
 
       <Section title="What we already do to limit damage">
         <ul className="ml-5 list-disc space-y-1 text-sm">
-          <li>Per-host hourly cap of 30 fresh audits (across all users)</li>
-          <li>Per-user daily cap of 15 audits against any single host (Pro) / 3 (free) / 1 (anon)</li>
+          <li>Per-host hourly cap of {PER_HOST_HOURLY_LIMIT} fresh audits (across all users)</li>
+          <li>Per-user daily cap of {PER_USER_HOST_DAILY_PRO} audits against any single host (Pro) / 3 (free) / 1 (anon)</li>
           <li>Per-anon-IP daily cap of 1 audit against any single host</li>
           <li>1-hour URL-level dedup: repeat audits return cached results, no re-crawl</li>
           <li>Honour <code className="font-mono text-foreground">robots.txt</code>, <code className="font-mono text-foreground">Crawl-delay</code>, and <code className="font-mono text-foreground">Retry-After</code></li>
-          <li>Max 5 parallel fetches per audit, 50 MB per audit, 200 pages per audit</li>
+          <li>Max 5 parallel fetches per audit, 50 MB per audit, {PAGE_CAP.free} pages per audit ({PAGE_CAP.anon} without an account)</li>
           <li>SSRF guard rejects private/internal addresses</li>
         </ul>
         <p className="mt-3 text-xs text-muted-foreground">

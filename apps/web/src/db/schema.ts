@@ -52,6 +52,14 @@ export const userProfiles = pgTable("user_profile", {
   polarCustomerId: text("polar_customer_id").unique(),
   plan: text("plan").$type<"free" | "pro">().notNull().default("free"),
   planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
+  /**
+   * Polar's raw subscription status ("active", "past_due", "canceled", ...) and
+   * whether it is set to end at the period boundary. `plan` says what the user
+   * gets; these two say what to tell them (failed card, ending soon, renews).
+   * Written by the Polar webhook and the self-heal sync, never by UI code.
+   */
+  subscriptionStatus: text("subscription_status"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
   queueLastVisitedAt: timestamp("queue_last_visited_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

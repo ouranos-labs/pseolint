@@ -10,6 +10,20 @@ export const ANON_DAILY_CAP = 3;
 export const DAILY_AUDIT_CAP = { free: 5, pro: 50 } as const;
 
 /**
+ * Per-host audit ceiling per hour, applied across all tiers: protects target
+ * sites from amplification (e.g. a viral homepage submission). Enforced in
+ * `lib/audit-gate.ts` and `app/api/audits/route.ts`.
+ */
+export const PER_HOST_HOURLY_LIMIT = 30;
+
+/**
+ * Anti-harassment cap: a single Pro user can only audit one host this many
+ * times in a given UTC day. Bounds realistic damage if a Pro account is used
+ * to repeatedly hit a third-party site.
+ */
+export const PER_USER_HOST_DAILY_PRO = 15;
+
+/**
  * Sample-size ceilings for server-triggered Pro audits. The public POST
  * /api/audits handler has its own `SAMPLE_SIZE_CEILING = 300` for cost
  * protection on user-submitted forms; the larger budgets here apply to

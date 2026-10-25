@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
 import { getOptionalSession } from "@/lib/session";
+import { getPlan } from "@/lib/plan";
 import { DeleteAccountForm } from "./delete-account-form";
 
 export default async function AccountSettings() {
   const session = await getOptionalSession();
   if (!session) redirect("/signin?callbackUrl=/dashboard/settings/account");
+  const plan = await getPlan(session.user.id);
+  // deleteUserAccount revokes the Polar subscription before deleting anything,
+  // and aborts if it can't, so "immediately" is what actually happens.
+  const billingCopy =
+    plan === "pro" ? "Your Pro plan is canceled immediately. You won't be charged again." : "";
   return (
     <div className="flex max-w-xl flex-col gap-6">
       <h1 className="text-xl font-medium">Account</h1>
@@ -31,9 +37,9 @@ export default async function AccountSettings() {
         <h2 className="text-sm font-medium text-destructive">Delete account</h2>
         <p className="mt-2 text-xs text-muted-foreground">
           Permanently deletes your account, all audits, monitored domains, and history.
-          Billing is canceled at next period boundary.
+          {billingCopy && <> {billingCopy}</>}
         </p>
-        <DeleteAccountForm />
+        <DeleteAccountForm billingCopy={billingCopy} />
       </div>
     </div>
   );

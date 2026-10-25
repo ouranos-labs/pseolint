@@ -7,12 +7,28 @@ import { Button } from "@/components/ui/button";
 import { useAnalytics } from "@/lib/analytics/use-analytics";
 import { SourcesSection } from "@/components/marketing/sources-section";
 import { ENGINE_VERSION } from "@/lib/version";
+import {
+  ANON_DAILY_CAP,
+  DAILY_AUDIT_CAP,
+  PAGE_CAP,
+  PRO_MONITOR_SAMPLE_SIZE,
+  PRO_REAUDIT_SAMPLE_SIZE,
+} from "@/lib/audit-limits";
+import { MAX_PRO_DOMAINS } from "@/lib/tier-limits";
 
 type Interval = "monthly" | "yearly";
 
+/** Who is looking, read server-side so Pro viewers aren't offered a second subscription. */
+export type PricingViewer =
+  | { plan: "anon" }
+  | { plan: "free" }
+  | { plan: "pro"; dateLine: string | null };
+
+const CHECKOUT_ERROR = "Couldn't open checkout. You weren't charged. Try again or email support.";
+
 const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: string }> = [
-  { feature: "Audit count", free: "Unlimited one-shot", pro: "Unlimited monitored" },
-  { feature: "Sampling model (web UI)", free: "up to 200 pages, stratified across templates", pro: "up to 500 pages on manual re-audit, 200 per monitoring run, stratified across templates" },
+  { feature: "Audit count", free: `${DAILY_AUDIT_CAP.free} one-shot audits a day (${ANON_DAILY_CAP} without an account)`, pro: `${DAILY_AUDIT_CAP.pro} audits a day, up to ${MAX_PRO_DOMAINS} monitored domains` },
+  { feature: "Sampling model (web UI)", free: `up to ${PAGE_CAP.free} pages (${PAGE_CAP.anon} without an account), stratified across templates`, pro: `up to ${PRO_REAUDIT_SAMPLE_SIZE} pages on manual re-audit, ${PRO_MONITOR_SAMPLE_SIZE} per monitoring run, stratified across templates` },
   { feature: "Background monitoring", free: "—", pro: "Per-domain, change-driven (only re-fetches URLs that changed); fires template_degraded alerts on regression" },
   { feature: "Per-template verdict", free: "Included (up to free-tier budget)", pro: "Included, shows which template is dragging your score down" },
   { feature: "Triage", free: "Rule engine only", pro: "AI triage with daily budget cap" },
@@ -29,8 +45,8 @@ const COMPARISON_ROWS: ReadonlyArray<{ feature: string; free: string; pro: strin
 type FAQ = { q: string; a: string };
 const FAQS: ReadonlyArray<FAQ> = [
   {
-    q: "Is the free tier really unlimited?",
-    a: "Yes. There is no audit cap, no credit card, and no trial countdown. Each free audit covers up to 200 pages from the web UI, stratified across your URL templates; it detects your templates and produces a per-template verdict. The open-source CLI (npx pseolint <url>) has no page limit at all and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.",
+    q: "What does the free tier include?",
+    a: `No credit card and no trial countdown. Signed in, you get ${DAILY_AUDIT_CAP.free} audits a day, each covering up to ${PAGE_CAP.free} pages stratified across your URL templates, with a per-template verdict. Without an account it is ${ANON_DAILY_CAP} audits a day at up to ${PAGE_CAP.anon} pages. The open-source CLI (npx pseolint <url>) has no page or daily limit and runs fully on your own machine. Reports are kept for 24 hours anonymously, or 30 days when you sign in.`,
   },
   {
     q: "What happens if I cancel Pro?",
@@ -59,8 +75,8 @@ const FAQS: ReadonlyArray<FAQ> = [
 ];
 
 const PRO_FEATURES = [
-  { title: "Unlimited monitored domains", detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run. Every monitoring run detects templates, scores per template, and fires template_degraded alerts on regression." },
-  { title: "Per-template verdict, which template is broken", detail: "Every Pro audit tells you which template is dragging your site score down. Manual re-audits sample up to 500 pages for tighter per-template variance estimates; monitoring runs sample up to 200, stratified across templates." },
+  { title: `Up to ${MAX_PRO_DOMAINS} monitored domains`, detail: "Change-driven monitoring: re-fetches only URLs with evidence of change (sitemap lastmod, prior warning/error findings, age-floor). Sites with reliable sitemaps see ~95% fewer fetches per run. Every monitoring run detects templates, scores per template, and fires template_degraded alerts on regression." },
+  { title: "Per-template verdict, which template is broken", detail: `Every Pro audit tells you which template is dragging your site score down. Manual re-audits sample up to ${PRO_REAUDIT_SAMPLE_SIZE} pages for tighter per-template variance estimates; monitoring runs sample up to ${PRO_MONITOR_SAMPLE_SIZE}, stratified across templates.` },
   { title: "Fix queue across your portfolio", detail: "Ranked by severity × pages today; by Search Console impressions once you connect it. Per-template breakdowns so you know which template to fix first." },
   { title: "SpamBrain + AEO coverage", detail: "Classical SEO and Answer Engine Optimization, scored by your site's archetype, your pages stay rankable AND citable by LLMs." },
   { title: "Managed AI triage", detail: "No API keys to configure, daily budget caps enforced. Capability ships in our open-source CLI; Pro removes the ops burden." },
@@ -70,36 +86,55 @@ const PRO_FEATURES = [
 ] as const;
 
 const FREE_FEATURES = [
-  "Unlimited one-shot audits",
-  "Up to 200 pages per audit (web UI) · CLI has no limit",
+  `${ANON_DAILY_CAP} one-shot audits a day, ${DAILY_AUDIT_CAP.free} when signed in`,
+  `Up to ${PAGE_CAP.anon} pages per audit, ${PAGE_CAP.free} signed in (web UI) · CLI has no limit`,
   "Public shareable report link",
   "Reports kept 24h (anon) / 30d (signed-in)",
 ] as const;
 
-function PricingInner() {
+function PricingInner({ viewer }: { viewer: PricingViewer }) {
   const [loading, setLoading] = useState<Interval | null>(null);
+  const [error, setError] = useState<{ interval: Interval; message: string } | null>(null);
   const search = useSearchParams();
   const intent = search.get("intent");
   const auditSlug = search.get("audit");
+  const cancelled = search.get("checkout") === "cancelled";
   const { track } = useAnalytics();
 
   const go = async (interval: Interval) => {
     setLoading(interval);
+    setError(null);
     track({ name: "checkout_started", props: { interval } });
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ interval, intent, auditSlug }),
-    });
-    if (res.ok) {
-      const { url } = await res.json();
-      window.location.assign(url);
-    } else if (res.status === 401) {
-      window.location.assign("/signin");
-    } else {
-      alert("Checkout failed. Please try again.");
-      setLoading(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ interval, intent, auditSlug }),
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        window.location.assign(url);
+        return; // keep both buttons disabled while the browser navigates away
+      }
+      if (res.status === 401) {
+        // Come back to this exact plan choice after signing in.
+        const back = new URLSearchParams({ interval });
+        if (intent) back.set("intent", intent);
+        if (auditSlug) back.set("audit", auditSlug);
+        window.location.assign(`/signin?callbackUrl=${encodeURIComponent(`/pricing?${back}`)}`);
+        return;
+      }
+      setError({
+        interval,
+        message:
+          res.status === 409
+            ? "You're already on Pro. Manage your plan from billing settings."
+            : CHECKOUT_ERROR,
+      });
+    } catch {
+      setError({ interval, message: CHECKOUT_ERROR });
     }
+    setLoading(null);
   };
 
   return (
@@ -128,7 +163,13 @@ function PricingInner() {
         Pro adds the infrastructure around them.
       </p>
 
-      { intent === "monitor" && auditSlug && (
+      { cancelled && (
+        <div role="status" className="mt-6 rounded-[18px] border border-border/60 bg-card/60 px-5 py-3 text-xs text-foreground">
+          Checkout cancelled. You weren&apos;t charged.
+        </div>
+      ) }
+
+      { intent === "monitor" && auditSlug && viewer.plan !== "pro" && (
         <div className="mt-6 rounded-[18px] border border-primary/30 bg-primary/10 px-5 py-3 text-xs text-foreground">
           After checkout we&apos;ll start monitoring the domain from{ " " }
           <a className="font-mono underline-offset-4 hover:underline" href={ `/r/${auditSlug}` }>
@@ -137,18 +178,39 @@ function PricingInner() {
         </div>
       ) }
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <PlanCard interval="monthly" price="19" cadence="/ month" loading={ loading } onClick={ go } />
-        <PlanCard
-          interval="yearly"
-          price="180"
-          cadence="/ year"
-          note="2 months free · $48 saved"
-          loading={ loading }
-          onClick={ go }
-          highlight
-        />
-      </div>
+      { viewer.plan === "pro" ? (
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-[28px] border border-primary/40 bg-card/60 p-7 backdrop-blur-sm">
+          <p className="text-base text-foreground">
+            You&apos;re on Pro{ viewer.dateLine ? ` (${viewer.dateLine})` : "" }.
+          </p>
+          <form action="/api/billing/portal" method="POST">
+            <Button type="submit" variant="secondary" className="h-11 rounded-[14px]">
+              Manage billing
+            </Button>
+          </form>
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <PlanCard
+            interval="monthly"
+            price="19"
+            cadence="/ month"
+            loading={ loading }
+            error={ error?.interval === "monthly" ? error.message : null }
+            onClick={ go }
+          />
+          <PlanCard
+            interval="yearly"
+            price="180"
+            cadence="/ year"
+            note="2 months free · $48 saved"
+            loading={ loading }
+            error={ error?.interval === "yearly" ? error.message : null }
+            onClick={ go }
+            highlight
+          />
+        </div>
+      ) }
 
       <section className="mt-14">
         <h2 className="mb-5 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -334,10 +396,10 @@ function PricingInner() {
   );
 }
 
-export default function PricingClient() {
+export default function PricingClient({ viewer }: { viewer: PricingViewer }) {
   return (
     <Suspense>
-      <PricingInner />
+      <PricingInner viewer={ viewer } />
     </Suspense>
   );
 }
@@ -348,6 +410,7 @@ function PlanCard({
   cadence,
   note,
   loading,
+  error,
   onClick,
   highlight,
 }: {
@@ -356,6 +419,7 @@ function PlanCard({
   cadence: string;
   note?: string;
   loading: Interval | null;
+  error: string | null;
   onClick: (i: Interval) => void;
   highlight?: boolean;
 }) {
@@ -395,11 +459,17 @@ function PlanCard({
       <Button
         className="h-11 w-full rounded-[14px]"
         onClick={ () => onClick(interval) }
-        disabled={ loading === interval }
+        // Both cards lock while either is opening checkout: two clicks would be two checkouts.
+        disabled={ loading !== null }
         variant={ highlight ? "default" : "secondary" }
       >
         { loading === interval ? "Redirecting…" : "Subscribe" }
       </Button>
+      { error && (
+        <p role="alert" className="-mt-3 text-xs text-destructive">
+          { error }
+        </p>
+      ) }
     </div>
   );
 }
