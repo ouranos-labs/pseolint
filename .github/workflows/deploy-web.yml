@@ -58,4 +58,7 @@ jobs:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
           COOLIFY_WEBHOOK: ${{ secrets.COOLIFY_WEBHOOK }}
         run: |
-          curl -fsS --retry 3 -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK"
+          code=$(curl -sS --retry 3 -o resp.txt -w '%{http_code}' -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" "$COOLIFY_WEBHOOK")
+          # Path with long ids redacted, so a wrong webhook URL is diagnosable from the log.
+          echo "Coolify $code on $(echo "$COOLIFY_WEBHOOK" | sed -E 's#^https?://[^/]+##; s/[0-9a-zA-Z]{16,}/<id>/g'): $(head -c 500 resp.txt)"
+          [ "${code:0:1}" = 2 ]
