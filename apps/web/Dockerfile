@@ -12,6 +12,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun x turbo run build --filter=@pseolint/web
 
 FROM node:24.22.1-slim
+# Coolify's healthcheck runs curl (or wget) inside the container.
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && apt-get clean
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 COPY --from=build --chown=node:node /app/apps/web/.next/standalone ./
@@ -19,5 +21,5 @@ COPY --from=build --chown=node:node /app/apps/web/.next/static ./apps/web/.next/
 COPY --from=build --chown=node:node /app/apps/web/public ./apps/web/public
 USER node
 EXPOSE 3000
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD curl -fsS -o /dev/null http://127.0.0.1:3000/ || exit 1
 CMD ["node", "apps/web/server.js"]
