@@ -36,7 +36,7 @@ jobs:
         run: bun run test --filter='@pseolint/core' --filter='pseolint' --filter='@pseolint/mcp'
 
       - name: Create Release PR or Publish
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           publish: bun run release
           title: "chore: version packages"
