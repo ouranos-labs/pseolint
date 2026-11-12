@@ -16,7 +16,9 @@ const MAX_PER_TICK = 60;
 
 export const autoVerifyDomains = inngest.createFunction(
   { id: "auto-verify-domains", retries: 2 },
-  { cron: "*/5 * * * *" },
+  // Same times as */5. The new string makes Inngest build a fresh schedule:
+  // the old one carried an empty env ID after the 2026-11-12 envID bug.
+  { cron: "0-59/5 * * * *" },
   async ({ step }) => {
     const cutoff = new Date(Date.now() - AUTO_POLL_WINDOW_MS);
     const candidates = await step.run("fetch-candidates", async () =>
